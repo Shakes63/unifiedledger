@@ -23,7 +23,8 @@ import { AccountSelector } from './account-selector';
 import { CategorySelector } from './category-selector';
 import { MerchantAutocomplete, MerchantSelectionData } from './merchant-autocomplete';
 import { TransactionTemplatesManager } from './transaction-templates-manager';
-import { Plus, X, Save } from 'lucide-react';
+import { SplitBuilder, type Split } from './split-builder';
+import { Plus, X, Save, Split as SplitIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 type TransactionType = 'income' | 'expense' | 'transfer_in' | 'transfer_out';
@@ -41,6 +42,8 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [templateName, setTemplateName] = useState('');
+  const [useSplits, setUseSplits] = useState(false);
+  const [splits, setSplits] = useState<Split[]>([]);
 
   const [formData, setFormData] = useState({
     accountId: '',
@@ -177,6 +180,31 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
         throw new Error(errorData.error || 'Failed to create transaction');
       }
 
+      const transactionData = await response.json();
+      const transactionId = transactionData.id;
+
+      // Save splits if using split transaction
+      if (useSplits && splits.length > 0) {
+        for (const split of splits) {
+          const splitResponse = await fetch(`/api/transactions/${transactionId}/splits`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              categoryId: split.categoryId,
+              amount: split.amount || 0,
+              percentage: split.percentage || 0,
+              isPercentage: split.isPercentage,
+              description: split.description,
+            }),
+          });
+
+          if (!splitResponse.ok) {
+            const errorData = await splitResponse.json();
+            throw new Error(errorData.error || 'Failed to save split');
+          }
+        }
+      }
+
       setSuccess(true);
       setFormData({
         accountId: formData.accountId, // Keep the account selected
@@ -188,6 +216,8 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
         type: defaultType,
         isPending: false,
       });
+      setUseSplits(false);
+      setSplits([]);
 
       // Reset form
       if (formRef.current) {
@@ -291,11 +321,48 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
         />
       </div>
 
-      {/* Category (skip for transfers) */}
-      {formData.type !== 'transfer_in' && formData.type !== 'transfer_out' && (
+      {/* Category (skip for transfers and split transactions) */}
+      {formData.type !== 'transfer_in' && formData.type !== 'transfer_out' && !useSplits && (
         <CategorySelector
           selectedCategory={formData.categoryId}
           onCategoryChange={handleCategoryChange}
+          transactionType={formData.type as 'income' | 'expense'}
+        />
+      )}
+
+      {/* Split Transaction Toggle */}
+      {formData.type !== 'transfer_in' && formData.type !== 'transfer_out' && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-white">Split this transaction?</Label>
+          <Button
+            type="button"
+            variant={useSplits ? 'default' : 'outline'}
+            onClick={() => {
+              setUseSplits(!useSplits);
+              if (!useSplits) {
+                setFormData((prev) => ({ ...prev, categoryId: '' }));
+              } else {
+                setSplits([]);
+              }
+            }}
+            className={`w-full ${
+              useSplits
+                ? 'bg-white text-black hover:bg-gray-100'
+                : 'bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]'
+            }`}
+          >
+            <SplitIcon className="w-4 h-4 mr-2" />
+            {useSplits ? 'Using Splits' : 'Add Splits'}
+          </Button>
+        </div>
+      )}
+
+      {/* Split Builder */}
+      {useSplits && formData.amount && (
+        <SplitBuilder
+          transactionAmount={parseFloat(formData.amount)}
+          splits={splits}
+          onSplitsChange={setSplits}
           transactionType={formData.type as 'income' | 'expense'}
         />
       )}
