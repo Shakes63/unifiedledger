@@ -57,9 +57,16 @@ A comprehensive mobile-first personal finance application built with Next.js, fe
 unifiedledger/
 ├── app/
 │   ├── api/                           # API routes
-│   │   ├── transactions/              # Transaction CRUD endpoints
-│   │   ├── accounts/                  # Account management endpoints
-│   │   ├── categories/                # Category management endpoints
+│   │   ├── transactions/              # Transaction CRUD endpoints (with auto-categorization)
+│   │   ├── accounts/                  # Account management endpoints (usage-sorted)
+│   │   ├── categories/                # Category management endpoints (usage-sorted)
+│   │   ├── merchants/                 # Merchant listing (usage-sorted)
+│   │   ├── rules/                     # Categorization rules CRUD
+│   │   │   ├── route.ts              # List, create, update, delete rules
+│   │   │   ├── test/route.ts         # Test rules against transactions
+│   │   │   └── apply-bulk/route.ts   # Bulk apply rules to existing txns
+│   │   ├── categorization/
+│   │   │   └── suggest/route.ts      # Smart category suggestions
 │   │   ├── auth/init/                 # User initialization
 │   │   ├── households/                # Household management
 │   │   ├── suggestions/               # Smart suggestions
@@ -87,12 +94,19 @@ unifiedledger/
 │   │   ├── quick-transaction-modal.tsx
 │   │   ├── merchant-autocomplete.tsx
 │   │   └── transaction-templates.tsx
+│   ├── rules/                         # Categorization rules components
+│   │   ├── rule-builder.tsx           # Visual condition builder
+│   │   ├── rules-manager.tsx          # Rule listing and management
+│   │   └── bulk-apply-rules.tsx       # Bulk operation interface
 │   └── household/
 │       └── household-selector.tsx
 ├── lib/
 │   ├── db/
 │   │   ├── schema.ts                  # Complete database schema
 │   │   └── index.ts                   # Database client
+│   ├── rules/                         # Rules engine and utilities
+│   │   ├── condition-evaluator.ts     # Condition matching logic
+│   │   └── rule-matcher.ts            # Rule matching algorithm
 │   └── utils.ts
 ├── public/
 │   ├── logo.png                       # Unified Ledger branding icon
@@ -135,6 +149,39 @@ pnpm build         # Build for production
 ### Financial Calculations
 - Always use `decimal.js` for money calculations (avoid JavaScript number precision issues)
 - Never use floating-point arithmetic for financial data
+
+### Categorization Rules System
+The application has a sophisticated rules engine for automatic transaction categorization:
+
+**Rule Conditions:**
+- 14 operators: equals, not_equals, contains, not_contains, starts_with, ends_with, greater_than, less_than, between, regex, in_list, matches_day, matches_weekday, matches_month
+- 8 fields: description, amount, account_name, date, day_of_month, weekday, month, notes
+- Recursive AND/OR groups for complex logic
+- Full validation with detailed error messages
+
+**Rule Matching:**
+- Priority-based (lower number = higher priority)
+- First matching rule applies (stops at first match)
+- Only applies to transactions without manual category
+- Automatic logging to ruleExecutionLog table
+- Test endpoint available for preview before saving
+
+**Database Schema:**
+- `categorizationRules` - Rule definitions with conditions as JSON
+- `ruleExecutionLog` - Audit trail of rule applications
+- Both tables include proper indexing for performance
+
+**Usage:**
+```typescript
+// Test a rule before saving
+POST /api/rules/test { rule, transactions }
+
+// Apply rules to existing transactions
+POST /api/rules/apply-bulk?startDate=2024-01-01&endDate=2024-12-31&limit=100
+
+// Manage rules
+GET/POST/PUT/DELETE /api/rules
+```
 
 ### Component Development
 - Use shadcn/ui as the base for components
@@ -220,16 +267,64 @@ The application uses a comprehensive dark mode first design system:
 ✅ `/api/households/[id]/invitations` - Invitations
 ✅ `/api/suggestions` - Smart suggestions
 
-## Next Phase: Phase 2 - Smart Features (Weeks 3-4)
-The next phase will focus on:
-1. Recurring transactions and smart templates
-2. Advanced category suggestions based on patterns
-3. Smart amount predictions
-4. Transaction categorization rules
-5. Improved dashboard with analytics
-6. Monthly budget tracking
-7. Bill management system
-8. Savings goals tracking
+## Phase 2: Transaction Intelligence & Speed Features - IN PROGRESS 🟢
+
+**Progress: 8/24 tasks completed (33%)**
+
+### Completed Phase 2 Features
+
+#### Usage Tracking & Smart Sorting
+- ✅ Usage tracking system for accounts, categories, and merchants
+- ✅ Usage-based sorting on all selection lists (most-used first)
+- ✅ Merchant table with totalSpent and averageTransaction tracking
+- ✅ UsageAnalytics table for comprehensive usage history
+
+#### Smart Categorization
+- ✅ Smart category suggestion engine based on merchant history
+- ✅ Merchant autocomplete with frequency display
+- ✅ Auto-apply category on merchant selection (if learned)
+- ✅ Confidence score display for category suggestions
+
+#### Comprehensive Rules System
+- ✅ **Condition Evaluator:** 14 operators, 8 fields, recursive AND/OR groups
+- ✅ **Rule Matcher:** Priority-based matching algorithm (first match wins)
+- ✅ **Rule Testing:** Test rules against sample transactions before saving
+- ✅ **Auto-Application:** Rules applied automatically on transaction creation
+- ✅ **Rule Builder UI:** Visual condition editor with nested groups
+- ✅ **Rules Manager UI:** List, prioritize, toggle, and manage rules
+- ✅ **Bulk Operations:** Apply rules to existing uncategorized transactions
+- ✅ **Rule Statistics:** Track match count and last used timestamps
+
+### Rules System Architecture
+
+**Backend:**
+- `lib/rules/condition-evaluator.ts` - Core matching logic with validation
+- `lib/rules/rule-matcher.ts` - Priority-based rule selection algorithm
+- `app/api/rules/route.ts` - CRUD operations for rule management
+- `app/api/rules/test/route.ts` - Test endpoint for preview before saving
+- `app/api/rules/apply-bulk/route.ts` - Bulk apply with date filtering
+
+**Frontend:**
+- `components/rules/rule-builder.tsx` - Visual condition builder
+- `components/rules/rules-manager.tsx` - Rule management interface
+- `components/rules/bulk-apply-rules.tsx` - Bulk operation UI
+
+### Next Phase 2 Tasks
+1. [ ] Add transaction history with "repeat" functionality
+2. [ ] Build split transaction database schema
+3. [ ] Implement split transaction creation and editing UI
+4. [ ] Build advanced search database schema
+5. [ ] Implement core search function with filtering
+6. [ ] Voice-to-text transaction entry
+7. [ ] Duplicate detection with Levenshtein distance
+8. [ ] CSV import with auto-detection
+
+### Phase 3 Goals (After Phase 2)
+1. Multi-account transfers with usage-based suggestions
+2. Calendar view with transaction indicators
+3. Advanced search with filters
+4. CSV import with column mapping
+5. Budget tracking and analytics
 
 ## Important Notes
 - The development plan is located in `docs/finance-app-development-plan.md`
