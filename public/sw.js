@@ -116,6 +116,21 @@ async function networkFirst(request) {
       return cached;
     }
 
+    // Check if this is an HTML request
+    const url = new URL(request.url);
+    if (request.headers.get('accept')?.includes('text/html') || url.pathname === '/' || url.pathname.endsWith('.html')) {
+      // Return offline.html for HTML page requests
+      try {
+        const offlineCache = await caches.open(CACHE_NAMES.STATIC);
+        const offlineResponse = await offlineCache.match('/offline.html');
+        if (offlineResponse) {
+          return offlineResponse;
+        }
+      } catch (offlineError) {
+        console.error('Could not load offline.html:', offlineError);
+      }
+    }
+
     // Return offline page or error response
     return new Response('Offline - please check your connection', {
       status: 503,

@@ -38,6 +38,8 @@ export const accounts = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_accounts_user').on(table.userId),
+    userUsageIdx: index('idx_accounts_user_usage').on(table.userId, table.usageCount),
+    userActiveIdx: index('idx_accounts_user_active').on(table.userId, table.isActive),
   })
 );
 
@@ -60,6 +62,9 @@ export const budgetCategories = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_budget_categories_user').on(table.userId),
+    userTypeIdx: index('idx_budget_categories_user_type').on(table.userId, table.type),
+    userUsageIdx: index('idx_budget_categories_user_usage').on(table.userId, table.usageCount),
+    userActiveIdx: index('idx_budget_categories_user_active').on(table.userId, table.isActive),
   })
 );
 
@@ -84,6 +89,8 @@ export const merchants = sqliteTable(
       table.normalizedName
     ),
     userIdIdx: index('idx_merchants_user').on(table.userId),
+    userUsageIdx: index('idx_merchants_user_usage').on(table.userId, table.usageCount),
+    userLastUsedIdx: index('idx_merchants_user_lastused').on(table.userId, table.lastUsedAt),
   })
 );
 
@@ -859,6 +866,8 @@ export const tags = sqliteTable(
   (table) => ({
     userIdIdx: index('idx_tags_user').on(table.userId),
     userNameUnique: uniqueIndex('idx_tags_user_name').on(table.userId, table.name),
+    userUsageIdx: index('idx_tags_user_usage').on(table.userId, table.usageCount),
+    userLastUsedIdx: index('idx_tags_user_lastused').on(table.userId, table.lastUsedAt),
   })
 );
 
@@ -906,6 +915,8 @@ export const customFields = sqliteTable(
   (table) => ({
     userIdIdx: index('idx_custom_fields_user').on(table.userId),
     userNameUnique: uniqueIndex('idx_custom_fields_user_name').on(table.userId, table.name),
+    userActiveIdx: index('idx_custom_fields_user_active').on(table.userId, table.isActive),
+    userUsageIdx: index('idx_custom_fields_user_usage').on(table.userId, table.usageCount),
   })
 );
 

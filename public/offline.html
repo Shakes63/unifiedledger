@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <title>Offline - Unified Ledger</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+          'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+        background-color: #0a0a0a;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 500px;
+        text-align: center;
+      }
+
+      .icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: #ffffff;
+      }
+
+      p {
+        font-size: 16px;
+        color: #9ca3af;
+        margin-bottom: 8px;
+        line-height: 1.6;
+      }
+
+      .subtitle {
+        margin-bottom: 32px;
+      }
+
+      .features {
+        background-color: #1a1a1a;
+        border: 1px solid #2a2a2a;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 32px;
+        text-align: left;
+      }
+
+      .feature {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 12px;
+      }
+
+      .feature:last-child {
+        margin-bottom: 0;
+      }
+
+      .feature-icon {
+        margin-right: 12px;
+        color: #10b981;
+        font-size: 18px;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .feature-text {
+        text-align: left;
+      }
+
+      .feature-title {
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 2px;
+      }
+
+      .feature-desc {
+        font-size: 14px;
+        color: #6b7280;
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+        flex-direction: column;
+      }
+
+      button {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background-color: #ffffff;
+        color: #000000;
+      }
+
+      .btn-primary:hover {
+        background-color: #f3f4f6;
+        transform: translateY(-2px);
+      }
+
+      .btn-secondary {
+        background-color: #242424;
+        color: #ffffff;
+        border: 1px solid #3a3a3a;
+      }
+
+      .btn-secondary:hover {
+        background-color: #2a2a2a;
+        transform: translateY(-2px);
+      }
+
+      button:active {
+        transform: translateY(0);
+      }
+
+      .status {
+        margin-top: 24px;
+        padding: 12px;
+        background-color: #1a1a1a;
+        border-radius: 8px;
+        border: 1px solid #2a2a2a;
+      }
+
+      .status-label {
+        font-size: 12px;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+      }
+
+      .status-value {
+        font-size: 14px;
+        color: #9ca3af;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background-color: #10b981;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+        margin-right: 8px;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      @media (max-width: 480px) {
+        h1 {
+          font-size: 24px;
+        }
+
+        p {
+          font-size: 14px;
+        }
+
+        .icon {
+          font-size: 48px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="icon">📡</div>
+
+      <h1>You're Offline</h1>
+      <p class="subtitle">Don't worry! Your data is safe and syncing automatically.</p>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">✓</div>
+          <div class="feature-text">
+            <div class="feature-title">Offline Transactions</div>
+            <div class="feature-desc">Create transactions offline and they'll sync when you're back online</div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-icon">✓</div>
+          <div class="feature-text">
+            <div class="feature-title">View Your Data</div>
+            <div class="feature-desc">Access your recent transactions and account info cached on your device</div>
+          </div>
+        </div>
+
+        <div class="feature">
+          <div class="feature-icon">✓</div>
+          <div class="feature-text">
+            <div class="feature-title">Auto-Sync</div>
+            <div class="feature-desc">Changes sync automatically when your connection is restored</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-primary" onclick="goToDashboard()">Go to Dashboard</button>
+        <button class="btn-secondary" onclick="reloadPage()">Retry Connection</button>
+      </div>
+
+      <div class="status">
+        <div class="status-label">Status</div>
+        <div class="status-value">
+          <span class="spinner"></span>
+          <span id="status-text">Waiting for connection...</span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Update status when connection changes
+      function updateConnectionStatus() {
+        const statusText = document.getElementById('status-text');
+        if (navigator.onLine) {
+          statusText.textContent = 'Connected! Syncing your changes...';
+          // Wait a moment for sync to complete, then redirect
+          setTimeout(() => {
+            window.location.href = '/dashboard';
+          }, 1500);
+        } else {
+          statusText.textContent = 'Still waiting for connection...';
+        }
+      }
+
+      // Listen for online/offline events
+      window.addEventListener('online', updateConnectionStatus);
+      window.addEventListener('offline', updateConnectionStatus);
+
+      // Check initial status
+      updateConnectionStatus();
+
+      // Button functions
+      function goToDashboard() {
+        window.location.href = '/dashboard';
+      }
+
+      function reloadPage() {
+        window.location.reload();
+      }
+    </script>
+  </body>
+</html>

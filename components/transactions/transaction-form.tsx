@@ -29,6 +29,7 @@ import { BudgetWarning } from './budget-warning';
 import { Plus, X, Save, Split as SplitIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { HapticFeedbackTypes } from '@/hooks/useHapticFeedback';
 
 type TransactionType = 'income' | 'expense' | 'transfer_in' | 'transfer_out';
 
@@ -514,6 +515,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       }
 
       setSuccess(true);
+      // Haptic feedback on successful transaction creation
+      HapticFeedbackTypes.transactionCreated();
 
       if (isEditMode) {
         // For edit mode, call the callback or go back to details
@@ -544,6 +547,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         }, 1500);
       }
     } catch (err) {
+      // Haptic feedback on error
+      HapticFeedbackTypes.transactionError();
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
@@ -551,7 +556,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   };
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 md:max-w-2xl md:mx-auto">
       {error && (
         <div className="p-4 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-sm">
           {error}
@@ -594,7 +599,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           Amount *
         </Label>
         <div className="relative">
-          <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
+          <span className="absolute left-3 top-3 md:top-2.5 text-muted-foreground">$</span>
           <Input
             id="amount"
             name="amount"
@@ -604,7 +609,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             placeholder="0.00"
             value={formData.amount}
             onChange={handleInputChange}
-            className="pl-7"
+            className="pl-7 h-12 md:h-10 text-base md:text-sm"
             required
           />
         </div>
@@ -633,6 +638,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           type="date"
           value={formData.date}
           onChange={handleInputChange}
+          className="h-12 md:h-10 text-base md:text-sm"
         />
       </div>
 
@@ -668,7 +674,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                 setSplits([]);
               }
             }}
-            className={`w-full ${
+            className={`w-full h-12 md:h-10 text-base md:text-sm ${
               useSplits
                 ? 'bg-white text-black hover:bg-gray-100'
                 : 'bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]'
@@ -697,6 +703,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         </Label>
         <Input
           id="notes"
+          className="h-12 md:h-10 text-base md:text-sm"
           name="notes"
           placeholder="Additional details (optional)"
           value={formData.notes}
@@ -936,18 +943,20 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       </div>
 
       {/* Template Buttons */}
-      <div className="flex gap-2 pt-2">
-        <TransactionTemplatesManager
-          onTemplateSelected={handleLoadTemplate}
-          showTrigger={true}
-        />
+      <div className="flex gap-2 pt-2 flex-col md:flex-row">
+        <div className="flex-1">
+          <TransactionTemplatesManager
+            onTemplateSelected={handleLoadTemplate}
+            showTrigger={true}
+          />
+        </div>
 
         <Dialog open={saveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
           <DialogTrigger asChild>
             <Button
               type="button"
               variant="outline"
-              className="bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]"
+              className="bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a] w-full h-10 text-sm"
               disabled={!formData.accountId || !formData.amount || !formData.description}
             >
               <Save className="w-4 h-4 mr-2" />
@@ -994,12 +1003,12 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         </Dialog>
       </div>
 
-      {/* Submit Buttons */}
-      <div className="flex gap-2 pt-4">
+      {/* Submit Buttons - Mobile optimized with 44px minimum height */}
+      <div className="flex gap-2 pt-4 flex-col md:flex-row md:pb-0 pb-4">
         <Button
           type="submit"
           disabled={loading}
-          className="flex-1 bg-white text-black hover:bg-gray-100 font-medium"
+          className="flex-1 bg-white text-black hover:bg-gray-100 font-medium h-12 md:h-10 text-base md:text-sm"
         >
           {isEditMode
             ? loading
@@ -1014,7 +1023,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           variant="outline"
           onClick={() => router.back()}
           disabled={loading}
-          className="bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]"
+          className="bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a] h-12 md:h-10 text-base md:text-sm md:px-6 px-4"
         >
           Cancel
         </Button>
