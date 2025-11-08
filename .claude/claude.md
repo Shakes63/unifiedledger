@@ -386,9 +386,8 @@ The application uses a comprehensive dark mode first design system:
 3. ✅ Implement split transaction creation and editing UI
 4. ✅ Build advanced search database schema
 5. ✅ Implement core search function with filtering (pagination & saved searches)
-6. [ ] Voice-to-text transaction entry
-7. [ ] Duplicate detection with Levenshtein distance
-8. [ ] CSV import with auto-detection
+6. [ ] Duplicate detection with Levenshtein distance
+7. [ ] CSV import with auto-detection
 
 ### Phase 3 Goals (After Phase 2)
 1. Multi-account transfers with usage-based suggestions
