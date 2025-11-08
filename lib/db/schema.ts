@@ -137,6 +137,14 @@ export const transactions = sqliteTable(
     splitParentId: text('split_parent_id'),
     importHistoryId: text('import_history_id'),
     importRowNumber: integer('import_row_number'),
+    // Offline sync tracking fields
+    syncStatus: text('sync_status', {
+      enum: ['pending', 'syncing', 'synced', 'error', 'offline'],
+    }).default('synced'),
+    offlineId: text('offline_id'),
+    syncedAt: text('synced_at'),
+    syncError: text('sync_error'),
+    syncAttempts: integer('sync_attempts').default(0),
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   },
@@ -150,6 +158,10 @@ export const transactions = sqliteTable(
     userDateIdx: index('idx_transactions_user_date').on(table.userId, table.date),
     userCategoryIdx: index('idx_transactions_user_category').on(table.userId, table.categoryId),
     importIdx: index('idx_transactions_import').on(table.importHistoryId),
+    // Sync tracking indexes for efficient queries
+    syncStatusIdx: index('idx_transactions_sync_status').on(table.syncStatus),
+    userSyncIdx: index('idx_transactions_user_sync').on(table.userId, table.syncStatus),
+    offlineIdIdx: index('idx_transactions_offline_id').on(table.offlineId),
   })
 );
 

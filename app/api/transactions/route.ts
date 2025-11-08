@@ -31,6 +31,9 @@ export async function POST(request: Request) {
       notes,
       type = 'expense',
       isPending = false,
+      // Offline sync tracking fields
+      offlineId,
+      syncStatus = 'synced',
     } = body;
 
     // Validate required fields
@@ -122,6 +125,11 @@ export async function POST(request: Request) {
       notes: notes || null,
       type,
       isPending,
+      // Offline sync tracking
+      offlineId: offlineId || null,
+      syncStatus: syncStatus,
+      syncedAt: syncStatus === 'synced' ? new Date().toISOString() : null,
+      syncAttempts: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
