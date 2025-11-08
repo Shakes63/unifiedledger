@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select } from '@/components/ui/select';
-import { X } from 'lucide-react';
+import { SavedSearches } from './saved-searches';
+import { ChevronDown } from 'lucide-react';
 
 interface SearchFilters {
   query?: string;
@@ -55,6 +56,7 @@ export function AdvancedSearch({
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(
     new Set(filters.types || [])
   );
+  const [showSavedSearches, setShowSavedSearches] = useState(false);
 
   const transactionTypes = [
     { value: 'income', label: 'Income' },
@@ -125,6 +127,42 @@ export function AdvancedSearch({
     setSelectedTypes(new Set());
   };
 
+  const handleLoadSavedSearch = (savedFilters: Record<string, any>) => {
+    // Load filters from saved search
+    setFilters({
+      ...savedFilters,
+      sortBy: savedFilters.sortBy || 'date',
+      sortOrder: savedFilters.sortOrder || 'desc',
+    });
+
+    // Update UI state
+    setSelectedCategories(
+      new Set(savedFilters.categoryIds || [])
+    );
+    setSelectedAccounts(
+      new Set(savedFilters.accountIds || [])
+    );
+    setSelectedTypes(
+      new Set(savedFilters.types || [])
+    );
+
+    if (savedFilters.amountMin !== undefined || savedFilters.amountMax !== undefined) {
+      setAmountRange([
+        savedFilters.amountMin || 0,
+        savedFilters.amountMax || 10000,
+      ]);
+    }
+
+    // Auto-search with loaded filters
+    setTimeout(() => {
+      onSearch({
+        ...savedFilters,
+        sortBy: savedFilters.sortBy || 'date',
+        sortOrder: savedFilters.sortOrder || 'desc',
+      });
+    }, 100);
+  };
+
   const handleSearch = () => {
     onSearch(filters);
   };
@@ -153,6 +191,32 @@ export function AdvancedSearch({
           >
             Clear All
           </Button>
+        )}
+      </div>
+
+      {/* Saved Searches Toggle */}
+      <div className="border-t border-[#2a2a2a] pt-4">
+        <Button
+          onClick={() => setShowSavedSearches(!showSavedSearches)}
+          variant="outline"
+          className="w-full justify-between text-[#9ca3af] border-[#2a2a2a] hover:bg-[#242424]"
+        >
+          Saved Searches
+          <ChevronDown
+            className={`w-4 h-4 transition-transform ${
+              showSavedSearches ? 'rotate-180' : ''
+            }`}
+          />
+        </Button>
+
+        {showSavedSearches && (
+          <div className="mt-4">
+            <SavedSearches
+              currentFilters={filters}
+              onLoadSearch={handleLoadSavedSearch}
+              isLoading={isLoading}
+            />
+          </div>
         )}
       </div>
 

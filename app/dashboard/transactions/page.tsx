@@ -48,6 +48,10 @@ export default function TransactionsPage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [repeatingTxId, setRepeatingTxId] = useState<string | null>(null);
   const [totalResults, setTotalResults] = useState(0);
+  const [paginationOffset, setPaginationOffset] = useState(0);
+  const [pageSize, setPageSize] = useState(50);
+  const [hasMore, setHasMore] = useState(false);
+  const [currentFilters, setCurrentFilters] = useState<any>(null);
 
   // Fetch initial data
   useEffect(() => {
@@ -87,7 +91,7 @@ export default function TransactionsPage() {
     fetchInitialData();
   }, []);
 
-  const handleAdvancedSearch = async (filters: any) => {
+  const performSearch = async (filters: any, offset: number = 0) => {
     try {
       setSearchLoading(true);
 
@@ -105,14 +109,20 @@ export default function TransactionsPage() {
       if (filters.hasNotes) params.append('hasNotes', 'true');
       if (filters.sortBy) params.append('sortBy', filters.sortBy);
       if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
-      params.append('limit', '100');
+      params.append('limit', pageSize.toString());
+      params.append('offset', offset.toString());
 
       const response = await fetch(`/api/transactions/search?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
         setTransactions(data.transactions);
         setTotalResults(data.pagination.total);
-        toast.success(`Found ${data.pagination.total} transaction(s)`);
+        setHasMore(data.pagination.hasMore);
+        setPaginationOffset(offset);
+
+        if (offset === 0) {
+          toast.success(`Found ${data.pagination.total} transaction(s)`);
+        }
       } else {
         toast.error('Search failed');
       }
@@ -121,6 +131,24 @@ export default function TransactionsPage() {
       toast.error('Failed to search transactions');
     } finally {
       setSearchLoading(false);
+    }
+  };
+
+  const handleAdvancedSearch = async (filters: any) => {
+    setCurrentFilters(filters);
+    setPaginationOffset(0);
+    await performSearch(filters, 0);
+  };
+
+  const handleNextPage = async () => {
+    if (currentFilters) {
+      await performSearch(currentFilters, paginationOffset + pageSize);
+    }
+  };
+
+  const handlePreviousPage = async () => {
+    if (currentFilters && paginationOffset >= pageSize) {
+      await performSearch(currentFilters, paginationOffset - pageSize);
     }
   };
 
@@ -313,6 +341,31 @@ export default function TransactionsPage() {
                 </Card>
               </Link>
             ))}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {currentFilters && transactions.length > 0 && (
+          <div className="mt-8 flex items-center justify-between">
+            <div className="text-sm text-[#9ca3af]">
+              Showing {paginationOffset + 1}-{Math.min(paginationOffset + pageSize, totalResults)} of {totalResults}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handlePreviousPage}
+                disabled={paginationOffset === 0 || searchLoading}
+                className="bg-[#242424] hover:bg-[#2a2a2a] text-white disabled:opacity-50"
+              >
+                Previous
+              </Button>
+              <Button
+                onClick={handleNextPage}
+                disabled={!hasMore || searchLoading}
+                className="bg-[#242424] hover:bg-[#2a2a2a] text-white disabled:opacity-50"
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
       </main>
