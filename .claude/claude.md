@@ -567,14 +567,14 @@ The application uses a comprehensive dark mode first design system:
 3. Recurring transaction support
 4. Advanced analytics and reporting
 
-## Phase 4: Budget Integration, Bill Tracking & Notifications - MOSTLY COMPLETE ⚠️
+## Phase 4: Budget Integration, Bill Tracking & Notifications - COMPLETED ✅
 
-**Progress: 6/6 major feature groups completed with 3 notification tasks pending (89% complete)**
+**Progress: 6/6 major feature groups completed - 100% COMPLETE**
 
-**Incomplete Tasks from Phase 4:**
-- ❌ Budget warning notifications (real-time) - Requires cron job to check spending thresholds and create notifications
-- ❌ Low balance notifications - Requires API endpoint and cron job to monitor account balances
-- ✅ Real-time budget impact display during transaction entry - COMPLETE (shows projected spending, warnings, etc.)
+**All Phase 4 Tasks Completed:**
+- ✅ Budget warning notifications (real-time) - Cron job checks spending thresholds and creates notifications
+- ✅ Low balance notifications - API endpoint and cron job monitor account balances
+- ✅ Real-time budget impact display during transaction entry - Shows projected spending, warnings, etc.
 
 ### Phase 4 Part 1: Foundation & Database Schema - COMPLETED ✅
 
@@ -688,6 +688,8 @@ The application uses a comprehensive dark mode first design system:
 - ✅ `PATCH/DELETE /api/notifications/[id]` - Update/delete notifications
 - ✅ `GET/PATCH /api/notification-preferences` - Manage user preferences
 - ✅ `POST/GET /api/notifications/bill-reminders` - Trigger bill reminder checks
+- ✅ `POST/GET /api/notifications/budget-warnings` - Check budgets and create warnings
+- ✅ `POST/GET /api/notifications/low-balance-alerts` - Check account balances and create alerts
 
 #### Bill Reminders System
 - ✅ **Bill Reminder Utility** (`lib/notifications/bill-reminders.ts`)
@@ -696,6 +698,28 @@ The application uses a comprehensive dark mode first design system:
   - Overdue bill detection with days late tracking
   - Metadata includes bill ID, amount, and due date
   - Links to bills dashboard for quick action
+
+#### Budget Warnings System
+- ✅ **Budget Warnings Utility** (`lib/notifications/budget-warnings.ts`)
+  - Checks all budget categories for users with warnings enabled
+  - Calculates current month's spending per category
+  - Creates `budget_warning` notification if spending ≥ threshold (default 80%)
+  - Creates `budget_exceeded` notification if spending ≥ 100%
+  - Prevents duplicate notifications on same day
+  - Metadata includes spent amount, budget limit, and percentage
+  - API endpoint: `POST /api/notifications/budget-warnings`
+  - Recommended cron schedule: Daily at 9 AM UTC
+
+#### Low Balance Alerts System
+- ✅ **Low Balance Alerts Utility** (`lib/notifications/low-balance-alerts.ts`)
+  - Checks all active accounts for users with alerts enabled
+  - Compares balance against configurable threshold (default $100)
+  - Creates `low_balance` notification when balance falls below threshold
+  - Priority levels: `urgent` (≤$0), `high` (<25% of threshold), `normal` (<threshold)
+  - Prevents duplicate notifications on same day
+  - Metadata includes current balance, threshold, and deficit
+  - API endpoint: `POST /api/notifications/low-balance-alerts`
+  - Recommended cron schedule: Daily at 8 AM UTC
 
 #### Notification UI Components
 - ✅ **NotificationBell** - Real-time notification indicator with unread badge

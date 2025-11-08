@@ -1,10 +1,20 @@
-# Cron Job Setup for Bill Reminders
+# Cron Job Setup for Notifications
 
-This guide explains how to set up automated bill reminder notifications.
+This guide explains how to set up automated notifications via cron jobs.
 
 ## Overview
 
-The application has an API endpoint at `/api/notifications/bill-reminders` that checks for upcoming/overdue bills and creates notifications. This endpoint should be called once daily (or more frequently if desired).
+The application has multiple cron-compatible endpoints that check various conditions and create notifications:
+
+| Endpoint | Purpose | Frequency |
+|----------|---------|-----------|
+| `/api/notifications/bill-reminders` | Check for upcoming/overdue bills | Daily (8 AM UTC) |
+| `/api/notifications/budget-warnings` | Check budget spending thresholds | Daily (9 AM UTC) |
+| `/api/notifications/low-balance-alerts` | Check account balances | Daily (8 AM UTC) |
+| `/api/notifications/savings-milestones` | Check savings goal progress | Daily (10 AM UTC) |
+| `/api/notifications/debt-milestones` | Check debt payoff progress | Daily (10 AM UTC) |
+
+All endpoints should be called via POST requests.
 
 ## Setup Options
 
@@ -220,12 +230,100 @@ Users can manage their preferences at:
    - For production, implement cron secret validation
    - See "Option 1: Vercel Cron" for example
 
+## Budget Warnings Endpoint
+
+The `/api/notifications/budget-warnings` endpoint checks all budget categories and creates notifications when spending exceeds configured thresholds.
+
+### Configuration
+
+Users can configure via Notification Preferences:
+- **Budget Warning Enabled** - Toggle budget warnings on/off
+- **Budget Warning Threshold** - Percentage (default: 80%)
+- **Budget Exceeded Alert** - Create notification at 100% (default: enabled)
+
+### How It Works
+
+1. Checks all active budget categories for each user with warnings enabled
+2. Calculates current month's spending for each category
+3. Creates `budget_warning` notification if spending ≥ threshold percentage
+4. Creates `budget_exceeded` notification if spending ≥ 100% (and enabled)
+5. Prevents duplicate notifications on the same day
+
+### Recommended Schedule
+
+```
+Daily at 9 AM UTC: 0 9 * * *
+```
+
+## Low Balance Alerts Endpoint
+
+The `/api/notifications/low-balance-alerts` endpoint checks all accounts and creates notifications when balance falls below configured threshold.
+
+### Configuration
+
+Users can configure via Notification Preferences:
+- **Low Balance Alert Enabled** - Toggle alerts on/off
+- **Low Balance Threshold** - Dollar amount (default: $100)
+
+### How It Works
+
+1. Checks all active accounts for each user with alerts enabled
+2. Compares current balance against configured threshold
+3. Creates `low_balance` notification if balance < threshold
+4. Sets priority based on balance level:
+   - `urgent` - Balance ≤ $0
+   - `high` - Balance < 25% of threshold
+   - `normal` - Balance < threshold
+5. Prevents duplicate notifications on the same day
+
+### Recommended Schedule
+
+```
+Daily at 8 AM UTC: 0 8 * * *
+```
+
+## Example Vercel Configuration with Multiple Crons
+
+If using Vercel, configure all notification crons in `vercel.json`:
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/bill-reminders",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/low-balance-alerts",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/budget-warnings",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/savings-milestones",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/debt-milestones",
+      "schedule": "0 10 * * *"
+    }
+  ]
+}
+```
+
 ## Next Steps
 
 1. Choose your cron service
-2. Set up the scheduled call to `/api/notifications/bill-reminders`
-3. Test the endpoint manually
-4. Monitor for 24 hours to ensure it's working
-5. Adjust schedule if needed based on user timezone
+2. Set up scheduled calls to all notification endpoints:
+   - `/api/notifications/bill-reminders`
+   - `/api/notifications/budget-warnings`
+   - `/api/notifications/low-balance-alerts`
+   - `/api/notifications/savings-milestones` (if using goals)
+   - `/api/notifications/debt-milestones` (if using debt tracking)
+3. Test each endpoint manually
+4. Monitor for 24-48 hours to ensure they're working
+5. Adjust schedules if needed based on user timezone
 
 For more information on the notification system, see [NOTIFICATIONS.md](./NOTIFICATIONS.md)
