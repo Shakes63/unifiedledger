@@ -20,11 +20,15 @@ interface Account {
 interface AccountSelectorProps {
   selectedAccountId: string | null;
   onAccountChange: (accountId: string) => void;
+  label?: string;
+  hideLabel?: boolean;
 }
 
 export function AccountSelector({
   selectedAccountId,
   onAccountChange,
+  label = 'Account',
+  hideLabel = false,
 }: AccountSelectorProps) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +60,7 @@ export function AccountSelector({
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium text-white">Account</label>
+      {!hideLabel && <label className="text-sm font-medium text-white">{label}</label>}
       <Select value={selectedAccountId || ''} onValueChange={onAccountChange}>
         <SelectTrigger className="bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg">
           <SelectValue placeholder="Select account" />

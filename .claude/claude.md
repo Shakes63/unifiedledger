@@ -1989,9 +1989,47 @@ See `docs/TESTING_GUIDE.md` for comprehensive testing documentation.
     - Reduced grid gap from `gap-6` to `gap-4` in `app/dashboard/categories/page.tsx`
     - Adjusted button sizes and element padding for more compact display
 
+12. **Fixed Account Creation 500 Error** - Resolved missing database column issue:
+    - Root cause: Missing `is_business_account` column in accounts table
+    - Created and applied database migration `0003_add_business_account.sql`
+    - Enhanced error logging in `app/api/accounts/route.ts`
+    - Account creation now works properly with business account tracking
+
+13. **Fixed Sidebar Dashboard Highlight** - Navigation highlight now works correctly:
+    - Fixed `isActive()` function in `components/navigation/sidebar.tsx`
+    - Dashboard link now only highlights on exact `/dashboard` path
+    - Other menu items properly highlight their sub-pages
+    - Dashboard no longer stays highlighted when navigating to other pages
+
+14. **Fixed Transfer Form Duplicate Labels** - Cleaned up transfer form UI:
+    - Made `AccountSelector` label customizable with `label` and `hideLabel` props
+    - Transfer form now shows only one "From Account" label instead of two
+    - Updated `components/transactions/account-selector.tsx` with new prop interface
+    - Updated `components/transactions/transaction-form.tsx` to use new props
+
+15. **Made Category Cards Even Smaller** - Further reduced category card size (half size):
+    - Reduced padding from `p-4` to `p-2` in `components/categories/category-card.tsx`
+    - Reduced title font size from `text-base` to `text-sm` with truncate
+    - Reduced all margins and spacing by half
+    - Reduced grid gap from `gap-4` to `gap-2` in `app/dashboard/categories/page.tsx`
+    - Reduced more button from `h-7 w-7` to `h-6 w-6` with `h-3 w-3` icon
+
+16. **Added Tax Deductible Category Marking** - New feature for tax tracking:
+    - Added `isTaxDeductible` boolean field to `budgetCategories` table
+    - Created and applied database migration `0004_add_tax_deductible.sql`
+    - Added toggle UI in `components/categories/category-form.tsx`
+    - Updated API endpoints (`/api/categories` and `/api/categories/[id]`) to handle new field
+    - Added visual "Tax Deductible" badge to category cards with purple styling
+    - Integrates with existing tax tracking dashboard for deduction reporting
+
 ### Database Schema Changes
 - **Accounts Table:** Added `isBusinessAccount: integer('is_business_account', { mode: 'boolean' }).default(false)` field
 - **SalesTaxTransactions Table:** Added `accountId` field with new indexes for multi-account tracking
+- **Budget Categories Table:** Added `isTaxDeductible: integer('is_tax_deductible', { mode: 'boolean' }).default(false)` field
+
+### Migrations Applied
+- `0003_add_business_account.sql` - Added `is_business_account` column to accounts table
+- `0004_add_tax_deductible.sql` - Added `is_tax_deductible` column to budget_categories table
 
 ### Error Handling Improvements (Previous Session)
 - Fixed all critical empty result errors in API endpoints:

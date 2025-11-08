@@ -629,12 +629,14 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       {/* Account Selection */}
       <div>
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-white">
-            {formData.type === 'transfer' ? 'From Account' : 'Account'} *
-          </Label>
+          {formData.type === 'transfer' ? (
+            <Label className="text-sm font-medium text-white">From Account *</Label>
+          ) : null}
           <AccountSelector
             selectedAccountId={formData.accountId}
             onAccountChange={handleAccountChange}
+            label={formData.type === 'transfer' ? 'From Account' : 'Account'}
+            hideLabel={formData.type === 'transfer'}
           />
         </div>
 

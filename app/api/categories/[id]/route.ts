@@ -21,7 +21,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, monthlyBudget, dueDate } = body;
+    const { name, monthlyBudget, dueDate, isTaxDeductible } = body;
 
     // Verify category belongs to user
     const category = await db
@@ -43,6 +43,7 @@ export async function PUT(
         name: name || category[0].name,
         monthlyBudget: monthlyBudget ?? category[0].monthlyBudget,
         dueDate: dueDate !== undefined ? dueDate : category[0].dueDate,
+        isTaxDeductible: isTaxDeductible !== undefined ? isTaxDeductible : category[0].isTaxDeductible,
       })
       .where(eq(budgetCategories.id, id));
 

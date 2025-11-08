@@ -22,6 +22,20 @@
       "when": 1762574391946,
       "tag": "0002_add_sync_tracking",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1762612000000,
+      "tag": "0003_add_business_account",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1762612100000,
+      "tag": "0004_add_tax_deductible",
+      "breakpoints": true
     }
   ]
 }

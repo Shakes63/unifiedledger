@@ -40,6 +40,7 @@ export function CategoryForm({
     type: category?.type || 'variable_expense',
     monthlyBudget: category?.monthlyBudget || 0,
     dueDate: category?.dueDate || '',
+    isTaxDeductible: category?.isTaxDeductible || false,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,6 +55,13 @@ export function CategoryForm({
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }));
+  };
+
+  const handleCheckboxChange = (name: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: !prev[name as keyof typeof prev],
     }));
   };
 
@@ -75,6 +83,7 @@ export function CategoryForm({
       type: formData.type,
       monthlyBudget: parseFloat(String(formData.monthlyBudget)) || 0,
       dueDate: formData.dueDate ? parseInt(formData.dueDate) : null,
+      isTaxDeductible: formData.isTaxDeductible,
     };
 
     onSubmit(submitData);
@@ -149,6 +158,29 @@ export function CategoryForm({
           </div>
         </div>
       )}
+
+      {/* Tax Deductible Toggle */}
+      <div className="p-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a] space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-gray-400 text-sm block font-medium">Tax Deductible</Label>
+            <p className="text-xs text-gray-500 mt-1">Mark this category as tax deductible for tracking deductible expenses</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleCheckboxChange('isTaxDeductible')}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              formData.isTaxDeductible ? 'bg-emerald-500' : 'bg-[#2a2a2a]'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                formData.isTaxDeductible ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
 
       {/* Actions */}
       <div className="flex gap-3 pt-4 border-t border-[#2a2a2a]">

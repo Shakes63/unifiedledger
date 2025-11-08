@@ -45,9 +45,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
 
   // Optimize for container deployment
-  experimental: {
-    outputFileTracingRoot: __dirname,
-  },
+  outputFileTracingRoot: __dirname,
 
   // Asset optimization
   images: {

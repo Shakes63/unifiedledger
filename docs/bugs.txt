@@ -10,27 +10,11 @@ COMPLETED BUGS:
 ✅ 9. when creating a transaction there should only be a transfer type instead of transfer in and transfer out. If Transfer is selected it should show a From Account and To Account dropdowns.
 ✅ 10. the transaction form is doubled up there should only be one.
 ✅ 11. make the cards on the categories page more compact.
+✅ 12. Account creation was failing with 500 error - fixed missing is_business_account database column
+✅ 13. Sidebar dashboard was highlighted even when a different option was selected - fixed isActive() function
+✅ 14. Transfer form showed duplicate "Account" labels - fixed by making AccountSelector label customizable
+✅ 15. Category cards were too large - made them significantly smaller (p-2, reduced fonts, gap-2)
+✅ 16. Categories couldn't be marked as tax deductible - added isTaxDeductible field and toggle UI
 
 PENDING BUGS:
-12. Getting this error during bank account creation: ## Error Type
-Console Error
-
-## Error Message
-Account creation failed: 500 "Internal Server Error"
-
-
-    at handleSubmit (app/dashboard/accounts/page.tsx:95:17)
-
-## Code Frame
-  93 |         }
-  94 |         toast.error(errorMessage);
-> 95 |         console.error('Account creation failed:', response.status, response.statusText);
-     |                 ^
-  96 |       }
-  97 |     } catch (error) {
-  98 |       console.error('Error creating account:', error);
-
-Next.js version: 16.0.1 (Turbopack)
-13. On the sidebar the dashboard is highlighted even when a different option is selected.
-14. when creating a transfer it shows From Account and then Account above the first drop down Just make the From Account the label for the dropdown and get rid of the other one
-15. 
+(none) 

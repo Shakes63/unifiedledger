@@ -64,31 +64,39 @@ export async function POST(request: Request) {
     }
 
     const accountId = nanoid();
+    const now = new Date().toISOString();
 
-    await db.insert(accounts).values({
-      id: accountId,
-      userId,
-      name,
-      type,
-      bankName: bankName || null,
-      accountNumberLast4: accountNumberLast4 || null,
-      currentBalance,
-      creditLimit: creditLimit || null,
-      color,
-      icon,
-      isBusinessAccount,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
+    try {
+      const result = await db.insert(accounts).values({
+        id: accountId,
+        userId,
+        name,
+        type,
+        bankName: bankName || null,
+        accountNumberLast4: accountNumberLast4 || null,
+        currentBalance,
+        creditLimit: creditLimit || null,
+        color,
+        icon,
+        isBusinessAccount,
+        createdAt: now,
+        updatedAt: now,
+      });
 
-    return Response.json(
-      { id: accountId, message: 'Account created successfully' },
-      { status: 201 }
-    );
+      return Response.json(
+        { id: accountId, message: 'Account created successfully' },
+        { status: 201 }
+      );
+    } catch (dbError) {
+      console.error('Database insertion error:', dbError);
+      throw dbError;
+    }
   } catch (error) {
     console.error('Account creation error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+    console.error('Error details:', errorMessage);
     return Response.json(
-      { error: 'Internal server error' },
+      { error: errorMessage || 'Internal server error' },
       { status: 500 }
     );
   }

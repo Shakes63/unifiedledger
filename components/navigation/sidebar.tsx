@@ -86,7 +86,14 @@ export function Sidebar() {
     );
   };
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
+  const isActive = (href: string) => {
+    if (href === '/dashboard') {
+      // Exact match for dashboard
+      return pathname === '/dashboard';
+    }
+    // For other paths, match exact or as a prefix
+    return pathname === href || pathname.startsWith(href + '/');
+  };
 
   return (
     <aside
