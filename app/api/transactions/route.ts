@@ -1,9 +1,11 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
-import { transactions, accounts, budgetCategories, merchants, usageAnalytics } from '@/lib/db/schema';
+import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
+import { findMatchingRule } from '@/lib/rules/rule-matcher';
+import { TransactionData } from '@/lib/rules/condition-evaluator';
 
 export async function POST(request: Request) {
   try {
@@ -76,6 +78,32 @@ export async function POST(request: Request) {
       }
     }
 
+    // Apply categorization rules if no category provided
+    let appliedCategoryId = categoryId;
+    let appliedRuleId: string | null = null;
+
+    if (!appliedCategoryId && type !== 'transfer_in' && type !== 'transfer_out') {
+      try {
+        const transactionData: TransactionData = {
+          description,
+          amount: parseFloat(amount),
+          accountName: account[0].name,
+          date,
+          notes: notes || undefined,
+        };
+
+        const ruleMatch = await findMatchingRule(userId, transactionData);
+
+        if (ruleMatch.matched && ruleMatch.rule) {
+          appliedCategoryId = ruleMatch.rule.categoryId;
+          appliedRuleId = ruleMatch.rule.ruleId;
+        }
+      } catch (error) {
+        // Log error but don't fail transaction creation
+        console.error('Error applying categorization rules:', error);
+      }
+    }
+
     // Create transaction
     const transactionId = nanoid();
     const decimalAmount = new Decimal(amount);
@@ -84,7 +112,7 @@ export async function POST(request: Request) {
       id: transactionId,
       userId,
       accountId,
-      categoryId: categoryId || null,
+      categoryId: appliedCategoryId || null,
       date,
       amount: decimalAmount.toNumber(),
       description,
@@ -259,10 +287,30 @@ export async function POST(request: Request) {
       });
     }
 
+    // Log rule execution if a rule was applied
+    if (appliedRuleId && appliedCategoryId) {
+      try {
+        await db.insert(ruleExecutionLog).values({
+          id: nanoid(),
+          userId,
+          ruleId: appliedRuleId,
+          transactionId,
+          appliedCategoryId,
+          matched: true,
+          executedAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        // Log error but don't fail transaction creation
+        console.error('Error logging rule execution:', error);
+      }
+    }
+
     return Response.json(
       {
         id: transactionId,
         message: 'Transaction created successfully',
+        appliedCategoryId: appliedCategoryId ? appliedCategoryId : undefined,
+        appliedRuleId: appliedRuleId ? appliedRuleId : undefined,
       },
       { status: 201 }
     );
