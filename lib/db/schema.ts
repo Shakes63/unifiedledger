@@ -1385,3 +1385,184 @@ export const householdActivityLog = sqliteTable(
     createdAtIdx: index('idx_activity_log_created_at').on(table.createdAt),
   })
 );
+
+// ============================================================================
+// TAX TABLES
+// ============================================================================
+
+export const taxCategories = sqliteTable(
+  'tax_categories',
+  {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    description: text('description'),
+    // Tax form references (Schedule C, Schedule A, 1040, etc.)
+    formType: text('form_type', {
+      enum: ['schedule_c', 'schedule_a', 'schedule_d', 'schedule_e', 'form_1040', 'other'],
+    }).notNull(),
+    lineNumber: text('line_number'), // Line number on tax form
+    deductible: integer('deductible', { mode: 'boolean' }).default(true),
+    category: text('category', {
+      enum: ['business_income', 'business_expense', 'rental_income', 'rental_expense',
+              'investment_income', 'investment_expense', 'personal_deduction', 'other'],
+    }).notNull(),
+    sortOrder: integer('sort_order').default(0),
+    isActive: integer('is_active', { mode: 'boolean' }).default(true),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    formTypeIdx: index('idx_tax_categories_form').on(table.formType),
+    categoryIdx: index('idx_tax_categories_category').on(table.category),
+  })
+);
+
+export const categoryTaxMappings = sqliteTable(
+  'category_tax_mappings',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    budgetCategoryId: text('budget_category_id').notNull(),
+    taxCategoryId: text('tax_category_id').notNull(),
+    taxYear: integer('tax_year').notNull(),
+    // Allow custom allocation if a budget category maps to multiple tax categories
+    allocationPercentage: real('allocation_percentage').default(100),
+    notes: text('notes'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_category_tax_mappings_user').on(table.userId),
+    budgetCategoryIdIdx: index('idx_category_tax_mappings_budget_cat').on(table.budgetCategoryId),
+    taxCategoryIdIdx: index('idx_category_tax_mappings_tax_cat').on(table.taxCategoryId),
+    yearIdx: index('idx_category_tax_mappings_year').on(table.taxYear),
+    userYearIdx: index('idx_category_tax_mappings_user_year').on(table.userId, table.taxYear),
+  })
+);
+
+export const transactionTaxClassifications = sqliteTable(
+  'transaction_tax_classifications',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    transactionId: text('transaction_id').notNull(),
+    taxCategoryId: text('tax_category_id').notNull(),
+    taxYear: integer('tax_year').notNull(),
+    // Allow split allocations
+    allocatedAmount: real('allocated_amount').notNull(),
+    percentage: real('percentage'),
+    isDeductible: integer('is_deductible', { mode: 'boolean' }).default(true),
+    notes: text('notes'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_transaction_tax_user').on(table.userId),
+    transactionIdIdx: index('idx_transaction_tax_transaction').on(table.transactionId),
+    taxCategoryIdIdx: index('idx_transaction_tax_category').on(table.taxCategoryId),
+    yearIdx: index('idx_transaction_tax_year').on(table.taxYear),
+    userYearIdx: index('idx_transaction_tax_user_year').on(table.userId, table.taxYear),
+  })
+);
+
+// ============================================================================
+// SALES TAX TABLES
+// ============================================================================
+
+export const salesTaxSettings = sqliteTable(
+  'sales_tax_settings',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().unique(),
+    defaultRate: real('default_rate').notNull().default(0), // 0-100 (e.g., 8.5 for 8.5%)
+    jurisdiction: text('jurisdiction'), // e.g., "California", "New York"
+    fiscalYearStart: text('fiscal_year_start'), // e.g., "01-01" for calendar year
+    filingFrequency: text('filing_frequency', {
+      enum: ['monthly', 'quarterly', 'annually'],
+    }).default('quarterly'),
+    enableTracking: integer('enable_tracking', { mode: 'boolean' }).default(true),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_sales_tax_settings_user').on(table.userId),
+  })
+);
+
+export const salesTaxCategories = sqliteTable(
+  'sales_tax_categories',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    name: text('name').notNull(),
+    rate: real('rate').notNull(), // Tax rate as decimal (0.085 for 8.5%)
+    description: text('description'),
+    isDefault: integer('is_default', { mode: 'boolean' }).default(false),
+    isActive: integer('is_active', { mode: 'boolean' }).default(true),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_sales_tax_categories_user').on(table.userId),
+    userActiveIdx: index('idx_sales_tax_categories_user_active').on(table.userId, table.isActive),
+  })
+);
+
+export const salesTaxTransactions = sqliteTable(
+  'sales_tax_transactions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    transactionId: text('transaction_id').notNull(),
+    taxCategoryId: text('tax_category_id').notNull(),
+    taxYear: integer('tax_year').notNull(),
+    quarter: integer('quarter').notNull(), // 1-4
+    // Transaction details denormalized for reporting
+    saleAmount: real('sale_amount').notNull(),
+    taxRate: real('tax_rate').notNull(),
+    taxAmount: real('tax_amount').notNull(),
+    reportedStatus: text('reported_status', {
+      enum: ['pending', 'reported', 'filed', 'paid'],
+    }).default('pending'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_sales_tax_transactions_user').on(table.userId),
+    transactionIdIdx: index('idx_sales_tax_transactions_transaction').on(table.transactionId),
+    quarterIdx: index('idx_sales_tax_transactions_quarter').on(table.quarter),
+    reportedStatusIdx: index('idx_sales_tax_transactions_status').on(table.reportedStatus),
+    userQuarterIdx: index('idx_sales_tax_transactions_user_quarter').on(
+      table.userId,
+      table.taxYear,
+      table.quarter
+    ),
+  })
+);
+
+export const quarterlyFilingRecords = sqliteTable(
+  'quarterly_filing_records',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    taxYear: integer('tax_year').notNull(),
+    quarter: integer('quarter').notNull(), // 1-4
+    dueDate: text('due_date').notNull(), // ISO date
+    submittedDate: text('submitted_date'), // When actually filed
+    status: text('status', {
+      enum: ['not_due', 'pending', 'submitted', 'accepted', 'rejected'],
+    }).default('pending'),
+    totalSalesAmount: real('total_sales_amount').default(0),
+    totalTaxAmount: real('total_tax_amount').default(0),
+    amountPaid: real('amount_paid').default(0),
+    balanceDue: real('balance_due').default(0),
+    notes: text('notes'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_quarterly_filing_user').on(table.userId),
+    userYearIdx: index('idx_quarterly_filing_user_year').on(table.userId, table.taxYear),
+    statusIdx: index('idx_quarterly_filing_status').on(table.status),
+    dueDateIdx: index('idx_quarterly_filing_due_date').on(table.dueDate),
+  })
+);

@@ -64,6 +64,13 @@ const navSections: NavSection[] = [
       { label: 'Reports', href: '/dashboard/reports', icon: <FileText className="w-4 h-4" /> },
     ],
   },
+  {
+    title: 'Tax',
+    items: [
+      { label: 'Tax Dashboard', href: '/dashboard/tax', icon: <FileText className="w-4 h-4" /> },
+      { label: 'Sales Tax', href: '/dashboard/sales-tax', icon: <DollarSign className="w-4 h-4" /> },
+    ],
+  },
 ];
 
 export function Sidebar() {
