@@ -508,6 +508,20 @@ export default function TransactionsPage() {
       <CSVImportModal
         open={importModalOpen}
         onOpenChange={setImportModalOpen}
+        onSuccess={async () => {
+          // Refresh transactions after successful import
+          try {
+            const txResponse = await fetch('/api/transactions?limit=100');
+            if (txResponse.ok) {
+              const txData = await txResponse.json();
+              setTransactions(txData.reverse());
+              setTotalResults(txData.length);
+              toast.success('Transactions refreshed');
+            }
+          } catch (error) {
+            console.error('Failed to refresh transactions:', error);
+          }
+        }}
         accounts={accounts}
       />
     </div>

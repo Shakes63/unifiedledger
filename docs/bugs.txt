@@ -789,6 +789,123 @@ COMPLETED BUGS:
   - Files updated: components/navigation/mobile-nav.tsx
   - Result: Mobile nav now has identical structure to desktop sidebar
 
+✅ 60. Fixed CSV import preview button not responding:
+ - Root cause 1: When step was 'preview' but previewData was not set, nothing was rendered
+   * The sticky footer buttons were hidden (only shown when step !== 'preview')
+   * ImportPreview has its own buttons, but wasn't rendering if previewData was falsy
+ - Root cause 2: Node.js Buffer used in client-side code causing API call to fail
+   * Buffer.from() is a Node.js API not available in browsers
+   * This caused "Internal server error" when calling preview API
+   * Error was: "Preview API error: {}" followed by "Internal server error"
+ - Solution Part 1 - Added console logging for debugging:
+   * Added console.log when sending preview request with mappings
+   * Added console.log when preview data is received
+   * Added console.error for API errors and general errors
+   * Helps identify if API call fails silently
+ - Solution Part 2 - Added Back button to ImportPreview:
+   * Added onBack optional prop to ImportPreviewProps interface
+   * Changed "Cancel" button to "Back to Mapping" button
+   * Button calls onBack handler instead of window.history.back()
+   * Modal passes () => setStep('mapping') as onBack handler
+ - Solution Part 3 - Added empty state handling:
+   * ImportPreview now shows empty state if staging.length === 0
+   * Shows AlertCircle icon and helpful message
+   * Modal shows fallback message if step is 'preview' but previewData is falsy
+   * Fallback includes "Back to Mapping" button for recovery
+ - Solution Part 4 - Fixed Buffer usage in client code (CRITICAL FIX #1):
+   * Replaced Buffer.from(binaryString, 'binary').toString('base64') with btoa(binaryString)
+   * btoa() is the native browser API for base64 encoding
+   * Fixed in both handleProceedToPreview and handleConfirmImport functions
+   * Changed from String.fromCharCode.apply() to manual loop for better browser compatibility
+ - Solution Part 5 - Fixed FileReader usage in server code (CRITICAL FIX #2):
+   * Root cause: API route was calling parseCSVFile() which uses FileReader
+   * FileReader is a browser-only API and doesn't exist in Node.js server environment
+   * This caused "Internal server error" when API tried to parse the CSV
+   * Solution: Replaced File object + parseCSVFile with direct text parsing
+   * Convert base64 → text with Buffer.from(fileBase64, 'base64').toString('utf-8')
+   * Parse directly with PapaParse without FileReader
+   * Build parsed object structure manually (headers, rows, totalRows)
+   * Updated file.size reference to text.length
+   * Removed parseCSVFile and autoDetectMappings imports (no longer needed)
+ - Solution Part 6 - Fixed validation for withdrawal/deposit columns:
+   * Root cause: Validation required 'amount' field but CSV had 'withdrawal' and 'deposit'
+   * Bug #54 added support for separate withdrawal/deposit columns
+   * But validation wasn't updated to accept them as valid alternatives
+   * Solution: Updated validation logic to accept either:
+     - Single 'amount' field, OR
+     - At least one of 'withdrawal' or 'deposit' fields
+   * Added comprehensive logging for debugging (base64 length, decoded text, line counts, row counts)
+   * Made error handling smarter - only fails if errors AND no data parsed
+   * Non-critical quote errors (malformed quotes on last row) are logged as warnings
+ - Files updated:
+   * components/csv-import/csv-import-modal.tsx (lines 119-126, 172-179, 125-127, 146-148, 151, 157, 366-400)
+   * components/csv-import/import-preview.tsx (lines 26, 38, 132-193, 191-199)
+   * app/api/csv-import/route.ts (lines 7-12, 76-170) - server-side parsing fix + validation fix
+ - Result: CSV import preview now works correctly end-to-end
+ - Client-side uses browser-compatible base64 encoding (btoa)
+ - Server-side uses Node.js-compatible parsing (no FileReader)
+ - Validation accepts both single-column (amount) and dual-column (withdrawal/deposit) formats
+ - Comprehensive logging helps debug issues
+ - Smart error handling doesn't fail on non-critical quote errors
+ - Users can navigate back to mapping if preview fails
+ - Better UX with helpful messages instead of blank screen
+
+✅ 61. Fixed CSV import showing $0 amounts for withdrawal/deposit columns:
+ - Root cause: Dual-column CSV format has both withdrawal AND deposit columns per row
+   * Example: Withdrawal="82.21", Deposit="0.00" for expenses
+   * Example: Withdrawal="0.00", Deposit="98.25" for income
+   * Both columns were being processed sequentially
+   * The second column (with "0.00") was overwriting the first column's valid amount
+ - Solution: Only set amount if value is non-zero
+   * Added !withdrawalAmount.isZero() check before setting amount
+   * Added !depositAmount.isZero() check before setting amount
+   * Now "0.00" values are skipped instead of overwriting the real amount
+   * Each transaction keeps the non-zero value (either withdrawal OR deposit)
+ - Files updated:
+   * lib/csv-import.ts (lines 289-321) - Added zero-check for withdrawal/deposit
+ - Result: CSV import now correctly shows amounts
+   * $82.21 for withdrawal transactions (expenses)
+   * $98.25 for deposit transactions (income)
+   * No more $0.00 transactions from dual-column CSVs
+
+✅ 62. Fixed CSV import button doing nothing (400 error):
+ - Root cause: Mismatch between frontend and backend data formats
+   * Frontend sends row numbers as strings: ['1', '2', '3', ...]
+   * Backend was checking against staging record IDs (nanoid): 'BfUcRieZARAQKTD95NKL-'
+   * Filter never found matches: recordIds.includes(r.id) always false
+   * Empty array triggered 400 error: "No records to import"
+ - Solution: Updated backend to filter by row numbers instead of IDs
+   * Convert recordIds strings to integers: parseInt(id, 10)
+   * Create Set for fast lookup: new Set(recordIds.map(...))
+   * Filter by rowNumber: rowNumbersToImport.has(r.rowNumber)
+   * Added logging to debug: importId, recordIds, staging count, import count
+ - Files updated:
+   * app/api/csv-import/[importId]/confirm/route.ts (lines 32-34, 60-72)
+   * components/csv-import/csv-import-modal.tsx (lines 168-187) - Added logging
+   * components/csv-import/import-preview.tsx (lines 206-218) - Added logging
+ - Result: Import button now works correctly
+   * Finds matching records by row number
+   * Imports all selected transactions into database
+   * Shows success message and completion screen
+
+✅ 63. Added auto-refresh after CSV import success:
+ - Enhancement: Transactions page should refresh after import completes
+ - Solution:
+   * Added optional onSuccess callback prop to CSVImportModal
+   * handleClose() calls onSuccess when step === 'complete'
+   * Transactions page passes onSuccess handler that:
+     - Fetches latest transactions from API
+     - Updates transactions state with new data
+     - Shows success toast notification
+   * Refresh happens automatically when user closes import success modal
+ - Files updated:
+   * components/csv-import/csv-import-modal.tsx (lines 34, 41, 241-244)
+   * app/dashboard/transactions/page.tsx (lines 511-524)
+ - Result: After successful import, transactions page auto-refreshes
+   * User sees newly imported transactions immediately
+   * No manual page refresh needed
+   * Shows "Transactions refreshed" toast
+
 pending
 
 

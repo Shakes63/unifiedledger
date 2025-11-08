@@ -31,12 +31,14 @@ type Step = 'upload' | 'settings' | 'mapping' | 'preview' | 'complete';
 interface CSVImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void;
   accounts: Array<{ id: string; name: string }>;
 }
 
 export function CSVImportModal({
   open,
   onOpenChange,
+  onSuccess,
   accounts,
 }: CSVImportModalProps) {
   const [step, setStep] = useState<Step>('upload');
@@ -116,11 +118,16 @@ export function CSVImportModal({
 
     setIsLoading(true);
     try {
-      // Convert file to base64 for API
+      // Convert file to base64 for API (browser-compatible)
       const buffer = await file.arrayBuffer();
       const bytes = new Uint8Array(buffer);
-      const binaryString = String.fromCharCode.apply(null, Array.from(bytes) as any);
-      const base64 = Buffer.from(binaryString, 'binary').toString('base64');
+      let binaryString = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binaryString += String.fromCharCode(bytes[i]);
+      }
+      const base64 = btoa(binaryString);
+
+      console.log('Sending preview request with mappings:', mappings);
 
       // Call preview API
       const response = await fetch('/api/csv-import', {
@@ -141,15 +148,18 @@ export function CSVImportModal({
 
       if (!response.ok) {
         const error = await response.json();
+        console.error('Preview API error:', error);
         throw new Error(error.error || 'Failed to preview import');
       }
 
       const data = await response.json();
+      console.log('Preview data received:', data);
       setPreviewData(data);
       setStep('preview');
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to preview import';
+      console.error('Preview error:', error);
       toast.error(message);
     } finally {
       setIsLoading(false);
@@ -157,14 +167,26 @@ export function CSVImportModal({
   };
 
   const handleConfirmImport = async (recordIds?: (string | number)[]) => {
-    if (!file || !previewData) return;
+    console.log('handleConfirmImport called with recordIds:', recordIds);
 
+    if (!file || !previewData) {
+      console.error('Missing file or previewData:', { file: !!file, previewData: !!previewData });
+      toast.error('Missing file or preview data');
+      return;
+    }
+
+    console.log('Starting import process...');
     setIsLoading(true);
     try {
+      // Convert file to base64 for API (browser-compatible)
       const buffer = await file.arrayBuffer();
       const bytes = new Uint8Array(buffer);
-      const binaryString = String.fromCharCode.apply(null, Array.from(bytes) as any);
-      const base64 = Buffer.from(binaryString, 'binary').toString('base64');
+      let binaryString = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binaryString += String.fromCharCode(bytes[i]);
+      }
+      const base64 = btoa(binaryString);
+      console.log('File converted to base64, length:', base64.length);
 
       // Call import API with previewOnly: false to save staging records
       const response = await fetch('/api/csv-import', {
@@ -216,6 +238,11 @@ export function CSVImportModal({
   };
 
   const handleClose = () => {
+    // If import was completed successfully, trigger refresh
+    if (step === 'complete' && onSuccess) {
+      onSuccess();
+    }
+
     onOpenChange(false);
     // Reset state
     setStep('upload');
@@ -358,17 +385,40 @@ export function CSVImportModal({
           )}
 
           {/* Preview Step */}
-          {step === 'preview' && previewData && (
-            <ImportPreview
-              staging={previewData.staging}
-              fileName={fileName}
-              totalRows={previewData.totalRows}
-              validRows={previewData.validRows}
-              reviewRows={previewData.reviewRows}
-              duplicateRows={previewData.duplicateRows}
-              onConfirm={handleConfirmImport}
-              isLoading={isLoading}
-            />
+          {step === 'preview' && (
+            <>
+              {previewData ? (
+                <ImportPreview
+                  staging={previewData.staging}
+                  fileName={fileName}
+                  totalRows={previewData.totalRows}
+                  validRows={previewData.validRows}
+                  reviewRows={previewData.reviewRows}
+                  duplicateRows={previewData.duplicateRows}
+                  onConfirm={handleConfirmImport}
+                  onBack={() => setStep('mapping')}
+                  isLoading={isLoading}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center space-y-2">
+                      <AlertCircle className="w-8 h-8 mx-auto text-[#6b7280]" />
+                      <p className="text-sm text-[#9ca3af]">
+                        No preview data available. Please try again.
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => setStep('mapping')}
+                        className="mt-4"
+                      >
+                        Back to Mapping
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
 
           {/* Complete Step */}

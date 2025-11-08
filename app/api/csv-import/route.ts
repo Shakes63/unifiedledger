@@ -5,8 +5,6 @@ import { importHistory, importStaging, transactions } from '@/lib/db/schema';
 import { nanoid } from 'nanoid';
 import { eq } from 'drizzle-orm';
 import {
-  parseCSVFile,
-  autoDetectMappings,
   applyMappings,
   validateMappedTransaction,
   type ColumnMapping,
@@ -75,26 +73,97 @@ export async function POST(request: NextRequest) {
       return new Response('Missing required fields', { status: 400 });
     }
 
-    // Convert base64 to File
-    const binaryString = Buffer.from(fileBase64, 'base64').toString('binary');
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    const file = new File([bytes], fileName, { type: 'text/csv' });
+    // Convert base64 to text (server-side compatible)
+    console.log('Converting base64 to text, base64 length:', fileBase64.length);
+    const text = Buffer.from(fileBase64, 'base64').toString('utf-8');
+    console.log('Text decoded, length:', text.length, 'First 100 chars:', text.substring(0, 100));
 
-    // Parse CSV
-    const parsed = await parseCSVFile(file, delimiter, hasHeaderRow, skipRows);
+    // Parse CSV directly from text (server-side compatible)
+    const lines = text.split('\n').filter((line) => line.trim());
+    const dataLines = lines.slice(skipRows);
+
+    console.log('Total lines:', lines.length, 'Data lines after skip:', dataLines.length);
+
+    if (dataLines.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'No data found in CSV file' }),
+        { status: 400 }
+      );
+    }
+
+    // Parse with PapaParse
+    const Papa = (await import('papaparse')).default;
+    const parseResult = Papa.parse(dataLines.join('\n'), {
+      delimiter,
+      header: false,
+      skipEmptyLines: true,
+    });
+
+    const rows = parseResult.data as string[][];
+
+    console.log('Parsed CSV rows:', rows.length);
+
+    // Only fail if there are errors AND no data was parsed
+    if (parseResult.errors && parseResult.errors.length > 0) {
+      console.warn('CSV parsing had errors (may be non-critical):', parseResult.errors);
+
+      // If we got no rows, it's a real error
+      if (!rows || rows.length === 0) {
+        return new Response(
+          JSON.stringify({
+            error: 'Failed to parse CSV file',
+            details: parseResult.errors.map(e => e.message).join(', ')
+          }),
+          { status: 400 }
+        );
+      }
+      // Otherwise, just log the warnings and continue
+    }
+
+    if (!rows || rows.length === 0) {
+      return new Response(
+        JSON.stringify({ error: 'No rows found in CSV file' }),
+        { status: 400 }
+      );
+    }
+    const parsed = {
+      headers: hasHeaderRow ? rows[0] : [],
+      rows: hasHeaderRow ? rows.slice(1).map(row => {
+        const obj: Record<string, string> = {};
+        rows[0].forEach((header, i) => {
+          obj[header] = row[i] || '';
+        });
+        return obj;
+      }) : rows.map((row, idx) => {
+        const obj: Record<string, string> = {};
+        row.forEach((val, i) => {
+          obj[`Column ${i + 1}`] = val || '';
+        });
+        return obj;
+      }),
+      totalRows: hasHeaderRow ? rows.length - 1 : rows.length,
+    };
 
     // Validate column mappings
-    const missingRequiredFields = ['date', 'description', 'amount'].filter(
-      (field) => !columnMappings.some((m) => m.appField === field)
-    );
+    // Required: date and description
+    // For amount: either 'amount' OR both 'withdrawal' and 'deposit'
+    const hasDate = columnMappings.some((m) => m.appField === 'date');
+    const hasDescription = columnMappings.some((m) => m.appField === 'description');
+    const hasAmount = columnMappings.some((m) => m.appField === 'amount');
+    const hasWithdrawal = columnMappings.some((m) => m.appField === 'withdrawal');
+    const hasDeposit = columnMappings.some((m) => m.appField === 'deposit');
 
-    if (missingRequiredFields.length > 0) {
+    const missingFields: string[] = [];
+    if (!hasDate) missingFields.push('date');
+    if (!hasDescription) missingFields.push('description');
+    if (!hasAmount && !(hasWithdrawal || hasDeposit)) {
+      missingFields.push('amount (or withdrawal/deposit)');
+    }
+
+    if (missingFields.length > 0) {
       return new Response(
         JSON.stringify({
-          error: `Missing required field mappings: ${missingRequiredFields.join(', ')}`,
+          error: `Missing required field mappings: ${missingFields.join(', ')}`,
         }),
         { status: 400 }
       );
@@ -110,7 +179,7 @@ export async function POST(request: NextRequest) {
       householdId: householdId || null,
       templateId: templateId || null,
       filename: fileName,
-      fileSize: file.size,
+      fileSize: text.length,
       rowsTotal: parsed.totalRows,
       rowsImported: 0,
       rowsSkipped: 0,
@@ -151,6 +220,17 @@ export async function POST(request: NextRequest) {
           dateFormat,
           defaultAccountId
         );
+
+        // Debug: Log first 3 mapped rows
+        if (i < 3) {
+          console.log(`Row ${rowNumber} mapped data:`, {
+            description: mappedData.description,
+            amount: mappedData.amount?.toString(),
+            type: mappedData.type,
+            date: mappedData.date,
+            rawRow: row
+          });
+        }
 
         // Validate
         const validationErrors = validateMappedTransaction(mappedData);

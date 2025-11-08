@@ -288,30 +288,36 @@ export const applyMappings = (
 
         case 'withdrawal':
           // Withdrawal column creates expense transactions
+          // Only process if value is non-zero (dual-column CSVs have 0.00 in the other column)
           const withdrawalAmount = parseAmount(value);
-          if (mapping.transform === 'negate') {
-            transaction.amount = withdrawalAmount.negated().abs(); // Ensure positive for expense
-          } else if (mapping.transform === 'absolute') {
-            transaction.amount = withdrawalAmount.abs();
-          } else {
-            transaction.amount = withdrawalAmount.abs(); // Always positive for expenses
+          if (!withdrawalAmount.isZero()) {
+            if (mapping.transform === 'negate') {
+              transaction.amount = withdrawalAmount.negated().abs(); // Ensure positive for expense
+            } else if (mapping.transform === 'absolute') {
+              transaction.amount = withdrawalAmount.abs();
+            } else {
+              transaction.amount = withdrawalAmount.abs(); // Always positive for expenses
+            }
+            transaction.type = 'expense';
+            hasWithdrawal = true;
           }
-          transaction.type = 'expense';
-          hasWithdrawal = true;
           break;
 
         case 'deposit':
           // Deposit column creates income transactions
+          // Only process if value is non-zero (dual-column CSVs have 0.00 in the other column)
           const depositAmount = parseAmount(value);
-          if (mapping.transform === 'negate') {
-            transaction.amount = depositAmount.negated().abs(); // Ensure positive for income
-          } else if (mapping.transform === 'absolute') {
-            transaction.amount = depositAmount.abs();
-          } else {
-            transaction.amount = depositAmount.abs(); // Always positive for income
+          if (!depositAmount.isZero()) {
+            if (mapping.transform === 'negate') {
+              transaction.amount = depositAmount.negated().abs(); // Ensure positive for income
+            } else if (mapping.transform === 'absolute') {
+              transaction.amount = depositAmount.abs();
+            } else {
+              transaction.amount = depositAmount.abs(); // Always positive for income
+            }
+            transaction.type = 'income';
+            hasDeposit = true;
           }
-          transaction.type = 'income';
-          hasDeposit = true;
           break;
 
         case 'description':

@@ -29,7 +29,9 @@ export async function POST(
 
     const { importId } = await params;
     const body = await request.json();
-    const { recordIds } = body; // Array of staging record IDs to import
+    const { recordIds } = body; // Array of row numbers (as strings) to import
+
+    console.log('Confirm import request:', { importId, recordIds: recordIds?.slice(0, 5) });
 
     // Verify import belongs to user
     const importRecord = await db
@@ -55,9 +57,19 @@ export async function POST(
       .from(importStaging)
       .where(eq(importStaging.importHistoryId, importId));
 
+    // Convert row numbers to integers for comparison
+    const rowNumbersToImport = recordIds
+      ? new Set(recordIds.map((id: string) => parseInt(id, 10)))
+      : null;
+
     const recordsToImport = stagingRecords.filter((r) =>
-      recordIds ? recordIds.includes(r.id) : r.status === 'approved'
+      rowNumbersToImport
+        ? rowNumbersToImport.has(r.rowNumber)
+        : r.status === 'approved'
     );
+
+    console.log('Staging records found:', stagingRecords.length);
+    console.log('Records to import:', recordsToImport.length);
 
     if (recordsToImport.length === 0) {
       return Response.json(

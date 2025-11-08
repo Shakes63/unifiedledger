@@ -23,6 +23,7 @@ interface ImportPreviewProps {
   reviewRows: number;
   duplicateRows: number;
   onConfirm: (recordIds?: string[]) => Promise<void>;
+  onBack?: () => void;
   isLoading?: boolean;
 }
 
@@ -34,6 +35,7 @@ export function ImportPreview({
   reviewRows,
   duplicateRows,
   onConfirm,
+  onBack,
   isLoading = false,
 }: ImportPreviewProps) {
   const [selectedRows, setSelectedRows] = useState<Set<number>>(
@@ -127,74 +129,94 @@ export function ImportPreview({
         <CardContent>
           <ScrollArea className="h-96 border border-[#2a2a2a] rounded-lg">
             <div className="space-y-2 p-4">
-              {staging.map((record) => (
-                <div
-                  key={record.rowNumber}
-                  className="p-3 bg-[#1a1a1a] rounded border border-[#2a2a2a] hover:border-[#3a3a3a] cursor-pointer transition-colors"
-                  onClick={() => toggleRow(record.rowNumber)}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="flex items-center gap-2 mt-1">
-                      <input
-                        type="checkbox"
-                        checked={selectedRows.has(record.rowNumber)}
-                        onChange={() => {}}
-                        className="cursor-pointer"
-                      />
-                      {getStatusIcon(record.status, record.validationErrors)}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-white">
-                        Row {record.rowNumber}
-                      </div>
-
-                      {record.data && (
-                        <div className="text-xs text-[#9ca3af] mt-1 space-y-1">
-                          <div className="truncate">
-                            <span className="text-[#6b7280]">Description:</span> {record.data.description}
-                          </div>
-                          <div>
-                            <span className="text-[#6b7280]">Amount:</span> ${record.data.amount}
-                          </div>
-                          <div className="truncate">
-                            <span className="text-[#6b7280]">Date:</span> {record.data.date}
-                          </div>
-                        </div>
-                      )}
-
-                      {record.validationErrors && record.validationErrors.length > 0 && (
-                        <div className="text-xs text-[#f87171] mt-2 space-y-1">
-                          {record.validationErrors.map((error, i) => (
-                            <div key={i}>{error}</div>
-                          ))}
-                        </div>
-                      )}
-
-                      {record.duplicateOf && (
-                        <div className="text-xs text-[#fbbf24] mt-2">
-                          Possible duplicate ({record.duplicateScore?.toFixed(0)}% match)
-                        </div>
-                      )}
-                    </div>
+              {staging.length === 0 ? (
+                <div className="flex items-center justify-center h-80 text-center">
+                  <div className="space-y-2">
+                    <AlertCircle className="w-12 h-12 mx-auto text-[#6b7280]" />
+                    <p className="text-sm text-[#9ca3af]">No records found in CSV file</p>
                   </div>
                 </div>
-              ))}
+              ) : (
+                staging.map((record) => (
+                  <div
+                    key={record.rowNumber}
+                    className="p-3 bg-[#1a1a1a] rounded border border-[#2a2a2a] hover:border-[#3a3a3a] cursor-pointer transition-colors"
+                    onClick={() => toggleRow(record.rowNumber)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.has(record.rowNumber)}
+                          onChange={() => {}}
+                          className="cursor-pointer"
+                        />
+                        {getStatusIcon(record.status, record.validationErrors)}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-white">
+                          Row {record.rowNumber}
+                        </div>
+
+                        {record.data && (
+                          <div className="text-xs text-[#9ca3af] mt-1 space-y-1">
+                            <div className="truncate">
+                              <span className="text-[#6b7280]">Description:</span> {record.data.description || 'N/A'}
+                            </div>
+                            <div>
+                              <span className="text-[#6b7280]">Amount:</span> ${record.data.amount || '0.00'}
+                              {record.data.type && (
+                                <span className="ml-2 text-[#6b7280]">({record.data.type})</span>
+                              )}
+                            </div>
+                            <div className="truncate">
+                              <span className="text-[#6b7280]">Date:</span> {record.data.date || 'N/A'}
+                            </div>
+                          </div>
+                        )}
+
+                        {record.validationErrors && record.validationErrors.length > 0 && (
+                          <div className="text-xs text-[#f87171] mt-2 space-y-1">
+                            {record.validationErrors.map((error, i) => (
+                              <div key={i}>{error}</div>
+                            ))}
+                          </div>
+                        )}
+
+                        {record.duplicateOf && (
+                          <div className="text-xs text-[#fbbf24] mt-2">
+                            Possible duplicate ({record.duplicateScore?.toFixed(0)}% match)
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </ScrollArea>
         </CardContent>
       </Card>
 
       <div className="flex gap-2 justify-end">
+        {onBack && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              console.log('Back to Mapping clicked');
+              onBack();
+            }}
+            disabled={isLoading}
+          >
+            Back to Mapping
+          </Button>
+        )}
         <Button
-          variant="outline"
-          onClick={() => window.history.back()}
-          disabled={isLoading}
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={() => onConfirm(Array.from(selectedRows).map(String))}
+          onClick={() => {
+            console.log('Import button clicked, selectedRows:', selectedRows.size);
+            onConfirm(Array.from(selectedRows).map(String));
+          }}
           disabled={selectedRows.size === 0 || isLoading}
         >
           {isLoading ? 'Importing...' : `Import ${selectedRows.size} Records`}
