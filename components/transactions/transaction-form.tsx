@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { AccountSelector } from './account-selector';
 import { CategorySelector } from './category-selector';
-import { MerchantAutocomplete, MerchantSelectionData } from './merchant-autocomplete';
+import { MerchantSelector } from './merchant-selector';
 import { TransactionTemplatesManager } from './transaction-templates-manager';
 import { SplitBuilder, type Split } from './split-builder';
 import { BudgetWarning } from './budget-warning';
@@ -245,6 +245,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [formData, setFormData] = useState({
     accountId: '',
     categoryId: '',
+    merchantId: '',
     date: getTodaysDate(),
     amount: '',
     description: '',
@@ -286,19 +287,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     }));
   };
 
-  const handleDescriptionChange = (value: string, merchantData?: MerchantSelectionData) => {
+  const handleMerchantChange = (merchantId: string | null) => {
     setFormData((prev) => ({
       ...prev,
-      description: value,
+      merchantId: merchantId === 'none' ? '' : merchantId || '',
     }));
-
-    // Auto-apply category suggestion if available
-    if (merchantData?.suggestedCategoryId && !formData.categoryId) {
-      setFormData((prev) => ({
-        ...prev,
-        categoryId: merchantData.suggestedCategoryId || '',
-      }));
-    }
   };
 
   const handleLoadTemplate = (template: any) => {
@@ -694,10 +687,15 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         <Label htmlFor="description" className="text-sm font-medium text-white">
           Description *
         </Label>
-        <MerchantAutocomplete
-          value={formData.description}
-          onChange={handleDescriptionChange}
+        <Input
+          id="description"
+          name="description"
+          type="text"
           placeholder="e.g., Grocery shopping, Electric bill"
+          value={formData.description}
+          onChange={handleInputChange}
+          className="h-12 md:h-10 text-base md:text-sm"
+          required
         />
       </div>
 
@@ -715,6 +713,14 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           className="h-12 md:h-10 text-base md:text-sm"
         />
       </div>
+
+      {/* Merchant (skip for transfers) */}
+      {formData.type !== 'transfer' && (
+        <MerchantSelector
+          selectedMerchant={formData.merchantId}
+          onMerchantChange={handleMerchantChange}
+        />
+      )}
 
       {/* Category (skip for transfers and split transactions) */}
       {formData.type !== 'transfer' && !useSplits && (

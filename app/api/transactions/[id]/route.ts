@@ -89,6 +89,7 @@ export async function PUT(
     const {
       accountId,
       categoryId,
+      merchantId,
       date,
       amount,
       description,
@@ -97,7 +98,7 @@ export async function PUT(
     } = body;
 
     // Validate at least one field is provided for update
-    if (!accountId && !categoryId && !date && !amount && !description && !notes && isPending === undefined) {
+    if (!accountId && !categoryId && !merchantId && !date && !amount && !description && !notes && isPending === undefined) {
       return Response.json(
         { error: 'No fields to update' },
         { status: 400 }
@@ -112,6 +113,7 @@ export async function PUT(
     const newNotes = notes !== undefined ? notes : transaction.notes;
     const newIsPending = isPending !== undefined ? isPending : transaction.isPending;
     const newCategoryId = categoryId !== undefined ? categoryId : transaction.categoryId;
+    const newMerchantId = merchantId !== undefined ? merchantId : transaction.merchantId;
 
     // If accountId changed, verify new account exists
     if (newAccountId !== transaction.accountId) {
@@ -205,6 +207,7 @@ export async function PUT(
       .set({
         accountId: newAccountId,
         categoryId: newCategoryId,
+        merchantId: newMerchantId,
         date: newDate,
         amount: newAmount.toNumber(),
         description: newDescription,

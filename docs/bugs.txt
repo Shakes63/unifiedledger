@@ -15,6 +15,42 @@ COMPLETED BUGS:
 ✅ 14. Transfer form showed duplicate "Account" labels - fixed by making AccountSelector label customizable
 ✅ 15. Category cards were too large - made them significantly smaller (p-2, reduced fonts, gap-2)
 ✅ 16. Categories couldn't be marked as tax deductible - added isTaxDeductible field and toggle UI
+✅ 17. BillsWidget error "data.filter is not a function" - API returns {data: [...], total, limit, offset} but component expected array. Fixed by extracting data.data and handling both array and object responses
+✅ 18. Added Merchant field to transactions with inline creation feature:
+   - Added merchantId field to transactions table in schema
+   - Created database migration 0005_add_merchant_id.sql
+   - Enhanced /api/merchants/route.ts with POST endpoint for creating merchants
+   - Created /api/merchants/[id]/route.ts for PUT (update) and DELETE operations
+   - Created MerchantSelector component with inline creation (similar to CategorySelector)
+   - Integrated MerchantSelector into TransactionForm (hidden for transfers)
+   - Created full Merchants management page at /dashboard/merchants with list, edit, delete, create
+   - Added "Merchants" link to sidebar in Tools section
+   - Merchants support usage count tracking and are sorted by usage
+
+✅ 19. Separated merchants and description fields:
+   - Removed MerchantAutocomplete from description field
+   - Description field is now plain Input component
+   - Merchant field is selected via separate MerchantSelector component
+   - Merchant suggestions no longer appear in description field
+
+✅ 20. Fixed internal server error when selecting description from dropdown:
+   - Root cause: MerchantAutocomplete suggestion dropdown was causing errors
+   - Solution: Replaced MerchantAutocomplete with plain Input for description
+
+✅ 21. Added merchant and transfer information to transaction table display:
+   - Shows merchant name if available
+   - For transfers, shows "From Account → To Account" format
+   - Added helper functions: getMerchantName, getAccountName, getTransactionDisplay
+   - Transfer icon shows ArrowRightLeft in blue color
+   - Reduced vertical space: p-4→p-2, space-y-3→space-y-2, removed type badge
+   - Transactions now take up ~50% less vertical space
+
+✅ 22. Fixed transaction creation 500 error - merchantId not handled:
+   - Root cause: merchantId field added to schema/form but not extracted in API endpoints
+   - POST /api/transactions now extracts merchantId from request body
+   - PUT /api/transactions/[id] now supports merchantId updates
+   - Removed old auto-merchant creation logic (conflicted with new MerchantSelector)
+   - Now only tracks merchant usage when merchantId is explicitly provided
+   - Updated validation to check for merchantId in update checks
 
 PENDING BUGS:
-(none) 

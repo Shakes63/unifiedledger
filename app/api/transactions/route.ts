@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     const {
       accountId,
       categoryId,
+      merchantId,
       date,
       amount,
       description,
@@ -119,6 +120,7 @@ export async function POST(request: Request) {
       userId,
       accountId,
       categoryId: appliedCategoryId || null,
+      merchantId: merchantId || null,
       date,
       amount: decimalAmount.toNumber(),
       description,
@@ -207,94 +209,76 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create or update merchant and track usage
-    const normalizedDescription = description.toLowerCase().trim();
-    const existingMerchant = await db
-      .select()
-      .from(merchants)
-      .where(
-        and(
-          eq(merchants.userId, userId),
-          eq(merchants.normalizedName, normalizedDescription)
-        )
-      )
-      .limit(1);
-
-    if (existingMerchant.length > 0 && existingMerchant[0]) {
-      const currentSpent = new Decimal(existingMerchant[0].totalSpent || 0);
-      const newSpent = currentSpent.plus(decimalAmount);
-      const usageCount = (existingMerchant[0].usageCount || 0);
-      const avgTransaction = newSpent.dividedBy(usageCount + 1);
-
-      await db
-        .update(merchants)
-        .set({
-          usageCount: usageCount + 1,
-          lastUsedAt: new Date().toISOString(),
-          totalSpent: newSpent.toNumber(),
-          averageTransaction: avgTransaction.toNumber(),
-        })
+    // Track merchant usage if merchantId is provided
+    if (merchantId) {
+      // Verify merchant exists and belongs to user
+      const merchant = await db
+        .select()
+        .from(merchants)
         .where(
           and(
-            eq(merchants.userId, userId),
-            eq(merchants.normalizedName, normalizedDescription)
+            eq(merchants.id, merchantId),
+            eq(merchants.userId, userId)
           )
-        );
-    } else {
-      const merchantId = nanoid();
-      await db.insert(merchants).values({
-        id: merchantId,
-        userId,
-        name: description,
-        normalizedName: normalizedDescription,
-        categoryId: categoryId || null,
-        usageCount: 1,
-        lastUsedAt: new Date().toISOString(),
-        totalSpent: decimalAmount.toNumber(),
-        averageTransaction: decimalAmount.toNumber(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    }
-
-    // Track merchant in usage analytics
-    const merchantAnalyticsId = nanoid();
-    const existingMerchantAnalytics = await db
-      .select()
-      .from(usageAnalytics)
-      .where(
-        and(
-          eq(usageAnalytics.userId, userId),
-          eq(usageAnalytics.itemType, 'merchant'),
-          eq(usageAnalytics.itemId, existingMerchant.length > 0 ? existingMerchant[0].id : normalizedDescription)
         )
-      )
-      .limit(1);
+        .limit(1);
 
-    if (existingMerchantAnalytics.length > 0 && existingMerchantAnalytics[0]) {
-      await db
-        .update(usageAnalytics)
-        .set({
-          usageCount: (existingMerchantAnalytics[0].usageCount || 0) + 1,
-          lastUsedAt: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(usageAnalytics.userId, userId),
-            eq(usageAnalytics.itemType, 'merchant'),
-            eq(usageAnalytics.itemId, existingMerchant.length > 0 ? existingMerchant[0].id : normalizedDescription)
+      if (merchant.length > 0) {
+        const currentSpent = new Decimal(merchant[0].totalSpent || 0);
+        const newSpent = currentSpent.plus(decimalAmount);
+        const usageCount = (merchant[0].usageCount || 0);
+        const avgTransaction = newSpent.dividedBy(usageCount + 1);
+
+        await db
+          .update(merchants)
+          .set({
+            usageCount: usageCount + 1,
+            lastUsedAt: new Date().toISOString(),
+            totalSpent: newSpent.toNumber(),
+            averageTransaction: avgTransaction.toNumber(),
+          })
+          .where(eq(merchants.id, merchantId));
+
+        // Track in usage analytics
+        const existingAnalytics = await db
+          .select()
+          .from(usageAnalytics)
+          .where(
+            and(
+              eq(usageAnalytics.userId, userId),
+              eq(usageAnalytics.itemType, 'merchant'),
+              eq(usageAnalytics.itemId, merchantId)
+            )
           )
-        );
-    } else {
-      await db.insert(usageAnalytics).values({
-        id: merchantAnalyticsId,
-        userId,
-        itemType: 'merchant',
-        itemId: existingMerchant.length > 0 ? existingMerchant[0].id : normalizedDescription,
-        usageCount: 1,
-        lastUsedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-      });
+          .limit(1);
+
+        if (existingAnalytics.length > 0) {
+          await db
+            .update(usageAnalytics)
+            .set({
+              usageCount: (existingAnalytics[0].usageCount || 0) + 1,
+              lastUsedAt: new Date().toISOString(),
+            })
+            .where(
+              and(
+                eq(usageAnalytics.userId, userId),
+                eq(usageAnalytics.itemType, 'merchant'),
+                eq(usageAnalytics.itemId, merchantId)
+              )
+            );
+        } else {
+          const analyticsId = nanoid();
+          await db.insert(usageAnalytics).values({
+            id: analyticsId,
+            userId,
+            itemType: 'merchant',
+            itemId: merchantId,
+            usageCount: 1,
+            lastUsedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+          });
+        }
+      }
     }
 
     // Log rule execution if a rule was applied

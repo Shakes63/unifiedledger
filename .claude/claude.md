@@ -60,7 +60,9 @@ unifiedledger/
 │   │   ├── transactions/              # Transaction CRUD endpoints (with auto-categorization)
 │   │   ├── accounts/                  # Account management endpoints (usage-sorted)
 │   │   ├── categories/                # Category management endpoints (usage-sorted)
-│   │   ├── merchants/                 # Merchant listing (usage-sorted)
+│   │   ├── merchants/                 # Merchant management (usage-sorted)
+│   │   │   ├── route.ts              # List merchants + create new
+│   │   │   └── [id]/route.ts         # Update + delete individual merchants
 │   │   ├── transfers/                 # Transfer CRUD endpoints (usage-based suggestions)
 │   │   ├── bills/                     # Bill management with auto-detection and matching
 │   │   │   ├── route.ts              # CRUD for bills
@@ -95,6 +97,7 @@ unifiedledger/
 │   │   ├── transactions/
 │   │   │   ├── page.tsx               # Transactions list
 │   │   │   └── new/page.tsx           # New transaction form
+│   │   ├── merchants/                 # Merchants management page
 │   │   ├── transfers/                 # Transfer management page
 │   │   ├── calendar/                  # Calendar view page
 │   │   ├── bills/                     # Bill dashboard
@@ -114,8 +117,9 @@ unifiedledger/
 │   │   ├── transaction-form.tsx
 │   │   ├── account-selector.tsx
 │   │   ├── category-selector.tsx
-│   │   ├── quick-transaction-modal.tsx
+│   │   ├── merchant-selector.tsx       # Merchant selection with inline creation
 │   │   ├── merchant-autocomplete.tsx
+│   │   ├── quick-transaction-modal.tsx
 │   │   └── transaction-templates.tsx
 │   ├── transfers/                     # Transfer components
 │   │   ├── transfer-form.tsx          # Transfer creation form

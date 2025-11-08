@@ -37,9 +37,10 @@ export function BillsWidget() {
         );
 
         if (response.ok) {
-          const data: BillInstance[] = await response.json();
+          const response_data = await response.json();
+          const billInstances = Array.isArray(response_data) ? response_data : response_data.data || [];
           // Filter for this month only
-          const thisMonthBills = data.filter((bill) => {
+          const thisMonthBills = billInstances.filter((bill: BillInstance) => {
             const dueDate = new Date(bill.dueDate);
             return dueDate >= startOfMonth && dueDate <= endOfMonth;
           });

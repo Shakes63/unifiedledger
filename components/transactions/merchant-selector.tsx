@@ -1,0 +1,169 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Plus, X } from 'lucide-react';
+import { toast } from 'sonner';
+
+interface Merchant {
+  id: string;
+  name: string;
+  usageCount: number;
+}
+
+interface MerchantSelectorProps {
+  selectedMerchant: string | null;
+  onMerchantChange: (merchantId: string | null) => void;
+  hideLabel?: boolean;
+}
+
+export function MerchantSelector({
+  selectedMerchant,
+  onMerchantChange,
+  hideLabel = false,
+}: MerchantSelectorProps) {
+  const [merchants, setMerchants] = useState<Merchant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newMerchantName, setNewMerchantName] = useState('');
+  const [creatingMerchant, setCreatingMerchant] = useState(false);
+
+  useEffect(() => {
+    const fetchMerchants = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/merchants');
+        if (response.ok) {
+          const data = await response.json();
+          setMerchants(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch merchants:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMerchants();
+  }, []);
+
+  const handleCreateMerchant = async () => {
+    if (!newMerchantName.trim()) {
+      toast.error('Merchant name is required');
+      return;
+    }
+
+    setCreatingMerchant(true);
+    try {
+      const response = await fetch('/api/merchants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newMerchantName,
+        }),
+      });
+
+      if (response.ok) {
+        const newMerchant = await response.json();
+        // Add to merchants list
+        setMerchants([...merchants, newMerchant]);
+        // Auto-select the new merchant
+        onMerchantChange(newMerchant.id);
+        // Reset creation UI
+        setNewMerchantName('');
+        setIsCreating(false);
+        toast.success(`Merchant "${newMerchant.name}" created!`);
+      } else {
+        toast.error('Failed to create merchant');
+      }
+    } catch (error) {
+      console.error('Error creating merchant:', error);
+      toast.error('Error creating merchant');
+    } finally {
+      setCreatingMerchant(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleCreateMerchant();
+    } else if (e.key === 'Escape') {
+      setIsCreating(false);
+      setNewMerchantName('');
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      {!hideLabel && <label className="text-sm font-medium text-white">Merchant</label>}
+      {!isCreating ? (
+        <div className="flex gap-2">
+          <Select value={selectedMerchant || ''} onValueChange={onMerchantChange}>
+            <SelectTrigger className="flex-1 bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg">
+              <SelectValue placeholder="Select or skip" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Skip (No merchant)</SelectItem>
+              {merchants.map((merchant) => (
+                <SelectItem key={merchant.id} value={merchant.id}>
+                  {merchant.name} ({merchant.usageCount})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => setIsCreating(true)}
+            className="bg-[#242424] border-[#3a3a3a] text-gray-400 hover:bg-[#2a2a2a]"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <Input
+            autoFocus
+            type="text"
+            placeholder="New merchant name..."
+            value={newMerchantName}
+            onChange={(e) => setNewMerchantName(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="flex-1 bg-[#1a1a1a] border border-[#3b82f6] text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
+          />
+          <Button
+            type="button"
+            size="icon"
+            onClick={handleCreateMerchant}
+            disabled={creatingMerchant || !newMerchantName.trim()}
+            className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              setIsCreating(false);
+              setNewMerchantName('');
+            }}
+            className="bg-[#242424] border-[#3a3a3a] text-gray-400 hover:bg-[#2a2a2a]"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}

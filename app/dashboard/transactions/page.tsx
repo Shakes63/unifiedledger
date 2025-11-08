@@ -27,6 +27,8 @@ interface Transaction {
   date: string;
   accountId: string;
   categoryId?: string;
+  merchantId?: string;
+  transferId?: string;
   notes?: string;
   isSplit?: boolean;
 }
@@ -41,10 +43,16 @@ interface Account {
   name: string;
 }
 
+interface Merchant {
+  id: string;
+  name: string;
+}
+
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
   const [repeatingTxId, setRepeatingTxId] = useState<string | null>(null);
@@ -81,6 +89,13 @@ export default function TransactionsPage() {
         if (accResponse.ok) {
           const accData = await accResponse.json();
           setAccounts(accData);
+        }
+
+        // Fetch merchants
+        const merResponse = await fetch('/api/merchants?limit=1000');
+        if (merResponse.ok) {
+          const merData = await merResponse.json();
+          setMerchants(merData);
         }
       } catch (error) {
         console.error('Failed to fetch initial data:', error);
@@ -196,6 +211,7 @@ export default function TransactionsPage() {
         return <ArrowDownLeft className="w-4 h-4 text-emerald-400" />;
       case 'expense':
         return <ArrowUpRight className="w-4 h-4 text-red-400" />;
+      case 'transfer':
       case 'transfer_in':
       case 'transfer_out':
         return <ArrowRightLeft className="w-4 h-4 text-blue-400" />;
@@ -210,12 +226,36 @@ export default function TransactionsPage() {
         return 'bg-emerald-500/20 text-emerald-400';
       case 'expense':
         return 'bg-red-500/20 text-red-400';
+      case 'transfer':
       case 'transfer_in':
       case 'transfer_out':
         return 'bg-blue-500/20 text-blue-400';
       default:
         return 'bg-gray-500/20 text-gray-400';
     }
+  };
+
+  const getMerchantName = (merchantId?: string): string | null => {
+    if (!merchantId) return null;
+    const merchant = merchants.find((m) => m.id === merchantId);
+    return merchant?.name || null;
+  };
+
+  const getAccountName = (accountId?: string): string => {
+    if (!accountId) return 'Unknown';
+    const account = accounts.find((a) => a.id === accountId);
+    return account?.name || 'Unknown';
+  };
+
+  const getTransactionDisplay = (transaction: Transaction): string => {
+    if (transaction.type === 'transfer') {
+      return `${getAccountName(transaction.accountId)} → ${getAccountName(transaction.transferId)}`;
+    }
+    const merchant = getMerchantName(transaction.merchantId);
+    if (merchant) {
+      return merchant;
+    }
+    return transaction.description;
   };
 
   return (
@@ -291,39 +331,32 @@ export default function TransactionsPage() {
             </Link>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {transactions.map((transaction) => (
               <Link key={transaction.id} href={`/dashboard/transactions/${transaction.id}`}>
-                <Card className="p-4 border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg cursor-pointer">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="p-2.5 bg-[#242424] rounded-lg flex-shrink-0">
+                <Card className="p-2 border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg cursor-pointer">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="p-1.5 bg-[#242424] rounded flex-shrink-0">
                         {getTransactionIcon(transaction.type)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium text-white truncate">
-                            {transaction.description}
-                          </p>
-                          {transaction.isSplit && (
-                            <span title="Split transaction">
-                              <Split className="w-3.5 h-3.5 text-[#60a5fa] flex-shrink-0" />
-                            </span>
-                          )}
-                        </div>
+                        <p className="font-medium text-white text-sm truncate">
+                          {getTransactionDisplay(transaction)}
+                        </p>
                         <p className="text-xs text-gray-500">
                           {new Date(transaction.date).toLocaleDateString('en-US', {
-                            weekday: 'short',
                             month: 'short',
                             day: 'numeric',
                           })}
+                          {transaction.isSplit && ' • Split'}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <div className="text-right">
                         <p
-                          className={`font-semibold ${
+                          className={`font-semibold text-sm ${
                             transaction.type === 'income'
                               ? 'text-emerald-400'
                               : 'text-white'
@@ -332,12 +365,6 @@ export default function TransactionsPage() {
                           {transaction.type === 'income' ? '+' : '-'}$
                           {transaction.amount.toFixed(2)}
                         </p>
-                        <Badge
-                          className={getTypeColor(transaction.type)}
-                          variant="secondary"
-                        >
-                          {transaction.type.replace('_', ' ')}
-                        </Badge>
                       </div>
                       <Button
                         variant="ghost"
@@ -347,10 +374,10 @@ export default function TransactionsPage() {
                           handleRepeatTransaction(transaction);
                         }}
                         disabled={repeatingTxId === transaction.id}
-                        className="text-gray-400 hover:text-white hover:bg-[#242424] flex-shrink-0"
+                        className="h-7 w-7 text-gray-400 hover:text-white hover:bg-[#242424] flex-shrink-0"
                         title="Repeat this transaction with today's date"
                       >
-                        <Copy className="w-4 h-4" />
+                        <Copy className="w-3 h-3" />
                       </Button>
                     </div>
                   </div>
