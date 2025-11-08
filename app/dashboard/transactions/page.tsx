@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { AdvancedSearch } from '@/components/transactions/advanced-search';
 import {
   Select,
   SelectContent,
@@ -29,31 +30,99 @@ interface Transaction {
   isSplit?: boolean;
 }
 
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface Account {
+  id: string;
+  name: string;
+}
+
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
+  const [searchLoading, setSearchLoading] = useState(false);
   const [repeatingTxId, setRepeatingTxId] = useState<string | null>(null);
+  const [totalResults, setTotalResults] = useState(0);
 
+  // Fetch initial data
   useEffect(() => {
-    const fetchTransactions = async () => {
+    const fetchInitialData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/transactions?limit=100');
-        if (response.ok) {
-          const data = await response.json();
-          setTransactions(data.reverse()); // Show newest first
+
+        // Fetch transactions
+        const txResponse = await fetch('/api/transactions?limit=100');
+        if (txResponse.ok) {
+          const txData = await txResponse.json();
+          setTransactions(txData.reverse()); // Show newest first
+          setTotalResults(txData.length);
+        }
+
+        // Fetch categories
+        const catResponse = await fetch('/api/categories');
+        if (catResponse.ok) {
+          const catData = await catResponse.json();
+          setCategories(catData);
+        }
+
+        // Fetch accounts
+        const accResponse = await fetch('/api/accounts');
+        if (accResponse.ok) {
+          const accData = await accResponse.json();
+          setAccounts(accData);
         }
       } catch (error) {
-        console.error('Failed to fetch transactions:', error);
+        console.error('Failed to fetch initial data:', error);
+        toast.error('Failed to load data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTransactions();
+    fetchInitialData();
   }, []);
+
+  const handleAdvancedSearch = async (filters: any) => {
+    try {
+      setSearchLoading(true);
+
+      const params = new URLSearchParams();
+      if (filters.query) params.append('query', filters.query);
+      if (filters.categoryIds?.length > 0) params.append('categoryIds', filters.categoryIds.join(','));
+      if (filters.accountIds?.length > 0) params.append('accountIds', filters.accountIds.join(','));
+      if (filters.types?.length > 0) params.append('types', filters.types.join(','));
+      if (filters.amountMin !== undefined) params.append('amountMin', filters.amountMin.toString());
+      if (filters.amountMax !== undefined) params.append('amountMax', filters.amountMax.toString());
+      if (filters.dateStart) params.append('dateStart', filters.dateStart);
+      if (filters.dateEnd) params.append('dateEnd', filters.dateEnd);
+      if (filters.isPending) params.append('isPending', 'true');
+      if (filters.isSplit) params.append('isSplit', 'true');
+      if (filters.hasNotes) params.append('hasNotes', 'true');
+      if (filters.sortBy) params.append('sortBy', filters.sortBy);
+      if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
+      params.append('limit', '100');
+
+      const response = await fetch(`/api/transactions/search?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTransactions(data.transactions);
+        setTotalResults(data.pagination.total);
+        toast.success(`Found ${data.pagination.total} transaction(s)`);
+      } else {
+        toast.error('Search failed');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      toast.error('Failed to search transactions');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
 
   const handleRepeatTransaction = async (transaction: Transaction) => {
     try {
@@ -119,15 +188,6 @@ export default function TransactionsPage() {
     }
   };
 
-  const filteredTransactions = transactions.filter((tx) => {
-    const matchesSearch = tx.description
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesFilter =
-      filterType === 'all' || tx.type === filterType;
-    return matchesSearch && matchesFilter;
-  });
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -151,7 +211,7 @@ export default function TransactionsPage() {
             <div>
               <h1 className="text-2xl font-bold text-foreground">Transactions</h1>
               <p className="text-sm text-muted-foreground">
-                {filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}
+                {totalResults} transaction{totalResults !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
@@ -160,26 +220,14 @@ export default function TransactionsPage() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <Input
-            placeholder="Search transactions..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1 bg-[#1a1a1a] border border-[#2a2a2a] text-white placeholder-gray-500 rounded-lg"
+        {/* Advanced Search */}
+        <div className="mb-8">
+          <AdvancedSearch
+            categories={categories}
+            accounts={accounts}
+            onSearch={handleAdvancedSearch}
+            isLoading={searchLoading}
           />
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="sm:w-[150px] bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg">
-              <SelectValue placeholder="Filter by type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="income">Income</SelectItem>
-              <SelectItem value="expense">Expense</SelectItem>
-              <SelectItem value="transfer_in">Transfer In</SelectItem>
-              <SelectItem value="transfer_out">Transfer Out</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         {/* Transactions List */}

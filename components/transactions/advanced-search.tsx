@@ -1,0 +1,415 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Select } from '@/components/ui/select';
+import { X } from 'lucide-react';
+
+interface SearchFilters {
+  query?: string;
+  categoryIds?: string[];
+  accountIds?: string[];
+  types?: string[];
+  amountMin?: number;
+  amountMax?: number;
+  dateStart?: string;
+  dateEnd?: string;
+  isPending?: boolean;
+  isSplit?: boolean;
+  hasNotes?: boolean;
+  sortBy?: 'date' | 'amount' | 'description';
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface AdvancedSearchProps {
+  categories: Array<{ id: string; name: string }>;
+  accounts: Array<{ id: string; name: string }>;
+  onSearch: (filters: SearchFilters) => void;
+  isLoading?: boolean;
+}
+
+export function AdvancedSearch({
+  categories,
+  accounts,
+  onSearch,
+  isLoading = false,
+}: AdvancedSearchProps) {
+  const [filters, setFilters] = useState<SearchFilters>({
+    sortBy: 'date',
+    sortOrder: 'desc',
+  });
+
+  const [amountRange, setAmountRange] = useState<[number, number]>([0, 10000]);
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
+    new Set(filters.categoryIds || [])
+  );
+  const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(
+    new Set(filters.accountIds || [])
+  );
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(
+    new Set(filters.types || [])
+  );
+
+  const transactionTypes = [
+    { value: 'income', label: 'Income' },
+    { value: 'expense', label: 'Expense' },
+    { value: 'transfer_in', label: 'Transfer In' },
+    { value: 'transfer_out', label: 'Transfer Out' },
+  ];
+
+  const handleCategoryToggle = (categoryId: string) => {
+    const newCategories = new Set(selectedCategories);
+    if (newCategories.has(categoryId)) {
+      newCategories.delete(categoryId);
+    } else {
+      newCategories.add(categoryId);
+    }
+    setSelectedCategories(newCategories);
+    setFilters({
+      ...filters,
+      categoryIds: Array.from(newCategories),
+    });
+  };
+
+  const handleAccountToggle = (accountId: string) => {
+    const newAccounts = new Set(selectedAccounts);
+    if (newAccounts.has(accountId)) {
+      newAccounts.delete(accountId);
+    } else {
+      newAccounts.add(accountId);
+    }
+    setSelectedAccounts(newAccounts);
+    setFilters({
+      ...filters,
+      accountIds: Array.from(newAccounts),
+    });
+  };
+
+  const handleTypeToggle = (type: string) => {
+    const newTypes = new Set(selectedTypes);
+    if (newTypes.has(type)) {
+      newTypes.delete(type);
+    } else {
+      newTypes.add(type);
+    }
+    setSelectedTypes(newTypes);
+    setFilters({
+      ...filters,
+      types: Array.from(newTypes),
+    });
+  };
+
+  const handleAmountChange = (value: number[]) => {
+    setAmountRange([value[0], value[1]]);
+    setFilters({
+      ...filters,
+      amountMin: value[0],
+      amountMax: value[1],
+    });
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      sortBy: 'date',
+      sortOrder: 'desc',
+    });
+    setAmountRange([0, 10000]);
+    setSelectedCategories(new Set());
+    setSelectedAccounts(new Set());
+    setSelectedTypes(new Set());
+  };
+
+  const handleSearch = () => {
+    onSearch(filters);
+  };
+
+  const activeFilterCount = Object.values(filters).filter(
+    (v) => v !== undefined && v !== null && (Array.isArray(v) ? v.length > 0 : v !== 'date' && v !== 'desc')
+  ).length;
+
+  return (
+    <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-white">Advanced Search</h2>
+          {activeFilterCount > 0 && (
+            <p className="text-sm text-[#9ca3af] mt-1">
+              {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} applied
+            </p>
+          )}
+        </div>
+        {activeFilterCount > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClearFilters}
+            className="text-[#9ca3af] border-[#2a2a2a] hover:bg-[#242424]"
+          >
+            Clear All
+          </Button>
+        )}
+      </div>
+
+      {/* Text Search */}
+      <div className="space-y-2">
+        <Label htmlFor="query" className="text-white">
+          Search Description & Notes
+        </Label>
+        <Input
+          id="query"
+          placeholder="Search transactions..."
+          value={filters.query || ''}
+          onChange={(e) =>
+            setFilters({ ...filters, query: e.target.value || undefined })
+          }
+          className="bg-[#242424] border-[#2a2a2a] text-white placeholder-[#6b7280]"
+        />
+      </div>
+
+      {/* Categories */}
+      {categories.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-white">Categories</Label>
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <Badge
+                key={category.id}
+                variant={
+                  selectedCategories.has(category.id) ? 'default' : 'outline'
+                }
+                className={`cursor-pointer transition-colors ${
+                  selectedCategories.has(category.id)
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-[#242424] text-[#9ca3af] border-[#2a2a2a] hover:bg-[#2a2a2a]'
+                }`}
+                onClick={() => handleCategoryToggle(category.id)}
+              >
+                {category.name}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Accounts */}
+      {accounts.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-white">Accounts</Label>
+          <div className="flex flex-wrap gap-2">
+            {accounts.map((account) => (
+              <Badge
+                key={account.id}
+                variant={
+                  selectedAccounts.has(account.id) ? 'default' : 'outline'
+                }
+                className={`cursor-pointer transition-colors ${
+                  selectedAccounts.has(account.id)
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-[#242424] text-[#9ca3af] border-[#2a2a2a] hover:bg-[#2a2a2a]'
+                }`}
+                onClick={() => handleAccountToggle(account.id)}
+              >
+                {account.name}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Transaction Types */}
+      <div className="space-y-2">
+        <Label className="text-white">Transaction Types</Label>
+        <div className="flex flex-wrap gap-2">
+          {transactionTypes.map((type) => (
+            <Badge
+              key={type.value}
+              variant={
+                selectedTypes.has(type.value) ? 'default' : 'outline'
+              }
+              className={`cursor-pointer transition-colors ${
+                selectedTypes.has(type.value)
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-[#242424] text-[#9ca3af] border-[#2a2a2a] hover:bg-[#2a2a2a]'
+              }`}
+              onClick={() => handleTypeToggle(type.value)}
+            >
+              {type.label}
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      {/* Amount Range */}
+      <div className="space-y-4">
+        <Label className="text-white">Amount Range</Label>
+        <div className="space-y-3">
+          <Slider
+            value={amountRange}
+            onValueChange={handleAmountChange}
+            min={0}
+            max={10000}
+            step={50}
+            className="w-full"
+          />
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <Label className="text-xs text-[#6b7280]">Min</Label>
+              <div className="text-white font-semibold">${amountRange[0]}</div>
+            </div>
+            <div className="flex-1">
+              <Label className="text-xs text-[#6b7280]">Max</Label>
+              <div className="text-white font-semibold">${amountRange[1]}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Date Range */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="dateStart" className="text-white">
+            From Date
+          </Label>
+          <Input
+            id="dateStart"
+            type="date"
+            value={filters.dateStart || ''}
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                dateStart: e.target.value || undefined,
+              })
+            }
+            className="bg-[#242424] border-[#2a2a2a] text-white"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="dateEnd" className="text-white">
+            To Date
+          </Label>
+          <Input
+            id="dateEnd"
+            type="date"
+            value={filters.dateEnd || ''}
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                dateEnd: e.target.value || undefined,
+              })
+            }
+            className="bg-[#242424] border-[#2a2a2a] text-white"
+          />
+        </div>
+      </div>
+
+      {/* Toggle Filters */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between p-3 bg-[#242424] rounded-lg">
+          <Label htmlFor="isPending" className="text-white cursor-pointer">
+            Pending Only
+          </Label>
+          <Switch
+            id="isPending"
+            checked={filters.isPending || false}
+            onCheckedChange={(checked) =>
+              setFilters({
+                ...filters,
+                isPending: checked || undefined,
+              })
+            }
+          />
+        </div>
+
+        <div className="flex items-center justify-between p-3 bg-[#242424] rounded-lg">
+          <Label htmlFor="isSplit" className="text-white cursor-pointer">
+            Split Transactions Only
+          </Label>
+          <Switch
+            id="isSplit"
+            checked={filters.isSplit || false}
+            onCheckedChange={(checked) =>
+              setFilters({
+                ...filters,
+                isSplit: checked || undefined,
+              })
+            }
+          />
+        </div>
+
+        <div className="flex items-center justify-between p-3 bg-[#242424] rounded-lg">
+          <Label htmlFor="hasNotes" className="text-white cursor-pointer">
+            Has Notes Only
+          </Label>
+          <Switch
+            id="hasNotes"
+            checked={filters.hasNotes || false}
+            onCheckedChange={(checked) =>
+              setFilters({
+                ...filters,
+                hasNotes: checked || undefined,
+              })
+            }
+          />
+        </div>
+      </div>
+
+      {/* Sort Options */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="sortBy" className="text-white">
+            Sort By
+          </Label>
+          <select
+            id="sortBy"
+            value={filters.sortBy || 'date'}
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                sortBy: e.target.value as 'date' | 'amount' | 'description',
+              })
+            }
+            className="w-full bg-[#242424] border border-[#2a2a2a] text-white rounded px-3 py-2"
+          >
+            <option value="date">Date</option>
+            <option value="amount">Amount</option>
+            <option value="description">Description</option>
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="sortOrder" className="text-white">
+            Order
+          </Label>
+          <select
+            id="sortOrder"
+            value={filters.sortOrder || 'desc'}
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                sortOrder: e.target.value as 'asc' | 'desc',
+              })
+            }
+            className="w-full bg-[#242424] border border-[#2a2a2a] text-white rounded px-3 py-2"
+          >
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Search Button */}
+      <Button
+        onClick={handleSearch}
+        disabled={isLoading}
+        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2"
+      >
+        {isLoading ? 'Searching...' : 'Search Transactions'}
+      </Button>
+    </Card>
+  );
+}

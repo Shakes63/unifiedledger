@@ -269,7 +269,7 @@ The application uses a comprehensive dark mode first design system:
 
 ## Phase 2: Transaction Intelligence & Speed Features - IN PROGRESS 🟢
 
-**Progress: 9/24 tasks completed (37.5%)**
+**Progress: 10/24 tasks completed (41.7%)**
 
 ### Completed Phase 2 Features
 
@@ -314,6 +314,25 @@ The application uses a comprehensive dark mode first design system:
 - ✅ **Split Indicators:** Visual badges showing which transactions are split
 - ✅ **Clickable Transaction List:** Navigate to transaction details from list
 
+#### Advanced Search Database Schema
+- ✅ **Database Indexes:** 5 new performance indexes on transactions table
+  - `idx_transactions_category` - for category filtering
+  - `idx_transactions_type` - for transaction type queries
+  - `idx_transactions_amount` - for amount range filtering
+  - `idx_transactions_user_date` - composite for date range queries
+  - `idx_transactions_user_category` - composite for user+category queries
+- ✅ **Optional Tables:** `savedSearchFilters` and `searchHistory` for search persistence
+- ✅ **Search API Endpoint:** `/api/transactions/search` with 11 filter types
+  - Text search in description & notes
+  - Category, account, and type filtering
+  - Amount range filtering
+  - Date range filtering
+  - Pending/split/has-notes toggles
+  - Multiple sort options (date, amount, description)
+  - Automatic search tracking to history
+- ✅ **Advanced Search UI:** Comprehensive filter component with 8+ filter options
+- ✅ **Integration:** Full integration into transactions page with real-time search
+
 ### Split Transaction System Architecture
 
 **Backend:**
@@ -346,8 +365,8 @@ The application uses a comprehensive dark mode first design system:
 1. ✅ Add transaction history with "repeat" functionality
 2. ✅ Build split transaction database schema
 3. ✅ Implement split transaction creation and editing UI
-4. [ ] Build advanced search database schema
-5. [ ] Implement core search function with filtering
+4. ✅ Build advanced search database schema
+5. [ ] Implement core search function with filtering (pagination & saved searches)
 6. [ ] Voice-to-text transaction entry
 7. [ ] Duplicate detection with Levenshtein distance
 8. [ ] CSV import with auto-detection

@@ -142,6 +142,11 @@ export const transactions = sqliteTable(
     accountIdIdx: index('idx_transactions_account').on(table.accountId),
     userIdIdx: index('idx_transactions_user').on(table.userId),
     dateIdx: index('idx_transactions_date').on(table.date),
+    categoryIdIdx: index('idx_transactions_category').on(table.categoryId),
+    typeIdx: index('idx_transactions_type').on(table.type),
+    amountIdx: index('idx_transactions_amount').on(table.amount),
+    userDateIdx: index('idx_transactions_user_date').on(table.userId, table.date),
+    userCategoryIdx: index('idx_transactions_user_category').on(table.userId, table.categoryId),
   })
 );
 
@@ -781,6 +786,47 @@ export const ruleExecutionLog = sqliteTable(
 );
 
 // ============================================================================
+// ADVANCED SEARCH
+// ============================================================================
+
+export const savedSearchFilters = sqliteTable(
+  'saved_search_filters',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    filters: text('filters').notNull(), // JSON: { query, categoryIds, accountIds, types, amountMin, amountMax, dateStart, dateEnd, isPending, isSplit, hasNotes, sortBy, sortOrder }
+    isDefault: integer('is_default', { mode: 'boolean' }).default(false),
+    usageCount: integer('usage_count').default(0),
+    lastUsedAt: text('last_used_at'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_saved_search_filters_user').on(table.userId),
+    userDefaultIdx: index('idx_saved_search_filters_user_default').on(table.userId, table.isDefault),
+  })
+);
+
+export const searchHistory = sqliteTable(
+  'search_history',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    filters: text('filters').notNull(), // JSON: same structure as savedSearchFilters
+    resultCount: integer('result_count').notNull(),
+    executionTimeMs: integer('execution_time_ms'),
+    savedSearchId: text('saved_search_id'), // FK to savedSearchFilters if from saved search
+    executedAt: text('executed_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_search_history_user').on(table.userId),
+    userExecutedAtIdx: index('idx_search_history_user_executed').on(table.userId, table.executedAt),
+  })
+);
+
+// ============================================================================
 // RELATIONS
 // ============================================================================
 
@@ -945,5 +991,16 @@ export const ruleExecutionLogRelations = relations(ruleExecutionLog, ({ one }) =
   appliedCategory: one(budgetCategories, {
     fields: [ruleExecutionLog.appliedCategoryId],
     references: [budgetCategories.id],
+  }),
+}));
+
+export const savedSearchFiltersRelations = relations(savedSearchFilters, ({ many }) => ({
+  searchHistory: many(searchHistory),
+}));
+
+export const searchHistoryRelations = relations(searchHistory, ({ one }) => ({
+  savedSearchFilter: one(savedSearchFilters, {
+    fields: [searchHistory.savedSearchId],
+    references: [savedSearchFilters.id],
   }),
 }));
