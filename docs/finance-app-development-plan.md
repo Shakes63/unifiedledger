@@ -15928,11 +15928,24 @@ export const applyWeeklyUsageDecay = async () => {
 ### Phase 4: Budget Integration, Bill Tracking & Notifications (Week 7-8)
 **Goal:** Budget tracking, automatic bill payment detection, and notification system
 
+**Progress: 5/27 tasks completed (19%) - Foundation & Matching Complete**
+
 **Priority Tasks:**
-- [ ] **Build bill setup and management system**
-- [ ] **Implement automatic bill payment detection and matching**
+- [x] **Build bill setup and management system** ✅
+  - Bills CRUD API endpoints (POST, GET, PUT, DELETE)
+  - Bill instance CRUD endpoints
+  - Automatic 3-month instance generation
+  - Bill active/inactive toggling
+- [x] **Implement automatic bill payment detection and matching** ✅
+  - Bill matcher utility with Levenshtein distance (lib/bills/bill-matcher.ts)
+  - Multi-factor matching (string, amount, date, payee patterns)
+  - Confidence scoring (0-100)
+  - Batch transaction analysis
+  - Auto-linking on transaction creation (90%+ confidence)
+  - Bill detection from transaction history
+  - Match preview API endpoint
 - [ ] **Create bill dashboard showing overdue and upcoming bills**
-- [ ] **Set up notifications database schema**
+- [ ] **Set up notifications database schema** (Already in schema)
 - [ ] **Implement notification service with push notification support**
 - [ ] **Build notification bell UI component**
 - [ ] **Create notification preferences interface**
@@ -15940,12 +15953,12 @@ export const applyWeeklyUsageDecay = async () => {
 - [ ] **Implement budget warning notifications (real-time)**
 - [ ] **Add low balance notifications**
 - [ ] **Real-time budget impact display during transaction entry**
-- [ ] **Bill payment status tracking (paid, overdue, pending)**
-- [ ] **Build tags database schema and many-to-many relationships**
+- [x] **Bill payment status tracking (paid, overdue, pending)** ✅ (In schema and endpoints)
+- [x] **Build tags database schema and many-to-many relationships** ✅
 - [ ] **Implement tag creation and management UI**
 - [ ] **Add tag selector to transaction form**
 - [ ] **Add tag filtering to advanced search**
-- [ ] **Create custom fields database schema**
+- [x] **Create custom fields database schema** ✅
 - [ ] **Build custom field definition manager**
 - [ ] **Add dynamic custom field inputs to forms**
 - [ ] **Add custom field filtering to advanced search**
@@ -15955,23 +15968,27 @@ export const applyWeeklyUsageDecay = async () => {
 - [ ] **Implement search history tracking (last 20 searches)**
 - [ ] Simple budget vs actual progress bars
 - [ ] **Budget warnings during transaction entry**
-- [ ] **Monthly bill instance generation and management**
+- [x] **Monthly bill instance generation and management** ✅ (Automatic in bill creation)
 
 **Deliverables:**
-- Complete bill tracking system with auto-payment detection
-- Bills never "fall off" until marked paid
-- Full notification system with PWA push support
-- Bill reminders (3 days before, on due date, overdue)
-- Budget warnings and exceeded alerts
-- Low balance alerts
-- Customizable notification preferences
-- Real-time budget feedback during transaction entry
-- Overdue bill alerts and management
-- Full tagging system with usage tracking
-- Flexible custom fields for transactions
-- Advanced search with multiple filter types
-- Saved search presets with favorites
-- Search history tracking
+- [x] Complete bill tracking system with auto-payment detection ✅
+  - REST API for full bill lifecycle management
+  - Multi-factor matching algorithm (90%+ confidence for auto-linking)
+  - Transaction-to-bill detection from history
+  - Monthly instance generation and management
+- Bills never "fall off" until marked paid (Implemented in bill instances)
+- [ ] Full notification system with PWA push support
+- [ ] Bill reminders (3 days before, on due date, overdue)
+- [ ] Budget warnings and exceeded alerts
+- [ ] Low balance alerts
+- [ ] Customizable notification preferences
+- [ ] Real-time budget feedback during transaction entry
+- [ ] Overdue bill alerts and management
+- [x] Full tagging system with usage tracking (Schema & Foundation) ✅
+- [x] Flexible custom fields for transactions (Schema & Foundation) ✅
+- [ ] Advanced search with multiple filter types
+- [ ] Saved search presets with favorites
+- [ ] Search history tracking
 
 ### Phase 5: Goals, Advanced Features & Household Activity (Week 9-10)
 **Goal:** Add spreadsheet functionality and household collaboration features

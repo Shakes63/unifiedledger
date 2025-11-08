@@ -1,11 +1,12 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
-import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog } from '@/lib/db/schema';
+import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import { TransactionData } from '@/lib/rules/condition-evaluator';
+import { findMatchingBills } from '@/lib/bills/bill-matcher';
 
 export const dynamic = 'force-dynamic';
 
@@ -306,12 +307,98 @@ export async function POST(request: Request) {
       }
     }
 
+    // Auto-detect and link bills (optional, low-confidence matches only)
+    let linkedBillId: string | null = null;
+    try {
+      if (type === 'expense') {
+        const userBills = await db
+          .select()
+          .from(bills)
+          .where(
+            and(
+              eq(bills.userId, userId),
+              eq(bills.isActive, true)
+            )
+          );
+
+        if (userBills.length > 0) {
+          const billsForMatching = userBills.map((bill) => {
+            const patterns = bill.payeePatterns
+              ? JSON.parse(bill.payeePatterns)
+              : [];
+
+            return {
+              id: bill.id,
+              name: bill.name,
+              expectedAmount: bill.expectedAmount,
+              dueDate: bill.dueDate,
+              isVariableAmount: bill.isVariableAmount ?? false,
+              amountTolerance: bill.amountTolerance ?? 5.0,
+              payeePatterns: Array.isArray(patterns) ? patterns : [],
+            };
+          });
+
+          const matches = await findMatchingBills({
+            id: transactionId,
+            description,
+            amount: parseFloat(amount),
+            date,
+            type,
+          }, billsForMatching);
+
+          // Only auto-link very high confidence matches (90+)
+          if (matches.length > 0 && matches[0].confidence >= 90) {
+            linkedBillId = matches[0].billId;
+
+            // Update transaction with bill link
+            await db
+              .update(transactions)
+              .set({
+                billId: linkedBillId,
+                updatedAt: new Date().toISOString(),
+              })
+              .where(eq(transactions.id, transactionId));
+
+            // Find and update the corresponding bill instance
+            const txDate = new Date(date);
+            const billInstance = await db
+              .select()
+              .from(billInstances)
+              .where(
+                and(
+                  eq(billInstances.billId, linkedBillId),
+                  eq(billInstances.status, 'pending')
+                )
+              )
+              .limit(1);
+
+            if (billInstance.length > 0) {
+              await db
+                .update(billInstances)
+                .set({
+                  status: 'paid',
+                  paidDate: date,
+                  actualAmount: parseFloat(amount),
+                  transactionId,
+                  updatedAt: new Date().toISOString(),
+                })
+                .where(eq(billInstances.id, billInstance[0].id));
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // Log error but don't fail transaction creation
+      console.error('Error auto-linking bill:', error);
+    }
+
     return Response.json(
       {
         id: transactionId,
         message: 'Transaction created successfully',
         appliedCategoryId: appliedCategoryId ? appliedCategoryId : undefined,
         appliedRuleId: appliedRuleId ? appliedRuleId : undefined,
+        linkedBillId: linkedBillId ? linkedBillId : undefined,
       },
       { status: 201 }
     );

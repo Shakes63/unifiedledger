@@ -909,6 +909,100 @@ export const importStaging = sqliteTable(
 );
 
 // ============================================================================
+// TAGS & CUSTOM FIELDS
+// ============================================================================
+
+export const tags = sqliteTable(
+  'tags',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    name: text('name').notNull(),
+    color: text('color').default('#6366f1'),
+    description: text('description'),
+    icon: text('icon'),
+    usageCount: integer('usage_count').default(0),
+    lastUsedAt: text('last_used_at'),
+    sortOrder: integer('sort_order').default(0),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_tags_user').on(table.userId),
+    userNameUnique: uniqueIndex('idx_tags_user_name').on(table.userId, table.name),
+  })
+);
+
+export const transactionTags = sqliteTable(
+  'transaction_tags',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    transactionId: text('transaction_id').notNull(),
+    tagId: text('tag_id').notNull(),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    uniqueTransactionTag: uniqueIndex('idx_transaction_tags_unique').on(
+      table.transactionId,
+      table.tagId
+    ),
+    userIdIdx: index('idx_transaction_tags_user').on(table.userId),
+    transactionIdIdx: index('idx_transaction_tags_transaction').on(table.transactionId),
+    tagIdIdx: index('idx_transaction_tags_tag').on(table.tagId),
+  })
+);
+
+export const customFields = sqliteTable(
+  'custom_fields',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    name: text('name').notNull(),
+    type: text('type', {
+      enum: ['text', 'number', 'date', 'select', 'multiselect', 'checkbox', 'url', 'email'],
+    }).notNull(),
+    description: text('description'),
+    isRequired: integer('is_required', { mode: 'boolean' }).default(false),
+    isActive: integer('is_active', { mode: 'boolean' }).default(true),
+    sortOrder: integer('sort_order').default(0),
+    options: text('options'), // JSON array for select/multiselect fields
+    defaultValue: text('default_value'),
+    placeholder: text('placeholder'),
+    validationPattern: text('validation_pattern'), // Regex pattern for validation
+    usageCount: integer('usage_count').default(0),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_custom_fields_user').on(table.userId),
+    userNameUnique: uniqueIndex('idx_custom_fields_user_name').on(table.userId, table.name),
+  })
+);
+
+export const customFieldValues = sqliteTable(
+  'custom_field_values',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    customFieldId: text('custom_field_id').notNull(),
+    transactionId: text('transaction_id').notNull(),
+    value: text('value'), // JSON for complex types (multiselect, arrays, etc.)
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    uniqueCustomFieldValue: uniqueIndex('idx_custom_field_values_unique').on(
+      table.customFieldId,
+      table.transactionId
+    ),
+    userIdIdx: index('idx_custom_field_values_user').on(table.userId),
+    customFieldIdIdx: index('idx_custom_field_values_field').on(table.customFieldId),
+    transactionIdIdx: index('idx_custom_field_values_transaction').on(table.transactionId),
+  })
+);
+
+// ============================================================================
 // RELATIONS
 // ============================================================================
 
@@ -953,6 +1047,8 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
     references: [transfers.id],
   }),
   splits: many(transactionSplits),
+  tags: many(transactionTags),
+  customFieldValues: many(customFieldValues),
 }));
 
 export const transactionSplitsRelations = relations(transactionSplits, ({ one }) => ({
@@ -1110,6 +1206,36 @@ export const importStagingRelations = relations(importStaging, ({ one }) => ({
   }),
   duplicateTransaction: one(transactions, {
     fields: [importStaging.duplicateOf],
+    references: [transactions.id],
+  }),
+}));
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+  transactionTags: many(transactionTags),
+}));
+
+export const transactionTagsRelations = relations(transactionTags, ({ one }) => ({
+  transaction: one(transactions, {
+    fields: [transactionTags.transactionId],
+    references: [transactions.id],
+  }),
+  tag: one(tags, {
+    fields: [transactionTags.tagId],
+    references: [tags.id],
+  }),
+}));
+
+export const customFieldsRelations = relations(customFields, ({ many }) => ({
+  values: many(customFieldValues),
+}));
+
+export const customFieldValuesRelations = relations(customFieldValues, ({ one }) => ({
+  customField: one(customFields, {
+    fields: [customFieldValues.customFieldId],
+    references: [customFields.id],
+  }),
+  transaction: one(transactions, {
+    fields: [customFieldValues.transactionId],
     references: [transactions.id],
   }),
 }));

@@ -62,6 +62,13 @@ unifiedledger/
 │   │   ├── categories/                # Category management endpoints (usage-sorted)
 │   │   ├── merchants/                 # Merchant listing (usage-sorted)
 │   │   ├── transfers/                 # Transfer CRUD endpoints (usage-based suggestions)
+│   │   ├── bills/                     # Bill management with auto-detection and matching
+│   │   │   ├── route.ts              # CRUD for bills
+│   │   │   ├── [id]/route.ts         # Individual bill operations
+│   │   │   ├── instances/route.ts    # Bill instance management
+│   │   │   ├── instances/[id]/route.ts # Individual instance operations
+│   │   │   ├── detect/route.ts       # Auto-detection and matching
+│   │   │   └── match/route.ts        # Transaction matching
 │   │   ├── calendar/                  # Calendar data endpoints (month/day summaries)
 │   │   ├── rules/                     # Categorization rules CRUD
 │   │   │   ├── route.ts              # List, create, update, delete rules
@@ -122,6 +129,8 @@ unifiedledger/
 │   ├── rules/                         # Rules engine and utilities
 │   │   ├── condition-evaluator.ts     # Condition matching logic
 │   │   └── rule-matcher.ts            # Rule matching algorithm
+│   ├── bills/                         # Bill matching and detection
+│   │   └── bill-matcher.ts            # Bill matching algorithm with Levenshtein distance
 │   └── utils.ts
 ├── public/
 │   ├── logo.png                       # Unified Ledger branding icon
@@ -533,6 +542,135 @@ The application uses a comprehensive dark mode first design system:
 2. Bill management and payment tracking
 3. Recurring transaction support
 4. Advanced analytics and reporting
+
+## Phase 4: Budget Integration, Bill Tracking & Notifications - IN PROGRESS 🟡
+
+**Progress: 2/5 major feature groups completed (40%)**
+
+### Phase 4 Part 1: Foundation & Database Schema - COMPLETED ✅
+
+#### Database Schemas Created
+- ✅ **Bills & Bill Instances Tables**
+  - Bills table with full management fields (name, amount, due date, tolerance)
+  - Bill Instances table for tracking monthly occurrences
+  - Automatic generation of 3-month ahead instances
+  - Payment status tracking (pending, paid, overdue, skipped)
+
+- ✅ **Tags System**
+  - Tags table with color, icon, and usage tracking
+  - TransactionTags many-to-many join table
+  - Performance indexes for fast lookups
+  - Support for transaction tagging and filtering
+
+- ✅ **Custom Fields System**
+  - CustomFields for defining field types (text, number, date, select, multiselect, checkbox, url, email)
+  - CustomFieldValues for storing transaction-specific field data
+  - Validation patterns and default values support
+  - Usage tracking for fields
+
+- ✅ **Database Migrations**
+  - All 4 new tables created and deployed to SQLite
+  - Proper indexing for performance optimization
+
+### Phase 4 Part 2: Automatic Bill Payment Detection & Matching - COMPLETED ✅
+
+#### Bill Matching Algorithm
+- ✅ **Bill Matcher Utility** (`lib/bills/bill-matcher.ts`)
+  - Intelligent multi-factor matching using Levenshtein distance
+  - String similarity scoring (40% of match score)
+  - Amount tolerance checking - ±5% default (30% of match score)
+  - Date pattern matching - day of month (20% of match score)
+  - Payee pattern configuration support (10% bonus)
+  - Confidence scoring (0-100 scale)
+  - Only auto-links 90%+ confidence matches
+
+#### API Endpoints
+- ✅ `POST /api/bills` - Create bills with 3-month instance generation
+- ✅ `GET /api/bills` - List bills with pagination and active filtering
+- ✅ `PUT /api/bills/[id]` - Update bill details
+- ✅ `DELETE /api/bills/[id]` - Delete bills and cascade instances
+- ✅ `GET /api/bills/instances` - List bill instances with status filtering
+- ✅ `POST /api/bills/instances` - Create manual bill instances
+- ✅ `PUT /api/bills/instances/[id]` - Mark bills paid, track late fees
+- ✅ `DELETE /api/bills/instances/[id]` - Delete instances
+- ✅ `POST /api/bills/detect` - Analyze transaction history for recurring bills
+- ✅ `PUT /api/bills/detect` - Auto-create detected bills
+- ✅ `POST /api/bills/match` - Analyze transactions and find matching bills
+- ✅ `GET /api/bills/match` - Fetch unmatched expense transactions
+
+#### Auto-Linking on Transaction Creation
+- ✅ Integrated into transaction creation endpoint
+- ✅ Runs on every expense transaction
+- ✅ Only auto-links very high confidence matches (90%+)
+- ✅ Automatically updates bill instance status to "paid"
+- ✅ Links transaction to bill for audit trail
+- ✅ Returns matched bill in response
+- ✅ Non-blocking - errors don't fail transaction creation
+
+#### How It Works
+1. **During Transaction Entry:**
+   - System searches active bills when expense created
+   - Analyzes description, amount, and date
+   - If matches ≥90% confidence → auto-links
+   - Updates corresponding bill instance as paid
+
+2. **Batch Matching:**
+   - Can analyze past transactions in bulk
+   - Filters by date range
+   - Returns all matches with confidence scores
+   - Optional auto-link for high-confidence matches
+   - Minimum 70% confidence threshold
+
+3. **Smart Detection:**
+   - Ignores common words (payment, charge, debit, etc.)
+   - Case-insensitive matching
+   - Handles 2-day variance for processing delays
+   - Respects month wraparound dates
+   - Handles variable amount bills
+
+### Phase 4 Upcoming Tasks
+
+#### Part 3: Bill Dashboard
+- [ ] Create bill dashboard showing upcoming/overdue bills
+- [ ] Display 30-day bill preview
+- [ ] Monthly bill obligation total
+- [ ] Bill payment statistics
+- [ ] Bill health indicators
+
+#### Part 4: Notification System
+- [ ] Notification database schema (already in schema)
+- [ ] Notification service implementation
+- [ ] PWA push notification support
+- [ ] Bill reminder cron job (daily)
+- [ ] Budget warning notifications
+- [ ] Low balance alerts
+- [ ] Notification center UI
+- [ ] Notification preferences interface
+
+#### Part 5: Tags & Custom Fields UI
+- [ ] Tag creation and management UI
+- [ ] Tag selector in transaction form
+- [ ] Tag filtering in advanced search
+- [ ] Custom field manager UI
+- [ ] Dynamic custom field inputs
+- [ ] Custom field filtering in search
+
+### Phase 4 Architecture
+
+**Backend Components:**
+- `lib/bills/bill-matcher.ts` - Multi-factor bill matching engine
+- `app/api/bills/route.ts` - Bills CRUD with instance generation
+- `app/api/bills/[id]/route.ts` - Individual bill operations
+- `app/api/bills/instances/route.ts` - Bill instance management
+- `app/api/bills/instances/[id]/route.ts` - Individual instance operations
+- `app/api/bills/detect/route.ts` - Auto-detection from transaction history
+- `app/api/bills/match/route.ts` - Transaction-to-bill matching
+
+**Frontend Components (Planned):**
+- `components/bills/bill-dashboard.tsx` - Bill overview dashboard
+- `components/bills/bill-form.tsx` - Bill creation/editing form
+- `components/bills/bill-list.tsx` - Bills listing
+- `components/bills/bill-instance-tracker.tsx` - Payment status tracker
 
 ## Important Notes
 - The development plan is located in `docs/finance-app-development-plan.md`
