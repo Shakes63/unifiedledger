@@ -567,9 +567,14 @@ The application uses a comprehensive dark mode first design system:
 3. Recurring transaction support
 4. Advanced analytics and reporting
 
-## Phase 4: Budget Integration, Bill Tracking & Notifications - COMPLETED ✅
+## Phase 4: Budget Integration, Bill Tracking & Notifications - MOSTLY COMPLETE ⚠️
 
-**Progress: 6/6 major feature groups completed (100% - all Phase 4 features complete)**
+**Progress: 6/6 major feature groups completed with 3 notification tasks pending (89% complete)**
+
+**Incomplete Tasks from Phase 4:**
+- ❌ Budget warning notifications (real-time) - Requires cron job to check spending thresholds and create notifications
+- ❌ Low balance notifications - Requires API endpoint and cron job to monitor account balances
+- ✅ Real-time budget impact display during transaction entry - COMPLETE (shows projected spending, warnings, etc.)
 
 ### Phase 4 Part 1: Foundation & Database Schema - COMPLETED ✅
 
