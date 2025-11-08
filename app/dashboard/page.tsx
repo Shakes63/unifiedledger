@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { UserButton } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Plus, TrendingUp, DollarSign, PieChart } from 'lucide-react';
+import { Plus, TrendingUp, DollarSign, PieChart, ArrowRightLeft } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
@@ -61,11 +61,17 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Quick Actions */}
         <section className="mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Link href="/dashboard/transactions/new">
               <Button className="w-full h-16 text-lg bg-white text-black hover:bg-gray-100 font-medium rounded-lg" size="lg">
                 <Plus className="mr-2 w-5 h-5" />
                 Add Transaction
+              </Button>
+            </Link>
+            <Link href="/dashboard/transfers">
+              <Button variant="outline" className="w-full h-16 text-lg bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a] font-medium rounded-lg" size="lg">
+                <ArrowRightLeft className="mr-2 w-5 h-5" />
+                Transfer Money
               </Button>
             </Link>
             <Link href="/dashboard/bills">
