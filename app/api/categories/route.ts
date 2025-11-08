@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { budgetCategories } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+export const dynamic = 'force-dynamic';
 
 // Default categories to create for new users
 const DEFAULT_CATEGORIES = [

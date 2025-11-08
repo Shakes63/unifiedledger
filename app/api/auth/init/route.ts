@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { accounts, budgetCategories } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+export const dynamic = 'force-dynamic';
 
 const DEFAULT_ACCOUNTS = [
   {

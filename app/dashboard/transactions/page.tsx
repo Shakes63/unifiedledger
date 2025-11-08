@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -24,6 +25,7 @@ interface Transaction {
   date: string;
   accountId: string;
   categoryId?: string;
+  notes?: string;
 }
 
 export default function TransactionsPage() {
@@ -31,6 +33,7 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [repeatingTxId, setRepeatingTxId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -50,6 +53,42 @@ export default function TransactionsPage() {
 
     fetchTransactions();
   }, []);
+
+  const handleRepeatTransaction = async (transaction: Transaction) => {
+    try {
+      setRepeatingTxId(transaction.id);
+
+      const today = new Date().toISOString().split('T')[0];
+
+      const response = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountId: transaction.accountId,
+          categoryId: transaction.categoryId,
+          date: today,
+          amount: transaction.amount,
+          description: transaction.description,
+          notes: transaction.notes,
+          type: transaction.type,
+        }),
+      });
+
+      if (response.ok) {
+        const newTransaction = await response.json();
+        setTransactions([newTransaction, ...transactions]);
+        toast.success(`Transaction repeated: ${transaction.description}`);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to repeat transaction');
+      }
+    } catch (error) {
+      console.error('Error repeating transaction:', error);
+      toast.error('Failed to repeat transaction');
+    } finally {
+      setRepeatingTxId(null);
+    }
+  };
 
   const getTransactionIcon = (type: string) => {
     switch (type) {
@@ -165,7 +204,7 @@ export default function TransactionsPage() {
                 key={transaction.id}
                 className="p-4 border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 flex-1">
                     <div className="p-2.5 bg-[#242424] rounded-lg">
                       {getTransactionIcon(transaction.type)}
@@ -183,23 +222,35 @@ export default function TransactionsPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p
-                      className={`font-semibold ${
-                        transaction.type === 'income'
-                          ? 'text-emerald-400'
-                          : 'text-white'
-                      }`}
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <p
+                        className={`font-semibold ${
+                          transaction.type === 'income'
+                            ? 'text-emerald-400'
+                            : 'text-white'
+                        }`}
+                      >
+                        {transaction.type === 'income' ? '+' : '-'}$
+                        {transaction.amount.toFixed(2)}
+                      </p>
+                      <Badge
+                        className={getTypeColor(transaction.type)}
+                        variant="secondary"
+                      >
+                        {transaction.type.replace('_', ' ')}
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRepeatTransaction(transaction)}
+                      disabled={repeatingTxId === transaction.id}
+                      className="text-gray-400 hover:text-white hover:bg-[#242424]"
+                      title="Repeat this transaction with today's date"
                     >
-                      {transaction.type === 'income' ? '+' : '-'}$
-                      {transaction.amount.toFixed(2)}
-                    </p>
-                    <Badge
-                      className={getTypeColor(transaction.type)}
-                      variant="secondary"
-                    >
-                      {transaction.type.replace('_', ' ')}
-                    </Badge>
+                      <Copy className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               </Card>

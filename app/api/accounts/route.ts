@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { accounts } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {

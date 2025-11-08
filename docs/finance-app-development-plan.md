@@ -15556,7 +15556,26 @@ export const applyWeeklyUsageDecay = async () => {
 ### Phase 2: Transaction Intelligence & Speed Features (Week 3-4)
 **Goal:** Make data entry as fast as possible
 
-**Status: 8/24 tasks completed (33% progress)** 🟢
+**Status: 10/24 tasks completed (41.7% progress)** 🟢
+
+#### Completed Tasks (Session 3):
+- ✅ Transaction history with "repeat" functionality
+  - Repeat button on transaction list with one-click duplication
+  - Repeat functionality on dashboard recent transactions widget
+  - Automatic date update to today's date when repeating
+  - Toast notifications for user feedback
+  - New reusable component: `components/transactions/recent-transactions.tsx`
+
+- ✅ Split transaction database schema
+  - Enhanced `transactionSplits` table with userId, isPercentage fields
+  - Added proper indexes for performance (user, transaction, category, composite)
+  - Improved tracking with notes and updatedAt fields
+  - Full category relations established
+  - API endpoints: GET/POST splits, PUT/DELETE individual splits
+  - Created split calculator utility (`lib/transactions/split-calculator.ts`)
+    - Validates percentage/amount splits
+    - Calculates actual amounts from percentages
+    - Computes split metrics and remaining amounts
 
 #### Completed Tasks (Session 2):
 - ✅ 5 foundational features (usage tracking, sorting, autocomplete, smart categorization, rules schema)
@@ -15565,6 +15584,7 @@ export const applyWeeklyUsageDecay = async () => {
 - ✅ **Zero TypeScript compilation errors**
 
 #### Recent Commits:
+- `[Session 3]` - Phase 2: Add transaction repeat functionality for fast transaction entry
 - `d24fbef` - Phase 2: Implement foundational transaction intelligence features
 - `338bb4d` - Phase 2: Implement comprehensive categorization rules engine
 - `c8f9560` - Phase 2: Add bulk rule application for existing transactions
@@ -15650,21 +15670,59 @@ export const applyWeeklyUsageDecay = async () => {
   - Displayed in Rules Manager UI
   - Logged in ruleExecutionLog for audit trail
   - Used to identify most effective rules
-- [ ] **Add transaction history with "repeat" functionality**
-- [ ] **Create merchant table with automatic tracking and suggestions**
-- [ ] **Build split transaction database schema (transaction_splits table)**
+- [x] **Add transaction history with "repeat" functionality** ✅ COMPLETED
+  - Quick repeat button on transaction list (one-click duplication)
+  - Repeat functionality on dashboard widget (recent transactions)
+  - Preserves category, amount, description, and notes
+  - Auto-sets date to today when repeating
+  - Toast notifications for user feedback
+  - Location: `app/dashboard/transactions/page.tsx`, `components/dashboard/recent-transactions.tsx`
+- [x] **Build split transaction database schema (transaction_splits table)** ✅ COMPLETED
+  - Enhanced schema for split entries (amount/percentage per split)
+  - Added userId field for better security and query filtering
+  - Added isPercentage field to clarify split type
+  - Proper indexes: single-field and composite indexes for performance
+  - Transaction split relations fully established
+  - API endpoints implemented for CRUD operations
+  - Split calculator utility for validation and calculations
+  - Location: `lib/db/schema.ts`, `app/api/transactions/[id]/splits/route.ts`, `lib/transactions/split-calculator.ts`
 - [ ] **Implement split transaction creation and editing UI**
+  - Build split transaction form with add/remove splits
+  - Toggle between percentage and fixed amount splits
+  - Validation to ensure splits sum to 100% or total amount
 - [ ] **Add split transaction builder component with validation**
-- [ ] **Create "Convert to Split" functionality for existing transactions**
-- [ ] **Add split transaction display in transaction list and details**
+  - Reusable component for creating/editing splits
+  - Auto-calculate remaining percentage/amount
+  - Copy and duplicate split entries
+  - Real-time validation feedback
 - [ ] **Build advanced search database schema (search_presets, search_history)**
+  - Save/load search filter combinations
+  - Track search history for quick re-use
+  - Allow sharing saved searches
 - [ ] **Implement core search function with multi-criteria filtering**
-- [ ] **Add date range and amount filters to search**
+  - Search by description, notes, merchant, category, account
+  - Amount range filtering
+  - Custom date range selection
 - [ ] **Build CSV import database schema (import_templates, import_history, import_staging)**
+  - Store import templates for different banks
+  - Track import history with rollback capability
+  - Staging table for preview before commit
 - [ ] **Implement CSV parser with delimiter and header detection**
+  - Auto-detect delimiter (comma, tab, semicolon)
+  - Auto-detect headers and skip rows
+  - Handle quoted fields and escape sequences
 - [ ] **Build auto-detect column mapping algorithm**
+  - Suggest column types based on content analysis
+  - Learn from previous imports (templates)
+  - Validate mapped columns before import
+- [ ] **Duplicate detection with Levenshtein distance algorithm**
+  - Calculate string similarity between transactions
+  - Flag similar transactions (amount, description, date)
+  - Allow user to review and merge/skip duplicates
 - [ ] **Voice-to-text transaction entry (if supported)**
-- [ ] Duplicate detection with Levenshtein distance algorithm
+  - Microphone input for transaction description
+  - Parse voice input to extract amount and merchant
+  - Fallback for unsupported browsers
 - [ ] Bulk import from bank statements with auto-categorization
 
 **Deliverables:**

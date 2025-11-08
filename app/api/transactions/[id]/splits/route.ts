@@ -1,0 +1,189 @@
+import { auth } from '@clerk/nextjs/server';
+import { db } from '@/lib/db';
+import { transactions, transactionSplits, budgetCategories } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
+
+export const dynamic = 'force-dynamic';
+
+/**
+ * GET /api/transactions/[id]/splits
+ * Get all splits for a specific transaction
+ */
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: transactionId } = await params;
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return Response.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Verify transaction exists and belongs to user
+    const transaction = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.id, transactionId),
+          eq(transactions.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (transaction.length === 0) {
+      return Response.json(
+        { error: 'Transaction not found' },
+        { status: 404 }
+      );
+    }
+
+    // Get all splits
+    const splits = await db
+      .select()
+      .from(transactionSplits)
+      .where(
+        and(
+          eq(transactionSplits.transactionId, transactionId),
+          eq(transactionSplits.userId, userId)
+        )
+      )
+      .orderBy(transactionSplits.sortOrder);
+
+    return Response.json(splits);
+  } catch (error) {
+    console.error('Error fetching splits:', error);
+    return Response.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/transactions/[id]/splits
+ * Create a new split for a transaction
+ */
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: transactionId } = await params;
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return Response.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    const body = await request.json();
+    const {
+      categoryId,
+      amount,
+      percentage,
+      isPercentage = false,
+      description,
+      notes,
+      sortOrder = 0,
+    } = body;
+
+    // Validate required fields
+    if (!categoryId || (isPercentage && !percentage) || (!isPercentage && !amount)) {
+      return Response.json(
+        { error: 'Missing required fields (categoryId and amount or percentage)' },
+        { status: 400 }
+      );
+    }
+
+    // Verify transaction exists and belongs to user
+    const transaction = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.id, transactionId),
+          eq(transactions.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (transaction.length === 0) {
+      return Response.json(
+        { error: 'Transaction not found' },
+        { status: 404 }
+      );
+    }
+
+    // Verify category exists
+    const category = await db
+      .select()
+      .from(budgetCategories)
+      .where(
+        and(
+          eq(budgetCategories.id, categoryId),
+          eq(budgetCategories.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (category.length === 0) {
+      return Response.json(
+        { error: 'Category not found' },
+        { status: 404 }
+      );
+    }
+
+    // Create the split
+    const splitId = nanoid();
+    const now = new Date().toISOString();
+
+    await db.insert(transactionSplits).values({
+      id: splitId,
+      userId,
+      transactionId,
+      categoryId,
+      amount: isPercentage ? 0 : amount,
+      percentage: isPercentage ? percentage : 0,
+      isPercentage,
+      description,
+      notes,
+      sortOrder,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Mark parent transaction as split if it isn't already
+    if (!transaction[0]!.isSplit) {
+      await db
+        .update(transactions)
+        .set({
+          isSplit: true,
+          updatedAt: now,
+        })
+        .where(eq(transactions.id, transactionId));
+    }
+
+    // Fetch and return the created split
+    const newSplit = await db
+      .select()
+      .from(transactionSplits)
+      .where(eq(transactionSplits.id, splitId))
+      .limit(1);
+
+    return Response.json(newSplit[0], { status: 201 });
+  } catch (error) {
+    console.error('Error creating split:', error);
+    return Response.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

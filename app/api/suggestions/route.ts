@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { merchants, usageAnalytics, budgetCategories } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
+export const dynamic = 'force-dynamic';
 
 interface Suggestion {
   type: 'merchant' | 'category' | 'amount';

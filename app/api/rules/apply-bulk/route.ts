@@ -1,10 +1,11 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories, ruleExecutionLog } from '@/lib/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, ne, gte, lte } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import { TransactionData } from '@/lib/rules/condition-evaluator';
+export const dynamic = 'force-dynamic';
 
 interface BulkApplyResult {
   totalProcessed: number;
@@ -48,8 +49,8 @@ export async function POST(request: Request) {
         and(
           eq(transactions.userId, userId),
           isNull(transactions.categoryId),
-          transactions.type !== 'transfer_in',
-          transactions.type !== 'transfer_out'
+          ne(transactions.type, 'transfer_in'),
+          ne(transactions.type, 'transfer_out')
         )
       );
 
@@ -62,9 +63,9 @@ export async function POST(request: Request) {
           and(
             eq(transactions.userId, userId),
             isNull(transactions.categoryId),
-            transactions.type !== 'transfer_in',
-            transactions.type !== 'transfer_out',
-            transactions.date >= startDate
+            ne(transactions.type, 'transfer_in'),
+            ne(transactions.type, 'transfer_out'),
+            gte(transactions.date, startDate)
           )
         );
     }
@@ -77,9 +78,9 @@ export async function POST(request: Request) {
           and(
             eq(transactions.userId, userId),
             isNull(transactions.categoryId),
-            transactions.type !== 'transfer_in',
-            transactions.type !== 'transfer_out',
-            transactions.date <= endDate
+            ne(transactions.type, 'transfer_in'),
+            ne(transactions.type, 'transfer_out'),
+            lte(transactions.date, endDate)
           )
         );
     }
@@ -92,10 +93,10 @@ export async function POST(request: Request) {
           and(
             eq(transactions.userId, userId),
             isNull(transactions.categoryId),
-            transactions.type !== 'transfer_in',
-            transactions.type !== 'transfer_out',
-            transactions.date >= startDate,
-            transactions.date <= endDate
+            ne(transactions.type, 'transfer_in'),
+            ne(transactions.type, 'transfer_out'),
+            gte(transactions.date, startDate),
+            lte(transactions.date, endDate)
           )
         );
     }

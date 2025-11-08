@@ -21,7 +21,6 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Unified Ledger",
-    startUrl: "/dashboard",
   },
   formatDetection: {
     telephone: false,

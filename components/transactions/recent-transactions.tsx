@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
 import { ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy } from 'lucide-react';
+import Link from 'next/link';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 interface Transaction {
@@ -19,7 +19,12 @@ interface Transaction {
   notes?: string;
 }
 
-export function RecentTransactions() {
+interface RecentTransactionsProps {
+  limit?: number;
+  showViewAll?: boolean;
+}
+
+export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTransactionsProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [repeatingTxId, setRepeatingTxId] = useState<string | null>(null);
@@ -28,10 +33,10 @@ export function RecentTransactions() {
     const fetchTransactions = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/transactions?limit=5');
+        const response = await fetch(`/api/transactions?limit=${limit}`);
         if (response.ok) {
           const data = await response.json();
-          setTransactions(data);
+          setTransactions(data.reverse().slice(0, limit));
         }
       } catch (error) {
         console.error('Failed to fetch transactions:', error);
@@ -41,7 +46,7 @@ export function RecentTransactions() {
     };
 
     fetchTransactions();
-  }, []);
+  }, [limit]);
 
   const handleRepeatTransaction = async (transaction: Transaction) => {
     try {
@@ -65,7 +70,6 @@ export function RecentTransactions() {
 
       if (response.ok) {
         const newTransaction = await response.json();
-        // Add new transaction and keep only the most recent 5
         setTransactions([newTransaction, ...transactions.slice(0, -1)]);
         toast.success(`Transaction repeated: ${transaction.description}`);
       } else {
@@ -110,18 +114,20 @@ export function RecentTransactions() {
 
   if (loading) {
     return (
-      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] text-center py-12 rounded-xl">
-        <p className="text-gray-400">Loading transactions...</p>
+      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
+        <p className="text-gray-400 text-center">Loading transactions...</p>
       </Card>
     );
   }
 
   if (transactions.length === 0) {
     return (
-      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] text-center py-12 rounded-xl">
-        <p className="text-gray-400 mb-4">No transactions yet.</p>
+      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
+        <p className="text-gray-400 text-center mb-4">No transactions yet.</p>
         <Link href="/dashboard/transactions/new">
-          <Button className="bg-white text-black hover:bg-gray-100 font-medium">Add Your First Transaction</Button>
+          <Button className="w-full bg-white text-black hover:bg-gray-100 font-medium">
+            Add Transaction
+          </Button>
         </Link>
       </Card>
     );
@@ -139,18 +145,26 @@ export function RecentTransactions() {
               <div className="p-2.5 bg-[#242424] rounded-lg">
                 {getTransactionIcon(transaction.type)}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-white truncate">{transaction.description}</p>
+              <div className="flex-1">
+                <p className="font-medium text-white truncate">
+                  {transaction.description}
+                </p>
                 <p className="text-xs text-gray-500">
-                  {new Date(transaction.date).toLocaleDateString()}
+                  {new Date(transaction.date).toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <div className="text-right">
-                <p className={`font-semibold text-sm ${
-                  transaction.type === 'income' ? 'text-emerald-400' : 'text-white'
-                }`}>
+                <p
+                  className={`font-semibold text-sm ${
+                    transaction.type === 'income' ? 'text-emerald-400' : 'text-white'
+                  }`}
+                >
                   {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)}
                 </p>
                 <Badge className={`${getTypeColor(transaction.type)} text-xs`} variant="secondary">
@@ -171,11 +185,13 @@ export function RecentTransactions() {
           </div>
         </Card>
       ))}
-      <Link href="/dashboard/transactions">
-        <Button variant="outline" className="w-full rounded-lg border-[#2a2a2a]">
-          View All Transactions
-        </Button>
-      </Link>
+      {showViewAll && (
+        <Link href="/dashboard/transactions">
+          <Button variant="outline" className="w-full rounded-lg border-[#2a2a2a]">
+            View All Transactions
+          </Button>
+        </Link>
+      )}
     </div>
   );
 }

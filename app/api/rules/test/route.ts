@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { testRule, testRuleOnMultiple } from '@/lib/rules/rule-matcher';
 import { TransactionData } from '@/lib/rules/condition-evaluator';
+export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/rules/test - Test a rule against sample transactions

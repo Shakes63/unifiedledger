@@ -7,6 +7,8 @@ import Decimal from 'decimal.js';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import { TransactionData } from '@/lib/rules/condition-evaluator';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: Request) {
   try {
     const { userId } = await auth();

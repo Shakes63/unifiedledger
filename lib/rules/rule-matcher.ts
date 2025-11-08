@@ -86,9 +86,11 @@ export async function findMatchingRule(
       )
       .orderBy(asc(categorizationRules.priority));
 
-    // Evaluate each rule in order
+    // Evaluate each rule in order (filter out rules with null priority)
     for (const rule of rules) {
-      const result = evaluateRule(rule, transaction);
+      if (rule.priority === null) continue;
+
+      const result = evaluateRule(rule as { id: string; name: string; categoryId: string; priority: number; conditions: string }, transaction);
 
       if (result.matched) {
         return {
@@ -140,7 +142,9 @@ export async function findAllMatchingRules(
     const matches: RuleMatch[] = [];
 
     for (const rule of rules) {
-      const result = evaluateRule(rule, transaction);
+      if (rule.priority === null) continue;
+
+      const result = evaluateRule(rule as { id: string; name: string; categoryId: string; priority: number; conditions: string }, transaction);
 
       if (result.matched) {
         matches.push({

@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { householdInvitations, householdMembers } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+export const dynamic = 'force-dynamic';
 
 const INVITATION_EXPIRY_DAYS = 30;
 

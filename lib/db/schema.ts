@@ -149,16 +149,23 @@ export const transactionSplits = sqliteTable(
   'transaction_splits',
   {
     id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
     transactionId: text('transaction_id').notNull(),
     categoryId: text('category_id').notNull(),
     amount: real('amount').notNull(),
     description: text('description'),
     percentage: real('percentage'),
+    isPercentage: integer('is_percentage', { mode: 'boolean' }).default(false),
     sortOrder: integer('sort_order').default(0),
+    notes: text('notes'),
     createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
   },
   (table) => ({
     transactionIdIdx: index('idx_transaction_splits').on(table.transactionId),
+    userIdIdx: index('idx_transaction_splits_user').on(table.userId),
+    categoryIdIdx: index('idx_transaction_splits_category').on(table.categoryId),
+    userTransactionIdx: index('idx_transaction_splits_user_tx').on(table.userId, table.transactionId),
   })
 );
 
