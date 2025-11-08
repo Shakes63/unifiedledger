@@ -669,8 +669,126 @@ COMPLETED BUGS:
   - Description and amount auto-calculated
   - Cleaner UI with button below splits (not a big form on top)
 
-pending
-1. the csv import should be able to handle csv that has a separate withdrawal and deposit columns and correctly map them to income and expense. 
+✅ 54. CSV import support for separate withdrawal/deposit columns:
+  - Added 'withdrawal' and 'deposit' as new appField types
+  - Updated ColumnMapping interface to include new field types
+  - Enhanced auto-detection patterns:
+    * Withdrawal: /withdrawal|withdraw|debit|paid.*out|spent|expense/i
+    * Deposit: /deposit|credit|received|income/i
+    * Made generic 'amount' pattern more specific to avoid false matches
+  - Updated applyMappings function to handle dual-column CSVs:
+    * Withdrawal values → expense transactions (auto-typed)
+    * Deposit values → income transactions (auto-typed)
+    * Empty values properly skipped (common in dual-column format)
+    * Amounts always converted to positive with .abs()
+  - Updated UI with new field options:
+    * "Withdrawal (Expense)" option in field selector
+    * "Deposit (Income)" option in field selector
+  - Files updated:
+    * lib/csv-import.ts (interface, auto-detection, mapping logic)
+    * components/csv-import/column-mapper.tsx (UI field options)
+  - Result: Bank exports with separate debit/credit columns now fully supported
 
+✅ 55. CSV import modal responsiveness issues:
+  - Root cause: Modal too large, buttons inside scrollable area, content overflowing viewport
+  - Solution Part 1 - Modal Container (csv-import-modal.tsx:231-243):
+    * Changed from fixed width to responsive: max-w-[95vw] sm:max-w-2xl
+    * Responsive height: max-h-[95vh] sm:max-h-[90vh]
+    * Added flex flex-col with p-0 for layout control
+    * Fixed header with shrink-0 and proper padding
+  - Solution Part 2 - Sticky Footer (csv-import-modal.tsx:389-434):
+    * Moved all navigation buttons out of scrollable area
+    * Created sticky footer at bottom with border-t and bg-[#0a0a0a]
+    * Context-aware buttons based on step:
+      - Upload: Cancel + Next
+      - Settings: Back + Next
+      - Mapping: Back + Preview (with loading state)
+      - Complete: Done
+      - Preview: Uses its own buttons from ImportPreview component
+  - Solution Part 3 - Scrollable Content (csv-import-modal.tsx:243):
+    * Content area with overflow-y-auto flex-1 px-6 py-4
+    * Scrolls independently between fixed header and sticky footer
+  - Solution Part 4 - Compact Column Mapper (column-mapper.tsx):
+    * Reduced all text sizes (text-sm → text-xs)
+    * Smaller padding and heights (p-4 → p-2, h-8 inputs)
+    * Responsive grid: grid-cols-1 sm:grid-cols-3 (stacks on mobile)
+    * Unmapped columns limited to max-h-32 overflow-y-auto
+    * Added borders and truncation for better visual separation
+    * Uses ~60% less vertical space
+  - Files updated:
+    * components/csv-import/csv-import-modal.tsx
+    * components/csv-import/column-mapper.tsx
+  - Result: Modal fully responsive on all devices, buttons always accessible
+
+✅ 56. Preview button not responding and modal responsiveness:
+  - Issue: Preview button was inside scrollable content area, getting cut off on mobile
+  - Solution: Restructured modal with sticky footer outside scrollable area
+  - All navigation buttons now in fixed footer, always visible
+  - Modal width: 95vw on mobile, max-w-2xl on desktop
+  - Result: Preview button and all other buttons always accessible
+
+✅ 57. Full site responsive design and horizontal overflow prevention:
+  - Root cause: Content not constrained to viewport, causing horizontal scrolling
+  - Solution Part 1 - Global Overflow Prevention (app/layout.tsx):
+    * Added overflow-x-hidden to body class
+    * Added inline styles: maxWidth: '100vw', position: 'relative'
+    * Wrapped children in div with w-full max-w-full overflow-x-hidden
+  - Solution Part 2 - Global CSS Rules (app/globals.css:91-154):
+    * HTML/body: overflow-x-hidden, width: 100%, max-width: 100vw
+    * All .min-h-screen containers: overflow-x-hidden, max-width: 100vw
+    * Created utility classes:
+      - .table-responsive: Auto-scrolling tables with touch support
+      - .truncate-safe: Prevents text overflow with ellipsis
+      - .responsive-card: Cards that stay within viewport
+      - Button/link max-width constraints
+  - Solution Part 3 - Dashboard Layout (components/navigation/dashboard-layout.tsx):
+    * Added overflow-x-hidden w-full max-w-full to root container
+    * Added w-full max-w-full min-w-0 overflow-x-hidden to content wrapper
+    * Added w-full max-w-full overflow-x-hidden to main element
+  - Solution Part 4 - Sidebar (components/navigation/sidebar.tsx):
+    * Added overflow-x-hidden to prevent sidebar overflow
+    * Added shrink-0 to maintain fixed width
+  - Solution Part 5 - Mobile Nav (components/navigation/mobile-nav.tsx):
+    * Root div: w-full max-w-full overflow-x-hidden
+    * Header and all containers: w-full max-w-full constraints
+  - Solution Part 6 - Chart Container (components/charts/chart-container.tsx):
+    * Added overflow-hidden to Card wrapper
+    * Added overflow-x-auto to CardContent and chart div
+    * Charts can scroll internally but won't break page layout
+  - Files updated:
+    * app/layout.tsx
+    * app/globals.css
+    * components/navigation/dashboard-layout.tsx
+    * components/navigation/sidebar.tsx
+    * components/navigation/mobile-nav.tsx
+    * components/charts/chart-container.tsx
+  - Result: No horizontal scrolling on any device, all content fits viewport
+
+✅ 58. Mobile nav appearing beside content instead of above:
+  - Root cause: Layout used flex (row direction) making all items horizontal
+  - Solution (components/navigation/dashboard-layout.tsx:16-30):
+    * Changed root container to flex flex-col lg:flex-row
+    * Mobile: Column direction (items stack vertically)
+    * Desktop: Row direction (sidebar + content side-by-side)
+    * Wrapped MobileNav + main content in flex flex-col container
+    * MobileNav and content always stack vertically inside wrapper
+  - Result: Mobile shows nav at top, content below; Desktop shows sidebar left, content right
+
+✅ 59. Mobile navigation sections missing pages:
+  - Root cause: Mobile nav outdated, missing recently added pages
+  - Solution (components/navigation/mobile-nav.tsx:39-74):
+    * Added missing pages:
+      - Accounts page (was missing)
+      - Merchants page (was missing)
+      - Tax section (entire section was missing)
+      - Sales Tax page (was missing)
+    * Removed deprecated pages:
+      - Transfers page (removed in bug #32)
+    * Fixed isActive function to match sidebar logic (exact match for dashboard)
+    * Updated icon imports (added Store, removed ArrowRightLeft)
+  - Files updated: components/navigation/mobile-nav.tsx
+  - Result: Mobile nav now has identical structure to desktop sidebar
+
+pending
 
 

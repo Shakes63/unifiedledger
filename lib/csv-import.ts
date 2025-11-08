@@ -11,6 +11,8 @@ export interface ColumnMapping {
     | 'date'
     | 'description'
     | 'amount'
+    | 'withdrawal'
+    | 'deposit'
     | 'category'
     | 'merchant'
     | 'notes'
@@ -124,7 +126,9 @@ export const autoDetectMappings = (headers: string[]): ColumnMapping[] => {
   const patterns: Record<string, RegExp> = {
     date: /date|posted|transaction.*date|trans.*date|trans_date/i,
     description: /description|memo|detail|merchant|payee|name|transaction|trans|ref/i,
-    amount: /amount|value|total|balance|debit|credit|deposit|withdrawal/i,
+    withdrawal: /withdrawal|withdraw|debit|paid.*out|spent|expense/i,
+    deposit: /deposit|credit|received|income/i,
+    amount: /^amount$|^value$|^total$|^balance$/i, // More specific to avoid matching withdrawal/deposit
     category: /category|type|class|cat/i,
     merchant: /merchant|vendor|payee|store|retailer|supplier/i,
     notes: /note|comment|memo|description|reference/i,
@@ -138,6 +142,10 @@ export const autoDetectMappings = (headers: string[]): ColumnMapping[] => {
           continue;
         }
         if (field === 'merchant' && mappings.some((m) => m.appField === 'merchant')) {
+          continue;
+        }
+        // Avoid duplicate amounts (prefer withdrawal/deposit over generic amount)
+        if (field === 'amount' && mappings.some((m) => m.appField === 'withdrawal' || m.appField === 'deposit')) {
           continue;
         }
 
@@ -245,15 +253,18 @@ export const applyMappings = (
     type: 'expense' as const, // Default type
   };
 
+  let hasWithdrawal = false;
+  let hasDeposit = false;
+
   mappings.forEach((mapping) => {
     let value = row[mapping.csvColumn];
 
-    if (!value) {
+    if (!value || value.trim() === '') {
       // Use default value if provided
       if (mapping.defaultValue !== undefined) {
         value = String(mapping.defaultValue);
       } else {
-        return;
+        return; // Skip empty values
       }
     }
 
@@ -275,6 +286,34 @@ export const applyMappings = (
           }
           break;
 
+        case 'withdrawal':
+          // Withdrawal column creates expense transactions
+          const withdrawalAmount = parseAmount(value);
+          if (mapping.transform === 'negate') {
+            transaction.amount = withdrawalAmount.negated().abs(); // Ensure positive for expense
+          } else if (mapping.transform === 'absolute') {
+            transaction.amount = withdrawalAmount.abs();
+          } else {
+            transaction.amount = withdrawalAmount.abs(); // Always positive for expenses
+          }
+          transaction.type = 'expense';
+          hasWithdrawal = true;
+          break;
+
+        case 'deposit':
+          // Deposit column creates income transactions
+          const depositAmount = parseAmount(value);
+          if (mapping.transform === 'negate') {
+            transaction.amount = depositAmount.negated().abs(); // Ensure positive for income
+          } else if (mapping.transform === 'absolute') {
+            transaction.amount = depositAmount.abs();
+          } else {
+            transaction.amount = depositAmount.abs(); // Always positive for income
+          }
+          transaction.type = 'income';
+          hasDeposit = true;
+          break;
+
         case 'description':
           transaction.description = applyStringTransform(value, mapping.transform);
           break;
@@ -292,20 +331,23 @@ export const applyMappings = (
           break;
 
         case 'type':
-          const typeValue = value.toLowerCase();
-          if (
-            typeValue.includes('income') ||
-            typeValue.includes('deposit') ||
-            typeValue.includes('credit')
-          ) {
-            transaction.type = 'income';
-          } else if (
-            typeValue.includes('transfer') ||
-            typeValue.includes('trf')
-          ) {
-            transaction.type = 'transfer_out';
-          } else {
-            transaction.type = 'expense';
+          // Only use explicit type field if withdrawal/deposit not used
+          if (!hasWithdrawal && !hasDeposit) {
+            const typeValue = value.toLowerCase();
+            if (
+              typeValue.includes('income') ||
+              typeValue.includes('deposit') ||
+              typeValue.includes('credit')
+            ) {
+              transaction.type = 'income';
+            } else if (
+              typeValue.includes('transfer') ||
+              typeValue.includes('trf')
+            ) {
+              transaction.type = 'transfer_out';
+            } else {
+              transaction.type = 'expense';
+            }
           }
           break;
 

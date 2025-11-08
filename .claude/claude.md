@@ -285,7 +285,36 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates (Current Session)
 
-### Major Bug Fixes Completed ✅
+### Latest Session - CSV Import & Mobile Responsiveness ✅
+
+1. **Bug #54: CSV Import - Separate Withdrawal/Deposit Columns**
+   - Added support for bank exports with separate debit/credit columns
+   - Added 'withdrawal' and 'deposit' as new field types
+   - Withdrawal columns auto-map to expense transactions
+   - Deposit columns auto-map to income transactions
+   - Enhanced auto-detection with specific patterns
+   - Empty values properly handled (common in dual-column format)
+
+2. **Bug #55-56: CSV Import Modal Responsiveness**
+   - Fixed modal being too large for mobile screens
+   - Implemented sticky footer with navigation buttons
+   - Buttons moved outside scrollable area (always accessible)
+   - Column mapper made 60% more compact
+   - Responsive width: 95vw mobile, max-w-2xl desktop
+   - Preview button now always visible and clickable
+
+3. **Bug #57-59: Full Site Responsive Design**
+   - Eliminated ALL horizontal scrolling on mobile
+   - Six layers of overflow protection from root to content
+   - Global CSS rules prevent viewport overflow
+   - All layouts constrained to 100vw maximum width
+   - Charts scroll internally without breaking layout
+   - Mobile nav fixed to stack above content (not beside)
+   - Mobile nav synchronized with desktop sidebar (all pages)
+   - Added missing pages: Accounts, Merchants, Tax sections
+   - Removed deprecated Transfers page
+
+### Previous Session - Transfer Model & Split UI ✅
 
 1. **Bug #51: Implemented 2-Transaction Transfer Model** - Complete architectural refactor
    - Transfers now create TWO transactions (transfer_out + transfer_in)

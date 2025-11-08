@@ -46,7 +46,7 @@ export default function RootLayout({
     <ClerkProvider>
       <NavigationProvider>
         <PerformanceProvider>
-          <html lang="en" className="dark" suppressHydrationWarning>
+          <html lang="en" className="dark overflow-x-hidden" suppressHydrationWarning style={{ maxWidth: '100vw', width: '100%' }}>
             <head>
               <meta name="mobile-web-app-capable" content="yes" />
               <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -55,9 +55,12 @@ export default function RootLayout({
               <meta name="theme-color" content="#0a0a0a" />
             </head>
             <body
-              className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-[#0a0a0a] text-white`}
+              className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-[#0a0a0a] text-white overflow-x-hidden w-full`}
+              style={{ maxWidth: '100vw', position: 'relative' }}
             >
-              {children}
+              <div className="w-full max-w-full overflow-x-hidden">
+                {children}
+              </div>
             </body>
           </html>
         </PerformanceProvider>

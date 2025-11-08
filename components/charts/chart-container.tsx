@@ -25,12 +25,12 @@ export function ChartContainer({
   className = '',
 }: ChartContainerProps) {
   return (
-    <Card className={`w-full ${className}`}>
+    <Card className={`w-full overflow-hidden ${className}`}>
       <CardHeader>
         <CardTitle className="text-lg">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-x-auto">
         {error ? (
           <div className="flex items-center justify-center h-80">
             <div className="text-center">
@@ -46,7 +46,7 @@ export function ChartContainer({
             </div>
           </div>
         ) : (
-          <div className="w-full h-80">{children}</div>
+          <div className="w-full h-80 overflow-x-auto">{children}</div>
         )}
       </CardContent>
     </Card>

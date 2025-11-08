@@ -22,6 +22,8 @@ const APP_FIELDS = [
   { value: 'date', label: 'Date' },
   { value: 'description', label: 'Description' },
   { value: 'amount', label: 'Amount' },
+  { value: 'withdrawal', label: 'Withdrawal (Expense)' },
+  { value: 'deposit', label: 'Deposit (Income)' },
   { value: 'category', label: 'Category' },
   { value: 'merchant', label: 'Merchant' },
   { value: 'notes', label: 'Notes' },
@@ -84,34 +86,34 @@ export function ColumnMapper({
   const unmappedColumns = headers.filter((h) => !mappedColumns.has(h));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Column Mappings</CardTitle>
-          <CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Column Mappings</CardTitle>
+          <CardDescription className="text-xs">
             Map CSV columns to transaction fields
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-2">
           {mappings.map((mapping) => (
-            <div key={mapping.csvColumn} className="space-y-2 p-4 bg-[#1a1a1a] rounded-lg">
-              <div className="text-sm font-medium text-white">
+            <div key={mapping.csvColumn} className="space-y-2 p-2 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
+              <div className="text-xs font-medium text-white truncate">
                 {mapping.csvColumn}
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <Select
                   value={mapping.appField}
                   onValueChange={(value) =>
                     updateMapping(mapping.csvColumn, 'appField', value)
                   }
                 >
-                  <SelectTrigger className="bg-[#0a0a0a]">
+                  <SelectTrigger className="bg-[#0a0a0a] h-8 text-xs">
                     <SelectValue placeholder="Select field" />
                   </SelectTrigger>
                   <SelectContent>
                     {APP_FIELDS.map((field) => (
-                      <SelectItem key={field.value} value={field.value}>
+                      <SelectItem key={field.value} value={field.value} className="text-xs">
                         {field.label}
                       </SelectItem>
                     ))}
@@ -119,7 +121,7 @@ export function ColumnMapper({
                 </Select>
 
                 <Select
-                  value={mapping.transform || ''}
+                  value={mapping.transform || 'none'}
                   onValueChange={(value) =>
                     updateMapping(
                       mapping.csvColumn,
@@ -128,12 +130,12 @@ export function ColumnMapper({
                     )
                   }
                 >
-                  <SelectTrigger className="bg-[#0a0a0a]">
+                  <SelectTrigger className="bg-[#0a0a0a] h-8 text-xs">
                     <SelectValue placeholder="Transform" />
                   </SelectTrigger>
                   <SelectContent>
                     {TRANSFORMS.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
+                      <SelectItem key={t.value} value={t.value} className="text-xs">
                         {t.label}
                       </SelectItem>
                     ))}
@@ -143,6 +145,7 @@ export function ColumnMapper({
                 <Button
                   variant="destructive"
                   size="sm"
+                  className="h-8 text-xs"
                   onClick={() => removeMapping(mapping.csvColumn)}
                 >
                   Remove
@@ -152,29 +155,32 @@ export function ColumnMapper({
           ))}
 
           {unmappedColumns.length > 0 && (
-            <div className="space-y-2">
-              <div className="text-sm text-[#6b7280]">Unmapped columns:</div>
-              {unmappedColumns.map((column) => (
-                <div
-                  key={column}
-                  className="flex items-center justify-between p-2 bg-[#0a0a0a] rounded"
-                >
-                  <span className="text-sm text-[#9ca3af]">{column}</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addMapping(column)}
+            <div className="space-y-2 pt-2 mt-2 border-t border-[#2a2a2a]">
+              <div className="text-xs text-[#6b7280]">Unmapped columns:</div>
+              <div className="max-h-32 overflow-y-auto space-y-1">
+                {unmappedColumns.map((column) => (
+                  <div
+                    key={column}
+                    className="flex items-center justify-between p-2 bg-[#0a0a0a] rounded text-xs"
                   >
-                    Map
-                  </Button>
-                </div>
-              ))}
+                    <span className="text-[#9ca3af] truncate flex-1 mr-2">{column}</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs shrink-0"
+                      onClick={() => addMapping(column)}
+                    >
+                      Map
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      <div className="text-sm text-[#6b7280]">
+      <div className="text-xs text-[#6b7280] px-1">
         <strong>Mapped:</strong> {mappings.length}/{headers.length} columns
       </div>
     </div>

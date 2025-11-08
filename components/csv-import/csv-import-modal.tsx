@@ -228,8 +228,8 @@ export function CSVImportModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
           <DialogTitle>Import Transactions from CSV</DialogTitle>
           <DialogDescription>
             {step === 'upload' && 'Select a CSV file to import'}
@@ -240,10 +240,10 @@ export function CSVImportModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="overflow-y-auto flex-1 px-6 py-4">
           {/* Upload Step */}
           {step === 'upload' && (
-            <div className="space-y-4">
+            <>
               <Card>
                 <CardContent className="pt-6">
                   <label className="flex items-center justify-center w-full p-8 border-2 border-dashed border-[#3a3a3a] rounded-lg cursor-pointer hover:bg-[#1a1a1a] transition-colors">
@@ -265,23 +265,11 @@ export function CSVImportModal({
               </Card>
 
               {file && (
-                <div className="p-3 bg-[#1a1a1a] rounded text-sm text-[#9ca3af]">
+                <div className="p-3 bg-[#1a1a1a] rounded text-sm text-[#9ca3af] mt-4">
                   Selected: {fileName}
                 </div>
               )}
-
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => handleClose()}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => setStep('settings')}
-                  disabled={!file || isLoading}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+            </>
           )}
 
           {/* Settings Step */}
@@ -357,34 +345,16 @@ export function CSVImportModal({
                   onChange={(e) => setSkipRows(parseInt(e.target.value) || 0)}
                 />
               </div>
-
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setStep('upload')}>
-                  Back
-                </Button>
-                <Button onClick={handleProceedToMapping}>Next</Button>
-              </div>
             </div>
           )}
 
           {/* Mapping Step */}
           {step === 'mapping' && (
-            <div className="space-y-4">
-              <ColumnMapper
-                headers={headers}
-                initialMappings={mappings}
-                onMappingsChange={setMappings}
-              />
-
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setStep('settings')}>
-                  Back
-                </Button>
-                <Button onClick={handleProceedToPreview} disabled={isLoading}>
-                  Preview
-                </Button>
-              </div>
-            </div>
+            <ColumnMapper
+              headers={headers}
+              initialMappings={mappings}
+              onMappingsChange={setMappings}
+            />
           )}
 
           {/* Preview Step */}
@@ -415,6 +385,53 @@ export function CSVImportModal({
             </Card>
           )}
         </div>
+
+        {/* Sticky Footer with Buttons */}
+        {step !== 'preview' && (
+          <div className="border-t border-[#2a2a2a] px-6 py-4 shrink-0 bg-[#0a0a0a]">
+            <div className="flex gap-2 justify-end">
+              {step === 'upload' && (
+                <>
+                  <Button variant="outline" onClick={() => handleClose()}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => setStep('settings')}
+                    disabled={!file || isLoading}
+                  >
+                    Next
+                  </Button>
+                </>
+              )}
+
+              {step === 'settings' && (
+                <>
+                  <Button variant="outline" onClick={() => setStep('upload')}>
+                    Back
+                  </Button>
+                  <Button onClick={handleProceedToMapping}>Next</Button>
+                </>
+              )}
+
+              {step === 'mapping' && (
+                <>
+                  <Button variant="outline" onClick={() => setStep('settings')}>
+                    Back
+                  </Button>
+                  <Button onClick={handleProceedToPreview} disabled={isLoading}>
+                    {isLoading ? 'Loading...' : 'Preview'}
+                  </Button>
+                </>
+              )}
+
+              {step === 'complete' && (
+                <Button onClick={handleClose}>
+                  Done
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

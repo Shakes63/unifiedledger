@@ -8,7 +8,6 @@ import {
   TrendingUp,
   DollarSign,
   PieChart,
-  ArrowRightLeft,
   Calendar,
   Receipt,
   Target,
@@ -18,6 +17,7 @@ import {
   ChevronDown,
   FileText,
   Bell,
+  Store,
 } from 'lucide-react';
 import Image from 'next/image';
 import { HouseholdSelector } from '@/components/household/household-selector';
@@ -42,13 +42,13 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Dashboard', href: '/dashboard', icon: <Wallet className="w-4 h-4" /> },
       { label: 'Transactions', href: '/dashboard/transactions', icon: <Receipt className="w-4 h-4" /> },
+      { label: 'Accounts', href: '/dashboard/accounts', icon: <Wallet className="w-4 h-4" /> },
       { label: 'Calendar', href: '/dashboard/calendar', icon: <Calendar className="w-4 h-4" /> },
     ],
   },
   {
     title: 'Financial',
     items: [
-      { label: 'Transfers', href: '/dashboard/transfers', icon: <ArrowRightLeft className="w-4 h-4" /> },
       { label: 'Bills', href: '/dashboard/bills', icon: <DollarSign className="w-4 h-4" /> },
       { label: 'Goals', href: '/dashboard/goals', icon: <Target className="w-4 h-4" /> },
       { label: 'Debts', href: '/dashboard/debts', icon: <TrendingUp className="w-4 h-4" /> },
@@ -58,9 +58,17 @@ const navSections: NavSection[] = [
     title: 'Tools',
     items: [
       { label: 'Categories', href: '/dashboard/categories', icon: <PieChart className="w-4 h-4" /> },
+      { label: 'Merchants', href: '/dashboard/merchants', icon: <Store className="w-4 h-4" /> },
       { label: 'Rules', href: '/dashboard/rules', icon: <AlertCircle className="w-4 h-4" /> },
       { label: 'Notifications', href: '/dashboard/notifications', icon: <Bell className="w-4 h-4" /> },
       { label: 'Reports', href: '/dashboard/reports', icon: <FileText className="w-4 h-4" /> },
+    ],
+  },
+  {
+    title: 'Tax',
+    items: [
+      { label: 'Tax Dashboard', href: '/dashboard/tax', icon: <FileText className="w-4 h-4" /> },
+      { label: 'Sales Tax', href: '/dashboard/sales-tax', icon: <DollarSign className="w-4 h-4" /> },
     ],
   },
 ];
@@ -80,13 +88,20 @@ export function MobileNav() {
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
+  const isActive = (href: string) => {
+    if (href === '/dashboard') {
+      // Exact match for dashboard
+      return pathname === '/dashboard';
+    }
+    // For other paths, match exact or as a prefix
+    return pathname === href || pathname.startsWith(href + '/');
+  };
 
   return (
-    <div className="lg:hidden">
+    <div className="lg:hidden w-full max-w-full overflow-x-hidden">
       {/* Mobile Header */}
-      <header className="sticky top-0 z-50 bg-[#1a1a1a] border-b border-[#2a2a2a]">
-        <div className="px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-50 bg-[#1a1a1a] border-b border-[#2a2a2a] w-full">
+        <div className="px-4 py-3 flex items-center justify-between w-full max-w-full">
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="relative w-6 h-6">
               <Image
@@ -120,8 +135,8 @@ export function MobileNav() {
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 top-[57px] z-40 bg-[#0a0a0a]">
-          <div className="flex flex-col h-full overflow-y-auto">
+        <div className="fixed inset-0 top-[57px] z-40 bg-[#0a0a0a] w-full max-w-full overflow-x-hidden">
+          <div className="flex flex-col h-full overflow-y-auto w-full max-w-full">
             {/* Household Selector */}
             <div className="px-4 py-4 border-b border-[#2a2a2a]">
               <HouseholdSelector />

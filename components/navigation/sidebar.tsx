@@ -97,7 +97,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`hidden lg:flex flex-col bg-[#1a1a1a] border-r border-[#2a2a2a] h-screen overflow-y-auto sticky top-0 transition-all duration-300 ${
+      className={`hidden lg:flex flex-col bg-[#1a1a1a] border-r border-[#2a2a2a] h-screen overflow-y-auto overflow-x-hidden sticky top-0 transition-all duration-300 shrink-0 ${
         sidebarOpen ? 'w-64' : 'w-20'
       }`}
     >
