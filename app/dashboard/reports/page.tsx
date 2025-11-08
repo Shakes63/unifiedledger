@@ -107,11 +107,12 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Financial Reports</h1>
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Financial Reports</h1>
           <p className="text-gray-400 mt-1">Comprehensive analysis of your finances</p>
         </div>
         <div className="flex gap-2 flex-col md:flex-row">
@@ -329,6 +330,7 @@ export default function ReportsPage() {
         bars={[{ dataKey: 'amount', fill: COLOR_PALETTE.expense, name: 'Amount' }]}
         layout="vertical"
       />
+      </div>
     </div>
   );
 }

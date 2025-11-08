@@ -58,6 +58,7 @@ export default function AccountsPage() {
       if (selectedAccount) {
         // TODO: Implement PUT endpoint for updating accounts
         toast.error('Account editing not yet implemented');
+        setIsSubmitting(false);
         return;
       }
 
@@ -67,7 +68,7 @@ export default function AccountsPage() {
         body: JSON.stringify(formData),
       });
 
-      if (response.ok) {
+      if (response.ok || response.status === 201) {
         const result = await response.json();
         toast.success('Account created successfully');
 
@@ -76,18 +77,26 @@ export default function AccountsPage() {
         if (fetchResponse.ok) {
           const data = await fetchResponse.json();
           setAccounts(data);
+          // Close dialog and reset
+          setIsDialogOpen(false);
+          setSelectedAccount(null);
+        } else {
+          toast.error('Account created but failed to refresh list');
         }
-
-        // Close dialog
-        setIsDialogOpen(false);
-        setSelectedAccount(null);
       } else {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to create account');
+        let errorMessage = 'Failed to create account';
+        try {
+          const error = await response.json();
+          errorMessage = error.error || errorMessage;
+        } catch {
+          errorMessage = `Failed with status ${response.status}`;
+        }
+        toast.error(errorMessage);
+        console.error('Account creation failed:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Error creating account:', error);
-      toast.error('Error creating account');
+      toast.error(error instanceof Error ? error.message : 'Error creating account');
     } finally {
       setIsSubmitting(false);
     }

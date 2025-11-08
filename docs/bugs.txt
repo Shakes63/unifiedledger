@@ -2,8 +2,14 @@ COMPLETED BUGS:
 ✅ 1. the category and accounts dropdown on the bill form are not connected to the categories and accounts
 ✅ 2. when creating a new transaction the default date should be today
 ✅ 3. There should be a way to mark an account as being a Business Account and that should trigger the sales tax tracking for that account.
+✅ 4. If there are multiple business accounts the sales tax should be tracked separately.
+✅ 5. Everywhere that you can add a category or tag there should be an option to create them inline.
+✅ 6. there should be some padding in between the sidebar and the page content. The dashboard is a good example of the amount of padding it should have. Check all of the pages and ensure the padding is like the dashboard page.
+✅ 7. When trying to create an account the submit button is not creating the account.
 
 PENDING BUGS:
-4. If there are multiple business accounts the sales tax should be tracked separately.
-5. Everywhere that you can add a category or tag there should be an option to create them inline.
-6. there should be some padding in between the sidebar and the page content. The dashboard is a good example of the amount of padding it should have. Check all of the pages and ensure the padding is like the dashboard page.
+8. the dropdowns across the app are completely transparent, turn up the opacity so that they can be read easier.
+9. when creating a transaction there should only be a transfer type instead of transfer in and transfer out. If Transfer is selected it should show a From Account and To Account dropdowns.
+10. the transaction form is doubled up there should only be one.
+11. make the cards on the categories page more compact.
+12. 

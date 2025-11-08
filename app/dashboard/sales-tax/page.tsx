@@ -151,11 +151,12 @@ export default function SalesTaxPage() {
   }));
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Sales Tax Dashboard</h1>
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Sales Tax Dashboard</h1>
           <p className="text-gray-400 mt-1">Track quarterly filings and prepare reports</p>
         </div>
         <div className="flex gap-2 flex-col md:flex-row">
@@ -395,6 +396,7 @@ export default function SalesTaxPage() {
           <p>✓ Consider sales tax software for accurate tracking</p>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

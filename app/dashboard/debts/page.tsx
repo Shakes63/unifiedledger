@@ -147,11 +147,12 @@ export default function DebtsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Debt Management</h1>
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Debt Management</h1>
           <p className="text-gray-400 mt-1">Track and pay off your debts</p>
         </div>
         <Button
@@ -259,6 +260,7 @@ export default function DebtsPage() {
           />
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }

@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Plus, X } from 'lucide-react';
 
 interface BillFormProps {
   bill?: any;
@@ -44,6 +44,9 @@ export function BillForm({
   const [categories, setCategories] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [newPayeePattern, setNewPayeePattern] = useState('');
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [creatingCategory, setCreatingCategory] = useState(false);
 
   // Fetch categories and accounts on mount
   useEffect(() => {
@@ -117,6 +120,55 @@ export function BillForm({
       ...prev,
       payeePatterns: prev.payeePatterns.filter((_: string, i: number) => i !== index),
     }));
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast.error('Category name is required');
+      return;
+    }
+
+    setCreatingCategory(true);
+    try {
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newCategoryName,
+          type: 'monthly_bill',
+          monthlyBudget: 0,
+        }),
+      });
+
+      if (response.ok) {
+        const newCategory = await response.json();
+        // Add to categories list
+        setCategories([...categories, newCategory]);
+        // Auto-select the new category
+        handleSelectChange('categoryId', newCategory.id);
+        // Reset creation UI
+        setNewCategoryName('');
+        setIsCreatingCategory(false);
+        toast.success(`Category "${newCategory.name}" created!`);
+      } else {
+        toast.error('Failed to create category');
+      }
+    } catch (error) {
+      console.error('Error creating category:', error);
+      toast.error('Error creating category');
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
+
+  const handleCategoryKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleCreateCategory();
+    } else if (e.key === 'Escape') {
+      setIsCreatingCategory(false);
+      setNewCategoryName('');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -215,18 +267,64 @@ export function BillForm({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label className="text-gray-400 text-sm mb-2 block">Category (Optional)</Label>
-          <Select value={formData.categoryId} onValueChange={(value) => handleSelectChange('categoryId', value)}>
-            <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!isCreatingCategory ? (
+            <div className="flex gap-2">
+              <Select value={formData.categoryId} onValueChange={(value) => handleSelectChange('categoryId', value)}>
+                <SelectTrigger className="flex-1 bg-[#242424] border-[#2a2a2a] text-white">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setIsCreatingCategory(true)}
+                className="bg-[#242424] border-[#3a3a3a] text-gray-400 hover:bg-[#2a2a2a]"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <Input
+                autoFocus
+                type="text"
+                placeholder="New category name..."
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={handleCategoryKeyDown}
+                className="flex-1 bg-[#1a1a1a] border border-[#3b82f6] text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
+              />
+              <Button
+                type="button"
+                size="icon"
+                onClick={handleCreateCategory}
+                disabled={creatingCategory || !newCategoryName.trim()}
+                className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => {
+                  setIsCreatingCategory(false);
+                  setNewCategoryName('');
+                }}
+                className="bg-[#242424] border-[#3a3a3a] text-gray-400 hover:bg-[#2a2a2a]"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
         </div>
         <div>
           <Label className="text-gray-400 text-sm mb-2 block">Account (Optional)</Label>

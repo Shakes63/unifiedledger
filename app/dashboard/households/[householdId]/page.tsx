@@ -211,10 +211,11 @@ export default function HouseholdManagementPage() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-3xl font-bold text-white">{household.name}</h1>
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-white">{household.name}</h1>
         <p className="text-[#9ca3af]">Manage household members and settings</p>
       </div>
 
@@ -376,6 +377,7 @@ export default function HouseholdManagementPage() {
           </div>
         </Card>
       )}
+      </div>
     </div>
   );
 }

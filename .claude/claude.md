@@ -1930,8 +1930,44 @@ See `docs/TESTING_GUIDE.md` for comprehensive testing documentation.
    - Updated `app/api/accounts/route.ts` to handle the new field
    - Feature enables sales tax tracking workflows for business accounts
 
+4. **Multi-Business Account Sales Tax Tracking** - Enhanced sales tax system to support tracking separately for multiple business accounts:
+   - Added `accountId` field to `salesTaxTransactions` table in `lib/db/schema.ts`
+   - Created new utility functions: `getQuarterlyReportsByAccount()` and `getYearlyQuarterlyReportsByAccount()`
+   - Updated API endpoint `/api/sales-tax/quarterly` with `byAccount` parameter for grouped reporting
+   - Added composite index for efficient account-based queries
+
+5. **Inline Category Creation** - Added ability to create categories without leaving forms:
+   - Enhanced CategorySelector component with toggle UI for inline creation (`components/transactions/category-selector.tsx`)
+   - Enhanced BillForm with inline category creation (`components/bills/bill-form.tsx`)
+   - Uses Enter key to create, Escape to cancel, auto-selects newly created categories
+   - Tags already had inline creation in TransactionForm
+
+6. **Consistent Dashboard Padding** - Fixed padding inconsistencies across 11 dashboard pages:
+   - Applied consistent padding: `px-4 sm:px-6 lg:px-8 py-8` across all dashboard pages
+   - Added `max-w-7xl mx-auto` container wrapper for consistency
+   - Fixed pages:
+     - app/dashboard/bills/page.tsx
+     - app/dashboard/calendar/page.tsx
+     - app/dashboard/debts/page.tsx
+     - app/dashboard/goals/page.tsx
+     - app/dashboard/notifications/page.tsx
+     - app/dashboard/reports/page.tsx
+     - app/dashboard/sales-tax/page.tsx
+     - app/dashboard/tax/page.tsx
+     - app/dashboard/bills/new/page.tsx
+     - app/dashboard/transfers/page.tsx
+     - app/dashboard/households/[householdId]/page.tsx
+
+7. **Fixed Account Creation Submit Button** - Improved account creation workflow:
+   - Enhanced error handling with explicit 201 status code check
+   - Better error messages with HTTP status codes
+   - Fixed dialog closure logic to only close after successful account refresh
+   - Added console logging for debugging
+   - Improved early return handling for unsupported operations
+
 ### Database Schema Changes
 - **Accounts Table:** Added `isBusinessAccount: integer('is_business_account', { mode: 'boolean' }).default(false)` field
+- **SalesTaxTransactions Table:** Added `accountId` field with new indexes for multi-account tracking
 
 ### Error Handling Improvements (Previous Session)
 - Fixed all critical empty result errors in API endpoints:

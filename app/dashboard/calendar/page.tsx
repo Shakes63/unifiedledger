@@ -112,9 +112,10 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <CalendarHeader
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <CalendarHeader
         currentDate={currentDate}
         onDateChange={setCurrentDate}
         viewMode={viewMode}
@@ -158,6 +159,7 @@ export default function CalendarPage() {
           transactionCounts={selectedDayInfo || undefined}
         />
       )}
+      </div>
     </div>
   );
 }

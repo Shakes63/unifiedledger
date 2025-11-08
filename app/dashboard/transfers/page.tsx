@@ -88,11 +88,12 @@ export default function TransfersPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Transfers</h1>
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Transfers</h1>
           <p className="text-[#9ca3af] mt-2">
             Move money between your accounts
           </p>
@@ -128,6 +129,7 @@ export default function TransfersPage() {
         onOpenChange={setIsModalOpen}
         accounts={accounts}
       />
+      </div>
     </div>
   );
 }

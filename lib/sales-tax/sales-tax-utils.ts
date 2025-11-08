@@ -90,11 +90,16 @@ export function calculateTaxAmount(saleAmount: number, taxRate: number): number 
 
 /**
  * Get quarterly report for a specific quarter
+ * @param userId User ID
+ * @param year Tax year
+ * @param quarter Quarter (1-4)
+ * @param accountId Optional - filter by specific business account
  */
 export async function getQuarterlyReport(
   userId: string,
   year: number,
-  quarter: number
+  quarter: number,
+  accountId?: string
 ): Promise<QuarterlyReport> {
   // Get transactions for quarter
   const quarterDates = getQuarterDates(year);
@@ -104,16 +109,20 @@ export async function getQuarterlyReport(
     throw new Error('Invalid quarter');
   }
 
+  const whereConditions = [
+    eq(salesTaxTransactions.userId, userId),
+    eq(salesTaxTransactions.taxYear, year),
+    eq(salesTaxTransactions.quarter, quarter),
+  ];
+
+  if (accountId) {
+    whereConditions.push(eq(salesTaxTransactions.accountId, accountId));
+  }
+
   const transactions = await db
     .select()
     .from(salesTaxTransactions)
-    .where(
-      and(
-        eq(salesTaxTransactions.userId, userId),
-        eq(salesTaxTransactions.taxYear, year),
-        eq(salesTaxTransactions.quarter, quarter)
-      )
-    );
+    .where(and(...whereConditions));
 
   // Calculate totals
   let totalSales = new Decimal(0);
@@ -157,20 +166,109 @@ export async function getQuarterlyReport(
 
 /**
  * Get all quarterly reports for a year
+ * @param userId User ID
+ * @param year Tax year
+ * @param accountId Optional - filter by specific business account
  */
 export async function getYearlyQuarterlyReports(
   userId: string,
-  year: number
+  year: number,
+  accountId?: string
 ): Promise<QuarterlyReport[]> {
   const quarters = [1, 2, 3, 4];
   const reports: QuarterlyReport[] = [];
 
   for (const quarter of quarters) {
-    const report = await getQuarterlyReport(userId, year, quarter);
+    const report = await getQuarterlyReport(userId, year, quarter, accountId);
     reports.push(report);
   }
 
   return reports;
+}
+
+/**
+ * Get quarterly reports grouped by business account
+ * Returns reports for all business accounts for a given year
+ */
+export async function getQuarterlyReportsByAccount(
+  userId: string,
+  year: number,
+  quarter: number
+): Promise<
+  Array<{
+    accountId: string;
+    accountName: string;
+    report: QuarterlyReport;
+  }>
+> {
+  // Import accounts table
+  const { accounts } = await import('@/lib/db/schema');
+
+  // Get all business accounts for user
+  const businessAccounts = await db
+    .select()
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.userId, userId),
+        eq(accounts.isBusinessAccount, true),
+        eq(accounts.isActive, true)
+      )
+    );
+
+  // Get reports for each account
+  const reportsByAccount = await Promise.all(
+    businessAccounts.map(async (account) => ({
+      accountId: account.id,
+      accountName: account.name,
+      report: await getQuarterlyReport(userId, year, quarter, account.id),
+    }))
+  );
+
+  return reportsByAccount.filter((r) => r.report.totalSales > 0);
+}
+
+/**
+ * Get all quarterly reports for the year, grouped by business account
+ */
+export async function getYearlyQuarterlyReportsByAccount(
+  userId: string,
+  year: number
+): Promise<
+  Array<{
+    accountId: string;
+    accountName: string;
+    quarters: QuarterlyReport[];
+  }>
+> {
+  // Import accounts table
+  const { accounts } = await import('@/lib/db/schema');
+
+  // Get all business accounts for user
+  const businessAccounts = await db
+    .select()
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.userId, userId),
+        eq(accounts.isBusinessAccount, true),
+        eq(accounts.isActive, true)
+      )
+    );
+
+  // Get reports for each account
+  const reportsByAccount = await Promise.all(
+    businessAccounts.map(async (account) => ({
+      accountId: account.id,
+      accountName: account.name,
+      quarters: await getYearlyQuarterlyReports(userId, year, account.id),
+    }))
+  );
+
+  // Filter out accounts with no sales
+  return reportsByAccount.filter((a) =>
+    a.quarters.some((q) => q.totalSales > 0)
+  );
 }
 
 /**

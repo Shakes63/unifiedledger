@@ -165,10 +165,11 @@ export default function NotificationsPage() {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div className="w-full space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">Notifications</h1>
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-white">Notifications</h1>
         <p className="text-gray-400 mt-2">All your notifications in one place</p>
       </div>
 
@@ -336,6 +337,7 @@ export default function NotificationsPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

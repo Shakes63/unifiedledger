@@ -1513,6 +1513,7 @@ export const salesTaxTransactions = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    accountId: text('account_id').notNull(), // Business account for sales tax tracking
     transactionId: text('transaction_id').notNull(),
     taxCategoryId: text('tax_category_id').notNull(),
     taxYear: integer('tax_year').notNull(),
@@ -1529,11 +1530,18 @@ export const salesTaxTransactions = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_sales_tax_transactions_user').on(table.userId),
+    accountIdIdx: index('idx_sales_tax_transactions_account').on(table.accountId),
     transactionIdIdx: index('idx_sales_tax_transactions_transaction').on(table.transactionId),
     quarterIdx: index('idx_sales_tax_transactions_quarter').on(table.quarter),
     reportedStatusIdx: index('idx_sales_tax_transactions_status').on(table.reportedStatus),
     userQuarterIdx: index('idx_sales_tax_transactions_user_quarter').on(
       table.userId,
+      table.taxYear,
+      table.quarter
+    ),
+    userAccountQuarterIdx: index('idx_sales_tax_transactions_user_account_quarter').on(
+      table.userId,
+      table.accountId,
       table.taxYear,
       table.quarter
     ),
