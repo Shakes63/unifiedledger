@@ -13,6 +13,7 @@ interface Transaction {
   id: string;
   accountId: string;
   categoryId: string | null;
+  transferId: string | null;
   date: string;
   amount: number;
   description: string;
@@ -22,6 +23,11 @@ interface Transaction {
   isSplit: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+interface Account {
+  id: string;
+  name: string;
 }
 
 interface TransactionDetailsProps {
@@ -39,20 +45,30 @@ const typeConfig = {
 
 export function TransactionDetails({ transactionId, onDelete }: TransactionDetailsProps) {
   const [transaction, setTransaction] = useState<Transaction | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    const fetchTransaction = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/transactions/${transactionId}`);
-        if (!response.ok) {
+
+        // Fetch transaction
+        const txResponse = await fetch(`/api/transactions/${transactionId}`);
+        if (!txResponse.ok) {
           throw new Error('Failed to fetch transaction');
         }
-        const data = await response.json();
-        setTransaction(data);
+        const txData = await txResponse.json();
+        setTransaction(txData);
+
+        // Fetch accounts for transfer display
+        const accResponse = await fetch('/api/accounts');
+        if (accResponse.ok) {
+          const accData = await accResponse.json();
+          setAccounts(accData);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -60,7 +76,7 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
       }
     };
 
-    fetchTransaction();
+    fetchData();
   }, [transactionId]);
 
   const handleDelete = async () => {
@@ -106,6 +122,12 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
       </Card>
     );
   }
+
+  const getAccountName = (accountId: string | null): string => {
+    if (!accountId) return 'Unknown';
+    const account = accounts.find((a) => a.id === accountId);
+    return account?.name || 'Unknown';
+  };
 
   const typeInfo = typeConfig[transaction.type as keyof typeof typeConfig] || typeConfig.expense;
   const isExpense = transaction.type === 'expense';
@@ -178,6 +200,26 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
               </p>
             </div>
           </div>
+
+          {/* Transfer Account Information */}
+          {transaction.type === 'transfer' && (
+            <div className="pt-4 border-t border-[#2a2a2a]">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm text-[#6b7280] uppercase tracking-wide">From Account</p>
+                  <p className="text-[#ffffff] font-medium mt-1">
+                    {getAccountName(transaction.accountId)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-[#6b7280] uppercase tracking-wide">To Account</p>
+                  <p className="text-[#ffffff] font-medium mt-1">
+                    {getAccountName(transaction.transferId)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Notes */}
           {transaction.notes && (

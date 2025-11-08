@@ -750,6 +750,27 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
               setUseSplits(!useSplits);
               if (!useSplits) {
                 setFormData((prev) => ({ ...prev, categoryId: '' }));
+                // Auto-populate with 2 splits, copying the main description
+                const amount = parseFloat(formData.amount) || 0;
+                const halfAmount = amount / 2;
+                setSplits([
+                  {
+                    id: `split-${Date.now()}-1`,
+                    categoryId: '',
+                    amount: halfAmount,
+                    percentage: 0,
+                    isPercentage: false,
+                    description: formData.description,
+                  },
+                  {
+                    id: `split-${Date.now()}-2`,
+                    categoryId: '',
+                    amount: halfAmount,
+                    percentage: 0,
+                    isPercentage: false,
+                    description: formData.description,
+                  },
+                ]);
               } else {
                 setSplits([]);
               }

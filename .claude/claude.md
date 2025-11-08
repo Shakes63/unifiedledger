@@ -279,53 +279,53 @@ pnpm drizzle-kit migrate   # Apply migration
 ## Recent Updates (Current Session)
 
 ### Major Bug Fixes Completed ✅
-1. **Duplicate Transaction Errors (Bug #7):** Fixed toFixed errors on dashboard and transactions page
-   - Changed from manual state manipulation to refetching data after duplicate
-   - Works correctly in both search mode and regular view mode
-   - Fixed on both RecentTransactions widget and transactions page
 
-2. **Transaction Deletion (Bug #40):** Fixed deletion failing for unified transfer type
-   - Updated DELETE and PUT endpoints to handle 'transfer' type
-   - Balance reversal now works correctly for all transaction types
+1. **Bug #46: Edit Transaction Button** - Fixed Next.js 16 params Promise error
+   - Updated to use `React.use()` to unwrap params
+   - Applied fix to edit transaction page
+   - Edit functionality now works correctly
 
-3. **Rules Management Page (Bug #1):** Created comprehensive rules management page
-   - Full CRUD operations for rules
-   - Priority management, bulk apply, empty states
-   - Integrated RuleBuilder and BulkApplyRules components
+2. **Bug #47: Comprehensive Transfer Fixes** - Fixed multiple transfer-related issues
+   - API now properly extracts and validates `toAccountId`
+   - `transferId` field populated in database
+   - Both source and destination accounts update correctly
+   - Balances properly subtract from source, add to destination
+   - Second account no longer shows as "Unknown"
+   - Transfers show in blue color with no +/- sign in general view
+   - Account-aware display when filtered (shows - if leaving, + if arriving)
+   - Transaction details show "From Account" and "To Account"
+   - Transfers appear when filtering by either source or destination account
 
-4. **Merchant Spending Charts (Bug #2):** Fixed charts tracking description instead of merchant
-   - Updated groupByMerchant function to use merchantId
-   - Added merchant name lookup in API
-   - Backward compatible with transactions without merchants
+3. **Bug #48: Dashboard Quick View Cards** - Connected cards to real data
+   - Total Balance card shows real sum of all account balances
+   - Monthly Spending card shows actual current month expenses
+   - Data fetches on page load with proper loading states
+   - Uses Decimal.js for accurate calculations
 
-5. **Account Name Truncation (Bug #3):** Fixed account names being cut off
-   - Added proper flex layout with truncate classes
-   - Icon and balance remain visible while name gracefully truncates
-   - Applied to both AccountSelector and transfer "To Account" selector
+4. **Bug #49: Enhanced Split Transactions** - Major UX improvements
+   - Auto-populate with 2 splits when clicking "Add Splits"
+   - Main transaction description automatically copied to both splits
+   - Added description input field for each split
+   - Bidirectional auto-calculation of remaining amount
+   - When editing any split except the last, the last split auto-adjusts
+   - When editing the last split, the second-to-last adjusts (if 3+ splits)
+   - Works with any number of splits
 
-6. **Account Update Functionality (Bug #4):** Implemented missing account update feature
-   - Created PUT endpoint for /api/accounts/[id]
-   - Validates user ownership, preserves existing values
-   - Proper success/error messages for create vs update
-
-7. **New Transaction Button (Bug #5):** Added button to transactions page
-   - Quick access to create transactions from transactions page
-   - Emerald button next to Import CSV in toolbar
-   - Better UX - one less click to add transactions
-
-### Files Created
-- `app/dashboard/rules/page.tsx` - Full rules management page
+5. **Bug #50: Transfer Descriptions Display** - Fixed missing descriptions
+   - Changed transfer display to use account names as "merchant" field
+   - Transaction description now properly displayed in "description" field
+   - Display shows "FromAccount → ToAccount" (bold) + Description (gray)
+   - Consistent with how merchant transactions display
 
 ### Files Modified
-- `components/dashboard/recent-transactions.tsx` - Fixed duplicate error, refetch after create
-- `app/dashboard/transactions/page.tsx` - Fixed duplicate error, added New Transaction button
-- `app/api/transactions/[id]/route.ts` - Handle unified transfer type in DELETE/PUT
-- `lib/reports/report-utils.ts` - Added merchantId to interface, updated groupByMerchant
-- `app/api/reports/merchant-analysis/route.ts` - Added merchant name lookup
-- `components/transactions/account-selector.tsx` - Fixed account name truncation
-- `components/transactions/transaction-form.tsx` - Fixed account name truncation
-- `app/api/accounts/[id]/route.ts` - Added PUT endpoint for account updates
-- `app/dashboard/accounts/page.tsx` - Implemented account update logic
+- `app/dashboard/transactions/[id]/edit/page.tsx` - Fixed params Promise error
+- `app/api/transactions/route.ts` - Added toAccountId handling, transfer balance updates
+- `components/dashboard/recent-transactions.tsx` - Fixed transfer display, removed +/- for transfers
+- `app/dashboard/transactions/page.tsx` - Account-aware transfer display, fixed descriptions
+- `components/transactions/transaction-details.tsx` - Added transfer account info display
+- `app/dashboard/page.tsx` - Connected dashboard cards to real data
+- `components/transactions/transaction-form.tsx` - Auto-populate splits with description
+- `components/transactions/split-builder.tsx` - Added description fields, bidirectional calculation
 
 ## Important Notes
 

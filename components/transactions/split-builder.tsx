@@ -96,7 +96,8 @@ export function SplitBuilder({
     const value = parseFloat(newAmount);
     if (isNaN(value)) return;
 
-    const updatedSplits = splits.map((s) =>
+    // Update the split that changed
+    let updatedSplits = splits.map((s) =>
       s.id === id
         ? {
             ...s,
@@ -107,8 +108,52 @@ export function SplitBuilder({
         : s
     );
 
+    // Auto-calculate the last split to equal the remainder
+    // Only if we have 2 or more splits and we're using fixed amounts
+    if (updatedSplits.length >= 2 && splitType === 'amount') {
+      const lastIndex = updatedSplits.length - 1;
+      const isEditingLastSplit = updatedSplits[lastIndex].id === id;
+
+      if (!isEditingLastSplit) {
+        // Sum all splits EXCEPT the last one
+        const sumExceptLast = updatedSplits
+          .slice(0, lastIndex)
+          .reduce((sum, split) => sum + (split.amount || 0), 0);
+
+        // Set last split to remainder
+        const remainder = Math.max(0, transactionAmount - sumExceptLast);
+        updatedSplits[lastIndex] = {
+          ...updatedSplits[lastIndex],
+          amount: remainder,
+        };
+      } else {
+        // User is editing the last split, so update the second-to-last split
+        if (updatedSplits.length > 2) {
+          const secondToLastIndex = lastIndex - 1;
+          // Sum all splits EXCEPT the second-to-last one
+          const sumExceptSecondToLast = updatedSplits
+            .filter((_, i) => i !== secondToLastIndex)
+            .reduce((sum, split) => sum + (split.amount || 0), 0);
+
+          const remainder = Math.max(0, transactionAmount - sumExceptSecondToLast);
+          updatedSplits[secondToLastIndex] = {
+            ...updatedSplits[secondToLastIndex],
+            amount: remainder,
+          };
+        }
+      }
+    }
+
     onSplitsChange(updatedSplits);
     validateCurrentSplits(updatedSplits);
+  };
+
+  const handleUpdateSplitDescription = (id: string, newDescription: string) => {
+    const updatedSplits = splits.map((s) =>
+      s.id === id ? { ...s, description: newDescription } : s
+    );
+
+    onSplitsChange(updatedSplits);
   };
 
   const handleSwitchSplitType = (newType: 'amount' | 'percentage') => {
@@ -232,18 +277,27 @@ export function SplitBuilder({
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-[1fr_auto] gap-2">
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-[1fr_auto] gap-2">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={split.isPercentage ? split.percentage || '' : split.amount || ''}
+                        onChange={(e) => handleUpdateSplitAmount(split.id, e.target.value)}
+                        className="bg-[#1a1a1a] border-[#3a3a3a] text-white text-sm"
+                      />
+                      <div className="text-sm font-medium text-muted-foreground pt-2">
+                        {split.isPercentage ? '%' : '$'}
+                      </div>
+                    </div>
                     <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={split.isPercentage ? split.percentage || '' : split.amount || ''}
-                      onChange={(e) => handleUpdateSplitAmount(split.id, e.target.value)}
+                      type="text"
+                      placeholder="Description for this split"
+                      value={split.description || ''}
+                      onChange={(e) => handleUpdateSplitDescription(split.id, e.target.value)}
                       className="bg-[#1a1a1a] border-[#3a3a3a] text-white text-sm"
                     />
-                    <div className="text-sm font-medium text-muted-foreground pt-2">
-                      {split.isPercentage ? '%' : '$'}
-                    </div>
                   </div>
                 </Card>
               );

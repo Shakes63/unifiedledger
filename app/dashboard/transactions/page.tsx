@@ -277,8 +277,8 @@ export default function TransactionsPage() {
   const getTransactionDisplay = (transaction: Transaction): { merchant: string | null; description: string } => {
     if (transaction.type === 'transfer') {
       return {
-        merchant: null,
-        description: `${getAccountName(transaction.accountId)} → ${getAccountName(transaction.transferId)}`,
+        merchant: `${getAccountName(transaction.accountId)} → ${getAccountName(transaction.transferId)}`,
+        description: transaction.description,
       };
     }
     const merchant = getMerchantName(transaction.merchantId);
@@ -418,10 +418,20 @@ export default function TransactionsPage() {
                             className={`font-semibold text-sm ${
                               transaction.type === 'income'
                                 ? 'text-emerald-400'
+                                : transaction.type === 'transfer'
+                                ? 'text-blue-400'
                                 : 'text-white'
                             }`}
                           >
-                            {transaction.type === 'income' ? '+' : '-'}$
+                            {transaction.type === 'transfer' && accountIdFromUrl
+                              ? transaction.accountId === accountIdFromUrl
+                                ? '-' // Money leaving this account
+                                : transaction.transferId === accountIdFromUrl
+                                ? '+' // Money coming to this account
+                                : '' // Not related to this account (shouldn't happen)
+                              : transaction.type === 'transfer'
+                              ? '' // General view, no sign for transfers
+                              : transaction.type === 'income' ? '+' : '-'}$
                             {transaction.amount.toFixed(2)}
                           </p>
                           {/* Account name below amount */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Plus, TrendingUp, DollarSign, PieChart } from 'lucide-react';
@@ -8,9 +8,26 @@ import Link from 'next/link';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { BillsWidget } from '@/components/dashboard/bills-widget';
 import { useAuth } from '@clerk/nextjs';
+import Decimal from 'decimal.js';
+
+interface Account {
+  id: string;
+  name: string;
+  currentBalance: number;
+}
+
+interface Transaction {
+  id: string;
+  amount: number;
+  type: string;
+  date: string;
+}
 
 export default function DashboardPage() {
   const { isLoaded } = useAuth();
+  const [totalBalance, setTotalBalance] = useState<number>(0);
+  const [monthlySpending, setMonthlySpending] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Initialize user on first load
@@ -32,6 +49,53 @@ export default function DashboardPage() {
     }
   }, [isLoaded]);
 
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch accounts to calculate total balance
+        const accountsResponse = await fetch('/api/accounts');
+        if (accountsResponse.ok) {
+          const accounts: Account[] = await accountsResponse.json();
+          const total = accounts.reduce((sum, account) => {
+            return new Decimal(sum).plus(new Decimal(account.currentBalance || 0)).toNumber();
+          }, 0);
+          setTotalBalance(total);
+        }
+
+        // Fetch transactions to calculate monthly spending
+        const now = new Date();
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        const txResponse = await fetch('/api/transactions?limit=1000');
+        if (txResponse.ok) {
+          const transactions: Transaction[] = await txResponse.json();
+
+          // Filter for current month expenses
+          const monthlyExpenses = transactions.filter(tx => {
+            const txDate = new Date(tx.date);
+            return tx.type === 'expense' &&
+                   txDate >= firstDayOfMonth &&
+                   txDate <= lastDayOfMonth;
+          });
+
+          const total = monthlyExpenses.reduce((sum, tx) => {
+            return new Decimal(sum).plus(new Decimal(tx.amount || 0)).toNumber();
+          }, 0);
+          setMonthlySpending(total);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">
       <div className="max-w-7xl mx-auto">
@@ -44,7 +108,9 @@ export default function DashboardPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-400 mb-2">Total Balance</p>
-                  <h3 className="text-3xl font-bold text-white">$0.00</h3>
+                  <h3 className="text-3xl font-bold text-white">
+                    {loading ? '...' : `$${totalBalance.toFixed(2)}`}
+                  </h3>
                   <p className="text-xs text-gray-500 mt-3">Across all accounts</p>
                 </div>
                 <div className="p-3 bg-blue-500/20 rounded-lg">
@@ -58,7 +124,9 @@ export default function DashboardPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm text-gray-400 mb-2">This Month</p>
-                  <h3 className="text-3xl font-bold text-white">$0.00</h3>
+                  <h3 className="text-3xl font-bold text-white">
+                    {loading ? '...' : `$${monthlySpending.toFixed(2)}`}
+                  </h3>
                   <p className="text-xs text-gray-500 mt-3">Total spending</p>
                 </div>
                 <div className="p-3 bg-red-500/20 rounded-lg">

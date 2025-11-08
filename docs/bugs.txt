@@ -448,6 +448,128 @@ COMPLETED BUGS:
    - Better UX - one less click to add a transaction
    - Consistent with other pages that have create buttons
 
-ALL BUGS FIXED! 🎉
+✅ 46. Fixed edit transaction button params Promise error:
+  - Error: "A param property was accessed directly with `params.id`. `params` is a Promise..."
+  - Root cause: Next.js 16 made params a Promise in dynamic routes (same as bug #26)
+  - Edit transaction page was accessing params.id directly without unwrapping
+  - Solution:
+    - Imported React
+    - Changed params interface type from object to Promise<{id: string}>
+    - Used React.use(params) to unwrap the Promise
+    - Updated all references to params.id to use resolvedParams.id
+    - Applied to 3 locations: handleEditSuccess callback, Link href, TransactionForm prop
+  - Files updated:
+    * app/dashboard/transactions/[id]/edit/page.tsx (lines 3, 11-14, 19, 22, 29, 39)
+  - Result: Edit transaction button now works without errors
+  - Same fix pattern as bug #26 for transaction details page
 
+✅ 47. Fixed unified transfer type implementation and display (bugs 2, 3, 4, 5):
+  - Root cause: Transfer form sends unified 'transfer' type with toAccountId, but API wasn't handling it
+  - Multiple issues fixed:
+    * API wasn't extracting toAccountId from request body
+    * transferId field wasn't being populated in database
+    * Destination account showed as "Unknown" because transferId was null
+    * Balance updates weren't working for both accounts in transfer
+    * Display logic showed incorrect +/- signs for transfers
+    * Transfers only showed in "from" account, not "to" account
+    * Money was added to same account instead of transferring between accounts
+  - Solution Part 1 - API Updates (app/api/transactions/route.ts):
+    * Added toAccountId extraction from request body
+    * Added validation for toAccountId when type is 'transfer'
+    * Added toAccount validation to ensure it exists and belongs to user
+    * Updated categorization rules to skip 'transfer' type
+    * Set transferId field when creating transaction
+    * Updated balance logic to include 'transfer' type (subtract from source account)
+    * Added destination account balance update (add to destination account)
+  - Solution Part 2 - Display Updates:
+    * RecentTransactions (components/dashboard/recent-transactions.tsx):
+      - Transfers now show in blue color
+      - No +/- sign for transfers in general view
+    * Transactions Page (app/dashboard/transactions/page.tsx):
+      - Transfers show in blue color
+      - No +/- sign for transfers in general view
+      - Account-aware display: when filtered by account, shows - if money leaving, + if money arriving
+    * Transaction Details (components/transactions/transaction-details.tsx):
+      - Added transferId to Transaction interface
+      - Added Account interface and accounts state
+      - Fetch accounts data to look up names
+      - Added getAccountName helper function
+      - Added "Transfer Account Information" section showing "From Account" and "To Account"
+  - Files updated:
+    * app/api/transactions/route.ts (lines 35, 49-55, 76-97, 124, 161, 175, 188-201)
+    * components/dashboard/recent-transactions.tsx (lines 245-258)
+    * app/dashboard/transactions/page.tsx (lines 417-436)
+    * components/transactions/transaction-details.tsx (lines 16, 28-31, 48, 53-80, 126-130, 204-222)
+  - Result: Transfers now work correctly end-to-end
+  - Both accounts update properly (bug #5 fixed)
+  - Second account name displays correctly (bug #2 fixed)
+  - Display logic is context-aware (bug #2 fixed)
+  - Transaction details show full transfer information (bug #3 fixed)
+  - Transfers show when filtering by either account (bug #4 fixed)
+
+✅ 48. Connected dashboard quick view cards to real data:
+  - Root cause: Dashboard cards showed hardcoded values ($0.00) instead of fetching data
+  - Solution:
+    * Added state for totalBalance, monthlySpending, and loading
+    * Added interfaces for Account and Transaction
+    * Added useEffect to fetch dashboard data on component mount
+    * Fetches all accounts and calculates total balance using Decimal.js
+    * Fetches transactions and filters for current month expenses
+    * Calculates monthly spending total
+    * Updates Total Balance card to display actual sum of all account balances
+    * Updates Monthly Spending card to display actual expense total for current month
+    * Added loading state to show "..." while fetching data
+  - Files updated:
+    * app/dashboard/page.tsx (lines 3, 11, 13-24, 28-30, 52-97, 111-113, 127-129)
+  - Result: Dashboard cards now show real-time data
+  - Total Balance reflects sum of all account balances
+  - Monthly Spending shows current month's expenses
+
+✅ 49. Enhanced split transaction functionality:
+  - Root cause: Split transactions needed better UX and automatic calculation
+  - Improvements implemented:
+    * Auto-populate 2 splits when clicking "Add Splits" button
+    * Each split starts with half of the transaction amount
+    * Main transaction description automatically copied to both splits
+    * Added description input field for each split
+    * Users can now have unique descriptions per split
+    * Bidirectional auto-calculation for remaining amount
+    * When editing any split except the last, the last split auto-adjusts to remainder
+    * When editing the last split, the second-to-last adjusts (if 3+ splits)
+    * Works with any number of splits (2, 3, 4, etc.)
+    * Auto-calculation only applies to fixed amount mode (not percentage)
+  - Files updated:
+    * components/transactions/transaction-form.tsx (lines 749-777)
+      - Updated button onClick to create 2 initial splits
+      - Copies transaction description to each split
+      - Calculates half amount for each split
+    * components/transactions/split-builder.tsx (lines 95-149, 243-264)
+      - Added handleUpdateSplitDescription function
+      - Enhanced handleUpdateSplitAmount with bidirectional calculation logic
+      - Added description Input field to each split card
+  - Result: Much improved split transaction UX
+  - Splits start pre-populated with sensible defaults
+  - Auto-calculation eliminates manual math
+  - Each split can have its own description for better tracking
+
+✅ 50. Fixed transfers not showing description in transaction view:
+  - Root cause: getTransactionDisplay function replaced description with account names
+  - For transfers, function returned account names as description and null for merchant
+  - This meant the actual transaction.description was never displayed
+  - Solution:
+    * Changed transfer display logic to use account names as "merchant" field
+    * Transaction description now properly displayed in "description" field
+    * Updated in both RecentTransactions and transactions page
+  - Display now shows:
+    * Top line (bold): "FromAccount → ToAccount"
+    * Second line (gray): Actual transaction description
+  - Files updated:
+    * components/dashboard/recent-transactions.tsx (lines 147-149)
+    * app/dashboard/transactions/page.tsx (lines 279-281)
+  - Result: Transfers now display both account transfer info AND description
+  - Consistent with how merchant transactions display (merchant on top, description below)
+
+pending
+1. transfers  to another account should on the back end make 2 transactions one for the transfer out of the from account and 1 for the transfer in on the to account. therefore if you are in the main view for transactions it should show one entry showing the from --> to but if it is filtered by account it should show the part of the transaction that is associated with that account.
+2. 
 

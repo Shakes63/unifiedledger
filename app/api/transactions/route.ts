@@ -32,6 +32,7 @@ export async function POST(request: Request) {
       notes,
       type = 'expense',
       isPending = false,
+      toAccountId, // For transfers
       // Offline sync tracking fields
       offlineId,
       syncStatus = 'synced',
@@ -41,6 +42,14 @@ export async function POST(request: Request) {
     if (!accountId || !date || !amount || !description) {
       return Response.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Validate toAccountId for transfers
+    if (type === 'transfer' && !toAccountId) {
+      return Response.json(
+        { error: 'Transfer requires a destination account (toAccountId)' },
         { status: 400 }
       );
     }
@@ -62,6 +71,29 @@ export async function POST(request: Request) {
         { error: 'Account not found' },
         { status: 404 }
       );
+    }
+
+    // Validate toAccount for transfers
+    let toAccount = null;
+    if (type === 'transfer' && toAccountId) {
+      const toAccountResult = await db
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, toAccountId),
+            eq(accounts.userId, userId)
+          )
+        )
+        .limit(1);
+
+      if (toAccountResult.length === 0) {
+        return Response.json(
+          { error: 'Destination account not found' },
+          { status: 404 }
+        );
+      }
+      toAccount = toAccountResult[0];
     }
 
     // Validate category if provided
@@ -89,7 +121,7 @@ export async function POST(request: Request) {
     let appliedCategoryId = categoryId;
     let appliedRuleId: string | null = null;
 
-    if (!appliedCategoryId && type !== 'transfer_in' && type !== 'transfer_out') {
+    if (!appliedCategoryId && type !== 'transfer_in' && type !== 'transfer_out' && type !== 'transfer') {
       try {
         const transactionData: TransactionData = {
           description,
@@ -126,6 +158,7 @@ export async function POST(request: Request) {
       description,
       notes: notes || null,
       type,
+      transferId: toAccountId || null, // Store destination account ID for transfers
       isPending,
       // Offline sync tracking
       offlineId: offlineId || null,
@@ -139,7 +172,7 @@ export async function POST(request: Request) {
     // Update account balance and usage
     const newBalance = new Decimal(account[0].currentBalance || 0);
     const updatedBalance =
-      type === 'expense' || type === 'transfer_out'
+      type === 'expense' || type === 'transfer_out' || type === 'transfer'
         ? newBalance.minus(decimalAmount)
         : newBalance.plus(decimalAmount);
 
@@ -151,6 +184,21 @@ export async function POST(request: Request) {
         usageCount: (account[0].usageCount || 0) + 1,
       })
       .where(eq(accounts.id, accountId));
+
+    // For transfers, also update the destination account balance
+    if (type === 'transfer' && toAccount) {
+      const toAccountBalance = new Decimal(toAccount.currentBalance || 0);
+      const toAccountUpdatedBalance = toAccountBalance.plus(decimalAmount);
+
+      await db
+        .update(accounts)
+        .set({
+          currentBalance: toAccountUpdatedBalance.toNumber(),
+          lastUsedAt: new Date().toISOString(),
+          usageCount: (toAccount.usageCount || 0) + 1,
+        })
+        .where(eq(accounts.id, toAccountId));
+    }
 
     // Update category usage if provided
     if (categoryId) {
