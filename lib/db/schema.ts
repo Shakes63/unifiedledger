@@ -135,6 +135,8 @@ export const transactions = sqliteTable(
     receiptUrl: text('receipt_url'),
     isSplit: integer('is_split', { mode: 'boolean' }).default(false),
     splitParentId: text('split_parent_id'),
+    importHistoryId: text('import_history_id'),
+    importRowNumber: integer('import_row_number'),
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   },
@@ -147,6 +149,7 @@ export const transactions = sqliteTable(
     amountIdx: index('idx_transactions_amount').on(table.amount),
     userDateIdx: index('idx_transactions_user_date').on(table.userId, table.date),
     userCategoryIdx: index('idx_transactions_user_category').on(table.userId, table.categoryId),
+    importIdx: index('idx_transactions_import').on(table.importHistoryId),
   })
 );
 
@@ -827,6 +830,85 @@ export const searchHistory = sqliteTable(
 );
 
 // ============================================================================
+// CSV IMPORT TABLES
+// ============================================================================
+
+export const importTemplates = sqliteTable(
+  'import_templates',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id'),
+    name: text('name').notNull(), // e.g., "Chase Credit Card", "Wells Fargo Checking"
+    description: text('description'),
+    columnMappings: text('column_mappings').notNull(), // JSON: { csvColumn, appField, transform?, defaultValue? }[]
+    dateFormat: text('date_format').notNull(), // e.g., "MM/DD/YYYY", "YYYY-MM-DD"
+    delimiter: text('delimiter').default(','),
+    hasHeaderRow: integer('has_header_row', { mode: 'boolean' }).default(true),
+    skipRows: integer('skip_rows').default(0),
+    defaultAccountId: text('default_account_id'),
+    isFavorite: integer('is_favorite', { mode: 'boolean' }).default(false),
+    usageCount: integer('usage_count').default(0),
+    lastUsedAt: text('last_used_at'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_import_templates_user').on(table.userId),
+    userHouseholdIdx: index('idx_import_templates_user_household').on(table.userId, table.householdId),
+  })
+);
+
+export const importHistory = sqliteTable(
+  'import_history',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id'),
+    templateId: text('template_id'),
+    filename: text('filename').notNull(),
+    fileSize: integer('file_size'),
+    rowsTotal: integer('rows_total').notNull(),
+    rowsImported: integer('rows_imported').notNull(),
+    rowsSkipped: integer('rows_skipped').notNull(),
+    rowsDuplicates: integer('rows_duplicates').notNull(),
+    status: text('status', {
+      enum: ['pending', 'processing', 'completed', 'failed', 'rolled_back'],
+    }).notNull(),
+    errorMessage: text('error_message'),
+    importSettings: text('import_settings'), // JSON of import configuration
+    startedAt: text('started_at').default(new Date().toISOString()),
+    completedAt: text('completed_at'),
+    rolledBackAt: text('rolled_back_at'),
+  },
+  (table) => ({
+    userIdIdx: index('idx_import_history_user').on(table.userId),
+    userCreatedAtIdx: index('idx_import_history_user_created').on(table.userId, table.startedAt),
+  })
+);
+
+export const importStaging = sqliteTable(
+  'import_staging',
+  {
+    id: text('id').primaryKey(),
+    importHistoryId: text('import_history_id').notNull(),
+    rowNumber: integer('row_number').notNull(),
+    rawData: text('raw_data').notNull(), // JSON of original CSV row
+    mappedData: text('mapped_data').notNull(), // JSON of mapped transaction data
+    duplicateOf: text('duplicate_of'), // ID of existing transaction if duplicate detected
+    duplicateScore: real('duplicate_score'), // Similarity score (0-100)
+    status: text('status', {
+      enum: ['pending', 'review', 'approved', 'skipped', 'imported'],
+    }).notNull(),
+    validationErrors: text('validation_errors'), // JSON array of validation errors
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    importHistoryIdIdx: index('idx_import_staging_history').on(table.importHistoryId),
+  })
+);
+
+// ============================================================================
 // RELATIONS
 // ============================================================================
 
@@ -1002,5 +1084,32 @@ export const searchHistoryRelations = relations(searchHistory, ({ one }) => ({
   savedSearchFilter: one(savedSearchFilters, {
     fields: [searchHistory.savedSearchId],
     references: [savedSearchFilters.id],
+  }),
+}));
+
+export const importTemplatesRelations = relations(importTemplates, ({ one, many }) => ({
+  account: one(accounts, {
+    fields: [importTemplates.defaultAccountId],
+    references: [accounts.id],
+  }),
+  importHistories: many(importHistory),
+}));
+
+export const importHistoryRelations = relations(importHistory, ({ one, many }) => ({
+  template: one(importTemplates, {
+    fields: [importHistory.templateId],
+    references: [importTemplates.id],
+  }),
+  stagingRecords: many(importStaging),
+}));
+
+export const importStagingRelations = relations(importStaging, ({ one }) => ({
+  importHistory: one(importHistory, {
+    fields: [importStaging.importHistoryId],
+    references: [importHistory.id],
+  }),
+  duplicateTransaction: one(transactions, {
+    fields: [importStaging.duplicateOf],
+    references: [transactions.id],
   }),
 }));

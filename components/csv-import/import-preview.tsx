@@ -1,0 +1,205 @@
+'use client';
+
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface StagingRecord {
+  rowNumber: number;
+  status: 'pending' | 'review' | 'approved' | 'skipped' | 'imported';
+  validationErrors?: string[];
+  duplicateOf?: string;
+  duplicateScore?: number;
+  data?: any;
+}
+
+interface ImportPreviewProps {
+  staging: StagingRecord[];
+  fileName: string;
+  totalRows: number;
+  validRows: number;
+  reviewRows: number;
+  duplicateRows: number;
+  onConfirm: (recordIds?: string[]) => Promise<void>;
+  isLoading?: boolean;
+}
+
+export function ImportPreview({
+  staging,
+  fileName,
+  totalRows,
+  validRows,
+  reviewRows,
+  duplicateRows,
+  onConfirm,
+  isLoading = false,
+}: ImportPreviewProps) {
+  const [selectedRows, setSelectedRows] = useState<Set<number>>(
+    new Set(staging.filter((r) => r.status === 'approved').map((r) => r.rowNumber))
+  );
+
+  const toggleRow = (rowNumber: number) => {
+    const updated = new Set(selectedRows);
+    if (updated.has(rowNumber)) {
+      updated.delete(rowNumber);
+    } else {
+      updated.add(rowNumber);
+    }
+    setSelectedRows(updated);
+  };
+
+  const toggleAll = () => {
+    if (selectedRows.size === validRows) {
+      setSelectedRows(new Set());
+    } else {
+      setSelectedRows(
+        new Set(
+          staging
+            .filter((r) => r.status === 'approved')
+            .map((r) => r.rowNumber)
+        )
+      );
+    }
+  };
+
+  const getStatusIcon = (status: string, errors?: string[]) => {
+    if (errors && errors.length > 0) {
+      return (
+        <AlertCircle className="w-4 h-4 text-[#f87171]" />
+      );
+    }
+    if (status === 'approved') {
+      return (
+        <CheckCircle2 className="w-4 h-4 text-[#10b981]" />
+      );
+    }
+    return (
+      <AlertTriangle className="w-4 h-4 text-[#fbbf24]" />
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Import Summary</CardTitle>
+          <CardDescription>{fileName}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-2 bg-[#1a1a1a] rounded">
+              <div className="text-xs text-[#6b7280]">Total Rows</div>
+              <div className="text-lg font-semibold text-white">{totalRows}</div>
+            </div>
+            <div className="p-2 bg-[#1a1a1a] rounded">
+              <div className="text-xs text-[#6b7280]">Valid</div>
+              <div className="text-lg font-semibold text-[#10b981]">{validRows}</div>
+            </div>
+            <div className="p-2 bg-[#1a1a1a] rounded">
+              <div className="text-xs text-[#6b7280]">Need Review</div>
+              <div className="text-lg font-semibold text-[#fbbf24]">{reviewRows}</div>
+            </div>
+            <div className="p-2 bg-[#1a1a1a] rounded">
+              <div className="text-xs text-[#6b7280]">Duplicates</div>
+              <div className="text-lg font-semibold text-[#f87171]">{duplicateRows}</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle className="text-base">Record Details</CardTitle>
+            <CardDescription>Review records before import</CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleAll}
+            disabled={validRows === 0}
+          >
+            {selectedRows.size === validRows ? 'Deselect All' : 'Select All'}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-96 border border-[#2a2a2a] rounded-lg">
+            <div className="space-y-2 p-4">
+              {staging.map((record) => (
+                <div
+                  key={record.rowNumber}
+                  className="p-3 bg-[#1a1a1a] rounded border border-[#2a2a2a] hover:border-[#3a3a3a] cursor-pointer transition-colors"
+                  onClick={() => toggleRow(record.rowNumber)}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center gap-2 mt-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedRows.has(record.rowNumber)}
+                        onChange={() => {}}
+                        className="cursor-pointer"
+                      />
+                      {getStatusIcon(record.status, record.validationErrors)}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-white">
+                        Row {record.rowNumber}
+                      </div>
+
+                      {record.data && (
+                        <div className="text-xs text-[#9ca3af] mt-1 space-y-1">
+                          <div className="truncate">
+                            <span className="text-[#6b7280]">Description:</span> {record.data.description}
+                          </div>
+                          <div>
+                            <span className="text-[#6b7280]">Amount:</span> ${record.data.amount}
+                          </div>
+                          <div className="truncate">
+                            <span className="text-[#6b7280]">Date:</span> {record.data.date}
+                          </div>
+                        </div>
+                      )}
+
+                      {record.validationErrors && record.validationErrors.length > 0 && (
+                        <div className="text-xs text-[#f87171] mt-2 space-y-1">
+                          {record.validationErrors.map((error, i) => (
+                            <div key={i}>{error}</div>
+                          ))}
+                        </div>
+                      )}
+
+                      {record.duplicateOf && (
+                        <div className="text-xs text-[#fbbf24] mt-2">
+                          Possible duplicate ({record.duplicateScore?.toFixed(0)}% match)
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
+      <div className="flex gap-2 justify-end">
+        <Button
+          variant="outline"
+          onClick={() => window.history.back()}
+          disabled={isLoading}
+        >
+          Cancel
+        </Button>
+        <Button
+          onClick={() => onConfirm(Array.from(selectedRows))}
+          disabled={selectedRows.size === 0 || isLoading}
+        >
+          {isLoading ? 'Importing...' : `Import ${selectedRows.size} Records`}
+        </Button>
+      </div>
+    </div>
+  );
+}

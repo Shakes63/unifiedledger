@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { AdvancedSearch } from '@/components/transactions/advanced-search';
+import { CSVImportModal } from '@/components/csv-import/csv-import-modal';
 import {
   Select,
   SelectContent,
@@ -52,6 +53,7 @@ export default function TransactionsPage() {
   const [pageSize, setPageSize] = useState(50);
   const [hasMore, setHasMore] = useState(false);
   const [currentFilters, setCurrentFilters] = useState<any>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
 
   // Fetch initial data
   useEffect(() => {
@@ -248,6 +250,20 @@ export default function TransactionsPage() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Toolbar */}
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-sm font-medium text-[#6b7280]">Search & Filter</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setImportModalOpen(true)}
+            className="flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            Import CSV
+          </Button>
+        </div>
+
         {/* Advanced Search */}
         <div className="mb-8">
           <AdvancedSearch
@@ -369,6 +385,13 @@ export default function TransactionsPage() {
           </div>
         )}
       </main>
+
+      {/* CSV Import Modal */}
+      <CSVImportModal
+        open={importModalOpen}
+        onOpenChange={setImportModalOpen}
+        accounts={accounts}
+      />
     </div>
   );
 }

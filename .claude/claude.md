@@ -269,7 +269,7 @@ The application uses a comprehensive dark mode first design system:
 
 ## Phase 2: Transaction Intelligence & Speed Features - IN PROGRESS 🟢
 
-**Progress: 12/24 tasks completed (50%)**
+**Progress: 13/24 tasks completed (54%)**
 
 ### Completed Phase 2 Features
 
@@ -406,6 +406,39 @@ The application uses a comprehensive dark mode first design system:
 - `components/rules/rules-manager.tsx` - Rule management interface
 - `components/rules/bulk-apply-rules.tsx` - Bulk operation UI
 
+#### CSV Import with Column Mapping
+- ✅ **Database Schema:** `importTemplates`, `importHistory`, `importStaging` tables
+  - Import templates for saving bank/source configurations
+  - Import history tracking with detailed statistics
+  - Staging area for preview before final commit
+  - Import tracking columns on transactions table
+- ✅ **CSV Parsing Utilities:** `lib/csv-import.ts`
+  - File parsing with configurable delimiters and row skipping
+  - Auto-detection of column headers and mappings
+  - Type-safe transformation with flexible date/amount parsing
+  - Support for currency symbols, negative amounts, and multiple formats
+  - Validation with detailed error reporting
+- ✅ **Import Template API:** `/api/import-templates`
+  - Full CRUD operations for saving bank/source templates
+  - Reusable configurations for recurring imports
+  - Usage tracking and favorites
+- ✅ **CSV Import Processing:** `/api/csv-import`
+  - Multi-step file processing (parse → map → validate → preview)
+  - Duplicate detection integration with similarity scoring
+  - Configurable preview mode before staging
+  - Automatic column mapping detection
+- ✅ **Import Confirmation:** `/api/csv-import/[importId]/confirm`
+  - Commits staging records to transactions table
+  - Automatic categorization rules application
+  - Import statistics and error tracking
+- ✅ **CSV Import UI:** Multi-step wizard modal
+  - Step 1: File upload with drag-and-drop support
+  - Step 2: Configuration (delimiter, date format, account selection)
+  - Step 3: Interactive column-to-field mapping
+  - Step 4: Records preview with validation status
+  - Step 5: Import confirmation and results
+- ✅ **Integration:** Import CSV button in transactions dashboard
+
 ### Next Phase 2 Tasks
 1. ✅ Add transaction history with "repeat" functionality
 2. ✅ Build split transaction database schema
@@ -413,14 +446,14 @@ The application uses a comprehensive dark mode first design system:
 4. ✅ Build advanced search database schema
 5. ✅ Implement core search function with filtering (pagination & saved searches)
 6. ✅ Duplicate detection with Levenshtein distance
-7. [ ] CSV import with auto-detection
+7. ✅ CSV import with auto-detection and column mapping
 
 ### Phase 3 Goals (After Phase 2)
 1. Multi-account transfers with usage-based suggestions
 2. Calendar view with transaction indicators
-3. Advanced search with filters
-4. CSV import with column mapping
-5. Budget tracking and analytics
+3. Budget tracking and analytics
+4. Bill management and payment tracking
+5. Recurring transaction support
 
 ## Important Notes
 - The development plan is located in `docs/finance-app-development-plan.md`
