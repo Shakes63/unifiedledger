@@ -31,7 +31,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { HapticFeedbackTypes } from '@/hooks/useHapticFeedback';
 
-type TransactionType = 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+type TransactionType = 'income' | 'expense' | 'transfer';
 
 interface Tag {
   id: string;
@@ -100,6 +100,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [customFieldsLoading, setCustomFieldsLoading] = useState(true);
+  const [accounts, setAccounts] = useState<Array<{ id: string; name: string; currentBalance: number }>>([]);
+  const [accountsLoading, setAccountsLoading] = useState(false);
   const isEditMode = !!transactionId;
 
   // Load tags and custom fields when component mounts
@@ -159,6 +161,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             notes: transaction.notes || '',
             type: transaction.type,
             isPending: transaction.isPending,
+            toAccountId: '',
           });
 
           if (transaction.isSplit) {
@@ -213,6 +216,26 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     }
   }, [isEditMode]);
 
+  // Fetch accounts for "To Account" dropdown
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      try {
+        setAccountsLoading(true);
+        const response = await fetch('/api/accounts');
+        if (response.ok) {
+          const data = await response.json();
+          setAccounts(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch accounts:', error);
+      } finally {
+        setAccountsLoading(false);
+      }
+    };
+
+    fetchAccounts();
+  }, []);
+
   // Helper function to get today's date in YYYY-MM-DD format
   const getTodaysDate = () => {
     const today = new Date();
@@ -228,6 +251,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     notes: '',
     type: defaultType,
     isPending: false,
+    toAccountId: '', // For transfers
   });
 
   const handleInputChange = (
@@ -597,17 +621,49 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           <SelectContent>
             <SelectItem value="expense">Expense</SelectItem>
             <SelectItem value="income">Income</SelectItem>
-            <SelectItem value="transfer_out">Transfer Out</SelectItem>
-            <SelectItem value="transfer_in">Transfer In</SelectItem>
+            <SelectItem value="transfer">Transfer</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       {/* Account Selection */}
-      <AccountSelector
-        selectedAccountId={formData.accountId}
-        onAccountChange={handleAccountChange}
-      />
+      <div>
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-white">
+            {formData.type === 'transfer' ? 'From Account' : 'Account'} *
+          </Label>
+          <AccountSelector
+            selectedAccountId={formData.accountId}
+            onAccountChange={handleAccountChange}
+          />
+        </div>
+
+        {/* To Account Selection (for transfers) */}
+        {formData.type === 'transfer' && (
+          <div className="mt-4 space-y-2">
+            <Label className="text-sm font-medium text-white">
+              To Account *
+            </Label>
+            <Select value={formData.toAccountId} onValueChange={(value) => handleSelectChange('toAccountId', value)}>
+              <SelectTrigger className="bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg">
+                <SelectValue placeholder="Select destination account" />
+              </SelectTrigger>
+              <SelectContent>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    <div className="flex items-center gap-2">
+                      <span>{account.name}</span>
+                      <span className="text-xs text-gray-400">
+                        ${account.currentBalance?.toFixed(2) || '0.00'}
+                      </span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
 
       {/* Amount */}
       <div className="space-y-2">
@@ -659,7 +715,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       </div>
 
       {/* Category (skip for transfers and split transactions) */}
-      {formData.type !== 'transfer_in' && formData.type !== 'transfer_out' && !useSplits && (
+      {formData.type !== 'transfer' && !useSplits && (
         <CategorySelector
           selectedCategory={formData.categoryId}
           onCategoryChange={handleCategoryChange}
@@ -676,7 +732,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       )}
 
       {/* Split Transaction Toggle */}
-      {formData.type !== 'transfer_in' && formData.type !== 'transfer_out' && (
+      {formData.type !== 'transfer' && (
         <div className="space-y-2">
           <Label className="text-sm font-medium text-white">Split this transaction?</Label>
           <Button

@@ -1965,6 +1965,30 @@ See `docs/TESTING_GUIDE.md` for comprehensive testing documentation.
    - Added console logging for debugging
    - Improved early return handling for unsupported operations
 
+8. **Fixed Dropdown Transparency** - Improved visibility of dropdown menus:
+   - Changed popover background color from `#1a1a1a` to `#242424` (elevated color) in `app/globals.css`
+   - Added `bg-popover/95` with `backdrop-blur-sm` to SelectContent and DropdownMenuContent in UI components
+   - Improved readability across all dropdowns throughout the app
+
+9. **Refactored Transfer Type UI** - Simplified transfer creation workflow:
+   - Changed transaction type from `transfer_in` and `transfer_out` to single `transfer` type
+   - Updated type selector to show only "Transfer" option in `components/transactions/transaction-form.tsx`
+   - Added "To Account" dropdown that appears when "Transfer" is selected
+   - Changed label from "Account" to "From Account" for transfer transactions
+   - Updated conditional rendering to hide category, budget warnings, and split options for transfers
+   - Updated transaction type type definition and all related components
+
+10. **Removed Doubled Transaction Form** - Fixed duplicate form display:
+    - Removed duplicate TransactionForm component from desktop-only section in `components/transactions/transaction-form-mobile.tsx`
+    - Now uses single form for both mobile and desktop layouts
+    - Improved consistency and performance
+
+11. **Made Category Cards More Compact** - Improved space efficiency on categories page:
+    - Reduced card padding from `p-6` to `p-4` in `components/categories/category-card.tsx`
+    - Reduced font sizes and spacing throughout the card
+    - Reduced grid gap from `gap-6` to `gap-4` in `app/dashboard/categories/page.tsx`
+    - Adjusted button sizes and element padding for more compact display
+
 ### Database Schema Changes
 - **Accounts Table:** Added `isBusinessAccount: integer('is_business_account', { mode: 'boolean' }).default(false)` field
 - **SalesTaxTransactions Table:** Added `accountId` field with new indexes for multi-account tracking

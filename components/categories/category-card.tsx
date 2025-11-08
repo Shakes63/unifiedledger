@@ -43,11 +43,11 @@ const CATEGORY_TYPE_COLORS: Record<string, string> = {
 
 export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) {
   return (
-    <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl hover:border-[#3a3a3a] transition-all">
-      <div className="flex items-start justify-between mb-4">
+    <Card className="p-4 border border-[#2a2a2a] bg-[#1a1a1a] rounded-lg hover:border-[#3a3a3a] transition-all">
+      <div className="flex items-start justify-between mb-2">
         <div className="flex-1">
-          <h3 className="text-white font-semibold text-lg">{category.name}</h3>
-          <p className="text-gray-500 text-sm mt-1">{CATEGORY_TYPE_LABELS[category.type]}</p>
+          <h3 className="text-white font-semibold text-base">{category.name}</h3>
+          <p className="text-gray-500 text-xs mt-0.5">{CATEGORY_TYPE_LABELS[category.type]}</p>
         </div>
 
         <DropdownMenu>
@@ -55,7 +55,7 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 hover:bg-[#242424] text-gray-400"
+              className="h-7 w-7 p-0 hover:bg-[#242424] text-gray-400"
             >
               <MoreVertical className="h-4 w-4" />
             </Button>
@@ -84,25 +84,25 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
       </div>
 
       {/* Category Type Badge */}
-      <div className="mb-4">
-        <span className={`text-xs font-medium px-2 py-1 rounded ${CATEGORY_TYPE_COLORS[category.type]}`}>
+      <div className="mb-2">
+        <span className={`text-xs font-medium px-2 py-0.5 rounded ${CATEGORY_TYPE_COLORS[category.type]}`}>
           {CATEGORY_TYPE_LABELS[category.type]}
         </span>
       </div>
 
       {/* Budget and Usage Info */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {category.monthlyBudget > 0 && (
-          <div className="pb-3 border-b border-[#2a2a2a]">
-            <p className="text-gray-500 text-xs mb-1">Monthly Budget</p>
-            <p className="text-lg font-semibold text-white">${category.monthlyBudget.toFixed(2)}</p>
+          <div className="pb-2 border-b border-[#2a2a2a]">
+            <p className="text-gray-500 text-xs mb-0.5">Monthly Budget</p>
+            <p className="text-base font-semibold text-white">${category.monthlyBudget.toFixed(2)}</p>
           </div>
         )}
 
         {category.dueDate && (
           <div>
-            <p className="text-gray-500 text-xs mb-1">Due Date</p>
-            <p className="text-white font-medium">Day {category.dueDate} of month</p>
+            <p className="text-gray-500 text-xs mb-0.5">Due Date</p>
+            <p className="text-white font-medium text-sm">Day {category.dueDate}</p>
           </div>
         )}
 

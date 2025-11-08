@@ -244,7 +244,7 @@ export default function CategoriesPage() {
 
         {/* Categories Grid */}
         {filteredCategories.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredCategories.map((category) => (
               <CategoryCard
                 key={category.id}

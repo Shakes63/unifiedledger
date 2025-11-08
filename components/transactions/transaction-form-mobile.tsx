@@ -51,7 +51,7 @@ export function TransactionFormMobile({
         </div>
       )}
 
-      {/* Form Content - Scrollable with padding for fixed buttons */}
+      {/* Form Content - Scrollable with padding for fixed buttons on mobile, normal on desktop */}
       <div className="flex-1 overflow-y-auto pb-28 md:pb-0">
         <div className="px-4 py-6 max-w-2xl mx-auto">
           <TransactionForm
@@ -73,15 +73,6 @@ export function TransactionFormMobile({
         </Button>
         {/* Submit button handled within TransactionForm component */}
         {/* The form submit button needs to be repositioned or duplicated */}
-      </div>
-
-      {/* Desktop layout - show form normally */}
-      <div className="hidden md:block">
-        <TransactionForm
-          defaultType={defaultType}
-          transactionId={transactionId}
-          onEditSuccess={onEditSuccess}
-        />
       </div>
     </div>
   );

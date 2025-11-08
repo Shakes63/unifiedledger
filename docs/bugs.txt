@@ -6,10 +6,31 @@ COMPLETED BUGS:
 ✅ 5. Everywhere that you can add a category or tag there should be an option to create them inline.
 ✅ 6. there should be some padding in between the sidebar and the page content. The dashboard is a good example of the amount of padding it should have. Check all of the pages and ensure the padding is like the dashboard page.
 ✅ 7. When trying to create an account the submit button is not creating the account.
+✅ 8. the dropdowns across the app are completely transparent, turn up the opacity so that they can be read easier.
+✅ 9. when creating a transaction there should only be a transfer type instead of transfer in and transfer out. If Transfer is selected it should show a From Account and To Account dropdowns.
+✅ 10. the transaction form is doubled up there should only be one.
+✅ 11. make the cards on the categories page more compact.
 
 PENDING BUGS:
-8. the dropdowns across the app are completely transparent, turn up the opacity so that they can be read easier.
-9. when creating a transaction there should only be a transfer type instead of transfer in and transfer out. If Transfer is selected it should show a From Account and To Account dropdowns.
-10. the transaction form is doubled up there should only be one.
-11. make the cards on the categories page more compact.
-12. 
+12. Getting this error during bank account creation: ## Error Type
+Console Error
+
+## Error Message
+Account creation failed: 500 "Internal Server Error"
+
+
+    at handleSubmit (app/dashboard/accounts/page.tsx:95:17)
+
+## Code Frame
+  93 |         }
+  94 |         toast.error(errorMessage);
+> 95 |         console.error('Account creation failed:', response.status, response.statusText);
+     |                 ^
+  96 |       }
+  97 |     } catch (error) {
+  98 |       console.error('Error creating account:', error);
+
+Next.js version: 16.0.1 (Turbopack)
+13. On the sidebar the dashboard is highlighted even when a different option is selected.
+14. when creating a transfer it shows From Account and then Account above the first drop down Just make the From Account the label for the dropdown and get rid of the other one
+15. 
