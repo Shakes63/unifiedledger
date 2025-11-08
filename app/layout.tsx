@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { NavigationProvider } from "@/context/navigation-context";
+import { PerformanceProvider } from "@/components/providers/performance-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -44,20 +45,22 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <NavigationProvider>
-        <html lang="en" className="dark" suppressHydrationWarning>
-          <head>
-            <meta name="mobile-web-app-capable" content="yes" />
-            <meta name="apple-mobile-web-app-capable" content="yes" />
-            <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-            <meta name="apple-mobile-web-app-title" content="Unified Ledger" />
-            <meta name="theme-color" content="#0a0a0a" />
-          </head>
-          <body
-            className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-[#0a0a0a] text-white`}
-          >
-            {children}
-          </body>
-        </html>
+        <PerformanceProvider>
+          <html lang="en" className="dark" suppressHydrationWarning>
+            <head>
+              <meta name="mobile-web-app-capable" content="yes" />
+              <meta name="apple-mobile-web-app-capable" content="yes" />
+              <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+              <meta name="apple-mobile-web-app-title" content="Unified Ledger" />
+              <meta name="theme-color" content="#0a0a0a" />
+            </head>
+            <body
+              className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-[#0a0a0a] text-white`}
+            >
+              {children}
+            </body>
+          </html>
+        </PerformanceProvider>
       </NavigationProvider>
     </ClerkProvider>
   );
