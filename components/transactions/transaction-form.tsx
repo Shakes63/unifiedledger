@@ -94,6 +94,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagsLoading, setTagsLoading] = useState(true);
   const [tagsOpen, setTagsOpen] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [creatingTag, setCreatingTag] = useState(false);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [customFieldsLoading, setCustomFieldsLoading] = useState(true);
@@ -278,6 +280,45 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
   const handleRemoveTag = (tagId: string) => {
     setSelectedTagIds(selectedTagIds.filter(id => id !== tagId));
+  };
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) {
+      toast.error('Tag name is required');
+      return;
+    }
+
+    try {
+      setCreatingTag(true);
+      const response = await fetch('/api/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newTagName.trim(),
+          color: '#3b82f6', // Default blue color
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to create tag');
+        return;
+      }
+
+      const newTag = await response.json();
+      // Add new tag to the list
+      setAllTags([...allTags, newTag]);
+      // Automatically select the new tag
+      handleAddTag(newTag.id);
+      // Clear the input
+      setNewTagName('');
+      toast.success(`Tag "${newTag.name}" created and added`);
+    } catch (error) {
+      console.error('Error creating tag:', error);
+      toast.error('Failed to create tag');
+    } finally {
+      setCreatingTag(false);
+    }
   };
 
   const handleCustomFieldChange = (fieldId: string, value: string) => {
@@ -832,7 +873,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           </Button>
 
           {tagsOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
               {allTags
                 .filter(tag => !selectedTagIds.includes(tag.id))
                 .map((tag) => (
@@ -860,11 +901,35 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                     <span className="text-xs text-gray-500">{tag.usageCount}</span>
                   </button>
                 ))}
-              {allTags.filter(tag => !selectedTagIds.includes(tag.id)).length === 0 && (
-                <div className="px-3 py-2 text-center text-gray-500 text-sm">
-                  All tags are already added
+
+              {/* Create New Tag Section */}
+              <div className="border-t border-[#2a2a2a] px-3 py-2 space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="New tag name..."
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleCreateTag();
+                      }
+                    }}
+                    disabled={creatingTag}
+                    className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600 text-sm"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleCreateTag}
+                    disabled={creatingTag || !newTagName.trim()}
+                    className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>

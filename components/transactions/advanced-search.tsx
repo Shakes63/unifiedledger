@@ -70,6 +70,7 @@ export function AdvancedSearch({
     new Set(filters.types || [])
   );
   const [showSavedSearches, setShowSavedSearches] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const transactionTypes = [
     { value: 'income', label: 'Income' },
@@ -203,27 +204,40 @@ export function AdvancedSearch({
   ).length;
 
   return (
-    <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-white">Advanced Search</h2>
+    <Card className={`bg-[#1a1a1a] border-[#2a2a2a] transition-all ${isExpanded ? 'p-6 space-y-6' : 'p-4'}`}>
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
+      >
+        <div className="text-left flex-1">
+          <h2 className="text-lg font-semibold text-white">Advanced Search</h2>
           {activeFilterCount > 0 && (
-            <p className="text-sm text-[#9ca3af] mt-1">
+            <p className="text-sm text-emerald-400 mt-1">
               {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} applied
             </p>
           )}
         </div>
-        {activeFilterCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleClearFilters}
-            className="text-[#9ca3af] border-[#2a2a2a] hover:bg-[#242424]"
-          >
-            Clear All
-          </Button>
-        )}
-      </div>
+        <ChevronDown
+          className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${
+            isExpanded ? 'rotate-180' : ''
+          }`}
+        />
+      </button>
+
+      {isExpanded && (
+        <>
+          <div className="flex items-center justify-end">
+            {activeFilterCount > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleClearFilters}
+                className="text-[#9ca3af] border-[#2a2a2a] hover:bg-[#242424]"
+              >
+                Clear All
+              </Button>
+            )}
+          </div>
 
       {/* Saved Searches Toggle */}
       <div className="border-t border-[#2a2a2a] pt-4">
@@ -535,6 +549,8 @@ export function AdvancedSearch({
       >
         {isLoading ? 'Searching...' : 'Search Transactions'}
       </Button>
+        </>
+      )}
     </Card>
   );
 }

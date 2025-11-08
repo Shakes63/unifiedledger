@@ -3,10 +3,10 @@
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Plus, TrendingUp, DollarSign, PieChart, ArrowRightLeft, Calendar } from 'lucide-react';
+import { Plus, TrendingUp, DollarSign, PieChart } from 'lucide-react';
 import Link from 'next/link';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
-import { SavingsGoalsWidget } from '@/components/dashboard/savings-goals-widget';
+import { BillsWidget } from '@/components/dashboard/bills-widget';
 import { useAuth } from '@clerk/nextjs';
 
 export default function DashboardPage() {
@@ -35,50 +35,8 @@ export default function DashboardPage() {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">
       <div className="max-w-7xl mx-auto">
-        {/* Quick Actions */}
-        <section className="mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
-            <Link href="/dashboard/transactions/new">
-              <Button className="w-full h-16 text-lg bg-white text-black hover:bg-gray-100 font-medium rounded-lg" size="lg">
-                <Plus className="mr-2 w-5 h-5" />
-                Add Transaction
-              </Button>
-            </Link>
-            <Link href="/dashboard/transfers">
-              <Button variant="outline" className="w-full h-16 text-lg bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a] font-medium rounded-lg" size="lg">
-                <ArrowRightLeft className="mr-2 w-5 h-5" />
-                Transfer Money
-              </Button>
-            </Link>
-            <Link href="/dashboard/calendar">
-              <Button variant="outline" className="w-full h-16 text-lg bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a] font-medium rounded-lg" size="lg">
-                <Calendar className="mr-2 w-5 h-5" />
-                Calendar View
-              </Button>
-            </Link>
-            <Link href="/dashboard/bills">
-              <Button variant="outline" className="w-full h-16 text-lg bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a] font-medium rounded-lg" size="lg">
-                <DollarSign className="mr-2 w-5 h-5" />
-                Manage Bills
-              </Button>
-            </Link>
-            <Link href="/dashboard/goals">
-              <Button variant="outline" className="w-full h-16 text-lg bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a] font-medium rounded-lg" size="lg">
-                <TrendingUp className="mr-2 w-5 h-5" />
-                My Goals
-              </Button>
-            </Link>
-            <Link href="/dashboard/debts">
-              <Button variant="outline" className="w-full h-16 text-lg bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a] font-medium rounded-lg" size="lg">
-                <DollarSign className="mr-2 w-5 h-5" />
-                Manage Debts
-              </Button>
-            </Link>
-          </div>
-        </section>
-
         {/* Overview Cards */}
-        <section className="mb-12">
+        <section className="mb-8">
           <h2 className="text-xl font-bold mb-6 text-white">Quick Overview</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Total Balance Card */}
@@ -125,9 +83,19 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Savings Goals Widget */}
+        {/* Add Transaction Button */}
         <section className="mb-12">
-          <SavingsGoalsWidget />
+          <Link href="/dashboard/transactions/new" className="block">
+            <Button className="w-full h-16 text-lg bg-white text-black hover:bg-gray-100 font-medium rounded-lg" size="lg">
+              <Plus className="mr-2 w-5 h-5" />
+              Add Transaction
+            </Button>
+          </Link>
+        </section>
+
+        {/* Bills Widget */}
+        <section className="mb-12">
+          <BillsWidget />
         </section>
 
         {/* Recent Transactions */}
