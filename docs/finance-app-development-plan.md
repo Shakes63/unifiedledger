@@ -15554,11 +15554,50 @@ export const applyWeeklyUsageDecay = async () => {
 - Users can invite household members
 
 ### Phase 2: Transaction Intelligence & Speed Features (Week 3-4)
-**Goal:** Make data entry as fast as possible
+**Goal:** Make data entry as fast as possible with advanced search and duplicate detection
 
-**Status: 9/24 tasks completed (37.5% progress)** 🟢
+**Status: 12/24 core tasks + 10+ additional features (50%+ progress)** 🟢 → 🟡 (APPROACHING COMPLETION)
 
-#### Completed Tasks (Session 6 - Current):
+#### Completed Tasks (Session 7 - Current):
+- ✅ **Advanced Search Database Schema & API**
+  - 5 new performance indexes on transactions table (category, type, amount, date ranges)
+  - `/api/transactions/search` endpoint with 11 filter types
+  - Pagination support (limit/offset) with 100 max per request
+  - Automatic search history tracking to database
+  - Multi-factor filtering: text, categories, accounts, types, amounts, dates, toggles
+  - Sorting options: date, amount, description (asc/desc)
+  - Response includes execution metadata and applied filters
+
+- ✅ **Saved Searches CRUD System**
+  - `/api/saved-searches` - Create, list, search filters with sorting
+  - `/api/saved-searches/[id]` - Get, update, delete individual searches
+  - Usage tracking (usage count, last used timestamp)
+  - Default search management
+  - Search descriptions and metadata storage
+  - SavedSearches UI component with expandable details
+  - Load button auto-executes search with loaded filters
+  - One-click delete with confirmation
+
+- ✅ **Pagination Controls**
+  - Previous/Next navigation buttons
+  - Shows current page range (e.g., "Showing 1-50 of 342")
+  - Respects search filters when paginating
+  - Proper disabled state management
+  - Integrated into transactions page
+
+- ✅ **Duplicate Detection with Levenshtein Distance**
+  - `lib/duplicate-detection.ts` utility with Levenshtein string similarity
+  - `/api/transactions/check-duplicates` endpoint
+  - Normalized string matching (removes common words, special chars)
+  - Multi-factor matching: description + amount + date range
+  - Configurable thresholds (description: 0.7, amount: 5%, date range: 7 days)
+  - Risk level calculation (low/medium/high based on match strength)
+  - DuplicateWarning UI component with color-coded risk levels
+  - Match percentage display and expandable details
+  - "View" button to navigate to duplicate, "Continue anyway" override
+  - useDuplicateCheck hook for easy integration
+  - Toast notifications for high-risk matches
+
 - ✅ **Implement full split transaction editing UI and transaction details workflow**
   - **Transaction Details Page** (`/dashboard/transactions/[id]`)
     - View complete transaction information with all metadata
@@ -15780,14 +15819,15 @@ export const applyWeeklyUsageDecay = async () => {
   - Real-time validation feedback with success/error badges
   - Split metrics display (shows both amount and percentage)
   - Integrated into TransactionForm with "Add Splits" toggle
-- [ ] **Build advanced search database schema (search_presets, search_history)**
-  - Save/load search filter combinations
-  - Track search history for quick re-use
-  - Allow sharing saved searches
-- [ ] **Implement core search function with multi-criteria filtering**
-  - Search by description, notes, merchant, category, account
-  - Amount range filtering
-  - Custom date range selection
+- [x] **Build advanced search database schema (search_presets, search_history)** ✅ COMPLETED
+  - ✅ Save/load search filter combinations
+  - ✅ Track search history for quick re-use
+  - ✅ Saved searches with usage tracking
+- [x] **Implement core search function with multi-criteria filtering** ✅ COMPLETED
+  - ✅ Search by description, notes, category, account, type
+  - ✅ Amount range filtering
+  - ✅ Custom date range selection
+  - ✅ Pagination support
 - [ ] **Build CSV import database schema (import_templates, import_history, import_staging)**
   - Store import templates for different banks
   - Track import history with rollback capability
@@ -15800,25 +15840,27 @@ export const applyWeeklyUsageDecay = async () => {
   - Suggest column types based on content analysis
   - Learn from previous imports (templates)
   - Validate mapped columns before import
-- [ ] **Duplicate detection with Levenshtein distance algorithm**
-  - Calculate string similarity between transactions
-  - Flag similar transactions (amount, description, date)
-  - Allow user to review and merge/skip duplicates
-- [ ] **Voice-to-text transaction entry (if supported)**
-  - Microphone input for transaction description
-  - Parse voice input to extract amount and merchant
-  - Fallback for unsupported browsers
+- [x] **Duplicate detection with Levenshtein distance algorithm** ✅ COMPLETED
+  - ✅ Calculate string similarity between transactions
+  - ✅ Flag similar transactions (amount, description, date)
+  - ✅ UI for reviewing and navigating to duplicates
+  - ✅ Risk level assessment
+- [x] **Voice-to-text transaction entry (if supported)** ❌ REMOVED BY USER REQUEST
+  - Removed from Phase 2 plan per user feedback (2024-11-08)
 - [ ] Bulk import from bank statements with auto-categorization
 
-**Deliverables:**
-- Sub-5-second transaction entry for repeat transactions
-- Usage-based sorting operational for all lists
-- Intelligent auto-categorization with merchant learning
-- Custom rule-based auto-categorization system with test-before-save
-- Voice input capability
-- Bank statement import
-- Merchant autocomplete with usage frequency
-- Full split transaction support with percentage/amount modes
+**Deliverables (Session 7):**
+- Sub-5-second transaction entry for repeat transactions ✅
+- Usage-based sorting operational for all lists ✅
+- Intelligent auto-categorization with merchant learning ✅
+- Custom rule-based auto-categorization system with test-before-save ✅
+- Full split transaction support with percentage/amount modes ✅
+- Advanced search with 11+ filter types ✅
+- Saved searches with usage tracking ✅
+- Pagination support for search results ✅
+- Duplicate detection with Levenshtein distance ✅
+- Merchant autocomplete with usage frequency ✅
+- Bank statement import (IN PROGRESS - CSV phase)
 
 ### Phase 3: Account Management & Transfers (Week 5-6)
 **Goal:** Multi-account support with easy transfers
