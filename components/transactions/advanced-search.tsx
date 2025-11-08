@@ -16,6 +16,7 @@ interface SearchFilters {
   query?: string;
   categoryIds?: string[];
   accountIds?: string[];
+  tagIds?: string[];
   types?: string[];
   amountMin?: number;
   amountMax?: number;
@@ -28,9 +29,17 @@ interface SearchFilters {
   sortOrder?: 'asc' | 'desc';
 }
 
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  description?: string;
+}
+
 interface AdvancedSearchProps {
   categories: Array<{ id: string; name: string }>;
   accounts: Array<{ id: string; name: string }>;
+  tags?: Array<Tag>;
   onSearch: (filters: SearchFilters) => void;
   isLoading?: boolean;
 }
@@ -38,6 +47,7 @@ interface AdvancedSearchProps {
 export function AdvancedSearch({
   categories,
   accounts,
+  tags = [],
   onSearch,
   isLoading = false,
 }: AdvancedSearchProps) {
@@ -52,6 +62,9 @@ export function AdvancedSearch({
   );
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(
     new Set(filters.accountIds || [])
+  );
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(
+    new Set(filters.tagIds || [])
   );
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(
     new Set(filters.types || [])
@@ -93,6 +106,20 @@ export function AdvancedSearch({
     });
   };
 
+  const handleTagToggle = (tagId: string) => {
+    const newTags = new Set(selectedTags);
+    if (newTags.has(tagId)) {
+      newTags.delete(tagId);
+    } else {
+      newTags.add(tagId);
+    }
+    setSelectedTags(newTags);
+    setFilters({
+      ...filters,
+      tagIds: Array.from(newTags),
+    });
+  };
+
   const handleTypeToggle = (type: string) => {
     const newTypes = new Set(selectedTypes);
     if (newTypes.has(type)) {
@@ -124,6 +151,7 @@ export function AdvancedSearch({
     setAmountRange([0, 10000]);
     setSelectedCategories(new Set());
     setSelectedAccounts(new Set());
+    setSelectedTags(new Set());
     setSelectedTypes(new Set());
   };
 
@@ -141,6 +169,9 @@ export function AdvancedSearch({
     );
     setSelectedAccounts(
       new Set(savedFilters.accountIds || [])
+    );
+    setSelectedTags(
+      new Set(savedFilters.tagIds || [])
     );
     setSelectedTypes(
       new Set(savedFilters.types || [])
@@ -280,6 +311,36 @@ export function AdvancedSearch({
                 onClick={() => handleAccountToggle(account.id)}
               >
                 {account.name}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tags */}
+      {tags.length > 0 && (
+        <div className="space-y-2">
+          <Label className="text-white">Tags</Label>
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag) => (
+              <Badge
+                key={tag.id}
+                variant={
+                  selectedTags.has(tag.id) ? 'default' : 'outline'
+                }
+                className={`cursor-pointer transition-colors ${
+                  selectedTags.has(tag.id)
+                    ? 'text-white'
+                    : 'text-white border-[#2a2a2a] hover:bg-[#2a2a2a]'
+                }`}
+                style={
+                  selectedTags.has(tag.id)
+                    ? { backgroundColor: tag.color }
+                    : { borderColor: tag.color }
+                }
+                onClick={() => handleTagToggle(tag.id)}
+              >
+                {tag.name}
               </Badge>
             ))}
           </div>

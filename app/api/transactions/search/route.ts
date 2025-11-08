@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
-import { transactions, searchHistory } from '@/lib/db/schema';
+import { transactions, searchHistory, transactionTags, customFieldValues } from '@/lib/db/schema';
 import { eq, and, or, gte, lte, like, inArray, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -10,6 +10,8 @@ interface SearchFilters {
   query?: string;
   categoryIds?: string[];
   accountIds?: string[];
+  tagIds?: string[];
+  customFieldIds?: string[];
   types?: string[];
   amountMin?: number;
   amountMax?: number;
@@ -41,6 +43,8 @@ export async function GET(request: Request) {
     const query = url.searchParams.get('query') || undefined;
     const categoryIdsStr = url.searchParams.get('categoryIds');
     const accountIdsStr = url.searchParams.get('accountIds');
+    const tagIdsStr = url.searchParams.get('tagIds');
+    const customFieldIdsStr = url.searchParams.get('customFieldIds');
     const typesStr = url.searchParams.get('types');
     const amountMin = url.searchParams.get('amountMin');
     const amountMax = url.searchParams.get('amountMax');
@@ -57,6 +61,8 @@ export async function GET(request: Request) {
     if (query) filters.query = query;
     if (categoryIdsStr) filters.categoryIds = categoryIdsStr.split(',').filter(Boolean);
     if (accountIdsStr) filters.accountIds = accountIdsStr.split(',').filter(Boolean);
+    if (tagIdsStr) filters.tagIds = tagIdsStr.split(',').filter(Boolean);
+    if (customFieldIdsStr) filters.customFieldIds = customFieldIdsStr.split(',').filter(Boolean);
     if (typesStr) filters.types = typesStr.split(',').filter(Boolean);
     if (amountMin !== null && amountMin !== undefined) {
       const parsed = parseFloat(amountMin);
@@ -138,11 +144,21 @@ export async function GET(request: Request) {
       }
     }
 
-    // Build the query with combined conditions
-    let query_builder = db
+    // Handle tag filtering - if tags are specified, we need a different approach with joins
+    let query_builder: any = db
       .select()
-      .from(transactions)
-      .where(and(...conditions));
+      .from(transactions);
+
+    if (filters.tagIds && filters.tagIds.length > 0) {
+      // For tag filtering, use inner join and group by transaction
+      query_builder = db
+        .selectDistinct()
+        .from(transactions)
+        .innerJoin(transactionTags, eq(transactions.id, transactionTags.transactionId))
+        .where(and(...conditions, inArray(transactionTags.tagId, filters.tagIds)));
+    } else {
+      query_builder = query_builder.where(and(...conditions));
+    }
 
     // Add sorting
     if (filters.sortBy === 'amount') {
@@ -167,17 +183,34 @@ export async function GET(request: Request) {
     }
 
     // Get total count first (without limit/offset)
-    const countResult = await db
-      .select({ count: sql<number>`COUNT(*)` })
-      .from(transactions)
-      .where(and(...conditions));
+    let countQuery: any = db
+      .select({ count: sql<number>`COUNT(DISTINCT ${transactions.id})` })
+      .from(transactions);
 
+    if (filters.tagIds && filters.tagIds.length > 0) {
+      countQuery = countQuery
+        .innerJoin(transactionTags, eq(transactions.id, transactionTags.transactionId))
+        .where(and(...conditions, inArray(transactionTags.tagId, filters.tagIds)));
+    } else {
+      countQuery = countQuery.where(and(...conditions));
+    }
+
+    const countResult = await countQuery;
     const totalCount = countResult[0]?.count || 0;
 
     // Get paginated results
-    const results = await query_builder
-      .limit(limit)
-      .offset(offset);
+    let results: any;
+    if (filters.tagIds && filters.tagIds.length > 0) {
+      const joinResults = await query_builder
+        .limit(limit)
+        .offset(offset);
+      // Extract just the transaction data from the join
+      results = joinResults.map((row: any) => row.transactions);
+    } else {
+      results = await query_builder
+        .limit(limit)
+        .offset(offset);
+    }
 
     const executionTime = performance.now() - startTime;
 

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -24,10 +25,53 @@ import { CategorySelector } from './category-selector';
 import { MerchantAutocomplete, MerchantSelectionData } from './merchant-autocomplete';
 import { TransactionTemplatesManager } from './transaction-templates-manager';
 import { SplitBuilder, type Split } from './split-builder';
+import { BudgetWarning } from './budget-warning';
 import { Plus, X, Save, Split as SplitIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 type TransactionType = 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+
+interface Tag {
+  id: string;
+  userId: string;
+  name: string;
+  color: string;
+  description?: string;
+  icon?: string;
+  usageCount: number;
+  lastUsedAt?: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CustomField {
+  id: string;
+  userId: string;
+  name: string;
+  type: 'text' | 'number' | 'date' | 'select' | 'multiselect' | 'checkbox' | 'url' | 'email';
+  description?: string;
+  isRequired: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  options?: string[] | null;
+  defaultValue?: string;
+  placeholder?: string;
+  validationPattern?: string;
+  usageCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CustomFieldValue {
+  id: string;
+  fieldId: string;
+  transactionId: string;
+  value: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface TransactionFormProps {
   defaultType?: TransactionType;
@@ -46,7 +90,53 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [templateName, setTemplateName] = useState('');
   const [useSplits, setUseSplits] = useState(false);
   const [splits, setSplits] = useState<Split[]>([]);
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [tagsLoading, setTagsLoading] = useState(true);
+  const [tagsOpen, setTagsOpen] = useState(false);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+  const [customFieldsLoading, setCustomFieldsLoading] = useState(true);
   const isEditMode = !!transactionId;
+
+  // Load tags and custom fields when component mounts
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        setTagsLoading(true);
+        const response = await fetch('/api/tags?sortBy=usage&limit=100');
+        if (!response.ok) throw new Error('Failed to fetch tags');
+
+        const data = await response.json();
+        setAllTags(data.data || []);
+      } catch (error) {
+        console.error('Error fetching tags:', error);
+      } finally {
+        setTagsLoading(false);
+      }
+    };
+
+    const fetchCustomFields = async () => {
+      try {
+        setCustomFieldsLoading(true);
+        const response = await fetch('/api/custom-fields?activeOnly=true&limit=100');
+        if (!response.ok) throw new Error('Failed to fetch custom fields');
+
+        const data = await response.json();
+        const activeFields = (data.data || []).filter((field: CustomField) => field.isActive);
+        // Sort by sortOrder
+        activeFields.sort((a: CustomField, b: CustomField) => a.sortOrder - b.sortOrder);
+        setCustomFields(activeFields);
+      } catch (error) {
+        console.error('Error fetching custom fields:', error);
+      } finally {
+        setCustomFieldsLoading(false);
+      }
+    };
+
+    fetchTags();
+    fetchCustomFields();
+  }, []);
 
   // Load existing transaction data when in edit mode
   useEffect(() => {
@@ -83,6 +173,24 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                 description: split.description,
               })));
             }
+          }
+
+          // Load transaction tags
+          const tagsResponse = await fetch(`/api/transactions/${transactionId}/tags`);
+          if (tagsResponse.ok) {
+            const tagsData = await tagsResponse.json();
+            setSelectedTagIds(tagsData.map((tag: any) => tag.id));
+          }
+
+          // Load custom field values
+          const customFieldValuesResponse = await fetch(`/api/custom-field-values?transactionId=${transactionId}`);
+          if (customFieldValuesResponse.ok) {
+            const valuesData = await customFieldValuesResponse.json();
+            const valueMap: Record<string, string> = {};
+            (valuesData.data || []).forEach((fieldValue: any) => {
+              valueMap[fieldValue.fieldId] = fieldValue.value;
+            });
+            setCustomFieldValues(valueMap);
           }
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Failed to load transaction');
@@ -162,6 +270,23 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     }));
   };
 
+  const handleAddTag = (tagId: string) => {
+    if (!selectedTagIds.includes(tagId)) {
+      setSelectedTagIds([...selectedTagIds, tagId]);
+    }
+  };
+
+  const handleRemoveTag = (tagId: string) => {
+    setSelectedTagIds(selectedTagIds.filter(id => id !== tagId));
+  };
+
+  const handleCustomFieldChange = (fieldId: string, value: string) => {
+    setCustomFieldValues((prev) => ({
+      ...prev,
+      [fieldId]: value,
+    }));
+  };
+
   const handleSaveTemplate = async () => {
     if (!templateName.trim()) {
       setError('Template name is required');
@@ -236,6 +361,80 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       const transactionData = await response.json();
       const txId = transactionData.id || transactionId;
+
+      // Handle tags - add tags after transaction creation/update
+      if (selectedTagIds.length > 0) {
+        try {
+          // In edit mode, delete old tags first
+          if (isEditMode) {
+            const existingTags = await fetch(`/api/transactions/${txId}/tags`);
+            if (existingTags.ok) {
+              const existingTagIds = await existingTags.json();
+              for (const tag of existingTagIds) {
+                await fetch('/api/transaction-tags', {
+                  method: 'DELETE',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    transactionId: txId,
+                    tagId: tag.id,
+                  }),
+                });
+              }
+            }
+          }
+
+          // Add selected tags
+          for (const tagId of selectedTagIds) {
+            await fetch('/api/transaction-tags', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                transactionId: txId,
+                tagId,
+              }),
+            });
+          }
+        } catch (tagError) {
+          console.error('Error saving tags:', tagError);
+          // Don't fail transaction creation if tags fail
+        }
+      }
+
+      // Handle custom field values - save after transaction creation/update
+      if (Object.keys(customFieldValues).length > 0) {
+        try {
+          // In edit mode, delete old field values first
+          if (isEditMode) {
+            const existingValues = await fetch(`/api/custom-field-values?transactionId=${txId}`);
+            if (existingValues.ok) {
+              const existingData = await existingValues.json();
+              for (const fieldValue of existingData.data || []) {
+                await fetch(`/api/custom-field-values?valueId=${fieldValue.id}`, {
+                  method: 'DELETE',
+                });
+              }
+            }
+          }
+
+          // Save custom field values
+          for (const [fieldId, value] of Object.entries(customFieldValues)) {
+            if (value) {
+              await fetch('/api/custom-field-values', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  customFieldId: fieldId,
+                  transactionId: txId,
+                  value,
+                }),
+              });
+            }
+          }
+        } catch (fieldError) {
+          console.error('Error saving custom field values:', fieldError);
+          // Don't fail transaction creation if field values fail
+        }
+      }
 
       // Handle splits
       if (useSplits && splits.length > 0) {
@@ -405,6 +604,14 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         />
       )}
 
+      {/* Budget Warning */}
+      {formData.type === 'expense' && formData.categoryId && (
+        <BudgetWarning
+          categoryId={formData.categoryId}
+          transactionAmount={parseFloat(formData.amount) || 0}
+        />
+      )}
+
       {/* Split Transaction Toggle */}
       {formData.type !== 'transfer_in' && formData.type !== 'transfer_out' && (
         <div className="space-y-2">
@@ -454,6 +661,213 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           value={formData.notes}
           onChange={handleInputChange}
         />
+      </div>
+
+      {/* Custom Fields */}
+      {customFields.length > 0 && (
+        <div className="space-y-4 border-t border-[#2a2a2a] pt-4">
+          <div className="space-y-3">
+            {customFields.map((field) => (
+              <div key={field.id} className="space-y-2">
+                <Label htmlFor={field.id} className="text-sm font-medium text-white">
+                  {field.name}
+                  {field.isRequired && <span className="text-red-400 ml-1">*</span>}
+                </Label>
+
+                {field.type === 'text' && (
+                  <Input
+                    id={field.id}
+                    type="text"
+                    placeholder={field.placeholder || ''}
+                    value={customFieldValues[field.id] || ''}
+                    onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                    required={field.isRequired}
+                  />
+                )}
+
+                {field.type === 'email' && (
+                  <Input
+                    id={field.id}
+                    type="email"
+                    placeholder={field.placeholder || ''}
+                    value={customFieldValues[field.id] || ''}
+                    onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                    required={field.isRequired}
+                  />
+                )}
+
+                {field.type === 'url' && (
+                  <Input
+                    id={field.id}
+                    type="url"
+                    placeholder={field.placeholder || ''}
+                    value={customFieldValues[field.id] || ''}
+                    onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                    required={field.isRequired}
+                  />
+                )}
+
+                {field.type === 'number' && (
+                  <Input
+                    id={field.id}
+                    type="number"
+                    step="0.01"
+                    placeholder={field.placeholder || ''}
+                    value={customFieldValues[field.id] || ''}
+                    onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                    required={field.isRequired}
+                  />
+                )}
+
+                {field.type === 'date' && (
+                  <Input
+                    id={field.id}
+                    type="date"
+                    value={customFieldValues[field.id] || ''}
+                    onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                    required={field.isRequired}
+                  />
+                )}
+
+                {field.type === 'checkbox' && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      id={field.id}
+                      type="checkbox"
+                      checked={customFieldValues[field.id] === 'true' || customFieldValues[field.id] === '1'}
+                      onChange={(e) => handleCustomFieldChange(field.id, e.target.checked ? 'true' : '')}
+                      className="w-4 h-4 rounded border-[#3a3a3a] bg-[#242424] cursor-pointer"
+                    />
+                    <Label htmlFor={field.id} className="text-sm text-gray-300 cursor-pointer">
+                      {field.description && <span className="text-gray-500">{field.description}</span>}
+                    </Label>
+                  </div>
+                )}
+
+                {field.type === 'select' && field.options && (
+                  <select
+                    id={field.id}
+                    value={customFieldValues[field.id] || ''}
+                    onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
+                    required={field.isRequired}
+                    className="w-full px-3 py-2 bg-[#242424] border border-[#3a3a3a] text-white rounded-lg hover:bg-[#2a2a2a] focus:outline-none focus:ring-2 focus:ring-white/20"
+                  >
+                    <option value="">Select an option</option>
+                    {field.options.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {field.type === 'multiselect' && field.options && (
+                  <select
+                    id={field.id}
+                    multiple
+                    value={customFieldValues[field.id]?.split(',').filter(Boolean) || []}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
+                      handleCustomFieldChange(field.id, selected.join(','));
+                    }}
+                    className="w-full px-3 py-2 bg-[#242424] border border-[#3a3a3a] text-white rounded-lg hover:bg-[#2a2a2a] focus:outline-none focus:ring-2 focus:ring-white/20"
+                  >
+                    {field.options.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {field.description && field.type !== 'checkbox' && (
+                  <p className="text-xs text-gray-500">{field.description}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tags */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-white">Tags (Optional)</Label>
+
+        {/* Selected Tags Display */}
+        {selectedTagIds.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {selectedTagIds.map(tagId => {
+              const tag = allTags.find(t => t.id === tagId);
+              return tag ? (
+                <Badge
+                  key={tag.id}
+                  className="text-white"
+                  style={{ backgroundColor: tag.color }}
+                >
+                  {tag.name}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(tag.id)}
+                    className="ml-1 hover:opacity-70"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              ) : null;
+            })}
+          </div>
+        )}
+
+        {/* Tag Selector Dropdown */}
+        <div className="relative">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setTagsOpen(!tagsOpen)}
+            disabled={tagsLoading || loading}
+            className="border-[#2a2a2a] text-gray-400 hover:text-white w-full justify-start"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {selectedTagIds.length > 0 ? 'Add more tags' : 'Add tags'}
+          </Button>
+
+          {tagsOpen && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+              {allTags
+                .filter(tag => !selectedTagIds.includes(tag.id))
+                .map((tag) => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => {
+                      handleAddTag(tag.id);
+                      if (allTags.filter(t => !selectedTagIds.includes(t.id)).length === 1) {
+                        setTagsOpen(false);
+                      }
+                    }}
+                    className="w-full text-left px-3 py-2 hover:bg-[#242424] transition-colors flex items-center gap-2"
+                  >
+                    <div
+                      className="w-3 h-3 rounded"
+                      style={{ backgroundColor: tag.color }}
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm text-white">{tag.name}</p>
+                      {tag.description && (
+                        <p className="text-xs text-gray-500">{tag.description}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-500">{tag.usageCount}</span>
+                  </button>
+                ))}
+              {allTags.filter(tag => !selectedTagIds.includes(tag.id)).length === 0 && (
+                <div className="px-3 py-2 text-center text-gray-500 text-sm">
+                  All tags are already added
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Template Buttons */}
