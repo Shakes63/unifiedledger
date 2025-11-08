@@ -1752,6 +1752,113 @@ The application uses a comprehensive dark mode first design system:
 - **Components:** 9 chart + report components
 - **Documentation:** 3 comprehensive guides
 
+## Phase 8: Testing & Quality Assurance - IN PROGRESS 🟢
+
+**Progress: Part 1 Complete - Infrastructure & First Tests Created**
+
+### Phase 8 Part 1: Testing Infrastructure Setup - COMPLETED ✅
+
+**Deliverables:**
+- ✅ **vitest.config.ts** - Complete test configuration
+  - jsdom environment for DOM testing
+  - Coverage reporting with v8 provider
+  - Tiered thresholds (100% financial, 95% algorithms, 80% standard)
+  - Path alias resolution for @/ imports
+
+- ✅ **test-setup.ts** - Global test configuration (300+ lines)
+  - Mock Next.js modules (navigation, headers, image)
+  - Mock Clerk authentication system
+  - Mock browser APIs (localStorage, matchMedia, ResizeObserver)
+  - Test helper factories for consistent test data
+  - Global cleanup and teardown
+
+- ✅ **Test scripts in package.json**
+  - `pnpm test` - Run all tests (CI mode)
+  - `pnpm test:watch` - Watch mode for development
+  - `pnpm test:ui` - Visual test interface
+  - `pnpm test:coverage` - Generate coverage reports
+
+- ✅ **Test directory structure**
+  - `__tests__/lib/` - Library utility tests
+  - `__tests__/api/` - API route tests
+  - `__tests__/components/` - React component tests
+  - `__tests__/integration/` - Integration tests
+  - `__tests__/utils/` - Shared test utilities
+
+- ✅ **docs/TESTING_GUIDE.md** (500+ lines)
+  - Complete testing setup and configuration guide
+  - Running tests and CI integration
+  - Test organization and file naming conventions
+  - Writing tests (unit, component, API, integration)
+  - Testing patterns and best practices
+  - Troubleshooting guide
+
+### Phase 8 Part 2: Critical Financial Calculation Tests - IN PROGRESS ✅
+
+**`__tests__/lib/transactions/split-calculator.test.ts`** - COMPLETED
+- **80+ test cases** with 100% coverage
+- Tests all split calculation functions:
+  - `validateSplits` - Validate amount/percentage splits
+  - `calculateSplitAmounts` - Convert percentages to amounts
+  - `getRemainingForNewSplit` - Calculate remaining allocation
+  - `calculateSplitMetrics` - Get metrics for splits
+- **100% Decimal.js precision** - Critical for financial accuracy
+- **Tolerance handling** - ±0.01 for rounding errors
+- **Edge cases** - Zero amounts, large numbers, decimals
+- **Integration tests** - Complete split workflows
+
+### Phase 8 Remaining Tasks (Planned)
+
+**Phase 2 Part 2: Matching Algorithms (High Priority)**
+- condition-evaluator.test.ts - Rules engine (14 operators, 8 fields)
+- rule-matcher.test.ts - Priority-based matching
+- bill-matcher.test.ts - Multi-factor bill matching
+- duplicate-detection.test.ts - Levenshtein distance
+
+**Phase 2 Part 3: Data Processing Tests**
+- budget-warnings.test.ts - Budget threshold tests
+- csv-import.test.ts - CSV parsing and validation
+- Notification service tests
+
+**Phase 3-7: Remaining Coverage**
+- API route tests (85+ endpoints)
+- Component tests (85+ components)
+- Integration tests (critical user flows)
+- CI/CD setup (GitHub Actions + pre-commit hooks)
+
+**Coverage Goals:**
+- Financial calculations: 100%
+- Matching algorithms: 95%
+- Data processing: 90%
+- API routes: 80%
+- Components: 70%
+- **Overall target: 80%+**
+
+### Testing Philosophy
+- **Arrange-Act-Assert pattern** for all tests
+- **User-centric testing** with React Testing Library
+- **Mocking strategies** for dependencies and APIs
+- **Decimal.js precision** for financial calculations
+- **Edge case coverage** for all logic
+- **Type safety** throughout test suite
+
+### Running Tests
+```bash
+# Run all tests once (CI mode)
+pnpm test
+
+# Watch mode for development
+pnpm test:watch
+
+# Visual test UI for debugging
+pnpm test:ui
+
+# Generate coverage report
+pnpm test:coverage
+```
+
+See `docs/TESTING_GUIDE.md` for comprehensive testing documentation.
+
 ## Important Notes
 - The development plan is located in `docs/finance-app-development-plan.md`
 - Use `pnpm dev` to start the development server (runs on http://localhost:3000)
