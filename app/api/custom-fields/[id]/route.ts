@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 // GET - Get a specific custom field
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -54,7 +54,7 @@ export async function GET(
 // PUT - Update a custom field
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -160,7 +160,7 @@ export async function PUT(
 // DELETE - Delete a custom field
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();

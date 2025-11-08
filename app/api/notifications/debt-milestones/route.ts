@@ -1,6 +1,4 @@
 import { auth } from '@clerk/nextjs/server';
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
 import { checkAndCreateDebtPayoffMilestoneNotifications } from '@/lib/notifications/debt-milestones';
 
 export async function POST(request: Request) {

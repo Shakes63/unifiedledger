@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 // GET - Get a specific tag
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -51,7 +51,7 @@ export async function GET(
 // PUT - Update a tag
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -138,7 +138,7 @@ export async function PUT(
 // DELETE - Delete a tag
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();

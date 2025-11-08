@@ -160,15 +160,33 @@ export async function POST(request: NextRequest) {
         let duplicateScore: number | undefined;
 
         if (validationErrors.length === 0) {
+          // Get existing transactions for duplicate checking
+          const rawExistingTransactions = await db
+            .select({
+              id: transactions.id,
+              description: transactions.description,
+              amount: transactions.amount,
+              date: transactions.date,
+              type: transactions.type,
+            })
+            .from(transactions)
+            .where(eq(transactions.userId, userId))
+            .limit(100);
+
+          // Map to ensure type is always a string
+          const existingTransactions = rawExistingTransactions.map((t) => ({
+            ...t,
+            type: t.type || 'expense',
+          }));
+
           const duplicates = detectDuplicateTransactions(
-            {
-              description: mappedData.description,
-              amount: mappedData.amount instanceof Decimal
-                ? mappedData.amount.toNumber()
-                : mappedData.amount,
-              date: mappedData.date,
-            },
-            userId
+            mappedData.description,
+            mappedData.amount instanceof Decimal
+              ? mappedData.amount.toNumber()
+              : mappedData.amount,
+            mappedData.date,
+            existingTransactions,
+            { dateRangeInDays: 7 }
           );
 
           if (duplicates && duplicates.length > 0) {

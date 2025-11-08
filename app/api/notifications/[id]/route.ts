@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // GET - Get a specific notification
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -52,7 +52,7 @@ export async function GET(
 // PATCH - Mark notification as read or dismissed
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -113,7 +113,7 @@ export async function PATCH(
 // DELETE - Delete a notification
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();

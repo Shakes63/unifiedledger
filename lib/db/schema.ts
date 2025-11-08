@@ -251,89 +251,6 @@ export const transfers = sqliteTable(
   })
 );
 
-// ============================================================================
-// SAVINGS & DEBT TABLES
-// ============================================================================
-
-export const savingsGoals = sqliteTable(
-  'savings_goals',
-  {
-    id: text('id').primaryKey(),
-    userId: text('user_id').notNull(),
-    name: text('name').notNull(),
-    targetAmount: real('target_amount').notNull(),
-    startingAmount: real('starting_amount').default(0),
-    currentAmount: real('current_amount').default(0),
-    startDate: text('start_date').notNull(),
-    targetDate: text('target_date'),
-    monthlyContribution: real('monthly_contribution').default(0),
-    accountId: text('account_id'),
-    isCompleted: integer('is_completed', { mode: 'boolean' }).default(false),
-    createdAt: text('created_at').default(new Date().toISOString()),
-  },
-  (table) => ({
-    userIdIdx: index('idx_savings_goals_user').on(table.userId),
-  })
-);
-
-export const debts = sqliteTable(
-  'debts',
-  {
-    id: text('id').primaryKey(),
-    userId: text('user_id').notNull(),
-    name: text('name').notNull(),
-    currentBalance: real('current_balance').notNull(),
-    minimumPayment: real('minimum_payment').notNull(),
-    interestRate: real('interest_rate'),
-    dueDate: integer('due_date'),
-    additionalPayment: real('additional_payment').default(0),
-    accountId: text('account_id'),
-    isActive: integer('is_active', { mode: 'boolean' }).default(true),
-    priorityOrder: integer('priority_order').default(0),
-    createdAt: text('created_at').default(new Date().toISOString()),
-  },
-  (table) => ({
-    userIdIdx: index('idx_debts_user').on(table.userId),
-  })
-);
-
-export const debtPayoffSettings = sqliteTable(
-  'debt_payoff_settings',
-  {
-    id: text('id').primaryKey(),
-    userId: text('user_id').notNull().unique(),
-    strategy: text('strategy', {
-      enum: ['snowball', 'avalanche', 'custom'],
-    }).default('snowball'),
-    totalExtraPayment: real('total_extra_payment').default(0),
-    autoAllocateExtra: integer('auto_allocate_extra', { mode: 'boolean' }).default(true),
-    showComparison: integer('show_comparison', { mode: 'boolean' }).default(true),
-    payoffStartDate: text('payoff_start_date'),
-    startingTotalDebt: real('starting_total_debt').default(0),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
-  }
-);
-
-export const debtPayoffMilestones = sqliteTable(
-  'debt_payoff_milestones',
-  {
-    id: text('id').primaryKey(),
-    userId: text('user_id').notNull(),
-    milestoneType: text('milestone_type', {
-      enum: ['25_percent', '50_percent', '75_percent', 'first_debt_paid', 'halfway', 'final_debt'],
-    }).notNull(),
-    achievedDate: text('achieved_date').notNull(),
-    totalPaidOff: real('total_paid_off').notNull(),
-    remainingDebt: real('remaining_debt').notNull(),
-    monthsSinceStart: integer('months_since_start'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-  },
-  (table) => ({
-    userIdDateIdx: index('idx_milestones_user').on(table.userId, table.achievedDate),
-  })
-);
-
 export const nonMonthlyBills = sqliteTable(
   'non_monthly_bills',
   {
@@ -1101,20 +1018,6 @@ export const transfersRelations = relations(transfers, ({ one }) => ({
   toTransaction: one(transactions, {
     fields: [transfers.toTransactionId],
     references: [transactions.id],
-  }),
-}));
-
-export const savingsGoalsRelations = relations(savingsGoals, ({ one }) => ({
-  account: one(accounts, {
-    fields: [savingsGoals.accountId],
-    references: [accounts.id],
-  }),
-}));
-
-export const debtsRelations = relations(debts, ({ one }) => ({
-  account: one(accounts, {
-    fields: [debts.accountId],
-    references: [accounts.id],
   }),
 }));
 
