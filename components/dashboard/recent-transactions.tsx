@@ -19,6 +19,7 @@ interface Transaction {
   merchantId?: string;
   transferId?: string;
   notes?: string;
+  isSplit?: boolean;
 }
 
 interface Merchant {
@@ -95,7 +96,21 @@ export function RecentTransactions() {
       });
 
       if (response.ok) {
-        const newTransaction = await response.json();
+        const result = await response.json();
+        // Construct the full transaction object from the response and original data
+        const newTransaction: Transaction = {
+          id: result.id,
+          description: transaction.description,
+          amount: transaction.amount,
+          type: transaction.type,
+          date: today,
+          accountId: transaction.accountId,
+          categoryId: result.appliedCategoryId || transaction.categoryId,
+          merchantId: transaction.merchantId,
+          transferId: transaction.transferId,
+          notes: transaction.notes,
+          isSplit: false, // New transactions aren't split by default
+        };
         // Add new transaction and keep only the most recent 5
         setTransactions([newTransaction, ...transactions.slice(0, -1)]);
         toast.success(`Transaction repeated: ${transaction.description}`);
@@ -123,15 +138,18 @@ export function RecentTransactions() {
     return account?.name || 'Unknown';
   };
 
-  const getTransactionDisplay = (transaction: Transaction): string => {
+  const getTransactionDisplay = (transaction: Transaction): { merchant: string | null; description: string } => {
     if (transaction.type === 'transfer') {
-      return `${getAccountName(transaction.accountId)} → ${getAccountName(transaction.transferId)}`;
+      return {
+        merchant: null,
+        description: `${getAccountName(transaction.accountId)} → ${getAccountName(transaction.transferId)}`,
+      };
     }
     const merchant = getMerchantName(transaction.merchantId);
-    if (merchant) {
-      return merchant;
-    }
-    return transaction.description;
+    return {
+      merchant,
+      description: transaction.description,
+    };
   };
 
   const getTransactionIcon = (type: string) => {
@@ -140,6 +158,7 @@ export function RecentTransactions() {
         return <ArrowDownLeft className="w-4 h-4 text-emerald-400" />;
       case 'expense':
         return <ArrowUpRight className="w-4 h-4 text-red-400" />;
+      case 'transfer':
       case 'transfer_in':
       case 'transfer_out':
         return <ArrowRightLeft className="w-4 h-4 text-blue-400" />;
@@ -182,49 +201,77 @@ export function RecentTransactions() {
   }
 
   return (
-    <div className="space-y-3">
-      {transactions.map((transaction) => (
-        <Card
-          key={transaction.id}
-          className="p-4 border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 flex-1">
-              <div className="p-2.5 bg-[#242424] rounded-lg">
-                {getTransactionIcon(transaction.type)}
+    <div className="space-y-2">
+      {transactions.map((transaction) => {
+        const display = getTransactionDisplay(transaction);
+        const accountName = getAccountName(transaction.accountId);
+
+        return (
+          <Link key={transaction.id} href={`/dashboard/transactions/${transaction.id}`}>
+            <Card className="p-2 border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg cursor-pointer">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="p-1.5 bg-[#242424] rounded flex-shrink-0">
+                    {getTransactionIcon(transaction.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {/* Merchant name on top (bold) */}
+                    {display.merchant && (
+                      <p className="font-semibold text-white text-sm truncate">
+                        {display.merchant}
+                      </p>
+                    )}
+                    {/* Description below merchant (or standalone if no merchant) */}
+                    <p className={`text-xs truncate ${display.merchant ? 'text-gray-400' : 'font-medium text-white text-sm'}`}>
+                      {display.description}
+                    </p>
+                    {/* Date and split indicator */}
+                    <p className="text-xs text-gray-500">
+                      {new Date(transaction.date).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                      {transaction.isSplit && ' • Split'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className="text-right">
+                    {/* Amount */}
+                    <p
+                      className={`font-semibold text-sm ${
+                        transaction.type === 'income'
+                          ? 'text-emerald-400'
+                          : 'text-white'
+                      }`}
+                    >
+                      {transaction.type === 'income' ? '+' : '-'}$
+                      {transaction.amount.toFixed(2)}
+                    </p>
+                    {/* Account name below amount */}
+                    <p className="text-xs text-gray-500 truncate max-w-[100px]">
+                      {accountName}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleRepeatTransaction(transaction);
+                    }}
+                    disabled={repeatingTxId === transaction.id}
+                    className="h-7 w-7 text-gray-400 hover:text-white hover:bg-[#242424] flex-shrink-0"
+                    title="Repeat this transaction with today's date"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-white truncate">{getTransactionDisplay(transaction)}</p>
-                <p className="text-xs text-gray-500">
-                  {new Date(transaction.date).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="text-right">
-                <p className={`font-semibold text-sm ${
-                  transaction.type === 'income' ? 'text-emerald-400' : 'text-white'
-                }`}>
-                  {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)}
-                </p>
-                <Badge className={`${getTypeColor(transaction.type)} text-xs`} variant="secondary">
-                  {transaction.type.replace('_', ' ')}
-                </Badge>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRepeatTransaction(transaction)}
-                disabled={repeatingTxId === transaction.id}
-                className="text-gray-400 hover:text-white hover:bg-[#242424]"
-                title="Repeat this transaction with today's date"
-              >
-                <Copy className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </Card>
-      ))}
+            </Card>
+          </Link>
+        );
+      })}
       <Link href="/dashboard/transactions">
         <Button variant="outline" className="w-full rounded-lg border-[#2a2a2a]">
           View All Transactions

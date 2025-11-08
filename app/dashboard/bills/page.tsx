@@ -198,40 +198,42 @@ export default function BillsDashboard() {
     const billName = getBillName(instance.billId);
 
     return (
-      <div className="flex items-center justify-between p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg hover:bg-[#242424] transition-colors">
-        <div className="flex items-start gap-3 flex-1">
-          <div className="mt-0.5">
-            {instance.status === 'paid' && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
-            {instance.status === 'overdue' && <AlertCircle className="w-5 h-5 text-red-400" />}
-            {instance.status === 'pending' && <Clock className="w-5 h-5 text-amber-400" />}
-          </div>
-          <div className="flex-1">
-            <p className="font-medium text-white">{billName}</p>
-            <p className="text-sm text-gray-500">
-              Due: {format(dueDate, 'MMM d, yyyy')}
-            </p>
-            {instance.status === 'overdue' && instance.daysLate > 0 && (
-              <p className="text-sm text-red-400">
-                {instance.daysLate} day{instance.daysLate !== 1 ? 's' : ''} overdue
-                {instance.lateFee > 0 && ` • Late fee: $${instance.lateFee.toFixed(2)}`}
+      <Link href={`/dashboard/bills/${instance.billId}`}>
+        <div className="flex items-center justify-between p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg hover:bg-[#242424] transition-colors cursor-pointer">
+          <div className="flex items-start gap-3 flex-1">
+            <div className="mt-0.5">
+              {instance.status === 'paid' && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
+              {instance.status === 'overdue' && <AlertCircle className="w-5 h-5 text-red-400" />}
+              {instance.status === 'pending' && <Clock className="w-5 h-5 text-amber-400" />}
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-white">{billName}</p>
+              <p className="text-sm text-gray-500">
+                Due: {format(dueDate, 'MMM d, yyyy')}
               </p>
+              {instance.status === 'overdue' && instance.daysLate > 0 && (
+                <p className="text-sm text-red-400">
+                  {instance.daysLate} day{instance.daysLate !== 1 ? 's' : ''} overdue
+                  {instance.lateFee > 0 && ` • Late fee: $${instance.lateFee.toFixed(2)}`}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="font-medium text-white">${instance.expectedAmount.toFixed(2)}</p>
+            {showDaysUntil && instance.status === 'pending' && (
+              <p className={`text-sm ${daysUntil <= 3 ? 'text-amber-400' : 'text-gray-500'}`}>
+                {daysUntil === 0 && 'Due today'}
+                {daysUntil === 1 && 'Due tomorrow'}
+                {daysUntil > 1 && `${daysUntil} days left`}
+              </p>
+            )}
+            {instance.status === 'paid' && (
+              <p className="text-sm text-emerald-400">Paid</p>
             )}
           </div>
         </div>
-        <div className="text-right">
-          <p className="font-medium text-white">${instance.expectedAmount.toFixed(2)}</p>
-          {showDaysUntil && instance.status === 'pending' && (
-            <p className={`text-sm ${daysUntil <= 3 ? 'text-amber-400' : 'text-gray-500'}`}>
-              {daysUntil === 0 && 'Due today'}
-              {daysUntil === 1 && 'Due tomorrow'}
-              {daysUntil > 1 && `${daysUntil} days left`}
-            </p>
-          )}
-          {instance.status === 'paid' && (
-            <p className="text-sm text-emerald-400">Paid</p>
-          )}
-        </div>
-      </div>
+      </Link>
     );
   };
 

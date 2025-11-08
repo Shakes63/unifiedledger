@@ -62,7 +62,8 @@ export async function POST(request: Request) {
     const householdId = nanoid();
 
     // Get user info from Clerk
-    const user = await clerkClient.users.getUser(userId);
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(userId);
     const userEmail = user.emailAddresses[0]?.emailAddress || '';
     const userName = user.firstName && user.lastName
       ? `${user.firstName} ${user.lastName}`

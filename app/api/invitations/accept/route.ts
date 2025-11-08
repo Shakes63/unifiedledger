@@ -57,7 +57,8 @@ export async function POST(request: Request) {
     }
 
     // Get user info from Clerk
-    const user = await clerkClient.users.getUser(userId);
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(userId);
     const userName = user.firstName && user.lastName
       ? `${user.firstName} ${user.lastName}`
       : user.firstName || user.username || '';

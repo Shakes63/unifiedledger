@@ -211,6 +211,106 @@ COMPLETED BUGS:
    - Result: Bills page now loads successfully without errors
    - Also fixes: Merchant deletion error (was same bills API error)
 
+✅ 35. Added bill details page with delete functionality:
+   - Root cause: Bills had no way to view details or delete them (unlike transactions)
+   - Solution:
+     - Created BillDetails component (components/bills/bill-details.tsx)
+       * Displays full bill information (name, amount, due date, category, account, notes)
+       * Shows overdue, upcoming, and paid bill instances
+       * Includes Edit and Delete buttons with confirmation
+       * Auto-redirects to bills list after deletion
+     - Created bill details page route (app/dashboard/bills/[id]/page.tsx)
+     - Created bill edit page route (app/dashboard/bills/edit/[id]/page.tsx)
+       * Fetches existing bill data and populates form
+       * Uses same BillForm component as create page
+       * Updates bill via PUT /api/bills/[id]
+     - Updated bills list page (app/dashboard/bills/page.tsx)
+       * Made all BillItem components clickable links to details page
+       * Added cursor-pointer styling for better UX
+   - DELETE API endpoint already existed at /api/bills/[id]/route.ts
+     * Deletes bill and all associated bill instances
+     * Includes authentication and ownership verification
+   - Files created:
+     * components/bills/bill-details.tsx
+     * app/dashboard/bills/[id]/page.tsx
+     * app/dashboard/bills/edit/[id]/page.tsx
+   - Files updated:
+     * app/dashboard/bills/page.tsx
+   - Result: Bills now have full details view with edit and delete functionality
+
+✅ 36. Fixed household member names not displaying (bug 27 reopened):
+   - Root cause: Existing household members in database had null/empty userName field
+   - Previous fix (bug 27) only addressed new members created after the fix
+   - Old data created before the fix still had empty userName values
+   - Additional issue: clerkClient usage was incorrect for newer Clerk SDK
+   - Solution:
+     - Enhanced GET /api/households/[householdId]/members/route.ts
+       * Added automatic backfill logic when fetching members
+       * Checks if userName is missing or empty for each member
+       * Fetches user info from Clerk API (firstName, lastName, username)
+       * Updates database with userName for future requests
+       * Returns updated member list with names populated
+     - Created manual backfill endpoint at /api/households/backfill-names/route.ts
+       * Can be called to bulk update all members at once
+       * Useful for one-time migration if needed
+     - Fixed clerkClient usage across all files
+       * Changed from `clerkClient.users.getUser()` to `(await clerkClient()).users.getUser()`
+       * clerkClient is a function in newer SDK, must be called first
+   - Files updated:
+     * app/api/households/[householdId]/members/route.ts (automatic backfill + clerkClient fix)
+     * app/api/households/route.ts (clerkClient fix)
+     * app/api/invitations/accept/route.ts (clerkClient fix)
+   - Files created:
+     * app/api/households/backfill-names/route.ts (manual backfill)
+   - Result: Household page now automatically fixes missing names when loaded
+   - Names display properly as "FirstName LastName" instead of blank
+
+✅ 37. Updated RecentTransactions to match transactions page display:
+   - Root cause: Recent transactions widget showed different layout than transactions page
+   - Missing merchant/description separation, account name, split indicator
+   - Solution:
+     - Updated getTransactionDisplay() to return object with {merchant, description} instead of string
+     - Added isSplit field to Transaction interface
+     - Updated transaction item layout to match transactions page exactly:
+       * Merchant name on top (bold) if exists
+       * Description below merchant (gray) or standalone (bold) if no merchant
+       * Date and split indicator in gray
+       * Amount on right (green for income, white for expense)
+       * Account name below amount (gray, max 100px width)
+       * Copy/repeat button with proper sizing (h-7 w-7)
+     - Updated getTransactionIcon to handle unified 'transfer' type
+     - Reduced card padding from p-4 to p-2 to match transactions page
+     - Reduced spacing from space-y-3 to space-y-2
+     - Made entire card clickable as Link to transaction details
+   - Files updated:
+     * components/dashboard/recent-transactions.tsx
+   - Result: Recent transactions now display identically to transactions page
+   - Consistent user experience across dashboard and transactions page
+
+✅ 38. Fixed duplicate/repeat transaction error in RecentTransactions:
+   - Error: "Cannot read properties of undefined (reading 'toFixed')" at line 235
+   - Root cause: POST /api/transactions returns {id, message, appliedCategoryId, ...} not full transaction object
+   - handleRepeatTransaction was adding incomplete object to state
+   - Missing fields: amount, description, type, date, etc.
+   - Solution:
+     - Updated handleRepeatTransaction to construct full Transaction object from API response + original data
+     - Maps result.id to new transaction id
+     - Copies all other fields from original transaction (amount, description, type, etc.)
+     - Uses result.appliedCategoryId if rules applied a category
+     - Sets date to today's date
+     - Sets isSplit to false for new transactions
+   - Files updated:
+     * components/dashboard/recent-transactions.tsx
+   - Result: Duplicate transaction button now works without errors
+   - New transaction appears correctly in list with all fields populated
+
 PENDING BUGS (ALL RESOLVED):
-(No pending bugs - all reported issues have been fixed!)
+1. ✅ the bills should have a details modal and a way to delete them just like the transactions.
+2. ✅ Reopen bug 27 it is still not fixed.
+3. ✅ the recent transactions should show just like the transactions on the transactions page
+4. create the rules page or fix it if it is already created.
+5. the merchant spending charts on the reports page are tracking the description instead of the merchant
+6. the account name is cut off on the transaction entry.
+7. ✅ got this error when trying to duplicate a transaction: Cannot read properties of undefined (reading 'toFixed')
+8. the update account button doesn't seem to work.
 

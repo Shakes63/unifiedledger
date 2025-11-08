@@ -279,21 +279,23 @@ pnpm drizzle-kit migrate   # Apply migration
 ## Recent Updates (Current Session)
 
 ### Bug Fixes Completed ✅
-1. **Tax/Sales Tax Empty Data:** Added friendly empty state messages with helpful instructions
-2. **Transaction Display Layout:** Shows merchant (bold) + description + account name next to amount
-3. **Delete Transactions:** Verified full delete functionality exists with confirmation and balance reversal
-4. **Transfers Page Removed:** Removed from sidebar, added "View Transactions" button to account cards with auto-filtering
-5. **Transaction Type Filters:** Updated to use unified "transfer" type instead of transfer_in/transfer_out
-6. **Bills API 500 Error:** Fixed invalid SQL query selecting unjoined billInstances table
+1. **Bills Details & Delete:** Created full bill details page with edit/delete functionality (like transactions)
+2. **Household Member Names:** Fixed clerkClient usage and added automatic backfill for missing names
+3. **Recent Transactions Display:** Updated to match transactions page layout exactly (merchant/description/account)
+4. **Duplicate Transaction Error:** Fixed toFixed error by constructing full transaction object from API response
+
+### Files Created
+- `components/bills/bill-details.tsx` - Full bill details component
+- `app/dashboard/bills/[id]/page.tsx` - Bill details page route
+- `app/dashboard/bills/edit/[id]/page.tsx` - Bill edit page route
+- `app/api/households/backfill-names/route.ts` - Manual backfill endpoint
 
 ### Files Modified
-- `app/dashboard/tax/page.tsx` - Empty state handling
-- `app/dashboard/sales-tax/page.tsx` - Empty state handling
-- `app/dashboard/transactions/page.tsx` - Account filtering, display layout
-- `components/accounts/account-card.tsx` - View Transactions button
-- `components/navigation/sidebar.tsx` - Removed Transfers link
-- `components/transactions/advanced-search.tsx` - Unified transfer type
-- `app/api/bills/route.ts` - Fixed SQL query
+- `app/dashboard/bills/page.tsx` - Made bill items clickable
+- `app/api/households/[householdId]/members/route.ts` - Auto-backfill userName from Clerk
+- `app/api/households/route.ts` - Fixed clerkClient() usage
+- `app/api/invitations/accept/route.ts` - Fixed clerkClient() usage
+- `components/dashboard/recent-transactions.tsx` - Updated display layout and fixed duplicate error
 
 ## Important Notes
 

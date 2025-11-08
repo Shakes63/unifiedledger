@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { householdMembers } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -42,7 +42,37 @@ export async function GET(
       .from(householdMembers)
       .where(eq(householdMembers.householdId, householdId));
 
-    return Response.json(members);
+    // Backfill missing userNames from Clerk
+    const updatedMembers = await Promise.all(
+      members.map(async (member) => {
+        // If userName is missing or empty, fetch from Clerk
+        if (!member.userName || member.userName.trim() === '') {
+          try {
+            const clerk = await clerkClient();
+            const user = await clerk.users.getUser(member.userId);
+            const userName = user.firstName && user.lastName
+              ? `${user.firstName} ${user.lastName}`
+              : user.firstName || user.username || '';
+
+            if (userName) {
+              // Update in database
+              await db
+                .update(householdMembers)
+                .set({ userName })
+                .where(eq(householdMembers.id, member.id));
+
+              // Return updated member
+              return { ...member, userName };
+            }
+          } catch (error) {
+            console.error(`Failed to fetch user info for ${member.userId}:`, error);
+          }
+        }
+        return member;
+      })
+    );
+
+    return Response.json(updatedMembers);
   } catch (error) {
     console.error('Error fetching members:', error);
     return Response.json(
