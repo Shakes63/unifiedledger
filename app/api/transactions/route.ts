@@ -143,61 +143,171 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create transaction
-    const transactionId = nanoid();
+    // Create transaction(s)
     const decimalAmount = new Decimal(amount);
+    let transactionId = nanoid();
+    let transferInId: string | null = null;
 
-    const result = await db.insert(transactions).values({
-      id: transactionId,
-      userId,
-      accountId,
-      categoryId: appliedCategoryId || null,
-      merchantId: merchantId || null,
-      date,
-      amount: decimalAmount.toNumber(),
-      description,
-      notes: notes || null,
-      type,
-      transferId: toAccountId || null, // Store destination account ID for transfers
-      isPending,
-      // Offline sync tracking
-      offlineId: offlineId || null,
-      syncStatus: syncStatus,
-      syncedAt: syncStatus === 'synced' ? new Date().toISOString() : null,
-      syncAttempts: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-
-    // Update account balance and usage
-    const newBalance = new Decimal(account[0].currentBalance || 0);
-    const updatedBalance =
-      type === 'expense' || type === 'transfer_out' || type === 'transfer'
-        ? newBalance.minus(decimalAmount)
-        : newBalance.plus(decimalAmount);
-
-    await db
-      .update(accounts)
-      .set({
-        currentBalance: updatedBalance.toNumber(),
-        lastUsedAt: new Date().toISOString(),
-        usageCount: (account[0].usageCount || 0) + 1,
-      })
-      .where(eq(accounts.id, accountId));
-
-    // For transfers, also update the destination account balance
+    // For transfers, create TWO transactions (transfer_out and transfer_in)
     if (type === 'transfer' && toAccount) {
-      const toAccountBalance = new Decimal(toAccount.currentBalance || 0);
-      const toAccountUpdatedBalance = toAccountBalance.plus(decimalAmount);
+      // Create transfer_out transaction (money leaving source account)
+      await db.insert(transactions).values({
+        id: transactionId,
+        userId,
+        accountId, // Source account
+        categoryId: null, // Transfers don't have categories
+        merchantId: null,
+        date,
+        amount: decimalAmount.toNumber(),
+        description,
+        notes: notes || null,
+        type: 'transfer_out',
+        transferId: toAccountId, // Link to destination account for now, will be updated
+        isPending,
+        // Offline sync tracking
+        offlineId: offlineId || null,
+        syncStatus: syncStatus,
+        syncedAt: syncStatus === 'synced' ? new Date().toISOString() : null,
+        syncAttempts: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Create transfer_in transaction (money arriving at destination account)
+      transferInId = nanoid();
+      await db.insert(transactions).values({
+        id: transferInId,
+        userId,
+        accountId: toAccountId, // Destination account
+        categoryId: null, // Transfers don't have categories
+        merchantId: null,
+        date,
+        amount: decimalAmount.toNumber(),
+        description,
+        notes: notes || null,
+        type: 'transfer_in',
+        transferId: transactionId, // Link to transfer_out transaction
+        isPending,
+        // Offline sync tracking
+        offlineId: offlineId ? `${offlineId}_in` : null,
+        syncStatus: syncStatus,
+        syncedAt: syncStatus === 'synced' ? new Date().toISOString() : null,
+        syncAttempts: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Update source account balance (subtract amount)
+      const sourceBalance = new Decimal(account[0].currentBalance || 0);
+      const updatedSourceBalance = sourceBalance.minus(decimalAmount);
 
       await db
         .update(accounts)
         .set({
-          currentBalance: toAccountUpdatedBalance.toNumber(),
+          currentBalance: updatedSourceBalance.toNumber(),
+          lastUsedAt: new Date().toISOString(),
+          usageCount: (account[0].usageCount || 0) + 1,
+        })
+        .where(eq(accounts.id, accountId));
+
+      // Update destination account balance (add amount)
+      const destBalance = new Decimal(toAccount.currentBalance || 0);
+      const updatedDestBalance = destBalance.plus(decimalAmount);
+
+      await db
+        .update(accounts)
+        .set({
+          currentBalance: updatedDestBalance.toNumber(),
           lastUsedAt: new Date().toISOString(),
           usageCount: (toAccount.usageCount || 0) + 1,
         })
         .where(eq(accounts.id, toAccountId));
+
+      // Track transfer pair usage in analytics
+      try {
+        const existingAnalytics = await db
+          .select()
+          .from(usageAnalytics)
+          .where(
+            and(
+              eq(usageAnalytics.userId, userId),
+              eq(usageAnalytics.itemType, 'transfer_pair'),
+              eq(usageAnalytics.itemId, accountId),
+              eq(usageAnalytics.itemSecondaryId, toAccountId)
+            )
+          )
+          .limit(1);
+
+        if (existingAnalytics.length > 0) {
+          await db
+            .update(usageAnalytics)
+            .set({
+              usageCount: (existingAnalytics[0].usageCount || 0) + 1,
+              lastUsedAt: new Date().toISOString(),
+            })
+            .where(
+              and(
+                eq(usageAnalytics.userId, userId),
+                eq(usageAnalytics.itemType, 'transfer_pair'),
+                eq(usageAnalytics.itemId, accountId),
+                eq(usageAnalytics.itemSecondaryId, toAccountId)
+              )
+            );
+        } else {
+          const analyticsId = nanoid();
+          await db.insert(usageAnalytics).values({
+            id: analyticsId,
+            userId,
+            itemType: 'transfer_pair',
+            itemId: accountId,
+            itemSecondaryId: toAccountId,
+            usageCount: 1,
+            lastUsedAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+          });
+        }
+      } catch (error) {
+        console.error('Error tracking transfer pair usage:', error);
+      }
+    } else {
+      // Non-transfer transaction (income or expense)
+      await db.insert(transactions).values({
+        id: transactionId,
+        userId,
+        accountId,
+        categoryId: appliedCategoryId || null,
+        merchantId: merchantId || null,
+        date,
+        amount: decimalAmount.toNumber(),
+        description,
+        notes: notes || null,
+        type,
+        transferId: null,
+        isPending,
+        // Offline sync tracking
+        offlineId: offlineId || null,
+        syncStatus: syncStatus,
+        syncedAt: syncStatus === 'synced' ? new Date().toISOString() : null,
+        syncAttempts: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Update account balance and usage
+      const newBalance = new Decimal(account[0].currentBalance || 0);
+      const updatedBalance =
+        type === 'expense'
+          ? newBalance.minus(decimalAmount)
+          : newBalance.plus(decimalAmount);
+
+      await db
+        .update(accounts)
+        .set({
+          currentBalance: updatedBalance.toNumber(),
+          lastUsedAt: new Date().toISOString(),
+          usageCount: (account[0].usageCount || 0) + 1,
+        })
+        .where(eq(accounts.id, accountId));
     }
 
     // Update category usage if provided
@@ -435,6 +545,7 @@ export async function POST(request: Request) {
     return Response.json(
       {
         id: transactionId,
+        transferInId: transferInId || undefined, // ID of transfer_in transaction if transfer
         message: 'Transaction created successfully',
         appliedCategoryId: appliedCategoryId ? appliedCategoryId : undefined,
         appliedRuleId: appliedRuleId ? appliedRuleId : undefined,
@@ -465,6 +576,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = parseInt(url.searchParams.get('offset') || '0');
+    const accountId = url.searchParams.get('accountId');
 
     const userTransactions = await db
       .select()
@@ -474,7 +586,31 @@ export async function GET(request: Request) {
       .limit(limit)
       .offset(offset);
 
-    return Response.json(userTransactions);
+    // If accountId filter is present, return all transactions (including both transfer sides)
+    if (accountId) {
+      return Response.json(userTransactions);
+    }
+
+    // Main view (no account filter): Combine transfer pairs into single entries
+    // We want to show only transfer_out transactions and hide transfer_in to avoid duplicates
+    const processedTransactions = [];
+    const transferInIds = new Set();
+
+    // First pass: collect all transfer_in IDs to skip them
+    for (const tx of userTransactions) {
+      if (tx.type === 'transfer_in') {
+        transferInIds.add(tx.id);
+      }
+    }
+
+    // Second pass: add all non-transfer_in transactions
+    for (const tx of userTransactions) {
+      if (!transferInIds.has(tx.id)) {
+        processedTransactions.push(tx);
+      }
+    }
+
+    return Response.json(processedTransactions);
   } catch (error) {
     console.error('Transaction fetch error:', error);
     return Response.json(

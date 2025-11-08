@@ -569,7 +569,108 @@ COMPLETED BUGS:
   - Result: Transfers now display both account transfer info AND description
   - Consistent with how merchant transactions display (merchant on top, description below)
 
+✅ 51. Implemented 2-transaction transfer model:
+  - Root cause: Transfers used single transaction with unified 'transfer' type
+  - Requirements: Backend should create 2 transactions (transfer_out + transfer_in)
+  - Main view should show single entry, account-filtered view should show relevant side
+  - Solution Part 1 - Database Migration:
+    * Created migration 0006_convert_transfers_to_paired_model.sql
+    * Converted existing 'transfer' transactions to transfer_out/transfer_in pairs
+    * transfer_out: accountId = source, transferId = destination account ID
+    * transfer_in: accountId = destination, transferId = transfer_out transaction ID
+    * Applied migration successfully, verified linking in database
+  - Solution Part 2 - API Updates (app/api/transactions/route.ts):
+    * POST endpoint now creates TWO transactions when type='transfer'
+    * Creates transfer_out (source account, subtracts amount)
+    * Creates transfer_in (destination account, adds amount)
+    * Links via transferId field (transfer_in.transferId → transfer_out.id)
+    * Updates both account balances correctly
+    * Tracks transfer_pair usage in analytics
+  - Solution Part 3 - GET Endpoint Filtering:
+    * Added accountId parameter detection
+    * Main view (no accountId): Filters out transfer_in to show only transfer_out (avoids duplicates)
+    * Account-filtered view: Returns both transfer_in and transfer_out
+    * This achieves the requirement of "one entry in main, both sides when filtered"
+  - Solution Part 4 - DELETE Endpoint:
+    * Updated to handle transfer pairs
+    * Deletes both transfer_out and transfer_in transactions
+    * Reverses balances on both accounts
+    * Handles deletion from either side of the pair
+  - Solution Part 5 - Display Logic:
+    * Updated getTransactionDisplay in transactions page and RecentTransactions
+    * transfer_out: Shows "SourceAccount → DestAccount"
+    * transfer_in: Looks up paired transfer_out, shows "SourceAccount → DestAccount"
+    * Maintains consistent display across both components
+  - Files updated:
+    * drizzle/0006_convert_transfers_to_paired_model.sql (migration)
+    * app/api/transactions/route.ts (POST: lines 146-311, GET: lines 576-613)
+    * app/api/transactions/[id]/route.ts (DELETE: lines 285-441)
+    * app/dashboard/transactions/page.tsx (display: lines 277-306)
+    * components/dashboard/recent-transactions.tsx (display: lines 145-174)
+  - Result: Transfers now use proper 2-transaction model
+  - Main view shows single entry per transfer (transfer_out only)
+  - Account-filtered view shows relevant transaction side
+  - Both sides properly linked via transferId
+  - Deletion and balance updates work correctly for both sides
+
+✅ 52. Fixed CSV import Select.Item empty value error:
+  - Error: "A <Select.Item /> must have a value prop that is not an empty string"
+  - Root cause: TRANSFORMS array had first item with empty string value: `{ value: '', label: 'None' }`
+  - Select component doesn't allow empty string values (reserves it for clearing/placeholder)
+  - Solution:
+    * Changed empty string to 'none' in TRANSFORMS array (column-mapper.tsx line 33)
+    * Updated ColumnMapping type to include 'none' in transform union type (lib/csv-import.ts line 19)
+    * Added 'none' case to applyStringTransform function (returns value unchanged)
+    * Default case still trims for backward compatibility
+  - Files updated:
+    * components/csv-import/column-mapper.tsx (line 33: '' → 'none')
+    * lib/csv-import.ts (line 19: added 'none' to type, lines 346-347: added none case)
+  - Result: CSV import no longer throws error when selecting transform options
+  - "None" transform option now properly returns value unchanged
+
+✅ 53. Enhanced split transaction UI with prepopulation and reorganization:
+  - Requirements:
+    * Each split should have a category field prepopulated with main transaction's category
+    * Add split section should be a single button (not a form)
+    * Button should be positioned under existing splits
+    * New splits should be prepopulated with sensible defaults
+  - Solution Part 1 - SplitBuilder Props:
+    * Added mainCategory prop to receive main transaction's category
+    * Added transactionDescription prop for prepopulation
+    * Updated SplitBuilderProps interface (lines 32-39)
+  - Solution Part 2 - Simplified Add Split Logic:
+    * Removed newSplitCategory and newSplitAmount state (no longer need form)
+    * Updated handleAddSplit to auto-calculate remaining amount
+    * Prepopulates new split with mainCategory
+    * Prepopulates description with transactionDescription
+    * Uses getRemainingForNewSplit to auto-fill amount
+  - Solution Part 3 - UI Reorganization:
+    * Removed "Add New Split" form card (lines 202-241 deleted)
+    * Moved splits list to appear first (after split type toggle)
+    * Added CategorySelector to each split card for editing
+    * Added handleUpdateSplitCategory function to update split categories
+    * Placed simple "Add Split" button below splits list
+  - Solution Part 4 - Enhanced Split Cards:
+    * Each split now shows CategorySelector at top
+    * Category prepopulated from main transaction
+    * Users can change category for each split independently
+    * Amount and description fields remain editable
+  - Solution Part 5 - Transaction Form Integration:
+    * Updated transaction-form.tsx to pass mainCategory prop
+    * Passes formData.categoryId to SplitBuilder
+    * Passes formData.description to SplitBuilder
+  - Files updated:
+    * components/transactions/split-builder.tsx (lines 32-39, 41-48, 65-81, 159-169, 165-276)
+    * components/transactions/transaction-form.tsx (lines 797-798)
+  - Result: Improved split transaction workflow
+  - Single-click to add new split with smart defaults
+  - Each split has its own category selector
+  - Category prepopulated from main transaction
+  - Description and amount auto-calculated
+  - Cleaner UI with button below splits (not a big form on top)
+
 pending
-1. transfers  to another account should on the back end make 2 transactions one for the transfer out of the from account and 1 for the transfer in on the to account. therefore if you are in the main view for transactions it should show one entry showing the from --> to but if it is filtered by account it should show the part of the transaction that is associated with that account.
-2. 
+1. the csv import should be able to handle csv that has a separate withdrawal and deposit columns and correctly map them to income and expense. 
+
+
 

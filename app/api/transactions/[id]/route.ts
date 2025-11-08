@@ -282,38 +282,163 @@ export async function DELETE(
         );
     }
 
-    // Reverse balance effect on account
-    const account = await db
-      .select()
-      .from(accounts)
-      .where(eq(accounts.id, transaction.accountId))
-      .limit(1);
+    // Handle transfer pairs - need to delete both sides and reverse both balances
+    if (transaction.type === 'transfer_out' || transaction.type === 'transfer_in') {
+      let pairedTransactionId: string | null = null;
 
-    if (account.length > 0) {
-      let newBalance = new Decimal(account[0].currentBalance || 0);
-      if (transaction.type === 'expense' || transaction.type === 'transfer_out' || transaction.type === 'transfer') {
-        // For transfers, reverse by adding the amount back (since it was subtracted from the "from" account)
-        newBalance = newBalance.plus(decimalAmount);
-      } else {
-        // For income, reverse by subtracting the amount (since it was added)
-        newBalance = newBalance.minus(decimalAmount);
+      // Find the paired transaction
+      if (transaction.type === 'transfer_out') {
+        // This is the source transaction, transferId points to destination account
+        // Find transfer_in transaction that has this transaction's ID in its transferId
+        const pairedTx = await db
+          .select()
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.userId, userId),
+              eq(transactions.type, 'transfer_in'),
+              eq(transactions.transferId, id)
+            )
+          )
+          .limit(1);
+
+        if (pairedTx.length > 0) {
+          pairedTransactionId = pairedTx[0].id;
+
+          // Reverse balance on destination account (subtract the amount that was added)
+          const destAccountId = pairedTx[0].accountId;
+          const destAccount = await db
+            .select()
+            .from(accounts)
+            .where(eq(accounts.id, destAccountId))
+            .limit(1);
+
+          if (destAccount.length > 0) {
+            const destBalance = new Decimal(destAccount[0].currentBalance || 0);
+            const reversedDestBalance = destBalance.minus(decimalAmount);
+
+            await db
+              .update(accounts)
+              .set({ currentBalance: reversedDestBalance.toNumber() })
+              .where(eq(accounts.id, destAccountId));
+          }
+        }
+      } else if (transaction.type === 'transfer_in') {
+        // This is the destination transaction, transferId points to transfer_out transaction
+        pairedTransactionId = transaction.transferId;
+
+        if (pairedTransactionId) {
+          const pairedTx = await db
+            .select()
+            .from(transactions)
+            .where(
+              and(
+                eq(transactions.id, pairedTransactionId),
+                eq(transactions.userId, userId)
+              )
+            )
+            .limit(1);
+
+          if (pairedTx.length > 0) {
+            // Reverse balance on source account (add back the amount that was subtracted)
+            const sourceAccountId = pairedTx[0].accountId;
+            const sourceAccount = await db
+              .select()
+              .from(accounts)
+              .where(eq(accounts.id, sourceAccountId))
+              .limit(1);
+
+            if (sourceAccount.length > 0) {
+              const sourceBalance = new Decimal(sourceAccount[0].currentBalance || 0);
+              const reversedSourceBalance = sourceBalance.plus(decimalAmount);
+
+              await db
+                .update(accounts)
+                .set({ currentBalance: reversedSourceBalance.toNumber() })
+                .where(eq(accounts.id, sourceAccountId));
+            }
+          }
+        }
       }
 
-      await db
-        .update(accounts)
-        .set({ currentBalance: newBalance.toNumber() })
-        .where(eq(accounts.id, transaction.accountId));
-    }
+      // Reverse balance on the current transaction's account
+      const account = await db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.id, transaction.accountId))
+        .limit(1);
 
-    // Delete transaction
-    await db
-      .delete(transactions)
-      .where(
-        and(
-          eq(transactions.id, id),
-          eq(transactions.userId, userId)
-        )
-      );
+      if (account.length > 0) {
+        let newBalance = new Decimal(account[0].currentBalance || 0);
+        if (transaction.type === 'transfer_out') {
+          // Reverse by adding back (it was subtracted)
+          newBalance = newBalance.plus(decimalAmount);
+        } else {
+          // transfer_in: Reverse by subtracting (it was added)
+          newBalance = newBalance.minus(decimalAmount);
+        }
+
+        await db
+          .update(accounts)
+          .set({ currentBalance: newBalance.toNumber() })
+          .where(eq(accounts.id, transaction.accountId));
+      }
+
+      // Delete the paired transaction first
+      if (pairedTransactionId) {
+        await db
+          .delete(transactions)
+          .where(
+            and(
+              eq(transactions.id, pairedTransactionId),
+              eq(transactions.userId, userId)
+            )
+          );
+      }
+
+      // Delete the current transaction
+      await db
+        .delete(transactions)
+        .where(
+          and(
+            eq(transactions.id, id),
+            eq(transactions.userId, userId)
+          )
+        );
+    } else {
+      // Non-transfer transaction: reverse balance and delete
+      const account = await db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.id, transaction.accountId))
+        .limit(1);
+
+      if (account.length > 0) {
+        let newBalance = new Decimal(account[0].currentBalance || 0);
+        if (transaction.type === 'expense') {
+          // Reverse by adding back (it was subtracted)
+          newBalance = newBalance.plus(decimalAmount);
+        } else {
+          // income: Reverse by subtracting (it was added)
+          newBalance = newBalance.minus(decimalAmount);
+        }
+
+        await db
+          .update(accounts)
+          .set({ currentBalance: newBalance.toNumber() })
+          .where(eq(accounts.id, transaction.accountId));
+      }
+
+      // Delete transaction
+      await db
+        .delete(transactions)
+        .where(
+          and(
+            eq(transactions.id, id),
+            eq(transactions.userId, userId)
+          )
+        );
+    }
 
     return Response.json(
       { message: 'Transaction deleted successfully' },

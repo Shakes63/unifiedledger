@@ -143,9 +143,26 @@ export function RecentTransactions() {
   };
 
   const getTransactionDisplay = (transaction: Transaction): { merchant: string | null; description: string } => {
-    if (transaction.type === 'transfer') {
+    if (transaction.type === 'transfer_out') {
+      // transfer_out: accountId is source, transferId is destination account
       return {
         merchant: `${getAccountName(transaction.accountId)} → ${getAccountName(transaction.transferId)}`,
+        description: transaction.description,
+      };
+    }
+    if (transaction.type === 'transfer_in') {
+      // transfer_in: accountId is destination, transferId is the paired transfer_out transaction ID
+      // Find the paired transfer_out transaction to get source account
+      const pairedTx = transactions.find(t => t.id === transaction.transferId);
+      if (pairedTx) {
+        return {
+          merchant: `${getAccountName(pairedTx.accountId)} → ${getAccountName(transaction.accountId)}`,
+          description: transaction.description,
+        };
+      }
+      // Fallback if paired transaction not found
+      return {
+        merchant: `Transfer → ${getAccountName(transaction.accountId)}`,
         description: transaction.description,
       };
     }

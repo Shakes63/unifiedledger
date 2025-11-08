@@ -30,7 +30,7 @@ const APP_FIELDS = [
 ];
 
 const TRANSFORMS = [
-  { value: '', label: 'None' },
+  { value: 'none', label: 'None' },
   { value: 'negate', label: 'Negate' },
   { value: 'absolute', label: 'Absolute Value' },
   { value: 'trim', label: 'Trim' },

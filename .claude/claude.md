@@ -171,7 +171,14 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 ### Transaction Types
 - `income` - Money coming in
 - `expense` - Money going out
-- `transfer` - Movement between accounts (unified type, not transfer_in/transfer_out)
+- `transfer_out` - Money leaving source account in a transfer
+- `transfer_in` - Money arriving at destination account in a transfer
+
+**Transfer Model:** Transfers create TWO linked transactions:
+- Main view shows only `transfer_out` to avoid duplicates
+- Account-filtered view shows relevant transaction for that account
+- Both transactions linked via `transferId` field
+- Deletion of either side removes both transactions
 
 ### Rules System
 - Priority-based matching (lower number = higher priority)
@@ -280,52 +287,40 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ### Major Bug Fixes Completed ✅
 
-1. **Bug #46: Edit Transaction Button** - Fixed Next.js 16 params Promise error
-   - Updated to use `React.use()` to unwrap params
-   - Applied fix to edit transaction page
-   - Edit functionality now works correctly
+1. **Bug #51: Implemented 2-Transaction Transfer Model** - Complete architectural refactor
+   - Transfers now create TWO transactions (transfer_out + transfer_in)
+   - Database migration converts existing transfers to paired model
+   - Main view shows only transfer_out to avoid duplicates
+   - Account-filtered view shows relevant transaction side
+   - DELETE endpoint removes both sides of transfer
+   - Both account balances properly updated
+   - Created migration: `0006_convert_transfers_to_paired_model.sql`
 
-2. **Bug #47: Comprehensive Transfer Fixes** - Fixed multiple transfer-related issues
-   - API now properly extracts and validates `toAccountId`
-   - `transferId` field populated in database
-   - Both source and destination accounts update correctly
-   - Balances properly subtract from source, add to destination
-   - Second account no longer shows as "Unknown"
-   - Transfers show in blue color with no +/- sign in general view
-   - Account-aware display when filtered (shows - if leaving, + if arriving)
-   - Transaction details show "From Account" and "To Account"
-   - Transfers appear when filtering by either source or destination account
+2. **Bug #52: Fixed CSV Import Select.Item Error** - Empty value validation
+   - TRANSFORMS array had empty string value for "None" option
+   - Select component doesn't allow empty string values
+   - Changed to `'none'` value with proper handling
+   - Updated type definitions and transform logic
+   - CSV import now works without errors
 
-3. **Bug #48: Dashboard Quick View Cards** - Connected cards to real data
-   - Total Balance card shows real sum of all account balances
-   - Monthly Spending card shows actual current month expenses
-   - Data fetches on page load with proper loading states
-   - Uses Decimal.js for accurate calculations
-
-4. **Bug #49: Enhanced Split Transactions** - Major UX improvements
-   - Auto-populate with 2 splits when clicking "Add Splits"
-   - Main transaction description automatically copied to both splits
-   - Added description input field for each split
-   - Bidirectional auto-calculation of remaining amount
-   - When editing any split except the last, the last split auto-adjusts
-   - When editing the last split, the second-to-last adjusts (if 3+ splits)
-   - Works with any number of splits
-
-5. **Bug #50: Transfer Descriptions Display** - Fixed missing descriptions
-   - Changed transfer display to use account names as "merchant" field
-   - Transaction description now properly displayed in "description" field
-   - Display shows "FromAccount → ToAccount" (bold) + Description (gray)
-   - Consistent with how merchant transactions display
+3. **Bug #53: Enhanced Split Transaction UI** - Major UX improvements
+   - Removed complex "Add Split" form at top
+   - Replaced with simple "Add Split" button below splits
+   - Each split auto-prepopulated with main category and description
+   - Added CategorySelector to each split card
+   - Amount auto-calculated as remaining balance
+   - One-click to add new split with smart defaults
 
 ### Files Modified
-- `app/dashboard/transactions/[id]/edit/page.tsx` - Fixed params Promise error
-- `app/api/transactions/route.ts` - Added toAccountId handling, transfer balance updates
-- `components/dashboard/recent-transactions.tsx` - Fixed transfer display, removed +/- for transfers
-- `app/dashboard/transactions/page.tsx` - Account-aware transfer display, fixed descriptions
-- `components/transactions/transaction-details.tsx` - Added transfer account info display
-- `app/dashboard/page.tsx` - Connected dashboard cards to real data
-- `components/transactions/transaction-form.tsx` - Auto-populate splits with description
-- `components/transactions/split-builder.tsx` - Added description fields, bidirectional calculation
+- `drizzle/0006_convert_transfers_to_paired_model.sql` - Migration for 2-transaction model
+- `app/api/transactions/route.ts` - POST creates 2 transactions, GET filters transfer_in
+- `app/api/transactions/[id]/route.ts` - DELETE handles both transfer sides
+- `app/dashboard/transactions/page.tsx` - Updated transfer display logic
+- `components/dashboard/recent-transactions.tsx` - Updated transfer display
+- `components/csv-import/column-mapper.tsx` - Fixed empty string value
+- `lib/csv-import.ts` - Added 'none' transform type
+- `components/transactions/split-builder.tsx` - Complete UI reorganization
+- `components/transactions/transaction-form.tsx` - Pass category/description to splits
 
 ## Important Notes
 

@@ -34,6 +34,8 @@ interface SplitBuilderProps {
   splits: Split[];
   onSplitsChange: (splits: Split[]) => void;
   transactionType?: 'income' | 'expense';
+  mainCategory?: string;
+  transactionDescription?: string;
 }
 
 export function SplitBuilder({
@@ -41,11 +43,11 @@ export function SplitBuilder({
   splits,
   onSplitsChange,
   transactionType = 'expense',
+  mainCategory = '',
+  transactionDescription = '',
 }: SplitBuilderProps) {
   const [validation, setValidation] = useState<SplitValidationResult | null>(null);
   const [splitType, setSplitType] = useState<'amount' | 'percentage'>('amount');
-  const [newSplitCategory, setNewSplitCategory] = useState<string>('');
-  const [newSplitAmount, setNewSplitAmount] = useState<string>('');
 
   // Validate whenever splits change
   const validateCurrentSplits = (updatedSplits: Split[]) => {
@@ -59,31 +61,21 @@ export function SplitBuilder({
   };
 
   const handleAddSplit = () => {
-    if (!newSplitCategory || !newSplitAmount) {
-      return;
-    }
-
-    const splitValue = parseFloat(newSplitAmount);
-    if (isNaN(splitValue) || splitValue <= 0) {
-      return;
-    }
+    // Calculate the remaining amount for the new split
+    const remaining = getRemainingForNewSplit(splits, transactionAmount, splitType === 'percentage');
 
     const newSplit: Split = {
       id: `split-${Date.now()}`,
-      categoryId: newSplitCategory,
+      categoryId: mainCategory,  // Prepopulate with main transaction category
       isPercentage: splitType === 'percentage',
-      amount: splitType === 'amount' ? splitValue : 0,
-      percentage: splitType === 'percentage' ? splitValue : 0,
-      description: '',
+      amount: splitType === 'amount' ? remaining : 0,
+      percentage: splitType === 'percentage' ? remaining : 0,
+      description: transactionDescription,  // Prepopulate with main transaction description
     };
 
     const updatedSplits = [...splits, newSplit];
     onSplitsChange(updatedSplits);
     validateCurrentSplits(updatedSplits);
-
-    // Reset form
-    setNewSplitCategory('');
-    setNewSplitAmount('');
   };
 
   const handleRemoveSplit = (id: string) => {
@@ -156,13 +148,18 @@ export function SplitBuilder({
     onSplitsChange(updatedSplits);
   };
 
-  const handleSwitchSplitType = (newType: 'amount' | 'percentage') => {
-    setSplitType(newType);
-    // Reset input
-    setNewSplitAmount('');
+  const handleUpdateSplitCategory = (id: string, newCategoryId: string) => {
+    const updatedSplits = splits.map((s) =>
+      s.id === id ? { ...s, categoryId: newCategoryId } : s
+    );
+
+    onSplitsChange(updatedSplits);
   };
 
-  const remaining = getRemainingForNewSplit(splits, transactionAmount, splitType === 'percentage');
+  const handleSwitchSplitType = (newType: 'amount' | 'percentage') => {
+    setSplitType(newType);
+  };
+
   const hasValidationError = validation && !validation.valid;
 
   return (
@@ -198,48 +195,6 @@ export function SplitBuilder({
         </div>
       </div>
 
-      {/* Add Split Form */}
-      <Card className="border-[#2a2a2a] bg-[#242424] p-4 space-y-3">
-        <Label className="text-sm font-medium text-white">Add New Split</Label>
-
-        <CategorySelector
-          selectedCategory={newSplitCategory}
-          onCategoryChange={(catId) => setNewSplitCategory(catId || '')}
-          transactionType={transactionType}
-        />
-
-        <div className="grid grid-cols-[1fr_auto] gap-2">
-          <div>
-            <Input
-              type="number"
-              step={splitType === 'percentage' ? '0.01' : '0.01'}
-              min="0"
-              placeholder={
-                splitType === 'percentage'
-                  ? `0 - ${remaining.toFixed(2)}%`
-                  : `0 - $${remaining.toFixed(2)}`
-              }
-              value={newSplitAmount}
-              onChange={(e) => setNewSplitAmount(e.target.value)}
-              className="bg-[#1a1a1a] border-[#3a3a3a] text-white"
-            />
-          </div>
-          <div className="text-sm font-medium text-muted-foreground pt-2">
-            {splitType === 'percentage' ? '%' : '$'}
-          </div>
-        </div>
-
-        <Button
-          type="button"
-          onClick={handleAddSplit}
-          disabled={!newSplitCategory || !newSplitAmount}
-          className="w-full bg-white text-black hover:bg-gray-100 font-medium"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Split
-        </Button>
-      </Card>
-
       {/* Splits List */}
       {splits.length > 0 && (
         <div className="space-y-3">
@@ -257,9 +212,6 @@ export function SplitBuilder({
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-white">
-                        {split.categoryId || 'No category selected'}
-                      </p>
                       <p className="text-xs text-muted-foreground">
                         {split.isPercentage ? `${split.percentage}%` : `$${split.amount?.toFixed(2)}`}
                         {' • '}
@@ -278,6 +230,11 @@ export function SplitBuilder({
                   </div>
 
                   <div className="space-y-2">
+                    <CategorySelector
+                      selectedCategory={split.categoryId}
+                      onCategoryChange={(catId) => handleUpdateSplitCategory(split.id, catId || '')}
+                      transactionType={transactionType}
+                    />
                     <div className="grid grid-cols-[1fr_auto] gap-2">
                       <Input
                         type="number"
@@ -305,6 +262,16 @@ export function SplitBuilder({
           </div>
         </div>
       )}
+
+      {/* Add Split Button */}
+      <Button
+        type="button"
+        onClick={handleAddSplit}
+        className="w-full bg-white text-black hover:bg-gray-100 font-medium"
+      >
+        <Plus className="w-4 h-4 mr-2" />
+        Add Split
+      </Button>
 
       {/* Validation Messages */}
       {validation && (

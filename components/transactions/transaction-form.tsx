@@ -794,6 +794,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           splits={splits}
           onSplitsChange={setSplits}
           transactionType={formData.type as 'income' | 'expense'}
+          mainCategory={formData.categoryId || ''}
+          transactionDescription={formData.description || ''}
         />
       )}
 

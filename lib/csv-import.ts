@@ -16,7 +16,7 @@ export interface ColumnMapping {
     | 'notes'
     | 'account'
     | 'type';
-  transform?: 'negate' | 'absolute' | 'trim' | 'uppercase' | 'lowercase';
+  transform?: 'none' | 'negate' | 'absolute' | 'trim' | 'uppercase' | 'lowercase';
   defaultValue?: any;
 }
 
@@ -343,6 +343,8 @@ const applyStringTransform = (value: string, transform?: string): string => {
   if (!value) return value;
 
   switch (transform) {
+    case 'none':
+      return value; // No transformation
     case 'trim':
       return value.trim();
     case 'uppercase':
@@ -350,7 +352,7 @@ const applyStringTransform = (value: string, transform?: string): string => {
     case 'lowercase':
       return value.toLowerCase();
     default:
-      return value.trim();
+      return value.trim(); // Default to trim for backward compatibility
   }
 };
 
