@@ -1,0 +1,86 @@
+import { auth } from '@clerk/nextjs/server';
+import { db } from '@/lib/db';
+import { savingsGoals, savingsMilestones } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
+
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { userId } = await auth();
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  }
+
+  try {
+    const { id } = await params;
+    const body = await request.json();
+    const { currentAmount, increment } = body;
+
+    // Verify user owns this goal
+    const goal = await db
+      .select()
+      .from(savingsGoals)
+      .where(and(eq(savingsGoals.id, id), eq(savingsGoals.userId, userId)))
+      .then((res) => res[0]);
+
+    if (!goal) {
+      return new Response(JSON.stringify({ error: 'Goal not found' }), { status: 404 });
+    }
+
+    const newAmount =
+      currentAmount !== undefined ? currentAmount : (goal.currentAmount || 0) + (increment || 0);
+    const now = new Date().toISOString();
+
+    // Update goal amount
+    await db
+      .update(savingsGoals)
+      .set({ currentAmount: newAmount, updatedAt: now })
+      .where(eq(savingsGoals.id, id));
+
+    // Check and mark milestones as achieved
+    const milestones = await db
+      .select()
+      .from(savingsMilestones)
+      .where(eq(savingsMilestones.goalId, id));
+
+    for (const milestone of milestones) {
+      if (!milestone.achievedAt && newAmount >= milestone.milestoneAmount) {
+        await db
+          .update(savingsMilestones)
+          .set({ achievedAt: now })
+          .where(eq(savingsMilestones.id, milestone.id));
+      }
+    }
+
+    // Update goal status if complete
+    if (newAmount >= goal.targetAmount && goal.status === 'active') {
+      await db
+        .update(savingsGoals)
+        .set({ status: 'completed', updatedAt: now })
+        .where(eq(savingsGoals.id, id));
+    }
+
+    const updatedGoal = await db
+      .select()
+      .from(savingsGoals)
+      .where(eq(savingsGoals.id, id))
+      .then((res) => res[0]);
+
+    const updatedMilestones = await db
+      .select()
+      .from(savingsMilestones)
+      .where(eq(savingsMilestones.goalId, id));
+
+    return new Response(
+      JSON.stringify({
+        ...updatedGoal,
+        milestones: updatedMilestones,
+      }),
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Error updating savings goal progress:', error);
+    return new Response(JSON.stringify({ error: 'Failed to update progress' }), { status: 500 });
+  }
+}

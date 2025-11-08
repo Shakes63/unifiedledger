@@ -8,6 +8,7 @@ import { Plus, TrendingUp, DollarSign, PieChart, ArrowRightLeft, Calendar } from
 import Link from 'next/link';
 import Image from 'next/image';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
+import { SavingsGoalsWidget } from '@/components/dashboard/savings-goals-widget';
 import { useAuth } from '@clerk/nextjs';
 
 export default function DashboardPage() {
@@ -61,7 +62,7 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Quick Actions */}
         <section className="mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
             <Link href="/dashboard/transactions/new">
               <Button className="w-full h-16 text-lg bg-white text-black hover:bg-gray-100 font-medium rounded-lg" size="lg">
                 <Plus className="mr-2 w-5 h-5" />
@@ -84,6 +85,18 @@ export default function DashboardPage() {
               <Button variant="outline" className="w-full h-16 text-lg bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a] font-medium rounded-lg" size="lg">
                 <DollarSign className="mr-2 w-5 h-5" />
                 Manage Bills
+              </Button>
+            </Link>
+            <Link href="/dashboard/goals">
+              <Button variant="outline" className="w-full h-16 text-lg bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a] font-medium rounded-lg" size="lg">
+                <TrendingUp className="mr-2 w-5 h-5" />
+                My Goals
+              </Button>
+            </Link>
+            <Link href="/dashboard/debts">
+              <Button variant="outline" className="w-full h-16 text-lg bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a] font-medium rounded-lg" size="lg">
+                <DollarSign className="mr-2 w-5 h-5" />
+                Manage Debts
               </Button>
             </Link>
           </div>
@@ -135,6 +148,11 @@ export default function DashboardPage() {
               </div>
             </Card>
           </div>
+        </section>
+
+        {/* Savings Goals Widget */}
+        <section className="mb-12">
+          <SavingsGoalsWidget />
         </section>
 
         {/* Recent Transactions */}

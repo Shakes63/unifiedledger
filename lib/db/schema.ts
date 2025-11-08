@@ -1239,3 +1239,223 @@ export const customFieldValuesRelations = relations(customFieldValues, ({ one })
     references: [transactions.id],
   }),
 }));
+
+// ============================================================================
+// SAVINGS GOALS SYSTEM
+// ============================================================================
+
+export const savingsGoals = sqliteTable(
+  'savings_goals',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    targetAmount: real('target_amount').notNull(),
+    currentAmount: real('current_amount').default(0),
+    accountId: text('account_id'),
+    category: text('category', {
+      enum: ['emergency_fund', 'vacation', 'purchase', 'education', 'home', 'vehicle', 'retirement', 'debt_payoff', 'other'],
+    }).default('other'),
+    color: text('color').default('#10b981'),
+    icon: text('icon').default('target'),
+    targetDate: text('target_date'),
+    status: text('status', {
+      enum: ['active', 'paused', 'completed', 'cancelled'],
+    }).default('active'),
+    priority: integer('priority').default(0),
+    monthlyContribution: real('monthly_contribution'),
+    notes: text('notes'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_savings_goals_user').on(table.userId),
+    statusIdx: index('idx_savings_goals_status').on(table.status),
+  })
+);
+
+export const savingsMilestones = sqliteTable(
+  'savings_milestones',
+  {
+    id: text('id').primaryKey(),
+    goalId: text('goal_id').notNull(),
+    userId: text('user_id').notNull(),
+    percentage: integer('percentage').notNull(), // 25, 50, 75, 100
+    milestoneAmount: real('milestone_amount').notNull(),
+    achievedAt: text('achieved_at'),
+    notificationSentAt: text('notification_sent_at'),
+    notes: text('notes'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_savings_milestones_user').on(table.userId),
+    goalIdIdx: index('idx_savings_milestones_goal').on(table.goalId),
+  })
+);
+
+export const savingsGoalsRelations = relations(savingsGoals, ({ many }) => ({
+  milestones: many(savingsMilestones),
+}));
+
+export const savingsMilestonesRelations = relations(savingsMilestones, ({ one }) => ({
+  goal: one(savingsGoals, {
+    fields: [savingsMilestones.goalId],
+    references: [savingsGoals.id],
+  }),
+}));
+
+// ============================================================================
+// DEBT MANAGEMENT SYSTEM
+// ============================================================================
+
+export const debts = sqliteTable(
+  'debts',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    creditorName: text('creditor_name').notNull(),
+    originalAmount: real('original_amount').notNull(),
+    remainingBalance: real('remaining_balance').notNull(),
+    minimumPayment: real('minimum_payment'),
+    interestRate: real('interest_rate').default(0),
+    interestType: text('interest_type', {
+      enum: ['fixed', 'variable', 'none'],
+    }).default('none'),
+    accountId: text('account_id'),
+    type: text('type', {
+      enum: ['credit_card', 'personal_loan', 'student_loan', 'mortgage', 'auto_loan', 'medical', 'other'],
+    }).default('other'),
+    color: text('color').default('#ef4444'),
+    icon: text('icon').default('credit-card'),
+    startDate: text('start_date').notNull(),
+    targetPayoffDate: text('target_payoff_date'),
+    status: text('status', {
+      enum: ['active', 'paused', 'paid_off', 'charged_off'],
+    }).default('active'),
+    priority: integer('priority').default(0),
+    notes: text('notes'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_debts_user').on(table.userId),
+    statusIdx: index('idx_debts_status').on(table.status),
+  })
+);
+
+export const debtPayments = sqliteTable(
+  'debt_payments',
+  {
+    id: text('id').primaryKey(),
+    debtId: text('debt_id').notNull(),
+    userId: text('user_id').notNull(),
+    amount: real('amount').notNull(),
+    paymentDate: text('payment_date').notNull(),
+    transactionId: text('transaction_id'),
+    notes: text('notes'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_debt_payments_user').on(table.userId),
+    debtIdIdx: index('idx_debt_payments_debt').on(table.debtId),
+  })
+);
+
+export const debtPayoffMilestones = sqliteTable(
+  'debt_payoff_milestones',
+  {
+    id: text('id').primaryKey(),
+    debtId: text('debt_id').notNull(),
+    userId: text('user_id').notNull(),
+    percentage: integer('percentage').notNull(), // 25, 50, 75, 100
+    milestoneBalance: real('milestone_balance').notNull(), // Balance at which milestone is hit
+    achievedAt: text('achieved_at'),
+    notificationSentAt: text('notification_sent_at'),
+    notes: text('notes'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_debt_payoff_milestones_user').on(table.userId),
+    debtIdIdx: index('idx_debt_payoff_milestones_debt').on(table.debtId),
+  })
+);
+
+export const debtsRelations = relations(debts, ({ many }) => ({
+  payments: many(debtPayments),
+  milestones: many(debtPayoffMilestones),
+}));
+
+export const debtPaymentsRelations = relations(debtPayments, ({ one }) => ({
+  debt: one(debts, {
+    fields: [debtPayments.debtId],
+    references: [debts.id],
+  }),
+  transaction: one(transactions, {
+    fields: [debtPayments.transactionId],
+    references: [transactions.id],
+  }),
+}));
+
+export const debtPayoffMilestonesRelations = relations(debtPayoffMilestones, ({ one }) => ({
+  debt: one(debts, {
+    fields: [debtPayoffMilestones.debtId],
+    references: [debts.id],
+  }),
+}));
+
+// ============================================================================
+// HOUSEHOLD ACTIVITY LOGGING
+// ============================================================================
+
+export const householdActivityLog = sqliteTable(
+  'household_activity_log',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id'),
+    userId: text('user_id').notNull(),
+    userName: text('user_name'), // Denormalized for display if user is deleted
+    activityType: text('activity_type', {
+      enum: [
+        'transaction_created',
+        'transaction_updated',
+        'transaction_deleted',
+        'bill_created',
+        'bill_updated',
+        'bill_deleted',
+        'bill_paid',
+        'goal_created',
+        'goal_updated',
+        'goal_deleted',
+        'goal_completed',
+        'debt_created',
+        'debt_updated',
+        'debt_deleted',
+        'debt_paid',
+        'debt_payoff_milestone',
+        'member_added',
+        'member_removed',
+        'member_left',
+        'settings_updated',
+        'transfer_created',
+        'transfer_deleted',
+      ],
+    }).notNull(),
+    entityType: text('entity_type', {
+      enum: ['transaction', 'bill', 'goal', 'debt', 'household', 'transfer'],
+    }),
+    entityId: text('entity_id'),
+    entityName: text('entity_name'), // Denormalized name for display
+    description: text('description'),
+    metadata: text('metadata'), // JSON string for additional data
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_activity_log_user').on(table.userId),
+    householdIdIdx: index('idx_activity_log_household').on(table.householdId),
+    typeIdx: index('idx_activity_log_type').on(table.activityType),
+    createdAtIdx: index('idx_activity_log_created_at').on(table.createdAt),
+  })
+);

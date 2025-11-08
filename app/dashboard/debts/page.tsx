@@ -1,0 +1,264 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { DebtPayoffTracker } from '@/components/debts/debt-payoff-tracker';
+import { DebtForm } from '@/components/debts/debt-form';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import { Plus } from 'lucide-react';
+
+export default function DebtsPage() {
+  const [debts, setDebts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedDebt, setSelectedDebt] = useState<any>(null);
+  const [filter, setFilter] = useState<'all' | 'active' | 'paid_off'>('active');
+  const [stats, setStats] = useState<any>(null);
+
+  // Fetch debts
+  useEffect(() => {
+    loadDebts();
+    loadStats();
+  }, [filter]);
+
+  const loadDebts = async () => {
+    try {
+      setLoading(true);
+      const params = filter !== 'all' ? `?status=${filter}` : '';
+      const response = await fetch(`/api/debts${params}`);
+      if (!response.ok) throw new Error('Failed to fetch debts');
+      const data = await response.json();
+      setDebts(data);
+    } catch (error) {
+      toast.error('Failed to load debts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      const response = await fetch('/api/debts/stats');
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    }
+  };
+
+  const loadDebtDetails = async (debtId: string) => {
+    try {
+      const response = await fetch(`/api/debts/${debtId}`);
+      if (!response.ok) throw new Error('Failed to fetch debt');
+      return await response.json();
+    } catch (error) {
+      toast.error('Failed to load debt details');
+      return null;
+    }
+  };
+
+  const handleCreateDebt = async (data: any) => {
+    try {
+      const response = await fetch('/api/debts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to create debt');
+
+      toast.success('Debt added successfully!');
+      setIsFormOpen(false);
+      setSelectedDebt(null);
+      loadDebts();
+      loadStats();
+    } catch (error) {
+      toast.error('Failed to add debt');
+    }
+  };
+
+  const handleUpdateDebt = async (data: any) => {
+    if (!selectedDebt) return;
+
+    try {
+      const response = await fetch(`/api/debts/${selectedDebt.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) throw new Error('Failed to update debt');
+
+      toast.success('Debt updated successfully!');
+      setIsFormOpen(false);
+      setSelectedDebt(null);
+      loadDebts();
+      loadStats();
+    } catch (error) {
+      toast.error('Failed to update debt');
+    }
+  };
+
+  const handleDeleteDebt = async (debtId: string) => {
+    if (!confirm('Are you sure you want to delete this debt?')) return;
+
+    try {
+      const response = await fetch(`/api/debts/${debtId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete debt');
+
+      toast.success('Debt deleted successfully!');
+      loadDebts();
+      loadStats();
+    } catch (error) {
+      toast.error('Failed to delete debt');
+    }
+  };
+
+  const handleEditDebt = async (debt: any) => {
+    const details = await loadDebtDetails(debt.id);
+    if (details) {
+      setSelectedDebt(details);
+      setIsFormOpen(true);
+    }
+  };
+
+  const handlePayment = () => {
+    loadDebts();
+    loadStats();
+  };
+
+  if (loading && !stats) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-gray-400">Loading debts...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Debt Management</h1>
+          <p className="text-gray-400 mt-1">Track and pay off your debts</p>
+        </div>
+        <Button
+          onClick={() => {
+            setSelectedDebt(null);
+            setIsFormOpen(true);
+          }}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Add Debt
+        </Button>
+      </div>
+
+      {/* Summary Stats */}
+      {stats && (
+        <div className="grid grid-cols-4 gap-4">
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
+            <p className="text-gray-400 text-sm">Total Debt</p>
+            <p className="text-2xl font-bold text-red-400 mt-1">
+              ${stats.totalRemainingBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+            </p>
+          </div>
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
+            <p className="text-gray-400 text-sm">Paid Off</p>
+            <p className="text-2xl font-bold text-emerald-400 mt-1">
+              ${stats.totalPaidOff.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+            </p>
+          </div>
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
+            <p className="text-gray-400 text-sm">Progress</p>
+            <p className="text-2xl font-bold text-white mt-1">{Math.round(stats.percentagePaidOff)}%</p>
+          </div>
+          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
+            <p className="text-gray-400 text-sm">Active Debts</p>
+            <p className="text-2xl font-bold text-white mt-1">{stats.activeDebtCount}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Tabs */}
+      <div className="flex gap-2">
+        {(['all', 'active', 'paid_off'] as const).map((status) => (
+          <button
+            key={status}
+            onClick={() => setFilter(status)}
+            className={`px-4 py-2 rounded transition-colors capitalize ${
+              filter === status
+                ? 'bg-emerald-600 text-white'
+                : 'bg-[#1a1a1a] text-gray-400 border border-[#2a2a2a] hover:border-[#3a3a3a]'
+            }`}
+          >
+            {status === 'paid_off' ? 'Paid Off' : status}
+          </button>
+        ))}
+      </div>
+
+      {/* Debts List */}
+      {loading ? (
+        <div className="text-center py-12">
+          <p className="text-gray-400">Loading debts...</p>
+        </div>
+      ) : debts.length === 0 ? (
+        <div className="text-center py-12 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
+          <p className="text-gray-400">No debts yet. You're debt-free!</p>
+          <Button
+            onClick={() => setIsFormOpen(true)}
+            className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            Add a Debt to Track
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {debts.map((debt) => (
+            <DebtPayoffTracker
+              key={debt.id}
+              debt={debt}
+              onEdit={handleEditDebt}
+              onDelete={handleDeleteDebt}
+              onPayment={handlePayment}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Form Dialog */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle>{selectedDebt ? 'Edit Debt' : 'Add New Debt'}</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              {selectedDebt
+                ? 'Update your debt information'
+                : 'Add a new debt to track and manage'}
+            </DialogDescription>
+          </DialogHeader>
+          <DebtForm
+            debt={selectedDebt}
+            onSubmit={selectedDebt ? handleUpdateDebt : handleCreateDebt}
+            onCancel={() => {
+              setIsFormOpen(false);
+              setSelectedDebt(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

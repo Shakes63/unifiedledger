@@ -1,4 +1,3 @@
 check the plan in the docs folder and start on the next task.
 
-update the plan and claude.md files and commit and push the changes
-
+update the plan and claude.md files and commit and push the changes.

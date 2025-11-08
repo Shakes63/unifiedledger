@@ -496,7 +496,7 @@ The application uses a comprehensive dark mode first design system:
 6. ✅ Duplicate detection with Levenshtein distance
 7. ✅ CSV import with auto-detection and column mapping
 
-## Phase 3: Account Management & Calendar View - IN PROGRESS 🟢
+## Phase 3: Account Management & Calendar View - COMPLETED ✅
 
 **Progress: Part 1 & Part 2 completed - 2 major features implemented**
 
@@ -887,6 +887,211 @@ The application uses a comprehensive dark mode first design system:
 
 **Documentation:**
 - `docs/CRON_JOB_SETUP.md` - Comprehensive cron job setup guide
+
+## Phase 5: Goals, Advanced Features & Household Activity - IN PROGRESS 🟢
+
+**Progress: Part 1, Part 2, & Part 3 completed - 3 major feature groups (Savings Goals, Debt Management, Activity Feed)**
+
+### Phase 5 Part 1: Savings Goals System - COMPLETED ✅
+
+#### Database Schema
+- ✅ `savingsGoals` table with goal tracking (target, current amount, category, color, dates, status)
+- ✅ `savingsMilestones` table tracking 25%, 50%, 75%, 100% achievement milestones
+- ✅ Automatic milestone creation on goal creation
+- ✅ Performance indexes for user and status filtering
+
+#### API Endpoints
+- ✅ `POST/GET /api/savings-goals` - Create goals and list with status filtering
+- ✅ `GET/PUT/DELETE /api/savings-goals/[id]` - Individual goal operations with milestone recalculation
+- ✅ `PUT /api/savings-goals/[id]/progress` - Track contributions and auto-detect milestone achievements
+- ✅ `POST /api/notifications/savings-milestones` - Milestone checking and notification creation (supports cron jobs)
+
+#### UI Components
+- ✅ **GoalTracker** - Progress visualization with:
+  - Color-coded progress bars
+  - Milestone tracking with checkmarks
+  - Contribution buttons for adding funds
+  - Edit/delete functionality
+  - Status indicators (Active/Completed/Paused)
+
+- ✅ **GoalForm** - Complete form for creating/editing goals with:
+  - Name, description, target amount, current amount
+  - 9 goal categories (Emergency Fund, Vacation, Education, Home, Vehicle, Retirement, Debt Payoff, etc.)
+  - Color picker with 8 preset colors
+  - Target date and monthly contribution fields
+  - Priority ordering
+
+- ✅ **GoalsPage** (`/dashboard/goals`) - Full goals management interface with:
+  - Summary stats (total target, total saved, overall progress, active goals count)
+  - Filter tabs (All/Active/Completed)
+  - Grid view of all goals with GoalTracker components
+  - Create/edit/delete functionality
+
+- ✅ **SavingsGoalsWidget** - Dashboard integration showing:
+  - Top 3 active goals
+  - Progress indicators for each goal
+  - Link to full goals management page
+
+#### Features
+- ✅ Automatic detection of milestone achievements (25%, 50%, 75%, 100%)
+- ✅ High-priority notifications with goal details
+- ✅ Prevents duplicate notifications
+- ✅ Cron-job compatible endpoint for scheduled checks
+- ✅ Dashboard integration with goal summary stats
+
+### Phase 5 Part 2: Debt Management System - COMPLETED ✅
+
+#### Database Schema
+- ✅ `debts` table with 7 debt types (Credit Card, Personal Loan, Student Loan, Mortgage, Auto Loan, Medical, Other)
+- ✅ `debtPayments` table for tracking individual payments
+- ✅ `debtPayoffMilestones` table for payoff progress tracking
+- ✅ Interest rate tracking (fixed, variable, or none)
+- ✅ Status tracking (active, paused, paid_off, charged_off)
+
+#### API Endpoints
+- ✅ `GET/POST /api/debts` - List and create debts with status filtering
+- ✅ `GET/PUT/DELETE /api/debts/[id]` - Individual debt operations
+- ✅ `GET/POST /api/debts/[id]/payments` - Record payments and auto-check milestones
+- ✅ `GET /api/debts/stats` - Comprehensive debt statistics and payoff projections
+- ✅ `POST /api/notifications/debt-milestones` - Cron-compatible milestone checking
+
+#### UI Components
+- ✅ **DebtPayoffTracker** - Progress visualization with:
+  - Progress bars showing amount paid off
+  - Payment recording buttons
+  - Interest rate display
+  - Milestone tracking with checkmarks
+  - Edit/delete functionality
+  - Status indicators (Active/Completed/Paused)
+
+- ✅ **DebtForm** - Complete form for creating/editing debts with:
+  - Name, creditor name, original amount, remaining balance
+  - 7 debt types with interest configuration
+  - Minimum payment tracking
+  - Start date and target payoff date
+  - Priority-based sorting for debt payoff strategies
+  - Color picker with 8 preset colors
+
+- ✅ **DebtsPage** (`/dashboard/debts`) - Full debt management interface with:
+  - Summary stats (total debt, paid off, progress %, active debts count)
+  - Filter tabs (All/Active/Paid Off)
+  - Grid view of all debts with DebtPayoffTracker components
+  - Create/edit/delete functionality
+
+#### Features
+- ✅ Interest rate tracking (fixed, variable, or none)
+- ✅ Automatic milestone detection (25%, 50%, 75%, 100% paid off)
+- ✅ Debt payoff projections based on minimum payments
+- ✅ Payment recording with automatic balance updates
+- ✅ Status tracking (active, paused, paid_off, charged_off)
+- ✅ Priority-based sorting for debt payoff strategies
+- ✅ High-priority notifications for milestone achievements
+- ✅ Dashboard integration with "Manage Debts" button
+
+### Phase 5 Part 3: Household Activity Feed System - COMPLETED ✅
+
+#### Database Schema
+- ✅ `householdActivityLog` table with 20+ activity types
+- ✅ Comprehensive indexing for fast queries by user, household, type, and date
+- ✅ Denormalized user and entity names for display if records are deleted
+- ✅ JSON metadata storage for rich activity context
+
+#### Activity Types Tracked
+- ✅ Transactions (created, updated, deleted)
+- ✅ Bills (created, updated, deleted, paid)
+- ✅ Goals (created, updated, deleted, completed)
+- ✅ Debts (created, updated, deleted, paid, milestone achieved)
+- ✅ Transfers (created, deleted)
+- ✅ Household members (added, removed, left)
+- ✅ Settings changes
+
+#### API Endpoints
+- ✅ `GET /api/households/[id]/activity-log` - Fetch activity with filtering and pagination
+
+#### UI Components
+- ✅ **ActivityFeed** - Real-time feed of household activities with:
+  - Color-coded activity icons
+  - User attribution
+  - Timestamps with relative time display
+  - Metadata for additional context
+  - Pagination support
+
+#### Activity Logger Utilities
+- ✅ Core logging functions in `lib/household/activity-logger.ts`
+- ✅ Helper functions for common activities (transactions, bills, goals, debts, transfers, members)
+- ✅ Automatic metadata and description generation
+- ✅ Comprehensive audit trail of all household financial activities
+
+#### Features
+- ✅ Comprehensive audit trail of all household financial activities
+- ✅ Pagination support for large activity logs
+- ✅ Filtering by activity type or entity type
+- ✅ User attribution with fallback for deleted users
+- ✅ JSON metadata storage for rich activity context
+
+### Phase 5 Architecture
+
+**Backend Components:**
+
+*Savings Goals:*
+- `app/api/savings-goals/route.ts` - CRUD with milestone generation
+- `app/api/savings-goals/[id]/route.ts` - Individual operations
+- `app/api/savings-goals/[id]/progress/route.ts` - Progress tracking
+- `lib/notifications/savings-milestones.ts` - Milestone checking and notification service
+- `app/api/notifications/savings-milestones/route.ts` - Cron endpoint
+
+*Debt Management:*
+- `app/api/debts/route.ts` - CRUD with milestone generation
+- `app/api/debts/[id]/route.ts` - Individual operations
+- `app/api/debts/[id]/payments/route.ts` - Payment recording and milestone checking
+- `app/api/debts/stats/route.ts` - Comprehensive debt statistics
+- `lib/notifications/debt-milestones.ts` - Milestone checking and notification service
+- `app/api/notifications/debt-milestones/route.ts` - Cron endpoint
+
+*Household Activity:*
+- `lib/household/activity-logger.ts` - Activity logging utility with helper functions
+- `app/api/households/[id]/activity-log/route.ts` - Activity log retrieval with pagination
+
+**Frontend Components:**
+
+*Savings Goals:*
+- `components/goals/goal-tracker.tsx` - Goal progress visualization
+- `components/goals/goal-form.tsx` - Goal creation/editing form
+- `components/dashboard/savings-goals-widget.tsx` - Dashboard widget
+- `app/dashboard/goals/page.tsx` - Full goals management page
+
+*Debt Management:*
+- `components/debts/debt-payoff-tracker.tsx` - Debt progress visualization
+- `components/debts/debt-form.tsx` - Debt creation/editing form
+- `app/dashboard/debts/page.tsx` - Full debt management page
+
+*Household Activity:*
+- `components/household/activity-feed.tsx` - Real-time activity feed component
+
+### Dashboard Integration
+- ✅ Added "My Goals" button to quick actions linking to `/dashboard/goals`
+- ✅ Added "Manage Debts" button to quick actions linking to `/dashboard/debts`
+- ✅ Integrated SavingsGoalsWidget into dashboard for goal overview
+- ✅ Adjusted dashboard grid from 5 to 6 quick action buttons
+
+### Phase 5 Summary Stats
+
+**Components Created:** 7
+- 2 Tracker components (Goals, Debts)
+- 2 Form components (Goals, Debts)
+- 1 Dashboard widget (Savings Goals)
+- 1 Activity Feed component
+- 1 Full-featured management page (Debts)
+
+**API Endpoints Created:** 10+
+- Savings goals CRUD + progress tracking + notifications
+- Debt CRUD + payments + statistics + notifications
+- Activity log retrieval with filtering
+
+**Database Tables Created:** 5
+- `savingsGoals` & `savingsMilestones`
+- `debts`, `debtPayments`, & `debtPayoffMilestones`
+- `householdActivityLog`
 
 ## Important Notes
 - The development plan is located in `docs/finance-app-development-plan.md`
