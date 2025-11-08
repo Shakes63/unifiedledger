@@ -140,3 +140,4 @@ pnpm build         # Build for production
 - Use `pnpm dev` to start the development server (runs on http://localhost:3000)
 - Git repository is initialized and ready for commits
 - PWA manifest needs to be configured for mobile app functionality
+- never start dev servers for the purpose of leaving them running for the user. You can start them to see if they successfully run but then always kill the process after.

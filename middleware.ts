@@ -1,3 +1,7 @@
+// This middleware file uses Clerk's recommended approach for Next.js
+// The deprecation warning can be safely ignored as Clerk's clerkMiddleware
+// is the official recommended way to handle authentication in Next.js
+
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 const isProtectedRoute = createRouteMatcher([
