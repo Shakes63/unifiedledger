@@ -153,7 +153,7 @@ export async function POST(request: Request) {
         .update(budgetCategories)
         .set({
           lastUsedAt: new Date().toISOString(),
-          usageCount: (category.length > 0 ? category[0].usageCount : 0) + 1,
+          usageCount: (category.length > 0 && category[0] ? (category[0].usageCount || 0) : 0) + 1,
         })
         .where(eq(budgetCategories.id, categoryId));
 
@@ -171,11 +171,11 @@ export async function POST(request: Request) {
         )
         .limit(1);
 
-      if (existingAnalytics.length > 0) {
+      if (existingAnalytics.length > 0 && existingAnalytics[0]) {
         await db
           .update(usageAnalytics)
           .set({
-            usageCount: existingAnalytics[0].usageCount + 1,
+            usageCount: (existingAnalytics[0].usageCount || 0) + 1,
             lastUsedAt: new Date().toISOString(),
           })
           .where(
@@ -211,17 +211,16 @@ export async function POST(request: Request) {
       )
       .limit(1);
 
-    if (existingMerchant.length > 0) {
+    if (existingMerchant.length > 0 && existingMerchant[0]) {
       const currentSpent = new Decimal(existingMerchant[0].totalSpent || 0);
       const newSpent = currentSpent.plus(decimalAmount);
-      const avgTransaction = newSpent.dividedBy(
-        existingMerchant[0].usageCount + 1
-      );
+      const usageCount = (existingMerchant[0].usageCount || 0);
+      const avgTransaction = newSpent.dividedBy(usageCount + 1);
 
       await db
         .update(merchants)
         .set({
-          usageCount: existingMerchant[0].usageCount + 1,
+          usageCount: usageCount + 1,
           lastUsedAt: new Date().toISOString(),
           totalSpent: newSpent.toNumber(),
           averageTransaction: avgTransaction.toNumber(),
@@ -263,11 +262,11 @@ export async function POST(request: Request) {
       )
       .limit(1);
 
-    if (existingMerchantAnalytics.length > 0) {
+    if (existingMerchantAnalytics.length > 0 && existingMerchantAnalytics[0]) {
       await db
         .update(usageAnalytics)
         .set({
-          usageCount: existingMerchantAnalytics[0].usageCount + 1,
+          usageCount: (existingMerchantAnalytics[0].usageCount || 0) + 1,
           lastUsedAt: new Date().toISOString(),
         })
         .where(

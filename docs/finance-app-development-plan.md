@@ -15556,10 +15556,24 @@ export const applyWeeklyUsageDecay = async () => {
 ### Phase 2: Transaction Intelligence & Speed Features (Week 3-4)
 **Goal:** Make data entry as fast as possible
 
-**Status: 10/24 tasks completed (41.7% progress)** 🟢
+**Status: 11/24 tasks completed (45.8% progress)** 🟢
+
+#### Completed Tasks (Session 4 - Current):
+- ✅ **Enhanced transaction history with repeat functionality & templates system**
+  - **New `transactionTemplates` table** - Save transactions as reusable templates
+  - **Transaction history endpoint** (`/api/transactions/history`) - Browse past transactions with optional account filtering
+  - **Template CRUD endpoints** (`/api/transactions/templates` + `/api/templates/[id]`) - Create, read, update, delete templates
+  - **Repeat from template endpoint** (`/api/transactions/repeat`) - Create new transactions from templates with rule auto-application
+  - **TransactionHistory component** - Display history with repeat/template-save buttons
+  - **TransactionTemplatesManager component** - Modal dialog for selecting and managing templates
+  - **Enhanced TransactionForm** - "Use Template" and "Save as Template" buttons for quick template workflow
+  - **New page** `/dashboard/transaction-history` - Dedicated history and templates management page
+  - **Template usage tracking** - Templates track usage count and last-used timestamp (most-used first)
+  - **Proper null-checking** - Fixed all TypeScript null safety issues across repeat/template endpoints
+  - Status: Zero TypeScript errors, ready for production
 
 #### Completed Tasks (Session 3):
-- ✅ Transaction history with "repeat" functionality
+- ✅ Transaction history with "repeat" functionality (previous implementation)
   - Repeat button on transaction list with one-click duplication
   - Repeat functionality on dashboard recent transactions widget
   - Automatic date update to today's date when repeating

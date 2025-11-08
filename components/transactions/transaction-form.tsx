@@ -12,10 +12,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { AccountSelector } from './account-selector';
 import { CategorySelector } from './category-selector';
 import { MerchantAutocomplete, MerchantSelectionData } from './merchant-autocomplete';
-import { Plus, X } from 'lucide-react';
+import { TransactionTemplatesManager } from './transaction-templates-manager';
+import { Plus, X, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 type TransactionType = 'income' | 'expense' | 'transfer_in' | 'transfer_out';
@@ -30,6 +38,9 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
 
   const [formData, setFormData] = useState({
     accountId: '',
@@ -86,6 +97,57 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
         ...prev,
         categoryId: merchantData.suggestedCategoryId || '',
       }));
+    }
+  };
+
+  const handleLoadTemplate = (template: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      accountId: template.accountId,
+      categoryId: template.categoryId || '',
+      amount: template.amount.toString(),
+      description: template.description || '',
+      notes: template.notes || '',
+      type: template.type,
+    }));
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) {
+      setError('Template name is required');
+      return;
+    }
+
+    setSavingTemplate(true);
+    try {
+      const response = await fetch('/api/transactions/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: templateName,
+          description: formData.description,
+          accountId: formData.accountId,
+          categoryId: formData.categoryId || null,
+          amount: parseFloat(formData.amount),
+          type: formData.type,
+          notes: formData.notes || null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save template');
+      }
+
+      setSaveTemplateOpen(false);
+      setTemplateName('');
+      setError(null);
+      // Show success message
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save template');
+    } finally {
+      setSavingTemplate(false);
     }
   };
 
@@ -250,6 +312,65 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
           value={formData.notes}
           onChange={handleInputChange}
         />
+      </div>
+
+      {/* Template Buttons */}
+      <div className="flex gap-2 pt-2">
+        <TransactionTemplatesManager
+          onTemplateSelected={handleLoadTemplate}
+          showTrigger={true}
+        />
+
+        <Dialog open={saveTemplateOpen} onOpenChange={setSaveTemplateOpen}>
+          <DialogTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className="bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]"
+              disabled={!formData.accountId || !formData.amount || !formData.description}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save as Template
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+            <DialogHeader>
+              <DialogTitle>Save Transaction as Template</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="template-name" className="text-sm font-medium text-white">
+                  Template Name *
+                </Label>
+                <Input
+                  id="template-name"
+                  placeholder="e.g., Monthly Grocery Shopping"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  className="bg-[#242424] border-[#3a3a3a] text-white"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSaveTemplate}
+                  disabled={savingTemplate || !templateName.trim()}
+                  className="flex-1 bg-white text-black hover:bg-gray-100 font-medium"
+                >
+                  {savingTemplate ? 'Saving...' : 'Save Template'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSaveTemplateOpen(false)}
+                  disabled={savingTemplate}
+                  className="bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Submit Buttons */}

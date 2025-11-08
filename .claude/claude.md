@@ -379,3 +379,4 @@ The application uses a comprehensive dark mode first design system:
 - Import schema from `lib/db/schema.ts`
 - Always verify user owns the data before returning
 - Use proper indexes from schema for performance
+- turbopack is no longer experimental in Nextjs 16 just run it normally

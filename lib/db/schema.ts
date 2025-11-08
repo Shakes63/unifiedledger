@@ -708,6 +708,34 @@ export const accountDeletionRequests = sqliteTable(
 );
 
 // ============================================================================
+// TRANSACTION TEMPLATES
+// ============================================================================
+
+export const transactionTemplates = sqliteTable(
+  'transaction_templates',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    accountId: text('account_id').notNull(),
+    categoryId: text('category_id'),
+    amount: real('amount').notNull(),
+    type: text('type', {
+      enum: ['income', 'expense', 'transfer_in', 'transfer_out'],
+    }).notNull(),
+    notes: text('notes'),
+    usageCount: integer('usage_count').default(0),
+    lastUsedAt: text('last_used_at'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_transaction_templates_user').on(table.userId),
+  })
+);
+
+// ============================================================================
 // CATEGORIZATION RULES
 // ============================================================================
 
@@ -883,6 +911,17 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   preferences: one(notificationPreferences, {
     fields: [notifications.userId],
     references: [notificationPreferences.userId],
+  }),
+}));
+
+export const transactionTemplatesRelations = relations(transactionTemplates, ({ one }) => ({
+  account: one(accounts, {
+    fields: [transactionTemplates.accountId],
+    references: [accounts.id],
+  }),
+  category: one(budgetCategories, {
+    fields: [transactionTemplates.categoryId],
+    references: [budgetCategories.id],
   }),
 }));
 
