@@ -104,6 +104,10 @@ export default function TaxPage() {
     );
   }
 
+  // Check if there's any data for the selected year
+  const hasData = data.summary.byCategory && data.summary.byCategory.length > 0;
+  const hasDeductions = data.summary.byCategory.filter((c) => c.isDeductible).length > 0;
+
   const deductionData = data.summary.byCategory
     .filter((c) => c.isDeductible)
     .map((c) => ({
@@ -136,7 +140,24 @@ export default function TaxPage() {
         </Select>
       </div>
 
+      {/* No Data State */}
+      {!hasData && (
+        <Card className="text-center py-12">
+          <CardContent>
+            <FileText className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">No Tax Data Available</h3>
+            <p className="text-gray-400 mb-4">
+              There are no transactions with tax-deductible categories for {year}.
+            </p>
+            <p className="text-sm text-gray-500">
+              Start tracking your deductible expenses by marking categories as "Tax Deductible" in the Categories page.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Key Metrics */}
+      {hasData && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -197,9 +218,10 @@ export default function TaxPage() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Top Deductions Chart */}
-      {deductionData.length > 0 && (
+      {hasDeductions && deductionData.length > 0 && (
         <BarChart
           title="Top Tax Deductions"
           description={`Largest deduction categories for ${year}`}
@@ -210,6 +232,7 @@ export default function TaxPage() {
       )}
 
       {/* Detailed Breakdown */}
+      {hasData && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* By Form Type */}
         <Card>
@@ -282,8 +305,10 @@ export default function TaxPage() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Detailed Deductions Table */}
+      {hasDeductions && (
       <Card>
         <CardHeader>
           <CardTitle>All Deduction Categories</CardTitle>
@@ -323,8 +348,10 @@ export default function TaxPage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Helpful Tips */}
+      {hasData && (
       <Card className="bg-amber-950/30 border-amber-700/50">
         <CardHeader>
           <CardTitle className="text-amber-400 flex items-center gap-2">
@@ -350,6 +377,7 @@ export default function TaxPage() {
           </p>
         </CardContent>
       </Card>
+      )}
       </div>
     </div>
   );

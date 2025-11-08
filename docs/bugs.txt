@@ -112,4 +112,105 @@ COMPLETED BUGS:
      - Updated sign calculation to handle 'transfer' type
    - Transaction details page now loads without errors for all transaction types
 
-PENDING BUGS:
+✅ 29. Fixed tax dashboard and sales tax pages throwing errors with no data:
+   - Root cause: Pages tried to render charts and tables with empty data arrays
+   - Solution for Tax Dashboard:
+     - Added hasData check (data.summary.byCategory.length > 0)
+     - Added hasDeductions check for filtering tax-deductible items
+     - Wrapped all content sections (metrics, charts, tables, tips) with conditional rendering
+     - Added friendly empty state card with FileText icon
+     - Shows helpful message: "No Tax Data Available" with instructions
+   - Solution for Sales Tax Dashboard:
+     - Added hasData check (data.quarters.length > 0)
+     - Wrapped all content sections (metrics, chart, filing status, deadlines, tips) with conditional rendering
+     - Added empty state card with DollarSign icon
+     - Shows helpful message with step-by-step setup instructions
+   - Both pages now gracefully handle empty data without errors
+   - Year selector still available to check other years
+   - Updated files: app/dashboard/tax/page.tsx, app/dashboard/sales-tax/page.tsx
+
+✅ 30. Updated transaction display layout to show merchant, description, and account:
+   - Root cause: Transaction list showed only merchant OR description, not both
+   - Solution:
+     - Refactored getTransactionDisplay() to return object with merchant and description separately
+     - New layout structure:
+       * Merchant name (bold, white, top line) - if merchant exists
+       * Description (gray text below merchant, or main text if no merchant)
+       * Date and split indicator (gray text)
+       * Amount (right side, green for income, white for expenses)
+       * Account name (below amount, gray text with 100px max width)
+     - Transfer transactions show "FromAccount → ToAccount" as description
+     - When no merchant: description appears as bold main text
+     - When merchant exists: merchant bold on top, description gray below
+   - Updated file: app/dashboard/transactions/page.tsx
+   - New display provides better context with both merchant and description visible
+
+✅ 31. Delete transactions functionality - Already implemented:
+   - Feature request: "There should be a way to delete transactions"
+   - Status: Already fully working
+   - Location: Transaction details page at /dashboard/transactions/[id]
+   - UI Features:
+     - Delete button with Trash2 icon in top right corner
+     - Red destructive button styling
+     - Confirmation dialog: "Are you sure you want to delete this transaction? This action cannot be undone."
+     - Loading state ("Deleting...") while processing
+     - Success toast notification on completion
+     - Auto-redirects back to transactions list after deletion
+   - API Features:
+     - DELETE endpoint at /api/transactions/[id]/route.ts (lines 236-327)
+     - Verifies user authentication and transaction ownership
+     - Automatically deletes associated transaction splits
+     - Reverses balance changes on the account (using Decimal.js)
+     - Proper error handling and logging
+   - Files: components/transactions/transaction-details.tsx, app/api/transactions/[id]/route.ts
+
+✅ 32. Removed transfers page and added account-based transaction filtering:
+   - Part 1: Remove transfers page
+     - Removed "Transfers" link from sidebar navigation (Financial section)
+     - Removed ArrowRightLeft icon import (no longer used)
+     - Transfers can now only be created via transaction form (type: "Transfer")
+   - Part 2: Account-based transaction filtering
+     - Added "View Transactions" button to AccountCard with ArrowRight icon
+     - Button links to `/dashboard/transactions?accountId={accountId}`
+     - Enhanced transactions page to accept accountId URL parameter
+     - Auto-filters transactions by account when accountId is present in URL
+     - Updated page header to show account name when filtered
+       * "Account Name Transactions" instead of just "Transactions"
+       * Subtitle shows "X transactions for this account"
+     - Uses useSearchParams hook for URL parameter handling
+     - Automatic search trigger when account filter is detected
+   - Files updated:
+     - components/accounts/account-card.tsx (added View Transactions button)
+     - components/navigation/sidebar.tsx (removed Transfers link)
+     - app/dashboard/transactions/page.tsx (added URL parameter handling and auto-filtering)
+   - User experience:
+     - Click account card → immediately see all transactions for that account
+     - Transfer creation handled through standard transaction form
+     - Cleaner navigation with one less menu item
+
+✅ 33. Updated transaction type filters to use unified transfer type:
+   - Root cause: Advanced search still showed "Transfer In" and "Transfer Out" filters
+   - Solution:
+     - Updated transactionTypes array in advanced-search.tsx
+     - Replaced two separate transfer types with single "Transfer" option
+     - Old: transfer_in (Transfer In), transfer_out (Transfer Out)
+     - New: transfer (Transfer)
+     - Matches the unified transfer type system implemented in bug #32
+   - File updated: components/transactions/advanced-search.tsx (lines 75-79)
+   - Result: Search filters now correctly align with current transaction type system
+
+✅ 34. Fixed bills API 500 Internal Server Error:
+   - Root cause: Invalid SQL query in GET /api/bills endpoint
+   - Issue: Query was trying to select `upcomingInstance: billInstances` but billInstances was never joined to the query
+   - This caused a SQL error when the query executed
+   - Solution:
+     - Removed `upcomingInstance: billInstances` from all three select statements (lines 31, 45, 59)
+     - Upcoming instances are already fetched separately with a proper query (lines 79-98)
+     - Query now only selects: bill, category (leftJoin), account (leftJoin)
+   - Files updated: app/api/bills/route.ts
+   - Result: Bills page now loads successfully without errors
+   - Also fixes: Merchant deletion error (was same bills API error)
+
+PENDING BUGS (ALL RESOLVED):
+(No pending bugs - all reported issues have been fixed!)
+

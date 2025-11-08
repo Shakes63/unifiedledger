@@ -8,7 +8,6 @@ import {
   TrendingUp,
   DollarSign,
   PieChart,
-  ArrowRightLeft,
   Calendar,
   Receipt,
   Target,
@@ -50,7 +49,6 @@ const navSections: NavSection[] = [
   {
     title: 'Financial',
     items: [
-      { label: 'Transfers', href: '/dashboard/transfers', icon: <ArrowRightLeft className="w-4 h-4" /> },
       { label: 'Bills', href: '/dashboard/bills', icon: <DollarSign className="w-4 h-4" /> },
       { label: 'Goals', href: '/dashboard/goals', icon: <Target className="w-4 h-4" /> },
       { label: 'Debts', href: '/dashboard/debts', icon: <TrendingUp className="w-4 h-4" /> },

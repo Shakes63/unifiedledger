@@ -29,7 +29,6 @@ export async function GET(request: Request) {
       result = await db
         .select({
           bill: bills,
-          upcomingInstance: billInstances,
           category: budgetCategories,
           account: accounts,
         })
@@ -44,7 +43,6 @@ export async function GET(request: Request) {
       result = await db
         .select({
           bill: bills,
-          upcomingInstance: billInstances,
           category: budgetCategories,
           account: accounts,
         })
@@ -59,7 +57,6 @@ export async function GET(request: Request) {
       result = await db
         .select({
           bill: bills,
-          upcomingInstance: billInstances,
           category: budgetCategories,
           account: accounts,
         })

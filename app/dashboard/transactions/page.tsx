@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +50,9 @@ interface Merchant {
 }
 
 export default function TransactionsPage() {
+  const searchParams = useSearchParams();
+  const accountIdFromUrl = searchParams.get('accountId');
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -62,6 +66,17 @@ export default function TransactionsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [currentFilters, setCurrentFilters] = useState<any>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
+
+  // Auto-filter by account if accountId is in URL
+  useEffect(() => {
+    if (accountIdFromUrl && accounts.length > 0) {
+      const filters = {
+        accountIds: [accountIdFromUrl],
+      };
+      setCurrentFilters(filters);
+      performSearch(filters, 0);
+    }
+  }, [accountIdFromUrl, accounts]);
 
   // Fetch initial data
   useEffect(() => {
@@ -247,15 +262,18 @@ export default function TransactionsPage() {
     return account?.name || 'Unknown';
   };
 
-  const getTransactionDisplay = (transaction: Transaction): string => {
+  const getTransactionDisplay = (transaction: Transaction): { merchant: string | null; description: string } => {
     if (transaction.type === 'transfer') {
-      return `${getAccountName(transaction.accountId)} → ${getAccountName(transaction.transferId)}`;
+      return {
+        merchant: null,
+        description: `${getAccountName(transaction.accountId)} → ${getAccountName(transaction.transferId)}`,
+      };
     }
     const merchant = getMerchantName(transaction.merchantId);
-    if (merchant) {
-      return merchant;
-    }
-    return transaction.description;
+    return {
+      merchant,
+      description: transaction.description,
+    };
   };
 
   return (
@@ -279,9 +297,14 @@ export default function TransactionsPage() {
               />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Transactions</h1>
+              <h1 className="text-2xl font-bold text-foreground">
+                {accountIdFromUrl && accounts.length > 0
+                  ? `${accounts.find((a) => a.id === accountIdFromUrl)?.name || 'Account'} Transactions`
+                  : 'Transactions'}
+              </h1>
               <p className="text-sm text-muted-foreground">
                 {totalResults} transaction{totalResults !== 1 ? 's' : ''}
+                {accountIdFromUrl && ' for this account'}
               </p>
             </div>
           </div>
@@ -332,58 +355,76 @@ export default function TransactionsPage() {
           </Card>
         ) : (
           <div className="space-y-2">
-            {transactions.map((transaction) => (
-              <Link key={transaction.id} href={`/dashboard/transactions/${transaction.id}`}>
-                <Card className="p-2 border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg cursor-pointer">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <div className="p-1.5 bg-[#242424] rounded flex-shrink-0">
-                        {getTransactionIcon(transaction.type)}
+            {transactions.map((transaction) => {
+              const display = getTransactionDisplay(transaction);
+              const accountName = getAccountName(transaction.accountId);
+
+              return (
+                <Link key={transaction.id} href={`/dashboard/transactions/${transaction.id}`}>
+                  <Card className="p-2 border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg cursor-pointer">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="p-1.5 bg-[#242424] rounded flex-shrink-0">
+                          {getTransactionIcon(transaction.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          {/* Merchant name on top (bold) */}
+                          {display.merchant && (
+                            <p className="font-semibold text-white text-sm truncate">
+                              {display.merchant}
+                            </p>
+                          )}
+                          {/* Description below merchant (or standalone if no merchant) */}
+                          <p className={`text-xs truncate ${display.merchant ? 'text-gray-400' : 'font-medium text-white text-sm'}`}>
+                            {display.description}
+                          </p>
+                          {/* Date and split indicator */}
+                          <p className="text-xs text-gray-500">
+                            {new Date(transaction.date).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                            {transaction.isSplit && ' • Split'}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-white text-sm truncate">
-                          {getTransactionDisplay(transaction)}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(transaction.date).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                          {transaction.isSplit && ' • Split'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <div className="text-right">
-                        <p
-                          className={`font-semibold text-sm ${
-                            transaction.type === 'income'
-                              ? 'text-emerald-400'
-                              : 'text-white'
-                          }`}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <div className="text-right">
+                          {/* Amount */}
+                          <p
+                            className={`font-semibold text-sm ${
+                              transaction.type === 'income'
+                                ? 'text-emerald-400'
+                                : 'text-white'
+                            }`}
+                          >
+                            {transaction.type === 'income' ? '+' : '-'}$
+                            {transaction.amount.toFixed(2)}
+                          </p>
+                          {/* Account name below amount */}
+                          <p className="text-xs text-gray-500 truncate max-w-[100px]">
+                            {accountName}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleRepeatTransaction(transaction);
+                          }}
+                          disabled={repeatingTxId === transaction.id}
+                          className="h-7 w-7 text-gray-400 hover:text-white hover:bg-[#242424] flex-shrink-0"
+                          title="Repeat this transaction with today's date"
                         >
-                          {transaction.type === 'income' ? '+' : '-'}$
-                          {transaction.amount.toFixed(2)}
-                        </p>
+                          <Copy className="w-3 h-3" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleRepeatTransaction(transaction);
-                        }}
-                        disabled={repeatingTxId === transaction.id}
-                        className="h-7 w-7 text-gray-400 hover:text-white hover:bg-[#242424] flex-shrink-0"
-                        title="Repeat this transaction with today's date"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
                     </div>
-                  </div>
-                </Card>
-              </Link>
-            ))}
+                  </Card>
+                </Link>
+              );
+            })}
           </div>
         )}
 

@@ -75,8 +75,7 @@ export function AdvancedSearch({
   const transactionTypes = [
     { value: 'income', label: 'Income' },
     { value: 'expense', label: 'Expense' },
-    { value: 'transfer_in', label: 'Transfer In' },
-    { value: 'transfer_out', label: 'Transfer Out' },
+    { value: 'transfer', label: 'Transfer' },
   ];
 
   const handleCategoryToggle = (categoryId: string) => {

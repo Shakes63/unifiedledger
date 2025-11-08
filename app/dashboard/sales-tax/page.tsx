@@ -144,6 +144,9 @@ export default function SalesTaxPage() {
     );
   }
 
+  // Check if there's any sales tax data for the selected year
+  const hasData = data.quarters && data.quarters.length > 0;
+
   const chartData = data.quarters.map((q) => ({
     name: `Q${q.quarter}`,
     sales: q.totalSales,
@@ -187,7 +190,29 @@ export default function SalesTaxPage() {
         </div>
       </div>
 
+      {/* No Data State */}
+      {!hasData && (
+        <Card className="text-center py-12">
+          <CardContent>
+            <DollarSign className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white mb-2">No Sales Tax Data Available</h3>
+            <p className="text-gray-400 mb-4">
+              There are no sales transactions from business accounts for {year}.
+            </p>
+            <p className="text-sm text-gray-500 mb-2">
+              To track sales tax:
+            </p>
+            <ul className="text-sm text-gray-500 text-left max-w-md mx-auto space-y-1">
+              <li>1. Mark an account as a "Business Account" in the Accounts page</li>
+              <li>2. Create income transactions in that business account</li>
+              <li>3. Sales tax will be automatically calculated and tracked</li>
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Key Metrics */}
+      {hasData && (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -248,8 +273,10 @@ export default function SalesTaxPage() {
           </CardContent>
         </Card>
       </div>
+      )}
 
       {/* Sales vs Tax Chart */}
+      {hasData && (
       <BarChart
         title="Quarterly Sales & Tax"
         description={`Sales and tax collected by quarter for ${year}`}
@@ -259,8 +286,10 @@ export default function SalesTaxPage() {
           { dataKey: 'tax', fill: '#10b981', name: 'Tax' },
         ]}
       />
+      )}
 
       {/* Quarterly Filing Status */}
+      {hasData && (
       <Card>
         <CardHeader>
           <CardTitle>Quarterly Filing Status</CardTitle>
@@ -349,8 +378,10 @@ export default function SalesTaxPage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Filing Deadlines */}
+      {hasData && (
       <Card>
         <CardHeader>
           <CardTitle>Important Dates</CardTitle>
@@ -377,8 +408,10 @@ export default function SalesTaxPage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Tax Compliance Tips */}
+      {hasData && (
       <Card className="bg-blue-950/30 border-blue-700/50">
         <CardHeader>
           <CardTitle className="text-blue-400 flex items-center gap-2">
@@ -396,6 +429,7 @@ export default function SalesTaxPage() {
           <p>✓ Consider sales tax software for accurate tracking</p>
         </CardContent>
       </Card>
+      )}
       </div>
     </div>
   );

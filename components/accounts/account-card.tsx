@@ -2,7 +2,8 @@
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Edit2, Trash2, Copy } from 'lucide-react';
+import { MoreVertical, Edit2, Trash2, Copy, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,7 +53,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
     : null;
 
   return (
-    <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl hover:border-[#3a3a3a] transition-all">
+    <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl hover:border-[#3a3a3a] transition-all relative group">
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">
           <div
@@ -176,6 +177,18 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
           <p className="text-gray-400 text-sm font-mono">•••• {account.accountNumberLast4}</p>
         </div>
       )}
+
+      {/* View Transactions Link */}
+      <Link href={`/dashboard/transactions?accountId=${account.id}`}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full mt-4 text-gray-400 hover:text-white hover:bg-[#242424] border-[#2a2a2a]"
+        >
+          View Transactions
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </Link>
     </Card>
   );
 }
