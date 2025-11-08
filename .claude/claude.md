@@ -21,7 +21,7 @@ A comprehensive mobile-first personal finance application built with Next.js, fe
 
 ### UI & Styling
 - `tailwindcss@4.1.17` - Utility-first CSS
-- `shadcn/ui` - Component library (14 components installed)
+- `shadcn/ui` - Component library (17 components installed)
 - `lucide-react@0.553.0` - Icons
 - `class-variance-authority` - Component variant management
 - `tailwindcss-animate` - Animation utilities
@@ -61,6 +61,8 @@ unifiedledger/
 │   │   ├── accounts/                  # Account management endpoints (usage-sorted)
 │   │   ├── categories/                # Category management endpoints (usage-sorted)
 │   │   ├── merchants/                 # Merchant listing (usage-sorted)
+│   │   ├── transfers/                 # Transfer CRUD endpoints (usage-based suggestions)
+│   │   ├── calendar/                  # Calendar data endpoints (month/day summaries)
 │   │   ├── rules/                     # Categorization rules CRUD
 │   │   │   ├── route.ts              # List, create, update, delete rules
 │   │   │   ├── test/route.ts         # Test rules against transactions
@@ -76,6 +78,8 @@ unifiedledger/
 │   │   ├── transactions/
 │   │   │   ├── page.tsx               # Transactions list
 │   │   │   └── new/page.tsx           # New transaction form
+│   │   ├── transfers/                 # Transfer management page
+│   │   ├── calendar/                  # Calendar view page
 │   │   └── ...
 │   ├── layout.tsx                     # Root layout with dark mode
 │   ├── page.tsx                       # Landing page
@@ -84,7 +88,7 @@ unifiedledger/
 │   ├── sign-up/
 │   └── ...
 ├── components/
-│   ├── ui/                            # shadcn/ui components
+│   ├── ui/                            # shadcn/ui components (17 total)
 │   ├── dashboard/
 │   │   └── recent-transactions.tsx    # Dashboard widget
 │   ├── transactions/                  # Transaction components
@@ -94,6 +98,17 @@ unifiedledger/
 │   │   ├── quick-transaction-modal.tsx
 │   │   ├── merchant-autocomplete.tsx
 │   │   └── transaction-templates.tsx
+│   ├── transfers/                     # Transfer components
+│   │   ├── transfer-form.tsx          # Transfer creation form
+│   │   ├── transfer-list.tsx          # Transfer history display
+│   │   └── quick-transfer-modal.tsx   # Quick transfer modal
+│   ├── calendar/                      # Calendar components
+│   │   ├── calendar-header.tsx        # Navigation and view controls
+│   │   ├── calendar-month.tsx         # Month grid layout
+│   │   ├── calendar-week.tsx          # Week layout
+│   │   ├── calendar-day.tsx           # Day cell component
+│   │   ├── calendar-day-modal.tsx     # Day detail modal
+│   │   └── transaction-indicators.tsx # Transaction/bill indicators
 │   ├── rules/                         # Categorization rules components
 │   │   ├── rule-builder.tsx           # Visual condition builder
 │   │   ├── rules-manager.tsx          # Rule listing and management
@@ -234,7 +249,7 @@ The application uses a comprehensive dark mode first design system:
 ### Setup & Configuration
 ✅ Project initialized with Next.js 16
 ✅ All core dependencies installed
-✅ shadcn/ui initialized with 14 components
+✅ shadcn/ui initialized with 17 components (14 initial + textarea, checkbox, scroll-area)
 ✅ TypeScript configured
 ✅ Tailwind CSS v4 configured
 ✅ ESLint and Prettier configured
@@ -267,9 +282,9 @@ The application uses a comprehensive dark mode first design system:
 ✅ `/api/households/[id]/invitations` - Invitations
 ✅ `/api/suggestions` - Smart suggestions
 
-## Phase 2: Transaction Intelligence & Speed Features - IN PROGRESS 🟢
+## Phase 2: Transaction Intelligence & Speed Features - COMPLETED ✅
 
-**Progress: 13/24 tasks completed (54%)**
+**Progress: 24/24 tasks completed (100%)**
 
 ### Completed Phase 2 Features
 
@@ -448,12 +463,76 @@ The application uses a comprehensive dark mode first design system:
 6. ✅ Duplicate detection with Levenshtein distance
 7. ✅ CSV import with auto-detection and column mapping
 
-### Phase 3 Goals (After Phase 2)
-1. Multi-account transfers with usage-based suggestions
-2. Calendar view with transaction indicators
-3. Budget tracking and analytics
-4. Bill management and payment tracking
-5. Recurring transaction support
+## Phase 3: Account Management & Calendar View - IN PROGRESS 🟢
+
+**Progress: Part 1 & Part 2 completed - 2 major features implemented**
+
+### Phase 3 Part 1: Multi-Account Transfers with Usage-Based Suggestions - COMPLETED ✅
+
+#### Transfer Features
+- ✅ **Transfer API Endpoints:**
+  - `POST /api/transfers` - Create new transfers
+  - `GET /api/transfers` - List transfers with pagination and date filtering
+  - `GET /api/transfers/[id]` - Get individual transfer details
+  - `PUT /api/transfers/[id]` - Update transfer metadata
+  - `DELETE /api/transfers/[id]` - Delete transfers and revert balances
+  - `GET /api/transfers/suggest` - Get suggested transfer pairs based on usage
+
+#### Transfer Components & UI
+- ✅ **TransferForm** - Full form with validation, balance checking, quick transfer buttons
+- ✅ **TransferList** - Transfer history with details modal, delete functionality
+- ✅ **QuickTransferModal** - Modal dialog for quick access from dashboard
+- ✅ **Transfers Page** - Complete transfers management page at `/dashboard/transfers`
+
+#### Transfer Features
+- ✅ Balance synchronization between accounts (uses Decimal.js for precision)
+- ✅ Automatic creation of paired transactions (transfer_out / transfer_in)
+- ✅ Usage-based transfer pair suggestions for one-tap transfers
+- ✅ Optional transfer fees support
+- ✅ Full transaction audit trail with linked transactions
+- ✅ Cascade deletion with automatic balance reversion
+- ✅ Dashboard integration with "Transfer Money" button
+
+### Phase 3 Part 2: Calendar View with Transaction Indicators - COMPLETED ✅
+
+#### Calendar Components
+- ✅ **CalendarHeader** - Navigation and view controls (month/week toggle)
+- ✅ **CalendarMonth** - Month grid layout with 7-column grid (Sun-Sat)
+- ✅ **CalendarWeek** - Week horizontal layout for focused daily viewing
+- ✅ **CalendarDay** - Individual day cell with transaction/bill indicators
+- ✅ **CalendarDayModal** - Day detail modal with transactions and bills
+- ✅ **TransactionIndicators** - Income/expense/transfer/bill visualization
+
+#### Calendar Features
+- ✅ **Visual Indicators:**
+  - Color-coded transaction types (income=emerald, expense=red, transfer=blue)
+  - Bill status indicators (due=amber, overdue=red)
+  - Transaction count badges on each day
+
+- ✅ **Navigation:**
+  - Quick date buttons (Today, Tomorrow, Next Week, Start of Month)
+  - Month navigation with previous/next buttons
+  - Month/year display with current view mode
+
+- ✅ **Day Detail Modal:**
+  - List of all transactions for selected day with amounts
+  - List of all bills with due dates and status
+  - Summary statistics (income, expenses, transfers, total spent)
+  - Quick add transaction button
+
+- ✅ **API Endpoints:**
+  - `GET /api/calendar/month` - Month summary with day-by-day breakdown
+  - `GET /api/calendar/day` - Detailed transactions and bills for a day
+
+- ✅ **Dashboard Integration:**
+  - "Calendar View" button in dashboard quick actions
+  - Seamless integration with existing transaction system
+
+### Phase 3 Remaining Goals
+1. Budget tracking and analytics
+2. Bill management and payment tracking
+3. Recurring transaction support
+4. Advanced analytics and reporting
 
 ## Important Notes
 - The development plan is located in `docs/finance-app-development-plan.md`
