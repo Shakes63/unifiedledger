@@ -12,6 +12,7 @@ export async function GET(
 ) {
   try {
     const { userId } = await auth();
+    const { id } = await params;
 
     if (!userId) {
       return Response.json(
@@ -25,7 +26,7 @@ export async function GET(
       .from(customFields)
       .where(
         and(
-          eq(customFields.id, params.id),
+          eq(customFields.id, id),
           eq(customFields.userId, userId)
         )
       )
@@ -58,6 +59,7 @@ export async function PUT(
 ) {
   try {
     const { userId } = await auth();
+    const { id } = await params;
 
     if (!userId) {
       return Response.json(
@@ -85,7 +87,7 @@ export async function PUT(
       .from(customFields)
       .where(
         and(
-          eq(customFields.id, params.id),
+          eq(customFields.id, id),
           eq(customFields.userId, userId)
         )
       )
@@ -136,12 +138,12 @@ export async function PUT(
         sortOrder: sortOrder ?? field[0].sortOrder,
         updatedAt: now,
       })
-      .where(eq(customFields.id, params.id));
+      .where(eq(customFields.id, id));
 
     const updated = await db
       .select()
       .from(customFields)
-      .where(eq(customFields.id, params.id))
+      .where(eq(customFields.id, id))
       .limit(1);
 
     return Response.json({
@@ -164,6 +166,7 @@ export async function DELETE(
 ) {
   try {
     const { userId } = await auth();
+    const { id } = await params;
 
     if (!userId) {
       return Response.json(
@@ -178,7 +181,7 @@ export async function DELETE(
       .from(customFields)
       .where(
         and(
-          eq(customFields.id, params.id),
+          eq(customFields.id, id),
           eq(customFields.userId, userId)
         )
       )
@@ -194,10 +197,10 @@ export async function DELETE(
     // Delete all field values first
     await db
       .delete(customFieldValues)
-      .where(eq(customFieldValues.customFieldId, params.id));
+      .where(eq(customFieldValues.customFieldId, id));
 
     // Then delete the field
-    await db.delete(customFields).where(eq(customFields.id, params.id));
+    await db.delete(customFields).where(eq(customFields.id, id));
 
     return Response.json(
       { message: 'Field deleted' },

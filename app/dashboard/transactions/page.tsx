@@ -279,7 +279,7 @@ export default function TransactionsPage() {
           <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] text-center py-12 rounded-xl">
             <p className="text-gray-400">Loading transactions...</p>
           </Card>
-        ) : filteredTransactions.length === 0 ? (
+        ) : transactions.length === 0 ? (
           <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] text-center py-12 rounded-xl">
             <p className="text-gray-400 mb-4">
               {transactions.length === 0
@@ -292,7 +292,7 @@ export default function TransactionsPage() {
           </Card>
         ) : (
           <div className="space-y-3">
-            {filteredTransactions.map((transaction) => (
+            {transactions.map((transaction) => (
               <Link key={transaction.id} href={`/dashboard/transactions/${transaction.id}`}>
                 <Card className="p-4 border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg cursor-pointer">
                   <div className="flex items-center justify-between gap-3">

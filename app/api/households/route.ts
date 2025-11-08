@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { households, householdMembers } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     }
 
     // Get all households the user is a member of
-    const userHouseholds = await db
+    const result = await db
       .select({
         id: households.id,
         name: households.name,
@@ -25,9 +25,10 @@ export async function GET(request: Request) {
         createdAt: households.createdAt,
       })
       .from(households)
-      .where(eq(households.createdBy, userId));
+      .innerJoin(householdMembers, eq(households.id, householdMembers.householdId))
+      .where(eq(householdMembers.userId, userId));
 
-    return Response.json(userHouseholds);
+    return Response.json(result);
   } catch (error) {
     console.error('Household fetch error:', error);
     return Response.json(

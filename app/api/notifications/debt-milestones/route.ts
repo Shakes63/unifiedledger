@@ -1,5 +1,8 @@
 import { auth } from '@clerk/nextjs/server';
+import { db } from '@/lib/db';
+import { debts } from '@/lib/db/schema';
 import { checkAndCreateDebtPayoffMilestoneNotifications } from '@/lib/notifications/debt-milestones';
+import { sql } from 'drizzle-orm';
 
 export async function POST(request: Request) {
   // For cron jobs, we might not have auth context
@@ -22,17 +25,19 @@ export async function POST(request: Request) {
         { status: 200 }
       );
     } else if (isCronJob) {
-      // Check all users' debt milestones
-      const allUsers = await db.select().from(users);
+      // Check all users' debt milestones - get unique users who have debts
+      const usersWithDebts = await db
+        .selectDistinct({ userId: debts.userId })
+        .from(debts);
       let processedCount = 0;
       let errorCount = 0;
 
-      for (const user of allUsers) {
+      for (const user of usersWithDebts) {
         try {
-          await checkAndCreateDebtPayoffMilestoneNotifications(user.id);
+          await checkAndCreateDebtPayoffMilestoneNotifications(user.userId);
           processedCount++;
         } catch (error) {
-          console.error(`Error processing user ${user.id}:`, error);
+          console.error(`Error processing user ${user.userId}:`, error);
           errorCount++;
         }
       }

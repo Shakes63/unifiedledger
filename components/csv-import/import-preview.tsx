@@ -194,7 +194,7 @@ export function ImportPreview({
           Cancel
         </Button>
         <Button
-          onClick={() => onConfirm(Array.from(selectedRows))}
+          onClick={() => onConfirm(Array.from(selectedRows).map(String))}
           disabled={selectedRows.size === 0 || isLoading}
         >
           {isLoading ? 'Importing...' : `Import ${selectedRows.size} Records`}

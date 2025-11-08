@@ -19,7 +19,6 @@ export async function POST(request: Request) {
     const result = await checkAndCreateBillReminders();
 
     return Response.json({
-      success: true,
       message: 'Bill reminders checked and notifications created',
       ...result,
       timestamp: new Date().toISOString(),
@@ -52,7 +51,6 @@ export async function GET(request: Request) {
     const result = await checkAndCreateBillReminders();
 
     return Response.json({
-      success: true,
       message: 'Bill reminders checked',
       ...result,
       timestamp: new Date().toISOString(),

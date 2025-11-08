@@ -38,8 +38,12 @@ export function OnlineStatusIcon() {
   }
 
   return isOnline ? (
-    <Wifi className="w-4 h-4 text-[#10b981]" title="Online" />
+    <div title="Online">
+      <Wifi className="w-4 h-4 text-[#10b981]" />
+    </div>
   ) : (
-    <WifiOff className="w-4 h-4 text-[#fbbf24]" title="Offline" />
+    <div title="Offline">
+      <WifiOff className="w-4 h-4 text-[#fbbf24]" />
+    </div>
   );
 }

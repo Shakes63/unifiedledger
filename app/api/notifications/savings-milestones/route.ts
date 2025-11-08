@@ -1,4 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
+import { db } from '@/lib/db';
+import { savingsGoals } from '@/lib/db/schema';
 import { checkAndCreateSavingsMilestoneNotifications } from '@/lib/notifications/savings-milestones';
 
 export async function POST(request: Request) {
@@ -22,17 +24,19 @@ export async function POST(request: Request) {
         { status: 200 }
       );
     } else if (isCronJob) {
-      // Check all users' milestones
-      const allUsers = await db.select().from(users);
+      // Check all users' milestones - get unique users who have savings goals
+      const usersWithGoals = await db
+        .selectDistinct({ userId: savingsGoals.userId })
+        .from(savingsGoals);
       let processedCount = 0;
       let errorCount = 0;
 
-      for (const user of allUsers) {
+      for (const user of usersWithGoals) {
         try {
-          await checkAndCreateSavingsMilestoneNotifications(user.id);
+          await checkAndCreateSavingsMilestoneNotifications(user.userId);
           processedCount++;
         } catch (error) {
-          console.error(`Error processing user ${user.id}:`, error);
+          console.error(`Error processing user ${user.userId}:`, error);
           errorCount++;
         }
       }

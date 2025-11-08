@@ -13,6 +13,7 @@ export async function GET(
 ) {
   try {
     const { userId } = await auth();
+    const { id } = await params;
 
     if (!userId) {
       return Response.json(
@@ -26,7 +27,7 @@ export async function GET(
       .from(notifications)
       .where(
         and(
-          eq(notifications.id, params.id),
+          eq(notifications.id, id),
           eq(notifications.userId, userId)
         )
       )
@@ -56,6 +57,7 @@ export async function PATCH(
 ) {
   try {
     const { userId } = await auth();
+    const { id } = await params;
 
     if (!userId) {
       return Response.json(
@@ -73,7 +75,7 @@ export async function PATCH(
       .from(notifications)
       .where(
         and(
-          eq(notifications.id, params.id),
+          eq(notifications.id, id),
           eq(notifications.userId, userId)
         )
       )
@@ -87,17 +89,17 @@ export async function PATCH(
     }
 
     if (isRead === true) {
-      await markAsRead(params.id, userId);
+      await markAsRead(id, userId);
     }
 
     if (isDismissed === true) {
-      await markAsDismissed(params.id, userId);
+      await markAsDismissed(id, userId);
     }
 
     const updated = await db
       .select()
       .from(notifications)
-      .where(eq(notifications.id, params.id))
+      .where(eq(notifications.id, id))
       .limit(1);
 
     return Response.json(updated[0]);
@@ -117,6 +119,7 @@ export async function DELETE(
 ) {
   try {
     const { userId } = await auth();
+    const { id } = await params;
 
     if (!userId) {
       return Response.json(
@@ -131,7 +134,7 @@ export async function DELETE(
       .from(notifications)
       .where(
         and(
-          eq(notifications.id, params.id),
+          eq(notifications.id, id),
           eq(notifications.userId, userId)
         )
       )
@@ -146,7 +149,7 @@ export async function DELETE(
 
     await db
       .delete(notifications)
-      .where(eq(notifications.id, params.id));
+      .where(eq(notifications.id, id));
 
     return Response.json(
       { message: 'Notification deleted' },

@@ -40,7 +40,9 @@ export async function checkAndCreateDebtPayoffMilestoneNotifications(userId: str
             title: `🎉 Progress Milestone: ${debt.name}`,
             message: `You've reached ${milestoneText} of your ${debt.creditorName} debt! Keep it up!`,
             priority: 'high',
-            metadata: {
+            entityType: 'debt',
+            entityId: debt.id,
+            metadata: JSON.stringify({
               debtId: debt.id,
               debtName: debt.name,
               creditorName: debt.creditorName,
@@ -48,7 +50,7 @@ export async function checkAndCreateDebtPayoffMilestoneNotifications(userId: str
               milestoneBalance: milestone.milestoneBalance,
               remainingBalance: debt.remainingBalance,
               originalAmount: debt.originalAmount,
-            },
+            }),
             isRead: false,
             createdAt: now,
           });

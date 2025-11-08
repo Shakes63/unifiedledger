@@ -14,13 +14,16 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const status = url.searchParams.get('status');
 
-    let query = db.select().from(savingsGoals).where(eq(savingsGoals.userId, userId));
-
+    const conditions = [eq(savingsGoals.userId, userId)];
     if (status) {
-      query = query.where(eq(savingsGoals.status, status as any));
+      conditions.push(eq(savingsGoals.status, status as any));
     }
 
-    const goals = await query.orderBy(savingsGoals.priority);
+    const goals = await db
+      .select()
+      .from(savingsGoals)
+      .where(and(...conditions))
+      .orderBy(savingsGoals.priority);
 
     return new Response(JSON.stringify(goals), { status: 200 });
   } catch (error) {

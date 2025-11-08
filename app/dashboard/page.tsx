@@ -1,12 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { UserButton } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Plus, TrendingUp, DollarSign, PieChart, ArrowRightLeft, Calendar } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { SavingsGoalsWidget } from '@/components/dashboard/savings-goals-widget';
 import { useAuth } from '@clerk/nextjs';
@@ -35,31 +33,8 @@ export default function DashboardPage() {
   }, [isLoaded]);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-elevated/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative w-8 h-8">
-              <Image
-                src="/logo.png"
-                alt="UnifiedLedger Logo"
-                width={32}
-                height={32}
-                className="object-contain"
-              />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground font-sans">Unified Ledger</h1>
-              <p className="text-sm text-muted-foreground">Personal Finance Management</p>
-            </div>
-          </div>
-          <UserButton />
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto">
         {/* Quick Actions */}
         <section className="mb-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
@@ -165,7 +140,7 @@ export default function DashboardPage() {
           </div>
           <RecentTransactions />
         </section>
-      </main>
+      </div>
     </div>
   );
 }

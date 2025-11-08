@@ -54,13 +54,15 @@ export async function POST(request: Request) {
       description,
       amount,
       date,
-      userTransactions.map((tx) => ({
-        id: tx.id,
-        description: tx.description,
-        amount: tx.amount,
-        date: tx.date,
-        type: tx.type,
-      })),
+      userTransactions
+        .filter((tx) => tx.type !== null)
+        .map((tx) => ({
+          id: tx.id,
+          description: tx.description,
+          amount: tx.amount,
+          date: tx.date,
+          type: tx.type!,
+        })),
       {
         descriptionThreshold,
         amountThreshold,

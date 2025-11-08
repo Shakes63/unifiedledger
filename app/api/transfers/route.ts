@@ -191,8 +191,7 @@ export async function POST(request: Request) {
         id: fromTransactionId,
         userId,
         accountId: fromAccountId,
-        categoryId: 'transfer_out', // Special category for transfers
-        amount: totalDebit.negated().toString(), // Negative for withdrawal
+        amount: parseFloat(totalDebit.negated().toString()), // Negative for withdrawal
         description: `Transfer to ${toAccount[0].name}`,
         date,
         type: 'transfer_out',
@@ -206,8 +205,7 @@ export async function POST(request: Request) {
         id: toTransactionId,
         userId,
         accountId: toAccountId,
-        categoryId: 'transfer_in', // Special category for transfers
-        amount: transferAmount.toString(), // Positive for deposit
+        amount: parseFloat(transferAmount.toString()), // Positive for deposit
         description: `Transfer from ${fromAccount[0].name}`,
         date,
         type: 'transfer_in',
@@ -222,13 +220,13 @@ export async function POST(request: Request) {
         userId,
         fromAccountId,
         toAccountId,
-        amount: transferAmount.toString(),
+        amount: parseFloat(transferAmount.toString()),
         description,
         date,
         status: 'completed',
         fromTransactionId,
         toTransactionId,
-        fees: transferFees.toString(),
+        fees: parseFloat(transferFees.toString()),
         notes,
         createdAt: new Date().toISOString(),
       });

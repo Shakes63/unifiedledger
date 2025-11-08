@@ -23,15 +23,16 @@ export async function checkAndCreateSavingsMilestoneNotifications(userId: string
 
       // Check for newly achieved milestones
       for (const milestone of milestones) {
+        const currentAmount = goal.currentAmount ?? 0;
         // Check if milestone has been achieved but notification not sent yet
         if (
           milestone.achievedAt &&
           !milestone.notificationSentAt &&
-          goal.currentAmount >= milestone.milestoneAmount
+          currentAmount >= milestone.milestoneAmount
         ) {
           // Create notification
           const notificationId = nanoid();
-          const milestoneText = `${milestone.percentage}% (${goal.currentAmount >= goal.targetAmount ? 'Complete!' : `$${milestone.milestoneAmount.toFixed(2)}`})`;
+          const milestoneText = `${milestone.percentage}% (${currentAmount >= goal.targetAmount ? 'Complete!' : `$${milestone.milestoneAmount.toFixed(2)}`})`;
 
           await db.insert(notifications).values({
             id: notificationId,
@@ -40,14 +41,16 @@ export async function checkAndCreateSavingsMilestoneNotifications(userId: string
             title: `🎉 Milestone Reached: ${goal.name}`,
             message: `You've reached ${milestoneText} of your ${goal.name} goal!`,
             priority: 'high',
-            metadata: {
+            entityType: 'goal',
+            entityId: goal.id,
+            metadata: JSON.stringify({
               goalId: goal.id,
               goalName: goal.name,
               percentage: milestone.percentage,
               amount: milestone.milestoneAmount,
-              currentAmount: goal.currentAmount,
+              currentAmount: currentAmount,
               targetAmount: goal.targetAmount,
-            },
+            }),
             isRead: false,
             createdAt: now,
           });

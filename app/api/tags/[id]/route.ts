@@ -12,6 +12,7 @@ export async function GET(
 ) {
   try {
     const { userId } = await auth();
+    const { id } = await params;
 
     if (!userId) {
       return Response.json(
@@ -25,7 +26,7 @@ export async function GET(
       .from(tags)
       .where(
         and(
-          eq(tags.id, params.id),
+          eq(tags.id, id),
           eq(tags.userId, userId)
         )
       )
@@ -55,6 +56,7 @@ export async function PUT(
 ) {
   try {
     const { userId } = await auth();
+    const { id } = await params;
 
     if (!userId) {
       return Response.json(
@@ -72,7 +74,7 @@ export async function PUT(
       .from(tags)
       .where(
         and(
-          eq(tags.id, params.id),
+          eq(tags.id, id),
           eq(tags.userId, userId)
         )
       )
@@ -117,12 +119,12 @@ export async function PUT(
         icon: icon ?? tag[0].icon,
         updatedAt: now,
       })
-      .where(eq(tags.id, params.id));
+      .where(eq(tags.id, id));
 
     const updated = await db
       .select()
       .from(tags)
-      .where(eq(tags.id, params.id))
+      .where(eq(tags.id, id))
       .limit(1);
 
     return Response.json(updated[0]);
@@ -142,6 +144,7 @@ export async function DELETE(
 ) {
   try {
     const { userId } = await auth();
+    const { id } = await params;
 
     if (!userId) {
       return Response.json(
@@ -156,7 +159,7 @@ export async function DELETE(
       .from(tags)
       .where(
         and(
-          eq(tags.id, params.id),
+          eq(tags.id, id),
           eq(tags.userId, userId)
         )
       )
@@ -172,10 +175,10 @@ export async function DELETE(
     // Delete all transaction associations first
     await db
       .delete(transactionTags)
-      .where(eq(transactionTags.tagId, params.id));
+      .where(eq(transactionTags.tagId, id));
 
     // Then delete the tag
-    await db.delete(tags).where(eq(tags.id, params.id));
+    await db.delete(tags).where(eq(tags.id, id));
 
     return Response.json(
       { message: 'Tag deleted' },

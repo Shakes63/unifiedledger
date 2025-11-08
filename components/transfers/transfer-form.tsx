@@ -21,8 +21,8 @@ const transferSchema = z.object({
     'Amount must be a positive number'
   ),
   date: z.string().min(1, 'Date is required'),
-  description: z.string().default('Transfer'),
-  fees: z.string().default('0').refine(
+  description: z.string().min(1, 'Description is required'),
+  fees: z.string().refine(
     (val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0,
     'Fees must be a positive number or zero'
   ),

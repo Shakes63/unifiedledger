@@ -5,7 +5,7 @@ import { eq, and, desc } from 'drizzle-orm';
 
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ householdId: string }> }
 ) {
   const { userId } = await auth();
   if (!userId) {
@@ -13,13 +13,13 @@ export async function GET(
   }
 
   try {
-    const { id } = await params;
+    const { householdId } = await params;
 
     // Verify user is a member of this household
     const membership = await db
       .select()
       .from(householdMembers)
-      .where(and(eq(householdMembers.householdId, id), eq(householdMembers.userId, userId)))
+      .where(and(eq(householdMembers.householdId, householdId), eq(householdMembers.userId, userId)))
       .then((res) => res[0]);
 
     if (!membership) {
@@ -35,26 +35,27 @@ export async function GET(
     const activityType = url.searchParams.get('activityType');
     const entityType = url.searchParams.get('entityType');
 
-    // Build query
-    let query = db
-      .select()
-      .from(householdActivityLog)
-      .where(eq(householdActivityLog.householdId, id));
-
+    // Build query conditions
+    const conditions = [eq(householdActivityLog.householdId, householdId)];
     if (activityType) {
-      query = query.where(eq(householdActivityLog.activityType, activityType as any));
+      conditions.push(eq(householdActivityLog.activityType, activityType as any));
     }
-
     if (entityType) {
-      query = query.where(eq(householdActivityLog.entityType, entityType as any));
+      conditions.push(eq(householdActivityLog.entityType, entityType as any));
     }
 
     // Get total count
-    const allResults = await query;
+    const allResults = await db
+      .select()
+      .from(householdActivityLog)
+      .where(and(...conditions));
     const totalCount = allResults.length;
 
     // Apply pagination and sorting
-    const activities = await query
+    const activities = await db
+      .select()
+      .from(householdActivityLog)
+      .where(and(...conditions))
       .orderBy(desc(householdActivityLog.createdAt))
       .limit(limit)
       .offset(offset);
