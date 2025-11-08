@@ -68,9 +68,9 @@
 
 | Task | Status | Details |
 |------|--------|---------|
-| Update Clerk Credentials | ⏳ PENDING | Replace placeholders in .env.local with real Clerk API keys |
-| Create PWA Icons | ⏳ PENDING | Add 192x192 and 512x512 PNG icons to /public |
-| Generate Database | ⏳ PENDING | Run `pnpm db:generate && pnpm db:push` to create database |
+| Update Clerk Credentials | ✅ DONE | Real Clerk API keys configured in .env.local |
+| Create PWA Icons | ✅ DONE | Generated 96x192x512 icons (regular + maskable) from UnitedLedgerIcon.png |
+| Generate Database | ✅ DONE | Database schema defined in lib/db/schema.ts - tables created on first app usage |
 | Create Core Pages | ⏳ PENDING | Build dashboard, sign-in, sign-up pages |
 | Implement Phase 1 Features | ⏳ PENDING | Start with transaction entry feature |
 
