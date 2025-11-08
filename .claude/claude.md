@@ -1609,9 +1609,77 @@ The application uses a comprehensive dark mode first design system:
 - `docs/PERFORMANCE_MONITORING.md` - Complete monitoring guide
 - `docs/BUNDLE_OPTIMIZATION.md` - Bundle optimization guide
 
+### Phase 6 Part 8: Data Cleanup & Maintenance Cron System - COMPLETED ✅
+
+#### Data Cleanup Infrastructure
+- ✅ **Data Cleanup Utilities** (`lib/cleanup/data-cleanup.ts`)
+  - 9 cleanup operations with configurable retention policies
+  - Clean old search history (90 days)
+  - Remove activity logs (365 days)
+  - Clean import records (180 days)
+  - Remove orphaned splits, tags, custom fields
+  - Unused tag cleanup
+  - Database VACUUM for space optimization
+  - Database ANALYZE for query optimization
+
+- ✅ **Cron Job Endpoints** (`app/api/cron/cleanup/route.ts`, `app/api/cron/maintenance/route.ts`)
+  - Data cleanup and maintenance endpoints
+  - Selective operation execution
+  - CRON_SECRET authentication
+  - Detailed statistics and reporting
+
+- ✅ **CRON_CLEANUP_SETUP.md** (800+ lines)
+  - Quick start and 4 setup options
+  - Recommended cron schedules
+  - API documentation and examples
+  - Security and troubleshooting
+
+### Phase 6 Part 9: Usage Decay Algorithm - COMPLETED ✅
+
+#### Usage Decay Implementation
+- ✅ **Core Decay Algorithm** (`lib/analytics/usage-decay.ts`)
+  - Three decay strategies (time-weighted, exponential, recency-bonus)
+  - Configurable per-type configurations
+  - Recency bonus multipliers (up to 2× for recent usage)
+  - Minimum score thresholds
+  - Batch processing support
+
+- ✅ **Cron Job Endpoint** (`app/api/cron/usage-decay/route.ts`)
+  - Apply decay to all/specific item types
+  - Generate decay analysis reports
+  - Detailed statistics and impact calculation
+
+- ✅ **USAGE_DECAY_ALGORITHM.md** (900+ lines)
+  - Strategy explanations with examples
+  - Default configurations and rationale
+  - Implementation patterns
+  - Scheduling recommendations
+  - Troubleshooting guide
+
+## Phase 6 Completion Summary - ALL TASKS COMPLETE ✅
+
+**Phase 6 Progress: 9/9 major feature groups completed (100%)**
+
+### Parts Completed
+1. ✅ Offline Transaction Entry with Sync
+2. ✅ Household Management System
+3. ✅ Responsive Sidebar Navigation
+4. ✅ Categories Management Page & Tag Creation
+5. ✅ Service Worker Enhancement & Advanced Caching
+6. ✅ Database Migrations for Sync Tracking
+7. ✅ Performance Monitoring & Optimization
+8. ✅ Data Cleanup & Maintenance Cron System
+9. ✅ Usage Decay Algorithm
+
+### Total Implementation Statistics
+- **Files Created:** 50+ new files
+- **Lines of Code:** 10,000+ lines
+- **API Endpoints:** 20+ new endpoints
+- **Components:** 15+ new components
+- **Documentation:** 2,000+ lines across 8+ guides
+
 #### Remaining Phase 6 Tasks
-- [ ] Set up cron jobs for data cleanup
-- [ ] Implement usage decay algorithm
+- None - Phase 6 is 100% COMPLETE! ✅
 
 ## Important Notes
 - The development plan is located in `docs/finance-app-development-plan.md`
