@@ -15,8 +15,9 @@ interface UpdateSearchInput {
 // GET single saved search
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId } = await auth();
 
@@ -32,7 +33,7 @@ export async function GET(
       .from(savedSearchFilters)
       .where(
         and(
-          eq(savedSearchFilters.id, params.id),
+          eq(savedSearchFilters.id, id),
           eq(savedSearchFilters.userId, userId)
         )
       )
@@ -61,8 +62,9 @@ export async function GET(
 // PUT update saved search
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId } = await auth();
 
@@ -82,7 +84,7 @@ export async function PUT(
       .from(savedSearchFilters)
       .where(
         and(
-          eq(savedSearchFilters.id, params.id),
+          eq(savedSearchFilters.id, id),
           eq(savedSearchFilters.userId, userId)
         )
       )
@@ -120,7 +122,7 @@ export async function PUT(
     await db
       .update(savedSearchFilters)
       .set(updateData)
-      .where(eq(savedSearchFilters.id, params.id));
+      .where(eq(savedSearchFilters.id, id));
 
     return Response.json({ message: 'Saved search updated successfully' });
   } catch (error) {
@@ -135,8 +137,9 @@ export async function PUT(
 // DELETE saved search
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId } = await auth();
 
@@ -153,7 +156,7 @@ export async function DELETE(
       .from(savedSearchFilters)
       .where(
         and(
-          eq(savedSearchFilters.id, params.id),
+          eq(savedSearchFilters.id, id),
           eq(savedSearchFilters.userId, userId)
         )
       )
@@ -168,7 +171,7 @@ export async function DELETE(
 
     await db
       .delete(savedSearchFilters)
-      .where(eq(savedSearchFilters.id, params.id));
+      .where(eq(savedSearchFilters.id, id));
 
     return Response.json({ message: 'Saved search deleted successfully' });
   } catch (error) {
@@ -183,8 +186,9 @@ export async function DELETE(
 // POST use saved search (increment usage count)
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
     const { userId } = await auth();
 
@@ -200,7 +204,7 @@ export async function POST(
       .from(savedSearchFilters)
       .where(
         and(
-          eq(savedSearchFilters.id, params.id),
+          eq(savedSearchFilters.id, id),
           eq(savedSearchFilters.userId, userId)
         )
       )
@@ -222,12 +226,12 @@ export async function POST(
         usageCount: newUsageCount,
         lastUsedAt: new Date().toISOString(),
       })
-      .where(eq(savedSearchFilters.id, params.id));
+      .where(eq(savedSearchFilters.id, id));
 
     const updated = await db
       .select()
       .from(savedSearchFilters)
-      .where(eq(savedSearchFilters.id, params.id))
+      .where(eq(savedSearchFilters.id, id))
       .limit(1);
 
     return Response.json({

@@ -83,20 +83,20 @@ export async function POST(
 
         // Try to match categorization rules
         const ruleMatch = await findMatchingRule(
+          userId,
           {
             description: mappedData.description,
             amount: typeof mappedData.amount === 'number'
               ? mappedData.amount
               : new Decimal(mappedData.amount).toNumber(),
-            accountId: mappedData.accountId,
+            accountName: mappedData.accountName || 'Unknown',
             date: mappedData.date,
             notes: mappedData.notes,
-          },
-          userId
+          }
         );
 
-        if (ruleMatch) {
-          categoryId = ruleMatch.categoryId;
+        if (ruleMatch.matched && ruleMatch.rule) {
+          categoryId = ruleMatch.rule.categoryId;
         } else if (mappedData.category) {
           // Use provided category if available
           categoryId = mappedData.category;
