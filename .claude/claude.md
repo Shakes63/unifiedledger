@@ -1122,6 +1122,102 @@ The application uses a comprehensive dark mode first design system:
 - `debts`, `debtPayments`, & `debtPayoffMilestones`
 - `householdActivityLog`
 
+## Phase 6: Mobile Optimization & Performance - IN PROGRESS 🟢
+
+**Progress: 1/8 major tasks completed (12.5%) - Phase 6 Started**
+
+### Phase 6 Part 1: Offline Transaction Entry with Sync - COMPLETED ✅
+
+#### Infrastructure Components Created
+
+**Offline Queue Manager** (`lib/offline/transaction-queue.ts`)
+- ✅ IndexedDB storage for pending transactions
+- ✅ Full CRUD operations with transaction support
+- ✅ Multi-field indexing (userId, syncStatus, timestamp, composite)
+- ✅ Sync status tracking (pending → syncing → synced/error)
+- ✅ Retry attempt tracking and error logging
+- ✅ Singleton pattern for memory efficiency
+
+**Sync Manager** (`lib/offline/offline-sync.ts`)
+- ✅ Synchronize pending transactions to server
+- ✅ Retry logic with max 3 attempts per transaction
+- ✅ 30-second timeout per request (AbortSignal)
+- ✅ Sequential sync to prevent race conditions
+- ✅ Auto-sync trigger on connection restored
+- ✅ Manual sync support with detailed results
+- ✅ Sync status monitoring and summaries
+- ✅ Error recovery and retry mechanisms
+
+**Connection Status Hook** (`hooks/useOnlineStatus.ts`)
+- ✅ Real-time online/offline detection
+- ✅ Callback support for sync triggers
+- ✅ Tracks checking state during initialization
+- ✅ Browser events: online/offline listeners
+
+**Transaction Integration Hook** (`hooks/useOfflineTransaction.ts`)
+- ✅ Unified API for form submission
+- ✅ Automatic offline/online detection
+- ✅ Seamless mode switching
+- ✅ Pending count tracking
+- ✅ Error handling for both modes
+
+#### UI Components
+
+**OfflineIndicator** (`components/offline/offline-indicator.tsx`)
+- ✅ Connection status badge in navbar
+- ✅ Shows "Offline" with WifiOff icon when disconnected
+- ✅ Compact online status icon variant
+- ✅ Amber/yellow color scheme for visibility
+
+**SyncStatus** (`components/offline/sync-status.tsx`)
+- ✅ Sync progress display with status counts
+- ✅ Animated refresh icon during sync
+- ✅ Color-coded status indicators:
+  - 🟢 Green: Synced
+  - 🔵 Blue: Pending/Syncing
+  - 🔴 Red: Errors
+- ✅ Manual "Sync Now" button
+- ✅ Last sync timestamp display
+- ✅ PendingTransactionsList with details:
+  - Transaction status badges
+  - Amount and timestamp
+  - Error messages
+  - Expandable list view
+
+#### Database Features (Ready for Integration)
+- ✅ Schema design for `syncStatus` on transactions
+- ✅ `offlineId` field for offline→online mapping
+- ✅ Indexes planned for sync queries
+
+#### Key Features
+✅ Works completely offline - no internet required
+✅ Automatic sync when connection restored
+✅ Manual sync trigger available
+✅ Full error recovery with retry
+✅ Detailed transaction status tracking
+✅ Non-blocking operations (async/await)
+✅ TypeScript type safety throughout
+✅ Timeout protection (30s per request)
+✅ Exponential backoff ready
+
+#### Files Created
+- `lib/offline/transaction-queue.ts` - Queue management (400+ lines)
+- `lib/offline/offline-sync.ts` - Sync logic (350+ lines)
+- `hooks/useOnlineStatus.ts` - Connection tracking (40 lines)
+- `hooks/useOfflineTransaction.ts` - Form integration (70 lines)
+- `components/offline/offline-indicator.tsx` - Status badge (40 lines)
+- `components/offline/sync-status.tsx` - Sync UI (250+ lines)
+
+#### Remaining Phase 6 Tasks
+- [ ] Service worker enhancement for request caching
+- [ ] Database migrations for sync tracking
+- [ ] Integration testing (offline entry end-to-end)
+- [ ] Haptic feedback on confirmation
+- [ ] One-handed UI optimization
+- [ ] Performance optimization (<2s load)
+- [ ] Query optimization for usage tracking
+- [ ] Cron jobs for data cleanup
+
 ## Important Notes
 - The development plan is located in `docs/finance-app-development-plan.md`
 - Use `pnpm dev` to start the development server (runs on http://localhost:3000)
