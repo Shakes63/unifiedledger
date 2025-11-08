@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
@@ -26,6 +26,7 @@ interface Transaction {
   accountId: string;
   categoryId?: string;
   notes?: string;
+  isSplit?: boolean;
 }
 
 export default function TransactionsPage() {
@@ -200,60 +201,69 @@ export default function TransactionsPage() {
         ) : (
           <div className="space-y-3">
             {filteredTransactions.map((transaction) => (
-              <Card
-                key={transaction.id}
-                className="p-4 border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="p-2.5 bg-[#242424] rounded-lg">
-                      {getTransactionIcon(transaction.type)}
+              <Link key={transaction.id} href={`/dashboard/transactions/${transaction.id}`}>
+                <Card className="p-4 border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg cursor-pointer">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="p-2.5 bg-[#242424] rounded-lg flex-shrink-0">
+                        {getTransactionIcon(transaction.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-medium text-white truncate">
+                            {transaction.description}
+                          </p>
+                          {transaction.isSplit && (
+                            <span title="Split transaction">
+                              <Split className="w-3.5 h-3.5 text-[#60a5fa] flex-shrink-0" />
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {new Date(transaction.date).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                          })}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-white">
-                        {transaction.description}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(transaction.date).toLocaleDateString('en-US', {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </p>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="text-right">
+                        <p
+                          className={`font-semibold ${
+                            transaction.type === 'income'
+                              ? 'text-emerald-400'
+                              : 'text-white'
+                          }`}
+                        >
+                          {transaction.type === 'income' ? '+' : '-'}$
+                          {transaction.amount.toFixed(2)}
+                        </p>
+                        <Badge
+                          className={getTypeColor(transaction.type)}
+                          variant="secondary"
+                        >
+                          {transaction.type.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleRepeatTransaction(transaction);
+                        }}
+                        disabled={repeatingTxId === transaction.id}
+                        className="text-gray-400 hover:text-white hover:bg-[#242424] flex-shrink-0"
+                        title="Repeat this transaction with today's date"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-right">
-                      <p
-                        className={`font-semibold ${
-                          transaction.type === 'income'
-                            ? 'text-emerald-400'
-                            : 'text-white'
-                        }`}
-                      >
-                        {transaction.type === 'income' ? '+' : '-'}$
-                        {transaction.amount.toFixed(2)}
-                      </p>
-                      <Badge
-                        className={getTypeColor(transaction.type)}
-                        variant="secondary"
-                      >
-                        {transaction.type.replace('_', ' ')}
-                      </Badge>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRepeatTransaction(transaction)}
-                      disabled={repeatingTxId === transaction.id}
-                      className="text-gray-400 hover:text-white hover:bg-[#242424]"
-                      title="Repeat this transaction with today's date"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </Card>
+                </Card>
+              </Link>
             ))}
           </div>
         )}

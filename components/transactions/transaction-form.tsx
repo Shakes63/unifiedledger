@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,9 +31,11 @@ type TransactionType = 'income' | 'expense' | 'transfer_in' | 'transfer_out';
 
 interface TransactionFormProps {
   defaultType?: TransactionType;
+  transactionId?: string;
+  onEditSuccess?: () => void;
 }
 
-export function TransactionForm({ defaultType = 'expense' }: TransactionFormProps) {
+export function TransactionForm({ defaultType = 'expense', transactionId, onEditSuccess }: TransactionFormProps) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
@@ -44,6 +46,51 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
   const [templateName, setTemplateName] = useState('');
   const [useSplits, setUseSplits] = useState(false);
   const [splits, setSplits] = useState<Split[]>([]);
+  const isEditMode = !!transactionId;
+
+  // Load existing transaction data when in edit mode
+  useEffect(() => {
+    if (isEditMode && transactionId) {
+      const loadTransaction = async () => {
+        try {
+          const response = await fetch(`/api/transactions/${transactionId}`);
+          if (!response.ok) throw new Error('Failed to load transaction');
+          const transaction = await response.json();
+
+          setFormData({
+            accountId: transaction.accountId,
+            categoryId: transaction.categoryId || '',
+            date: transaction.date,
+            amount: transaction.amount.toString(),
+            description: transaction.description,
+            notes: transaction.notes || '',
+            type: transaction.type,
+            isPending: transaction.isPending,
+          });
+
+          if (transaction.isSplit) {
+            setUseSplits(true);
+            // Load splits
+            const splitsResponse = await fetch(`/api/transactions/${transactionId}/splits`);
+            if (splitsResponse.ok) {
+              const splitsData = await splitsResponse.json();
+              setSplits(splitsData.map((split: any) => ({
+                id: split.id,
+                categoryId: split.categoryId,
+                amount: split.amount,
+                percentage: split.percentage,
+                isPercentage: split.isPercentage,
+                description: split.description,
+              })));
+            }
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Failed to load transaction');
+        }
+      };
+      loadTransaction();
+    }
+  }, [isEditMode, transactionId]);
 
   const [formData, setFormData] = useState({
     accountId: '',
@@ -167,8 +214,13 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
         return;
       }
 
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
+      const apiUrl = isEditMode
+        ? `/api/transactions/${transactionId}`
+        : '/api/transactions';
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const response = await fetch(apiUrl, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -177,16 +229,32 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create transaction');
+        throw new Error(
+          errorData.error || `Failed to ${isEditMode ? 'update' : 'create'} transaction`
+        );
       }
 
       const transactionData = await response.json();
-      const transactionId = transactionData.id;
+      const txId = transactionData.id || transactionId;
 
-      // Save splits if using split transaction
+      // Handle splits
       if (useSplits && splits.length > 0) {
+        if (isEditMode) {
+          // In edit mode, delete old splits and create new ones
+          const oldSplits = await fetch(`/api/transactions/${txId}/splits`);
+          if (oldSplits.ok) {
+            const oldSplitsData = await oldSplits.json();
+            for (const oldSplit of oldSplitsData) {
+              await fetch(`/api/transactions/${txId}/splits/${oldSplit.id}`, {
+                method: 'DELETE',
+              });
+            }
+          }
+        }
+
+        // Create new splits
         for (const split of splits) {
-          const splitResponse = await fetch(`/api/transactions/${transactionId}/splits`, {
+          const splitResponse = await fetch(`/api/transactions/${txId}/splits`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -206,28 +274,35 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
       }
 
       setSuccess(true);
-      setFormData({
-        accountId: formData.accountId, // Keep the account selected
-        categoryId: '',
-        date: new Date().toISOString().split('T')[0],
-        amount: '',
-        description: '',
-        notes: '',
-        type: defaultType,
-        isPending: false,
-      });
-      setUseSplits(false);
-      setSplits([]);
 
-      // Reset form
-      if (formRef.current) {
-        formRef.current.reset();
+      if (isEditMode) {
+        // For edit mode, call the callback or go back to details
+        setTimeout(() => {
+          onEditSuccess?.() || router.push(`/dashboard/transactions/${txId}`);
+        }, 1500);
+      } else {
+        // For create mode, reset form and redirect to dashboard
+        setFormData({
+          accountId: formData.accountId,
+          categoryId: '',
+          date: new Date().toISOString().split('T')[0],
+          amount: '',
+          description: '',
+          notes: '',
+          type: defaultType,
+          isPending: false,
+        });
+        setUseSplits(false);
+        setSplits([]);
+
+        if (formRef.current) {
+          formRef.current.reset();
+        }
+
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1500);
       }
-
-      // Redirect after success
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -447,7 +522,13 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
           disabled={loading}
           className="flex-1 bg-white text-black hover:bg-gray-100 font-medium"
         >
-          {loading ? 'Creating...' : 'Create Transaction'}
+          {isEditMode
+            ? loading
+              ? 'Updating...'
+              : 'Update Transaction'
+            : loading
+            ? 'Creating...'
+            : 'Create Transaction'}
         </Button>
         <Button
           type="button"

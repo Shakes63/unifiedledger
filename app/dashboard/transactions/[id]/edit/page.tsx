@@ -1,0 +1,42 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { TransactionForm } from '@/components/transactions/transaction-form';
+
+interface EditTransactionPageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function EditTransactionPage({ params }: EditTransactionPageProps) {
+  const router = useRouter();
+
+  const handleEditSuccess = () => {
+    router.push(`/dashboard/transactions/${params.id}`);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0a0a0a]">
+      <div className="max-w-2xl mx-auto p-6">
+        <div className="mb-6 flex items-center justify-between">
+          <Link href={`/dashboard/transactions/${params.id}`}>
+            <Button variant="ghost" size="sm" className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Transaction
+            </Button>
+          </Link>
+        </div>
+
+        <Card className="border-[#2a2a2a] bg-[#1a1a1a] p-6">
+          <h1 className="text-2xl font-bold text-white mb-6">Edit Transaction</h1>
+          <TransactionForm transactionId={params.id} onEditSuccess={handleEditSuccess} />
+        </Card>
+      </div>
+    </div>
+  );
+}

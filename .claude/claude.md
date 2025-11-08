@@ -269,7 +269,7 @@ The application uses a comprehensive dark mode first design system:
 
 ## Phase 2: Transaction Intelligence & Speed Features - IN PROGRESS 🟢
 
-**Progress: 8/24 tasks completed (33%)**
+**Progress: 9/24 tasks completed (37.5%)**
 
 ### Completed Phase 2 Features
 
@@ -295,6 +295,39 @@ The application uses a comprehensive dark mode first design system:
 - ✅ **Bulk Operations:** Apply rules to existing uncategorized transactions
 - ✅ **Rule Statistics:** Track match count and last used timestamps
 
+#### Transaction History & Repeat
+- ✅ Transaction history with pagination
+- ✅ Repeat/clone transaction functionality (creates copy with new date)
+- ✅ Save transactions as templates for quick re-entry
+- ✅ Load and apply saved templates
+
+#### Split Transaction Management
+- ✅ **Database Schema:** `transactionSplits` table with amount/percentage support
+- ✅ **Split Builder UI:** Visual editor for creating splits during transaction creation
+- ✅ **Split Validation:** Ensures percentage/amount splits match transaction total
+- ✅ **Split CRUD APIs:** Full GET, POST, PUT, DELETE endpoints for splits
+- ✅ **Transaction Details Page:** View full transaction info with splits display
+- ✅ **Transaction Editing:** Full edit capability for existing transactions
+- ✅ **Split Editing:** Add, modify, or delete splits from existing transactions
+- ✅ **Transaction Deletion:** Cascade deletion with automatic cleanup of splits
+- ✅ **Balance Management:** Automatic account balance adjustments on edits
+- ✅ **Split Indicators:** Visual badges showing which transactions are split
+- ✅ **Clickable Transaction List:** Navigate to transaction details from list
+
+### Split Transaction System Architecture
+
+**Backend:**
+- `app/api/transactions/[id]/route.ts` - GET, PUT, DELETE transaction endpoints
+- Split CRUD endpoints already existed and are fully integrated
+
+**Frontend:**
+- `components/transactions/transaction-details.tsx` - Full transaction view
+- `components/transactions/splits-list.tsx` - Display all splits for transaction
+- `components/transactions/transaction-form.tsx` - Enhanced with edit mode support
+- `app/dashboard/transactions/[id]/page.tsx` - Transaction details route
+- `app/dashboard/transactions/[id]/edit/page.tsx` - Transaction editing route
+- `app/dashboard/transactions/page.tsx` - Updated with navigation and split indicators
+
 ### Rules System Architecture
 
 **Backend:**
@@ -310,9 +343,9 @@ The application uses a comprehensive dark mode first design system:
 - `components/rules/bulk-apply-rules.tsx` - Bulk operation UI
 
 ### Next Phase 2 Tasks
-1. [ ] Add transaction history with "repeat" functionality
-2. [ ] Build split transaction database schema
-3. [ ] Implement split transaction creation and editing UI
+1. ✅ Add transaction history with "repeat" functionality
+2. ✅ Build split transaction database schema
+3. ✅ Implement split transaction creation and editing UI
 4. [ ] Build advanced search database schema
 5. [ ] Implement core search function with filtering
 6. [ ] Voice-to-text transaction entry
