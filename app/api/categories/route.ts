@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { budgetCategories } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 // Default categories to create for new users
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
       .select()
       .from(budgetCategories)
       .where(eq(budgetCategories.userId, userId))
-      .orderBy(budgetCategories.sortOrder);
+      .orderBy(desc(budgetCategories.usageCount), budgetCategories.sortOrder);
 
     return Response.json(userCategories);
   } catch (error) {

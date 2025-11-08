@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { accounts } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export async function GET(request: Request) {
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
       .select()
       .from(accounts)
       .where(eq(accounts.userId, userId))
-      .orderBy(accounts.sortOrder);
+      .orderBy(desc(accounts.usageCount), accounts.sortOrder);
 
     return Response.json(userAccounts);
   } catch (error) {

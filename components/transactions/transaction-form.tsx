@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { AccountSelector } from './account-selector';
 import { CategorySelector } from './category-selector';
+import { MerchantAutocomplete, MerchantSelectionData } from './merchant-autocomplete';
 import { Plus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -71,6 +72,21 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
       ...prev,
       categoryId: categoryId === 'none' ? '' : categoryId || '',
     }));
+  };
+
+  const handleDescriptionChange = (value: string, merchantData?: MerchantSelectionData) => {
+    setFormData((prev) => ({
+      ...prev,
+      description: value,
+    }));
+
+    // Auto-apply category suggestion if available
+    if (merchantData?.suggestedCategoryId && !formData.categoryId) {
+      setFormData((prev) => ({
+        ...prev,
+        categoryId: merchantData.suggestedCategoryId || '',
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -192,13 +208,10 @@ export function TransactionForm({ defaultType = 'expense' }: TransactionFormProp
         <Label htmlFor="description" className="text-sm font-medium text-white">
           Description *
         </Label>
-        <Input
-          id="description"
-          name="description"
-          placeholder="e.g., Grocery shopping, Electric bill"
+        <MerchantAutocomplete
           value={formData.description}
-          onChange={handleInputChange}
-          required
+          onChange={handleDescriptionChange}
+          placeholder="e.g., Grocery shopping, Electric bill"
         />
       </div>
 

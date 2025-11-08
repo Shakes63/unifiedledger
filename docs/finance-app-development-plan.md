@@ -15557,11 +15557,29 @@ export const applyWeeklyUsageDecay = async () => {
 **Goal:** Make data entry as fast as possible
 
 **Priority Tasks:**
-- [ ] **Implement usage tracking system for accounts, categories, and merchants**
-- [ ] **Build usage-based sorting for all selection lists**
-- [ ] **Implement auto-complete for transaction descriptions with usage sorting**
-- [ ] **Build smart categorization engine based on merchant history**
-- [ ] **Build custom categorization rules database schema (categorization_rules, rule_execution_log)**
+- [x] **Implement usage tracking system for accounts, categories, and merchants** ✅ COMPLETED
+  - Usage tracking automatically updates on transaction creation
+  - Merchant table tracks totalSpent and averageTransaction
+  - UsageAnalytics table records all item usage (accounts, categories, merchants, transfer pairs, bills)
+- [x] **Build usage-based sorting for all selection lists** ✅ COMPLETED
+  - Accounts API endpoint sorted by usageCount descending, then sortOrder
+  - Categories API endpoint sorted by usageCount descending, then sortOrder
+  - Merchants API endpoint sorted by usageCount descending
+  - Selection components now automatically display most-used items first
+- [x] **Implement auto-complete for transaction descriptions with usage sorting** ✅ COMPLETED
+  - MerchantAutocomplete component integrated into transaction form
+  - Suggestions from /api/suggestions already sorted by usage frequency
+  - Shows frequency count and average amount for each merchant
+- [x] **Build smart categorization engine based on merchant history** ✅ COMPLETED
+  - Created /api/categorization/suggest endpoint
+  - Analyzes merchant transaction history and returns category suggestion with confidence score
+  - Auto-applies suggested category when merchant is selected
+  - Handles new merchants gracefully (no suggestion for unknown merchants)
+- [x] **Build custom categorization rules database schema (categorization_rules, rule_execution_log)** ✅ COMPLETED
+  - categorizationRules table: supports complex condition matching (JSON), priority ordering, match statistics
+  - ruleExecutionLog table: tracks rule application history with proper indexing
+  - Relations established with budgetCategories and transactions
+  - Ready for condition evaluation engine implementation
 - [ ] **Implement rule condition evaluation engine (field, operator, value matching)**
 - [ ] **Create rule matching algorithm with priority ordering**
 - [ ] **Build rule testing function for preview before saving**

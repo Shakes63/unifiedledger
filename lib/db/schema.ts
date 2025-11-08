@@ -701,6 +701,51 @@ export const accountDeletionRequests = sqliteTable(
 );
 
 // ============================================================================
+// CATEGORIZATION RULES
+// ============================================================================
+
+export const categorizationRules = sqliteTable(
+  'categorization_rules',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    name: text('name').notNull(),
+    categoryId: text('category_id').notNull(),
+    description: text('description'),
+    priority: integer('priority').default(100), // Lower number = higher priority
+    isActive: integer('is_active', { mode: 'boolean' }).default(true),
+    conditions: text('conditions').notNull(), // JSON array of condition groups
+    matchCount: integer('match_count').default(0),
+    lastMatchedAt: text('last_matched_at'),
+    testResults: text('test_results'), // JSON with test run results
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_categorization_rules_user').on(table.userId),
+    priorityIdx: index('idx_categorization_rules_priority').on(table.priority),
+  })
+);
+
+export const ruleExecutionLog = sqliteTable(
+  'rule_execution_log',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    ruleId: text('rule_id').notNull(),
+    transactionId: text('transaction_id').notNull(),
+    appliedCategoryId: text('applied_category_id').notNull(),
+    matched: integer('matched', { mode: 'boolean' }).notNull(),
+    executedAt: text('executed_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_rule_execution_user').on(table.userId),
+    ruleIdIdx: index('idx_rule_execution_rule').on(table.ruleId),
+    transactionIdIdx: index('idx_rule_execution_transaction').on(table.transactionId),
+  })
+);
+
+// ============================================================================
 // RELATIONS
 // ============================================================================
 
@@ -831,5 +876,28 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   preferences: one(notificationPreferences, {
     fields: [notifications.userId],
     references: [notificationPreferences.userId],
+  }),
+}));
+
+export const categorizationRulesRelations = relations(categorizationRules, ({ one, many }) => ({
+  category: one(budgetCategories, {
+    fields: [categorizationRules.categoryId],
+    references: [budgetCategories.id],
+  }),
+  executionLog: many(ruleExecutionLog),
+}));
+
+export const ruleExecutionLogRelations = relations(ruleExecutionLog, ({ one }) => ({
+  rule: one(categorizationRules, {
+    fields: [ruleExecutionLog.ruleId],
+    references: [categorizationRules.id],
+  }),
+  transaction: one(transactions, {
+    fields: [ruleExecutionLog.transactionId],
+    references: [transactions.id],
+  }),
+  appliedCategory: one(budgetCategories, {
+    fields: [ruleExecutionLog.appliedCategoryId],
+    references: [budgetCategories.id],
   }),
 }));

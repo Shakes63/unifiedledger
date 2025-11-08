@@ -13,16 +13,27 @@ interface Suggestion {
   averageAmount?: number;
 }
 
+export interface MerchantSelectionData {
+  name: string;
+  frequency: number;
+  averageAmount?: number;
+  suggestedCategoryId?: string;
+  suggestedCategoryName?: string;
+  categoryConfidence?: number;
+}
+
 interface MerchantAutocompleteProps {
   value: string;
-  onChange: (value: string, suggestion?: Suggestion) => void;
+  onChange: (value: string, merchantData?: MerchantSelectionData) => void;
   placeholder?: string;
+  onMerchantSelected?: (data: MerchantSelectionData) => void;
 }
 
 export function MerchantAutocomplete({
   value,
   onChange,
   placeholder = 'Description (or start typing for suggestions)',
+  onMerchantSelected,
 }: MerchantAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -71,8 +82,37 @@ export function MerchantAutocomplete({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleSelectSuggestion = (suggestion: Suggestion) => {
-    onChange(suggestion.label, suggestion);
+  const handleSelectSuggestion = async (suggestion: Suggestion) => {
+    // For merchant suggestions, fetch category recommendation
+    if (suggestion.type === 'merchant') {
+      try {
+        const response = await fetch(
+          `/api/categorization/suggest?description=${encodeURIComponent(suggestion.label)}`
+        );
+        if (response.ok) {
+          const categoryData = await response.json();
+          const merchantData: MerchantSelectionData = {
+            name: suggestion.label,
+            frequency: suggestion.frequency,
+            averageAmount: suggestion.averageAmount,
+            suggestedCategoryId: categoryData?.categoryId,
+            suggestedCategoryName: categoryData?.categoryName,
+            categoryConfidence: categoryData?.confidence,
+          };
+          onChange(suggestion.label, merchantData);
+          if (onMerchantSelected) {
+            onMerchantSelected(merchantData);
+          }
+        } else {
+          onChange(suggestion.label);
+        }
+      } catch (error) {
+        console.error('Failed to fetch category suggestion:', error);
+        onChange(suggestion.label);
+      }
+    } else {
+      onChange(suggestion.label);
+    }
     setShowSuggestions(false);
   };
 

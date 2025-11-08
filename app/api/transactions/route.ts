@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
-import { transactions, accounts, budgetCategories } from '@/lib/db/schema';
+import { transactions, accounts, budgetCategories, merchants, usageAnalytics } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
       updatedAt: new Date().toISOString(),
     });
 
-    // Update account balance
+    // Update account balance and usage
     const newBalance = new Decimal(account[0].currentBalance || 0);
     const updatedBalance =
       type === 'expense' || type === 'transfer_out'
@@ -110,6 +110,154 @@ export async function POST(request: Request) {
         usageCount: (account[0].usageCount || 0) + 1,
       })
       .where(eq(accounts.id, accountId));
+
+    // Update category usage if provided
+    if (categoryId) {
+      const category = await db
+        .select()
+        .from(budgetCategories)
+        .where(eq(budgetCategories.id, categoryId))
+        .limit(1);
+
+      await db
+        .update(budgetCategories)
+        .set({
+          lastUsedAt: new Date().toISOString(),
+          usageCount: (category.length > 0 ? category[0].usageCount : 0) + 1,
+        })
+        .where(eq(budgetCategories.id, categoryId));
+
+      // Track in usage analytics
+      const analyticsId = nanoid();
+      const existingAnalytics = await db
+        .select()
+        .from(usageAnalytics)
+        .where(
+          and(
+            eq(usageAnalytics.userId, userId),
+            eq(usageAnalytics.itemType, 'category'),
+            eq(usageAnalytics.itemId, categoryId)
+          )
+        )
+        .limit(1);
+
+      if (existingAnalytics.length > 0) {
+        await db
+          .update(usageAnalytics)
+          .set({
+            usageCount: existingAnalytics[0].usageCount + 1,
+            lastUsedAt: new Date().toISOString(),
+          })
+          .where(
+            and(
+              eq(usageAnalytics.userId, userId),
+              eq(usageAnalytics.itemType, 'category'),
+              eq(usageAnalytics.itemId, categoryId)
+            )
+          );
+      } else {
+        await db.insert(usageAnalytics).values({
+          id: analyticsId,
+          userId,
+          itemType: 'category',
+          itemId: categoryId,
+          usageCount: 1,
+          lastUsedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    // Create or update merchant and track usage
+    const normalizedDescription = description.toLowerCase().trim();
+    const existingMerchant = await db
+      .select()
+      .from(merchants)
+      .where(
+        and(
+          eq(merchants.userId, userId),
+          eq(merchants.normalizedName, normalizedDescription)
+        )
+      )
+      .limit(1);
+
+    if (existingMerchant.length > 0) {
+      const currentSpent = new Decimal(existingMerchant[0].totalSpent || 0);
+      const newSpent = currentSpent.plus(decimalAmount);
+      const avgTransaction = newSpent.dividedBy(
+        existingMerchant[0].usageCount + 1
+      );
+
+      await db
+        .update(merchants)
+        .set({
+          usageCount: existingMerchant[0].usageCount + 1,
+          lastUsedAt: new Date().toISOString(),
+          totalSpent: newSpent.toNumber(),
+          averageTransaction: avgTransaction.toNumber(),
+        })
+        .where(
+          and(
+            eq(merchants.userId, userId),
+            eq(merchants.normalizedName, normalizedDescription)
+          )
+        );
+    } else {
+      const merchantId = nanoid();
+      await db.insert(merchants).values({
+        id: merchantId,
+        userId,
+        name: description,
+        normalizedName: normalizedDescription,
+        categoryId: categoryId || null,
+        usageCount: 1,
+        lastUsedAt: new Date().toISOString(),
+        totalSpent: decimalAmount.toNumber(),
+        averageTransaction: decimalAmount.toNumber(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    // Track merchant in usage analytics
+    const merchantAnalyticsId = nanoid();
+    const existingMerchantAnalytics = await db
+      .select()
+      .from(usageAnalytics)
+      .where(
+        and(
+          eq(usageAnalytics.userId, userId),
+          eq(usageAnalytics.itemType, 'merchant'),
+          eq(usageAnalytics.itemId, existingMerchant.length > 0 ? existingMerchant[0].id : normalizedDescription)
+        )
+      )
+      .limit(1);
+
+    if (existingMerchantAnalytics.length > 0) {
+      await db
+        .update(usageAnalytics)
+        .set({
+          usageCount: existingMerchantAnalytics[0].usageCount + 1,
+          lastUsedAt: new Date().toISOString(),
+        })
+        .where(
+          and(
+            eq(usageAnalytics.userId, userId),
+            eq(usageAnalytics.itemType, 'merchant'),
+            eq(usageAnalytics.itemId, existingMerchant.length > 0 ? existingMerchant[0].id : normalizedDescription)
+          )
+        );
+    } else {
+      await db.insert(usageAnalytics).values({
+        id: merchantAnalyticsId,
+        userId,
+        itemType: 'merchant',
+        itemId: existingMerchant.length > 0 ? existingMerchant[0].id : normalizedDescription,
+        usageCount: 1,
+        lastUsedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      });
+    }
 
     return Response.json(
       {
