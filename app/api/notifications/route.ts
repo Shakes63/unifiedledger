@@ -133,6 +133,13 @@ export async function POST(request: Request) {
       .where(eq(notifications.id, notificationId))
       .limit(1);
 
+    if (!created || created.length === 0) {
+      return Response.json(
+        { error: 'Failed to retrieve created notification' },
+        { status: 500 }
+      );
+    }
+
     return Response.json(created[0], { status: 201 });
   } catch (error) {
     console.error('Error creating notification:', error);

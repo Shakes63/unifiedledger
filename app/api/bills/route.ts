@@ -73,26 +73,30 @@ export async function GET(request: Request) {
     }
 
     // Get upcoming bill instances for each bill
-    const billsWithInstances = await Promise.all(
-      result.map(async (row) => {
-        const upcomingInstances = await db
-          .select()
-          .from(billInstances)
-          .where(
-            and(
-              eq(billInstances.billId, row.bill.id),
-              eq(billInstances.status, 'pending')
-            )
-          )
-          .orderBy(billInstances.dueDate)
-          .limit(3);
+    let billsWithInstances = [];
 
-        return {
-          ...row,
-          upcomingInstances,
-        };
-      })
-    );
+    if (result && result.length > 0) {
+      billsWithInstances = await Promise.all(
+        result.map(async (row) => {
+          const upcomingInstances = await db
+            .select()
+            .from(billInstances)
+            .where(
+              and(
+                eq(billInstances.billId, row.bill.id),
+                eq(billInstances.status, 'pending')
+              )
+            )
+            .orderBy(billInstances.dueDate)
+            .limit(3);
+
+          return {
+            ...row,
+            upcomingInstances,
+          };
+        })
+      );
+    }
 
     // Get total count
     const countResult = await db
@@ -255,9 +259,16 @@ export async function POST(request: Request) {
       .where(eq(billInstances.billId, billId))
       .orderBy(billInstances.dueDate);
 
+    if (!createdBill || createdBill.length === 0) {
+      return Response.json(
+        { error: 'Failed to retrieve created bill' },
+        { status: 500 }
+      );
+    }
+
     return Response.json({
       bill: createdBill[0],
-      instances: billInstancesList,
+      instances: billInstancesList || [],
     });
   } catch (error) {
     console.error('Error creating bill:', error);

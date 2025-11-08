@@ -64,8 +64,11 @@ export async function PUT(
     const updatedGoal = await db
       .select()
       .from(savingsGoals)
-      .where(eq(savingsGoals.id, id))
-      .then((res) => res[0]);
+      .where(eq(savingsGoals.id, id));
+
+    if (!updatedGoal || updatedGoal.length === 0) {
+      return new Response(JSON.stringify({ error: 'Failed to retrieve updated goal' }), { status: 500 });
+    }
 
     const updatedMilestones = await db
       .select()
@@ -74,7 +77,7 @@ export async function PUT(
 
     return new Response(
       JSON.stringify({
-        ...updatedGoal,
+        ...updatedGoal[0],
         milestones: updatedMilestones,
       }),
       { status: 200 }

@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories } from '@/lib/db/schema';
-import { eq, and, gte, lte, sum, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, sum, sql, inArray } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,10 +111,14 @@ export async function GET(request: Request) {
 
     // Get category names
     const categoryIds = Array.from(byCategory.keys());
-    const categories = await db
-      .select()
-      .from(budgetCategories)
-      .where(and(eq(budgetCategories.userId, userId), sql`id IN (${categoryIds.join(',')})` as any));
+    let categories = [];
+
+    if (categoryIds.length > 0) {
+      categories = await db
+        .select()
+        .from(budgetCategories)
+        .where(and(eq(budgetCategories.userId, userId), inArray(budgetCategories.id, categoryIds)));
+    }
 
     const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
 

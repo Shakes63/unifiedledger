@@ -66,6 +66,7 @@ export function AccountForm({
     creditLimit: account?.creditLimit || '',
     color: account?.color || '#3b82f6',
     icon: account?.icon || 'wallet',
+    isBusinessAccount: account?.isBusinessAccount || false,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,6 +100,13 @@ export function AccountForm({
     }));
   };
 
+  const handleCheckboxChange = (name: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: !prev[name as keyof typeof prev],
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -121,6 +129,7 @@ export function AccountForm({
       creditLimit: formData.creditLimit ? parseFloat(String(formData.creditLimit)) : null,
       color: formData.color,
       icon: formData.icon,
+      isBusinessAccount: formData.isBusinessAccount,
     };
 
     onSubmit(submitData);
@@ -210,6 +219,29 @@ export function AccountForm({
             />
           </div>
         )}
+      </div>
+
+      {/* Business Account Toggle */}
+      <div className="p-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a] space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-gray-400 text-sm block font-medium">Business Account</Label>
+            <p className="text-xs text-gray-500 mt-1">Enable sales tax tracking for this account</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleCheckboxChange('isBusinessAccount')}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              formData.isBusinessAccount ? 'bg-emerald-500' : 'bg-[#2a2a2a]'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                formData.isBusinessAccount ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
       </div>
 
       {/* Color Picker */}

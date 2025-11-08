@@ -1,0 +1,9 @@
+COMPLETED BUGS:
+✅ 1. the category and accounts dropdown on the bill form are not connected to the categories and accounts
+✅ 2. when creating a new transaction the default date should be today
+✅ 3. There should be a way to mark an account as being a Business Account and that should trigger the sales tax tracking for that account.
+
+PENDING BUGS:
+4. If there are multiple business accounts the sales tax should be tracked separately.
+5. Everywhere that you can add a category or tag there should be an option to create them inline.
+6. there should be some padding in between the sidebar and the page content. The dashboard is a good example of the amount of padding it should have. Check all of the pages and ensure the padding is like the dashboard page.

@@ -1913,3 +1913,32 @@ See `docs/TESTING_GUIDE.md` for comprehensive testing documentation.
 - Always verify user owns the data before returning
 - Use proper indexes from schema for performance
 - turbopack is no longer experimental in Nextjs 16 just run it normally
+
+## Recent Updates (Current Session)
+
+### Bug Fixes Completed ✅
+1. **Fixed Bill Form Dropdowns** - Category and accounts dropdowns were not displaying options because they were trying to access `.data` property on arrays. Fixed API response handling in `components/bills/bill-form.tsx` to properly detect array responses.
+
+2. **Set Transaction Default Date to Today** - New transactions now default to today's date. Enhanced `components/transactions/transaction-form.tsx` with:
+   - `getTodaysDate()` helper function
+   - `useEffect` hook to reset date when switching from edit to create mode
+   - Ensures date is always current when creating new transactions
+
+3. **Added Business Account Tracking** - Implemented ability to mark accounts as business accounts for sales tax tracking:
+   - Added `isBusinessAccount` boolean field to `accounts` table in `lib/db/schema.ts`
+   - Added toggle UI in `components/accounts/account-form.tsx` with clear description
+   - Updated `app/api/accounts/route.ts` to handle the new field
+   - Feature enables sales tax tracking workflows for business accounts
+
+### Database Schema Changes
+- **Accounts Table:** Added `isBusinessAccount: integer('is_business_account', { mode: 'boolean' }).default(false)` field
+
+### Error Handling Improvements (Previous Session)
+- Fixed all critical empty result errors in API endpoints:
+  - `/api/bills/route.ts` - Added validation before returning created bill
+  - `/api/savings-goals/route.ts` - Fixed unsafe `.then((res) => res[0])` pattern
+  - `/api/notifications/route.ts` - Added check before returning created notification
+  - `/api/spending-summary/route.ts` - Fixed SQL `IN` clause with safe `inArray()` helper
+  - `/api/debts/stats/route.ts` - Fixed array access on empty results
+  - `/api/debts/route.ts` - Added validation before returning created debt
+  - `/api/savings-goals/[id]/progress/route.ts` - Fixed unsafe response access

@@ -203,10 +203,26 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     }
   }, [isEditMode, transactionId]);
 
+  // Reset date to today when creating a new transaction
+  useEffect(() => {
+    if (!isEditMode) {
+      setFormData((prev) => ({
+        ...prev,
+        date: new Date().toISOString().split('T')[0],
+      }));
+    }
+  }, [isEditMode]);
+
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getTodaysDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
   const [formData, setFormData] = useState({
     accountId: '',
     categoryId: '',
-    date: new Date().toISOString().split('T')[0],
+    date: getTodaysDate(),
     amount: '',
     description: '',
     notes: '',

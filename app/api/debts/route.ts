@@ -118,10 +118,13 @@ export async function POST(request: Request) {
     const debt = await db
       .select()
       .from(debts)
-      .where(eq(debts.id, debtId))
-      .then((res) => res[0]);
+      .where(eq(debts.id, debtId));
 
-    return new Response(JSON.stringify(debt), { status: 201 });
+    if (!debt || debt.length === 0) {
+      return new Response(JSON.stringify({ error: 'Failed to retrieve created debt' }), { status: 500 });
+    }
+
+    return new Response(JSON.stringify(debt[0]), { status: 201 });
   } catch (error) {
     console.error('Error creating debt:', error);
     return new Response(JSON.stringify({ error: 'Failed to create debt' }), { status: 500 });

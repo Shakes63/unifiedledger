@@ -51,7 +51,8 @@ export async function GET(request: Request) {
     // For now, just return debt metrics
 
     // Find the debt with highest priority (fastest payoff target)
-    const priorityDebt = activeDebts.sort((a, b) => (a.priority || 999) - (b.priority || 999))[0];
+    const sortedDebts = activeDebts.sort((a, b) => (a.priority || 999) - (b.priority || 999));
+    const priorityDebt = sortedDebts.length > 0 ? sortedDebts[0] : null;
 
     // Calculate estimated payoff dates
     const debtDetails = activeDebts.map((debt) => {

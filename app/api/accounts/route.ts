@@ -53,6 +53,7 @@ export async function POST(request: Request) {
       creditLimit,
       color = '#3b82f6',
       icon = 'wallet',
+      isBusinessAccount = false,
     } = body;
 
     if (!name || !type) {
@@ -75,6 +76,7 @@ export async function POST(request: Request) {
       creditLimit: creditLimit || null,
       color,
       icon,
+      isBusinessAccount,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });

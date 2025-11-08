@@ -109,10 +109,13 @@ export async function POST(request: Request) {
     const goal = await db
       .select()
       .from(savingsGoals)
-      .where(eq(savingsGoals.id, goalId))
-      .then((res) => res[0]);
+      .where(eq(savingsGoals.id, goalId));
 
-    return new Response(JSON.stringify(goal), { status: 201 });
+    if (!goal || goal.length === 0) {
+      return new Response(JSON.stringify({ error: 'Failed to retrieve created goal' }), { status: 500 });
+    }
+
+    return new Response(JSON.stringify(goal[0]), { status: 201 });
   } catch (error) {
     console.error('Error creating savings goal:', error);
     return new Response(JSON.stringify({ error: 'Failed to create savings goal' }), { status: 500 });

@@ -66,22 +66,33 @@ export default function BillsDashboard() {
 
         // Fetch active bills
         const billsRes = await fetch('/api/bills?isActive=true&limit=100');
-        if (!billsRes.ok) throw new Error('Failed to fetch bills');
+        if (!billsRes.ok) {
+          throw new Error(`Failed to fetch bills: ${billsRes.statusText}`);
+        }
         const billsData = await billsRes.json();
 
         // Fetch all bill instances
         const instancesRes = await fetch('/api/bills/instances?limit=1000');
-        if (!instancesRes.ok) throw new Error('Failed to fetch bill instances');
+        if (!instancesRes.ok) {
+          throw new Error(`Failed to fetch bill instances: ${instancesRes.statusText}`);
+        }
         const instancesData = await instancesRes.json();
 
-        setBills(billsData.data || []);
-        setBillInstances(instancesData.data || []);
+        // Handle empty data safely
+        const billsList = Array.isArray(billsData?.data) ? billsData.data : [];
+        const instancesList = Array.isArray(instancesData?.data) ? instancesData.data : [];
+
+        setBills(billsList);
+        setBillInstances(instancesList);
 
         // Calculate statistics
-        calculateStats(instancesData.data || []);
+        calculateStats(instancesList);
       } catch (error) {
         console.error('Error fetching bills:', error);
-        toast.error('Failed to load bills');
+        toast.error(error instanceof Error ? error.message : 'Failed to load bills');
+        // Set empty state on error
+        setBills([]);
+        setBillInstances([]);
       } finally {
         setLoading(false);
       }
