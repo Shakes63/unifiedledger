@@ -53,4 +53,63 @@ COMPLETED BUGS:
    - Now only tracks merchant usage when merchantId is explicitly provided
    - Updated validation to check for merchantId in update checks
 
+✅ 23. Fixed 500 error on GET /api/transactions - better-sqlite3 bindings issue:
+   - Root cause: Native bindings for better-sqlite3 weren't built
+   - Solution: Cleaned .next directory and reinstalled dependencies with pnpm
+   - pnpm install --force triggered proper build of better-sqlite3 native bindings
+   - API now responds with {"error":"Unauthorized"} (expected Clerk auth error)
+   - Transactions page should now load properly when authenticated
+
+✅ 24. Fixed 500 error on GET /api/transactions - missing merchant_id column:
+   - Root cause: Database migration 0005_add_merchant_id.sql wasn't applied to sqlite.db
+   - Error: SqliteError: no such column: "merchant_id"
+   - Solution: Created migration script to apply pending migrations manually
+   - Applied migration: 0005_add_merchant_id (added merchant_id column and index)
+   - API now returns proper Unauthorized error (authentication working)
+   - RecentTransactions widget should now load when user is authenticated
+
+✅ 25. Fixed recent transactions not showing merchant information:
+   - Root cause: RecentTransactions component wasn't fetching or displaying merchant data
+   - Missing: merchantId in Transaction interface, merchants/accounts state, helper functions
+   - Solution:
+     - Added merchantId, transferId to Transaction interface
+     - Added Merchant and Account interfaces
+     - Added merchants and accounts state
+     - Fetch merchants and accounts data in useEffect
+     - Added getMerchantName, getAccountName, getTransactionDisplay helper functions
+     - Updated transaction display to show merchant name instead of just description
+     - Updated repeat transaction logic to include merchantId
+   - RecentTransactions widget now shows merchant names for transactions with merchants
+   - Falls back to description if merchant not available
+   - Handles transfers by showing "FromAccount → ToAccount" format
+
+✅ 26. Fixed transaction page params Promise error:
+   - Error: "A param property was accessed directly with `params.id`. `params` is a Promise..."
+   - Root cause: Next.js 16 made params a Promise in dynamic routes
+   - Solution:
+     - Changed params interface type from object to Promise<{id: string}>
+     - Imported React
+     - Used React.use(params) to unwrap the Promise
+     - Updated transactionId prop to use resolvedParams.id
+   - Transaction details page now loads without errors
+
+✅ 27. Fixed household page showing owner with no name:
+   - Root cause: When creating household and when accepting invitations, userName wasn't being fetched from Clerk
+   - Solution:
+     - Imported clerkClient from '@clerk/nextjs/server'
+     - In /api/households/route.ts POST: Fetch user from Clerk, extract firstName+lastName or firstName or username
+     - In /api/invitations/accept/route.ts POST: Same approach for invited members
+     - Now passes proper userName to householdMembers when creating records
+   - Household members now display with their full names instead of blank
+
+✅ 28. Fixed TransactionDetails component bgColor undefined error:
+   - Error: "Cannot read properties of undefined (reading 'bgColor')" at line 159
+   - Root cause: Transaction type was changed to 'transfer' but typeConfig and interface still referenced 'transfer_in'/'transfer_out'
+   - Solution:
+     - Updated Transaction interface type to include 'transfer' alongside 'transfer_in'/'transfer_out'
+     - Added 'transfer' entry to typeConfig object
+     - Added fallback to typeConfig.expense if type not found: `typeConfig[transaction.type as keyof typeof typeConfig] || typeConfig.expense`
+     - Updated sign calculation to handle 'transfer' type
+   - Transaction details page now loads without errors for all transaction types
+
 PENDING BUGS:

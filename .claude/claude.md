@@ -2044,3 +2044,49 @@ See `docs/TESTING_GUIDE.md` for comprehensive testing documentation.
   - `/api/debts/stats/route.ts` - Fixed array access on empty results
   - `/api/debts/route.ts` - Added validation before returning created debt
   - `/api/savings-goals/[id]/progress/route.ts` - Fixed unsafe response access
+
+### Recent Bug Fixes (Current Session)
+
+17. **Fixed 500 Error on GET /api/transactions** - Better-sqlite3 bindings issue:
+    - Root cause: Native bindings for better-sqlite3 weren't built
+    - Solution: Cleaned .next directory and reinstalled dependencies with `pnpm install --force`
+    - Result: API now properly returns Clerk auth errors (expected behavior)
+
+18. **Fixed Missing merchant_id Column** - Database migration issue:
+    - Root cause: Migration 0005_add_merchant_id.sql wasn't applied to sqlite.db
+    - Solution: Created and ran migration script to apply pending migrations
+    - Result: Transactions table now has merchant_id column and index
+
+19. **Fixed Recent Transactions Not Showing Merchants** - Data not being fetched/displayed:
+    - Root cause: RecentTransactions component wasn't fetching merchant and account data
+    - Solution:
+      - Added merchantId and transferId to Transaction interface
+      - Added state for merchants and accounts data
+      - Implemented getMerchantName, getAccountName, getTransactionDisplay helper functions
+      - Updated display to show merchant names instead of descriptions
+    - Result: Widget now properly displays merchant information
+
+20. **Fixed Transaction Page Params Promise Error** - Next.js 16 dynamic route issue:
+    - Root cause: Next.js 16 made params a Promise in dynamic routes
+    - Solution: Used React.use() to unwrap params Promise before accessing properties
+    - File: `app/dashboard/transactions/[id]/page.tsx`
+    - Result: Transaction details page now loads without errors
+
+21. **Fixed Household Page Showing Owner with No Name** - Missing user data:
+    - Root cause: userName wasn't being fetched from Clerk when creating household/accepting invitations
+    - Solution:
+      - Imported clerkClient and fetched user info from Clerk
+      - Extracted firstName + lastName (with fallbacks)
+      - Applied to both household creation and invitation acceptance endpoints
+    - Files: `/api/households/route.ts`, `/api/invitations/accept/route.ts`
+    - Result: Household members now display with proper names
+
+22. **Fixed TransactionDetails bgColor Undefined Error** - Type mismatch issue:
+    - Root cause: Transaction type changed to 'transfer' but component expected 'transfer_in'/'transfer_out'
+    - Solution:
+      - Updated Transaction interface to include 'transfer' type
+      - Added 'transfer' entry to typeConfig object
+      - Added fallback handling for missing types
+      - Updated sign calculation logic
+    - File: `components/transactions/transaction-details.tsx`
+    - Result: Transaction details page loads for all transaction types without errors

@@ -16,31 +16,61 @@ interface Transaction {
   date: string;
   accountId: string;
   categoryId?: string;
+  merchantId?: string;
+  transferId?: string;
   notes?: string;
+}
+
+interface Merchant {
+  id: string;
+  name: string;
+}
+
+interface Account {
+  id: string;
+  name: string;
 }
 
 export function RecentTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [merchants, setMerchants] = useState<Merchant[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [repeatingTxId, setRepeatingTxId] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchTransactions = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/transactions?limit=5');
-        if (response.ok) {
-          const data = await response.json();
+
+        // Fetch transactions
+        const txResponse = await fetch('/api/transactions?limit=5');
+        if (txResponse.ok) {
+          const data = await txResponse.json();
           setTransactions(data);
         }
+
+        // Fetch merchants
+        const merResponse = await fetch('/api/merchants?limit=1000');
+        if (merResponse.ok) {
+          const merData = await merResponse.json();
+          setMerchants(merData);
+        }
+
+        // Fetch accounts
+        const accResponse = await fetch('/api/accounts');
+        if (accResponse.ok) {
+          const accData = await accResponse.json();
+          setAccounts(accData);
+        }
       } catch (error) {
-        console.error('Failed to fetch transactions:', error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTransactions();
+    fetchData();
   }, []);
 
   const handleRepeatTransaction = async (transaction: Transaction) => {
@@ -55,6 +85,7 @@ export function RecentTransactions() {
         body: JSON.stringify({
           accountId: transaction.accountId,
           categoryId: transaction.categoryId,
+          merchantId: transaction.merchantId,
           date: today,
           amount: transaction.amount,
           description: transaction.description,
@@ -78,6 +109,29 @@ export function RecentTransactions() {
     } finally {
       setRepeatingTxId(null);
     }
+  };
+
+  const getMerchantName = (merchantId?: string): string | null => {
+    if (!merchantId) return null;
+    const merchant = merchants.find((m) => m.id === merchantId);
+    return merchant?.name || null;
+  };
+
+  const getAccountName = (accountId?: string): string => {
+    if (!accountId) return 'Unknown';
+    const account = accounts.find((a) => a.id === accountId);
+    return account?.name || 'Unknown';
+  };
+
+  const getTransactionDisplay = (transaction: Transaction): string => {
+    if (transaction.type === 'transfer') {
+      return `${getAccountName(transaction.accountId)} → ${getAccountName(transaction.transferId)}`;
+    }
+    const merchant = getMerchantName(transaction.merchantId);
+    if (merchant) {
+      return merchant;
+    }
+    return transaction.description;
   };
 
   const getTransactionIcon = (type: string) => {
@@ -140,7 +194,7 @@ export function RecentTransactions() {
                 {getTransactionIcon(transaction.type)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-white truncate">{transaction.description}</p>
+                <p className="font-medium text-white truncate">{getTransactionDisplay(transaction)}</p>
                 <p className="text-xs text-gray-500">
                   {new Date(transaction.date).toLocaleDateString()}
                 </p>

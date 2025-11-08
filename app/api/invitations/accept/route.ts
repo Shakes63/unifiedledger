@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { householdInvitations, householdMembers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -56,6 +56,12 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get user info from Clerk
+    const user = await clerkClient.users.getUser(userId);
+    const userName = user.firstName && user.lastName
+      ? `${user.firstName} ${user.lastName}`
+      : user.firstName || user.username || '';
+
     // Add user to household
     const memberId = nanoid();
     await db.insert(householdMembers).values({
@@ -63,7 +69,7 @@ export async function POST(request: Request) {
       householdId: inv.householdId,
       userId,
       userEmail: inv.invitedEmail,
-      userName: '', // Will be populated from Clerk on first load
+      userName: userName || null,
       role: inv.role as any,
       joinedAt: new Date().toISOString(),
       invitedBy: inv.invitedBy,

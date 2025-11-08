@@ -17,7 +17,7 @@ interface Transaction {
   amount: number;
   description: string;
   notes: string | null;
-  type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+  type: 'income' | 'expense' | 'transfer' | 'transfer_in' | 'transfer_out';
   isPending: boolean;
   isSplit: boolean;
   createdAt: string;
@@ -32,6 +32,7 @@ interface TransactionDetailsProps {
 const typeConfig = {
   income: { label: 'Income', color: 'text-[#10b981]', bgColor: 'bg-[#10b981]/10' },
   expense: { label: 'Expense', color: 'text-[#f87171]', bgColor: 'bg-[#f87171]/10' },
+  transfer: { label: 'Transfer', color: 'text-[#60a5fa]', bgColor: 'bg-[#60a5fa]/10' },
   transfer_in: { label: 'Transfer In', color: 'text-[#60a5fa]', bgColor: 'bg-[#60a5fa]/10' },
   transfer_out: { label: 'Transfer Out', color: 'text-[#60a5fa]', bgColor: 'bg-[#60a5fa]/10' },
 };
@@ -106,9 +107,9 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
     );
   }
 
-  const typeInfo = typeConfig[transaction.type];
+  const typeInfo = typeConfig[transaction.type as keyof typeof typeConfig] || typeConfig.expense;
   const isExpense = transaction.type === 'expense';
-  const sign = transaction.type === 'income' || transaction.type === 'transfer_in' ? '+' : '-';
+  const sign = transaction.type === 'income' || transaction.type === 'transfer_in' || transaction.type === 'transfer' ? '+' : '-';
   const amountColor = transaction.type === 'income' ? 'text-[#10b981]' :
                      transaction.type === 'expense' ? 'text-[#f87171]' :
                      'text-[#60a5fa]';
