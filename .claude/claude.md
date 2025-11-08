@@ -278,24 +278,54 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates (Current Session)
 
-### Bug Fixes Completed ✅
-1. **Bills Details & Delete:** Created full bill details page with edit/delete functionality (like transactions)
-2. **Household Member Names:** Fixed clerkClient usage and added automatic backfill for missing names
-3. **Recent Transactions Display:** Updated to match transactions page layout exactly (merchant/description/account)
-4. **Duplicate Transaction Error:** Fixed toFixed error by constructing full transaction object from API response
+### Major Bug Fixes Completed ✅
+1. **Duplicate Transaction Errors (Bug #7):** Fixed toFixed errors on dashboard and transactions page
+   - Changed from manual state manipulation to refetching data after duplicate
+   - Works correctly in both search mode and regular view mode
+   - Fixed on both RecentTransactions widget and transactions page
+
+2. **Transaction Deletion (Bug #40):** Fixed deletion failing for unified transfer type
+   - Updated DELETE and PUT endpoints to handle 'transfer' type
+   - Balance reversal now works correctly for all transaction types
+
+3. **Rules Management Page (Bug #1):** Created comprehensive rules management page
+   - Full CRUD operations for rules
+   - Priority management, bulk apply, empty states
+   - Integrated RuleBuilder and BulkApplyRules components
+
+4. **Merchant Spending Charts (Bug #2):** Fixed charts tracking description instead of merchant
+   - Updated groupByMerchant function to use merchantId
+   - Added merchant name lookup in API
+   - Backward compatible with transactions without merchants
+
+5. **Account Name Truncation (Bug #3):** Fixed account names being cut off
+   - Added proper flex layout with truncate classes
+   - Icon and balance remain visible while name gracefully truncates
+   - Applied to both AccountSelector and transfer "To Account" selector
+
+6. **Account Update Functionality (Bug #4):** Implemented missing account update feature
+   - Created PUT endpoint for /api/accounts/[id]
+   - Validates user ownership, preserves existing values
+   - Proper success/error messages for create vs update
+
+7. **New Transaction Button (Bug #5):** Added button to transactions page
+   - Quick access to create transactions from transactions page
+   - Emerald button next to Import CSV in toolbar
+   - Better UX - one less click to add transactions
 
 ### Files Created
-- `components/bills/bill-details.tsx` - Full bill details component
-- `app/dashboard/bills/[id]/page.tsx` - Bill details page route
-- `app/dashboard/bills/edit/[id]/page.tsx` - Bill edit page route
-- `app/api/households/backfill-names/route.ts` - Manual backfill endpoint
+- `app/dashboard/rules/page.tsx` - Full rules management page
 
 ### Files Modified
-- `app/dashboard/bills/page.tsx` - Made bill items clickable
-- `app/api/households/[householdId]/members/route.ts` - Auto-backfill userName from Clerk
-- `app/api/households/route.ts` - Fixed clerkClient() usage
-- `app/api/invitations/accept/route.ts` - Fixed clerkClient() usage
-- `components/dashboard/recent-transactions.tsx` - Updated display layout and fixed duplicate error
+- `components/dashboard/recent-transactions.tsx` - Fixed duplicate error, refetch after create
+- `app/dashboard/transactions/page.tsx` - Fixed duplicate error, added New Transaction button
+- `app/api/transactions/[id]/route.ts` - Handle unified transfer type in DELETE/PUT
+- `lib/reports/report-utils.ts` - Added merchantId to interface, updated groupByMerchant
+- `app/api/reports/merchant-analysis/route.ts` - Added merchant name lookup
+- `components/transactions/account-selector.tsx` - Fixed account name truncation
+- `components/transactions/transaction-form.tsx` - Fixed account name truncation
+- `app/api/accounts/[id]/route.ts` - Added PUT endpoint for account updates
+- `app/dashboard/accounts/page.tsx` - Implemented account update logic
 
 ## Important Notes
 

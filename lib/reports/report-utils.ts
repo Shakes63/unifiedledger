@@ -18,6 +18,7 @@ export interface TransactionData {
   userId: string;
   accountId: string;
   categoryId: string | null;
+  merchantId: string | null;
   date: string;
   amount: number;
   description: string;
@@ -106,12 +107,14 @@ export function groupByCategory(txns: TransactionData[]): Map<string, Transactio
 
 /**
  * Group transactions by merchant
+ * Uses merchantId if available, otherwise falls back to description
  */
 export function groupByMerchant(txns: TransactionData[]): Map<string, TransactionData[]> {
   const grouped = new Map<string, TransactionData[]>();
 
   txns.forEach((txn) => {
-    const merchant = txn.description;
+    // Use merchantId if available, otherwise use description
+    const merchant = txn.merchantId || txn.description;
     if (!grouped.has(merchant)) {
       grouped.set(merchant, []);
     }

@@ -175,7 +175,7 @@ export async function PUT(
       if (oldAccount.length > 0 && newAccount.length > 0) {
         // Reverse old transaction effect
         let oldBalance = new Decimal(oldAccount[0].currentBalance || 0);
-        if (transaction.type === 'expense' || transaction.type === 'transfer_out') {
+        if (transaction.type === 'expense' || transaction.type === 'transfer_out' || transaction.type === 'transfer') {
           oldBalance = oldBalance.plus(oldDecimalAmount);
         } else {
           oldBalance = oldBalance.minus(oldDecimalAmount);
@@ -188,7 +188,7 @@ export async function PUT(
 
         // Apply new transaction effect
         let newBalance = new Decimal(newAccount[0].currentBalance || 0);
-        if (transaction.type === 'expense' || transaction.type === 'transfer_out') {
+        if (transaction.type === 'expense' || transaction.type === 'transfer_out' || transaction.type === 'transfer') {
           newBalance = newBalance.minus(newAmount);
         } else {
           newBalance = newBalance.plus(newAmount);
@@ -291,9 +291,11 @@ export async function DELETE(
 
     if (account.length > 0) {
       let newBalance = new Decimal(account[0].currentBalance || 0);
-      if (transaction.type === 'expense' || transaction.type === 'transfer_out') {
+      if (transaction.type === 'expense' || transaction.type === 'transfer_out' || transaction.type === 'transfer') {
+        // For transfers, reverse by adding the amount back (since it was subtracted from the "from" account)
         newBalance = newBalance.plus(decimalAmount);
       } else {
+        // For income, reverse by subtracting the amount (since it was added)
         newBalance = newBalance.minus(decimalAmount);
       }
 

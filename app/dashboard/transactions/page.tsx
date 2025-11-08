@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload, Plus } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
@@ -205,8 +205,20 @@ export default function TransactionsPage() {
       });
 
       if (response.ok) {
-        const newTransaction = await response.json();
-        setTransactions([newTransaction, ...transactions]);
+        await response.json(); // Get the response but don't use it
+        // Refetch transactions to get accurate data
+        if (currentFilters) {
+          // If we're in search mode, re-run the search
+          await performSearch(currentFilters, paginationOffset);
+        } else {
+          // Otherwise, refetch all transactions
+          const txResponse = await fetch('/api/transactions?limit=100');
+          if (txResponse.ok) {
+            const txData = await txResponse.json();
+            setTransactions(txData.reverse());
+            setTotalResults(txData.length);
+          }
+        }
         toast.success(`Transaction repeated: ${transaction.description}`);
       } else {
         const error = await response.json();
@@ -316,15 +328,26 @@ export default function TransactionsPage() {
         {/* Toolbar */}
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-sm font-medium text-[#6b7280]">Search & Filter</h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setImportModalOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            Import CSV
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard/transactions/new">
+              <Button
+                size="sm"
+                className="bg-emerald-500 text-white hover:bg-emerald-600 font-medium"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                New Transaction
+              </Button>
+            </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setImportModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Import CSV
+            </Button>
+          </div>
         </div>
 
         {/* Advanced Search */}

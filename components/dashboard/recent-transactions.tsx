@@ -101,7 +101,7 @@ export function RecentTransactions() {
         const newTransaction: Transaction = {
           id: result.id,
           description: transaction.description,
-          amount: transaction.amount,
+          amount: typeof transaction.amount === 'number' ? transaction.amount : parseFloat(transaction.amount as any) || 0,
           type: transaction.type,
           date: today,
           accountId: transaction.accountId,
@@ -111,8 +111,12 @@ export function RecentTransactions() {
           notes: transaction.notes,
           isSplit: false, // New transactions aren't split by default
         };
-        // Add new transaction and keep only the most recent 5
-        setTransactions([newTransaction, ...transactions.slice(0, -1)]);
+        // Refetch the transactions to get the accurate list instead of manually manipulating state
+        const refreshResponse = await fetch('/api/transactions?limit=5');
+        if (refreshResponse.ok) {
+          const refreshedData = await refreshResponse.json();
+          setTransactions(refreshedData);
+        }
         toast.success(`Transaction repeated: ${transaction.description}`);
       } else {
         const error = await response.json();

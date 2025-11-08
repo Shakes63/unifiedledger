@@ -68,10 +68,10 @@ export function AccountSelector({
         <SelectContent>
           {accounts.map((account) => (
             <SelectItem key={account.id} value={account.id}>
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                <span>{account.name}</span>
-                <span className="text-xs text-gray-400 ml-2">
+              <div className="flex items-center gap-2 w-full">
+                <DollarSign className="w-4 h-4 flex-shrink-0" />
+                <span className="flex-1 truncate">{account.name}</span>
+                <span className="text-xs text-gray-400 flex-shrink-0">
                   ${account.currentBalance?.toFixed(2) || '0.00'}
                 </span>
               </div>

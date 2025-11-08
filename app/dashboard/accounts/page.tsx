@@ -55,22 +55,18 @@ export default function AccountsPage() {
     try {
       setIsSubmitting(true);
 
-      if (selectedAccount) {
-        // TODO: Implement PUT endpoint for updating accounts
-        toast.error('Account editing not yet implemented');
-        setIsSubmitting(false);
-        return;
-      }
+      const url = selectedAccount ? `/api/accounts/${selectedAccount.id}` : '/api/accounts';
+      const method = selectedAccount ? 'PUT' : 'POST';
 
-      const response = await fetch('/api/accounts', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
       if (response.ok || response.status === 201) {
         const result = await response.json();
-        toast.success('Account created successfully');
+        toast.success(selectedAccount ? 'Account updated successfully' : 'Account created successfully');
 
         // Refresh accounts list
         const fetchResponse = await fetch('/api/accounts');
@@ -81,10 +77,10 @@ export default function AccountsPage() {
           setIsDialogOpen(false);
           setSelectedAccount(null);
         } else {
-          toast.error('Account created but failed to refresh list');
+          toast.error(`Account ${selectedAccount ? 'updated' : 'created'} but failed to refresh list`);
         }
       } else {
-        let errorMessage = 'Failed to create account';
+        let errorMessage = selectedAccount ? 'Failed to update account' : 'Failed to create account';
         try {
           const error = await response.json();
           errorMessage = error.error || errorMessage;
@@ -95,8 +91,8 @@ export default function AccountsPage() {
         console.error('Account creation failed:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('Error creating account:', error);
-      toast.error(error instanceof Error ? error.message : 'Error creating account');
+      console.error(`Error ${selectedAccount ? 'updating' : 'creating'} account:`, error);
+      toast.error(error instanceof Error ? error.message : `Error ${selectedAccount ? 'updating' : 'creating'} account`);
     } finally {
       setIsSubmitting(false);
     }

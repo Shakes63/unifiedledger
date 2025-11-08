@@ -6,6 +6,9 @@ import {
   getCurrentYearRange,
   getTopMerchants,
 } from '@/lib/reports/report-utils';
+import { db } from '@/lib/db';
+import { merchants } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 /**
  * GET /api/reports/merchant-analysis
@@ -41,13 +44,25 @@ export async function GET(request: NextRequest) {
     // Get top merchants
     const topMerchants = getTopMerchants(expenses, limit);
 
+    // Fetch merchant names for merchantIds
+    const merchantIds = topMerchants
+      .map((m) => m.merchant)
+      .filter((id) => id && id.length > 10); // merchantIds are nanoid format (longer strings)
+
+    const merchantRecords = await db
+      .select()
+      .from(merchants)
+      .where(eq(merchants.userId, userId));
+
+    const merchantMap = new Map(merchantRecords.map((m) => [m.id, m.name]));
+
     // Calculate statistics
     const totalSpending = expenses.reduce((sum, t) => sum + t.amount, 0);
     const averageTransaction = expenses.length > 0 ? totalSpending / expenses.length : 0;
 
     // Convert to display format
     const data = topMerchants.map((merchant) => ({
-      name: merchant.merchant,
+      name: merchantMap.get(merchant.merchant) || merchant.merchant, // Use merchant name if found, otherwise use description
       amount: Math.abs(merchant.amount),
       count: merchant.count,
       averagePerTransaction: Math.abs(merchant.amount / merchant.count),
@@ -57,11 +72,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       data,
       summary: {
-        totalMerchants: new Set(expenses.map((t) => t.description)).size,
+        totalMerchants: new Set(expenses.map((t) => t.merchantId || t.description)).size,
         totalSpending: Math.abs(totalSpending),
         totalTransactions: expenses.length,
         averageTransaction,
-        averagePerMerchant: expenses.length > 0 ? totalSpending / new Set(expenses.map((t) => t.description)).size : 0,
+        averagePerMerchant: expenses.length > 0 ? totalSpending / new Set(expenses.map((t) => t.merchantId || t.description)).size : 0,
       },
       period,
     });

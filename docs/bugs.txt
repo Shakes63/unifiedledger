@@ -287,7 +287,7 @@ COMPLETED BUGS:
    - Result: Recent transactions now display identically to transactions page
    - Consistent user experience across dashboard and transactions page
 
-✅ 38. Fixed duplicate/repeat transaction error in RecentTransactions:
+✅ 38. Fixed duplicate/repeat transaction error in RecentTransactions (FIRST FIX):
    - Error: "Cannot read properties of undefined (reading 'toFixed')" at line 235
    - Root cause: POST /api/transactions returns {id, message, appliedCategoryId, ...} not full transaction object
    - handleRepeatTransaction was adding incomplete object to state
@@ -304,13 +304,150 @@ COMPLETED BUGS:
    - Result: Duplicate transaction button now works without errors
    - New transaction appears correctly in list with all fields populated
 
-PENDING BUGS (ALL RESOLVED):
-1. ✅ the bills should have a details modal and a way to delete them just like the transactions.
-2. ✅ Reopen bug 27 it is still not fixed.
-3. ✅ the recent transactions should show just like the transactions on the transactions page
-4. create the rules page or fix it if it is already created.
-5. the merchant spending charts on the reports page are tracking the description instead of the merchant
-6. the account name is cut off on the transaction entry.
-7. ✅ got this error when trying to duplicate a transaction: Cannot read properties of undefined (reading 'toFixed')
-8. the update account button doesn't seem to work.
+✅ 39. Fixed duplicate/repeat transaction error AGAIN (bug 7 reopened - Part 1):
+   - Error: "Cannot read properties of undefined (reading 'toFixed')" still occurring after bug 38 fix
+   - Transaction was created successfully in DB but error threw in UI
+   - After refresh, duplicated transaction appeared correctly
+   - Root cause: Type mismatch between API response data format and manually constructed newTransaction object
+   - The manual state manipulation approach was fragile and prone to type inconsistencies
+   - Solution:
+     - Added type safety for amount field: checks if number, otherwise parses float with fallback to 0
+     - Changed approach from manual state manipulation to refetching transactions after duplicate
+     - Now calls GET /api/transactions?limit=5 after successful POST
+     - This ensures UI always has same data structure as initial load
+     - Matches the "refresh" behavior that was working correctly
+   - Files updated:
+     * components/dashboard/recent-transactions.tsx (lines 104, 115-119)
+   - Result: Duplicate button now works reliably without errors on dashboard
+   - UI always reflects true database state with proper data types
+
+✅ 39b. Fixed duplicate/repeat transaction error on transactions page (bug 7 reopened - Part 2):
+   - Error: "Cannot read properties of undefined (reading 'toFixed')" at app/dashboard/transactions/page.tsx:402
+   - Same issue as Part 1 but on the transactions page instead of dashboard
+   - Root cause: Transactions page was also using manual state manipulation (line 208-209)
+   - Code: `const newTransaction = await response.json(); setTransactions([newTransaction, ...transactions]);`
+   - API returns {id, message, appliedCategoryId} not full transaction object
+   - Solution:
+     - Changed to refetch transactions after successful POST
+     - Checks if currentFilters exists to determine search mode vs. initial mode
+     - If in search mode: calls performSearch(currentFilters, paginationOffset)
+     - If in initial mode: fetches from /api/transactions?limit=100
+     - Same pattern as dashboard fix - refetch instead of manual state manipulation
+     - Ensures data consistency across both pages
+   - Files updated:
+     * app/dashboard/transactions/page.tsx (lines 208-222)
+   - Result: Duplicate button works on both dashboard AND transactions page
+   - Works correctly in both search mode and regular view mode
+   - No more toFixed errors anywhere in the app
+
+✅ 40. Fixed transaction deletion failing for unified transfer type:
+   - Error: "Failed to delete transaction" when trying to delete any transaction
+   - Root cause: DELETE endpoint checking for 'transfer_out' but unified transfer type is now just 'transfer'
+   - This caused balance reversal logic to fail (lines 294, 178, 191 in route.ts)
+   - When deleting a transfer, the condition `transaction.type === 'expense' || transaction.type === 'transfer_out'` didn't match 'transfer'
+   - Solution:
+     - Updated DELETE endpoint balance reversal to include 'transfer' type (line 294)
+     - Updated PUT endpoint balance reversal to include 'transfer' type (lines 178, 191)
+     - Added clarifying comments for transfer handling
+   - Files updated:
+     * app/api/transactions/[id]/route.ts (lines 178, 191, 294)
+   - Result: Transaction deletion now works for all transaction types including unified transfers
+   - Balance reversal correctly handles expenses, transfers, and income
+
+✅ 41. Created Rules Management Page:
+   - Issue: Sidebar had link to /dashboard/rules but page didn't exist (404)
+   - API endpoints already existed (/api/rules) and components were built (RuleBuilder, BulkApplyRules)
+   - Created comprehensive rules page at /dashboard/rules/page.tsx
+   - Features implemented:
+     - List all rules with priority, status, match count, last used date
+     - Create new rules (opens RuleBuilder)
+     - Edit existing rules
+     - Delete rules with confirmation
+     - Toggle rules active/inactive
+     - Change rule priority (move up/down)
+     - Bulk apply rules to existing transactions
+     - Empty state for first-time users
+     - Info card explaining how rules work
+     - Clean dark mode design matching app style
+   - Files created:
+     * app/dashboard/rules/page.tsx (full page implementation)
+   - Result: Rules page is now fully functional and accessible from sidebar
+   - Users can create, edit, delete, and manage auto-categorization rules
+
+✅ 42. Fixed merchant spending charts tracking description instead of merchant:
+   - Issue: Reports page merchant analysis was grouping by transaction description instead of actual merchants
+   - Root cause: groupByMerchant function in lib/reports/report-utils.ts was using txn.description (line 114)
+   - TransactionData interface didn't include merchantId field
+   - merchant-analysis API route wasn't fetching merchant names
+   - Solution:
+     - Added merchantId field to TransactionData interface
+     - Updated groupByMerchant to use merchantId when available, falls back to description
+     - Updated merchant-analysis route to fetch merchant records from database
+     - Created merchantMap to convert merchantId to merchant name
+     - Fixed summary statistics to use merchantId instead of description (lines 75, 79)
+   - Files updated:
+     * lib/reports/report-utils.ts (added merchantId to interface, updated groupByMerchant function)
+     * app/api/reports/merchant-analysis/route.ts (added merchant name lookup, fixed summary)
+   - Result: Merchant spending charts now correctly track and display actual merchant names
+   - Transactions with merchants show proper merchant names in reports
+   - Transactions without merchants fall back to description (backward compatible)
+
+✅ 43. Fixed account name being cut off in transaction entry:
+   - Issue: Account names were truncated without proper text ellipsis in dropdowns
+   - Occurred in both AccountSelector component and transfer "To Account" selector
+   - Root cause: Account name span didn't have truncate classes or proper flex behavior
+   - Long account names would overflow and get cut off awkwardly
+   - Solution:
+     - Added w-full to flex container for proper width distribution
+     - Made DollarSign icon flex-shrink-0 to prevent icon from shrinking
+     - Added flex-1 truncate to account name span for proper text truncation with ellipsis
+     - Made balance span flex-shrink-0 to keep it fully visible
+     - Applied same fix to both AccountSelector and "To Account" in transaction form
+   - Files updated:
+     * components/transactions/account-selector.tsx (lines 71-76)
+     * components/transactions/transaction-form.tsx (lines 649-653)
+   - Result: Account names now properly truncate with ellipsis (...) when too long
+   - Icon and balance remain fully visible while name gracefully truncates
+   - Better UX for users with long account names
+
+✅ 44. Implemented account update functionality:
+   - Issue: Update Account button showed error "Account editing not yet implemented"
+   - Root cause: PUT endpoint didn't exist in app/api/accounts/[id]/route.ts
+   - Frontend had TODO comment (line 59-62) that returned early with error message
+   - Solution:
+     - Created PUT endpoint in app/api/accounts/[id]/route.ts
+     - Accepts: name, type, bankName, accountNumberLast4, currentBalance, creditLimit, color, icon, isBusinessAccount
+     - Validates user authentication and account ownership
+     - Validates required fields (name and type)
+     - Preserves existing values for fields not provided in update
+     - Updates account with new values and sets updatedAt timestamp
+     - Updated accounts page handleSubmit to call PUT when selectedAccount exists
+     - Changed method from always POST to conditional PUT/POST based on edit mode
+     - Updated all toast messages to reflect create vs update appropriately
+     - Updated console error messages for better debugging
+   - Files updated:
+     * app/api/accounts/[id]/route.ts (added PUT endpoint, lines 8-88)
+     * app/dashboard/accounts/page.tsx (implemented update logic, lines 54-98)
+   - Result: Update Account button now fully functional
+   - Users can edit account name, type, bank info, balances, and business account status
+   - Proper success/error messages for both create and update operations
+
+✅ 45. Added New Transaction button to transactions page:
+   - Issue: Transactions page had no quick way to create a new transaction
+   - Users had to go back to dashboard to add transactions
+   - Solution:
+     - Added Plus icon to lucide-react imports
+     - Created "New Transaction" button in toolbar section (next to Import CSV)
+     - Button uses emerald styling to match app theme (bg-emerald-500)
+     - Links to /dashboard/transactions/new page
+     - Button includes Plus icon for visual clarity
+     - Grouped both buttons (New Transaction + Import CSV) in flex container
+   - Files updated:
+     * app/dashboard/transactions/page.tsx (lines 4, 331-350)
+   - Result: Users can now quickly create transactions from the transactions page
+   - Better UX - one less click to add a transaction
+   - Consistent with other pages that have create buttons
+
+ALL BUGS FIXED! 🎉
+
 
