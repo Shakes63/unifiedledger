@@ -193,6 +193,6 @@ For debt system
 
 13. Settings page
 
-14. Theme toggle on settings page
+14. Theme chooser on settings page
 
 15 New theme that is elegant an girly with pink and turquiose and other colors that work well with those colors. it should be colorful and fun and elegant

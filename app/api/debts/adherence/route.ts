@@ -203,10 +203,16 @@ export async function GET() {
 
     let projectionAdjustment = null;
 
-    // Only calculate projections if we have reasonable debt amounts
-    // Skip for very long-term debts to avoid timeout
+    // Only calculate projections if we have reasonable debt amounts and timeframes
+    // Skip for very long-term debts to avoid timeout/memory issues
     const totalDebt = activeDebts.reduce((sum, d) => sum + (d.remainingBalance || 0), 0);
-    const shouldCalculateProjections = totalDebt > 0 && totalDebt < 1000000; // Skip if over $1M
+    const totalMinPayment = activeDebts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
+
+    // Estimate max payoff time (very rough estimate)
+    const estimatedMonths = totalMinPayment > 0 ? totalDebt / totalMinPayment : 999;
+
+    // Skip if debt over $500k OR estimated payoff > 360 months (30 years)
+    const shouldCalculateProjections = totalDebt > 0 && totalDebt < 500000 && estimatedMonths < 360;
 
     if (shouldCalculateProjections) {
       try {

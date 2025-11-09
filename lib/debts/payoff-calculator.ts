@@ -245,7 +245,10 @@ function calculateDebtSchedule(
   const periodsPerYear = getPaymentPeriodsPerYear(paymentFrequency);
   let paymentPeriod = 0;
 
-  while (balance.greaterThan(0) && monthsToPayoff < 1000) { // 1000 month safety limit
+  // Safety limit: max 600 months (50 years) to prevent memory issues
+  const MAX_MONTHS = 600;
+
+  while (balance.greaterThan(0) && monthsToPayoff < MAX_MONTHS) {
     paymentPeriod++;
 
     // Calculate current month based on payment periods
@@ -296,6 +299,12 @@ function calculateDebtSchedule(
     });
 
     if (balance.equals(0)) break;
+
+    // Memory optimization: if we've hit the max limit, stop calculating
+    if (monthsToPayoff >= MAX_MONTHS) {
+      console.warn(`Payoff calculation stopped at ${MAX_MONTHS} months for debt: ${debt.name}`);
+      break;
+    }
   }
 
   // Convert payment periods to months
