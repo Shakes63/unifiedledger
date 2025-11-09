@@ -132,15 +132,15 @@ export default function GoalsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Savings Goals</h1>
-          <p className="text-gray-400 mt-1">Track and achieve your financial goals</p>
+            <h1 className="text-3xl font-bold text-foreground">Savings Goals</h1>
+          <p className="text-muted-foreground mt-1">Track and achieve your financial goals</p>
         </div>
         <Button
           onClick={() => {
             setSelectedGoal(null);
             setIsFormOpen(true);
           }}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Goal
@@ -149,27 +149,27 @@ export default function GoalsPage() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-          <p className="text-gray-400 text-sm">Total Target</p>
-          <p className="text-2xl font-bold text-white mt-1">
+        <div className="bg-card border border-border rounded-lg p-4">
+          <p className="text-muted-foreground text-sm">Total Target</p>
+          <p className="text-2xl font-bold text-foreground mt-1">
             ${totalTarget.toLocaleString('en-US', { maximumFractionDigits: 2 })}
           </p>
         </div>
-        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-          <p className="text-gray-400 text-sm">Total Saved</p>
-          <p className="text-2xl font-bold text-emerald-400 mt-1">
+        <div className="bg-card border border-border rounded-lg p-4">
+          <p className="text-muted-foreground text-sm">Total Saved</p>
+          <p className="text-2xl font-bold text-[var(--color-income)] mt-1">
             ${totalCurrent.toLocaleString('en-US', { maximumFractionDigits: 2 })}
           </p>
         </div>
-        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-          <p className="text-gray-400 text-sm">Progress</p>
-          <p className="text-2xl font-bold text-white mt-1">
+        <div className="bg-card border border-border rounded-lg p-4">
+          <p className="text-muted-foreground text-sm">Progress</p>
+          <p className="text-2xl font-bold text-foreground mt-1">
             {goals.length > 0 ? Math.round((totalCurrent / totalTarget) * 100) : 0}%
           </p>
         </div>
-        <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-          <p className="text-gray-400 text-sm">Active Goals</p>
-          <p className="text-2xl font-bold text-white mt-1">{activeGoals}</p>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <p className="text-muted-foreground text-sm">Active Goals</p>
+          <p className="text-2xl font-bold text-foreground mt-1">{activeGoals}</p>
         </div>
       </div>
 
@@ -181,8 +181,8 @@ export default function GoalsPage() {
             onClick={() => setFilter(status)}
             className={`px-4 py-2 rounded transition-colors capitalize ${
               filter === status
-                ? 'bg-emerald-600 text-white'
-                : 'bg-[#1a1a1a] text-gray-400 border border-[#2a2a2a] hover:border-[#3a3a3a]'
+                ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                : 'bg-card text-muted-foreground border border-border hover:border-border'
             }`}
           >
             {status}
@@ -193,14 +193,14 @@ export default function GoalsPage() {
       {/* Goals List */}
       {loading ? (
         <div className="text-center py-12">
-          <p className="text-gray-400">Loading goals...</p>
+          <p className="text-muted-foreground">Loading goals...</p>
         </div>
       ) : goals.length === 0 ? (
-        <div className="text-center py-12 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
-          <p className="text-gray-400">No goals yet. Create your first goal to get started!</p>
+        <div className="text-center py-12 bg-card border border-border rounded-lg">
+          <p className="text-muted-foreground">No goals yet. Create your first goal to get started!</p>
           <Button
             onClick={() => setIsFormOpen(true)}
-            className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="mt-4 bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
           >
             Create Goal
           </Button>
@@ -221,10 +221,10 @@ export default function GoalsPage() {
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white max-w-md">
+        <DialogContent className="bg-card border-border text-foreground max-w-md">
           <DialogHeader>
             <DialogTitle>{selectedGoal ? 'Edit Goal' : 'Create New Goal'}</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-muted-foreground">
               {selectedGoal
                 ? 'Update your savings goal details'
                 : 'Set up a new savings goal to track'}

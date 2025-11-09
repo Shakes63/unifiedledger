@@ -94,14 +94,14 @@ export default function TransfersPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white">Transfers</h1>
-          <p className="text-[#9ca3af] mt-2">
+          <p className="text-muted-foreground mt-2">
             Move money between your accounts
           </p>
         </div>
         <Button
           onClick={() => setIsModalOpen(true)}
           disabled={accounts.length < 2}
-          className="bg-blue-500 hover:bg-blue-600 text-white"
+          className="bg-[var(--color-primary)] hover:opacity-90 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Transfer

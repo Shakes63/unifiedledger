@@ -32,11 +32,11 @@ interface ReportData {
 }
 
 const COLOR_PALETTE = {
-  income: '#10b981',
-  expense: '#f87171',
-  transfer: '#60a5fa',
-  warning: '#fbbf24',
-  primary: '#3b82f6',
+  income: 'var(--color-income)',
+  expense: 'var(--color-expense)',
+  transfer: 'var(--color-transfer)',
+  warning: 'var(--color-warning)',
+  primary: 'var(--color-primary)',
 };
 
 /**

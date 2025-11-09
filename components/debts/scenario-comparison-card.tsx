@@ -28,9 +28,9 @@ export function ScenarioComparisonCard({
     if (!isBest) return null;
 
     const badges = {
-      time: { text: 'Fastest', color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' },
-      money: { text: 'Saves Most $', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-      balanced: { text: 'Most Balanced', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+      time: { text: 'Fastest', color: 'bg-[var(--color-success)]/20 text-[var(--color-success)] border-[var(--color-success)]/30' },
+      money: { text: 'Saves Most $', color: 'bg-[var(--color-primary)]/20 text-[var(--color-primary)] border-[var(--color-primary)]/30' },
+      balanced: { text: 'Most Balanced', color: 'bg-[var(--color-transfer)]/20 text-[var(--color-transfer)] border-[var(--color-transfer)]/30' },
     };
 
     const badge = badges[isBest];
@@ -43,19 +43,19 @@ export function ScenarioComparisonCard({
   };
 
   return (
-    <div className={`bg-[#1a1a1a] rounded-xl border transition-all ${
-      isBest ? 'border-emerald-500/50 shadow-lg shadow-emerald-500/10' : 'border-[#2a2a2a]'
+    <div className={`bg-card rounded-xl border transition-all ${
+      isBest ? 'border-[var(--color-success)]/50 shadow-lg shadow-[var(--color-success)]/10' : 'border-border'
     }`}>
       {/* Main Content */}
       <div className="p-6">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-white mb-1">
+            <h3 className="text-lg font-semibold text-foreground mb-1">
               {scenario.name}
             </h3>
             {isBaseline && (
-              <span className="text-xs text-blue-400 bg-blue-500/10 px-2 py-1 rounded">
+              <span className="text-xs text-[var(--color-primary)] bg-[var(--color-primary)]/10 px-2 py-1 rounded">
                 Baseline
               </span>
             )}
@@ -66,32 +66,32 @@ export function ScenarioComparisonCard({
         {/* Key Metrics */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-[#808080] text-sm">Time to Debt-Free:</span>
-            <span className="text-white font-semibold">{scenario.totalMonths} months</span>
+            <span className="text-muted-foreground text-sm">Time to Debt-Free:</span>
+            <span className="text-foreground font-semibold">{scenario.totalMonths} months</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-[#808080] text-sm">Debt-Free Date:</span>
-            <span className="text-white font-semibold">{formatDate(scenario.debtFreeDate)}</span>
+            <span className="text-muted-foreground text-sm">Debt-Free Date:</span>
+            <span className="text-foreground font-semibold">{formatDate(scenario.debtFreeDate)}</span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-[#808080] text-sm">Total Interest:</span>
-            <span className="text-white font-mono font-semibold">
+            <span className="text-muted-foreground text-sm">Total Interest:</span>
+            <span className="text-foreground font-mono font-semibold">
               ${scenario.totalInterestPaid.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </span>
           </div>
 
           {/* Savings vs Baseline */}
           {!isBaseline && scenario.savingsVsBaseline && (
-            <div className="pt-3 mt-3 border-t border-[#2a2a2a] space-y-2">
+            <div className="pt-3 mt-3 border-t border-border space-y-2">
               {scenario.savingsVsBaseline.monthsSaved !== 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-[#808080] text-sm">Time Savings:</span>
+                  <span className="text-muted-foreground text-sm">Time Savings:</span>
                   <span className={`font-semibold ${
                     scenario.savingsVsBaseline.monthsSaved > 0
-                      ? 'text-emerald-400'
-                      : 'text-red-400'
+                      ? 'text-[var(--color-success)]'
+                      : 'text-[var(--color-error)]'
                   }`}>
                     {scenario.savingsVsBaseline.monthsSaved > 0 ? '+' : ''}
                     {Math.abs(scenario.savingsVsBaseline.monthsSaved)} months
@@ -101,11 +101,11 @@ export function ScenarioComparisonCard({
 
               {scenario.savingsVsBaseline.interestSaved !== 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-[#808080] text-sm">Interest Savings:</span>
+                  <span className="text-muted-foreground text-sm">Interest Savings:</span>
                   <span className={`font-mono font-semibold ${
                     scenario.savingsVsBaseline.interestSaved > 0
-                      ? 'text-emerald-400'
-                      : 'text-red-400'
+                      ? 'text-[var(--color-success)]'
+                      : 'text-[var(--color-error)]'
                   }`}>
                     {scenario.savingsVsBaseline.interestSaved > 0 ? '+' : ''}
                     ${Math.abs(scenario.savingsVsBaseline.interestSaved).toLocaleString('en-US', {
@@ -121,7 +121,7 @@ export function ScenarioComparisonCard({
         {/* Expand/Collapse Button */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full mt-4 py-2 flex items-center justify-center gap-2 text-[#808080] hover:text-white transition-colors text-sm"
+          className="w-full mt-4 py-2 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm"
         >
           {expanded ? (
             <>
@@ -140,24 +140,24 @@ export function ScenarioComparisonCard({
       {/* Expanded Content */}
       {expanded && (
         <div className="px-6 pb-6 pt-0">
-          <div className="border-t border-[#2a2a2a] pt-4">
-            <h4 className="text-sm font-semibold text-white mb-3">Payoff Order</h4>
+          <div className="border-t border-border pt-4">
+            <h4 className="text-sm font-semibold text-foreground mb-3">Payoff Order</h4>
             <div className="space-y-2">
               {scenario.payoffOrder.map((debt) => (
                 <div
                   key={debt.debtId}
-                  className="flex items-center gap-3 p-3 bg-[#242424] rounded-lg"
+                  className="flex items-center gap-3 p-3 bg-elevated rounded-lg"
                 >
-                  <div className="w-6 h-6 rounded-full bg-[#1a1a1a] flex items-center justify-center text-white text-xs font-semibold">
+                  <div className="w-6 h-6 rounded-full bg-card flex items-center justify-center text-foreground text-xs font-semibold">
                     {debt.order}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-white font-medium truncate">{debt.debtName}</div>
-                    <div className="text-xs text-[#808080]">
+                    <div className="text-foreground font-medium truncate">{debt.debtName}</div>
+                    <div className="text-xs text-muted-foreground">
                       ${debt.remainingBalance.toLocaleString()} @ {debt.interestRate}% APR
                     </div>
                   </div>
-                  <div className="text-xs text-[#808080] whitespace-nowrap">
+                  <div className="text-xs text-muted-foreground whitespace-nowrap">
                     ${debt.minimumPayment.toFixed(2)}/mo
                   </div>
                 </div>

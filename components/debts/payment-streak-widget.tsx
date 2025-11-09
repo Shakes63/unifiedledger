@@ -88,9 +88,9 @@ export function PaymentStreakWidget() {
   // Loading state
   if (loading) {
     return (
-      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
+      <Card className="p-6 border border-border bg-card rounded-xl">
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+          <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
         </div>
       </Card>
     );
@@ -99,14 +99,14 @@ export function PaymentStreakWidget() {
   // No debts or no payments
   if (!data?.hasDebts || !data.hasPayments) {
     return (
-      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
+      <Card className="p-6 border border-border bg-card rounded-xl">
         <div className="flex items-start gap-4">
-          <div className="p-3 bg-orange-500/20 rounded-lg">
-            <Flame className="w-6 h-6 text-orange-400" />
+          <div className="p-3 bg-[var(--color-warning)]/20 rounded-lg">
+            <Flame className="w-6 h-6 text-[var(--color-warning)]" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-white mb-1">Payment Streak</h3>
-            <p className="text-sm text-gray-400">
+            <h3 className="text-lg font-semibold text-foreground mb-1">Payment Streak</h3>
+            <p className="text-sm text-muted-foreground">
               {data?.message || 'Make consistent payments to build your streak!'}
             </p>
           </div>
@@ -124,22 +124,22 @@ export function PaymentStreakWidget() {
     : 100;
 
   return (
-    <Card className={`p-6 border border-[#2a2a2a] bg-gradient-to-br ${data.isActive ? streakGradient : 'from-gray-700 to-gray-800'} bg-opacity-10 rounded-xl relative overflow-hidden`}>
+    <Card className={`p-6 border border-border bg-gradient-to-br ${data.isActive ? streakGradient : 'from-muted to-muted'} bg-opacity-10 rounded-xl relative overflow-hidden`}>
       {/* Decorative background pattern */}
       <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full blur-2xl"></div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-foreground rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-foreground rounded-full blur-2xl"></div>
       </div>
 
       <div className="relative z-10">
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-white mb-1">Payment Streak</h3>
-            <p className="text-xs text-gray-400">{motivationalMessage}</p>
+            <h3 className="text-lg font-semibold text-foreground mb-1">Payment Streak</h3>
+            <p className="text-xs text-muted-foreground">{motivationalMessage}</p>
           </div>
           <div className={`p-3 bg-gradient-to-br ${streakGradient} rounded-lg shadow-lg`}>
-            <Flame className={`w-6 h-6 text-white ${data.isActive ? 'animate-pulse' : 'opacity-50'}`} />
+            <Flame className={`w-6 h-6 text-primary-foreground ${data.isActive ? 'animate-pulse' : 'opacity-50'}`} />
           </div>
         </div>
 
@@ -147,14 +147,14 @@ export function PaymentStreakWidget() {
         <div className="flex items-center gap-6 mb-6">
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              <span className="text-5xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
                 {data.currentStreak}
               </span>
-              <span className="text-lg text-gray-400">
+              <span className="text-lg text-muted-foreground">
                 month{data.currentStreak !== 1 ? 's' : ''}
               </span>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Longest: {data.longestStreak} month{data.longestStreak !== 1 ? 's' : ''}
             </p>
           </div>
@@ -163,14 +163,14 @@ export function PaymentStreakWidget() {
           {data.nextMilestone && (
             <div className="flex-1">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   {data.nextMilestone.label}
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-muted-foreground">
                   {data.nextMilestone.remaining} to go
                 </span>
               </div>
-              <div className="h-2 bg-[#242424] rounded-full overflow-hidden">
+              <div className="h-2 bg-elevated rounded-full overflow-hidden">
                 <div
                   className={`h-full bg-gradient-to-r ${streakGradient} transition-all duration-500`}
                   style={{ width: `${Math.min(progressPercentage, 100)}%` }}
@@ -183,17 +183,17 @@ export function PaymentStreakWidget() {
         {/* Achievements */}
         {data.achievements.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs text-gray-500 mb-2">Milestones</p>
+            <p className="text-xs text-muted-foreground mb-2">Milestones</p>
             <div className="flex gap-2 flex-wrap">
               {data.achievements.map((achievement) => (
                 <div
                   key={achievement.milestone}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                     achievement.currentlyActive
-                      ? `bg-gradient-to-r ${streakGradient} text-white shadow-lg`
+                      ? `bg-gradient-to-r ${streakGradient} text-primary-foreground shadow-lg`
                       : achievement.achieved
-                      ? 'bg-[#242424] border border-[#2a2a2a] text-gray-300'
-                      : 'bg-[#1a1a1a] border border-[#2a2a2a] text-gray-600'
+                      ? 'bg-elevated border border-border text-muted-foreground'
+                      : 'bg-card border border-border text-muted-foreground'
                   }`}
                   title={achievement.label}
                 >

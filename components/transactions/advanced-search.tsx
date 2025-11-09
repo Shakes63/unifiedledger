@@ -217,21 +217,21 @@ export function AdvancedSearch({
   ).length;
 
   return (
-    <Card className={`bg-[#1a1a1a] border-[#2a2a2a] transition-all ${isExpanded ? 'p-6 space-y-6' : 'p-4'}`}>
+    <Card className={`bg-card border-border transition-all ${isExpanded ? 'p-6 space-y-6' : 'p-4'}`}>
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
       >
         <div className="text-left flex-1">
-          <h2 className="text-lg font-semibold text-white">Advanced Search</h2>
+          <h2 className="text-lg font-semibold text-foreground">Advanced Search</h2>
           {activeFilterCount > 0 && (
-            <p className="text-sm text-emerald-400 mt-1">
+            <p className="text-sm text-[var(--color-income)] mt-1">
               {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} applied
             </p>
           )}
         </div>
         <ChevronDown
-          className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${
+          className={`w-5 h-5 text-muted-foreground transition-transform flex-shrink-0 ${
             isExpanded ? 'rotate-180' : ''
           }`}
         />
@@ -245,7 +245,7 @@ export function AdvancedSearch({
                 variant="outline"
                 size="sm"
                 onClick={handleClearFilters}
-                className="text-[#9ca3af] border-[#2a2a2a] hover:bg-[#242424]"
+                className="text-muted-foreground border-border hover:bg-elevated"
               >
                 Clear All
               </Button>
@@ -253,11 +253,11 @@ export function AdvancedSearch({
           </div>
 
       {/* Saved Searches Toggle */}
-      <div className="border-t border-[#2a2a2a] pt-4">
+      <div className="border-t border-border pt-4">
         <Button
           onClick={() => setShowSavedSearches(!showSavedSearches)}
           variant="outline"
-          className="w-full justify-between text-[#9ca3af] border-[#2a2a2a] hover:bg-[#242424]"
+          className="w-full justify-between text-muted-foreground border-border hover:bg-elevated"
         >
           Saved Searches
           <ChevronDown
@@ -280,7 +280,7 @@ export function AdvancedSearch({
 
       {/* Text Search */}
       <div className="space-y-2">
-        <Label htmlFor="query" className="text-white">
+        <Label htmlFor="query" className="text-foreground">
           Search Description & Notes
         </Label>
         <Input
@@ -290,14 +290,14 @@ export function AdvancedSearch({
           onChange={(e) =>
             setFilters({ ...filters, query: e.target.value || undefined })
           }
-          className="bg-[#242424] border-[#2a2a2a] text-white placeholder-[#6b7280]"
+          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
         />
       </div>
 
       {/* Categories */}
       {categories.length > 0 && (
         <div className="space-y-2">
-          <Label className="text-white">Categories</Label>
+          <Label className="text-foreground">Categories</Label>
           <div className="flex flex-wrap gap-2">
             {categories.map((category) => (
               <Badge
@@ -307,8 +307,8 @@ export function AdvancedSearch({
                 }
                 className={`cursor-pointer transition-colors ${
                   selectedCategories.has(category.id)
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-[#242424] text-[#9ca3af] border-[#2a2a2a] hover:bg-[#2a2a2a]'
+                    ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                    : 'bg-elevated text-muted-foreground border-border hover:bg-[var(--color-elevated)]'
                 }`}
                 onClick={() => handleCategoryToggle(category.id)}
               >
@@ -322,7 +322,7 @@ export function AdvancedSearch({
       {/* Accounts */}
       {accounts.length > 0 && (
         <div className="space-y-2">
-          <Label className="text-white">Accounts</Label>
+          <Label className="text-foreground">Accounts</Label>
           <div className="flex flex-wrap gap-2">
             {accounts.map((account) => (
               <Badge
@@ -332,8 +332,8 @@ export function AdvancedSearch({
                 }
                 className={`cursor-pointer transition-colors ${
                   selectedAccounts.has(account.id)
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-[#242424] text-[#9ca3af] border-[#2a2a2a] hover:bg-[#2a2a2a]'
+                    ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                    : 'bg-elevated text-muted-foreground border-border hover:bg-[var(--color-elevated)]'
                 }`}
                 onClick={() => handleAccountToggle(account.id)}
               >
@@ -347,7 +347,7 @@ export function AdvancedSearch({
       {/* Tags */}
       {tags.length > 0 && (
         <div className="space-y-2">
-          <Label className="text-white">Tags</Label>
+          <Label className="text-foreground">Tags</Label>
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
               <Badge
@@ -357,8 +357,8 @@ export function AdvancedSearch({
                 }
                 className={`cursor-pointer transition-colors ${
                   selectedTags.has(tag.id)
-                    ? 'text-white'
-                    : 'text-white border-[#2a2a2a] hover:bg-[#2a2a2a]'
+                    ? 'text-primary-foreground'
+                    : 'text-foreground border-border hover:bg-elevated'
                 }`}
                 style={
                   selectedTags.has(tag.id)
@@ -376,7 +376,7 @@ export function AdvancedSearch({
 
       {/* Transaction Types */}
       <div className="space-y-2">
-        <Label className="text-white">Transaction Types</Label>
+        <Label className="text-foreground">Transaction Types</Label>
         <div className="flex flex-wrap gap-2">
           {transactionTypes.map((type) => (
             <Badge
@@ -386,8 +386,8 @@ export function AdvancedSearch({
               }
               className={`cursor-pointer transition-colors ${
                 selectedTypes.has(type.value)
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-[#242424] text-[#9ca3af] border-[#2a2a2a] hover:bg-[#2a2a2a]'
+                  ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                  : 'bg-elevated text-muted-foreground border-border hover:bg-[var(--color-elevated)]'
               }`}
               onClick={() => handleTypeToggle(type.value)}
             >
@@ -399,7 +399,7 @@ export function AdvancedSearch({
 
       {/* Amount Range */}
       <div className="space-y-4">
-        <Label className="text-white">Amount Range</Label>
+        <Label className="text-foreground">Amount Range</Label>
         <div className="space-y-3">
           <Slider
             value={amountRange}
@@ -411,12 +411,12 @@ export function AdvancedSearch({
           />
           <div className="flex gap-4">
             <div className="flex-1">
-              <Label className="text-xs text-[#6b7280]">Min</Label>
-              <div className="text-white font-semibold">${amountRange[0]}</div>
+              <Label className="text-xs text-muted-foreground">Min</Label>
+              <div className="text-foreground font-semibold">${amountRange[0]}</div>
             </div>
             <div className="flex-1">
-              <Label className="text-xs text-[#6b7280]">Max</Label>
-              <div className="text-white font-semibold">${amountRange[1]}</div>
+              <Label className="text-xs text-muted-foreground">Max</Label>
+              <div className="text-foreground font-semibold">${amountRange[1]}</div>
             </div>
           </div>
         </div>
@@ -425,7 +425,7 @@ export function AdvancedSearch({
       {/* Date Range */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="dateStart" className="text-white">
+          <Label htmlFor="dateStart" className="text-foreground">
             From Date
           </Label>
           <Input
@@ -438,11 +438,11 @@ export function AdvancedSearch({
                 dateStart: e.target.value || undefined,
               })
             }
-            className="bg-[#242424] border-[#2a2a2a] text-white"
+            className="bg-elevated border-border text-foreground"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="dateEnd" className="text-white">
+          <Label htmlFor="dateEnd" className="text-foreground">
             To Date
           </Label>
           <Input
@@ -455,15 +455,15 @@ export function AdvancedSearch({
                 dateEnd: e.target.value || undefined,
               })
             }
-            className="bg-[#242424] border-[#2a2a2a] text-white"
+            className="bg-elevated border-border text-foreground"
           />
         </div>
       </div>
 
       {/* Toggle Filters */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between p-3 bg-[#242424] rounded-lg">
-          <Label htmlFor="isPending" className="text-white cursor-pointer">
+        <div className="flex items-center justify-between p-3 bg-elevated rounded-lg">
+          <Label htmlFor="isPending" className="text-foreground cursor-pointer">
             Pending Only
           </Label>
           <Switch
@@ -478,8 +478,8 @@ export function AdvancedSearch({
           />
         </div>
 
-        <div className="flex items-center justify-between p-3 bg-[#242424] rounded-lg">
-          <Label htmlFor="isSplit" className="text-white cursor-pointer">
+        <div className="flex items-center justify-between p-3 bg-elevated rounded-lg">
+          <Label htmlFor="isSplit" className="text-foreground cursor-pointer">
             Split Transactions Only
           </Label>
           <Switch
@@ -494,8 +494,8 @@ export function AdvancedSearch({
           />
         </div>
 
-        <div className="flex items-center justify-between p-3 bg-[#242424] rounded-lg">
-          <Label htmlFor="hasNotes" className="text-white cursor-pointer">
+        <div className="flex items-center justify-between p-3 bg-elevated rounded-lg">
+          <Label htmlFor="hasNotes" className="text-foreground cursor-pointer">
             Has Notes Only
           </Label>
           <Switch
@@ -514,7 +514,7 @@ export function AdvancedSearch({
       {/* Sort Options */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="sortBy" className="text-white">
+          <Label htmlFor="sortBy" className="text-foreground">
             Sort By
           </Label>
           <select
@@ -526,7 +526,7 @@ export function AdvancedSearch({
                 sortBy: e.target.value as 'date' | 'amount' | 'description',
               })
             }
-            className="w-full bg-[#242424] border border-[#2a2a2a] text-white rounded px-3 py-2"
+            className="w-full bg-elevated border border-border text-foreground rounded px-3 py-2"
           >
             <option value="date">Date</option>
             <option value="amount">Amount</option>
@@ -534,7 +534,7 @@ export function AdvancedSearch({
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="sortOrder" className="text-white">
+          <Label htmlFor="sortOrder" className="text-foreground">
             Order
           </Label>
           <select
@@ -546,7 +546,7 @@ export function AdvancedSearch({
                 sortOrder: e.target.value as 'asc' | 'desc',
               })
             }
-            className="w-full bg-[#242424] border border-[#2a2a2a] text-white rounded px-3 py-2"
+            className="w-full bg-elevated border border-border text-foreground rounded px-3 py-2"
           >
             <option value="asc">Ascending</option>
             <option value="desc">Descending</option>
@@ -558,7 +558,7 @@ export function AdvancedSearch({
       <Button
         onClick={handleSearch}
         disabled={isLoading}
-        className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2"
+        className="w-full bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)] font-semibold py-2"
       >
         {isLoading ? 'Searching...' : 'Search Transactions'}
       </Button>

@@ -274,25 +274,25 @@ export default function TaxPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex justify-between items-center pb-4 border-b border-[#2a2a2a]">
+              <div className="flex justify-between items-center pb-4 border-b border-border">
                 <span className="text-gray-400">Total Income:</span>
                 <span className="text-white font-semibold">
                   ${data.summary.totalIncome.toFixed(2)}
                 </span>
               </div>
-              <div className="flex justify-between items-center pb-4 border-b border-[#2a2a2a]">
+              <div className="flex justify-between items-center pb-4 border-b border-border">
                 <span className="text-gray-400">Total Deductions:</span>
                 <span className="text-white font-semibold">
                   -${data.summary.totalDeductions.toFixed(2)}
                 </span>
               </div>
-              <div className="flex justify-between items-center pb-4 border-b border-[#2a2a2a]">
+              <div className="flex justify-between items-center pb-4 border-b border-border">
                 <span className="text-gray-400">Taxable Income:</span>
                 <span className="text-yellow-400 font-bold text-lg">
                   ${data.summary.taxableIncome.toFixed(2)}
                 </span>
               </div>
-              <div className="bg-[#1a1a1a] rounded-lg p-3 mt-4">
+              <div className="bg-card rounded-lg p-3 mt-4">
                 <p className="text-xs text-gray-500 mb-2">ESTIMATED TAX PAYMENT</p>
                 <p className="text-2xl font-bold text-amber-400">
                   ${data.estimates.estimatedQuarterlyPayment.toFixed(2)}
@@ -318,7 +318,7 @@ export default function TaxPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#2a2a2a]">
+                <tr className="border-b border-border">
                   <th className="text-left py-3 text-gray-400 font-medium">Category</th>
                   <th className="text-left py-3 text-gray-400 font-medium">Form</th>
                   <th className="text-right py-3 text-gray-400 font-medium">Amount</th>
@@ -330,7 +330,7 @@ export default function TaxPage() {
                   .filter((c) => c.isDeductible)
                   .sort((a, b) => b.totalAmount - a.totalAmount)
                   .map((category) => (
-                    <tr key={category.categoryId} className="border-b border-[#1a1a1a] hover:bg-[#1a1a1a]">
+                    <tr key={category.categoryId} className="border-b border-[#1a1a1a] hover:bg-card">
                       <td className="py-3 text-white">{category.categoryName}</td>
                       <td className="py-3 text-gray-400 text-xs">
                         {category.formType.replace(/_/g, ' ').toUpperCase()}

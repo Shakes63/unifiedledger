@@ -41,6 +41,7 @@ export function CategoryForm({
     monthlyBudget: category?.monthlyBudget || 0,
     dueDate: category?.dueDate || '',
     isTaxDeductible: category?.isTaxDeductible || false,
+    isActive: category?.isActive !== undefined ? category.isActive : true,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,6 +85,7 @@ export function CategoryForm({
       monthlyBudget: parseFloat(String(formData.monthlyBudget)) || 0,
       dueDate: formData.dueDate ? parseInt(formData.dueDate) : null,
       isTaxDeductible: formData.isTaxDeductible,
+      isActive: formData.isActive,
     };
 
     onSubmit(submitData);
@@ -96,19 +98,19 @@ export function CategoryForm({
       {/* Name and Type */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-2 block">Category Name</Label>
+          <Label className="text-muted-foreground text-sm mb-2 block">Category Name</Label>
           <Input
             name="name"
             value={formData.name}
             onChange={handleChange}
             placeholder="e.g., Groceries"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-2 block">Category Type</Label>
+          <Label className="text-muted-foreground text-sm mb-2 block">Category Type</Label>
           <Select value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}>
-            <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+            <SelectTrigger className="bg-elevated border-border text-foreground">
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
@@ -124,7 +126,7 @@ export function CategoryForm({
 
       {/* Monthly Budget */}
       <div>
-        <Label className="text-gray-400 text-sm mb-2 block">Monthly Budget (Optional)</Label>
+        <Label className="text-muted-foreground text-sm mb-2 block">Monthly Budget (Optional)</Label>
         <Input
           name="monthlyBudget"
           type="number"
@@ -133,17 +135,17 @@ export function CategoryForm({
           placeholder="0.00"
           step="0.01"
           min="0"
-          className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
         />
-        <p className="text-xs text-gray-500 mt-1">Set to 0 for no budget limit</p>
+        <p className="text-xs text-muted-foreground mt-1">Set to 0 for no budget limit</p>
       </div>
 
       {/* Due Date (for bill categories) */}
       {isBillType && (
         <div>
-          <Label className="text-gray-400 text-sm mb-2 block">Due Date (Optional)</Label>
+          <Label className="text-muted-foreground text-sm mb-2 block">Due Date (Optional)</Label>
           <div className="flex items-center gap-2">
-            <span className="text-gray-500 text-sm">Day</span>
+            <span className="text-muted-foreground text-sm">Day</span>
             <Input
               name="dueDate"
               type="number"
@@ -152,29 +154,48 @@ export function CategoryForm({
               placeholder="1-31"
               min="1"
               max="31"
-              className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600 w-20"
+              className="bg-elevated border-border text-foreground placeholder:text-muted-foreground w-20"
             />
-            <span className="text-gray-500 text-sm">of month</span>
+            <span className="text-muted-foreground text-sm">of month</span>
           </div>
         </div>
       )}
 
-      {/* Tax Deductible Toggle */}
-      <div className="p-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a] space-y-3">
+      {/* Toggles */}
+      <div className="p-4 bg-card rounded-lg border border-border space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <Label className="text-gray-400 text-sm block font-medium">Tax Deductible</Label>
-            <p className="text-xs text-gray-500 mt-1">Mark this category as tax deductible for tracking deductible expenses</p>
+            <Label className="text-muted-foreground text-sm block font-medium">Active</Label>
+            <p className="text-xs text-muted-foreground mt-1">Enable or disable this category</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleCheckboxChange('isActive')}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              formData.isActive ? 'bg-[var(--color-income)]' : 'bg-border'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-[var(--color-card)] transition-transform ${
+                formData.isActive ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+        <div className="flex items-center justify-between pt-2 border-t border-border">
+          <div>
+            <Label className="text-muted-foreground text-sm block font-medium">Tax Deductible</Label>
+            <p className="text-xs text-muted-foreground mt-1">Mark this category as tax deductible for tracking deductible expenses</p>
           </div>
           <button
             type="button"
             onClick={() => handleCheckboxChange('isTaxDeductible')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isTaxDeductible ? 'bg-emerald-500' : 'bg-[#2a2a2a]'
+              formData.isTaxDeductible ? 'bg-[var(--color-income)]' : 'bg-border'
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full bg-[var(--color-card)] transition-transform ${
                 formData.isTaxDeductible ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
@@ -183,11 +204,11 @@ export function CategoryForm({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 pt-4 border-t border-[#2a2a2a]">
+      <div className="flex gap-3 pt-4 border-t border-border">
         <Button
           type="submit"
           disabled={isLoading}
-          className="flex-1 bg-emerald-500 text-white hover:bg-emerald-600 font-medium"
+          className="flex-1 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
         >
           {isLoading ? 'Saving...' : category ? 'Update Category' : 'Create Category'}
         </Button>
@@ -196,7 +217,7 @@ export function CategoryForm({
             type="button"
             onClick={onCancel}
             variant="outline"
-            className="flex-1 bg-[#242424] border-[#2a2a2a] text-white hover:bg-[#2a2a2a]"
+            className="flex-1 bg-elevated border-border text-foreground hover:bg-border"
           >
             Cancel
           </Button>

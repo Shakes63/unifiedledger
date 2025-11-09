@@ -43,16 +43,20 @@ export function CalendarDay({
       onClick={() => onClick?.(date)}
       className={`h-32 p-2 border-2 rounded-lg transition-all text-left flex flex-col ${
         !isCurrentMonth
-          ? 'bg-[#0a0a0a] border-[#1a1a1a] text-[#6b7280]'
+          ? 'bg-elevated/50 border-border/50 text-muted-foreground opacity-60'
           : isTodayDate
-          ? 'bg-blue-500/10 border-blue-400 shadow-lg shadow-blue-500/20'
-          : 'bg-[#1a1a1a] border-[#2a2a2a] hover:border-[#3a3a3a] hover:bg-[#242424]'
+          ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)] shadow-lg shadow-[var(--color-primary)]/20'
+          : 'bg-card border-border hover:border-border hover:bg-elevated'
       }`}
     >
       {/* Date Number */}
       <span
         className={`text-sm font-bold mb-2 ${
-          isTodayDate ? 'text-blue-400' : 'text-white'
+          isTodayDate 
+            ? 'text-[var(--color-primary)]' 
+            : !isCurrentMonth 
+            ? 'text-muted-foreground' 
+            : 'text-foreground'
         }`}
       >
         {format(date, 'd')}
@@ -69,10 +73,10 @@ export function CalendarDay({
                   key={idx}
                   className={`text-[10px] px-1.5 py-0.5 rounded truncate flex items-center gap-0.5 ${
                     bill.status === 'overdue'
-                      ? 'bg-red-600/20 text-red-500 font-semibold'
+                      ? 'bg-[var(--color-error)]/20 text-[var(--color-error)] font-semibold'
                       : bill.status === 'paid'
-                      ? 'bg-emerald-400/20 text-emerald-400'
-                      : 'bg-amber-400/20 text-amber-400'
+                      ? 'bg-[var(--color-income)]/20 text-[var(--color-income)]'
+                      : 'bg-[var(--color-warning)]/20 text-[var(--color-warning)]'
                   }`}
                   title={`${bill.name} - $${bill.amount.toFixed(2)}${bill.status === 'paid' ? ' (Paid)' : ''}`}
                 >
@@ -99,7 +103,7 @@ export function CalendarDay({
       {/* Empty State */}
       {!hasActivity && (
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-[#6b7280] text-xs text-center">
+          <p className="text-muted-foreground text-xs text-center">
             No activity
           </p>
         </div>

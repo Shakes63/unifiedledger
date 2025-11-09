@@ -39,19 +39,19 @@ export function CalendarHeader({
   return (
     <div className="space-y-4">
       {/* Month/Week Navigation Bar - At the very top */}
-      <div className="flex items-center justify-between bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3">
+      <div className="flex items-center justify-between bg-card border border-border rounded-lg p-3">
         <Button
           size="sm"
           variant="ghost"
           onClick={() =>
             onDateChange(viewMode === 'month' ? subMonths(currentDate, 1) : subWeeks(currentDate, 1))
           }
-          className="text-[#9ca3af] hover:text-white hover:bg-[#242424]"
+          className="text-muted-foreground hover:text-foreground hover:bg-elevated"
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
 
-        <h2 className="text-xl font-bold text-white">
+        <h2 className="text-xl font-bold text-foreground">
           {format(currentDate, 'MMMM yyyy')}
         </h2>
 
@@ -61,7 +61,7 @@ export function CalendarHeader({
           onClick={() =>
             onDateChange(viewMode === 'month' ? addMonths(currentDate, 1) : addWeeks(currentDate, 1))
           }
-          className="text-[#9ca3af] hover:text-white hover:bg-[#242424]"
+          className="text-muted-foreground hover:text-foreground hover:bg-elevated"
         >
           <ChevronRight className="w-4 h-4" />
         </Button>
@@ -75,8 +75,8 @@ export function CalendarHeader({
           onClick={() => onViewModeChange('month')}
           className={
             viewMode === 'month'
-              ? 'bg-blue-500 text-white hover:bg-blue-600'
-              : 'border-[#2a2a2a] text-[#9ca3af] hover:bg-[#242424]'
+              ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90'
+              : 'border-border text-muted-foreground hover:bg-elevated'
           }
         >
           Month
@@ -87,8 +87,8 @@ export function CalendarHeader({
           onClick={() => onViewModeChange('week')}
           className={
             viewMode === 'week'
-              ? 'bg-blue-500 text-white hover:bg-blue-600'
-              : 'border-[#2a2a2a] text-[#9ca3af] hover:bg-[#242424]'
+              ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90'
+              : 'border-border text-muted-foreground hover:bg-elevated'
           }
         >
           Week

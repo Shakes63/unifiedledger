@@ -203,7 +203,7 @@ export default function HouseholdManagementPage() {
   if (!household) {
     return (
       <div className="p-6">
-        <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-6">
+        <Card className="bg-card border-border p-6">
           <p className="text-[#f87171]">Household not found</p>
         </Card>
       </div>
@@ -215,32 +215,32 @@ export default function HouseholdManagementPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-white">{household.name}</h1>
-        <p className="text-[#9ca3af]">Manage household members and settings</p>
+          <h1 className="text-3xl font-bold text-foreground">{household.name}</h1>
+        <p className="text-muted-foreground">Manage household members and settings</p>
       </div>
 
       {/* Members Section */}
-      <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-6">
+      <Card className="bg-card border-border p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white">Members</h2>
+          <h2 className="text-xl font-bold text-foreground">Members</h2>
           {userPermissions.invite_members && (
             <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-[#10b981] hover:bg-[#059669] text-white">
+                <Button className="bg-[#10b981] hover:bg-[#059669] text-foreground">
                   <Plus className="w-4 h-4 mr-2" />
                   Invite Member
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+              <DialogContent className="bg-card border-border">
                 <DialogHeader>
-                  <DialogTitle className="text-white">Invite Member</DialogTitle>
-                  <DialogDescription className="text-[#9ca3af]">
+                  <DialogTitle className="text-foreground">Invite Member</DialogTitle>
+                  <DialogDescription className="text-muted-foreground">
                     Send an invitation to a new household member
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-white">
+                    <Label htmlFor="email" className="text-foreground">
                       Email Address
                     </Label>
                     <Input
@@ -249,18 +249,18 @@ export default function HouseholdManagementPage() {
                       placeholder="member@example.com"
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
-                      className="bg-[#242424] border-[#2a2a2a] text-white"
+                      className="bg-elevated border-border text-foreground"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="role" className="text-white">
+                    <Label htmlFor="role" className="text-foreground">
                       Role
                     </Label>
                     <Select value={inviteRole} onValueChange={setInviteRole}>
-                      <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+                      <SelectTrigger className="bg-elevated border-border text-foreground">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+                      <SelectContent className="bg-card border-border">
                         <SelectItem value="owner">Owner</SelectItem>
                         <SelectItem value="admin">Admin</SelectItem>
                         <SelectItem value="member">Member</SelectItem>
@@ -271,7 +271,7 @@ export default function HouseholdManagementPage() {
                   <Button
                     onClick={handleInviteMember}
                     disabled={inviting}
-                    className="w-full bg-[#10b981] hover:bg-[#059669] text-white"
+                    className="w-full bg-[#10b981] hover:bg-[#059669] text-foreground"
                   >
                     {inviting ? (
                       <>
@@ -292,10 +292,10 @@ export default function HouseholdManagementPage() {
           {members.map((member) => (
             <div
               key={member.id}
-              className="flex items-center justify-between p-4 bg-[#242424] rounded-lg border border-[#2a2a2a]"
+              className="flex items-center justify-between p-4 bg-elevated rounded-lg border border-border"
             >
               <div className="flex-1">
-                <p className="font-medium text-white">
+                <p className="font-medium text-foreground">
                   {member.userName || member.userEmail}
                 </p>
                 <p className="text-sm text-[#6b7280]">{member.userEmail}</p>
@@ -306,10 +306,10 @@ export default function HouseholdManagementPage() {
                     value={member.role}
                     onValueChange={(newRole) => handleRoleChange(member.id, newRole)}
                   >
-                    <SelectTrigger className="w-32 bg-[#1a1a1a] border-[#2a2a2a] text-white text-sm">
+                    <SelectTrigger className="w-32 bg-card border-border text-foreground text-sm">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+                    <SelectContent className="bg-card border-border">
                       <SelectItem value="owner">Owner</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="member">Member</SelectItem>
@@ -317,7 +317,7 @@ export default function HouseholdManagementPage() {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <div className="flex items-center gap-1 px-3 py-2 bg-[#1a1a1a] rounded text-white text-sm capitalize">
+                  <div className="flex items-center gap-1 px-3 py-2 bg-card rounded text-foreground text-sm capitalize">
                     <Shield className="w-4 h-4" />
                     {member.role}
                   </div>
@@ -340,16 +340,16 @@ export default function HouseholdManagementPage() {
 
       {/* Pending Invitations Section */}
       {invitations.length > 0 && (
-        <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-6">
-          <h2 className="text-xl font-bold text-white mb-6">Pending Invitations</h2>
+        <Card className="bg-card border-border p-6">
+          <h2 className="text-xl font-bold text-foreground mb-6">Pending Invitations</h2>
           <div className="space-y-3">
             {invitations.map((invitation) => (
               <div
                 key={invitation.id}
-                className="flex items-center justify-between p-4 bg-[#242424] rounded-lg border border-[#fbbf24]/30"
+                className="flex items-center justify-between p-4 bg-elevated rounded-lg border border-[#fbbf24]/30"
               >
                 <div className="flex-1">
-                  <p className="font-medium text-white">{invitation.invitedEmail}</p>
+                  <p className="font-medium text-foreground">{invitation.invitedEmail}</p>
                   <p className="text-sm text-[#6b7280] capitalize">
                     Role: {invitation.role}
                   </p>
@@ -358,7 +358,7 @@ export default function HouseholdManagementPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => copyInviteLink(invitation.invitationToken)}
-                  className="border-[#2a2a2a] text-[#9ca3af]"
+                  className="border-border text-muted-foreground"
                 >
                   {copiedToken === invitation.invitationToken ? (
                     <>

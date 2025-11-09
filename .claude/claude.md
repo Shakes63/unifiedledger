@@ -96,7 +96,7 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 ### Design System & Theming
 **Theming System:**
 - Dynamic theme switching with CSS variables
-- Two available themes: Dark Mode (default) and Pink & Turquoise
+- Two available themes: Dark Mode (default) and Dark Pink Theme
 - Themes defined in `lib/themes/theme-config.ts`
 - Applied via `applyTheme()` function in `lib/themes/theme-utils.ts`
 - Preference saved to database and persists across sessions
@@ -108,22 +108,102 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 - Accent: `bg-accent`, `text-accent` (NOT `bg-[#10b981]`)
 - Hover: `hover:bg-elevated` (NOT `hover:bg-[#242424]`)
 
-**Dark Mode Theme Colors (default):**
-- Background: `#0a0a0a` (near-black)
-- Surface: `#1a1a1a` (cards)
-- Elevated: `#242424` (hover states)
-- Border: `#2a2a2a` (dividers)
-- Income: `#10b981` (emerald)
-- Expense: `#f87171` (red)
-- Transfer: `#60a5fa` (blue)
+**Complete CSS Color Variables Reference:**
 
-**Pink & Turquoise Theme Colors:**
-- Background: `#0f0a12` (deep aubergine)
-- Surface: `#1a1220` (purple-tinted)
-- Income: `#22d3ee` (turquoise/cyan)
-- Expense: `#f472b6` (pink)
-- Transfer: `#a78bfa` (purple/violet)
-- Primary: `#ec4899` (bright pink)
+All color variables are defined in `app/globals.css` and can be accessed via:
+- Tailwind classes: `bg-background`, `text-foreground`, `border-border`, etc.
+- CSS variables: `var(--color-background)`, `var(--color-foreground)`, `var(--color-border)`, etc.
+
+**Background & Surface Colors:**
+- `--color-background` / `bg-background` - Main page background
+- `--color-card` / `bg-card` - Card/surface background
+- `--color-card-foreground` / `text-card-foreground` - Text on cards
+- `--color-elevated` / `bg-elevated` - Hover states, elevated surfaces
+- `--color-popover` / `bg-popover` - Popover/dropdown backgrounds
+- `--color-popover-foreground` / `text-popover-foreground` - Text in popovers
+- `--color-input` / `bg-input` - Input field backgrounds
+
+**Border & Outline Colors:**
+- `--color-border` / `border-border` - All borders and dividers
+- `--color-ring` / `ring-ring` - Focus ring color
+
+**Text Colors:**
+- `--color-foreground` / `text-foreground` - Primary text color
+- `--color-muted` / `bg-muted` - Muted background
+- `--color-muted-foreground` / `text-muted-foreground` - Secondary/muted text
+
+**Semantic Transaction Colors:**
+- `--color-income` / `text-[var(--color-income)]` - Income transactions (green/turquoise)
+- `--color-expense` / `text-[var(--color-expense)]` - Expense transactions (red/pink)
+- `--color-transfer` / `text-[var(--color-transfer)]` - Transfer transactions (blue/purple)
+
+**UI State Colors:**
+- `--color-primary` / `bg-[var(--color-primary)]` - Primary actions, buttons (pink)
+- `--color-primary-foreground` / `text-primary-foreground` - Text on primary buttons (black)
+- `--color-secondary` / `bg-secondary` - Secondary actions
+- `--color-secondary-foreground` / `text-secondary-foreground` - Text on secondary
+- `--color-accent` / `bg-accent` - Accent highlights
+- `--color-accent-foreground` / `text-accent-foreground` - Text on accent
+- `--color-destructive` / `bg-destructive` - Delete/destructive actions
+- `--color-destructive-foreground` / `text-destructive-foreground` - Text on destructive
+- `--color-success` / `bg-[var(--color-success)]` - Success states (green/turquoise)
+- `--color-warning` / `bg-[var(--color-warning)]` - Warning states (amber/yellow)
+- `--color-error` / `bg-[var(--color-error)]` - Error states (red/rose)
+
+**Theme-Specific Values:**
+
+**Dark Mode Theme (default):**
+- Background: `oklch(0.144788 0.000000 0.000000)` - Near-black (#0a0a0a)
+- Card: `oklch(0.217787 0.000000 0.000000)` - Dark gray (#1a1a1a)
+- Elevated: `oklch(0.260325 0.000000 0.000000)` - Lighter gray (#242424)
+- Border: `oklch(0.285017 0.000000 0.000000)` - Medium gray (#2a2a2a)
+- Income: `oklch(0.695873 0.149074 162.479602)` - Emerald green
+- Expense: `oklch(0.710627 0.166148 22.216224)` - Red
+- Transfer: `oklch(0.713740 0.143381 254.624021)` - Blue
+- Primary: `oklch(0.655920 0.211773 354.308441)` - Pink
+- Success: `oklch(0.695873 0.149074 162.479602)` - Emerald (same as income)
+- Warning: `oklch(0.768590 0.164659 70.080390)` - Amber
+- Error: `oklch(0.636834 0.207849 25.331328)` - Red
+
+**Dark Pink Theme:**
+- Background: `oklch(0.155506 0.018491 312.515996)` - Deep aubergine (#0f0a12)
+- Card: `oklch(0.199368 0.029768 309.973432)` - Purple-tinted (#1a1220)
+- Elevated: `oklch(0.228815 0.043923 313.832051)` - Lighter purple (#24162b)
+- Border: `oklch(0.316141 0.052839 309.805027)` - Purple border
+- Income: `oklch(0.797116 0.133888 211.530189)` - Turquoise/cyan
+- Expense: `oklch(0.725266 0.175227 349.760748)` - Pink
+- Transfer: `oklch(0.708969 0.159168 293.541199)` - Purple/violet
+- Primary: `oklch(0.655920 0.211773 354.308441)` - Pink (same as dark mode)
+- Success: `oklch(0.784520 0.132529 181.911977)` - Turquoise/teal
+- Warning: `oklch(0.836861 0.164422 84.428628)` - Amber
+- Error: `oklch(0.719186 0.168984 13.427993)` - Rose
+
+**Usage Examples:**
+```tsx
+// Background colors
+<div className="bg-background">Main background</div>
+<div className="bg-card">Card background</div>
+<div className="bg-elevated hover:bg-elevated">Hover state</div>
+
+// Text colors
+<p className="text-foreground">Primary text</p>
+<p className="text-muted-foreground">Secondary text</p>
+
+// Transaction type colors
+<span className="text-[var(--color-income)]">Income</span>
+<span className="text-[var(--color-expense)]">Expense</span>
+<span className="text-[var(--color-transfer)]">Transfer</span>
+
+// Primary buttons (pink with white text)
+<button className="bg-[var(--color-primary)] text-white hover:opacity-90">
+  Primary Action
+</button>
+
+// State colors
+<div className="bg-[var(--color-success)]">Success</div>
+<div className="bg-[var(--color-warning)]">Warning</div>
+<div className="bg-[var(--color-error)]">Error</div>
+```
 
 **Typography:** Inter (primary), JetBrains Mono (amounts)
 **Border Radius:** 12px (xl), 8px (lg), 6px (md)
@@ -349,11 +429,11 @@ pnpm drizzle-kit migrate   # Apply migration
 
 4. **Results**
    - All dashboard and transactions page components now fully support dynamic theming
-   - Theme changes (Dark Mode ↔ Pink & Turquoise) apply instantly across all pages
+   - Theme changes (Dark Mode ↔ Dark Pink Theme) apply instantly across all pages
    - No more hardcoded colors means theme system is consistent throughout the application
    - Improves maintainability and future theme additions
 
-### Previous Session - Settings Section, Theme System & Pink/Turquoise Theme ✅
+### Previous Session - Settings Section, Theme System & Dark Pink Theme ✅
 
 1. **Reorganized Sidebar Navigation**
    - Created new "Settings" section in sidebar after Tools section
@@ -368,14 +448,14 @@ pnpm drizzle-kit migrate   # Apply migration
    - Created centralized theme configuration system in `lib/themes/theme-config.ts`
    - Defined `Theme` interface with 13 color properties (backgrounds, transactions, UI, text)
    - Created `darkModeTheme` (default, available)
-   - Created `pinkTurquoiseTheme` (elegant pink & turquoise theme, **now available**)
+   - Created `darkPinkTheme` (elegant dark theme with pink accents, **now available**)
    - Utility functions for theme management (`getTheme`, `getAllThemes`, `isValidThemeId`, etc.)
    - Files: `lib/themes/theme-config.ts`, `lib/themes/theme-utils.ts`
 
 3. **Built Theme Settings Page**
    - Created comprehensive `/dashboard/theme` page
    - **Current Theme Display**: Full color palette preview showing all 13 colors organized by category
-   - **Available Themes Grid**: Shows both Dark Mode and Pink & Turquoise themes
+   - **Available Themes Grid**: Shows both Dark Mode and Dark Pink Theme
    - **Theme Cards**: Interactive with click-to-select, Active/Coming Soon badges
    - **Color Preview Circles**: Shows 4 key colors (income, expense, transfer, primary) per theme
    - **Apply Theme Button**: Appears when selection changes, saves preference to database
@@ -399,11 +479,11 @@ pnpm drizzle-kit migrate   # Apply migration
    - Persists across sessions via database
    - Files: `lib/themes/theme-utils.ts`
 
-6. **Created Pink & Turquoise Theme** ✨
+6. **Created Dark Pink Theme** ✨
    - **Backgrounds**: Deep aubergine base (#0f0a12, #1a1220, #24162b) for elegance
    - **Income**: Turquoise/cyan (#22d3ee) - bright and positive
    - **Expense**: Pink (#f472b6) - soft but noticeable
-   - **Transfer**: Purple/violet (#a78bfa) - complements pink and turquoise
+   - **Transfer**: Purple/violet (#a78bfa) - complements pink accents
    - **Primary UI**: Pink (#ec4899) for primary actions
    - **Success**: Turquoise/teal (#2dd4bf) - matches income theme
    - **Warning**: Amber (#fbbf24) - stands out from main palette
@@ -436,7 +516,7 @@ pnpm drizzle-kit migrate   # Apply migration
 ### Key Features Delivered:
 - ✅ **Sidebar Reorganization**: Clean Settings section with logical grouping
 - ✅ **Theme System**: Full infrastructure for dynamic theme switching
-- ✅ **Two Working Themes**: Dark Mode (default) + Pink & Turquoise (available)
+- ✅ **Two Working Themes**: Dark Mode (default) + Dark Pink Theme (available)
 - ✅ **Theme Persistence**: Saves preference to database, loads on app start
 - ✅ **Dynamic Application**: Changes apply immediately via CSS variables
 - ✅ **Beautiful UI**: Color palette previews, interactive selection, smooth UX
@@ -467,9 +547,9 @@ pnpm drizzle-kit migrate   # Apply migration
 ### How to Use:
 1. Navigate to **Settings → Theme** in the sidebar
 2. View your current theme (Dark Mode by default) with full color palette
-3. Click the **Pink & Turquoise** theme card to select it
+3. Click the **Dark Pink Theme** card to select it
 4. Click **"Apply Theme"** button
-5. Watch the entire app transform with beautiful pink and turquoise colors! 🎨✨
+5. Watch the entire app transform with beautiful dark pink colors! 🎨✨
 6. Theme preference saves automatically and persists across sessions
 
 ---

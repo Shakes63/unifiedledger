@@ -62,35 +62,35 @@ function RuleCard({
   };
 
   return (
-    <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-4">
+    <Card className="bg-card border-border p-4">
       <div className="flex items-start justify-between gap-4">
         {/* Rule Info */}
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
-            <h3 className="font-semibold text-white text-lg">{rule.name}</h3>
+            <h3 className="font-semibold text-foreground text-lg">{rule.name}</h3>
             {!rule.isActive && (
-              <Badge variant="outline" className="bg-gray-500/20 text-gray-300 border-gray-600">
+              <Badge variant="outline" className="bg-muted/20 text-foreground border-border">
                 Inactive
               </Badge>
             )}
-            <Badge className="bg-blue-500/20 text-blue-300 border-blue-600">
+            <Badge className="bg-[var(--color-primary)]/20 text-[var(--color-primary)] border-[var(--color-primary)]">
               Priority {rule.priority}
             </Badge>
           </div>
 
           {rule.description && (
-            <p className="text-sm text-gray-400 mb-2">{rule.description}</p>
+            <p className="text-sm text-muted-foreground mb-2">{rule.description}</p>
           )}
 
-          <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+          <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
             <div>
-              <span className="text-gray-400 font-medium">Category:</span> {rule.categoryName || 'Unknown'}
+              <span className="text-muted-foreground font-medium">Category:</span> {rule.categoryName || 'Unknown'}
             </div>
             <div>
-              <span className="text-gray-400 font-medium">Matched:</span> {rule.matchCount} times
+              <span className="text-muted-foreground font-medium">Matched:</span> {rule.matchCount} times
             </div>
             <div>
-              <span className="text-gray-400 font-medium">Last used:</span> {formatDate(rule.lastMatchedAt)}
+              <span className="text-muted-foreground font-medium">Last used:</span> {formatDate(rule.lastMatchedAt)}
             </div>
           </div>
         </div>
@@ -104,7 +104,7 @@ function RuleCard({
               size="icon"
               onClick={() => onMoveUp?.(rule.id)}
               disabled={index === 0}
-              className="text-gray-400 hover:text-white hover:bg-[#242424] disabled:opacity-50"
+              className="text-muted-foreground hover:text-foreground hover:bg-elevated disabled:opacity-50"
               title="Move up (higher priority)"
             >
               <ArrowUp className="w-4 h-4" />
@@ -114,7 +114,7 @@ function RuleCard({
               size="icon"
               onClick={() => onMoveDown?.(rule.id)}
               disabled={index === total - 1}
-              className="text-gray-400 hover:text-white hover:bg-[#242424] disabled:opacity-50"
+              className="text-muted-foreground hover:text-foreground hover:bg-elevated disabled:opacity-50"
               title="Move down (lower priority)"
             >
               <ArrowDown className="w-4 h-4" />
@@ -125,7 +125,7 @@ function RuleCard({
               variant="ghost"
               size="icon"
               onClick={() => onToggle?.(rule.id, !rule.isActive)}
-              className={rule.isActive ? 'text-green-400 hover:bg-green-500/20' : 'text-gray-400 hover:bg-[#242424]'}
+              className={rule.isActive ? 'text-[var(--color-income)] hover:bg-[var(--color-income)]/20' : 'text-muted-foreground hover:bg-elevated'}
               title={rule.isActive ? 'Deactivate' : 'Activate'}
             >
               {rule.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -136,7 +136,7 @@ function RuleCard({
               variant="ghost"
               size="icon"
               onClick={() => onEdit?.(rule)}
-              className="text-blue-400 hover:bg-blue-500/20"
+              className="text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20"
             >
               <Edit2 className="w-4 h-4" />
             </Button>
@@ -146,7 +146,7 @@ function RuleCard({
               variant="ghost"
               size="icon"
               onClick={() => onDelete?.(rule.id)}
-              className="text-red-400 hover:bg-red-500/20"
+              className="text-[var(--color-error)] hover:bg-[var(--color-error)]/20"
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -287,7 +287,7 @@ export function RulesManager({
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="text-gray-400">Loading rules...</div>
+        <div className="text-muted-foreground">Loading rules...</div>
       </div>
     );
   }
@@ -297,14 +297,14 @@ export function RulesManager({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white">Categorization Rules</h2>
-          <p className="text-sm text-gray-400 mt-1">
+          <h2 className="text-2xl font-bold text-foreground">Categorization Rules</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             Create rules to automatically categorize transactions
           </p>
         </div>
         <Button
           onClick={onCreateRule}
-          className="bg-white text-black hover:bg-gray-100 font-medium"
+          className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Rule
@@ -313,7 +313,7 @@ export function RulesManager({
 
       {/* Error Message */}
       {error && (
-        <div className="p-4 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-sm flex gap-2">
+        <div className="p-4 bg-[var(--color-error)]/20 border border-[var(--color-error)]/40 rounded-lg text-[var(--color-error)] text-sm flex gap-2">
           <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           {error}
         </div>
@@ -321,21 +321,21 @@ export function RulesManager({
 
       {/* Rules List */}
       {rules.length === 0 ? (
-        <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-8 text-center">
-          <div className="text-gray-400 mb-4">
+        <Card className="bg-card border-border p-8 text-center">
+          <div className="text-muted-foreground mb-4">
             <AlertCircle className="w-12 h-12 mx-auto opacity-50 mb-2" />
             <p>No rules created yet</p>
           </div>
           <Button
             onClick={onCreateRule}
-            className="bg-white text-black hover:bg-gray-100 font-medium"
+            className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
           >
             Create Your First Rule
           </Button>
         </Card>
       ) : (
         <div className="space-y-3">
-          <div className="text-xs text-gray-500 px-2">
+          <div className="text-xs text-muted-foreground px-2">
             {rules.length} rule{rules.length !== 1 ? 's' : ''} • Ordered by priority (top = highest priority)
           </div>
           {rules.map((rule, index) => (
@@ -355,9 +355,9 @@ export function RulesManager({
       )}
 
       {/* Info */}
-      <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-4">
-        <div className="text-xs text-gray-400 space-y-2">
-          <p className="font-semibold text-gray-300 mb-2">How Rules Work:</p>
+      <Card className="bg-card border-border p-4">
+        <div className="text-xs text-muted-foreground space-y-2">
+          <p className="font-semibold text-foreground mb-2">How Rules Work:</p>
           <ul className="list-disc list-inside space-y-1">
             <li>Rules are applied in order by priority (lower number = higher priority)</li>
             <li>The first matching rule's category is applied automatically</li>

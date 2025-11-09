@@ -366,7 +366,7 @@ export function TransferForm({
           <Button
             type="submit"
             disabled={isLoading}
-            className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+            className="flex-1 bg-[var(--color-primary)] hover:opacity-90 text-white"
           >
             {isLoading ? (
               <>

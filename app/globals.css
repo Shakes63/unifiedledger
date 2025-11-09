@@ -30,6 +30,8 @@
   --color-income: var(--inc, oklch(0.695873 0.149074 162.479602));
   --color-expense: var(--exp, oklch(0.710627 0.166148 22.216224));
   --color-transfer: var(--tr, oklch(0.713740 0.143381 254.624021));
+  --color-chart-principal: var(--chp, oklch(0.695873 0.149074 162.479602));
+  --color-chart-interest: var(--chi, oklch(0.710627 0.166148 22.216224));
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
@@ -73,10 +75,12 @@
   --inc: oklch(0.695873 0.149074 162.479602);
   --exp: oklch(0.710627 0.166148 22.216224);
   --tr: oklch(0.713740 0.143381 254.624021);
+  --chp: oklch(0.695873 0.149074 162.479602);
+  --chi: oklch(0.710627 0.166148 22.216224);
 }
 
-/* Pink & Turquoise Theme */
-:root[data-theme='pink-turquoise'] {
+/* Dark Pink Theme */
+:root[data-theme='dark-pink'] {
   --bg: oklch(0.155506 0.018491 312.515996);
   --fg: oklch(1.000000 0.000000 0.000000);
   --c: oklch(0.199368 0.029768 309.973432);
@@ -103,6 +107,72 @@
   --inc: oklch(0.797116 0.133888 211.530189);
   --exp: oklch(0.725266 0.175227 349.760748);
   --tr: oklch(0.708969 0.159168 293.541199);
+  --chp: oklch(0.695873 0.149074 162.479602);
+  --chi: oklch(0.710627 0.166148 22.216224);
+}
+
+/* Dark Blue Theme */
+:root[data-theme='dark-blue'] {
+  --bg: oklch(0.144788 0.000000 0.000000);
+  --fg: oklch(1.000000 0.000000 0.000000);
+  --c: oklch(0.217787 0.000000 0.000000);
+  --cf: oklch(1.000000 0.000000 0.000000);
+  --e: oklch(0.260325 0.000000 0.000000);
+  --p: oklch(0.260325 0.000000 0.000000);
+  --pf: oklch(1.000000 0.000000 0.000000);
+  --b: oklch(0.285017 0.000000 0.000000);
+  --i: oklch(0.217787 0.000000 0.000000);
+  --m: oklch(0.551019 0.023361 264.363742);
+  --mf: oklch(0.713660 0.019176 261.324645);
+  --pr: oklch(0.695873 0.149074 240.000000);
+  --prf: oklch(0.000000 0.000000 0.000000);
+  --s: oklch(0.260325 0.000000 0.000000);
+  --sf: oklch(1.000000 0.000000 0.000000);
+  --a: oklch(0.695873 0.149074 240.000000);
+  --af: oklch(1.000000 0.000000 0.000000);
+  --d: oklch(0.636834 0.207849 25.331328);
+  --df: oklch(1.000000 0.000000 0.000000);
+  --r: oklch(1.000000 0.000000 0.000000);
+  --su: oklch(0.695873 0.149074 240.000000);
+  --w: oklch(0.768590 0.164659 70.080390);
+  --er: oklch(0.636834 0.207849 25.331328);
+  --inc: oklch(0.695873 0.149074 162.479602);
+  --exp: oklch(0.710627 0.166148 22.216224);
+  --tr: oklch(0.713740 0.143381 254.624021);
+  --chp: oklch(0.695873 0.149074 162.479602);
+  --chi: oklch(0.710627 0.166148 22.216224);
+}
+
+/* Light Bubblegum Theme */
+:root[data-theme='light-bubblegum'] {
+  --bg: oklch(0.985000 0.010000 330.000000);
+  --fg: oklch(0.160000 0.010000 270.000000);
+  --c: oklch(0.976000 0.014000 330.000000);
+  --cf: oklch(0.160000 0.010000 270.000000);
+  --e: oklch(0.945000 0.022000 330.000000);
+  --p: oklch(0.950000 0.018000 330.000000);
+  --pf: oklch(0.160000 0.010000 270.000000);
+  --b: oklch(0.780000 0.020000 270.000000);
+  --i: oklch(0.950000 0.016000 330.000000);
+  --m: oklch(0.950000 0.006000 270.000000);
+  --mf: oklch(0.620000 0.015000 270.000000);
+  --pr: oklch(0.840000 0.220000 350.000000);
+  --prf: oklch(1.000000 0.000000 0.000000);
+  --s: oklch(0.960000 0.022000 330.000000);
+  --sf: oklch(0.160000 0.010000 270.000000);
+  --a: oklch(0.840000 0.220000 350.000000);
+  --af: oklch(1.000000 0.000000 0.000000);
+  --d: oklch(0.800000 0.180000 25.000000);
+  --df: oklch(1.000000 0.000000 0.000000);
+  --r: oklch(0.160000 0.010000 270.000000);
+  --su: oklch(0.630000 0.160000 180.000000);
+  --w: oklch(0.720000 0.220000 85.000000);
+  --er: oklch(0.800000 0.180000 25.000000);
+  --inc: oklch(0.620000 0.190000 200.000000);
+  --exp: oklch(0.820000 0.220000 350.000000);
+  --tr: oklch(0.830000 0.180000 300.000000);
+  --chp: oklch(0.695873 0.149074 162.479602);
+  --chi: oklch(0.710627 0.166148 22.216224);
 }
 
 @layer base {
@@ -125,6 +195,24 @@
     width: 100%;
     max-width: 100vw;
     position: relative;
+  }
+
+  /* Light theme overrides for legacy hardcoded utilities */
+  :root[data-theme='light-bubblegum'] .text-white { color: var(--color-foreground) !important; }
+  :root[data-theme='light-bubblegum'] .border-white { border-color: var(--color-border) !important; }
+  :root[data-theme='light-bubblegum'] .bg-white { background-color: var(--color-card) !important; color: var(--color-foreground) !important; }
+
+  /* Dialog overlay for light theme */
+  :root[data-theme='light-bubblegum'] [data-slot='dialog-overlay'] {
+    background-color: oklch(0.160000 0.010000 270.000000 / 0.5) !important;
+  }
+
+  /* Stronger shadows for inputs/selects in Light Bubblegum */
+  :root[data-theme='light-bubblegum'] input,
+  :root[data-theme='light-bubblegum'] textarea,
+  :root[data-theme='light-bubblegum'] select,
+  :root[data-theme='light-bubblegum'] [role='combobox'] {
+    box-shadow: 0 1px 2px oklch(0.450000 0.020000 270.000000 / 0.15), 0 2px 6px oklch(0.450000 0.020000 270.000000 / 0.08);
   }
 
   /* Prevent horizontal scroll on all elements */

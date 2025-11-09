@@ -45,10 +45,10 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
   return (
     <div className={className}>
       {/* Timeline Chart */}
-      <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a] mb-6">
+      <div className="bg-card rounded-xl p-6 border border-border mb-6">
         <div className="flex items-center gap-2 mb-6">
           <span className="text-2xl">📅</span>
-          <h3 className="text-lg font-semibold text-white">Payoff Timeline</h3>
+          <h3 className="text-lg font-semibold text-foreground">Payoff Timeline</h3>
         </div>
 
         {/* Timeline bars */}
@@ -56,12 +56,12 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
           {timelineData.map((debt, index) => (
             <div key={debt.debtId} className="space-y-1">
               <div className="flex justify-between text-sm">
-                <span className="text-white font-medium">{debt.debtName}</span>
-                <span className="text-[#808080]">{debt.monthsToPayoff} months</span>
+                <span className="text-foreground font-medium">{debt.debtName}</span>
+                <span className="text-muted-foreground">{debt.monthsToPayoff} months</span>
               </div>
-              <div className="relative h-8 bg-[#242424] rounded-lg overflow-hidden">
+              <div className="relative h-8 bg-elevated rounded-lg overflow-hidden">
                 <div
-                  className="absolute h-full rounded-lg flex items-center justify-center text-xs font-semibold text-white transition-all"
+                  className="absolute h-full rounded-lg flex items-center justify-center text-xs font-semibold text-[var(--color-card)] transition-all"
                   style={{
                     backgroundColor: debt.color,
                     width: `${(debt.monthsToPayoff / cumulativeMonths) * 100}%`,
@@ -78,7 +78,7 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
         {/* Milestone markers */}
         <div className="relative h-12 mt-4">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full h-px bg-[#2a2a2a]"></div>
+            <div className="w-full h-px bg-border"></div>
           </div>
           {milestones.map((milestone) => (
             <div
@@ -86,8 +86,8 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
               className="absolute top-0 flex flex-col items-center"
               style={{ left: `${(milestone.month / cumulativeMonths) * 100}%` }}
             >
-              <div className="w-2 h-2 bg-[#10b981] rounded-full mb-1"></div>
-              <div className="text-xs text-[#10b981] font-semibold whitespace-nowrap">
+              <div className="w-2 h-2 bg-[var(--color-chart-principal)] rounded-full mb-1"></div>
+              <div className="text-xs text-[var(--color-chart-principal)] font-semibold whitespace-nowrap">
                 {milestone.percent}%
               </div>
             </div>
@@ -95,29 +95,29 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
         </div>
 
         {/* Timeline scale */}
-        <div className="flex justify-between text-xs text-[#808080] mt-2">
+        <div className="flex justify-between text-xs text-muted-foreground mt-2">
           <span>Month 0</span>
           <span>Month {cumulativeMonths}</span>
         </div>
       </div>
 
       {/* Monthly Breakdown Table */}
-      <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a]">
+      <div className="bg-card rounded-xl p-6 border border-border">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-2xl">📋</span>
-          <h3 className="text-lg font-semibold text-white">Payment Schedule</h3>
+          <h3 className="text-lg font-semibold text-foreground">Payment Schedule</h3>
         </div>
 
         <div className="space-y-6 max-h-96 overflow-y-auto">
           {strategy.schedules.map((schedule, debtIndex) => (
             <div key={schedule.debtId} className="space-y-2">
-              <div className="flex items-center gap-2 pb-2 border-b border-[#2a2a2a]">
+              <div className="flex items-center gap-2 pb-2 border-b border-border">
                 <div
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: timelineData[debtIndex].color }}
                 ></div>
-                <h4 className="text-white font-semibold">{schedule.debtName}</h4>
-                <span className="text-xs text-[#808080]">
+                <h4 className="text-foreground font-semibold">{schedule.debtName}</h4>
+                <span className="text-xs text-muted-foreground">
                   ({schedule.monthsToPayoff} months)
                 </span>
               </div>
@@ -126,58 +126,58 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
               {schedule.monthlyBreakdown.slice(0, 3).map((payment, monthIndex) => (
                 <div
                   key={monthIndex}
-                  className="grid grid-cols-4 gap-2 text-sm py-2 px-3 bg-[#242424] rounded-lg"
+                  className="grid grid-cols-4 gap-2 text-sm py-2 px-3 bg-elevated rounded-lg"
                 >
-                  <div className="text-[#808080]">
+                  <div className="text-muted-foreground">
                     Month {timelineData[debtIndex].startMonth + monthIndex + 1}
                   </div>
-                  <div className="text-white font-mono text-right">
+                  <div className="text-foreground font-mono text-right">
                     ${payment.paymentAmount.toFixed(2)}
                   </div>
-                  <div className="text-[#10b981] font-mono text-right">
+                  <div className="text-[var(--color-chart-principal)] font-mono text-right">
                     -${payment.principalAmount.toFixed(2)}
                   </div>
-                  <div className="text-[#f87171] font-mono text-right">
+                  <div className="text-[var(--color-chart-interest)] font-mono text-right">
                     ${payment.interestAmount.toFixed(2)}
                   </div>
                 </div>
               ))}
 
               {schedule.monthlyBreakdown.length > 4 && (
-                <div className="text-center text-xs text-[#808080] py-1">
+                <div className="text-center text-xs text-muted-foreground py-1">
                   ... {schedule.monthlyBreakdown.length - 4} more months ...
                 </div>
               )}
 
               {schedule.monthlyBreakdown.length > 3 && (
                 <div
-                  className="grid grid-cols-4 gap-2 text-sm py-2 px-3 bg-[#242424] rounded-lg"
+                  className="grid grid-cols-4 gap-2 text-sm py-2 px-3 bg-elevated rounded-lg"
                 >
-                  <div className="text-[#808080]">
+                  <div className="text-muted-foreground">
                     Month {timelineData[debtIndex].endMonth}
                   </div>
-                  <div className="text-white font-mono text-right">
+                  <div className="text-foreground font-mono text-right">
                     ${schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].paymentAmount.toFixed(2)}
                   </div>
-                  <div className="text-[#10b981] font-mono text-right">
+                  <div className="text-[var(--color-chart-principal)] font-mono text-right">
                     -${schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].principalAmount.toFixed(2)}
                   </div>
-                  <div className="text-[#f87171] font-mono text-right">
+                  <div className="text-[var(--color-chart-interest)] font-mono text-right">
                     ${schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].interestAmount.toFixed(2)}
                   </div>
                 </div>
               )}
 
               {/* Summary for this debt */}
-              <div className="grid grid-cols-4 gap-2 text-xs pt-2 border-t border-[#2a2a2a]">
-                <div className="text-[#808080]">Total</div>
-                <div className="text-white font-mono font-semibold text-right">
+              <div className="grid grid-cols-4 gap-2 text-xs pt-2 border-t border-border">
+                <div className="text-muted-foreground">Total</div>
+                <div className="text-foreground font-mono font-semibold text-right">
                   ${(schedule.originalBalance + schedule.totalInterestPaid).toFixed(2)}
                 </div>
-                <div className="text-[#10b981] font-mono font-semibold text-right">
+                <div className="text-[var(--color-chart-principal)] font-mono font-semibold text-right">
                   -${schedule.originalBalance.toFixed(2)}
                 </div>
-                <div className="text-[#f87171] font-mono font-semibold text-right">
+                <div className="text-[var(--color-chart-interest)] font-mono font-semibold text-right">
                   ${schedule.totalInterestPaid.toFixed(2)}
                 </div>
               </div>
@@ -186,7 +186,7 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
         </div>
 
         {/* Column headers (sticky at top) */}
-        <div className="grid grid-cols-4 gap-2 text-xs text-[#808080] uppercase px-3 py-2 bg-[#1a1a1a] sticky top-0 -mt-4 mb-2">
+        <div className="grid grid-cols-4 gap-2 text-xs text-muted-foreground uppercase px-3 py-2 bg-card sticky top-0 -mt-4 mb-2">
           <div>Period</div>
           <div className="text-right">Payment</div>
           <div className="text-right">Principal</div>

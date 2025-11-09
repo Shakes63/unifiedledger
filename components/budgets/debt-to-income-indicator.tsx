@@ -87,31 +87,31 @@ export function DebtToIncomeIndicator({
       {showLabel && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">Debt-to-Income Ratio</span>
+            <span className="text-xs text-muted-foreground">Debt-to-Income Ratio</span>
             <div className="relative">
               <button
                 onMouseEnter={() => setShowTooltip(true)}
                 onMouseLeave={() => setShowTooltip(false)}
                 onClick={() => setShowTooltip(!showTooltip)}
-                className="text-gray-500 hover:text-gray-400 transition-colors"
+                className="text-muted-foreground hover:text-muted-foreground transition-colors"
               >
                 <Info className="w-3.5 h-3.5" />
               </button>
               {showTooltip && (
-                <div className="absolute left-0 top-full mt-1 w-64 z-10 bg-[#242424] border border-[#2a2a2a] rounded-lg p-3 shadow-lg">
-                  <p className="text-xs text-gray-300">{getTooltipMessage()}</p>
+                <div className="absolute left-0 top-full mt-1 w-64 z-10 bg-elevated border border-border rounded-lg p-3 shadow-lg">
+                  <p className="text-xs text-foreground">{getTooltipMessage()}</p>
                   <div className="mt-2 space-y-1 text-xs">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-                      <span className="text-gray-400">0-20%: Healthy</span>
+                      <span className="text-muted-foreground">0-20%: Healthy</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                      <span className="text-gray-400">20-35%: Manageable</span>
+                      <span className="text-muted-foreground">20-35%: Manageable</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-red-400"></div>
-                      <span className="text-gray-400">35%+: High Risk</span>
+                      <span className="text-muted-foreground">35%+: High Risk</span>
                     </div>
                   </div>
                 </div>
@@ -130,14 +130,14 @@ export function DebtToIncomeIndicator({
       )}
 
       {/* Progress bar */}
-      <div className="relative w-full bg-[#242424] rounded-full overflow-hidden">
+      <div className="relative w-full bg-elevated rounded-full overflow-hidden">
         <div className={`relative ${getHeight()}`}>
           {/* Background track with threshold markers */}
           <div className="absolute inset-0 flex">
             {/* 0-20% zone (healthy) */}
-            <div className="w-[20%] border-r border-[#2a2a2a]"></div>
+            <div className="w-[20%] border-r border-border"></div>
             {/* 20-35% zone (manageable) */}
-            <div className="w-[15%] border-r border-[#2a2a2a]"></div>
+            <div className="w-[15%] border-r border-border"></div>
             {/* 35%+ zone (high) */}
             <div className="flex-1"></div>
           </div>
@@ -156,7 +156,7 @@ export function DebtToIncomeIndicator({
               className="absolute top-0 bottom-0 w-px bg-[#2a2a2a]"
               style={{ left: '20%' }}
             >
-              <div className="absolute -top-1 left-1/2 -translate-x-1/2 text-[10px] text-gray-500">
+              <div className="absolute -top-1 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground">
                 20
               </div>
             </div>
@@ -164,7 +164,7 @@ export function DebtToIncomeIndicator({
               className="absolute top-0 bottom-0 w-px bg-[#2a2a2a]"
               style={{ left: '35%' }}
             >
-              <div className="absolute -top-1 left-1/2 -translate-x-1/2 text-[10px] text-gray-500">
+              <div className="absolute -top-1 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground">
                 35
               </div>
             </div>

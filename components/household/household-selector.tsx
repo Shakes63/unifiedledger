@@ -185,21 +185,21 @@ export function HouseholdSelector({
   };
 
   if (loading) {
-    return <div className="text-sm text-[#6b7280]">Loading households...</div>;
+    return <div className="text-sm text-muted-foreground">Loading households...</div>;
   }
 
   const selectedHousehold = households.find((h) => h.id === selectedHouseholdId);
 
   return (
-    <div className="flex items-center gap-2">
-      <Users className="w-4 h-4 text-[#6b7280]" />
+    <div className="flex items-center gap-2 min-w-0">
+      <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
       <Select value={selectedHouseholdId || ''} onValueChange={handleSelectHousehold}>
-        <SelectTrigger className="w-[200px] bg-[#242424] border-[#2a2a2a] text-white">
+        <SelectTrigger className="flex-1 min-w-0 bg-elevated border-border text-foreground">
           <SelectValue placeholder="Select household" />
         </SelectTrigger>
-        <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+        <SelectContent className="bg-card border-border">
           {households.map((household) => (
-            <SelectItem key={household.id} value={household.id}>
+            <SelectItem key={household.id} value={household.id} className="text-foreground">
               {household.name}
             </SelectItem>
           ))}
@@ -210,25 +210,25 @@ export function HouseholdSelector({
       {selectedHousehold && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="border-[#2a2a2a]">
+            <Button variant="outline" size="icon" className="border-border hover:bg-elevated hover:text-foreground flex-shrink-0">
               <Settings className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="bg-[#1a1a1a] border-[#2a2a2a]"
+            className="bg-card border-border"
           >
             <DropdownMenuItem
               onClick={() => router.push(`/dashboard/households/${selectedHousehold.id}`)}
-              className="text-white cursor-pointer"
+              className="text-foreground cursor-pointer"
             >
               <Users className="w-4 h-4 mr-2" />
               Manage Household
             </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-[#2a2a2a]" />
+            <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem
               onClick={() => handleLeaveHousehold(selectedHousehold.id)}
-              className="text-[#f87171] cursor-pointer"
+              className="text-[var(--color-error)] cursor-pointer"
             >
               <LogOut className="w-4 h-4 mr-2" />
               Leave Household
@@ -240,27 +240,27 @@ export function HouseholdSelector({
       {/* Create household button */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" size="icon" className="border-[#2a2a2a]">
+          <Button variant="outline" size="icon" className="border-border hover:bg-elevated hover:text-foreground flex-shrink-0">
             <Plus className="w-4 h-4" />
           </Button>
         </DialogTrigger>
-        <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">Create Household</DialogTitle>
-            <DialogDescription className="text-[#9ca3af]">
+            <DialogTitle className="text-foreground">Create Household</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
               Create a new household to share finances with family members
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             {error && (
-              <div className="p-3 bg-[#f87171]/10 border border-[#f87171]/30 rounded-lg text-[#f87171] text-sm">
+              <div className="p-3 bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-lg text-[var(--color-error)] text-sm">
                 {error}
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-white">
+              <Label htmlFor="name" className="text-foreground">
                 Household Name
               </Label>
               <Input
@@ -268,7 +268,7 @@ export function HouseholdSelector({
                 placeholder="e.g., Smith Family"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                className="bg-[#242424] border-[#2a2a2a] text-white"
+                className="bg-elevated border-border text-foreground"
                 autoFocus
               />
             </div>
@@ -276,7 +276,7 @@ export function HouseholdSelector({
             <Button
               onClick={handleCreateHousehold}
               disabled={creating || !newName.trim()}
-              className="w-full bg-[#10b981] hover:bg-[#059669] text-white"
+              className="w-full bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
             >
               {creating ? 'Creating...' : 'Create Household'}
             </Button>

@@ -195,10 +195,10 @@ export default function MerchantsPage() {
     return (
       <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
         <div className="animate-pulse space-y-4">
-          <div className="h-10 bg-[#242424] rounded w-1/4"></div>
+          <div className="h-10 bg-elevated rounded w-1/4"></div>
           <div className="grid grid-cols-1 gap-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 bg-[#242424] rounded"></div>
+              <div key={i} className="h-16 bg-elevated rounded"></div>
             ))}
           </div>
         </div>
@@ -210,12 +210,12 @@ export default function MerchantsPage() {
     <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-white">Merchants</h1>
-          <p className="text-gray-400 mt-2">Manage your merchants and track spending</p>
+          <h1 className="text-3xl font-bold text-foreground">Merchants</h1>
+          <p className="text-muted-foreground mt-2">Manage your merchants and track spending</p>
         </div>
         <Button
           onClick={handleCreate}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white"
+          className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Merchant
@@ -226,28 +226,28 @@ export default function MerchantsPage() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#2a2a2a]">
-                <th className="text-left py-3 px-4 font-semibold text-gray-300">Name</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-300">Category</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-300">Usage Count</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-300">Total Spent</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-300">Avg Transaction</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-300">Actions</th>
+              <tr className="border-b border-border">
+                <th className="text-left py-3 px-4 font-semibold text-foreground">Name</th>
+                <th className="text-left py-3 px-4 font-semibold text-foreground">Category</th>
+                <th className="text-left py-3 px-4 font-semibold text-foreground">Usage Count</th>
+                <th className="text-left py-3 px-4 font-semibold text-foreground">Total Spent</th>
+                <th className="text-left py-3 px-4 font-semibold text-foreground">Avg Transaction</th>
+                <th className="text-left py-3 px-4 font-semibold text-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
               {merchants.map((merchant) => (
                 <tr
                   key={merchant.id}
-                  className="border-b border-[#2a2a2a] hover:bg-[#1a1a1a]/50 transition-all"
+                  className="border-b border-border hover:bg-card/50 transition-all"
                 >
-                  <td className="py-3 px-4 text-white">{merchant.name}</td>
-                  <td className="py-3 px-4 text-gray-400">{getCategoryName(merchant.categoryId)}</td>
-                  <td className="py-3 px-4 text-gray-400">{merchant.usageCount}</td>
-                  <td className="py-3 px-4 text-gray-400">
+                  <td className="py-3 px-4 text-foreground">{merchant.name}</td>
+                  <td className="py-3 px-4 text-muted-foreground">{getCategoryName(merchant.categoryId)}</td>
+                  <td className="py-3 px-4 text-muted-foreground">{merchant.usageCount}</td>
+                  <td className="py-3 px-4 text-muted-foreground">
                     ${merchant.totalSpent?.toFixed(2) || '0.00'}
                   </td>
-                  <td className="py-3 px-4 text-gray-400">
+                  <td className="py-3 px-4 text-muted-foreground">
                     ${merchant.averageTransaction?.toFixed(2) || '0.00'}
                   </td>
                   <td className="py-3 px-4">
@@ -256,7 +256,7 @@ export default function MerchantsPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleEdit(merchant)}
-                        className="bg-[#242424] border-[#3a3a3a] text-gray-400 hover:bg-[#2a2a2a]"
+                        className="bg-elevated border-border text-muted-foreground hover:bg-elevated"
                       >
                         <Edit2 className="w-4 h-4" />
                       </Button>
@@ -264,7 +264,7 @@ export default function MerchantsPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleDelete(merchant.id)}
-                        className="bg-[#242424] border-[#3a3a3a] text-red-400 hover:bg-red-500/10"
+                        className="bg-elevated border-border text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -277,10 +277,10 @@ export default function MerchantsPage() {
         </div>
       ) : (
         <div className="text-center py-12">
-          <p className="text-gray-400 mb-4">No merchants yet</p>
+          <p className="text-muted-foreground mb-4">No merchants yet</p>
           <Button
             onClick={handleCreate}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white"
+            className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
           >
             <Plus className="w-4 h-4 mr-2" />
             Create First Merchant
@@ -290,16 +290,16 @@ export default function MerchantsPage() {
 
       {/* Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-white">
+            <DialogTitle className="text-foreground">
               {selectedMerchant ? 'Edit Merchant' : 'Create Merchant'}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-medium text-white">
+              <Label htmlFor="name" className="text-sm font-medium text-foreground">
                 Merchant Name *
               </Label>
               <Input
@@ -308,20 +308,20 @@ export default function MerchantsPage() {
                 placeholder="e.g., Starbucks, Amazon"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-[#242424] border-[#3a3a3a] text-white"
+                className="bg-elevated border-border text-foreground"
                 autoFocus
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="category" className="text-sm font-medium text-white">
+              <Label htmlFor="category" className="text-sm font-medium text-foreground">
                 Default Category
               </Label>
               <Select
                 value={formData.categoryId || 'none'}
                 onValueChange={(value) => setFormData({ ...formData, categoryId: value === 'none' ? '' : value })}
               >
-                <SelectTrigger className="bg-[#242424] border-[#3a3a3a] text-white">
+                <SelectTrigger className="bg-elevated border-border text-foreground">
                   <SelectValue placeholder="Select category (optional)..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -333,7 +333,7 @@ export default function MerchantsPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 This helps filter merchants by transaction type (income/expense)
               </p>
             </div>
@@ -347,14 +347,14 @@ export default function MerchantsPage() {
                   setSelectedMerchant(null);
                   setFormData({ name: '', categoryId: '' });
                 }}
-                className="bg-[#242424] border-[#3a3a3a] text-gray-400"
+                className="bg-elevated border-border text-muted-foreground"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={isSubmitting || !formData.name.trim()}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
               >
                 {isSubmitting ? 'Saving...' : selectedMerchant ? 'Update' : 'Create'}
               </Button>

@@ -60,9 +60,9 @@ export function AccountSelector({
 
   return (
     <div className="space-y-2">
-      {!hideLabel && <label className="text-sm font-medium text-white">{label}</label>}
+      {!hideLabel && <label className="text-sm font-medium text-foreground">{label}</label>}
       <Select value={selectedAccountId || ''} onValueChange={onAccountChange}>
-        <SelectTrigger className="bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg">
+        <SelectTrigger className="bg-card border border-border text-foreground rounded-lg">
           <SelectValue placeholder="Select account" />
         </SelectTrigger>
         <SelectContent>
@@ -71,7 +71,7 @@ export function AccountSelector({
               <div className="flex items-center gap-2 w-full">
                 <DollarSign className="w-4 h-4 flex-shrink-0" />
                 <span className="flex-1 truncate">{account.name}</span>
-                <span className="text-xs text-gray-400 flex-shrink-0">
+                <span className="text-xs text-muted-foreground flex-shrink-0">
                   ${account.currentBalance?.toFixed(2) || '0.00'}
                 </span>
               </div>
@@ -81,9 +81,9 @@ export function AccountSelector({
       </Select>
 
       {selectedAccount && (
-        <div className="p-3 bg-[#242424] rounded-lg border border-[#2a2a2a]">
-          <p className="text-xs text-gray-500">Available Balance</p>
-          <p className="text-lg font-semibold text-white">
+        <div className="p-3 bg-elevated rounded-lg border border-border">
+          <p className="text-xs text-muted-foreground">Available Balance</p>
+          <p className="text-lg font-semibold text-foreground">
             ${selectedAccount.currentBalance?.toFixed(2) || '0.00'}
           </p>
         </div>

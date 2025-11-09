@@ -110,9 +110,9 @@ export function Sidebar() {
       }`}
     >
       {/* Logo Section */}
-      <div className="p-4 border-b border-border flex items-center justify-between">
+      <div className="p-4 border-b border-border flex items-center justify-between gap-2 min-w-0">
         {sidebarOpen && (
-          <Link href="/dashboard" className="flex items-center gap-3 flex-1">
+          <Link href="/dashboard" className="flex items-center gap-3 flex-1 min-w-0">
             <div className="relative w-8 h-8 flex-shrink-0">
               <Image
                 src="/logo.png"
@@ -122,14 +122,13 @@ export function Sidebar() {
                 className="object-contain"
               />
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-foreground">Unified</h2>
-              <p className="text-xs text-muted-foreground">Finance</p>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-foreground">Unified Ledger</h2>
             </div>
           </Link>
         )}
         {!sidebarOpen && (
-          <Link href="/dashboard" className="flex items-center justify-center w-full">
+          <Link href="/dashboard" className="flex items-center justify-center w-full flex-1">
             <div className="relative w-8 h-8">
               <Image
                 src="/logo.png"
@@ -145,7 +144,7 @@ export function Sidebar() {
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
-          className="text-muted-foreground hover:text-foreground flex-shrink-0 ml-2"
+          className="text-muted-foreground hover:text-foreground flex-shrink-0"
         >
           <ChevronLeft className={`w-4 h-4 transition-transform ${sidebarOpen ? '' : 'rotate-180'}`} />
         </Button>
@@ -153,7 +152,7 @@ export function Sidebar() {
 
       {/* Household Selector */}
       {sidebarOpen && (
-        <div className="px-4 py-4 border-b border-border">
+        <div className="px-4 py-4 border-b border-border min-w-0">
           <HouseholdSelector />
         </div>
       )}

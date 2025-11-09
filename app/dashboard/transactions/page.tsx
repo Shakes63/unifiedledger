@@ -534,8 +534,7 @@ function TransactionsContent() {
             <Link href="/dashboard/transactions/new">
               <Button
                 size="sm"
-                className="text-background font-medium"
-                style={{ backgroundColor: 'var(--color-income)' }}
+                className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 New Transaction
@@ -577,7 +576,7 @@ function TransactionsContent() {
                 : 'No transactions match your filters.'}
             </p>
             <Link href="/dashboard/transactions/new">
-              <Button className="font-medium" style={{ backgroundColor: 'var(--color-income)', color: 'var(--color-background)' }}>Add Transaction</Button>
+              <Button className="font-medium bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90">Add Transaction</Button>
             </Link>
           </Card>
         ) : (
@@ -636,7 +635,7 @@ function TransactionsContent() {
                                 ? 'var(--color-income)'
                                 : transaction.type === 'transfer' || transaction.type === 'transfer_in' || transaction.type === 'transfer_out'
                                 ? 'var(--color-transfer)'
-                                : 'var(--color-foreground)'
+                                : 'var(--color-expense)'
                             }}
                           >
                             {transaction.type === 'transfer' && accountIdFromUrl
@@ -707,8 +706,7 @@ function TransactionsContent() {
                                   size="sm"
                                   onClick={() => handleCreateCategory(transaction.id)}
                                   disabled={updatingTxId === transaction.id || !newCategoryName.trim()}
-                                  className="h-8 px-2 text-background"
-                                  style={{ backgroundColor: 'var(--color-income)' }}
+                                  className="h-8 px-2 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90"
                                 >
                                   Add
                                 </Button>
@@ -783,8 +781,7 @@ function TransactionsContent() {
                                   size="sm"
                                   onClick={() => handleCreateMerchant(transaction.id)}
                                   disabled={updatingTxId === transaction.id || !newMerchantName.trim()}
-                                  className="h-8 px-2 text-background"
-                                  style={{ backgroundColor: 'var(--color-income)' }}
+                                  className="h-8 px-2 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90"
                                 >
                                   Add
                                 </Button>

@@ -173,7 +173,7 @@ export function SplitBuilder({
             variant={splitType === 'amount' ? 'default' : 'outline'}
             className={`flex-1 ${
               splitType === 'amount'
-                ? 'bg-white text-black hover:bg-gray-100'
+                ? 'bg-[var(--color-primary)] text-white hover:opacity-90'
                 : 'bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]'
             }`}
             onClick={() => handleSwitchSplitType('amount')}
@@ -185,7 +185,7 @@ export function SplitBuilder({
             variant={splitType === 'percentage' ? 'default' : 'outline'}
             className={`flex-1 ${
               splitType === 'percentage'
-                ? 'bg-white text-black hover:bg-gray-100'
+                ? 'bg-[var(--color-primary)] text-white hover:opacity-90'
                 : 'bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]'
             }`}
             onClick={() => handleSwitchSplitType('percentage')}
@@ -267,7 +267,7 @@ export function SplitBuilder({
       <Button
         type="button"
         onClick={handleAddSplit}
-        className="w-full bg-white text-black hover:bg-gray-100 font-medium"
+        className="w-full bg-[var(--color-primary)] text-white hover:opacity-90 font-medium"
       >
         <Plus className="w-4 h-4 mr-2" />
         Add Split

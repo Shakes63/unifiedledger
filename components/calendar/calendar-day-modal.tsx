@@ -56,12 +56,12 @@ export function CalendarDayModal({
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'income':
-        return <TrendingUp className="w-4 h-4 text-emerald-400" />;
+        return <TrendingUp className="w-4 h-4 text-[var(--color-income)]" />;
       case 'expense':
-        return <TrendingDown className="w-4 h-4 text-red-400" />;
+        return <TrendingDown className="w-4 h-4 text-[var(--color-expense)]" />;
       case 'transfer_in':
       case 'transfer_out':
-        return <ArrowRightLeft className="w-4 h-4 text-blue-400" />;
+        return <ArrowRightLeft className="w-4 h-4 text-[var(--color-transfer)]" />;
       default:
         return null;
     }
@@ -70,38 +70,38 @@ export function CalendarDayModal({
   const getTransactionColor = (type: string) => {
     switch (type) {
       case 'income':
-        return 'text-emerald-400';
+        return 'text-[var(--color-income)]';
       case 'expense':
-        return 'text-red-400';
+        return 'text-[var(--color-expense)]';
       case 'transfer_in':
       case 'transfer_out':
-        return 'text-blue-400';
+        return 'text-[var(--color-transfer)]';
       default:
-        return 'text-white';
+        return 'text-foreground';
     }
   };
 
   const getBillStatusColor = (status: string) => {
     switch (status) {
       case 'paid':
-        return 'bg-emerald-400/10 text-emerald-400';
+        return 'bg-[var(--color-income)]/10 text-[var(--color-income)]';
       case 'overdue':
-        return 'bg-red-600/10 text-red-500';
+        return 'bg-[var(--color-error)]/10 text-[var(--color-error)]';
       case 'pending':
-        return 'bg-amber-400/10 text-amber-400';
+        return 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]';
       default:
-        return 'bg-gray-400/10 text-gray-400';
+        return 'bg-muted/10 text-muted-foreground';
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white max-w-2xl">
+      <DialogContent className="bg-card border-border text-foreground max-w-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl">
             {format(date, 'EEEE, MMMM d, yyyy')}
           </DialogTitle>
-          <DialogDescription className="text-[#9ca3af]">
+          <DialogDescription className="text-muted-foreground">
             View and manage transactions and bills for this day
           </DialogDescription>
         </DialogHeader>
@@ -123,13 +123,13 @@ export function CalendarDayModal({
           {/* Transactions */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-white">
+              <h3 className="text-lg font-semibold text-foreground">
                 Transactions ({transactions.length})
               </h3>
               <Link href="/dashboard/transactions/new">
                 <Button
                   size="sm"
-                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                  className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   Add
@@ -142,16 +142,16 @@ export function CalendarDayModal({
                 {transactions.map((txn) => (
                   <div
                     key={txn.id}
-                    className="flex items-center justify-between p-3 bg-[#242424] rounded-lg border border-[#2a2a2a] hover:border-[#3a3a3a] transition"
+                    className="flex items-center justify-between p-3 bg-elevated rounded-lg border border-border hover:border-border transition"
                   >
                     <div className="flex items-center gap-3 flex-1">
                       {getTransactionIcon(txn.type)}
                       <div>
-                        <p className="font-medium text-white">
+                        <p className="font-medium text-foreground">
                           {txn.description}
                         </p>
                         {txn.category && (
-                          <p className="text-[#6b7280] text-sm">
+                          <p className="text-muted-foreground text-sm">
                             {txn.category}
                           </p>
                         )}
@@ -167,7 +167,7 @@ export function CalendarDayModal({
                 ))}
               </div>
             ) : (
-              <p className="text-[#6b7280] text-sm">
+              <p className="text-muted-foreground text-sm">
                 No transactions on this day
               </p>
             )}
@@ -176,25 +176,25 @@ export function CalendarDayModal({
           {/* Bills */}
           {bills.length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold text-white mb-3">
+              <h3 className="text-lg font-semibold text-foreground mb-3">
                 Bills ({bills.length})
               </h3>
               <div className="space-y-2">
                 {bills.map((bill) => (
                   <div
                     key={bill.id}
-                    className="flex items-center justify-between p-3 bg-[#242424] rounded-lg border border-[#2a2a2a]"
+                    className="flex items-center justify-between p-3 bg-elevated rounded-lg border border-border"
                   >
                     <div className="flex-1">
-                      <p className="font-medium text-white">
+                      <p className="font-medium text-foreground">
                         {bill.description}
                       </p>
-                      <p className="text-[#6b7280] text-sm">
+                      <p className="text-muted-foreground text-sm">
                         Due: {format(new Date(bill.dueDate), 'MMM d')}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <p className="font-semibold text-red-400">
+                      <p className="font-semibold text-[var(--color-expense)]">
                         ${bill.amount.toFixed(2)}
                       </p>
                       <span
@@ -213,11 +213,11 @@ export function CalendarDayModal({
 
           {transactions.length === 0 && bills.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-[#6b7280] mb-4">
+              <p className="text-muted-foreground mb-4">
                 No transactions or bills on this day
               </p>
               <Link href="/dashboard/transactions/new">
-                <Button className="bg-blue-500 hover:bg-blue-600 text-white">
+                <Button className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Transaction
                 </Button>

@@ -53,11 +53,11 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
     : null;
 
   return (
-    <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl hover:border-[#3a3a3a] transition-all relative group">
+    <Card className="p-6 border border-border bg-card rounded-xl hover:border-border transition-all relative group">
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">
           <div
-            className="w-12 h-12 rounded-lg flex items-center justify-center text-white text-lg font-semibold"
+            className="w-12 h-12 rounded-lg flex items-center justify-center text-foreground text-lg font-semibold"
             style={{ backgroundColor: account.color + '20', borderColor: account.color, borderWidth: '2px' }}
           >
             {account.icon === 'wallet' && '💼'}
@@ -70,10 +70,10 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             {account.icon === 'briefcase' && '💼'}
           </div>
           <div>
-            <h3 className="text-white font-semibold text-lg">{account.name}</h3>
-            <p className="text-gray-500 text-sm">{ACCOUNT_TYPE_LABELS[account.type]}</p>
+            <h3 className="text-foreground font-semibold text-lg">{account.name}</h3>
+            <p className="text-muted-foreground text-sm">{ACCOUNT_TYPE_LABELS[account.type]}</p>
             {account.bankName && (
-              <p className="text-gray-600 text-xs">{account.bankName}</p>
+              <p className="text-muted-foreground text-xs">{account.bankName}</p>
             )}
           </div>
         </div>
@@ -83,16 +83,16 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 hover:bg-[#242424] text-gray-400"
+              className="h-8 w-8 p-0 hover:bg-elevated text-muted-foreground"
             >
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-[#242424] border-[#2a2a2a]">
+          <DropdownMenuContent align="end" className="bg-elevated border-border">
             {onEdit && (
               <DropdownMenuItem
                 onClick={() => onEdit(account)}
-                className="text-gray-300 cursor-pointer hover:bg-[#2a2a2a]"
+                className="text-foreground cursor-pointer hover:bg-elevated"
               >
                 <Edit2 className="h-4 w-4 mr-2" />
                 Edit
@@ -101,7 +101,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             {account.accountNumberLast4 && (
               <DropdownMenuItem
                 onClick={handleCopyAccountNumber}
-                className="text-gray-300 cursor-pointer hover:bg-[#2a2a2a]"
+                className="text-foreground cursor-pointer hover:bg-elevated"
               >
                 <Copy className="h-4 w-4 mr-2" />
                 Copy Last 4
@@ -110,7 +110,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             {onDelete && (
               <DropdownMenuItem
                 onClick={() => onDelete(account.id)}
-                className="text-red-400 cursor-pointer hover:bg-red-500/10"
+                className="text-[var(--color-error)] cursor-pointer hover:bg-[var(--color-error)]/10"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
@@ -125,32 +125,32 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
         {isCreditAccount ? (
           <>
             <div>
-              <p className="text-gray-500 text-xs mb-1">Balance</p>
-              <p className="text-2xl font-bold text-red-400">
+              <p className="text-muted-foreground text-xs mb-1">Balance</p>
+              <p className="text-2xl font-bold text-[var(--color-error)]">
                 ${account.currentBalance.toFixed(2)}
               </p>
             </div>
             {account.creditLimit && (
               <>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-500">Credit Limit</span>
-                  <span className="text-gray-400">${account.creditLimit.toFixed(2)}</span>
+                  <span className="text-muted-foreground">Credit Limit</span>
+                  <span className="text-muted-foreground">${account.creditLimit.toFixed(2)}</span>
                 </div>
-                <div className="w-full bg-[#242424] rounded-full h-2 overflow-hidden border border-[#2a2a2a]">
+                <div className="w-full bg-elevated rounded-full h-2 overflow-hidden border border-border">
                   <div
                     className={`h-full transition-all ${
                       utilization! >= 100
-                        ? 'bg-red-500'
+                        ? 'bg-[var(--color-error)]'
                         : utilization! >= 80
-                        ? 'bg-amber-500'
-                        : 'bg-emerald-500'
+                        ? 'bg-[var(--color-warning)]'
+                        : 'bg-[var(--color-income)]'
                     }`}
                     style={{ width: `${Math.min(utilization!, 100)}%` }}
                   />
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-500">Available</span>
-                  <span className={`font-semibold ${availableBalance < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                  <span className="text-muted-foreground">Available</span>
+                  <span className={`font-semibold ${availableBalance < 0 ? 'text-[var(--color-error)]' : 'text-[var(--color-income)]'}`}>
                     ${availableBalance.toFixed(2)}
                   </span>
                 </div>
@@ -159,7 +159,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
           </>
         ) : (
           <div>
-            <p className="text-gray-500 text-xs mb-1">Balance</p>
+            <p className="text-muted-foreground text-xs mb-1">Balance</p>
             <p
               className="text-3xl font-bold"
               style={{ color: account.color }}
@@ -172,9 +172,9 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
 
       {/* Account Number */}
       {account.accountNumberLast4 && (
-        <div className="mt-4 pt-4 border-t border-[#2a2a2a]">
-          <p className="text-gray-600 text-xs">Account ending in</p>
-          <p className="text-gray-400 text-sm font-mono">•••• {account.accountNumberLast4}</p>
+        <div className="mt-4 pt-4 border-t border-border">
+          <p className="text-muted-foreground text-xs">Account ending in</p>
+          <p className="text-muted-foreground text-sm font-mono">•••• {account.accountNumberLast4}</p>
         </div>
       )}
 
@@ -183,7 +183,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
         <Button
           variant="outline"
           size="sm"
-          className="w-full mt-4 text-gray-400 hover:text-white hover:bg-[#242424] border-[#2a2a2a]"
+          className="w-full mt-4 text-muted-foreground hover:text-foreground hover:bg-elevated border-border"
         >
           View Transactions
           <ArrowRight className="ml-2 h-4 w-4" />

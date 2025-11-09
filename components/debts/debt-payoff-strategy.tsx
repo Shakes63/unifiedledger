@@ -94,7 +94,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
   if (loading) {
     return (
       <div className={className}>
-        <div className="text-center py-8 text-[#808080]">Loading payoff strategy...</div>
+        <div className="text-center py-8 text-muted-foreground">Loading payoff strategy...</div>
       </div>
     );
   }
@@ -102,7 +102,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
   if (!comparison || comparison.snowball.payoffOrder.length === 0) {
     return (
       <div className={className}>
-        <div className="text-center py-8 text-[#808080]">
+        <div className="text-center py-8 text-muted-foreground">
           No active debts found. Create a debt to see payoff strategies.
         </div>
       </div>
@@ -116,18 +116,18 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
     <div className={className}>
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-white mb-4">Debt Payoff Strategy</h2>
+        <h2 className="text-xl font-semibold text-foreground mb-4">Debt Payoff Strategy</h2>
 
         {/* Payment Frequency Toggle */}
         <div className="mb-3">
-          <Label className="text-[#e5e5e5] text-sm mb-2 block">Payment Frequency</Label>
-          <div className="flex items-center gap-2 bg-[#1a1a1a] rounded-lg p-1">
+          <Label className="text-foreground text-sm mb-2 block">Payment Frequency</Label>
+          <div className="flex items-center gap-2 bg-card rounded-lg p-1">
             <button
               onClick={() => setPaymentFrequency('monthly')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 paymentFrequency === 'monthly'
-                  ? 'bg-[#60a5fa] text-white'
-                  : 'text-[#808080] hover:text-white'
+                  ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Monthly
@@ -136,14 +136,14 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
               onClick={() => setPaymentFrequency('biweekly')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 paymentFrequency === 'biweekly'
-                  ? 'bg-[#10b981] text-white'
-                  : 'text-[#808080] hover:text-white'
+                  ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Bi-Weekly
             </button>
           </div>
-          <p className="text-xs text-[#808080] mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {paymentFrequency === 'biweekly'
               ? '26 payments/year (1 extra payment annually)'
               : '12 payments per year'}
@@ -152,14 +152,14 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
 
         {/* Method Toggle */}
         <div>
-          <Label className="text-[#e5e5e5] text-sm mb-2 block">Payoff Method</Label>
-          <div className="flex items-center gap-2 bg-[#1a1a1a] rounded-lg p-1">
+          <Label className="text-foreground text-sm mb-2 block">Payoff Method</Label>
+          <div className="flex items-center gap-2 bg-card rounded-lg p-1">
             <button
               onClick={() => setMethod('snowball')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 method === 'snowball'
-                  ? 'bg-[#60a5fa] text-white'
-                  : 'text-[#808080] hover:text-white'
+                  ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Snowball
@@ -168,8 +168,8 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
               onClick={() => setMethod('avalanche')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 method === 'avalanche'
-                  ? 'bg-[#60a5fa] text-white'
-                  : 'text-[#808080] hover:text-white'
+                  ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Avalanche
@@ -180,11 +180,11 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
 
       {/* Extra Payment Input */}
       <div className="mb-6">
-        <Label htmlFor="extraPayment" className="text-[#e5e5e5] mb-2 block">
+        <Label htmlFor="extraPayment" className="text-foreground mb-2 block">
           Extra {paymentFrequency === 'biweekly' ? 'Per Payment' : 'Monthly Payment'}
         </Label>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#808080]">$</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
           <Input
             id="extraPayment"
             type="number"
@@ -192,11 +192,11 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
             step="10"
             value={extraPayment}
             onChange={(e) => setExtraPayment(e.target.value)}
-            className="pl-7 bg-[#1a1a1a] border-[#2a2a2a] text-white"
+            className="pl-7 bg-card border-border text-foreground"
             placeholder="0.00"
           />
         </div>
-        <p className="text-xs text-[#808080] mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           {paymentFrequency === 'biweekly'
             ? `Amount above minimums per payment (${parseFloat(extraPayment) * 26 || 0}/year)`
             : 'Amount above minimum payments to apply toward debts'}
@@ -205,38 +205,38 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Next Recommended Payment */}
-        <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a]">
+        <div className="bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-2xl">📍</span>
-            <h3 className="text-lg font-semibold text-white">Pay This Next</h3>
+            <h3 className="text-lg font-semibold text-foreground">Pay This Next</h3>
           </div>
 
           <div className="space-y-3">
             <div>
-              <div className="text-2xl font-bold text-white mb-1">
+              <div className="text-2xl font-bold text-foreground mb-1">
                 {currentStrategy.nextRecommendedPayment.debtName}
               </div>
-              <div className="text-[#808080] text-sm">
+              <div className="text-muted-foreground text-sm">
                 Current Balance: ${currentStrategy.nextRecommendedPayment.currentBalance.toFixed(2)}
               </div>
             </div>
 
-            <div className="pt-3 border-t border-[#2a2a2a] space-y-2">
+            <div className="pt-3 border-t border-border space-y-2">
               <div className="flex justify-between">
-                <span className="text-[#808080]">Recommended Payment:</span>
-                <span className="text-white font-mono font-semibold">
+                <span className="text-muted-foreground">Recommended Payment:</span>
+                <span className="text-foreground font-mono font-semibold">
                   ${currentStrategy.nextRecommendedPayment.recommendedPayment.toFixed(2)}/{paymentFrequency === 'biweekly' ? 'payment' : 'month'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#808080]">Months Until Payoff:</span>
-                <span className="text-white font-semibold">
+                <span className="text-muted-foreground">Months Until Payoff:</span>
+                <span className="text-foreground font-semibold">
                   {currentStrategy.nextRecommendedPayment.monthsUntilPayoff}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#808080]">Total Interest:</span>
-                <span className="text-white font-mono font-semibold">
+                <span className="text-muted-foreground">Total Interest:</span>
+                <span className="text-foreground font-mono font-semibold">
                   ${currentStrategy.nextRecommendedPayment.totalInterest.toFixed(2)}
                 </span>
               </div>
@@ -245,30 +245,30 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
         </div>
 
         {/* Payoff Order */}
-        <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a]">
+        <div className="bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-2xl">📊</span>
-            <h3 className="text-lg font-semibold text-white">Your Payoff Order</h3>
+            <h3 className="text-lg font-semibold text-foreground">Your Payoff Order</h3>
           </div>
 
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {currentStrategy.payoffOrder.map((debt) => (
               <div
                 key={debt.debtId}
-                className="flex items-center justify-between p-3 bg-[#242424] rounded-lg hover:bg-[#2a2a2a] transition-colors"
+                className="flex items-center justify-between p-3 bg-elevated rounded-lg hover:bg-elevated transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-[#1a1a1a] flex items-center justify-center text-white font-semibold">
+                  <div className="w-8 h-8 rounded-full bg-card flex items-center justify-center text-foreground font-semibold">
                     {debt.order}
                   </div>
                   <div>
-                    <div className="text-white font-medium">{debt.debtName}</div>
-                    <div className="text-xs text-[#808080]">
+                    <div className="text-foreground font-medium">{debt.debtName}</div>
+                    <div className="text-xs text-muted-foreground">
                       ${debt.remainingBalance.toFixed(2)} @ {debt.interestRate}% APR
                     </div>
                   </div>
                 </div>
-                <div className="text-xs text-[#808080]">
+                <div className="text-xs text-muted-foreground">
                   ${debt.minimumPayment.toFixed(2)}/mo min
                 </div>
               </div>
@@ -278,28 +278,28 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
       </div>
 
       {/* Comparison Metrics */}
-      <div className="mt-6 bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a]">
+      <div className="mt-6 bg-card rounded-xl p-6 border border-border">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-2xl">💰</span>
-          <h3 className="text-lg font-semibold text-white">Method Comparison</h3>
+          <h3 className="text-lg font-semibold text-foreground">Method Comparison</h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Current Method */}
-          <div className="bg-[#242424] rounded-lg p-4">
-            <div className="text-xs text-[#808080] uppercase mb-1">
+          <div className="bg-elevated rounded-lg p-4">
+            <div className="text-xs text-muted-foreground uppercase mb-1">
               {method === 'snowball' ? 'Snowball' : 'Avalanche'} Method
             </div>
             <div className="space-y-2">
               <div>
-                <div className="text-sm text-[#808080]">Time to debt-free:</div>
-                <div className="text-lg font-semibold text-white">
+                <div className="text-sm text-muted-foreground">Time to debt-free:</div>
+                <div className="text-lg font-semibold text-foreground">
                   {currentStrategy.totalMonths} months
                 </div>
               </div>
               <div>
-                <div className="text-sm text-[#808080]">Total interest:</div>
-                <div className="text-lg font-mono font-semibold text-white">
+                <div className="text-sm text-muted-foreground">Total interest:</div>
+                <div className="text-lg font-mono font-semibold text-foreground">
                   ${currentStrategy.totalInterestPaid.toFixed(2)}
                 </div>
               </div>
@@ -307,20 +307,20 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
           </div>
 
           {/* Alternate Method */}
-          <div className="bg-[#242424] rounded-lg p-4">
-            <div className="text-xs text-[#808080] uppercase mb-1">
+          <div className="bg-elevated rounded-lg p-4">
+            <div className="text-xs text-muted-foreground uppercase mb-1">
               {method === 'snowball' ? 'Avalanche' : 'Snowball'} Method
             </div>
             <div className="space-y-2">
               <div>
-                <div className="text-sm text-[#808080]">Time to debt-free:</div>
-                <div className="text-lg font-semibold text-white">
+                <div className="text-sm text-muted-foreground">Time to debt-free:</div>
+                <div className="text-lg font-semibold text-foreground">
                   {alternateStrategy.totalMonths} months
                 </div>
               </div>
               <div>
-                <div className="text-sm text-[#808080]">Total interest:</div>
-                <div className="text-lg font-mono font-semibold text-white">
+                <div className="text-sm text-muted-foreground">Total interest:</div>
+                <div className="text-lg font-mono font-semibold text-foreground">
                   ${alternateStrategy.totalInterestPaid.toFixed(2)}
                 </div>
               </div>
@@ -328,23 +328,23 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
           </div>
 
           {/* Savings */}
-          <div className="bg-[#242424] rounded-lg p-4">
-            <div className="text-xs text-[#808080] uppercase mb-1">
+          <div className="bg-elevated rounded-lg p-4">
+            <div className="text-xs text-muted-foreground uppercase mb-1">
               {comparison.recommendedMethod === method ? 'You Save:' : 'You Could Save:'}
             </div>
             <div className="space-y-2">
               <div>
-                <div className="text-sm text-[#808080]">Time savings:</div>
+                <div className="text-sm text-muted-foreground">Time savings:</div>
                 <div className={`text-lg font-semibold ${
-                  comparison.timeSavings > 0 ? 'text-[#10b981]' : 'text-[#808080]'
+                  comparison.timeSavings > 0 ? 'text-[var(--color-income)]' : 'text-muted-foreground'
                 }`}>
                   {Math.abs(comparison.timeSavings)} months
                 </div>
               </div>
               <div>
-                <div className="text-sm text-[#808080]">Interest savings:</div>
+                <div className="text-sm text-muted-foreground">Interest savings:</div>
                 <div className={`text-lg font-mono font-semibold ${
-                  comparison.interestSavings > 0 ? 'text-[#10b981]' : 'text-[#808080]'
+                  comparison.interestSavings > 0 ? 'text-[var(--color-income)]' : 'text-muted-foreground'
                 }`}>
                   ${Math.abs(comparison.interestSavings).toFixed(2)}
                 </div>
@@ -355,8 +355,8 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
 
         {/* Recommendation */}
         {comparison.recommendedMethod !== method && (
-          <div className="mt-4 p-3 bg-[#60a5fa]/10 border border-[#60a5fa]/30 rounded-lg">
-            <p className="text-sm text-[#60a5fa]">
+          <div className="mt-4 p-3 bg-[var(--color-transfer)]/10 border border-[var(--color-transfer)]/30 rounded-lg">
+            <p className="text-sm text-[var(--color-transfer)]">
               💡 The <strong>{comparison.recommendedMethod}</strong> method could save you{' '}
               {comparison.timeSavings} months and ${comparison.interestSavings.toFixed(2)} in interest!
             </p>

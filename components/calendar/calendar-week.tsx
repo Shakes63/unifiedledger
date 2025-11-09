@@ -77,7 +77,7 @@ export function CalendarWeek({
   return (
     <div className="space-y-4">
       {/* Week date range */}
-      <div className="text-center text-[#9ca3af] text-sm mb-4">
+      <div className="text-center text-muted-foreground text-sm mb-4">
         {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
       </div>
 
@@ -94,18 +94,18 @@ export function CalendarWeek({
               key={dayKey}
               className={`p-3 rounded-lg border-2 transition-all flex flex-col min-h-[300px] ${
                 isTodayDate
-                  ? 'bg-blue-500/10 border-blue-400'
-                  : 'bg-[#1a1a1a] border-[#2a2a2a]'
+                  ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]'
+                  : 'bg-card border-border'
               }`}
             >
               {/* Day name and date */}
-              <div className="text-center mb-3 pb-2 border-b border-[#2a2a2a]">
-                <p className="text-xs text-[#6b7280] font-medium">
+              <div className="text-center mb-3 pb-2 border-b border-border">
+                <p className="text-xs text-muted-foreground font-medium">
                   {format(day, 'EEE')}
                 </p>
                 <p
                   className={`text-lg font-bold ${
-                    isTodayDate ? 'text-blue-400' : 'text-white'
+                    isTodayDate ? 'text-[var(--color-primary)]' : 'text-foreground'
                   }`}
                 >
                   {format(day, 'd')}
@@ -120,10 +120,10 @@ export function CalendarWeek({
                       key={idx}
                       className={`text-[10px] px-1.5 py-1 rounded flex items-center gap-0.5 ${
                         bill.status === 'overdue'
-                          ? 'bg-red-600/20 text-red-500 font-semibold'
+                          ? 'bg-[var(--color-error)]/20 text-[var(--color-error)] font-semibold'
                           : bill.status === 'paid'
-                          ? 'bg-emerald-400/20 text-emerald-400'
-                          : 'bg-amber-400/20 text-amber-400'
+                          ? 'bg-[var(--color-income)]/20 text-[var(--color-income)]'
+                          : 'bg-[var(--color-warning)]/20 text-[var(--color-warning)]'
                       }`}
                     >
                       {bill.status === 'paid' && <Check className="w-2.5 h-2.5 shrink-0" />}
@@ -138,7 +138,7 @@ export function CalendarWeek({
 
               {/* Transactions List */}
               {loading ? (
-                <div className="text-[#6b7280] text-xs text-center py-4">Loading...</div>
+                <div className="text-muted-foreground text-xs text-center py-4">Loading...</div>
               ) : transactions.length > 0 ? (
                 <div className="space-y-1 overflow-y-auto flex-1">
                   {transactions.map((txn) => {
@@ -158,23 +158,23 @@ export function CalendarWeek({
                     return (
                       <div
                         key={txn.id}
-                        className="text-[10px] px-1.5 py-1 rounded bg-[#242424] hover:bg-[#2a2a2a] transition-colors"
+                        className="text-[10px] px-1.5 py-1 rounded bg-elevated hover:bg-[var(--color-elevated)] transition-colors"
                       >
                         <div className="flex items-start justify-between gap-1">
                           <div className="flex-1 min-w-0">
-                            <div className="truncate font-medium text-white">
+                            <div className="truncate font-medium text-foreground">
                               {displayName}
                             </div>
                             {!isTransfer && txn.merchant && txn.merchant.trim() !== '' && txn.description !== txn.merchant && (
-                              <div className="truncate text-[#6b7280] text-[9px]">
+                              <div className="truncate text-muted-foreground text-[9px]">
                                 {txn.description}
                               </div>
                             )}
                           </div>
                           <div className={`font-semibold shrink-0 ${
-                            txn.type === 'income' ? 'text-emerald-400' :
-                            txn.type === 'expense' ? 'text-red-400' :
-                            'text-blue-400'
+                            txn.type === 'income' ? 'text-[var(--color-income)]' :
+                            txn.type === 'expense' ? 'text-[var(--color-expense)]' :
+                            'text-[var(--color-primary)]'
                           }`}>
                             {txn.type === 'expense' || txn.type === 'transfer_out' ? '-' : '+'}
                             ${Math.abs(txn.amount).toFixed(0)}
@@ -185,7 +185,7 @@ export function CalendarWeek({
                   })}
                 </div>
               ) : (
-                <div className="text-[#6b7280] text-xs text-center py-4">No transactions</div>
+                <div className="text-muted-foreground text-xs text-center py-4">No transactions</div>
               )}
             </div>
           );

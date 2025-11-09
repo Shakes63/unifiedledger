@@ -153,10 +153,10 @@ export default function AccountsPage() {
       <div className="px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse space-y-4">
-            <div className="h-10 bg-[#242424] rounded-lg w-1/3"></div>
+            <div className="h-10 bg-elevated rounded-lg w-1/3"></div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-48 bg-[#242424] rounded-lg"></div>
+                <div key={i} className="h-48 bg-elevated rounded-lg"></div>
               ))}
             </div>
           </div>
@@ -171,12 +171,12 @@ export default function AccountsPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Accounts</h1>
-            <p className="text-gray-400">Manage your financial accounts and track balances</p>
+            <h1 className="text-4xl font-bold text-foreground mb-2">Accounts</h1>
+            <p className="text-muted-foreground">Manage your financial accounts and track balances</p>
           </div>
           <Button
             onClick={handleNewAccount}
-            className="bg-emerald-500 text-white hover:bg-emerald-600 font-medium"
+            className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
           >
             <Plus className="mr-2 h-5 w-5" />
             Add Account
@@ -187,29 +187,29 @@ export default function AccountsPage() {
         {accounts.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             {/* Total Balance */}
-            <div className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
-              <p className="text-gray-500 text-sm mb-2">Total Balance</p>
-              <h3 className="text-3xl font-bold text-white">
+            <div className="p-6 border border-border bg-card rounded-xl">
+              <p className="text-muted-foreground text-sm mb-2">Total Balance</p>
+              <h3 className="text-3xl font-bold text-foreground">
                 ${totalBalance.toFixed(2)}
               </h3>
-              <p className="text-gray-600 text-xs mt-3">Across all accounts</p>
+              <p className="text-muted-foreground text-xs mt-3">Across all accounts</p>
             </div>
 
             {/* Accounts Count */}
-            <div className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
-              <p className="text-gray-500 text-sm mb-2">Total Accounts</p>
-              <h3 className="text-3xl font-bold text-white">{accounts.length}</h3>
-              <p className="text-gray-600 text-xs mt-3">Active accounts</p>
+            <div className="p-6 border border-border bg-card rounded-xl">
+              <p className="text-muted-foreground text-sm mb-2">Total Accounts</p>
+              <h3 className="text-3xl font-bold text-foreground">{accounts.length}</h3>
+              <p className="text-muted-foreground text-xs mt-3">Active accounts</p>
             </div>
 
             {/* Savings Total */}
             {savingsAccounts.length > 0 && (
-              <div className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
-                <p className="text-gray-500 text-sm mb-2">Savings Total</p>
-                <h3 className="text-3xl font-bold text-emerald-400">
+              <div className="p-6 border border-border bg-card rounded-xl">
+                <p className="text-muted-foreground text-sm mb-2">Savings Total</p>
+                <h3 className="text-3xl font-bold text-[var(--color-income)]">
                   ${savingsTotal.toFixed(2)}
                 </h3>
-                <p className="text-gray-600 text-xs mt-3">{savingsAccounts.length} savings account(s)</p>
+                <p className="text-muted-foreground text-xs mt-3">{savingsAccounts.length} savings account(s)</p>
               </div>
             )}
           </div>
@@ -228,11 +228,11 @@ export default function AccountsPage() {
             ))}
           </div>
         ) : (
-          <div className="p-12 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl text-center">
-            <p className="text-gray-400 mb-4">No accounts yet. Create your first account to get started.</p>
+          <div className="p-12 border border-border bg-card rounded-xl text-center">
+            <p className="text-muted-foreground mb-4">No accounts yet. Create your first account to get started.</p>
             <Button
               onClick={handleNewAccount}
-              className="bg-emerald-500 text-white hover:bg-emerald-600 font-medium"
+              className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
             >
               <Plus className="mr-2 h-5 w-5" />
               Create First Account
@@ -242,9 +242,9 @@ export default function AccountsPage() {
 
         {/* Create/Edit Account Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="bg-[#1a1a1a] border border-[#2a2a2a] max-w-2xl">
+          <DialogContent className="bg-card border border-border max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white">
+              <DialogTitle className="text-foreground">
                 {selectedAccount ? 'Edit Account' : 'Create New Account'}
               </DialogTitle>
             </DialogHeader>

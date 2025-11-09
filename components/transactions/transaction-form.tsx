@@ -386,7 +386,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newTagName.trim(),
-          color: '#3b82f6', // Default blue color
+          color: 'var(--color-primary)', // Default primary color
         }),
       });
 
@@ -656,13 +656,13 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 md:max-w-2xl md:mx-auto">
       {error && (
-        <div className="p-4 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-sm">
+        <div className="p-4 bg-[var(--color-error)]/20 border border-[var(--color-error)]/40 rounded-lg text-[var(--color-error)] text-sm">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="p-4 bg-emerald-500/20 border border-emerald-500/40 rounded-lg text-emerald-400 text-sm">
+        <div className="p-4 bg-[var(--color-success)]/20 border border-[var(--color-success)]/40 rounded-lg text-[var(--color-success)] text-sm">
           Transaction created successfully! Redirecting...
         </div>
       )}
@@ -874,7 +874,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             }}
             className={`w-full h-12 md:h-10 text-base md:text-sm ${
               useSplits
-                ? 'bg-white text-black hover:bg-gray-100'
+                ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90'
                 : 'bg-elevated text-foreground border-border hover:bg-elevated/80'
             }`}
           >
@@ -919,7 +919,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
               <div key={field.id} className="space-y-2">
                 <Label htmlFor={field.id} className="text-sm font-medium text-foreground">
                   {field.name}
-                  {field.isRequired && <span className="text-red-400 ml-1">*</span>}
+                  {field.isRequired && <span className="text-[var(--color-error)] ml-1">*</span>}
                 </Label>
 
                 {field.type === 'text' && (
@@ -1131,7 +1131,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                     size="sm"
                     onClick={handleCreateTag}
                     disabled={creatingTag || !newTagName.trim()}
-                    className="bg-emerald-500 hover:bg-emerald-600 text-white"
+                    className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
                   >
                     <Plus className="w-4 h-4" />
                   </Button>
@@ -1184,7 +1184,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                 <Button
                   onClick={handleSaveTemplate}
                   disabled={savingTemplate || !templateName.trim()}
-                  className="flex-1 bg-white text-black hover:bg-gray-100 font-medium"
+                  className="flex-1 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
                 >
                   {savingTemplate ? 'Saving...' : 'Save Template'}
                 </Button>
@@ -1208,7 +1208,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         <Button
           type="submit"
           disabled={loading}
-          className="flex-1 bg-white text-black hover:bg-gray-100 font-medium h-12 md:h-10 text-base md:text-sm"
+          className="flex-1 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium h-12 md:h-10 text-base md:text-sm"
         >
           {isEditMode
             ? loading

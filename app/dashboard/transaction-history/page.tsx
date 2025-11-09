@@ -17,7 +17,7 @@ export default async function TransactionHistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <div className="space-y-2">
@@ -28,9 +28,9 @@ export default async function TransactionHistoryPage() {
         </div>
 
         {/* Main Content */}
-        <Card className="border-[#2a2a2a] bg-[#1a1a1a] p-6">
+        <Card className="border-border bg-card p-6">
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-[#242424] border-[#3a3a3a]">
+            <TabsList className="grid w-full grid-cols-2 bg-elevated border-[#3a3a3a]">
               <TabsTrigger value="all">All Transactions</TabsTrigger>
               <TabsTrigger value="templates">Templates</TabsTrigger>
             </TabsList>
@@ -40,7 +40,7 @@ export default async function TransactionHistoryPage() {
             </TabsContent>
 
             <TabsContent value="templates" className="space-y-4">
-              <div className="p-6 text-center border border-[#2a2a2a] rounded-lg bg-[#242424]">
+              <div className="p-6 text-center border border-border rounded-lg bg-elevated">
                 <p className="text-muted-foreground mb-4">
                   Save transactions as templates for quick access to common transactions.
                 </p>

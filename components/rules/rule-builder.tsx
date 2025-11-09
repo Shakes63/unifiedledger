@@ -60,9 +60,9 @@ function ConditionRow({
   level?: number;
 }) {
   return (
-    <div className="flex gap-2 items-end p-3 bg-[#242424] rounded-lg border border-[#2a2a2a]">
+    <div className="flex gap-2 items-end p-3 bg-elevated rounded-lg border border-border">
       <Select value={condition.field} onValueChange={(field) => onUpdate({ ...condition, field: field as ConditionField })}>
-        <SelectTrigger className="w-32 bg-[#1a1a1a] border-[#3a3a3a] text-white">
+        <SelectTrigger className="w-32 bg-card border-border text-foreground">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -75,7 +75,7 @@ function ConditionRow({
       </Select>
 
       <Select value={condition.operator} onValueChange={(operator) => onUpdate({ ...condition, operator: operator as ComparisonOperator })}>
-        <SelectTrigger className="w-40 bg-[#1a1a1a] border-[#3a3a3a] text-white">
+        <SelectTrigger className="w-40 bg-card border-border text-foreground">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -91,14 +91,14 @@ function ConditionRow({
         value={condition.value}
         onChange={(e) => onUpdate({ ...condition, value: e.target.value })}
         placeholder="Value"
-        className="flex-1 bg-[#1a1a1a] border-[#3a3a3a] text-white placeholder-gray-600"
+        className="flex-1 bg-card border-border text-foreground placeholder:text-muted-foreground"
       />
 
       <Button
         variant="ghost"
         size="icon"
         onClick={onRemove}
-        className="text-red-400 hover:bg-red-500/20"
+        className="text-[var(--color-error)] hover:bg-[var(--color-error)]/20"
       >
         <X className="w-4 h-4" />
       </Button>
@@ -161,10 +161,10 @@ function ConditionGroupEditor({
   };
 
   return (
-    <div className={`space-y-3 p-4 rounded-lg border border-[#2a2a2a] ${level > 0 ? 'bg-[#1a1a1a]' : 'bg-[#0a0a0a]'}`}>
+    <div className={`space-y-3 p-4 rounded-lg border border-border ${level > 0 ? 'bg-card' : 'bg-background'}`}>
       {/* Group Logic Toggle */}
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-400">Logic:</span>
+        <span className="text-sm text-muted-foreground">Logic:</span>
         <div className="flex gap-2">
           {(['AND', 'OR'] as const).map((logic) => (
             <Button
@@ -172,7 +172,7 @@ function ConditionGroupEditor({
               variant={group.logic === logic ? 'default' : 'outline'}
               size="sm"
               onClick={() => onUpdate({ ...group, logic })}
-              className={group.logic === logic ? 'bg-white text-black' : 'bg-[#242424] text-white border-[#3a3a3a]'}
+              className={group.logic === logic ? 'bg-foreground text-background' : 'bg-elevated text-foreground border-border'}
             >
               {logic}
             </Button>
@@ -183,7 +183,7 @@ function ConditionGroupEditor({
             variant="ghost"
             size="icon"
             onClick={onRemove}
-            className="ml-auto text-red-400 hover:bg-red-500/20"
+            className="ml-auto text-[var(--color-error)] hover:bg-[var(--color-error)]/20"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -196,7 +196,7 @@ function ConditionGroupEditor({
           <div key={condition.id || index}>
             {/* Add logic separator */}
             {index > 0 && (
-              <div className="text-xs text-gray-500 px-3 py-1">{group.logic}</div>
+              <div className="text-xs text-muted-foreground px-3 py-1">{group.logic}</div>
             )}
 
             {'conditions' in condition ? (
@@ -221,12 +221,12 @@ function ConditionGroupEditor({
       </div>
 
       {/* Add buttons */}
-      <div className="flex gap-2 pt-2 border-t border-[#2a2a2a]">
+      <div className="flex gap-2 pt-2 border-t border-border">
         <Button
           variant="outline"
           size="sm"
           onClick={addCondition}
-          className="bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]"
+          className="bg-elevated text-foreground border-border hover:bg-elevated"
         >
           <Plus className="w-3 h-3 mr-1" />
           Add Condition
@@ -235,7 +235,7 @@ function ConditionGroupEditor({
           variant="outline"
           size="sm"
           onClick={addGroup}
-          className="bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]"
+          className="bg-elevated text-foreground border-border hover:bg-elevated"
         >
           <Plus className="w-3 h-3 mr-1" />
           Add Group
@@ -272,8 +272,8 @@ export function RuleBuilder({
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-sm font-medium text-white mb-2 block">Conditions</label>
-        <p className="text-xs text-gray-400 mb-3">
+        <label className="text-sm font-medium text-foreground mb-2 block">Conditions</label>
+        <p className="text-xs text-muted-foreground mb-3">
           Define conditions that must match for this rule to apply to a transaction.
         </p>
       </div>
@@ -284,7 +284,7 @@ export function RuleBuilder({
           onUpdate={handleUpdate}
         />
       ) : (
-        <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+        <Card className="bg-background border-border">
           <div className="p-4">
             <ConditionRow
               condition={conditions as Condition}
@@ -310,8 +310,8 @@ export function RuleBuilder({
         </Card>
       )}
 
-      <div className="text-xs text-gray-500 p-3 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a] flex gap-2">
-        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-400" />
+      <div className="text-xs text-muted-foreground p-3 bg-card rounded-lg border border-border flex gap-2">
+        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--color-primary)]" />
         <div>
           <p className="mb-1">Tips for writing conditions:</p>
           <ul className="list-disc list-inside space-y-1">

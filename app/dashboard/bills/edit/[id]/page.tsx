@@ -106,7 +106,7 @@ export default function EditBillPage({ params }: PageProps) {
         </div>
 
         {/* Form Card */}
-        <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+        <Card className="bg-background border-border">
           <CardHeader>
             <CardTitle>Bill Details</CardTitle>
             <CardDescription className="text-gray-500">

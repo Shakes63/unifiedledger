@@ -177,11 +177,11 @@ export function WhatIfCalculator({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-blue-400" />
+          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-[var(--color-primary)]" />
             What-If Scenario Calculator
           </h2>
-          <p className="text-[#808080] mt-1">
+          <p className="text-muted-foreground mt-1">
             Compare different payment strategies to find the best debt payoff plan
           </p>
         </div>
@@ -189,7 +189,7 @@ export function WhatIfCalculator({
           <Button
             variant="outline"
             onClick={resetScenarios}
-            className="border-[#2a2a2a] text-gray-400 hover:text-white"
+            className="border-border text-muted-foreground hover:text-foreground"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Reset
@@ -198,14 +198,14 @@ export function WhatIfCalculator({
       </div>
 
       {/* Quick Templates */}
-      <div className="bg-[#1a1a1a] rounded-xl p-4 border border-[#2a2a2a]">
-        <h3 className="text-sm font-semibold text-white mb-3">Quick Scenarios</h3>
+      <div className="bg-card rounded-xl p-4 border border-border">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Quick Scenarios</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => addQuickScenario('extra-50')}
-            className="border-[#2a2a2a] text-gray-300 hover:text-white hover:bg-[#242424]"
+            className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
           >
             +$50/month
           </Button>
@@ -213,7 +213,7 @@ export function WhatIfCalculator({
             variant="outline"
             size="sm"
             onClick={() => addQuickScenario('extra-100')}
-            className="border-[#2a2a2a] text-gray-300 hover:text-white hover:bg-[#242424]"
+            className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
           >
             +$100/month
           </Button>
@@ -221,7 +221,7 @@ export function WhatIfCalculator({
             variant="outline"
             size="sm"
             onClick={() => addQuickScenario('extra-200')}
-            className="border-[#2a2a2a] text-gray-300 hover:text-white hover:bg-[#242424]"
+            className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
           >
             +$200/month
           </Button>
@@ -230,7 +230,7 @@ export function WhatIfCalculator({
               variant="outline"
               size="sm"
               onClick={() => addQuickScenario('biweekly')}
-              className="border-[#10b981] text-emerald-400 hover:text-white hover:bg-emerald-500/20"
+              className="border-[var(--color-income)] text-[var(--color-income)] hover:text-primary-foreground hover:bg-[var(--color-income)]/20"
             >
               Bi-Weekly
             </Button>
@@ -239,7 +239,7 @@ export function WhatIfCalculator({
             variant="outline"
             size="sm"
             onClick={() => addQuickScenario('tax-refund')}
-            className="border-[#2a2a2a] text-gray-300 hover:text-white hover:bg-[#242424]"
+            className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
           >
             Tax Refund
           </Button>
@@ -247,7 +247,7 @@ export function WhatIfCalculator({
             variant="outline"
             size="sm"
             onClick={() => addQuickScenario('bonus')}
-            className="border-[#2a2a2a] text-gray-300 hover:text-white hover:bg-[#242424]"
+            className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
           >
             Bonus
           </Button>
@@ -255,7 +255,7 @@ export function WhatIfCalculator({
             variant="outline"
             size="sm"
             onClick={() => addQuickScenario('double')}
-            className="border-[#2a2a2a] text-gray-300 hover:text-white hover:bg-[#242424]"
+            className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
           >
             Double Pay
           </Button>
@@ -265,10 +265,10 @@ export function WhatIfCalculator({
       {/* Scenario Builders */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">Your Scenarios</h3>
+          <h3 className="text-lg font-semibold text-foreground">Your Scenarios</h3>
           <Button
             onClick={() => addScenario()}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
             disabled={scenarios.length >= 4}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -277,7 +277,7 @@ export function WhatIfCalculator({
         </div>
 
         {scenarios.length >= 4 && (
-          <p className="text-sm text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded p-2 mb-4">
+          <p className="text-sm text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded p-2 mb-4">
             Maximum 4 scenarios can be compared at once
           </p>
         )}
@@ -298,12 +298,12 @@ export function WhatIfCalculator({
       {/* Results */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-[#808080] mt-4">Calculating scenarios...</p>
+          <div className="inline-block w-8 h-8 border-4 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-muted-foreground mt-4">Calculating scenarios...</p>
         </div>
       ) : comparison && comparison.scenarios.length > 0 ? (
         <div>
-          <h3 className="text-lg font-semibold text-white mb-4">Comparison Results</h3>
+          <h3 className="text-lg font-semibold text-foreground mb-4">Comparison Results</h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {comparison.scenarios.map((scenario, index) => (
               <ScenarioComparisonCard
@@ -317,27 +317,27 @@ export function WhatIfCalculator({
 
           {/* Recommendation Summary */}
           {comparison.recommendation && comparison.scenarios.length > 1 && (
-            <div className="mt-6 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 border border-blue-500/30 rounded-xl p-6">
-              <h4 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-blue-400" />
+            <div className="mt-6 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-success)]/10 border border-[var(--color-primary)]/30 rounded-xl p-6">
+              <h4 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[var(--color-primary)]" />
                 Recommendations
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div>
-                  <span className="text-[#808080]">Fastest Payoff:</span>
-                  <div className="text-white font-semibold mt-1">
+                  <span className="text-muted-foreground">Fastest Payoff:</span>
+                  <div className="text-foreground font-semibold mt-1">
                     {comparison.recommendation.bestForTime}
                   </div>
                 </div>
                 <div>
-                  <span className="text-[#808080]">Saves Most Money:</span>
-                  <div className="text-white font-semibold mt-1">
+                  <span className="text-muted-foreground">Saves Most Money:</span>
+                  <div className="text-foreground font-semibold mt-1">
                     {comparison.recommendation.bestForMoney}
                   </div>
                 </div>
                 <div>
-                  <span className="text-[#808080]">Most Balanced:</span>
-                  <div className="text-white font-semibold mt-1">
+                  <span className="text-muted-foreground">Most Balanced:</span>
+                  <div className="text-foreground font-semibold mt-1">
                     {comparison.recommendation.mostBalanced}
                   </div>
                 </div>

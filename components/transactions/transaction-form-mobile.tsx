@@ -34,18 +34,18 @@ export function TransactionFormMobile({
   const [isFormCollapsed, setIsFormCollapsed] = useState(false);
 
   return (
-    <div className="h-screen flex flex-col bg-[#0a0a0a] overflow-hidden md:overflow-auto md:h-auto">
+    <div className="h-screen flex flex-col bg-background overflow-hidden md:overflow-auto md:h-auto">
       {/* Mobile Header - Fixed */}
       {showHeader && (
-        <div className="sticky top-0 z-40 bg-[#0a0a0a] border-b border-[#2a2a2a] px-4 py-3 flex items-center gap-3">
+        <div className="sticky top-0 z-40 bg-background border-b border-border px-4 py-3 flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-[#1a1a1a] rounded-lg transition-colors"
+            className="p-2 hover:bg-elevated rounded-lg transition-colors"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-5 h-5 text-[#9ca3af]" />
+            <ArrowLeft className="w-5 h-5 text-muted-foreground" />
           </button>
-          <h1 className="text-lg font-semibold text-white flex-1">
+          <h1 className="text-lg font-semibold text-foreground flex-1">
             {transactionId ? 'Edit Transaction' : 'New Transaction'}
           </h1>
         </div>
@@ -63,11 +63,11 @@ export function TransactionFormMobile({
       </div>
 
       {/* Mobile Footer - Fixed with larger buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a] border-t border-[#2a2a2a] px-4 py-3 flex gap-3 md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex gap-3 md:hidden">
         <Button
           variant="outline"
           onClick={() => router.back()}
-          className="h-12 px-6 text-base font-medium border-[#2a2a2a] text-[#9ca3af] hover:bg-[#1a1a1a] flex-1"
+          className="h-12 px-6 text-base font-medium border-border text-muted-foreground hover:bg-elevated flex-1"
         >
           Cancel
         </Button>

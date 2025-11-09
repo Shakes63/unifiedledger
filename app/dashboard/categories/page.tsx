@@ -185,10 +185,10 @@ export default function CategoriesPage() {
       <div className="px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-7xl mx-auto">
           <div className="animate-pulse space-y-4">
-            <div className="h-10 bg-[#242424] rounded-lg w-1/3"></div>
+            <div className="h-10 bg-elevated rounded-lg w-1/3"></div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-48 bg-[#242424] rounded-lg"></div>
+                <div key={i} className="h-48 bg-elevated rounded-lg"></div>
               ))}
             </div>
           </div>
@@ -203,12 +203,12 @@ export default function CategoriesPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Categories</h1>
-            <p className="text-gray-400">Manage your transaction categories and budgets</p>
+            <h1 className="text-4xl font-bold text-foreground mb-2">Categories</h1>
+            <p className="text-muted-foreground">Manage your transaction categories and budgets</p>
           </div>
           <Button
             onClick={handleNewCategory}
-            className="bg-emerald-500 text-white hover:bg-emerald-600 font-medium"
+            className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
           >
             <Plus className="mr-2 h-5 w-5" />
             Add Category
@@ -221,8 +221,8 @@ export default function CategoriesPage() {
             onClick={() => setFilterType('all')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               filterType === 'all'
-                ? 'bg-emerald-500 text-white'
-                : 'bg-[#242424] text-gray-400 hover:bg-[#2a2a2a]'
+                ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                : 'bg-elevated text-muted-foreground hover:bg-elevated'
             }`}
           >
             All
@@ -233,8 +233,8 @@ export default function CategoriesPage() {
               onClick={() => setFilterType(type)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filterType === type
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-[#242424] text-gray-400 hover:bg-[#2a2a2a]'
+                  ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                  : 'bg-elevated text-muted-foreground hover:bg-elevated'
               }`}
             >
               {CATEGORY_TYPE_LABELS[type]}
@@ -255,8 +255,8 @@ export default function CategoriesPage() {
             ))}
           </div>
         ) : (
-          <div className="p-12 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl text-center">
-            <p className="text-gray-400 mb-4">
+          <div className="p-12 border border-border bg-card rounded-xl text-center">
+            <p className="text-muted-foreground mb-4">
               {categories.length === 0
                 ? 'No categories yet. Create your first category to get started.'
                 : 'No categories match the selected filter.'}
@@ -264,7 +264,7 @@ export default function CategoriesPage() {
             {categories.length === 0 && (
               <Button
                 onClick={handleNewCategory}
-                className="bg-emerald-500 text-white hover:bg-emerald-600 font-medium"
+                className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
               >
                 <Plus className="mr-2 h-5 h-5" />
                 Create First Category
@@ -275,9 +275,9 @@ export default function CategoriesPage() {
 
         {/* Create/Edit Category Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="bg-[#1a1a1a] border border-[#2a2a2a] max-w-2xl">
+          <DialogContent className="bg-card border border-border max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="text-white">
+              <DialogTitle className="text-foreground">
                 {selectedCategory ? 'Edit Category' : 'Create New Category'}
               </DialogTitle>
             </DialogHeader>

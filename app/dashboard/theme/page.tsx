@@ -324,26 +324,42 @@ export default function ThemePage() {
 
                   {/* Color Preview */}
                   <div className="flex items-center gap-2">
-                    <div
-                      className="w-8 h-8 rounded-full border border-border"
-                      style={{ backgroundColor: theme.colors.income, color: 'transparent' }}
-                      title="Income"
-                    />
-                    <div
-                      className="w-8 h-8 rounded-full border border-border"
-                      style={{ backgroundColor: theme.colors.expense, color: 'transparent' }}
-                      title="Expense"
-                    />
-                    <div
-                      className="w-8 h-8 rounded-full border border-border"
-                      style={{ backgroundColor: theme.colors.transfer, color: 'transparent' }}
-                      title="Transfer"
-                    />
-                    <div
-                      className="w-8 h-8 rounded-full border border-border"
-                      style={{ backgroundColor: theme.colors.primary, color: 'transparent' }}
-                      title="Primary"
-                    />
+                    <div className="relative group">
+                      <div
+                        className="w-8 h-8 rounded-full border border-border cursor-help"
+                        style={{ backgroundColor: theme.colors.income, color: 'transparent' }}
+                      />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-elevated border border-border rounded text-xs text-foreground whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                        Income
+                      </div>
+                    </div>
+                    <div className="relative group">
+                      <div
+                        className="w-8 h-8 rounded-full border border-border cursor-help"
+                        style={{ backgroundColor: theme.colors.expense, color: 'transparent' }}
+                      />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-elevated border border-border rounded text-xs text-foreground whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                        Expense
+                      </div>
+                    </div>
+                    <div className="relative group">
+                      <div
+                        className="w-8 h-8 rounded-full border border-border cursor-help"
+                        style={{ backgroundColor: theme.colors.transfer, color: 'transparent' }}
+                      />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-elevated border border-border rounded text-xs text-foreground whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                        Transfer
+                      </div>
+                    </div>
+                    <div className="relative group">
+                      <div
+                        className="w-8 h-8 rounded-full border border-border cursor-help"
+                        style={{ backgroundColor: theme.colors.primary, color: 'transparent' }}
+                      />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-elevated border border-border rounded text-xs text-foreground whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                        Primary
+                      </div>
+                    </div>
                   </div>
                 </Card>
               );

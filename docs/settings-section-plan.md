@@ -60,7 +60,7 @@ Theme Page Layout:
 │   └── Applied indicator
 ├── Available Themes Grid
 │   ├── Dark Mode (default, current)
-│   ├── Pink & Turquoise (coming soon placeholder for feature #15)
+│   ├── Dark Pink Theme (available)
 │   └── Custom theme option (future)
 └── Save/Apply Button
 ```
@@ -310,7 +310,7 @@ ALTER TABLE user_settings ADD COLUMN theme TEXT DEFAULT 'dark-mode';
 ## Future Enhancements (Not in this implementation)
 
 These will be implemented separately in features #14 and #15:
-- Additional theme options (pink & turquoise theme)
+- Additional theme options (Dark Pink Theme - now implemented)
 - Custom theme builder
 - Theme preview mode
 - Dark/light mode toggle
@@ -339,7 +339,7 @@ These will be implemented separately in features #14 and #15:
 
 - This implementation creates the **infrastructure** for theming
 - Only ONE theme (dark mode) will exist initially
-- This prepares the groundwork for feature #15 (pink & turquoise theme)
+- This prepares the groundwork for feature #15 (Dark Pink Theme - now implemented)
 - Focus is on organization and structure, not multiple themes yet
 - Keep it simple - don't over-engineer for features that don't exist yet
 - Ensure the theme page is useful even with just one theme (shows current colors, explains system)

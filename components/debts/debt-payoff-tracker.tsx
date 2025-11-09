@@ -84,7 +84,7 @@ export function DebtPayoffTracker({
   };
 
   return (
-    <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-4 hover:border-[#3a3a3a] transition-colors">
+    <Card className="bg-card border-border p-4 hover:border-border transition-colors">
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -94,19 +94,19 @@ export function DebtPayoffTracker({
                 className="w-4 h-4 rounded-full"
                 style={{ backgroundColor: debt.color }}
               />
-              <h3 className="font-semibold text-white">{debt.name}</h3>
+              <h3 className="font-semibold text-foreground">{debt.name}</h3>
               {debt.status === 'paid_off' && (
-                <span className="text-xs bg-green-900/30 text-green-400 px-2 py-1 rounded">
+                <span className="text-xs bg-[var(--color-income)]/30 text-[var(--color-income)] px-2 py-1 rounded">
                   Paid Off
                 </span>
               )}
               {debt.status === 'paused' && (
-                <span className="text-xs bg-amber-900/30 text-amber-400 px-2 py-1 rounded">
+                <span className="text-xs bg-[var(--color-warning)]/30 text-[var(--color-warning)] px-2 py-1 rounded">
                   Paused
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500 mt-1">{debt.creditorName}</p>
+            <p className="text-xs text-muted-foreground mt-1">{debt.creditorName}</p>
           </div>
           <div className="flex gap-2">
             {onEdit && (
@@ -114,7 +114,7 @@ export function DebtPayoffTracker({
                 size="sm"
                 variant="ghost"
                 onClick={() => onEdit(debt)}
-                className="text-gray-400 hover:text-white hover:bg-[#2a2a2a]"
+                className="text-muted-foreground hover:text-foreground hover:bg-elevated"
               >
                 <Edit2 className="w-4 h-4" />
               </Button>
@@ -124,7 +124,7 @@ export function DebtPayoffTracker({
                 size="sm"
                 variant="ghost"
                 onClick={() => onDelete(debt.id)}
-                className="text-gray-400 hover:text-red-400 hover:bg-red-900/20"
+                className="text-muted-foreground hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/20"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -135,62 +135,62 @@ export function DebtPayoffTracker({
         {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-400">
+            <span className="text-muted-foreground">
               ${debt.remainingBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} remaining of $
               {debt.originalAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </span>
-            <span className="text-white font-semibold">{Math.round(progressPercent)}%</span>
+            <span className="text-foreground font-semibold">{Math.round(progressPercent)}%</span>
           </div>
-          <Progress value={progressPercent} className="h-2 bg-[#2a2a2a]" />
+          <Progress value={progressPercent} className="h-2 bg-elevated" />
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 text-center text-sm">
           <div>
-            <p className="text-gray-500 text-xs">Paid Off</p>
-            <p className="text-white font-semibold">
+            <p className="text-muted-foreground text-xs">Paid Off</p>
+            <p className="text-foreground font-semibold">
               ${paidOff.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </p>
           </div>
           {debt.minimumPayment && (
             <div>
-              <p className="text-gray-500 text-xs">Min Payment</p>
-              <p className="text-white font-semibold">
+              <p className="text-muted-foreground text-xs">Min Payment</p>
+              <p className="text-foreground font-semibold">
                 ${debt.minimumPayment.toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </p>
             </div>
           )}
           {daysLeft !== null ? (
             <div>
-              <p className="text-gray-500 text-xs">Days Left</p>
-              <p className={`font-semibold ${daysLeft < 0 ? 'text-red-400' : 'text-white'}`}>
+              <p className="text-muted-foreground text-xs">Days Left</p>
+              <p className={`font-semibold ${daysLeft < 0 ? 'text-[var(--color-error)]' : 'text-foreground'}`}>
                 {daysLeft < 0 ? `${Math.abs(daysLeft)} ago` : daysLeft}
               </p>
             </div>
           ) : (
             <div>
-              <p className="text-gray-500 text-xs">Type</p>
-              <p className="text-white font-semibold capitalize">{debt.type.replace(/_/g, ' ')}</p>
+              <p className="text-muted-foreground text-xs">Type</p>
+              <p className="text-foreground font-semibold capitalize">{debt.type.replace(/_/g, ' ')}</p>
             </div>
           )}
         </div>
 
         {/* Interest Rate */}
         {debt.interestRate > 0 && (
-          <div className="bg-[#242424] border border-[#2a2a2a] rounded p-2">
+          <div className="bg-elevated border border-border rounded p-2">
             <div className="flex justify-between items-center">
-              <span className="text-xs text-gray-400">Interest Rate</span>
-              <span className="text-sm text-white font-semibold">{debt.interestRate.toFixed(2)}%</span>
+              <span className="text-xs text-muted-foreground">Interest Rate</span>
+              <span className="text-sm text-foreground font-semibold">{debt.interestRate.toFixed(2)}%</span>
             </div>
           </div>
         )}
 
         {/* Milestones */}
         {milestones.length > 0 && (
-          <div className="border-t border-[#2a2a2a] pt-3">
+          <div className="border-t border-border pt-3">
             <button
               onClick={() => setShowMilestones(!showMilestones)}
-              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {showMilestones ? (
                 <ChevronUp className="w-4 h-4" />
@@ -205,18 +205,18 @@ export function DebtPayoffTracker({
                   <div key={milestone.id} className="flex items-center gap-3 text-sm">
                     <div className="flex-1">
                       <div className="flex justify-between mb-1">
-                        <span className="text-gray-400">{milestone.percentage}%</span>
-                        <span className="text-gray-500">
+                        <span className="text-muted-foreground">{milestone.percentage}%</span>
+                        <span className="text-muted-foreground">
                           ${milestone.milestoneBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                         </span>
                       </div>
                       <Progress
                         value={milestone.achievedAt ? 100 : 0}
-                        className="h-1.5 bg-[#2a2a2a]"
+                        className="h-1.5 bg-elevated"
                       />
                     </div>
                     {milestone.achievedAt && (
-                      <span className="text-emerald-400 text-xs">✓</span>
+                      <span className="text-[var(--color-income)] text-xs">✓</span>
                     )}
                   </div>
                 ))}
@@ -227,11 +227,11 @@ export function DebtPayoffTracker({
 
         {/* Record Payment Button */}
         {debt.status !== 'paid_off' && (
-          <div className="border-t border-[#2a2a2a] pt-3">
+          <div className="border-t border-border pt-3">
             {!showPayment ? (
               <Button
                 onClick={() => setShowPayment(true)}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="w-full bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
               >
                 Record Payment
               </Button>
@@ -242,20 +242,20 @@ export function DebtPayoffTracker({
                   placeholder="Amount"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  className="flex-1 bg-[#242424] border border-[#2a2a2a] rounded px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-emerald-600"
+                  className="flex-1 bg-elevated border border-border rounded px-3 py-2 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-[var(--color-income)]"
                   step="0.01"
                   min="0"
                 />
                 <Button
                   onClick={handlePayment}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
                 >
                   Record
                 </Button>
                 <Button
                   onClick={() => setShowPayment(false)}
                   variant="outline"
-                  className="border-[#2a2a2a] text-gray-400 hover:text-white"
+                  className="border-border text-muted-foreground hover:text-foreground"
                 >
                   Cancel
                 </Button>

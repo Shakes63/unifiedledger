@@ -91,7 +91,7 @@ export function GoalTracker({
   };
 
   return (
-    <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-4 hover:border-[#3a3a3a] transition-colors">
+    <Card className="bg-card border-border p-4 hover:border-border transition-colors">
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between">
@@ -101,20 +101,20 @@ export function GoalTracker({
                 className="w-4 h-4 rounded-full"
                 style={{ backgroundColor: goal.color }}
               />
-              <h3 className="font-semibold text-white">{goal.name}</h3>
+              <h3 className="font-semibold text-foreground">{goal.name}</h3>
               {goal.status === 'completed' && (
-                <span className="text-xs bg-green-900/30 text-green-400 px-2 py-1 rounded">
+                <span className="text-xs bg-[var(--color-income)]/30 text-[var(--color-income)] px-2 py-1 rounded">
                   Completed
                 </span>
               )}
               {goal.status === 'paused' && (
-                <span className="text-xs bg-amber-900/30 text-amber-400 px-2 py-1 rounded">
+                <span className="text-xs bg-[var(--color-warning)]/30 text-[var(--color-warning)] px-2 py-1 rounded">
                   Paused
                 </span>
               )}
             </div>
             {goal.description && (
-              <p className="text-xs text-gray-500 mt-1">{goal.description}</p>
+              <p className="text-xs text-muted-foreground mt-1">{goal.description}</p>
             )}
           </div>
           <div className="flex gap-2">
@@ -123,7 +123,7 @@ export function GoalTracker({
                 size="sm"
                 variant="ghost"
                 onClick={() => onEdit(goal)}
-                className="text-gray-400 hover:text-white hover:bg-[#2a2a2a]"
+                className="text-muted-foreground hover:text-foreground hover:bg-elevated"
               >
                 <Edit2 className="w-4 h-4" />
               </Button>
@@ -133,7 +133,7 @@ export function GoalTracker({
                 size="sm"
                 variant="ghost"
                 onClick={() => onDelete(goal.id)}
-                className="text-gray-400 hover:text-red-400 hover:bg-red-900/20"
+                className="text-muted-foreground hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/20"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -144,43 +144,43 @@ export function GoalTracker({
         {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-400">
+            <span className="text-muted-foreground">
               ${goal.currentAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })} of $
               {goal.targetAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </span>
-            <span className="text-white font-semibold">{Math.round(progressPercent)}%</span>
+            <span className="text-foreground font-semibold">{Math.round(progressPercent)}%</span>
           </div>
-          <Progress value={progressPercent} className="h-2 bg-[#2a2a2a]" />
+          <Progress value={progressPercent} className="h-2 bg-elevated" />
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 text-center text-sm">
           <div>
-            <p className="text-gray-500 text-xs">Remaining</p>
-            <p className="text-white font-semibold">
+            <p className="text-muted-foreground text-xs">Remaining</p>
+            <p className="text-foreground font-semibold">
               ${remaining.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </p>
           </div>
           {daysLeft !== null && (
             <div>
-              <p className="text-gray-500 text-xs">Days Left</p>
-              <p className={`font-semibold ${daysLeft < 0 ? 'text-red-400' : 'text-white'}`}>
+              <p className="text-muted-foreground text-xs">Days Left</p>
+              <p className={`font-semibold ${daysLeft < 0 ? 'text-[var(--color-error)]' : 'text-foreground'}`}>
                 {daysLeft < 0 ? `${Math.abs(daysLeft)} ago` : daysLeft}
               </p>
             </div>
           )}
           <div>
-            <p className="text-gray-500 text-xs">Category</p>
-            <p className="text-white font-semibold capitalize">{goal.category}</p>
+            <p className="text-muted-foreground text-xs">Category</p>
+            <p className="text-foreground font-semibold capitalize">{goal.category}</p>
           </div>
         </div>
 
         {/* Milestones */}
         {milestones.length > 0 && (
-          <div className="border-t border-[#2a2a2a] pt-3">
+          <div className="border-t border-border pt-3">
             <button
               onClick={() => setShowMilestones(!showMilestones)}
-              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {showMilestones ? (
                 <ChevronUp className="w-4 h-4" />
@@ -195,18 +195,18 @@ export function GoalTracker({
                   <div key={milestone.id} className="flex items-center gap-3 text-sm">
                     <div className="flex-1">
                       <div className="flex justify-between mb-1">
-                        <span className="text-gray-400">{milestone.percentage}%</span>
-                        <span className="text-gray-500">
+                        <span className="text-muted-foreground">{milestone.percentage}%</span>
+                        <span className="text-muted-foreground">
                           ${milestone.milestoneAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                         </span>
                       </div>
                       <Progress
                         value={milestone.achievedAt ? 100 : 0}
-                        className="h-1.5 bg-[#2a2a2a]"
+                        className="h-1.5 bg-elevated"
                       />
                     </div>
                     {milestone.achievedAt && (
-                      <span className="text-emerald-400 text-xs">✓</span>
+                      <span className="text-[var(--color-income)] text-xs">✓</span>
                     )}
                   </div>
                 ))}
@@ -217,11 +217,11 @@ export function GoalTracker({
 
         {/* Contribute Button */}
         {goal.status !== 'completed' && (
-          <div className="border-t border-[#2a2a2a] pt-3">
+          <div className="border-t border-border pt-3">
             {!showContribute ? (
               <Button
                 onClick={() => setShowContribute(true)}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="w-full bg-[var(--color-primary)] hover:opacity-90 text-white"
               >
                 Add Contribution
               </Button>
@@ -232,20 +232,20 @@ export function GoalTracker({
                   placeholder="Amount"
                   value={contributeAmount}
                   onChange={(e) => setContributeAmount(e.target.value)}
-                  className="flex-1 bg-[#242424] border border-[#2a2a2a] rounded px-3 py-2 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-emerald-600"
+                  className="flex-1 bg-elevated border border-border rounded px-3 py-2 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-[var(--color-income)]"
                   step="0.01"
                   min="0"
                 />
                 <Button
                   onClick={handleContribute}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="bg-[var(--color-primary)] hover:opacity-90 text-white"
                 >
                   Add
                 </Button>
                 <Button
                   onClick={() => setShowContribute(false)}
                   variant="outline"
-                  className="border-[#2a2a2a] text-gray-400 hover:text-white"
+                  className="border-border text-muted-foreground hover:text-foreground"
                 >
                   Cancel
                 </Button>

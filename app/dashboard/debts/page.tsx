@@ -191,7 +191,7 @@ export default function DebtsPage() {
   if (loading && !stats) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-400">Loading debts...</p>
+        <p className="text-muted-foreground">Loading debts...</p>
       </div>
     );
   }
@@ -229,13 +229,13 @@ export default function DebtsPage() {
         <div className="grid grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-lg p-4">
             <p className="text-muted-foreground text-sm">Total Debt</p>
-            <p className="text-2xl font-bold text-red-400 mt-1">
+            <p className="text-2xl font-bold text-[var(--color-error)] mt-1">
               ${stats.totalRemainingBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </p>
           </div>
           <div className="bg-card border border-border rounded-lg p-4">
             <p className="text-muted-foreground text-sm">Paid Off</p>
-            <p className="text-2xl font-bold text-emerald-400 mt-1">
+            <p className="text-2xl font-bold text-[var(--color-income)] mt-1">
               ${stats.totalPaidOff.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </p>
           </div>
@@ -353,21 +353,21 @@ export default function DebtsPage() {
           {/* Amortization Schedule Section */}
           <button
             onClick={() => setShowAmortization(!showAmortization)}
-            className="flex items-center justify-between w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 hover:bg-[#242424] transition-colors"
+            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
               <span className="text-2xl">📊</span>
               <div className="text-left">
-                <h3 className="text-lg font-semibold text-white">Interactive Amortization Schedule</h3>
-                <p className="text-sm text-gray-400">
+                <h3 className="text-lg font-semibold text-foreground">Interactive Amortization Schedule</h3>
+                <p className="text-sm text-muted-foreground">
                   Explore month-by-month payment breakdowns and visualize principal vs interest
                 </p>
               </div>
             </div>
             {showAmortization ? (
-              <ChevronUp className="w-5 h-5 text-gray-400" />
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-400" />
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
             )}
           </button>
 
@@ -408,8 +408,8 @@ export default function DebtsPage() {
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="bg-card border-border text-foreground max-w-md">
-          <DialogHeader>
+        <DialogContent className="bg-card border-border text-foreground max-w-md max-h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle>{selectedDebt ? 'Edit Debt' : 'Add New Debt'}</DialogTitle>
             <DialogDescription className="text-muted-foreground">
               {selectedDebt
@@ -417,14 +417,16 @@ export default function DebtsPage() {
                 : 'Add a new debt to track and manage'}
             </DialogDescription>
           </DialogHeader>
-          <DebtForm
-            debt={selectedDebt}
-            onSubmit={selectedDebt ? handleUpdateDebt : handleCreateDebt}
-            onCancel={() => {
-              setIsFormOpen(false);
-              setSelectedDebt(null);
-            }}
-          />
+          <div className="overflow-y-auto flex-1 -mx-6 px-6">
+            <DebtForm
+              debt={selectedDebt}
+              onSubmit={selectedDebt ? handleUpdateDebt : handleCreateDebt}
+              onCancel={() => {
+                setIsFormOpen(false);
+                setSelectedDebt(null);
+              }}
+            />
+          </div>
         </DialogContent>
       </Dialog>
       </div>

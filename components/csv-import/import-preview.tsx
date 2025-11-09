@@ -69,16 +69,16 @@ export function ImportPreview({
   const getStatusIcon = (status: string, errors?: string[]) => {
     if (errors && errors.length > 0) {
       return (
-        <AlertCircle className="w-4 h-4 text-[#f87171]" />
+        <AlertCircle className="w-4 h-4 text-[var(--color-error)]" />
       );
     }
     if (status === 'approved') {
       return (
-        <CheckCircle2 className="w-4 h-4 text-[#10b981]" />
+        <CheckCircle2 className="w-4 h-4 text-[var(--color-success)]" />
       );
     }
     return (
-      <AlertTriangle className="w-4 h-4 text-[#fbbf24]" />
+      <AlertTriangle className="w-4 h-4 text-[var(--color-warning)]" />
     );
   };
 
@@ -91,21 +91,21 @@ export function ImportPreview({
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-2 bg-[#1a1a1a] rounded">
-              <div className="text-xs text-[#6b7280]">Total Rows</div>
-              <div className="text-lg font-semibold text-white">{totalRows}</div>
+            <div className="p-2 bg-elevated rounded">
+              <div className="text-xs text-muted-foreground">Total Rows</div>
+              <div className="text-lg font-semibold text-foreground">{totalRows}</div>
             </div>
-            <div className="p-2 bg-[#1a1a1a] rounded">
-              <div className="text-xs text-[#6b7280]">Valid</div>
-              <div className="text-lg font-semibold text-[#10b981]">{validRows}</div>
+            <div className="p-2 bg-elevated rounded">
+              <div className="text-xs text-muted-foreground">Valid</div>
+              <div className="text-lg font-semibold text-[var(--color-success)]">{validRows}</div>
             </div>
-            <div className="p-2 bg-[#1a1a1a] rounded">
-              <div className="text-xs text-[#6b7280]">Need Review</div>
-              <div className="text-lg font-semibold text-[#fbbf24]">{reviewRows}</div>
+            <div className="p-2 bg-elevated rounded">
+              <div className="text-xs text-muted-foreground">Need Review</div>
+              <div className="text-lg font-semibold text-[var(--color-warning)]">{reviewRows}</div>
             </div>
-            <div className="p-2 bg-[#1a1a1a] rounded">
-              <div className="text-xs text-[#6b7280]">Duplicates</div>
-              <div className="text-lg font-semibold text-[#f87171]">{duplicateRows}</div>
+            <div className="p-2 bg-elevated rounded">
+              <div className="text-xs text-muted-foreground">Duplicates</div>
+              <div className="text-lg font-semibold text-[var(--color-error)]">{duplicateRows}</div>
             </div>
           </div>
         </CardContent>
@@ -127,20 +127,20 @@ export function ImportPreview({
           </Button>
         </CardHeader>
         <CardContent>
-          <ScrollArea className="h-96 border border-[#2a2a2a] rounded-lg">
+          <ScrollArea className="h-96 border border-border rounded-lg">
             <div className="space-y-2 p-4">
               {staging.length === 0 ? (
                 <div className="flex items-center justify-center h-80 text-center">
                   <div className="space-y-2">
-                    <AlertCircle className="w-12 h-12 mx-auto text-[#6b7280]" />
-                    <p className="text-sm text-[#9ca3af]">No records found in CSV file</p>
+                    <AlertCircle className="w-12 h-12 mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">No records found in CSV file</p>
                   </div>
                 </div>
               ) : (
                 staging.map((record) => (
                   <div
                     key={record.rowNumber}
-                    className="p-3 bg-[#1a1a1a] rounded border border-[#2a2a2a] hover:border-[#3a3a3a] cursor-pointer transition-colors"
+                    className="p-3 bg-elevated rounded border border-border hover:border-border cursor-pointer transition-colors"
                     onClick={() => toggleRow(record.rowNumber)}
                   >
                     <div className="flex items-start gap-3">
@@ -155,29 +155,29 @@ export function ImportPreview({
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-white">
+                        <div className="text-sm font-medium text-foreground">
                           Row {record.rowNumber}
                         </div>
 
                         {record.data && (
-                          <div className="text-xs text-[#9ca3af] mt-1 space-y-1">
+                          <div className="text-xs text-muted-foreground mt-1 space-y-1">
                             <div className="truncate">
-                              <span className="text-[#6b7280]">Description:</span> {record.data.description || 'N/A'}
+                              <span className="text-muted-foreground">Description:</span> {record.data.description || 'N/A'}
                             </div>
                             <div>
-                              <span className="text-[#6b7280]">Amount:</span> ${record.data.amount || '0.00'}
+                              <span className="text-muted-foreground">Amount:</span> ${record.data.amount || '0.00'}
                               {record.data.type && (
-                                <span className="ml-2 text-[#6b7280]">({record.data.type})</span>
+                                <span className="ml-2 text-muted-foreground">({record.data.type})</span>
                               )}
                             </div>
                             <div className="truncate">
-                              <span className="text-[#6b7280]">Date:</span> {record.data.date || 'N/A'}
+                              <span className="text-muted-foreground">Date:</span> {record.data.date || 'N/A'}
                             </div>
                           </div>
                         )}
 
                         {record.validationErrors && record.validationErrors.length > 0 && (
-                          <div className="text-xs text-[#f87171] mt-2 space-y-1">
+                          <div className="text-xs text-[var(--color-error)] mt-2 space-y-1">
                             {record.validationErrors.map((error, i) => (
                               <div key={i}>{error}</div>
                             ))}
@@ -185,7 +185,7 @@ export function ImportPreview({
                         )}
 
                         {record.duplicateOf && (
-                          <div className="text-xs text-[#fbbf24] mt-2">
+                          <div className="text-xs text-[var(--color-warning)] mt-2">
                             Possible duplicate ({record.duplicateScore?.toFixed(0)}% match)
                           </div>
                         )}

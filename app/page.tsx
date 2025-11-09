@@ -56,7 +56,7 @@ export default async function Home() {
         <div className="flex gap-4 justify-center">
           <a
             href="/sign-up"
-            className="px-8 py-3 bg-white text-black rounded-lg hover:bg-gray-100 transition-colors font-medium text-lg"
+            className="px-8 py-3 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-colors font-medium text-lg"
           >
             Start Free
           </a>

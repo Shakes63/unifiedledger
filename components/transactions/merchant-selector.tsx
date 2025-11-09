@@ -104,11 +104,11 @@ export function MerchantSelector({
 
   return (
     <div className="space-y-2">
-      {!hideLabel && <label className="text-sm font-medium text-white">Merchant</label>}
+      {!hideLabel && <label className="text-sm font-medium text-foreground">Merchant</label>}
       {!isCreating ? (
         <div className="flex gap-2">
           <Select value={selectedMerchant || ''} onValueChange={onMerchantChange}>
-            <SelectTrigger className="flex-1 bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg">
+            <SelectTrigger className="flex-1 bg-elevated border border-border text-foreground rounded-lg">
               <SelectValue placeholder="Select or skip" />
             </SelectTrigger>
             <SelectContent>
@@ -125,7 +125,7 @@ export function MerchantSelector({
             variant="outline"
             size="icon"
             onClick={() => setIsCreating(true)}
-            className="bg-[#242424] border-[#3a3a3a] text-gray-400 hover:bg-[#2a2a2a]"
+            className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
           >
             <Plus className="w-4 h-4" />
           </Button>
@@ -139,14 +139,14 @@ export function MerchantSelector({
             value={newMerchantName}
             onChange={(e) => setNewMerchantName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-[#1a1a1a] border border-[#3b82f6] text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
+            className="flex-1 bg-elevated border border-[var(--color-primary)] text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
           />
           <Button
             type="button"
             size="icon"
             onClick={handleCreateMerchant}
             disabled={creatingMerchant || !newMerchantName.trim()}
-            className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+            className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
           >
             <Plus className="w-4 h-4" />
           </Button>
@@ -158,7 +158,7 @@ export function MerchantSelector({
               setIsCreating(false);
               setNewMerchantName('');
             }}
-            className="bg-[#242424] border-[#3a3a3a] text-gray-400 hover:bg-[#2a2a2a]"
+            className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
           >
             <X className="w-4 h-4" />
           </Button>

@@ -42,26 +42,26 @@ export function ProgressRing({
   const getColor = () => {
     if (color) {
       const colorMap = {
-        red: { from: '#ef4444', to: '#dc2626' },
-        orange: { from: '#f97316', to: '#ea580c' },
-        blue: { from: '#3b82f6', to: '#2563eb' },
-        green: { from: '#10b981', to: '#059669' },
-        gold: { from: '#fbbf24', to: '#f59e0b' },
+        red: { from: 'var(--color-error)', to: 'var(--color-error)' },
+        orange: { from: 'var(--color-warning)', to: 'var(--color-warning)' },
+        blue: { from: 'var(--color-primary)', to: 'var(--color-primary)' },
+        green: { from: 'var(--color-income)', to: 'var(--color-income)' },
+        gold: { from: 'var(--color-warning)', to: 'var(--color-warning)' },
       };
       return colorMap[color];
     }
 
     // Auto-select based on percentage
     if (clampedPercentage < 25) {
-      return { from: '#ef4444', to: '#dc2626' }; // Red
+      return { from: 'var(--color-error)', to: 'var(--color-error)' }; // Red
     } else if (clampedPercentage < 50) {
-      return { from: '#f97316', to: '#ea580c' }; // Orange
+      return { from: 'var(--color-warning)', to: 'var(--color-warning)' }; // Orange
     } else if (clampedPercentage < 75) {
-      return { from: '#3b82f6', to: '#2563eb' }; // Blue
+      return { from: 'var(--color-primary)', to: 'var(--color-primary)' }; // Blue/Pink
     } else if (clampedPercentage < 100) {
-      return { from: '#10b981', to: '#059669' }; // Green
+      return { from: 'var(--color-income)', to: 'var(--color-income)' }; // Green/Turquoise
     } else {
-      return { from: '#fbbf24', to: '#f59e0b' }; // Gold
+      return { from: 'var(--color-warning)', to: 'var(--color-warning)' }; // Gold/Amber
     }
   };
 
@@ -113,7 +113,7 @@ export function ProgressRing({
           cy={diameter / 2}
           r={radius}
           fill="none"
-          stroke="#2a2a2a"
+          stroke="var(--color-border)"
           strokeWidth={stroke}
         />
 
@@ -137,7 +137,7 @@ export function ProgressRing({
       {/* Percentage text */}
       {showPercentage && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className={`${fontSize} font-bold text-white`}>
+          <span className={`${fontSize} font-bold text-foreground`}>
             {Math.round(displayPercentage)}%
           </span>
         </div>

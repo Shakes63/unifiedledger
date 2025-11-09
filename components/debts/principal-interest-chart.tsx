@@ -118,13 +118,13 @@ export function PrincipalInterestChart({
           <defs>
             {/* Gradient for principal */}
             <linearGradient id="principalGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="var(--chart-3)" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="var(--chart-3)" stopOpacity={0.3} />
+              <stop offset="5%" stopColor="var(--color-chart-principal)" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="var(--color-chart-principal)" stopOpacity={0.3} />
             </linearGradient>
             {/* Gradient for interest */}
             <linearGradient id="interestGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="var(--chart-4)" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="var(--chart-4)" stopOpacity={0.3} />
+              <stop offset="5%" stopColor="var(--color-chart-interest)" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="var(--color-chart-interest)" stopOpacity={0.3} />
             </linearGradient>
           </defs>
 
@@ -174,7 +174,7 @@ export function PrincipalInterestChart({
             <Line
               type="monotone"
               dataKey="balance"
-              stroke="var(--chart-2)"
+              stroke="var(--color-transfer)"
               name="Remaining Balance"
               strokeWidth={2}
               dot={false}
@@ -187,13 +187,13 @@ export function PrincipalInterestChart({
             <ReferenceLine
               key={index}
               x={milestone.month.toString()}
-              stroke={milestone.percent === 100 ? 'var(--chart-3)' : 'var(--chart-1)'}
+              stroke={milestone.percent === 100 ? 'var(--color-chart-principal)' : 'var(--color-primary)'}
               strokeDasharray="3 3"
               strokeWidth={2}
               label={{
                 value: milestone.label,
                 position: 'top',
-                fill: milestone.percent === 100 ? 'var(--chart-3)' : 'var(--chart-1)',
+                fill: milestone.percent === 100 ? 'var(--color-chart-principal)' : 'var(--color-primary)',
                 fontSize: 12,
                 fontWeight: 'bold',
               }}
@@ -206,13 +206,13 @@ export function PrincipalInterestChart({
       <div className="grid grid-cols-3 gap-4 mt-6 p-4 bg-elevated rounded-lg">
         <div>
           <div className="text-xs text-muted-foreground uppercase mb-1">Total Principal</div>
-          <div className="text-lg font-semibold text-[var(--chart-3)] font-mono">
+          <div className="text-lg font-semibold text-[var(--color-chart-principal)] font-mono">
             ${schedule.originalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
         <div>
           <div className="text-xs text-muted-foreground uppercase mb-1">Total Interest</div>
-          <div className="text-lg font-semibold text-[var(--chart-4)] font-mono">
+          <div className="text-lg font-semibold text-[var(--color-chart-interest)] font-mono">
             ${schedule.totalInterestPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>

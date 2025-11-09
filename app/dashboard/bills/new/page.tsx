@@ -51,20 +51,20 @@ export default function NewBillPage() {
         <div className="flex items-center gap-4">
         <Link
           href="/dashboard/bills"
-          className="text-gray-400 hover:text-white transition-colors"
+          className="text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-3xl font-bold text-white">Create New Bill</h1>
-          <p className="text-gray-400 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Create New Bill</h1>
+          <p className="text-muted-foreground mt-1">
             Set up a recurring bill and automatically track payments
           </p>
         </div>
       </div>
 
       {/* Form Card */}
-      <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+      <Card className="bg-background border-border">
         <CardHeader>
           <CardTitle>Bill Details</CardTitle>
           <CardDescription className="text-gray-500">

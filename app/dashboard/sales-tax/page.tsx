@@ -304,7 +304,7 @@ export default function SalesTaxPage() {
               return (
                 <div
                   key={quarter.quarter}
-                  className="border border-[#2a2a2a] rounded-lg p-4 hover:border-[#3a3a3a] transition-colors"
+                  className="border border-border rounded-lg p-4 hover:border-border transition-colors"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
@@ -327,7 +327,7 @@ export default function SalesTaxPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 text-sm mb-3 pt-3 border-t border-[#2a2a2a]">
+                  <div className="grid grid-cols-3 gap-4 text-sm mb-3 pt-3 border-t border-border">
                     <div>
                       <p className="text-gray-500">Sales</p>
                       <p className="text-white font-medium">
@@ -353,7 +353,7 @@ export default function SalesTaxPage() {
                   </div>
 
                   {quarter.status !== 'accepted' && (
-                    <div className="flex items-center justify-between pt-2 border-t border-[#2a2a2a]">
+                    <div className="flex items-center justify-between pt-2 border-t border-border">
                       <div className="flex items-center gap-2">
                         {overdue && (
                           <span className="flex items-center gap-1 text-xs text-red-400">
@@ -394,7 +394,7 @@ export default function SalesTaxPage() {
             {data.quarters.map((quarter) => (
               <div
                 key={quarter.quarter}
-                className="flex items-center justify-between py-2 border-b border-[#2a2a2a] last:border-0"
+                className="flex items-center justify-between py-2 border-b border-border last:border-0"
               >
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-gray-500" />

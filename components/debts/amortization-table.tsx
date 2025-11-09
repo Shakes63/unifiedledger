@@ -66,19 +66,19 @@ export function AmortizationTable({
   };
 
   return (
-    <div className={`bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] overflow-hidden ${className}`}>
+    <div className={`bg-card rounded-xl border border-border overflow-hidden ${className}`}>
       {/* Header */}
-      <div className="p-6 border-b border-[#2a2a2a]">
+      <div className="p-6 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">📋</span>
-            <h3 className="text-lg font-semibold text-white">Payment Schedule</h3>
-            <span className="text-sm text-[#808080]">
+            <h3 className="text-lg font-semibold text-foreground">Payment Schedule</h3>
+            <span className="text-sm text-muted-foreground">
               ({schedule.monthlyBreakdown.length} payments)
             </span>
           </div>
-          <div className="text-sm text-[#808080]">
-            Total Interest: <span className="text-[#f87171] font-mono font-semibold">${schedule.totalInterestPaid.toFixed(2)}</span>
+          <div className="text-sm text-muted-foreground">
+            Total Interest: <span className="text-[var(--color-chart-interest)] font-mono font-semibold">${schedule.totalInterestPaid.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -86,8 +86,8 @@ export function AmortizationTable({
       {/* Table Container */}
       <div className="relative">
         {/* Sticky Column Headers */}
-        <div className="sticky top-0 z-10 bg-[#242424] border-b border-[#2a2a2a]">
-          <div className="grid grid-cols-5 gap-4 px-6 py-3 text-xs font-semibold text-[#808080] uppercase">
+        <div className="sticky top-0 z-10 bg-elevated border-b border-border">
+          <div className="grid grid-cols-5 gap-4 px-6 py-3 text-xs font-semibold text-muted-foreground uppercase">
             <div>Month</div>
             <div className="text-right">Payment</div>
             <div className="text-right">Principal</div>
@@ -121,12 +121,12 @@ export function AmortizationTable({
                   className={`
                     absolute top-0 left-0 w-full
                     ${isLastPayment && highlightPayoffMonth
-                      ? 'bg-gradient-to-r from-[#10b981]/20 to-transparent border-l-4 border-[#10b981]'
+                      ? 'bg-gradient-to-r from-[var(--color-chart-principal)]/20 to-transparent border-l-4 border-[var(--color-chart-principal)]'
                       : virtualRow.index % 2 === 0
-                      ? 'bg-[#1a1a1a]'
-                      : 'bg-[#0a0a0a]/50'
+                      ? 'bg-card'
+                      : 'bg-background/50'
                     }
-                    hover:bg-[#242424] cursor-pointer transition-colors
+                    hover:bg-elevated cursor-pointer transition-colors
                   `}
                   style={{
                     height: `${virtualRow.size}px`,
@@ -146,7 +146,7 @@ export function AmortizationTable({
                   <div className="grid grid-cols-5 gap-4 px-6 py-4 items-center h-full">
                     {/* Month Number */}
                     <div className="flex items-center gap-2">
-                      <span className="text-white font-medium">
+                      <span className="text-foreground font-medium">
                         Month {monthNumber}
                       </span>
                       {isLastPayment && highlightPayoffMonth && (
@@ -158,27 +158,27 @@ export function AmortizationTable({
 
                     {/* Payment Amount */}
                     <div className="text-right">
-                      <span className="text-white font-mono">
+                      <span className="text-foreground font-mono">
                         ${payment.paymentAmount.toFixed(2)}
                       </span>
                     </div>
 
                     {/* Principal Amount */}
                     <div className="text-right">
-                      <span className="text-[#10b981] font-mono">
+                      <span className="text-[var(--color-chart-principal)] font-mono">
                         ${payment.principalAmount.toFixed(2)}
                       </span>
-                      <div className="text-xs text-[#808080] mt-0.5">
+                      <div className="text-xs text-muted-foreground mt-0.5">
                         {cumulative.percentPaid.toFixed(1)}% paid
                       </div>
                     </div>
 
                     {/* Interest Amount */}
                     <div className="text-right">
-                      <span className="text-[#f87171] font-mono">
+                      <span className="text-[var(--color-chart-interest)] font-mono">
                         ${payment.interestAmount.toFixed(2)}
                       </span>
-                      <div className="text-xs text-[#808080] mt-0.5">
+                      <div className="text-xs text-muted-foreground mt-0.5">
                         {((payment.interestAmount / payment.paymentAmount) * 100).toFixed(1)}%
                       </div>
                     </div>
@@ -187,13 +187,13 @@ export function AmortizationTable({
                     <div className="text-right">
                       <span className={`font-mono ${
                         payment.remainingBalance === 0
-                          ? 'text-[#10b981] font-semibold'
-                          : 'text-white'
+                          ? 'text-[var(--color-chart-principal)] font-semibold'
+                          : 'text-foreground'
                       }`}>
                         ${payment.remainingBalance.toFixed(2)}
                       </span>
                       {isLastPayment && (
-                        <div className="text-xs text-[#10b981] font-semibold mt-0.5 uppercase">
+                        <div className="text-xs text-[var(--color-chart-principal)] font-semibold mt-0.5 uppercase">
                           Paid Off
                         </div>
                       )}
@@ -207,26 +207,26 @@ export function AmortizationTable({
       </div>
 
       {/* Summary Footer */}
-      <div className="border-t border-[#2a2a2a] bg-[#242424] px-6 py-4">
+      <div className="border-t border-border bg-elevated px-6 py-4">
         <div className="grid grid-cols-5 gap-4 text-sm">
-          <div className="font-semibold text-[#808080]">Totals</div>
+          <div className="font-semibold text-muted-foreground">Totals</div>
           <div className="text-right">
-            <span className="text-white font-mono font-semibold">
+            <span className="text-foreground font-mono font-semibold">
               ${(schedule.originalBalance + schedule.totalInterestPaid).toFixed(2)}
             </span>
           </div>
           <div className="text-right">
-            <span className="text-[#10b981] font-mono font-semibold">
+            <span className="text-[var(--color-chart-principal)] font-mono font-semibold">
               ${schedule.originalBalance.toFixed(2)}
             </span>
           </div>
           <div className="text-right">
-            <span className="text-[#f87171] font-mono font-semibold">
+            <span className="text-[var(--color-chart-interest)] font-mono font-semibold">
               ${schedule.totalInterestPaid.toFixed(2)}
             </span>
           </div>
           <div className="text-right">
-            <span className="text-white font-mono font-semibold">$0.00</span>
+            <span className="text-foreground font-mono font-semibold">$0.00</span>
           </div>
         </div>
       </div>

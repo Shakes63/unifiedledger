@@ -273,10 +273,10 @@ export function CSVImportModal({
             <>
               <Card>
                 <CardContent className="pt-6">
-                  <label className="flex items-center justify-center w-full p-8 border-2 border-dashed border-[#3a3a3a] rounded-lg cursor-pointer hover:bg-[#1a1a1a] transition-colors">
+                  <label className="flex items-center justify-center w-full p-8 border-2 border-dashed border-border rounded-lg cursor-pointer hover:bg-elevated transition-colors">
                     <div className="text-center">
-                      <Upload className="w-8 h-8 mx-auto mb-2 text-[#6b7280]" />
-                      <p className="text-sm text-[#9ca3af]">
+                      <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
                         Click to select a CSV file
                       </p>
                     </div>
@@ -292,7 +292,7 @@ export function CSVImportModal({
               </Card>
 
               {file && (
-                <div className="p-3 bg-[#1a1a1a] rounded text-sm text-[#9ca3af] mt-4">
+                <div className="p-3 bg-elevated rounded text-sm text-muted-foreground mt-4">
                   Selected: {fileName}
                 </div>
               )}
@@ -403,8 +403,8 @@ export function CSVImportModal({
                 <Card>
                   <CardContent className="pt-6">
                     <div className="text-center space-y-2">
-                      <AlertCircle className="w-8 h-8 mx-auto text-[#6b7280]" />
-                      <p className="text-sm text-[#9ca3af]">
+                      <AlertCircle className="w-8 h-8 mx-auto text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">
                         No preview data available. Please try again.
                       </p>
                       <Button
@@ -423,11 +423,11 @@ export function CSVImportModal({
 
           {/* Complete Step */}
           {step === 'complete' && (
-            <Card className="border-[#10b981]">
+            <Card className="border-[var(--color-success)]">
               <CardContent className="pt-6">
                 <div className="text-center space-y-2">
-                  <div className="text-sm text-[#10b981]">✓ Import completed</div>
-                  <p className="text-sm text-[#9ca3af]">
+                  <div className="text-sm text-[var(--color-success)]">✓ Import completed</div>
+                  <p className="text-sm text-muted-foreground">
                     Transactions have been imported successfully.
                   </p>
                 </div>
@@ -438,7 +438,7 @@ export function CSVImportModal({
 
         {/* Sticky Footer with Buttons */}
         {step !== 'preview' && (
-          <div className="border-t border-[#2a2a2a] px-6 py-4 shrink-0 bg-[#0a0a0a]">
+          <div className="border-t border-border px-6 py-4 shrink-0 bg-background">
             <div className="flex gap-2 justify-end">
               {step === 'upload' && (
                 <>

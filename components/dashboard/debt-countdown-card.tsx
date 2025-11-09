@@ -125,8 +125,7 @@ export function DebtCountdownCard() {
       {/* View Details Link */}
       <Link
         href="/dashboard/debts"
-        className="flex items-center justify-center gap-1 text-xs transition-colors py-2 border-t"
-        style={{ color: 'var(--color-income)', borderColor: 'var(--color-border)' }}
+        className="flex items-center justify-center gap-1 text-xs transition-colors py-2 border-t text-[var(--color-primary)] hover:text-[var(--color-primary)]/80 border-border"
       >
         View Details
         <ArrowRight className="w-3 h-3" />

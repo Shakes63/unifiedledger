@@ -211,9 +211,9 @@ export default function BillsDashboard() {
         <div className="flex items-center justify-between p-3 bg-card border border-border rounded-lg hover:bg-elevated transition-colors cursor-pointer">
           <div className="flex items-start gap-3 flex-1">
             <div className="mt-0.5">
-              {instance.status === 'paid' && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
-              {instance.status === 'overdue' && <AlertCircle className="w-5 h-5 text-red-400" />}
-              {instance.status === 'pending' && <Clock className="w-5 h-5 text-amber-400" />}
+              {instance.status === 'paid' && <CheckCircle2 className="w-5 h-5 text-[var(--color-income)]" />}
+              {instance.status === 'overdue' && <AlertCircle className="w-5 h-5 text-[var(--color-error)]" />}
+              {instance.status === 'pending' && <Clock className="w-5 h-5 text-[var(--color-warning)]" />}
             </div>
             <div className="flex-1">
               <p className="font-medium text-foreground">{billName}</p>
@@ -221,7 +221,7 @@ export default function BillsDashboard() {
                 Due: {format(dueDate, 'MMM d, yyyy')}
               </p>
               {instance.status === 'overdue' && instance.daysLate > 0 && (
-                <p className="text-sm text-red-400">
+                <p className="text-sm text-[var(--color-error)]">
                   {instance.daysLate} day{instance.daysLate !== 1 ? 's' : ''} overdue
                   {instance.lateFee > 0 && ` • Late fee: $${instance.lateFee.toFixed(2)}`}
                 </p>
@@ -231,14 +231,14 @@ export default function BillsDashboard() {
           <div className="text-right">
             <p className="font-medium text-foreground">${instance.expectedAmount.toFixed(2)}</p>
             {showDaysUntil && instance.status === 'pending' && (
-              <p className={`text-sm ${daysUntil <= 3 ? 'text-amber-400' : 'text-muted-foreground'}`}>
+              <p className={`text-sm ${daysUntil <= 3 ? 'text-[var(--color-warning)]' : 'text-muted-foreground'}`}>
                 {daysUntil === 0 && 'Due today'}
                 {daysUntil === 1 && 'Due tomorrow'}
                 {daysUntil > 1 && `${daysUntil} days left`}
               </p>
             )}
             {instance.status === 'paid' && (
-              <p className="text-sm text-emerald-400">Paid</p>
+              <p className="text-sm text-[var(--color-income)]">Paid</p>
             )}
           </div>
         </div>
@@ -272,7 +272,7 @@ export default function BillsDashboard() {
           <p className="text-muted-foreground mt-2">Track your upcoming and overdue bills</p>
         </div>
         <Link href="/dashboard/bills/new">
-          <Button className="bg-blue-600 hover:bg-blue-700">
+          <Button className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]">
             <Plus className="w-4 h-4 mr-2" />
             New Bill
           </Button>
@@ -283,13 +283,13 @@ export default function BillsDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-background border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Upcoming (30 days)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-amber-400">{stats.totalUpcoming}</div>
+            <div className="text-3xl font-bold text-[var(--color-warning)]">{stats.totalUpcoming}</div>
             <p className="text-xs text-muted-foreground mt-1">
               ${stats.totalUpcomingAmount.toFixed(2)} total
             </p>
@@ -298,13 +298,13 @@ export default function BillsDashboard() {
 
         <Card className="bg-background border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
               Overdue
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-red-400">{stats.totalOverdue}</div>
+            <div className="text-3xl font-bold text-[var(--color-error)]">{stats.totalOverdue}</div>
             <p className="text-xs text-muted-foreground mt-1">
               ${stats.totalOverdueAmount.toFixed(2)} total
             </p>
@@ -313,13 +313,13 @@ export default function BillsDashboard() {
 
         <Card className="bg-background border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4" />
               Paid this month
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-emerald-400">{stats.paidThisMonth}</div>
+            <div className="text-3xl font-bold text-[var(--color-income)]">{stats.paidThisMonth}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Keep up the great work!
             </p>
@@ -328,13 +328,13 @@ export default function BillsDashboard() {
 
         <Card className="bg-background border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
               Total bills
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-400">
+            <div className="text-3xl font-bold text-[var(--color-primary)]">
               {bills.length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -346,9 +346,9 @@ export default function BillsDashboard() {
 
       {/* Overdue Bills Section */}
       {overdueBills.length > 0 && (
-        <Card className="bg-background border-red-900/30">
+        <Card className="bg-background border-[var(--color-error)]/30">
           <CardHeader>
-            <CardTitle className="text-red-400 flex items-center gap-2">
+            <CardTitle className="text-[var(--color-error)] flex items-center gap-2">
               <AlertCircle className="w-5 h-5" />
               Overdue Bills
             </CardTitle>
@@ -365,13 +365,13 @@ export default function BillsDashboard() {
       )}
 
       {/* Upcoming Bills Section */}
-      <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+      <Card className="bg-background border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-amber-400" />
+            <Clock className="w-5 h-5 text-[var(--color-warning)]" />
             Upcoming Bills (Next 30 Days)
           </CardTitle>
-          <CardDescription className="text-gray-500">
+          <CardDescription className="text-muted-foreground">
             {upcomingBills.length > 0
               ? `${upcomingBills.length} bill${upcomingBills.length !== 1 ? 's' : ''} coming up`
               : 'No upcoming bills in the next 30 days'}
@@ -395,7 +395,7 @@ export default function BillsDashboard() {
         <Card className="bg-background border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <CheckCircle2 className="w-5 h-5 text-[var(--color-income)]" />
               Paid This Month
             </CardTitle>
             <CardDescription className="text-muted-foreground">

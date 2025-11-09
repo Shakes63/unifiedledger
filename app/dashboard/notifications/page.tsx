@@ -130,13 +130,13 @@ export default function NotificationsPage() {
   const getPriorityBadgeColor = (priority: string) => {
     switch (priority) {
       case 'urgent':
-        return 'bg-red-500/20 text-red-400 border-red-500/30';
+        return 'bg-[var(--color-error)]/20 text-[var(--color-error)] border-[var(--color-error)]/30';
       case 'high':
-        return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+        return 'bg-[var(--color-warning)]/20 text-[var(--color-warning)] border-[var(--color-warning)]/30';
       case 'normal':
-        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+        return 'bg-[var(--color-primary)]/20 text-[var(--color-primary)] border-[var(--color-primary)]/30';
       default:
-        return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+        return 'bg-muted/20 text-muted-foreground border-border';
     }
   };
 
@@ -169,8 +169,8 @@ export default function NotificationsPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-white">Notifications</h1>
-        <p className="text-gray-400 mt-2">All your notifications in one place</p>
+          <h1 className="text-3xl font-bold text-foreground">Notifications</h1>
+        <p className="text-muted-foreground mt-2">All your notifications in one place</p>
       </div>
 
       {/* Filter Tabs */}
@@ -181,7 +181,7 @@ export default function NotificationsPage() {
             setFilter('all');
             setPage(0);
           }}
-          className={filter === 'all' ? 'bg-blue-600' : 'border-[#2a2a2a] text-gray-400 hover:text-white'}
+          className={filter === 'all' ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]' : 'border-border text-muted-foreground hover:text-foreground'}
         >
           All
         </Button>
@@ -191,7 +191,7 @@ export default function NotificationsPage() {
             setFilter('unread');
             setPage(0);
           }}
-          className={filter === 'unread' ? 'bg-blue-600' : 'border-[#2a2a2a] text-gray-400 hover:text-white'}
+          className={filter === 'unread' ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]' : 'border-border text-muted-foreground hover:text-foreground'}
         >
           Unread
         </Button>
@@ -202,21 +202,21 @@ export default function NotificationsPage() {
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin">
-              <div className="h-8 w-8 border-4 border-[#2a2a2a] border-t-blue-600 rounded-full" />
+              <div className="h-8 w-8 border-4 border-border border-t-[var(--color-primary)] rounded-full" />
             </div>
           </div>
         ) : notifications.length === 0 ? (
-          <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+          <Card className="bg-background border-border">
             <CardContent className="pt-6">
-              <p className="text-center text-gray-500 py-8">No notifications yet</p>
+              <p className="text-center text-muted-foreground py-8">No notifications yet</p>
             </CardContent>
           </Card>
         ) : (
           notifications.map((notification) => (
             <Card
               key={notification.id}
-              className={`bg-[#0a0a0a] border-[#2a2a2a] hover:border-[#3a3a3a] transition-colors ${
-                !notification.isRead ? 'border-l-4 border-l-blue-500' : ''
+              className={`bg-background border-border hover:border-border transition-colors ${
+                !notification.isRead ? 'border-l-4 border-l-[var(--color-primary)]' : ''
               }`}
             >
               <CardContent className="pt-6">
@@ -229,7 +229,7 @@ export default function NotificationsPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-white">
+                          <h3 className="font-semibold text-foreground">
                             {notification.title}
                           </h3>
                           <span
@@ -240,16 +240,16 @@ export default function NotificationsPage() {
                             {notification.priority}
                           </span>
                           {!notification.isRead && (
-                            <span className="text-xs text-blue-400">New</span>
+                            <span className="text-xs text-[var(--color-primary)]">New</span>
                           )}
                         </div>
 
-                        <p className="text-sm text-gray-400 mb-3">
+                        <p className="text-sm text-muted-foreground mb-3">
                           {notification.message}
                         </p>
 
                         <div className="flex items-center justify-between">
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             {format(
                               parseISO(notification.createdAt),
                               'MMM d, yyyy h:mm a'
@@ -260,7 +260,7 @@ export default function NotificationsPage() {
                             <a
                               href={notification.actionUrl}
                               onClick={() => handleMarkAsRead(notification.id)}
-                              className="text-xs text-blue-400 hover:text-blue-300"
+                              className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary)]/80"
                             >
                               {notification.actionLabel || 'View'}
                             </a>
@@ -275,7 +275,7 @@ export default function NotificationsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleMarkAsRead(notification.id)}
-                            className="text-gray-400 hover:text-white"
+                            className="text-muted-foreground hover:text-foreground"
                             title="Mark as read"
                           >
                             <CheckCircle2 className="w-4 h-4" />
@@ -285,7 +285,7 @@ export default function NotificationsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDismiss(notification.id)}
-                          className="text-gray-400 hover:text-white"
+                          className="text-muted-foreground hover:text-foreground"
                           title="Dismiss"
                         >
                           <Archive className="w-4 h-4" />
@@ -294,7 +294,7 @@ export default function NotificationsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(notification.id)}
-                          className="text-gray-400 hover:text-red-400"
+                            className="text-muted-foreground hover:text-[var(--color-error)]"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -312,7 +312,7 @@ export default function NotificationsPage() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
             Page {page + 1} of {totalPages}
           </p>
           <div className="flex gap-2">
@@ -321,7 +321,7 @@ export default function NotificationsPage() {
               size="sm"
               onClick={() => setPage(Math.max(0, page - 1))}
               disabled={page === 0}
-              className="border-[#2a2a2a] text-gray-400 hover:text-white disabled:opacity-50"
+              className="border-border text-muted-foreground hover:text-foreground disabled:opacity-50"
             >
               Previous
             </Button>
@@ -330,7 +330,7 @@ export default function NotificationsPage() {
               size="sm"
               onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
               disabled={page >= totalPages - 1}
-              className="border-[#2a2a2a] text-gray-400 hover:text-white disabled:opacity-50"
+              className="border-border text-muted-foreground hover:text-foreground disabled:opacity-50"
             >
               Next
             </Button>

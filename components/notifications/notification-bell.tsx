@@ -116,13 +116,13 @@ export function NotificationBell() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'urgent':
-        return 'border-red-500 bg-red-500/10';
+        return 'border-[var(--color-error)] bg-[var(--color-error)]/10';
       case 'high':
-        return 'border-amber-500 bg-amber-500/10';
+        return 'border-[var(--color-warning)] bg-[var(--color-warning)]/10';
       case 'normal':
-        return 'border-blue-500 bg-blue-500/10';
+        return 'border-[var(--color-primary)] bg-[var(--color-primary)]/10';
       default:
-        return 'border-gray-500 bg-gray-500/10';
+        return 'border-border bg-muted/10';
     }
   };
 
@@ -147,23 +147,23 @@ export function NotificationBell() {
       <Button
         variant="ghost"
         size="icon"
-        className="relative text-gray-400 hover:text-white hover:bg-[#242424]"
+        className="relative text-muted-foreground hover:text-foreground hover:bg-elevated"
         onClick={() => setIsOpen(true)}
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1 -translate-y-1 bg-red-600 rounded-full">
+          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-[var(--color-card)] transform translate-x-1 -translate-y-1 bg-[var(--color-error)] rounded-full">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </Button>
 
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent className="w-96 bg-[#0a0a0a] border-[#2a2a2a]">
+        <SheetContent className="w-96 bg-background border-border">
           <SheetHeader className="mb-4">
-            <SheetTitle className="text-white">Notifications</SheetTitle>
+            <SheetTitle className="text-foreground">Notifications</SheetTitle>
             {unreadCount > 0 && (
-              <SheetDescription className="text-gray-400">
+              <SheetDescription className="text-muted-foreground">
                 {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
               </SheetDescription>
             )}
@@ -172,16 +172,16 @@ export function NotificationBell() {
           {/* Notifications List */}
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {loading ? (
-              <div className="p-4 text-center text-gray-500">Loading...</div>
+              <div className="p-4 text-center text-muted-foreground">Loading...</div>
             ) : notifications.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
+              <div className="p-8 text-center text-muted-foreground">
                 <p>No notifications yet</p>
               </div>
             ) : (
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-3 border-l-4 rounded hover:bg-[#1a1a1a] transition-colors cursor-pointer ${getPriorityColor(
+                  className={`p-3 border-l-4 rounded hover:bg-card transition-colors cursor-pointer ${getPriorityColor(
                     notification.priority
                   )}`}
                   onClick={() => handleMarkAsRead(notification.id)}
@@ -192,11 +192,11 @@ export function NotificationBell() {
                         <span className="text-lg">
                           {getTypeEmoji(notification.type)}
                         </span>
-                        <p className="font-medium text-white text-sm truncate">
+                        <p className="font-medium text-foreground text-sm truncate">
                           {notification.title}
                         </p>
                       </div>
-                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                         {notification.message}
                       </p>
                       {notification.isActionable && notification.actionUrl && (
@@ -207,7 +207,7 @@ export function NotificationBell() {
                             handleMarkAsRead(notification.id);
                             setIsOpen(false);
                           }}
-                          className="text-xs text-blue-400 hover:text-blue-300 mt-2 inline-block"
+                          className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary)]/80 mt-2 inline-block"
                         >
                           {notification.actionLabel || 'View'}
                         </Link>
@@ -218,7 +218,7 @@ export function NotificationBell() {
                         e.stopPropagation();
                         handleDismiss(notification.id);
                       }}
-                      className="text-gray-500 hover:text-gray-300 flex-shrink-0"
+                      className="text-muted-foreground hover:text-foreground flex-shrink-0"
                     >
                       ✕
                     </button>
@@ -229,10 +229,10 @@ export function NotificationBell() {
           </div>
 
           {/* Footer */}
-          <div className="border-t border-[#2a2a2a] mt-4 pt-4">
+          <div className="border-t border-border mt-4 pt-4">
             <Link
               href="/dashboard/notifications"
-              className="block text-center text-sm text-blue-400 hover:text-blue-300 py-2"
+              className="block text-center text-sm text-[var(--color-primary)] hover:text-[var(--color-primary)]/80 py-2"
               onClick={() => setIsOpen(false)}
             >
               View all notifications

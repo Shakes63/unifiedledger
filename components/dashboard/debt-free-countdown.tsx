@@ -93,9 +93,9 @@ export function DebtFreeCountdown() {
   // Loading state
   if (loading) {
     return (
-      <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl p-8 animate-pulse">
+      <div className="bg-card border border-border rounded-xl p-8 animate-pulse">
         <div className="flex items-center justify-center">
-          <div className="w-32 h-32 bg-[#242424] rounded-full"></div>
+          <div className="w-32 h-32 bg-elevated rounded-full"></div>
         </div>
       </div>
     );
@@ -109,13 +109,13 @@ export function DebtFreeCountdown() {
   // No debts - debt-free celebration
   if (!data.hasDebts) {
     return (
-      <div className="bg-gradient-to-br from-emerald-950/50 to-emerald-900/30 border border-emerald-500/30 rounded-xl p-8">
+      <div className="bg-gradient-to-br from-[var(--color-income)]/20 to-[var(--color-income)]/10 border border-[var(--color-income)]/30 rounded-xl p-8">
         <div className="text-center">
           <div className="text-6xl mb-4">🎉</div>
-          <h2 className="text-3xl font-bold text-emerald-200 mb-2">
+          <h2 className="text-3xl font-bold text-[var(--color-income)] mb-2">
             You're Debt-Free!
           </h2>
-          <p className="text-emerald-100/80 text-lg">
+          <p className="text-[var(--color-income)]/80 text-lg">
             Congratulations! You have no active debts. Keep up the great work!
           </p>
         </div>
@@ -125,13 +125,13 @@ export function DebtFreeCountdown() {
 
   // Has debts - show countdown
   return (
-    <div className="bg-gradient-to-br from-[#1a1a1a] to-[#242424] border border-[#2a2a2a] rounded-xl p-6 md:p-8">
+    <div className="bg-gradient-to-br from-card to-elevated border border-border rounded-xl p-6 md:p-8">
       {/* Header */}
       <div className="text-center mb-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+        <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
           🎯 Debt-Free Countdown
         </h2>
-        <p className="text-[#808080] text-sm md:text-base">
+        <p className="text-muted-foreground text-sm md:text-base">
           {getMotivationalMessage(data.percentageComplete)}
         </p>
       </div>
@@ -146,10 +146,10 @@ export function DebtFreeCountdown() {
           />
 
           <div className="text-center">
-            <div className="text-4xl md:text-5xl font-bold text-white mb-2">
+            <div className="text-4xl md:text-5xl font-bold text-foreground mb-2">
               {data.totalMonthsRemaining}
             </div>
-            <div className="text-[#808080] text-lg">
+            <div className="text-muted-foreground text-lg">
               months to freedom
             </div>
           </div>
@@ -158,23 +158,23 @@ export function DebtFreeCountdown() {
         {/* Right: Details */}
         <div className="flex flex-col justify-center space-y-4">
           {/* Debt-free date */}
-          <div className="bg-[#242424] rounded-lg p-4">
-            <div className="text-sm text-[#808080] mb-1">Debt-Free Date</div>
-            <div className="text-2xl font-bold text-emerald-400">
+          <div className="bg-elevated rounded-lg p-4">
+            <div className="text-sm text-muted-foreground mb-1">Debt-Free Date</div>
+            <div className="text-2xl font-bold text-[var(--color-income)]">
               {formatDate(data.debtFreeDate)}
             </div>
           </div>
 
           {/* Remaining balance */}
-          <div className="bg-[#242424] rounded-lg p-4">
-            <div className="text-sm text-[#808080] mb-1">Total Remaining</div>
-            <div className="text-2xl font-bold font-mono text-white">
+          <div className="bg-elevated rounded-lg p-4">
+            <div className="text-sm text-muted-foreground mb-1">Total Remaining</div>
+            <div className="text-2xl font-bold font-mono text-foreground">
               ${data.totalRemainingBalance.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
             </div>
-            <div className="text-xs text-[#808080] mt-1">
+            <div className="text-xs text-muted-foreground mt-1">
               of ${data.totalOriginalDebt.toLocaleString('en-US', {
                 maximumFractionDigits: 0,
               })} original debt
@@ -183,15 +183,15 @@ export function DebtFreeCountdown() {
 
           {/* Next milestone */}
           {data.nextMilestone && (
-            <div className="bg-gradient-to-r from-blue-950/40 to-blue-900/30 border border-blue-500/30 rounded-lg p-4">
+            <div className="bg-gradient-to-r from-[var(--color-primary)]/20 to-[var(--color-primary)]/10 border border-[var(--color-primary)]/30 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm text-blue-300 mb-1">Next Milestone</div>
-                  <div className="text-xl font-bold text-blue-200">
+                  <div className="text-sm text-[var(--color-primary)] mb-1">Next Milestone</div>
+                  <div className="text-xl font-bold text-[var(--color-primary)]">
                     {getMilestoneIcon(data.nextMilestone.percentage)}{' '}
                     {data.nextMilestone.percentage}% Complete
                   </div>
-                  <div className="text-xs text-blue-300/70 mt-1">
+                  <div className="text-xs text-[var(--color-primary)]/70 mt-1">
                     ~{data.nextMilestone.monthsAway} months away
                   </div>
                 </div>
@@ -217,7 +217,7 @@ export function DebtFreeCountdown() {
                 </div>
                 <div
                   className={`text-xs mt-1 ${
-                    milestone.achieved ? 'text-emerald-400' : 'text-[#808080]'
+                    milestone.achieved ? 'text-[var(--color-income)]' : 'text-muted-foreground'
                   }`}
                 >
                   {milestone.percentage}%

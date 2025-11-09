@@ -84,7 +84,7 @@ export function MonthDetailModal({
     },
   ];
 
-  const pieChartColors = ['var(--chart-3)', 'var(--chart-4)'];
+  const pieChartColors = ['var(--color-chart-principal)', 'var(--color-chart-interest)'];
 
   const canGoBack = monthIndex > 0;
   const canGoForward = monthIndex < schedule.monthlyBreakdown.length - 1;
@@ -94,7 +94,7 @@ export function MonthDetailModal({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 z-40 animate-in fade-in duration-200"
+        className="fixed inset-0 bg-background/80 z-40 animate-in fade-in duration-200"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -146,11 +146,11 @@ export function MonthDetailModal({
                 />
                 <div className="mt-3 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-[var(--chart-3)]">Principal</span>
+                    <span className="text-[var(--color-chart-principal)]">Principal</span>
                     <span className="text-foreground font-mono">{monthDetails.principalPercent.toFixed(1)}%</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-[var(--chart-4)]">Interest</span>
+                    <span className="text-[var(--color-chart-interest)]">Interest</span>
                     <span className="text-foreground font-mono">{monthDetails.interestPercent.toFixed(1)}%</span>
                   </div>
                 </div>
@@ -193,13 +193,13 @@ export function MonthDetailModal({
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Principal</div>
-                  <div className="text-xl font-semibold text-[var(--chart-3)] font-mono">
+                  <div className="text-xl font-semibold text-[var(--color-chart-principal)] font-mono">
                     ${payment.principalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Interest</div>
-                  <div className="text-xl font-semibold text-[var(--chart-4)] font-mono">
+                  <div className="text-xl font-semibold text-[var(--color-chart-interest)] font-mono">
                     ${payment.interestAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -218,13 +218,13 @@ export function MonthDetailModal({
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Principal Paid</div>
-                  <div className="text-lg font-semibold text-[var(--chart-3)] font-mono">
+                  <div className="text-lg font-semibold text-[var(--color-chart-principal)] font-mono">
                     ${monthDetails.cumulativePrincipal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Interest Paid</div>
-                  <div className="text-lg font-semibold text-[var(--chart-4)] font-mono">
+                  <div className="text-lg font-semibold text-[var(--color-chart-interest)] font-mono">
                     ${monthDetails.cumulativeInterest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -270,7 +270,7 @@ export function MonthDetailModal({
               disabled={!canGoBack}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                 canGoBack
-                  ? 'bg-card text-foreground hover:bg-[var(--background)]'
+                  ? 'bg-card text-foreground hover:bg-elevated'
                   : 'bg-card text-muted-foreground cursor-not-allowed'
               }`}
               aria-label="Previous month"
@@ -290,7 +290,7 @@ export function MonthDetailModal({
               disabled={!canGoForward}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                 canGoForward
-                  ? 'bg-card text-foreground hover:bg-[var(--background)]'
+                  ? 'bg-card text-foreground hover:bg-elevated'
                   : 'bg-card text-muted-foreground cursor-not-allowed'
               }`}
               aria-label="Next month"

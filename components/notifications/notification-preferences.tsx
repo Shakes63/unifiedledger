@@ -110,7 +110,7 @@ export function NotificationPreferences() {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="animate-spin">
-          <div className="h-8 w-8 border-4 border-[#2a2a2a] border-t-blue-600 rounded-full" />
+          <div className="h-8 w-8 border-4 border-border border-t-[var(--color-primary)] rounded-full" />
         </div>
       </div>
     );
@@ -118,9 +118,9 @@ export function NotificationPreferences() {
 
   if (!preferences) {
     return (
-      <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+      <Card className="bg-background border-border">
         <CardContent className="pt-6">
-          <p className="text-center text-gray-500">Failed to load preferences</p>
+          <p className="text-center text-muted-foreground">Failed to load preferences</p>
         </CardContent>
       </Card>
     );
@@ -129,16 +129,16 @@ export function NotificationPreferences() {
   return (
     <div className="space-y-6">
       {/* Push Notifications */}
-      <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+      <Card className="bg-background border-border">
         <CardHeader>
           <CardTitle>Push Notifications</CardTitle>
-          <CardDescription className="text-gray-500">
+          <CardDescription className="text-muted-foreground">
             Control how and where you receive notifications
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="push-enabled" className="text-gray-400">
+            <Label htmlFor="push-enabled" className="text-muted-foreground">
               Enable push notifications
             </Label>
             <Switch
@@ -154,7 +154,7 @@ export function NotificationPreferences() {
           </div>
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="email-enabled" className="text-gray-400">
+            <Label htmlFor="email-enabled" className="text-muted-foreground">
               Enable email notifications
             </Label>
             <Switch
@@ -171,7 +171,7 @@ export function NotificationPreferences() {
 
           {preferences.emailNotificationsEnabled && (
             <div>
-              <Label htmlFor="email" className="text-gray-400 block mb-2">
+              <Label htmlFor="email" className="text-muted-foreground block mb-2">
                 Email Address
               </Label>
               <Input
@@ -185,7 +185,7 @@ export function NotificationPreferences() {
                   })
                 }
                 placeholder="you@example.com"
-                className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                className="bg-card border-border text-foreground"
               />
             </div>
           )}
@@ -193,16 +193,16 @@ export function NotificationPreferences() {
       </Card>
 
       {/* Bill Reminders */}
-      <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+      <Card className="bg-background border-border">
         <CardHeader>
           <CardTitle>Bill Reminders</CardTitle>
-          <CardDescription className="text-gray-500">
+          <CardDescription className="text-muted-foreground">
             Get reminded about upcoming bill payments
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="bill-reminder" className="text-gray-400">
+            <Label htmlFor="bill-reminder" className="text-muted-foreground">
               Enable bill reminders
             </Label>
             <Switch
@@ -220,7 +220,7 @@ export function NotificationPreferences() {
           {preferences.billReminderEnabled && (
             <>
               <div>
-                <Label htmlFor="days-before" className="text-gray-400 block mb-2">
+                <Label htmlFor="days-before" className="text-muted-foreground block mb-2">
                   Days before due date
                 </Label>
                 <Input
@@ -235,16 +235,16 @@ export function NotificationPreferences() {
                       billReminderDaysBefore: parseInt(e.target.value, 10),
                     })
                   }
-                  className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                  className="bg-card border-border text-foreground"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   You'll receive a reminder {preferences.billReminderDaysBefore} day
                   {preferences.billReminderDaysBefore !== 1 ? 's' : ''} before each bill is due
                 </p>
               </div>
 
               <div className="flex items-center justify-between">
-                <Label htmlFor="bill-due-date" className="text-gray-400">
+                <Label htmlFor="bill-due-date" className="text-muted-foreground">
                   Remind on due date
                 </Label>
                 <Switch
@@ -260,7 +260,7 @@ export function NotificationPreferences() {
               </div>
 
               <div className="flex items-center justify-between">
-                <Label htmlFor="bill-overdue" className="text-gray-400">
+                <Label htmlFor="bill-overdue" className="text-muted-foreground">
                   Remind for overdue bills
                 </Label>
                 <Switch
@@ -280,16 +280,16 @@ export function NotificationPreferences() {
       </Card>
 
       {/* Budget Alerts */}
-      <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+      <Card className="bg-background border-border">
         <CardHeader>
           <CardTitle>Budget Alerts</CardTitle>
-          <CardDescription className="text-gray-500">
+          <CardDescription className="text-muted-foreground">
             Get notified about budget warnings and limits
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="budget-warning" className="text-gray-400">
+            <Label htmlFor="budget-warning" className="text-muted-foreground">
               Enable budget warnings
             </Label>
             <Switch
@@ -306,7 +306,7 @@ export function NotificationPreferences() {
 
           {preferences.budgetWarningEnabled && (
             <div>
-              <Label htmlFor="warning-threshold" className="text-gray-400 block mb-2">
+              <Label htmlFor="warning-threshold" className="text-muted-foreground block mb-2">
                 Warning threshold
               </Label>
               <Input
@@ -321,9 +321,9 @@ export function NotificationPreferences() {
                     budgetWarningThreshold: parseInt(e.target.value, 10),
                   })
                 }
-                className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                className="bg-card border-border text-foreground"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 You'll be warned when spending reaches {preferences.budgetWarningThreshold}%
                 of your budget
               </p>
@@ -331,7 +331,7 @@ export function NotificationPreferences() {
           )}
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="budget-exceeded" className="text-gray-400">
+            <Label htmlFor="budget-exceeded" className="text-muted-foreground">
               Budget exceeded alerts
             </Label>
             <Switch
@@ -349,16 +349,16 @@ export function NotificationPreferences() {
       </Card>
 
       {/* Low Balance Alerts */}
-      <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+      <Card className="bg-background border-border">
         <CardHeader>
           <CardTitle>Low Balance Alerts</CardTitle>
-          <CardDescription className="text-gray-500">
+          <CardDescription className="text-muted-foreground">
             Get notified when account balance drops below threshold
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="low-balance" className="text-gray-400">
+            <Label htmlFor="low-balance" className="text-muted-foreground">
               Enable low balance alerts
             </Label>
             <Switch
@@ -375,7 +375,7 @@ export function NotificationPreferences() {
 
           {preferences.lowBalanceAlertEnabled && (
             <div>
-              <Label htmlFor="balance-threshold" className="text-gray-400 block mb-2">
+              <Label htmlFor="balance-threshold" className="text-muted-foreground block mb-2">
                 Alert threshold ($)
               </Label>
               <Input
@@ -390,9 +390,9 @@ export function NotificationPreferences() {
                     lowBalanceThreshold: parseFloat(e.target.value),
                   })
                 }
-                className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                className="bg-card border-border text-foreground"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 You'll be alerted when balance drops below $
                 {preferences.lowBalanceThreshold.toFixed(2)}
               </p>
@@ -402,16 +402,16 @@ export function NotificationPreferences() {
       </Card>
 
       {/* Goals & Milestones */}
-      <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+      <Card className="bg-background border-border">
         <CardHeader>
           <CardTitle>Goals & Milestones</CardTitle>
-          <CardDescription className="text-gray-500">
+          <CardDescription className="text-muted-foreground">
             Get notified when you reach financial milestones
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="savings-milestone" className="text-gray-400">
+            <Label htmlFor="savings-milestone" className="text-muted-foreground">
               Savings milestone notifications
             </Label>
             <Switch
@@ -427,7 +427,7 @@ export function NotificationPreferences() {
           </div>
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="debt-milestone" className="text-gray-400">
+            <Label htmlFor="debt-milestone" className="text-muted-foreground">
               Debt payoff milestone notifications
             </Label>
             <Switch
@@ -445,16 +445,16 @@ export function NotificationPreferences() {
       </Card>
 
       {/* Summary Reports */}
-      <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+      <Card className="bg-background border-border">
         <CardHeader>
           <CardTitle>Summary Reports</CardTitle>
-          <CardDescription className="text-gray-500">
+          <CardDescription className="text-muted-foreground">
             Regular spending summaries
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <Label htmlFor="weekly-summary" className="text-gray-400">
+            <Label htmlFor="weekly-summary" className="text-muted-foreground">
               Weekly summary
             </Label>
             <Switch
@@ -471,7 +471,7 @@ export function NotificationPreferences() {
 
           {preferences.weeklySummaryEnabled && (
             <div>
-              <Label htmlFor="weekly-day" className="text-gray-400 block mb-2">
+              <Label htmlFor="weekly-day" className="text-muted-foreground block mb-2">
                 Day to send
               </Label>
               <select
@@ -483,7 +483,7 @@ export function NotificationPreferences() {
                     weeklySummaryDay: e.target.value,
                   })
                 }
-                className="w-full bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded px-3 py-2"
+                className="w-full bg-card border border-border text-foreground rounded px-3 py-2"
               >
                 <option value="sunday">Sunday</option>
                 <option value="monday">Monday</option>
@@ -497,7 +497,7 @@ export function NotificationPreferences() {
           )}
 
           <div className="flex items-center justify-between">
-            <Label htmlFor="monthly-summary" className="text-gray-400">
+            <Label htmlFor="monthly-summary" className="text-muted-foreground">
               Monthly summary
             </Label>
             <Switch
@@ -514,7 +514,7 @@ export function NotificationPreferences() {
 
           {preferences.monthlySummaryEnabled && (
             <div>
-              <Label htmlFor="monthly-day" className="text-gray-400 block mb-2">
+              <Label htmlFor="monthly-day" className="text-muted-foreground block mb-2">
                 Day of month
               </Label>
               <Input
@@ -529,7 +529,7 @@ export function NotificationPreferences() {
                     monthlySummaryDay: parseInt(e.target.value, 10),
                   })
                 }
-                className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                className="bg-card border-border text-foreground"
               />
             </div>
           )}
@@ -541,14 +541,14 @@ export function NotificationPreferences() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-[var(--color-primary)] hover:opacity-90 text-white"
         >
           {saving ? 'Saving...' : 'Save Preferences'}
         </Button>
         <Button
           onClick={fetchPreferences}
           variant="outline"
-          className="border-[#2a2a2a] text-gray-400 hover:text-white"
+          className="border-border text-muted-foreground hover:text-foreground"
         >
           Reset
         </Button>

@@ -23,7 +23,7 @@ export default function EditTransactionPage({ params }: EditTransactionPageProps
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
+    <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto p-6">
         <div className="mb-6 flex items-center justify-between">
           <Link href={`/dashboard/transactions/${resolvedParams.id}`}>
@@ -34,7 +34,7 @@ export default function EditTransactionPage({ params }: EditTransactionPageProps
           </Link>
         </div>
 
-        <Card className="border-[#2a2a2a] bg-[#1a1a1a] p-6">
+        <Card className="border-border bg-card p-6">
           <h1 className="text-2xl font-bold text-white mb-6">Edit Transaction</h1>
           <TransactionForm transactionId={resolvedParams.id} onEditSuccess={handleEditSuccess} />
         </Card>

@@ -92,7 +92,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
   if (loading) {
     return (
       <div className={className}>
-        <div className="text-center py-8 text-[#808080]">Loading comparison...</div>
+        <div className="text-center py-8 text-muted-foreground">Loading comparison...</div>
       </div>
     );
   }
@@ -109,31 +109,31 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
   if (!data.comparison.hasExtraPayment) {
     return (
       <div className={className}>
-        <div className="bg-gradient-to-r from-amber-900/30 to-amber-800/30 border border-amber-600/50 rounded-xl p-6">
+        <div className="bg-gradient-to-r from-[var(--color-warning)]/30 to-[var(--color-warning)]/20 border border-[var(--color-warning)]/50 rounded-xl p-6">
           <div className="flex items-start gap-4">
             <span className="text-4xl">⚠️</span>
             <div>
-              <h3 className="text-xl font-bold text-amber-200 mb-2">
+              <h3 className="text-xl font-bold text-[var(--color-warning)] mb-2">
                 Only Paying Minimums?
               </h3>
-              <p className="text-amber-100/90 mb-3">
+              <p className="text-muted-foreground mb-3">
                 You're currently set to pay only the minimum payments. This will cost you significantly more in interest and keep you in debt much longer.
               </p>
-              <div className="bg-[#1a1a1a]/60 rounded-lg p-4 space-y-2">
+              <div className="bg-elevated/60 rounded-lg p-4 space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-[#808080]">Time to debt-free:</span>
-                  <span className="text-xl font-bold text-white">
+                  <span className="text-muted-foreground">Time to debt-free:</span>
+                  <span className="text-xl font-bold text-foreground">
                     {formatTimespan(data.minimumOnlyScenario.totalYears, data.minimumOnlyScenario.remainingMonths)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[#808080]">Total interest you'll pay:</span>
-                  <span className="text-xl font-bold font-mono text-red-400">
+                  <span className="text-muted-foreground">Total interest you'll pay:</span>
+                  <span className="text-xl font-bold font-mono text-[var(--color-error)]">
                     ${data.minimumOnlyScenario.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
-              <p className="text-amber-100/90 mt-4 text-sm">
+              <p className="text-muted-foreground mt-4 text-sm">
                 💡 <strong>Tip:</strong> Add even a small extra payment in the Payoff Strategy section below to see how much faster you can become debt-free and how much you can save!
               </p>
             </div>
@@ -149,13 +149,13 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
 
   return (
     <div className={className}>
-      <div className="bg-gradient-to-r from-amber-900/30 to-amber-800/30 border border-amber-600/50 rounded-xl p-6 space-y-6">
+      <div className="bg-gradient-to-r from-[var(--color-warning)]/30 to-[var(--color-warning)]/20 border border-[var(--color-warning)]/50 rounded-xl p-6 space-y-6">
         {/* Header */}
         <div className="flex items-start gap-3">
           <span className="text-3xl">⚠️</span>
           <div>
-            <h3 className="text-xl font-bold text-amber-200">The True Cost of Minimum Payments</h3>
-            <p className="text-amber-100/80 text-sm mt-1">
+            <h3 className="text-xl font-bold text-[var(--color-warning)]">The True Cost of Minimum Payments</h3>
+            <p className="text-muted-foreground text-sm mt-1">
               See how much your extra ${data.currentPlanScenario.extraPayment.toLocaleString()} payment is saving you
             </p>
           </div>
@@ -164,43 +164,43 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
         {/* Comparison Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Minimum Only Column */}
-          <div className="bg-gradient-to-br from-red-950/50 to-red-900/30 border border-red-500/30 rounded-lg p-5">
+          <div className="bg-gradient-to-br from-[var(--color-error)]/20 to-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-lg p-5">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-2xl">🐌</span>
-              <h4 className="text-lg font-semibold text-red-200">Minimum Payments Only</h4>
+              <h4 className="text-lg font-semibold text-[var(--color-error)]">Minimum Payments Only</h4>
             </div>
 
             <div className="space-y-4">
               <div>
-                <div className="text-sm text-red-300/70 mb-1">Time to debt-free</div>
-                <div className="text-3xl font-bold text-red-200">
+                <div className="text-sm text-muted-foreground mb-1">Time to debt-free</div>
+                <div className="text-3xl font-bold text-[var(--color-error)]">
                   {data.minimumOnlyScenario.totalYears} years
                 </div>
                 {data.minimumOnlyScenario.remainingMonths > 0 && (
-                  <div className="text-sm text-red-300/70">
+                  <div className="text-sm text-muted-foreground">
                     and {data.minimumOnlyScenario.remainingMonths} months
                   </div>
                 )}
               </div>
 
               <div>
-                <div className="text-sm text-red-300/70 mb-1">Total interest paid</div>
-                <div className="text-2xl font-bold font-mono text-red-300">
+                <div className="text-sm text-muted-foreground mb-1">Total interest paid</div>
+                <div className="text-2xl font-bold font-mono text-[var(--color-error)]">
                   ${data.minimumOnlyScenario.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
 
               <div>
-                <div className="text-sm text-red-300/70 mb-1">Monthly payment</div>
-                <div className="text-xl font-mono text-red-200">
+                <div className="text-sm text-muted-foreground mb-1">Monthly payment</div>
+                <div className="text-xl font-mono text-[var(--color-error)]">
                   ${data.minimumOnlyScenario.monthlyPayment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div className="text-xs text-red-300/70">(minimums only)</div>
+                <div className="text-xs text-muted-foreground">(minimums only)</div>
               </div>
 
               <div>
-                <div className="text-sm text-red-300/70 mb-1">Debt-free date</div>
-                <div className="text-lg text-red-200">
+                <div className="text-sm text-muted-foreground mb-1">Debt-free date</div>
+                <div className="text-lg text-[var(--color-error)]">
                   {formatDate(data.minimumOnlyScenario.debtFreeDate)}
                 </div>
               </div>
@@ -208,45 +208,45 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
           </div>
 
           {/* Current Plan Column */}
-          <div className="bg-gradient-to-br from-emerald-950/50 to-emerald-900/30 border border-emerald-500/30 rounded-lg p-5">
+          <div className="bg-gradient-to-br from-[var(--color-income)]/20 to-[var(--color-income)]/10 border border-[var(--color-income)]/30 rounded-lg p-5">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-2xl">⚡</span>
-              <h4 className="text-lg font-semibold text-emerald-200">Your Current Plan</h4>
+              <h4 className="text-lg font-semibold text-[var(--color-income)]">Your Current Plan</h4>
             </div>
 
             <div className="space-y-4">
               <div>
-                <div className="text-sm text-emerald-300/70 mb-1">Time to debt-free</div>
-                <div className="text-3xl font-bold text-emerald-200">
+                <div className="text-sm text-muted-foreground mb-1">Time to debt-free</div>
+                <div className="text-3xl font-bold text-[var(--color-income)]">
                   {data.currentPlanScenario.totalYears} years
                 </div>
                 {data.currentPlanScenario.remainingMonths > 0 && (
-                  <div className="text-sm text-emerald-300/70">
+                  <div className="text-sm text-muted-foreground">
                     and {data.currentPlanScenario.remainingMonths} months
                   </div>
                 )}
               </div>
 
               <div>
-                <div className="text-sm text-emerald-300/70 mb-1">Total interest paid</div>
-                <div className="text-2xl font-bold font-mono text-emerald-300">
+                <div className="text-sm text-muted-foreground mb-1">Total interest paid</div>
+                <div className="text-2xl font-bold font-mono text-[var(--color-income)]">
                   ${data.currentPlanScenario.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
 
               <div>
-                <div className="text-sm text-emerald-300/70 mb-1">Monthly payment</div>
-                <div className="text-xl font-mono text-emerald-200">
+                <div className="text-sm text-muted-foreground mb-1">Monthly payment</div>
+                <div className="text-xl font-mono text-[var(--color-income)]">
                   ${data.currentPlanScenario.monthlyPayment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
-                <div className="text-xs text-emerald-300/70">
+                <div className="text-xs text-muted-foreground">
                   (+${data.currentPlanScenario.extraPayment.toLocaleString()} extra)
                 </div>
               </div>
 
               <div>
-                <div className="text-sm text-emerald-300/70 mb-1">Debt-free date</div>
-                <div className="text-lg text-emerald-200">
+                <div className="text-sm text-muted-foreground mb-1">Debt-free date</div>
+                <div className="text-lg text-[var(--color-income)]">
                   {formatDate(data.currentPlanScenario.debtFreeDate)}
                 </div>
               </div>
@@ -255,55 +255,55 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
         </div>
 
         {/* Savings Highlight */}
-        <div className="bg-gradient-to-r from-blue-950/60 to-blue-900/40 border border-blue-500/40 rounded-lg p-5">
+        <div className="bg-gradient-to-r from-[var(--color-primary)]/30 to-[var(--color-primary)]/20 border border-[var(--color-primary)]/40 rounded-lg p-5">
           <div className="flex items-start gap-3">
             <span className="text-3xl">🎯</span>
             <div className="flex-1">
-              <h4 className="text-lg font-semibold text-blue-200 mb-3">
+              <h4 className="text-lg font-semibold text-[var(--color-primary)] mb-3">
                 By paying ${data.currentPlanScenario.extraPayment.toLocaleString()} extra per month, you will:
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-[#1a1a1a]/40 rounded-lg p-4">
+                <div className="bg-elevated/40 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xl">⏱️</span>
-                    <div className="text-sm text-blue-300/70">Time Saved</div>
+                    <div className="text-sm text-muted-foreground">Time Saved</div>
                   </div>
-                  <div className="text-2xl font-bold text-blue-200">
+                  <div className="text-2xl font-bold text-[var(--color-primary)]">
                     {data.comparison.yearsSaved > 0
                       ? `${data.comparison.yearsSaved} year${data.comparison.yearsSaved !== 1 ? 's' : ''}`
                       : `${data.comparison.monthsSaved} months`
                     }
                   </div>
                   {data.comparison.yearsSaved > 0 && data.comparison.remainingMonthsSaved > 0 && (
-                    <div className="text-sm text-blue-300/70">
+                    <div className="text-sm text-muted-foreground">
                       {data.comparison.remainingMonthsSaved} months
                     </div>
                   )}
                 </div>
 
-                <div className="bg-[#1a1a1a]/40 rounded-lg p-4">
+                <div className="bg-elevated/40 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xl">💵</span>
-                    <div className="text-sm text-blue-300/70">Interest Saved</div>
+                    <div className="text-sm text-muted-foreground">Interest Saved</div>
                   </div>
-                  <div className="text-2xl font-bold font-mono text-blue-200">
+                  <div className="text-2xl font-bold font-mono text-[var(--color-primary)]">
                     ${data.comparison.interestSaved.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
-                  <div className="text-sm text-blue-300/70">
+                  <div className="text-sm text-muted-foreground">
                     ({Math.round(data.comparison.percentageReduction)}% less!)
                   </div>
                 </div>
 
-                <div className="bg-[#1a1a1a]/40 rounded-lg p-4">
+                <div className="bg-elevated/40 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xl">🎉</span>
-                    <div className="text-sm text-blue-300/70">Debt-Free Sooner</div>
+                    <div className="text-sm text-muted-foreground">Debt-Free Sooner</div>
                   </div>
-                  <div className="text-lg font-semibold text-blue-200">
+                  <div className="text-lg font-semibold text-[var(--color-primary)]">
                     {formatDate(data.currentPlanScenario.debtFreeDate)}
                   </div>
-                  <div className="text-sm text-blue-300/70">
+                  <div className="text-sm text-muted-foreground">
                     instead of {formatDate(data.minimumOnlyScenario.debtFreeDate)}
                   </div>
                 </div>
@@ -313,17 +313,17 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
         </div>
 
         {/* Warning Message */}
-        <div className="bg-red-950/40 border border-red-500/30 rounded-lg p-4">
-          <p className="text-red-200 text-sm font-medium">
+        <div className="bg-[var(--color-error)]/20 border border-[var(--color-error)]/30 rounded-lg p-4">
+          <p className="text-[var(--color-error)] text-sm font-medium">
             ⚠️ <strong>WARNING:</strong> If you only pay minimums, you'll pay{' '}
-            <span className="text-red-300 font-bold">
+            <span className="text-[var(--color-error)] font-bold">
               {interestMultiplier >= 2
                 ? `${Math.round(interestMultiplier)}x more`
                 : `${Math.round((interestMultiplier - 1) * 100)}% more`
               }
             </span>{' '}
             in interest and stay in debt for{' '}
-            <span className="text-red-300 font-bold">
+            <span className="text-[var(--color-error)] font-bold">
               {timeMultiplier >= 2
                 ? `${Math.round(timeMultiplier)}x longer`
                 : `${Math.round((timeMultiplier - 1) * 100)}% longer`

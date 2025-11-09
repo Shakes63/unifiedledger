@@ -125,7 +125,7 @@ export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTran
       <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
         <p className="text-gray-400 text-center mb-4">No transactions yet.</p>
         <Link href="/dashboard/transactions/new">
-          <Button className="w-full bg-white text-black hover:bg-gray-100 font-medium">
+          <Button className="w-full bg-[var(--color-primary)] text-white hover:opacity-90 font-medium">
             Add Transaction
           </Button>
         </Link>
@@ -161,9 +161,14 @@ export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTran
             <div className="flex items-center gap-2">
               <div className="text-right">
                 <p
-                  className={`font-semibold text-sm ${
-                    transaction.type === 'income' ? 'text-emerald-400' : 'text-white'
-                  }`}
+                  className="font-semibold text-sm"
+                  style={{
+                    color: transaction.type === 'income'
+                      ? 'var(--color-income)'
+                      : transaction.type === 'transfer' || transaction.type === 'transfer_in' || transaction.type === 'transfer_out'
+                      ? 'var(--color-transfer)'
+                      : 'var(--color-expense)'
+                  }}
                 >
                   {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)}
                 </p>

@@ -161,7 +161,7 @@ export function SavedSearches({
       <Button
         onClick={() => setIsOpen(true)}
         disabled={isLoading}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 flex items-center gap-2 justify-center"
+        className="w-full bg-[var(--color-primary)] hover:opacity-90 text-white font-semibold py-2 flex items-center gap-2 justify-center"
       >
         <Save className="w-4 h-4" />
         Save This Search
@@ -291,7 +291,7 @@ export function SavedSearches({
                           }}
                           disabled={isLoading}
                           size="sm"
-                          className="bg-blue-500 hover:bg-blue-600 text-white text-xs"
+                          className="bg-[var(--color-primary)] hover:opacity-90 text-white text-xs"
                         >
                           Load
                         </Button>

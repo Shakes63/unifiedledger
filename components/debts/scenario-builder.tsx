@@ -71,13 +71,13 @@ export function ScenarioBuilder({
   };
 
   return (
-    <div className="bg-[#1a1a1a] rounded-xl p-6 border border-[#2a2a2a]">
+    <div className="bg-card rounded-xl p-6 border border-border">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <Input
           value={scenario.name}
           onChange={(e) => handleNameChange(e.target.value)}
-          className="text-lg font-semibold bg-[#242424] border-[#2a2a2a] text-white flex-1 mr-3"
+          className="text-lg font-semibold bg-elevated border-border text-foreground flex-1 mr-3"
           placeholder="Scenario name"
         />
         {!isBaseline && (
@@ -85,7 +85,7 @@ export function ScenarioBuilder({
             variant="ghost"
             size="sm"
             onClick={onDelete}
-            className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+            className="text-[var(--color-error)] hover:text-[var(--color-error)]/80 hover:bg-[var(--color-error)]/10"
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -93,18 +93,18 @@ export function ScenarioBuilder({
       </div>
 
       {isBaseline && (
-        <div className="mb-4 p-2 bg-blue-500/10 border border-blue-500/30 rounded text-sm text-blue-400">
+        <div className="mb-4 p-2 bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/30 rounded text-sm text-[var(--color-primary)]">
           This is your baseline scenario for comparison
         </div>
       )}
 
       {/* Extra Monthly Payment */}
       <div className="mb-4">
-        <Label htmlFor={`extra-${scenario.id}`} className="text-[#e5e5e5] mb-2 block">
+        <Label htmlFor={`extra-${scenario.id}`} className="text-foreground mb-2 block">
           Extra {scenario.paymentFrequency === 'biweekly' ? 'Per Payment' : 'Monthly Payment'}
         </Label>
         <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#808080]">$</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
           <Input
             id={`extra-${scenario.id}`}
             type="number"
@@ -112,11 +112,11 @@ export function ScenarioBuilder({
             step="10"
             value={scenario.extraMonthlyPayment}
             onChange={(e) => handleExtraPaymentChange(e.target.value)}
-            className="pl-7 bg-[#242424] border-[#2a2a2a] text-white"
+            className="pl-7 bg-elevated border-border text-foreground"
             placeholder="0.00"
           />
         </div>
-        <p className="text-xs text-[#808080] mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           {scenario.paymentFrequency === 'biweekly'
             ? `Per payment (${(scenario.extraMonthlyPayment * 26).toFixed(0)}/year)`
             : 'Amount above minimum payments to apply toward debts'}
@@ -125,14 +125,14 @@ export function ScenarioBuilder({
 
       {/* Payment Frequency */}
       <div className="mb-4">
-        <Label className="text-[#e5e5e5] mb-2 block">Payment Frequency</Label>
+        <Label className="text-foreground mb-2 block">Payment Frequency</Label>
         <div className="flex gap-2">
           <button
             onClick={() => handleFrequencyChange('monthly')}
             className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               (scenario.paymentFrequency || 'monthly') === 'monthly'
-                ? 'bg-[#60a5fa] text-white'
-                : 'bg-[#242424] text-[#808080] hover:text-white border border-[#2a2a2a]'
+                ? 'bg-[var(--color-transfer)] text-primary-foreground'
+                : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
             Monthly
@@ -141,14 +141,14 @@ export function ScenarioBuilder({
             onClick={() => handleFrequencyChange('biweekly')}
             className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               scenario.paymentFrequency === 'biweekly'
-                ? 'bg-[#10b981] text-white'
-                : 'bg-[#242424] text-[#808080] hover:text-white border border-[#2a2a2a]'
+                ? 'bg-[var(--color-primary)] text-white'
+                : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
             Bi-Weekly
           </button>
         </div>
-        <p className="text-xs text-[#808080] mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           {scenario.paymentFrequency === 'biweekly'
             ? '26 payments/year (1 extra annually)'
             : '12 payments per year'}
@@ -157,14 +157,14 @@ export function ScenarioBuilder({
 
       {/* Payment Method */}
       <div className="mb-4">
-        <Label className="text-[#e5e5e5] mb-2 block">Payment Method</Label>
+        <Label className="text-foreground mb-2 block">Payment Method</Label>
         <div className="flex gap-2">
           <button
             onClick={() => handleMethodChange('snowball')}
             className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               scenario.method === 'snowball'
-                ? 'bg-[#60a5fa] text-white'
-                : 'bg-[#242424] text-[#808080] hover:text-white border border-[#2a2a2a]'
+                ? 'bg-[var(--color-transfer)] text-primary-foreground'
+                : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
             Snowball
@@ -173,14 +173,14 @@ export function ScenarioBuilder({
             onClick={() => handleMethodChange('avalanche')}
             className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               scenario.method === 'avalanche'
-                ? 'bg-[#60a5fa] text-white'
-                : 'bg-[#242424] text-[#808080] hover:text-white border border-[#2a2a2a]'
+                ? 'bg-[var(--color-transfer)] text-primary-foreground'
+                : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
             Avalanche
           </button>
         </div>
-        <p className="text-xs text-[#808080] mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           {scenario.method === 'snowball'
             ? 'Pay smallest balance first (quick wins)'
             : 'Pay highest interest first (save most money)'}
@@ -190,13 +190,13 @@ export function ScenarioBuilder({
       {/* Lump Sum Payments */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <Label className="text-[#e5e5e5]">Lump Sum Payments</Label>
+          <Label className="text-foreground">Lump Sum Payments</Label>
           {!showLumpSumForm && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowLumpSumForm(true)}
-              className="text-blue-400 hover:text-blue-300 h-auto py-1"
+              className="text-[var(--color-primary)] hover:text-[var(--color-primary)]/80 h-auto py-1"
             >
               <Plus className="w-4 h-4 mr-1" />
               Add
@@ -210,13 +210,13 @@ export function ScenarioBuilder({
             {scenario.lumpSumPayments.map((lumpSum, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 bg-[#242424] rounded-lg"
+                className="flex items-center justify-between p-3 bg-elevated rounded-lg"
               >
                 <div className="flex-1">
-                  <span className="text-white font-medium">
+                  <span className="text-foreground font-medium">
                     ${lumpSum.amount.toLocaleString()}
                   </span>
-                  <span className="text-[#808080] ml-2 text-sm">
+                  <span className="text-muted-foreground ml-2 text-sm">
                     in month {lumpSum.month}
                   </span>
                 </div>
@@ -224,7 +224,7 @@ export function ScenarioBuilder({
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemoveLumpSum(index)}
-                  className="text-red-400 hover:text-red-300 h-auto p-1"
+                  className="text-[var(--color-error)] hover:text-[var(--color-error)]/80 h-auto p-1"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -235,13 +235,13 @@ export function ScenarioBuilder({
 
         {/* Add lump sum form */}
         {showLumpSumForm && (
-          <div className="p-4 bg-[#242424] rounded-lg border border-[#2a2a2a] space-y-3">
+          <div className="p-4 bg-elevated rounded-lg border border-border space-y-3">
             <div>
-              <Label htmlFor={`lump-amount-${scenario.id}`} className="text-[#e5e5e5] mb-1 block text-sm">
+              <Label htmlFor={`lump-amount-${scenario.id}`} className="text-foreground mb-1 block text-sm">
                 Amount
               </Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#808080]">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                 <Input
                   id={`lump-amount-${scenario.id}`}
                   type="number"
@@ -251,14 +251,14 @@ export function ScenarioBuilder({
                   onChange={(e) =>
                     setNewLumpSum({ ...newLumpSum, amount: parseFloat(e.target.value) || 0 })
                   }
-                  className="pl-7 bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                  className="pl-7 bg-card border-border text-foreground"
                   placeholder="5000"
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor={`lump-month-${scenario.id}`} className="text-[#e5e5e5] mb-1 block text-sm">
+              <Label htmlFor={`lump-month-${scenario.id}`} className="text-foreground mb-1 block text-sm">
                 Apply in Month
               </Label>
               <Input
@@ -270,10 +270,10 @@ export function ScenarioBuilder({
                 onChange={(e) =>
                   setNewLumpSum({ ...newLumpSum, month: parseInt(e.target.value) || 1 })
                 }
-                className="bg-[#1a1a1a] border-[#2a2a2a] text-white"
+                className="bg-card border-border text-foreground"
                 placeholder="3"
               />
-              <p className="text-xs text-[#808080] mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Which month from now to apply this payment
               </p>
             </div>
@@ -281,7 +281,7 @@ export function ScenarioBuilder({
             <div className="flex gap-2">
               <Button
                 onClick={handleAddLumpSum}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="flex-1 bg-[var(--color-primary)] hover:opacity-90 text-white"
                 disabled={newLumpSum.amount <= 0 || newLumpSum.month < 1}
               >
                 Add
@@ -292,7 +292,7 @@ export function ScenarioBuilder({
                   setNewLumpSum({ month: 1, amount: 0 });
                 }}
                 variant="outline"
-                className="flex-1 border-[#2a2a2a] text-gray-400 hover:text-white"
+                className="flex-1 border-border text-muted-foreground hover:text-foreground"
               >
                 Cancel
               </Button>
@@ -301,7 +301,7 @@ export function ScenarioBuilder({
         )}
 
         {scenario.lumpSumPayments.length === 0 && !showLumpSumForm && (
-          <p className="text-sm text-[#808080] italic">
+          <p className="text-sm text-muted-foreground italic">
             No lump sum payments added
           </p>
         )}

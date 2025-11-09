@@ -40,6 +40,7 @@ export interface Theme {
   name: string;
   description: string;
   isAvailable: boolean;
+  mode: 'dark' | 'light';
   colors: ThemeColors;  // All colors in OKLCH format
   preview?: string;     // Preview image URL (future feature)
 }
@@ -50,9 +51,10 @@ export interface Theme {
  */
 export const darkModeTheme: Theme = {
   id: 'dark-mode',
-  name: 'Dark Mode',
+  name: 'Dark Green',
   description: 'Professional dark theme optimized for finance tracking',
   isAvailable: true,
+  mode: 'dark',
   colors: {
     // Background colors (OKLCH)
     background: 'oklch(0.144788 0.000000 0.000000)',
@@ -66,7 +68,7 @@ export const darkModeTheme: Theme = {
     transfer: 'oklch(0.713740 0.143381 254.624021)',
 
     // UI colors (OKLCH)
-    primary: 'oklch(0.695873 0.149074 162.479602)',
+    primary: 'oklch(0.695873 0.149074 162.479602)', // Green for primary actions
     success: 'oklch(0.695873 0.149074 162.479602)',
     warning: 'oklch(0.768590 0.164659 70.080390)',
     error: 'oklch(0.636834 0.207849 25.331328)',
@@ -85,14 +87,15 @@ export const darkModeTheme: Theme = {
 };
 
 /**
- * Pink & Turquoise Theme
- * Elegant, colorful theme with pink and turquoise accents
+ * Dark Pink Theme
+ * Elegant dark theme with pink accents
  */
-export const pinkTurquoiseTheme: Theme = {
-  id: 'pink-turquoise',
-  name: 'Pink & Turquoise',
-  description: 'Elegant and colorful theme with pink and turquoise accents',
+export const darkPinkTheme: Theme = {
+  id: 'dark-pink',
+  name: 'Dark Pink',
+  description: 'Elegant dark theme with pink accents',
   isAvailable: true,
+  mode: 'dark',
   colors: {
     // Backgrounds (deep aubergine base for elegance) - OKLCH
     background: 'oklch(0.155506 0.018491 312.515996)',
@@ -125,11 +128,95 @@ export const pinkTurquoiseTheme: Theme = {
 };
 
 /**
+ * Light Bubblegum Theme
+ * Vibrant, playful light theme with bubblegum pinks and candy accents
+ */
+export const lightBubblegumTheme: Theme = {
+  id: 'light-bubblegum',
+  name: 'Light Bubblegum',
+  description: 'Vibrant light theme with playful bubblegum pinks and candy accents',
+  isAvailable: true,
+  mode: 'light',
+  colors: {
+    // Backgrounds - bright with a subtle pink tint
+    background: 'oklch(0.985000 0.010000 330.000000)', // near-white, slight pink
+    surface: 'oklch(0.976000 0.014000 330.000000)',    // card
+    elevated: 'oklch(0.945000 0.022000 330.000000)',   // elevated/hover (more contrast)
+    border: 'oklch(0.780000 0.020000 270.000000)',     // stronger neutral border for contrast
+
+    // Transactions & UI accents
+    income: 'oklch(0.620000 0.190000 200.000000)',     // deeper turquoise for contrast
+    expense: 'oklch(0.820000 0.220000 350.000000)',    // hot pink
+    transfer: 'oklch(0.830000 0.180000 300.000000)',   // purple/violet
+
+    // UI states
+    primary: 'oklch(0.840000 0.220000 350.000000)',    // bubblegum pink
+    success: 'oklch(0.630000 0.160000 180.000000)',    // deeper mint for contrast
+    warning: 'oklch(0.720000 0.220000 85.000000)',     // stronger amber for borders
+    error: 'oklch(0.800000 0.180000 25.000000)',       // rose/red
+
+    // Text
+    textPrimary: 'oklch(0.160000 0.010000 270.000000)',     // near-black
+    textSecondary: 'oklch(0.420000 0.020000 270.000000)',   // dark gray
+    textMuted: 'oklch(0.620000 0.015000 270.000000)',       // medium gray
+
+    // Foregrounds
+    primaryForeground: 'oklch(1.000000 0.000000 0.000000)',       // white on pink
+    secondaryForeground: 'oklch(0.160000 0.010000 270.000000)',   // dark on light secondary
+    accentForeground: 'oklch(1.000000 0.000000 0.000000)',        // white on accent
+    destructiveForeground: 'oklch(1.000000 0.000000 0.000000)',   // white on red
+  },
+};
+
+/**
+ * Dark Blue Theme
+ * Professional dark theme with blue accents instead of green
+ */
+export const darkBlueTheme: Theme = {
+  id: 'dark-blue',
+  name: 'Dark Blue',
+  description: 'Professional dark theme with blue accents',
+  isAvailable: true,
+  mode: 'dark',
+  colors: {
+    // Background colors (OKLCH) - same as dark mode
+    background: 'oklch(0.144788 0.000000 0.000000)',
+    surface: 'oklch(0.217787 0.000000 0.000000)',
+    elevated: 'oklch(0.260325 0.000000 0.000000)',
+    border: 'oklch(0.285017 0.000000 0.000000)',
+
+    // Semantic colors (OKLCH) - keep green and red for income/expense
+    income: 'oklch(0.695873 0.149074 162.479602)', // Keep green
+    expense: 'oklch(0.710627 0.166148 22.216224)', // Keep red
+    transfer: 'oklch(0.713740 0.143381 254.624021)',
+
+    // UI colors (OKLCH) - blue instead of green
+    primary: 'oklch(0.695873 0.149074 240.000000)', // Blue instead of green
+    success: 'oklch(0.695873 0.149074 240.000000)', // Blue instead of green
+    warning: 'oklch(0.768590 0.164659 70.080390)',
+    error: 'oklch(0.636834 0.207849 25.331328)',
+
+    // Text colors (OKLCH) - same as dark mode
+    textPrimary: 'oklch(1.000000 0.000000 0.000000)',
+    textSecondary: 'oklch(0.713660 0.019176 261.324645)',
+    textMuted: 'oklch(0.551019 0.023361 264.363742)',
+
+    // Foregrounds (OKLCH) - same as dark mode
+    primaryForeground: 'oklch(0.000000 0.000000 0.000000)',
+    secondaryForeground: 'oklch(1.000000 0.000000 0.000000)',
+    accentForeground: 'oklch(1.000000 0.000000 0.000000)',
+    destructiveForeground: 'oklch(1.000000 0.000000 0.000000)',
+  },
+};
+
+/**
  * All available themes
  */
 export const themes: Theme[] = [
   darkModeTheme,
-  pinkTurquoiseTheme,
+  darkPinkTheme,
+  darkBlueTheme,
+  lightBubblegumTheme,
 ];
 
 /**

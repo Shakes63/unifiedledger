@@ -87,7 +87,9 @@ export function applyTheme(themeId: string): void {
     const root = document.documentElement;
     const previousTheme = root.getAttribute('data-theme');
     root.setAttribute('data-theme', themeId);
-    root.style.setProperty('color-scheme', 'dark');
+    // Use the theme's color scheme for native UI controls
+    const scheme = theme.mode === 'light' ? 'light' : 'dark';
+    root.style.setProperty('color-scheme', scheme);
 
     console.log(`[Theme] Changed data-theme from '${previousTheme}' to '${themeId}'`);
     console.log(`[Theme] Root element now has data-theme="${root.getAttribute('data-theme')}"`);

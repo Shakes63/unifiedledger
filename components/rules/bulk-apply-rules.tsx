@@ -60,13 +60,13 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
   };
 
   return (
-    <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-6 space-y-6">
+    <Card className="bg-card border-border p-6 space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-white mb-2 flex items-center gap-2">
-          <Zap className="w-5 h-5 text-yellow-400" />
+        <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
+          <Zap className="w-5 h-5 text-[var(--color-warning)]" />
           Apply Rules to Existing Transactions
         </h3>
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-muted-foreground">
           Automatically categorize uncategorized transactions using your active rules. Rules are applied in priority order, and the first match wins.
         </p>
       </div>
@@ -75,32 +75,32 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
       {!result && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">Start Date (optional)</label>
+            <label className="text-sm text-muted-foreground">Start Date (optional)</label>
             <Input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="bg-[#242424] border-[#3a3a3a] text-white"
+              className="bg-elevated border-border text-foreground"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">End Date (optional)</label>
+            <label className="text-sm text-muted-foreground">End Date (optional)</label>
             <Input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="bg-[#242424] border-[#3a3a3a] text-white"
+              className="bg-elevated border-border text-foreground"
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">Max to Process</label>
+            <label className="text-sm text-muted-foreground">Max to Process</label>
             <Input
               type="number"
               min="1"
               max="1000"
               value={limit}
               onChange={(e) => setLimit(e.target.value)}
-              className="bg-[#242424] border-[#3a3a3a] text-white"
+              className="bg-elevated border-border text-foreground"
             />
           </div>
         </div>
@@ -108,7 +108,7 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
 
       {/* Error Message */}
       {error && (
-        <div className="p-4 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-sm flex gap-2">
+        <div className="p-4 bg-[var(--color-error)]/20 border border-[var(--color-error)]/40 rounded-lg text-[var(--color-error)] text-sm flex gap-2">
           <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           {error}
         </div>
@@ -117,41 +117,41 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
       {/* Result */}
       {result && (
         <div className="space-y-4">
-          <div className="p-4 bg-green-500/20 border border-green-500/40 rounded-lg">
-            <div className="flex items-center gap-2 text-green-400 font-semibold mb-2">
+          <div className="p-4 bg-[var(--color-income)]/20 border border-[var(--color-income)]/40 rounded-lg">
+            <div className="flex items-center gap-2 text-[var(--color-income)] font-semibold mb-2">
               <CheckCircle className="w-5 h-5" />
               Operation Complete
             </div>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="text-gray-400 text-xs">Processed</p>
-                <p className="text-xl font-bold text-white">{result.totalProcessed}</p>
+                <p className="text-muted-foreground text-xs">Processed</p>
+                <p className="text-xl font-bold text-foreground">{result.totalProcessed}</p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs">Updated</p>
-                <p className="text-xl font-bold text-green-400">{result.totalUpdated}</p>
+                <p className="text-muted-foreground text-xs">Updated</p>
+                <p className="text-xl font-bold text-[var(--color-income)]">{result.totalUpdated}</p>
               </div>
               <div>
-                <p className="text-gray-400 text-xs">Errors</p>
-                <p className="text-xl font-bold text-red-400">{result.errors.length}</p>
+                <p className="text-muted-foreground text-xs">Errors</p>
+                <p className="text-xl font-bold text-[var(--color-error)]">{result.errors.length}</p>
               </div>
             </div>
           </div>
 
           {/* Details */}
           {result.appliedRules.length > 0 && (
-            <div className="p-4 bg-[#242424] rounded-lg border border-[#2a2a2a]">
-              <h4 className="font-semibold text-white mb-3 text-sm">Applied Rules</h4>
+            <div className="p-4 bg-elevated rounded-lg border border-border">
+              <h4 className="font-semibold text-foreground mb-3 text-sm">Applied Rules</h4>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {result.appliedRules.slice(0, 10).map((rule) => (
-                  <div key={rule.transactionId} className="text-xs text-gray-400 p-2 bg-[#1a1a1a] rounded">
+                  <div key={rule.transactionId} className="text-xs text-muted-foreground p-2 bg-card rounded">
                     <span className="font-mono">{rule.transactionId.substring(0, 8)}...</span>
                     {' → Rule: '}
-                    <span className="font-mono text-blue-400">{rule.ruleId.substring(0, 8)}...</span>
+                    <span className="font-mono text-[var(--color-primary)]">{rule.ruleId.substring(0, 8)}...</span>
                   </div>
                 ))}
                 {result.appliedRules.length > 10 && (
-                  <div className="text-xs text-gray-500 p-2">
+                  <div className="text-xs text-muted-foreground p-2">
                     ...and {result.appliedRules.length - 10} more
                   </div>
                 )}
@@ -161,14 +161,14 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
 
           {/* Errors */}
           {result.errors.length > 0 && (
-            <div className="p-4 bg-red-500/10 rounded-lg border border-red-500/30">
-              <h4 className="font-semibold text-red-400 mb-3 text-sm">Errors ({result.errors.length})</h4>
+            <div className="p-4 bg-[var(--color-error)]/10 rounded-lg border border-[var(--color-error)]/30">
+              <h4 className="font-semibold text-[var(--color-error)] mb-3 text-sm">Errors ({result.errors.length})</h4>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {result.errors.map((err) => (
-                  <div key={err.transactionId} className="text-xs text-red-300 p-2 bg-[#1a1a1a] rounded">
+                  <div key={err.transactionId} className="text-xs text-[var(--color-error)]/80 p-2 bg-card rounded">
                     <span className="font-mono">{err.transactionId.substring(0, 8)}...</span>
                     {': '}
-                    <span className="text-red-200">{err.error}</span>
+                    <span className="text-[var(--color-error)]/70">{err.error}</span>
                   </div>
                 ))}
               </div>
@@ -182,7 +182,7 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
         <Button
           onClick={handleApply}
           disabled={loading || !!result}
-          className="bg-white text-black hover:bg-gray-100 font-medium flex-1"
+          className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium flex-1"
         >
           {loading ? (
             <>
@@ -209,7 +209,7 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
               setLimit('100');
             }}
             variant="outline"
-            className="bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]"
+            className="bg-elevated text-foreground border-border hover:bg-elevated"
           >
             Run Again
           </Button>
@@ -217,8 +217,8 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
       </div>
 
       {/* Info */}
-      <div className="text-xs text-gray-500 p-3 bg-[#242424] rounded-lg border border-[#2a2a2a] space-y-1">
-        <p className="font-semibold text-gray-400 mb-2">How it works:</p>
+      <div className="text-xs text-muted-foreground p-3 bg-elevated rounded-lg border border-border space-y-1">
+        <p className="font-semibold text-muted-foreground mb-2">How it works:</p>
         <ul className="list-disc list-inside space-y-1">
           <li>Finds all uncategorized transactions matching your date range</li>
           <li>Applies your active rules in priority order (lowest priority number = highest priority)</li>

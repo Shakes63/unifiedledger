@@ -54,7 +54,7 @@ export function CalendarMonth({
           (day) => (
             <div
               key={day}
-              className="text-center text-[#9ca3af] font-semibold text-sm py-2"
+              className="text-center text-muted-foreground font-semibold text-sm py-2"
             >
               {day}
             </div>

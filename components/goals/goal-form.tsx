@@ -106,17 +106,17 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
       {/* Name and Target Amount */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Goal Name</Label>
+          <Label className="text-muted-foreground text-sm mb-1">Goal Name</Label>
           <Input
             name="name"
             value={formData.name}
             onChange={handleChange}
             placeholder="e.g., Vacation Fund"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Target Amount</Label>
+          <Label className="text-muted-foreground text-sm mb-1">Target Amount</Label>
           <Input
             name="targetAmount"
             type="number"
@@ -125,7 +125,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
             placeholder="0.00"
             step="0.01"
             min="0"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
       </div>
@@ -133,7 +133,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
       {/* Current Amount and Priority */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Current Amount</Label>
+          <Label className="text-muted-foreground text-sm mb-1">Current Amount</Label>
           <Input
             name="currentAmount"
             type="number"
@@ -142,18 +142,18 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
             placeholder="0.00"
             step="0.01"
             min="0"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Priority</Label>
+          <Label className="text-muted-foreground text-sm mb-1">Priority</Label>
           <Input
             name="priority"
             type="number"
             value={formData.priority}
             onChange={handleChange}
             placeholder="0"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
       </div>
@@ -161,14 +161,14 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
       {/* Category and Target Date */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Category</Label>
+          <Label className="text-muted-foreground text-sm mb-1">Category</Label>
           <Select value={formData.category} onValueChange={(v) => handleSelectChange('category', v)}>
-            <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+            <SelectTrigger className="bg-elevated border-border text-foreground">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+            <SelectContent className="bg-card border-border">
               {GOAL_CATEGORIES.map((cat) => (
-                <SelectItem key={cat.value} value={cat.value} className="text-white">
+                <SelectItem key={cat.value} value={cat.value} className="text-foreground">
                   {cat.label}
                 </SelectItem>
               ))}
@@ -176,20 +176,20 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
           </Select>
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Target Date</Label>
+          <Label className="text-muted-foreground text-sm mb-1">Target Date</Label>
           <Input
             name="targetDate"
             type="date"
             value={formData.targetDate}
             onChange={handleChange}
-            className="bg-[#242424] border-[#2a2a2a] text-white"
+            className="bg-elevated border-border text-foreground"
           />
         </div>
       </div>
 
       {/* Monthly Contribution */}
       <div>
-        <Label className="text-gray-400 text-sm mb-1">Monthly Contribution (Optional)</Label>
+        <Label className="text-muted-foreground text-sm mb-1">Monthly Contribution (Optional)</Label>
         <Input
           name="monthlyContribution"
           type="number"
@@ -198,13 +198,13 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
           placeholder="0.00"
           step="0.01"
           min="0"
-          className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
         />
       </div>
 
       {/* Color Picker */}
       <div>
-        <Label className="text-gray-400 text-sm mb-2">Color</Label>
+        <Label className="text-muted-foreground text-sm mb-2">Color</Label>
         <div className="flex gap-2">
           {GOAL_COLORS.map((color) => (
             <button
@@ -212,7 +212,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
               type="button"
               onClick={() => handleColorChange(color)}
               className={`w-8 h-8 rounded-full border-2 transition-all ${
-                formData.color === color ? 'border-white scale-110' : 'border-[#2a2a2a]'
+                formData.color === color ? 'border-foreground scale-110' : 'border-border'
               }`}
               style={{ backgroundColor: color }}
             />
@@ -222,25 +222,25 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
 
       {/* Description */}
       <div>
-        <Label className="text-gray-400 text-sm mb-1">Description (Optional)</Label>
+        <Label className="text-muted-foreground text-sm mb-1">Description (Optional)</Label>
         <Textarea
           name="description"
           value={formData.description}
           onChange={handleChange}
           placeholder="Why is this goal important to you?"
-          className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600 min-h-20"
+          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground min-h-20"
         />
       </div>
 
       {/* Notes */}
       <div>
-        <Label className="text-gray-400 text-sm mb-1">Notes (Optional)</Label>
+        <Label className="text-muted-foreground text-sm mb-1">Notes (Optional)</Label>
         <Textarea
           name="notes"
           value={formData.notes}
           onChange={handleChange}
           placeholder="Additional notes..."
-          className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600 min-h-20"
+          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground min-h-20"
         />
       </div>
 
@@ -249,7 +249,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
         <Button
           type="submit"
           disabled={isLoading}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+          className="flex-1 bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
         >
           {isLoading ? 'Saving...' : goal ? 'Update Goal' : 'Create Goal'}
         </Button>
@@ -257,7 +257,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
           type="button"
           onClick={onCancel}
           variant="outline"
-          className="flex-1 border-[#2a2a2a] text-gray-400 hover:text-white"
+          className="flex-1 border-border text-muted-foreground hover:text-foreground"
         >
           Cancel
         </Button>

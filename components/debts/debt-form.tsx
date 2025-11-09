@@ -156,35 +156,35 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Required fields notice */}
-      <p className="text-sm text-gray-400">
-        Fields marked with <span className="text-red-400">*</span> are required
+      <p className="text-sm text-muted-foreground">
+        Fields marked with <span className="text-[var(--color-error)]">*</span> are required
       </p>
 
       {/* Name and Creditor */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-1">
-            Debt Name <span className="text-red-400">*</span>
+          <Label className="text-muted-foreground text-sm mb-1">
+            Debt Name <span className="text-[var(--color-error)]">*</span>
           </Label>
           <Input
             name="name"
             value={formData.name}
             onChange={handleChange}
             placeholder="e.g., Credit Card Debt"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
             required
           />
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-1">
-            Creditor Name <span className="text-red-400">*</span>
+          <Label className="text-muted-foreground text-sm mb-1">
+            Creditor Name <span className="text-[var(--color-error)]">*</span>
           </Label>
           <Input
             name="creditorName"
             value={formData.creditorName}
             onChange={handleChange}
             placeholder="e.g., Capital One"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
             required
           />
         </div>
@@ -193,8 +193,8 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {/* Amounts */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-1">
-            Original Amount <span className="text-red-400">*</span>
+          <Label className="text-muted-foreground text-sm mb-1">
+            Original Amount <span className="text-[var(--color-error)]">*</span>
           </Label>
           <Input
             name="originalAmount"
@@ -204,13 +204,13 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             placeholder="0.00"
             step="0.01"
             min="0.01"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
             required
           />
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-1">
-            Remaining Balance <span className="text-red-400">*</span>
+          <Label className="text-muted-foreground text-sm mb-1">
+            Remaining Balance <span className="text-[var(--color-error)]">*</span>
           </Label>
           <Input
             name="remainingBalance"
@@ -220,7 +220,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             placeholder="0.00"
             step="0.01"
             min="0"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
             required
           />
         </div>
@@ -229,7 +229,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {/* Payment Info */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Minimum Payment (Optional)</Label>
+          <Label className="text-muted-foreground text-sm mb-1">Minimum Payment (Optional)</Label>
           <Input
             name="minimumPayment"
             type="number"
@@ -238,11 +238,11 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             placeholder="0.00"
             step="0.01"
             min="0"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Interest Rate (%)</Label>
+          <Label className="text-muted-foreground text-sm mb-1">Interest Rate (%)</Label>
           <Input
             name="interestRate"
             type="number"
@@ -251,7 +251,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             placeholder="0.00"
             step="0.01"
             min="0"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
       </div>
@@ -259,14 +259,14 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {/* Debt Type and Interest Type */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Debt Type</Label>
+          <Label className="text-muted-foreground text-sm mb-1">Debt Type</Label>
           <Select value={formData.type} onValueChange={(v) => handleSelectChange('type', v)}>
-            <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+            <SelectTrigger className="bg-elevated border-border text-foreground">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+            <SelectContent className="bg-card border-border">
               {DEBT_TYPES.map((t) => (
-                <SelectItem key={t.value} value={t.value} className="text-white">
+                <SelectItem key={t.value} value={t.value} className="text-foreground">
                   {t.label}
                 </SelectItem>
               ))}
@@ -274,17 +274,17 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
           </Select>
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Interest Type</Label>
+          <Label className="text-muted-foreground text-sm mb-1">Interest Type</Label>
           <Select
             value={formData.interestType}
             onValueChange={(v) => handleSelectChange('interestType', v)}
           >
-            <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+            <SelectTrigger className="bg-elevated border-border text-foreground">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+            <SelectContent className="bg-card border-border">
               {INTEREST_TYPES.map((t) => (
-                <SelectItem key={t.value} value={t.value} className="text-white">
+                <SelectItem key={t.value} value={t.value} className="text-foreground">
                   {t.label}
                 </SelectItem>
               ))}
@@ -295,20 +295,20 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
 
       {/* Loan Type */}
       <div>
-        <Label className="text-gray-400 text-sm mb-1">Loan Type</Label>
+        <Label className="text-muted-foreground text-sm mb-1">Loan Type</Label>
         <Select value={formData.loanType} onValueChange={(v) => handleSelectChange('loanType', v)}>
-          <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+          <SelectTrigger className="bg-elevated border-border text-foreground">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+          <SelectContent className="bg-card border-border">
             {LOAN_TYPES.map((t) => (
-              <SelectItem key={t.value} value={t.value} className="text-white">
+              <SelectItem key={t.value} value={t.value} className="text-foreground">
                 {t.label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           {formData.loanType === 'revolving'
             ? 'Revolving credit has variable balances (credit cards, lines of credit)'
             : 'Installment loans have fixed payment schedules (mortgages, car loans, personal loans)'}
@@ -317,12 +317,12 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
 
       {/* Installment Loan Fields */}
       {formData.loanType === 'installment' && (
-        <div className="grid grid-cols-2 gap-4 p-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
+        <div className="grid grid-cols-2 gap-4 p-4 bg-card rounded-lg border border-border">
           <div className="col-span-2">
-            <p className="text-sm text-blue-400 mb-3">Installment Loan Details</p>
+            <p className="text-sm text-[var(--color-primary)] mb-3">Installment Loan Details</p>
           </div>
           <div>
-            <Label className="text-gray-400 text-sm mb-1">Loan Term (months)</Label>
+            <Label className="text-muted-foreground text-sm mb-1">Loan Term (months)</Label>
             <Input
               name="loanTermMonths"
               type="number"
@@ -330,54 +330,54 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
               onChange={handleChange}
               placeholder="60 for 5-year loan, 360 for 30-year"
               min="1"
-              className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+              className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Total loan term: 60 months = 5 years, 360 months = 30 years
             </p>
           </div>
           <div>
-            <Label className="text-gray-400 text-sm mb-1">Origination Date</Label>
+            <Label className="text-muted-foreground text-sm mb-1">Origination Date</Label>
             <Input
               name="originationDate"
               type="date"
               value={formData.originationDate}
               onChange={handleChange}
-              className="bg-[#242424] border-[#2a2a2a] text-white"
+              className="bg-elevated border-border text-foreground"
             />
-            <p className="text-xs text-gray-500 mt-1">When did the loan start?</p>
+            <p className="text-xs text-muted-foreground mt-1">When did the loan start?</p>
           </div>
         </div>
       )}
 
       {/* Revolving Credit Fields */}
       {formData.loanType === 'revolving' && (
-        <div className="space-y-4 p-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
+        <div className="space-y-4 p-4 bg-card rounded-lg border border-border">
           <div>
-            <p className="text-sm text-blue-400 mb-3">Revolving Credit Details</p>
+            <p className="text-sm text-[var(--color-primary)] mb-3">Revolving Credit Details</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-gray-400 text-sm mb-1">Compounding Frequency</Label>
+              <Label className="text-muted-foreground text-sm mb-1">Compounding Frequency</Label>
               <Select
                 value={formData.compoundingFrequency}
                 onValueChange={(v) => handleSelectChange('compoundingFrequency', v)}
               >
-                <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+                <SelectTrigger className="bg-elevated border-border text-foreground">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+                <SelectContent className="bg-card border-border">
                   {COMPOUNDING_FREQUENCIES.map((t) => (
-                    <SelectItem key={t.value} value={t.value} className="text-white">
+                    <SelectItem key={t.value} value={t.value} className="text-foreground">
                       {t.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-500 mt-1">How often does interest compound?</p>
+              <p className="text-xs text-muted-foreground mt-1">How often does interest compound?</p>
             </div>
             <div>
-              <Label className="text-gray-400 text-sm mb-1">Billing Cycle (days)</Label>
+              <Label className="text-muted-foreground text-sm mb-1">Billing Cycle (days)</Label>
               <Input
                 name="billingCycleDays"
                 type="number"
@@ -386,25 +386,25 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
                 placeholder="30"
                 min="28"
                 max="31"
-                className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
               />
-              <p className="text-xs text-gray-500 mt-1">Usually 30 days for credit cards</p>
+              <p className="text-xs text-muted-foreground mt-1">Usually 30 days for credit cards</p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="text-gray-400 text-sm mb-1">Last Statement Date</Label>
+              <Label className="text-muted-foreground text-sm mb-1">Last Statement Date</Label>
               <Input
                 name="lastStatementDate"
                 type="date"
                 value={formData.lastStatementDate}
                 onChange={handleChange}
-                className="bg-[#242424] border-[#2a2a2a] text-white"
+                className="bg-elevated border-border text-foreground"
               />
-              <p className="text-xs text-gray-500 mt-1">Date of last billing statement</p>
+              <p className="text-xs text-muted-foreground mt-1">Date of last billing statement</p>
             </div>
             <div>
-              <Label className="text-gray-400 text-sm mb-1">Last Statement Balance</Label>
+              <Label className="text-muted-foreground text-sm mb-1">Last Statement Balance</Label>
               <Input
                 name="lastStatementBalance"
                 type="number"
@@ -413,9 +413,9 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
                 placeholder="0.00"
                 step="0.01"
                 min="0"
-                className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
               />
-              <p className="text-xs text-gray-500 mt-1">Balance on last statement</p>
+              <p className="text-xs text-muted-foreground mt-1">Balance on last statement</p>
             </div>
           </div>
         </div>
@@ -424,46 +424,46 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {/* Dates */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-1">
-            Start Date <span className="text-red-400">*</span>
+          <Label className="text-muted-foreground text-sm mb-1">
+            Start Date <span className="text-[var(--color-error)]">*</span>
           </Label>
           <Input
             name="startDate"
             type="date"
             value={formData.startDate}
             onChange={handleChange}
-            className="bg-[#242424] border-[#2a2a2a] text-white"
+            className="bg-elevated border-border text-foreground"
             required
           />
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Target Payoff Date (Optional)</Label>
+          <Label className="text-muted-foreground text-sm mb-1">Target Payoff Date (Optional)</Label>
           <Input
             name="targetPayoffDate"
             type="date"
             value={formData.targetPayoffDate}
             onChange={handleChange}
-            className="bg-[#242424] border-[#2a2a2a] text-white"
+            className="bg-elevated border-border text-foreground"
           />
         </div>
       </div>
 
       {/* Priority */}
       <div>
-        <Label className="text-gray-400 text-sm mb-1">Priority (Lower = Higher Priority)</Label>
+        <Label className="text-muted-foreground text-sm mb-1">Priority (Lower = Higher Priority)</Label>
         <Input
           name="priority"
           type="number"
           value={formData.priority}
           onChange={handleChange}
           placeholder="0"
-          className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
         />
       </div>
 
       {/* Color Picker */}
       <div>
-        <Label className="text-gray-400 text-sm mb-2">Color</Label>
+        <Label className="text-muted-foreground text-sm mb-2">Color</Label>
         <div className="flex gap-2">
           {DEBT_COLORS.map((color) => (
             <button
@@ -471,7 +471,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
               type="button"
               onClick={() => handleColorChange(color)}
               className={`w-8 h-8 rounded-full border-2 transition-all ${
-                formData.color === color ? 'border-white scale-110' : 'border-[#2a2a2a]'
+                formData.color === color ? 'border-foreground scale-110' : 'border-border'
               }`}
               style={{ backgroundColor: color }}
             />
@@ -481,25 +481,25 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
 
       {/* Description */}
       <div>
-        <Label className="text-gray-400 text-sm mb-1">Description (Optional)</Label>
+        <Label className="text-muted-foreground text-sm mb-1">Description (Optional)</Label>
         <Textarea
           name="description"
           value={formData.description}
           onChange={handleChange}
           placeholder="Additional details about this debt..."
-          className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600 min-h-20"
+          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground min-h-20"
         />
       </div>
 
       {/* Notes */}
       <div>
-        <Label className="text-gray-400 text-sm mb-1">Notes (Optional)</Label>
+        <Label className="text-muted-foreground text-sm mb-1">Notes (Optional)</Label>
         <Textarea
           name="notes"
           value={formData.notes}
           onChange={handleChange}
           placeholder="Additional notes..."
-          className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600 min-h-20"
+          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground min-h-20"
         />
       </div>
 
@@ -508,7 +508,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
         <Button
           type="submit"
           disabled={isLoading}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+          className="flex-1 bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
         >
           {isLoading ? 'Saving...' : debt ? 'Update Debt' : 'Create Debt'}
         </Button>
@@ -516,7 +516,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
           type="button"
           onClick={onCancel}
           variant="outline"
-          className="flex-1 border-[#2a2a2a] text-gray-400 hover:text-white"
+          className="flex-1 border-border text-muted-foreground hover:text-foreground"
         >
           Cancel
         </Button>

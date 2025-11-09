@@ -220,17 +220,17 @@ export function BillForm({
       {/* Name and Amount */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-2 block">Bill Name*</Label>
+          <Label className="text-muted-foreground text-sm mb-2 block">Bill Name*</Label>
           <Input
             name="name"
             value={formData.name}
             onChange={handleChange}
             placeholder="e.g., Electric Bill"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-2 block">Expected Amount*</Label>
+          <Label className="text-muted-foreground text-sm mb-2 block">Expected Amount*</Label>
           <Input
             name="expectedAmount"
             type="number"
@@ -238,7 +238,7 @@ export function BillForm({
             onChange={handleChange}
             placeholder="0.00"
             step="0.01"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
       </div>
@@ -246,21 +246,21 @@ export function BillForm({
       {/* Frequency and Due Date */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-2 block">Frequency*</Label>
+          <Label className="text-muted-foreground text-sm mb-2 block">Frequency*</Label>
           <Select value={formData.frequency} onValueChange={(value) => handleSelectChange('frequency', value)}>
-            <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+            <SelectTrigger className="bg-elevated border-border text-foreground">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-              <SelectItem value="monthly" className="text-white">Monthly</SelectItem>
-              <SelectItem value="quarterly" className="text-white">Quarterly (Every 3 months)</SelectItem>
-              <SelectItem value="semi-annual" className="text-white">Semi-Annual (Every 6 months)</SelectItem>
-              <SelectItem value="annual" className="text-white">Annual (Yearly)</SelectItem>
+            <SelectContent className="bg-card border-border">
+              <SelectItem value="monthly" className="text-foreground">Monthly</SelectItem>
+              <SelectItem value="quarterly" className="text-foreground">Quarterly (Every 3 months)</SelectItem>
+              <SelectItem value="semi-annual" className="text-foreground">Semi-Annual (Every 6 months)</SelectItem>
+              <SelectItem value="annual" className="text-foreground">Annual (Yearly)</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-2 block">Due Date (Day of Month)*</Label>
+          <Label className="text-muted-foreground text-sm mb-2 block">Due Date (Day of Month)*</Label>
           <Input
             name="dueDate"
             type="number"
@@ -269,15 +269,15 @@ export function BillForm({
             placeholder="1"
             min="1"
             max="31"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
-          <p className="text-xs text-gray-500 mt-1">Day of month (1-31)</p>
+          <p className="text-xs text-muted-foreground mt-1">Day of month (1-31)</p>
         </div>
       </div>
 
       {/* Amount Tolerance */}
       <div>
-        <Label className="text-gray-400 text-sm mb-2 block">Amount Tolerance (%)</Label>
+        <Label className="text-muted-foreground text-sm mb-2 block">Amount Tolerance (%)</Label>
         <Input
           name="amountTolerance"
           type="number"
@@ -285,19 +285,19 @@ export function BillForm({
           onChange={handleChange}
           placeholder="5.0"
           step="0.1"
-          className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
         />
-        <p className="text-xs text-gray-500 mt-1">For auto-matching (default 5%)</p>
+        <p className="text-xs text-muted-foreground mt-1">For auto-matching (default 5%)</p>
       </div>
 
       {/* Category and Account */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-2 block">Category (Optional)</Label>
+          <Label className="text-muted-foreground text-sm mb-2 block">Category (Optional)</Label>
           {!isCreatingCategory ? (
             <div className="flex gap-2">
               <Select value={formData.categoryId} onValueChange={(value) => handleSelectChange('categoryId', value)}>
-                <SelectTrigger className="flex-1 bg-[#242424] border-[#2a2a2a] text-white">
+                <SelectTrigger className="flex-1 bg-elevated border-border text-foreground">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -313,7 +313,7 @@ export function BillForm({
                 variant="outline"
                 size="icon"
                 onClick={() => setIsCreatingCategory(true)}
-                className="bg-[#242424] border-[#3a3a3a] text-gray-400 hover:bg-[#2a2a2a]"
+                className="bg-elevated border-border text-muted-foreground hover:bg-elevated"
               >
                 <Plus className="w-4 h-4" />
               </Button>
@@ -327,14 +327,14 @@ export function BillForm({
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={handleCategoryKeyDown}
-                className="flex-1 bg-[#1a1a1a] border border-[#3b82f6] text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b82f6]"
+                className="flex-1 bg-card border border-[var(--color-primary)] text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
               />
               <Button
                 type="button"
                 size="icon"
                 onClick={handleCreateCategory}
                 disabled={creatingCategory || !newCategoryName.trim()}
-                className="bg-[#3b82f6] hover:bg-[#2563eb] text-white"
+                className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
               >
                 <Plus className="w-4 h-4" />
               </Button>
@@ -346,7 +346,7 @@ export function BillForm({
                   setIsCreatingCategory(false);
                   setNewCategoryName('');
                 }}
-                className="bg-[#242424] border-[#3a3a3a] text-gray-400 hover:bg-[#2a2a2a]"
+                className="bg-elevated border-border text-muted-foreground hover:bg-elevated"
               >
                 <X className="w-4 h-4" />
               </Button>
@@ -354,9 +354,9 @@ export function BillForm({
           )}
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-2 block">Account (Optional)</Label>
+          <Label className="text-muted-foreground text-sm mb-2 block">Account (Optional)</Label>
           <Select value={formData.accountId} onValueChange={(value) => handleSelectChange('accountId', value)}>
-            <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+            <SelectTrigger className="bg-elevated border-border text-foreground">
               <SelectValue placeholder="Select account" />
             </SelectTrigger>
             <SelectContent>
@@ -372,18 +372,18 @@ export function BillForm({
 
       {/* Link to Debt */}
       <div>
-        <Label className="text-gray-400 text-sm mb-2 block">Link to Debt (Optional)</Label>
-        <p className="text-xs text-gray-500 mb-2">
+        <Label className="text-muted-foreground text-sm mb-2 block">Link to Debt (Optional)</Label>
+        <p className="text-xs text-muted-foreground mb-2">
           Link this bill to a debt to automatically track payments and reduce debt balance
         </p>
         <Select value={formData.debtId || 'none'} onValueChange={(value) => handleSelectChange('debtId', value === 'none' ? '' : value)}>
-          <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+          <SelectTrigger className="bg-elevated border-border text-foreground">
             <SelectValue placeholder="Select debt (optional)" />
           </SelectTrigger>
-          <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-            <SelectItem value="none" className="text-white">None</SelectItem>
+          <SelectContent className="bg-card border-border">
+            <SelectItem value="none" className="text-foreground">None</SelectItem>
             {debts.map((debt) => (
-              <SelectItem key={debt.id} value={debt.id} className="text-white">
+              <SelectItem key={debt.id} value={debt.id} className="text-foreground">
                 {debt.name} - ${debt.remainingBalance?.toFixed(2)}
               </SelectItem>
             ))}
@@ -392,21 +392,21 @@ export function BillForm({
       </div>
 
       {/* Toggles */}
-      <div className="space-y-3 p-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
+      <div className="space-y-3 p-4 bg-card rounded-lg border border-border">
         <div className="flex items-center justify-between">
           <div>
-            <Label className="text-gray-400 text-sm block">Variable Amount</Label>
-            <p className="text-xs text-gray-500">Amount varies each month</p>
+            <Label className="text-muted-foreground text-sm block">Variable Amount</Label>
+            <p className="text-xs text-muted-foreground">Amount varies each month</p>
           </div>
           <button
             type="button"
             onClick={() => handleCheckboxChange('isVariableAmount')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isVariableAmount ? 'bg-emerald-500' : 'bg-[#2a2a2a]'
+              formData.isVariableAmount ? 'bg-[var(--color-income)]' : 'bg-border'
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full bg-[var(--color-card)] transition-transform ${
                 formData.isVariableAmount ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
@@ -415,18 +415,18 @@ export function BillForm({
 
         <div className="flex items-center justify-between pt-2">
           <div>
-            <Label className="text-gray-400 text-sm block">Auto-mark Paid</Label>
-            <p className="text-xs text-gray-500">Automatically mark as paid on match</p>
+            <Label className="text-muted-foreground text-sm block">Auto-mark Paid</Label>
+            <p className="text-xs text-muted-foreground">Automatically mark as paid on match</p>
           </div>
           <button
             type="button"
             onClick={() => handleCheckboxChange('autoMarkPaid')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.autoMarkPaid ? 'bg-emerald-500' : 'bg-[#2a2a2a]'
+              formData.autoMarkPaid ? 'bg-[var(--color-income)]' : 'bg-border'
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full bg-[var(--color-card)] transition-transform ${
                 formData.autoMarkPaid ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
@@ -436,21 +436,21 @@ export function BillForm({
 
       {/* Payee Patterns */}
       <div>
-        <Label className="text-gray-400 text-sm mb-2 block">Payee Patterns (Optional)</Label>
-        <p className="text-xs text-gray-500 mb-2">
+        <Label className="text-muted-foreground text-sm mb-2 block">Payee Patterns (Optional)</Label>
+        <p className="text-xs text-muted-foreground mb-2">
           Add patterns to match transaction descriptions (e.g., "Electric", "Power Company")
         </p>
         <div className="space-y-2">
           {formData.payeePatterns.map((pattern: string, index: number) => (
             <div
               key={index}
-              className="flex items-center justify-between p-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded"
+              className="flex items-center justify-between p-2 bg-card border border-border rounded"
             >
-              <span className="text-sm text-gray-300">{pattern}</span>
+              <span className="text-sm text-foreground">{pattern}</span>
               <button
                 type="button"
                 onClick={() => handleRemovePayeePattern(index)}
-                className="text-xs text-red-400 hover:text-red-300"
+                className="text-xs text-[var(--color-error)] hover:text-[var(--color-error)]/80"
               >
                 Remove
               </button>
@@ -467,12 +467,12 @@ export function BillForm({
                 }
               }}
               placeholder="Enter a pattern"
-              className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600 text-sm"
+              className="bg-elevated border-border text-foreground placeholder:text-muted-foreground text-sm"
             />
             <Button
               type="button"
               onClick={handleAddPayeePattern}
-              className="bg-[#242424] border-[#2a2a2a] text-white hover:bg-[#2a2a2a] text-sm"
+              className="bg-elevated border-border text-foreground hover:bg-elevated text-sm"
             >
               Add
             </Button>
@@ -482,21 +482,21 @@ export function BillForm({
 
       {/* Notes */}
       <div>
-        <Label className="text-gray-400 text-sm mb-2 block">Notes (Optional)</Label>
+        <Label className="text-muted-foreground text-sm mb-2 block">Notes (Optional)</Label>
         <Textarea
           name="notes"
           value={formData.notes}
           onChange={handleChange}
           placeholder="Add any additional notes..."
-          className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600 resize-none"
+          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground resize-none"
           rows={3}
         />
       </div>
 
       {/* Info Box */}
-      <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg flex gap-2">
-        <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-200">
+      <div className="p-4 bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 rounded-lg flex gap-2">
+        <AlertCircle className="w-5 h-5 text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-[var(--color-primary)]/80">
           <p className="font-medium mb-1">Category-Based Bill Matching</p>
           <p>
             When you create an expense transaction with the selected category, the oldest unpaid bill instance
@@ -507,11 +507,11 @@ export function BillForm({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 pt-4 border-t border-[#2a2a2a]">
+      <div className="flex gap-3 pt-4 border-t border-border">
         <Button
           type="submit"
           disabled={isLoading}
-          className="flex-1 bg-emerald-500 text-white hover:bg-emerald-600 font-medium"
+          className="flex-1 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
         >
           {isLoading ? (bill ? 'Updating...' : 'Creating...') : bill ? 'Update Bill' : 'Create Bill'}
         </Button>
@@ -519,7 +519,7 @@ export function BillForm({
           type="button"
           onClick={onCancel}
           variant="outline"
-          className="flex-1 bg-[#242424] border-[#2a2a2a] text-white hover:bg-[#2a2a2a]"
+          className="flex-1 bg-elevated border-border text-foreground hover:bg-elevated"
         >
           Cancel
         </Button>

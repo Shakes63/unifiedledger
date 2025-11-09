@@ -96,8 +96,8 @@ export function ColumnMapper({
         </CardHeader>
         <CardContent className="space-y-2">
           {mappings.map((mapping) => (
-            <div key={mapping.csvColumn} className="space-y-2 p-2 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
-              <div className="text-xs font-medium text-white truncate">
+            <div key={mapping.csvColumn} className="space-y-2 p-2 bg-elevated rounded-lg border border-border">
+              <div className="text-xs font-medium text-foreground truncate">
                 {mapping.csvColumn}
               </div>
 
@@ -108,7 +108,7 @@ export function ColumnMapper({
                     updateMapping(mapping.csvColumn, 'appField', value)
                   }
                 >
-                  <SelectTrigger className="bg-[#0a0a0a] h-8 text-xs">
+                  <SelectTrigger className="bg-card h-8 text-xs">
                     <SelectValue placeholder="Select field" />
                   </SelectTrigger>
                   <SelectContent>
@@ -130,7 +130,7 @@ export function ColumnMapper({
                     )
                   }
                 >
-                  <SelectTrigger className="bg-[#0a0a0a] h-8 text-xs">
+                  <SelectTrigger className="bg-card h-8 text-xs">
                     <SelectValue placeholder="Transform" />
                   </SelectTrigger>
                   <SelectContent>
@@ -155,15 +155,15 @@ export function ColumnMapper({
           ))}
 
           {unmappedColumns.length > 0 && (
-            <div className="space-y-2 pt-2 mt-2 border-t border-[#2a2a2a]">
-              <div className="text-xs text-[#6b7280]">Unmapped columns:</div>
+            <div className="space-y-2 pt-2 mt-2 border-t border-border">
+              <div className="text-xs text-muted-foreground">Unmapped columns:</div>
               <div className="max-h-32 overflow-y-auto space-y-1">
                 {unmappedColumns.map((column) => (
                   <div
                     key={column}
-                    className="flex items-center justify-between p-2 bg-[#0a0a0a] rounded text-xs"
+                    className="flex items-center justify-between p-2 bg-card rounded text-xs"
                   >
-                    <span className="text-[#9ca3af] truncate flex-1 mr-2">{column}</span>
+                    <span className="text-muted-foreground truncate flex-1 mr-2">{column}</span>
                     <Button
                       variant="outline"
                       size="sm"
@@ -180,7 +180,7 @@ export function ColumnMapper({
         </CardContent>
       </Card>
 
-      <div className="text-xs text-[#6b7280] px-1">
+      <div className="text-xs text-muted-foreground px-1">
         <strong>Mapped:</strong> {mappings.length}/{headers.length} columns
       </div>
     </div>

@@ -164,8 +164,8 @@ export default function DashboardPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="p-3 ml-3 rounded-lg" style={{ backgroundColor: 'var(--color-expense)', opacity: 0.2 }}>
-                  <TrendingUp className="w-6 h-6" style={{ color: 'var(--color-expense)' }} />
+                <div className="p-3 ml-3 rounded-lg bg-[var(--color-expense)]/20">
+                  <TrendingUp className="w-6 h-6 text-[var(--color-expense)]" />
                 </div>
               </div>
               <div>
@@ -237,7 +237,7 @@ export default function DashboardPage() {
         {/* Add Transaction Button */}
         <section className="mb-12">
           <Link href="/dashboard/transactions/new" className="block">
-            <Button className="w-full h-16 text-lg font-medium rounded-lg" style={{ backgroundColor: 'var(--color-income)', color: 'var(--color-background)' }} size="lg">
+            <Button className="w-full h-16 text-lg font-medium rounded-lg bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90" size="lg">
               <Plus className="mr-2 w-5 h-5" />
               Add Transaction
             </Button>
