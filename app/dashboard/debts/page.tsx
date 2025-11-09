@@ -6,6 +6,8 @@ import { DebtPayoffTracker } from '@/components/debts/debt-payoff-tracker';
 import { DebtForm } from '@/components/debts/debt-form';
 import { DebtPayoffStrategy } from '@/components/debts/debt-payoff-strategy';
 import { WhatIfCalculator } from '@/components/debts/what-if-calculator';
+import { MinimumPaymentWarning } from '@/components/debts/minimum-payment-warning';
+import { DebtFreeCountdown } from '@/components/dashboard/debt-free-countdown';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +25,7 @@ export default function DebtsPage() {
   const [selectedDebt, setSelectedDebt] = useState<any>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'paid_off'>('active');
   const [stats, setStats] = useState<any>(null);
+  const [showMinWarning, setShowMinWarning] = useState(false);
   const [showWhatIf, setShowWhatIf] = useState(false);
   const [showStrategy, setShowStrategy] = useState(false);
   const [debtSettings, setDebtSettings] = useState<any>(null);
@@ -185,6 +188,13 @@ export default function DebtsPage() {
         </Button>
       </div>
 
+      {/* Debt-Free Countdown */}
+      {stats && stats.activeDebtCount > 0 && (
+        <div className="mb-6">
+          <DebtFreeCountdown />
+        </div>
+      )}
+
       {/* Summary Stats */}
       {stats && (
         <div className="grid grid-cols-4 gap-4">
@@ -228,9 +238,32 @@ export default function DebtsPage() {
         ))}
       </div>
 
-      {/* What-If Calculator Section */}
+      {/* Minimum Payment Warning Section */}
       {stats && stats.activeDebtCount > 0 && debtSettings && (
         <div className="space-y-4">
+          <button
+            onClick={() => setShowMinWarning(!showMinWarning)}
+            className="flex items-center justify-between w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 hover:bg-[#242424] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold text-white">Minimum Payment Warning</h3>
+                <p className="text-sm text-gray-400">
+                  See the true cost of paying only minimum payments
+                </p>
+              </div>
+            </div>
+            {showMinWarning ? (
+              <ChevronUp className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
+
+          {showMinWarning && <MinimumPaymentWarning />}
+
+          {/* What-If Calculator Section */}
           <button
             onClick={() => setShowWhatIf(!showWhatIf)}
             className="flex items-center justify-between w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 hover:bg-[#242424] transition-colors"

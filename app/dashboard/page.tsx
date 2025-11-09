@@ -8,6 +8,7 @@ import { Plus, TrendingUp, DollarSign, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { BillsWidget } from '@/components/dashboard/bills-widget';
+import { DebtCountdownCard } from '@/components/dashboard/debt-countdown-card';
 import { useAuth } from '@clerk/nextjs';
 import Decimal from 'decimal.js';
 
@@ -222,11 +223,9 @@ export default function DashboardPage() {
               )}
             </Card>
 
-            {/* Empty Card - Reserved for future use */}
-            <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
-              <div className="flex items-center justify-center h-full">
-                <p className="text-sm text-gray-500">Coming soon</p>
-              </div>
+            {/* Debt Countdown Card */}
+            <Card className="border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl overflow-hidden">
+              <DebtCountdownCard />
             </Card>
           </div>
         </section>

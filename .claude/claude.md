@@ -285,7 +285,54 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates (Current Session)
 
-### Latest Session - What-If Scenario Calculator for Debt Payoff ✅
+### Latest Session - Minimum Payment Warning & Debt-Free Countdown ✅
+
+1. **Implemented Minimum Payment Warning System**
+   - Created dramatic comparison showing cost of paying only minimums
+   - API endpoint: `/api/debts/minimum-warning`
+   - Side-by-side comparison: minimum-only vs current plan
+   - Shows time saved, interest saved with real multipliers (e.g., "pay 3x more in interest")
+   - Red/amber warning colors for visual impact
+   - Encouragement message when user has no extra payment set
+   - Fully integrated into debts page as collapsible section
+   - Files: `app/api/debts/minimum-warning/route.ts`, `components/debts/minimum-payment-warning.tsx`
+
+2. **Implemented Debt-Free Countdown Widget**
+   - Created motivational countdown showing months until debt-free
+   - API endpoint: `/api/debts/countdown`
+   - Reusable ProgressRing component with animated SVG circular progress
+   - Auto-selects gradient colors based on progress (red→orange→blue→green→gold)
+   - Milestone tracking (25%, 50%, 75%, 100%) with emoji indicators (🏅🥈🥇🎉)
+   - Dynamic motivational messages based on progress
+   - Uses actual payment history for accurate progress tracking
+   - Two versions created:
+     - **Full widget**: On debts page with large ring, all details, milestone progress
+     - **Compact card**: On dashboard with horizontal layout, essential info only
+   - Files: `app/api/debts/countdown/route.ts`, `components/ui/progress-ring.tsx`, `components/dashboard/debt-free-countdown.tsx`, `components/dashboard/debt-countdown-card.tsx`
+
+3. **Dashboard Quick Overview Enhancement**
+   - Replaced "Coming soon" empty card with compact debt countdown
+   - Three cards now show:
+     - Monthly Spending (with category filter)
+     - Accounts (with total balance and clickable account list)
+     - Debt Countdown (compact version with progress ring)
+   - All cards match height and styling
+   - Files: `app/dashboard/page.tsx`
+
+4. **Debts Page Organization**
+   - Added full debt-free countdown widget at top
+   - Order: Countdown → Stats → Minimum Warning → What-If → Strategy → Debts list
+   - Files: `app/dashboard/debts/page.tsx`
+
+### Key Features Delivered:
+- **Motivational design**: Progress rings, dynamic messages, milestone celebrations
+- **Accurate calculations**: Uses existing payoff calculator with proper interest calculations
+- **Smart progress tracking**: Uses max of time-based or amount-based progress
+- **Responsive layouts**: Full version for debts page, compact for dashboard
+- **Visual impact**: Gradient colors, animations, emoji indicators
+- **Edge case handling**: No debts (celebration), no extra payment (encouragement), errors (graceful)
+
+### Previous Session - What-If Scenario Calculator for Debt Payoff ✅
 
 1. **Implemented What-If Scenario Calculator**
    - Created comprehensive scenario comparison system for debt payoff strategies
