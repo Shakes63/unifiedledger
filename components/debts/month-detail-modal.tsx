@@ -77,14 +77,14 @@ export function MonthDetailModal({
     {
       name: 'Principal',
       value: parseFloat(payment.principalAmount.toFixed(2)),
-      fill: '#10b981',
     },
     {
       name: 'Interest',
       value: parseFloat(payment.interestAmount.toFixed(2)),
-      fill: '#f87171',
     },
   ];
+
+  const pieChartColors = ['#10b981', '#f87171'];
 
   const canGoBack = monthIndex > 0;
   const canGoForward = monthIndex < schedule.monthlyBreakdown.length - 1;
@@ -141,6 +141,7 @@ export function MonthDetailModal({
                 <PieChart
                   title=""
                   data={pieChartData}
+                  colors={pieChartColors}
                   className="h-48"
                 />
                 <div className="mt-3 space-y-2">
@@ -159,9 +160,8 @@ export function MonthDetailModal({
               <div className="flex flex-col items-center justify-center">
                 <h3 className="text-sm font-semibold text-[#808080] uppercase mb-3">Progress</h3>
                 <ProgressRing
-                  progress={monthDetails.percentPaidOff}
-                  size={120}
-                  strokeWidth={12}
+                  percentage={monthDetails.percentPaidOff}
+                  size="medium"
                 />
                 <div className="mt-4 text-center">
                   <div className="text-2xl font-bold text-white">

@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 interface SuggestionData {
   hasSuggestion: boolean;
   availableAmount: number;
+  reason?: string;
   currentPlan?: {
     extraPayment: number;
     monthsToDebtFree: number;
