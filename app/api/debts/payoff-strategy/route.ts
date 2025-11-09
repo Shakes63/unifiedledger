@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
-import { debts } from '@/lib/db/schema';
+import { debts, debtSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import {
   calculatePayoffStrategy,
   comparePayoffMethods,
   type PayoffMethod,
+  type PaymentFrequency,
   type DebtInput
 } from '@/lib/debts/payoff-calculator';
 
@@ -24,6 +25,15 @@ export async function GET(request: NextRequest) {
     const method = (searchParams.get('method') || 'avalanche') as PayoffMethod;
     const extraPayment = parseFloat(searchParams.get('extraPayment') || '0');
     const compare = searchParams.get('compare') === 'true';
+
+    // Fetch payment frequency from settings
+    const settings = await db
+      .select()
+      .from(debtSettings)
+      .where(eq(debtSettings.userId, userId))
+      .limit(1);
+
+    const paymentFrequency: PaymentFrequency = (settings[0]?.paymentFrequency as PaymentFrequency) || 'monthly';
 
     // Fetch all active debts
     const activeDebts = await db
@@ -62,10 +72,10 @@ export async function GET(request: NextRequest) {
 
     // Calculate strategy or comparison
     if (compare) {
-      const comparison = comparePayoffMethods(debtInputs, extraPayment);
+      const comparison = comparePayoffMethods(debtInputs, extraPayment, paymentFrequency);
       return NextResponse.json(comparison);
     } else {
-      const strategy = calculatePayoffStrategy(debtInputs, extraPayment, method);
+      const strategy = calculatePayoffStrategy(debtInputs, extraPayment, method, paymentFrequency);
       return NextResponse.json(strategy);
     }
 

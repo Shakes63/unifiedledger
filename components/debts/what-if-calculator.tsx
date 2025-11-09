@@ -11,11 +11,13 @@ import type { ScenarioComparisonResult } from '@/lib/debts/payoff-calculator';
 interface WhatIfCalculatorProps {
   currentExtraPayment: number;
   currentMethod: 'snowball' | 'avalanche';
+  currentFrequency?: 'monthly' | 'biweekly';
 }
 
 export function WhatIfCalculator({
   currentExtraPayment,
   currentMethod,
+  currentFrequency = 'monthly',
 }: WhatIfCalculatorProps) {
   const [scenarios, setScenarios] = useState<Scenario[]>([
     {
@@ -24,6 +26,7 @@ export function WhatIfCalculator({
       extraMonthlyPayment: currentExtraPayment,
       lumpSumPayments: [],
       method: currentMethod,
+      paymentFrequency: currentFrequency,
     },
   ]);
   const [comparison, setComparison] = useState<ScenarioComparisonResult | null>(null);
@@ -71,6 +74,7 @@ export function WhatIfCalculator({
       extraMonthlyPayment: template?.extraMonthlyPayment ?? currentExtraPayment,
       lumpSumPayments: template?.lumpSumPayments || [],
       method: template?.method || currentMethod,
+      paymentFrequency: template?.paymentFrequency || currentFrequency,
     };
     setScenarios([...scenarios, newScenario]);
   };
@@ -96,6 +100,7 @@ export function WhatIfCalculator({
         extraMonthlyPayment: currentExtraPayment,
         lumpSumPayments: [],
         method: currentMethod,
+        paymentFrequency: currentFrequency,
       },
     ]);
     toast.success('Reset to current plan');
@@ -120,6 +125,13 @@ export function WhatIfCalculator({
         addScenario({
           name: 'Extra $200/month',
           extraMonthlyPayment: currentExtraPayment + 200,
+        });
+        break;
+      case 'biweekly':
+        addScenario({
+          name: 'Switch to Bi-Weekly',
+          extraMonthlyPayment: currentExtraPayment,
+          paymentFrequency: 'biweekly',
         });
         break;
       case 'tax-refund':
@@ -213,6 +225,16 @@ export function WhatIfCalculator({
           >
             +$200/month
           </Button>
+          {currentFrequency !== 'biweekly' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => addQuickScenario('biweekly')}
+              className="border-[#10b981] text-emerald-400 hover:text-white hover:bg-emerald-500/20"
+            >
+              Bi-Weekly
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"

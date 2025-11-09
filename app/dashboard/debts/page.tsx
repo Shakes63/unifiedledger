@@ -288,6 +288,7 @@ export default function DebtsPage() {
             <WhatIfCalculator
               currentExtraPayment={debtSettings.extraMonthlyPayment || 0}
               currentMethod={debtSettings.preferredMethod || 'avalanche'}
+              currentFrequency={debtSettings.paymentFrequency || 'monthly'}
             />
           )}
 

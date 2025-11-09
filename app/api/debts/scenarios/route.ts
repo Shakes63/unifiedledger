@@ -82,6 +82,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Validate payment frequency if provided
+      if (scenario.paymentFrequency && !['monthly', 'biweekly'].includes(scenario.paymentFrequency)) {
+        return NextResponse.json(
+          { error: 'paymentFrequency must be either "monthly" or "biweekly"' },
+          { status: 400 }
+        );
+      }
+
       // Validate lump sum payments
       for (const lumpSum of scenario.lumpSumPayments) {
         if (typeof lumpSum.month !== 'number' || lumpSum.month < 1) {

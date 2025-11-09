@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { debts, debtSettings, debtPayments } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
-import { calculatePayoffStrategy, type DebtInput } from '@/lib/debts/payoff-calculator';
+import { calculatePayoffStrategy, type DebtInput, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
 import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
@@ -51,6 +51,7 @@ export async function GET() {
 
     const extraPayment = settings.length > 0 ? (settings[0].extraMonthlyPayment || 0) : 0;
     const preferredMethod = settings.length > 0 ? (settings[0].preferredMethod || 'avalanche') : 'avalanche';
+    const paymentFrequency: PaymentFrequency = settings.length > 0 ? (settings[0].paymentFrequency as PaymentFrequency || 'monthly') : 'monthly';
 
     // Transform debts to DebtInput format
     const debtInputs: DebtInput[] = activeDebts.map(debt => ({
@@ -68,7 +69,7 @@ export async function GET() {
     }));
 
     // Calculate payoff strategy
-    const strategy = calculatePayoffStrategy(debtInputs, extraPayment, preferredMethod);
+    const strategy = calculatePayoffStrategy(debtInputs, extraPayment, preferredMethod, paymentFrequency);
 
     // Calculate total original debt and total remaining
     const totalOriginalDebt = activeDebts.reduce(

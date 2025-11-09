@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { X, Plus, Trash2 } from 'lucide-react';
-import type { PayoffMethod, LumpSumPayment } from '@/lib/debts/payoff-calculator';
+import type { PayoffMethod, PaymentFrequency, LumpSumPayment } from '@/lib/debts/payoff-calculator';
 
 export interface Scenario {
   id: string;
@@ -13,6 +13,7 @@ export interface Scenario {
   extraMonthlyPayment: number;
   lumpSumPayments: LumpSumPayment[];
   method: PayoffMethod;
+  paymentFrequency?: PaymentFrequency;
 }
 
 interface ScenarioBuilderProps {
@@ -42,6 +43,10 @@ export function ScenarioBuilder({
 
   const handleMethodChange = (method: PayoffMethod) => {
     onUpdate({ ...scenario, method });
+  };
+
+  const handleFrequencyChange = (frequency: PaymentFrequency) => {
+    onUpdate({ ...scenario, paymentFrequency: frequency });
   };
 
   const handleAddLumpSum = () => {
@@ -96,7 +101,7 @@ export function ScenarioBuilder({
       {/* Extra Monthly Payment */}
       <div className="mb-4">
         <Label htmlFor={`extra-${scenario.id}`} className="text-[#e5e5e5] mb-2 block">
-          Extra Monthly Payment
+          Extra {scenario.paymentFrequency === 'biweekly' ? 'Per Payment' : 'Monthly Payment'}
         </Label>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#808080]">$</span>
@@ -112,7 +117,41 @@ export function ScenarioBuilder({
           />
         </div>
         <p className="text-xs text-[#808080] mt-1">
-          Amount above minimum payments to apply toward debts
+          {scenario.paymentFrequency === 'biweekly'
+            ? `Per payment (${(scenario.extraMonthlyPayment * 26).toFixed(0)}/year)`
+            : 'Amount above minimum payments to apply toward debts'}
+        </p>
+      </div>
+
+      {/* Payment Frequency */}
+      <div className="mb-4">
+        <Label className="text-[#e5e5e5] mb-2 block">Payment Frequency</Label>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleFrequencyChange('monthly')}
+            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              (scenario.paymentFrequency || 'monthly') === 'monthly'
+                ? 'bg-[#60a5fa] text-white'
+                : 'bg-[#242424] text-[#808080] hover:text-white border border-[#2a2a2a]'
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => handleFrequencyChange('biweekly')}
+            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              scenario.paymentFrequency === 'biweekly'
+                ? 'bg-[#10b981] text-white'
+                : 'bg-[#242424] text-[#808080] hover:text-white border border-[#2a2a2a]'
+            }`}
+          >
+            Bi-Weekly
+          </button>
+        </div>
+        <p className="text-xs text-[#808080] mt-1">
+          {scenario.paymentFrequency === 'biweekly'
+            ? '26 payments/year (1 extra annually)'
+            : '12 payments per year'}
         </p>
       </div>
 

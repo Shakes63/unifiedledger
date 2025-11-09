@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { debts, debtSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { calculatePayoffStrategy, type DebtInput } from '@/lib/debts/payoff-calculator';
+import { calculatePayoffStrategy, type DebtInput, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +37,7 @@ export async function GET() {
 
     const extraPayment = settings.length > 0 ? (settings[0].extraMonthlyPayment || 0) : 0;
     const preferredMethod = settings.length > 0 ? (settings[0].preferredMethod || 'avalanche') : 'avalanche';
+    const paymentFrequency: PaymentFrequency = settings.length > 0 ? (settings[0].paymentFrequency as PaymentFrequency || 'monthly') : 'monthly';
 
     // Transform debts to DebtInput format
     const debtInputs: DebtInput[] = activeOnly.map(debt => ({
@@ -54,10 +55,10 @@ export async function GET() {
     }));
 
     // Calculate minimum-only scenario (no extra payments)
-    const minimumOnlyResult = calculatePayoffStrategy(debtInputs, 0, preferredMethod);
+    const minimumOnlyResult = calculatePayoffStrategy(debtInputs, 0, preferredMethod, paymentFrequency);
 
     // Calculate current plan scenario (with extra payments)
-    const currentPlanResult = calculatePayoffStrategy(debtInputs, extraPayment, preferredMethod);
+    const currentPlanResult = calculatePayoffStrategy(debtInputs, extraPayment, preferredMethod, paymentFrequency);
 
     // Calculate total minimum payments
     const totalMinimums = debtInputs.reduce((sum, d) => sum + d.minimumPayment, 0);

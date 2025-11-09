@@ -25,12 +25,14 @@ export async function GET() {
       return Response.json({
         extraMonthlyPayment: 0,
         preferredMethod: 'avalanche',
+        paymentFrequency: 'monthly',
       });
     }
 
     return Response.json({
       extraMonthlyPayment: settings[0].extraMonthlyPayment || 0,
       preferredMethod: settings[0].preferredMethod || 'avalanche',
+      paymentFrequency: settings[0].paymentFrequency || 'monthly',
     });
   } catch (error) {
     console.error('Error fetching debt settings:', error);
@@ -47,7 +49,12 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { extraMonthlyPayment, preferredMethod } = body;
+    const { extraMonthlyPayment, preferredMethod, paymentFrequency } = body;
+
+    // Validate payment frequency
+    if (paymentFrequency && !['monthly', 'biweekly'].includes(paymentFrequency)) {
+      return Response.json({ error: 'Invalid payment frequency. Must be "monthly" or "biweekly"' }, { status: 400 });
+    }
 
     // Check if settings exist
     const existingSettings = await db
@@ -63,6 +70,7 @@ export async function PUT(request: Request) {
         userId,
         extraMonthlyPayment: extraMonthlyPayment || 0,
         preferredMethod: preferredMethod || 'avalanche',
+        paymentFrequency: paymentFrequency || 'monthly',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -73,6 +81,7 @@ export async function PUT(request: Request) {
         .set({
           extraMonthlyPayment: extraMonthlyPayment !== undefined ? extraMonthlyPayment : existingSettings[0].extraMonthlyPayment,
           preferredMethod: preferredMethod || existingSettings[0].preferredMethod,
+          paymentFrequency: paymentFrequency || existingSettings[0].paymentFrequency,
           updatedAt: new Date().toISOString(),
         })
         .where(eq(debtSettings.userId, userId));

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { ComparisonResult, PayoffMethod } from '@/lib/debts/payoff-calculator';
+import type { ComparisonResult, PayoffMethod, PaymentFrequency } from '@/lib/debts/payoff-calculator';
 
 interface DebtPayoffStrategyProps {
   className?: string;
@@ -11,6 +11,7 @@ interface DebtPayoffStrategyProps {
 
 export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
   const [method, setMethod] = useState<PayoffMethod>('avalanche');
+  const [paymentFrequency, setPaymentFrequency] = useState<PaymentFrequency>('monthly');
   const [extraPayment, setExtraPayment] = useState<string>('0');
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,6 +26,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
           const settings = await response.json();
           setExtraPayment(settings.extraMonthlyPayment?.toString() || '0');
           setMethod(settings.preferredMethod || 'avalanche');
+          setPaymentFrequency(settings.paymentFrequency || 'monthly');
           setSettingsLoaded(true);
         }
       } catch (error) {
@@ -49,12 +51,12 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
     return () => clearTimeout(timer);
   }, [extraPayment, settingsLoaded]);
 
-  // Fetch strategy and save settings when method changes (no debounce needed)
+  // Fetch strategy and save settings when method or frequency changes (no debounce needed)
   useEffect(() => {
     if (!settingsLoaded) return;
     fetchStrategy();
     saveSettings();
-  }, [method]);
+  }, [method, paymentFrequency]);
 
   const fetchStrategy = async () => {
     try {
@@ -81,6 +83,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
         body: JSON.stringify({
           extraMonthlyPayment: parseFloat(extraPayment) || 0,
           preferredMethod: method,
+          paymentFrequency,
         }),
       });
     } catch (error) {
@@ -111,39 +114,74 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
 
   return (
     <div className={className}>
-      {/* Header with toggle */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-white">Debt Payoff Strategy</h2>
+      {/* Header */}
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-white mb-4">Debt Payoff Strategy</h2>
+
+        {/* Payment Frequency Toggle */}
+        <div className="mb-3">
+          <Label className="text-[#e5e5e5] text-sm mb-2 block">Payment Frequency</Label>
+          <div className="flex items-center gap-2 bg-[#1a1a1a] rounded-lg p-1">
+            <button
+              onClick={() => setPaymentFrequency('monthly')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                paymentFrequency === 'monthly'
+                  ? 'bg-[#60a5fa] text-white'
+                  : 'text-[#808080] hover:text-white'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setPaymentFrequency('biweekly')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                paymentFrequency === 'biweekly'
+                  ? 'bg-[#10b981] text-white'
+                  : 'text-[#808080] hover:text-white'
+              }`}
+            >
+              Bi-Weekly
+            </button>
+          </div>
+          <p className="text-xs text-[#808080] mt-1">
+            {paymentFrequency === 'biweekly'
+              ? '26 payments/year (1 extra payment annually)'
+              : '12 payments per year'}
+          </p>
+        </div>
 
         {/* Method Toggle */}
-        <div className="flex items-center gap-2 bg-[#1a1a1a] rounded-lg p-1">
-          <button
-            onClick={() => setMethod('snowball')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              method === 'snowball'
-                ? 'bg-[#60a5fa] text-white'
-                : 'text-[#808080] hover:text-white'
-            }`}
-          >
-            Snowball
-          </button>
-          <button
-            onClick={() => setMethod('avalanche')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              method === 'avalanche'
-                ? 'bg-[#60a5fa] text-white'
-                : 'text-[#808080] hover:text-white'
-            }`}
-          >
-            Avalanche
-          </button>
+        <div>
+          <Label className="text-[#e5e5e5] text-sm mb-2 block">Payoff Method</Label>
+          <div className="flex items-center gap-2 bg-[#1a1a1a] rounded-lg p-1">
+            <button
+              onClick={() => setMethod('snowball')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                method === 'snowball'
+                  ? 'bg-[#60a5fa] text-white'
+                  : 'text-[#808080] hover:text-white'
+              }`}
+            >
+              Snowball
+            </button>
+            <button
+              onClick={() => setMethod('avalanche')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                method === 'avalanche'
+                  ? 'bg-[#60a5fa] text-white'
+                  : 'text-[#808080] hover:text-white'
+              }`}
+            >
+              Avalanche
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Extra Payment Input */}
       <div className="mb-6">
         <Label htmlFor="extraPayment" className="text-[#e5e5e5] mb-2 block">
-          Extra Monthly Payment
+          Extra {paymentFrequency === 'biweekly' ? 'Per Payment' : 'Monthly Payment'}
         </Label>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#808080]">$</span>
@@ -159,7 +197,9 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
           />
         </div>
         <p className="text-xs text-[#808080] mt-1">
-          Amount above minimum payments to apply toward debts
+          {paymentFrequency === 'biweekly'
+            ? `Amount above minimums per payment (${parseFloat(extraPayment) * 26 || 0}/year)`
+            : 'Amount above minimum payments to apply toward debts'}
         </p>
       </div>
 
@@ -185,7 +225,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
               <div className="flex justify-between">
                 <span className="text-[#808080]">Recommended Payment:</span>
                 <span className="text-white font-mono font-semibold">
-                  ${currentStrategy.nextRecommendedPayment.recommendedPayment.toFixed(2)}/month
+                  ${currentStrategy.nextRecommendedPayment.recommendedPayment.toFixed(2)}/{paymentFrequency === 'biweekly' ? 'payment' : 'month'}
                 </span>
               </div>
               <div className="flex justify-between">

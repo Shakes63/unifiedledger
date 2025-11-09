@@ -1,6 +1,7 @@
 import Decimal from 'decimal.js';
 
 export type PayoffMethod = 'snowball' | 'avalanche';
+export type PaymentFrequency = 'monthly' | 'biweekly';
 
 export interface DebtInput {
   id: string;
@@ -50,6 +51,7 @@ export interface PayoffOrder {
 
 export interface PayoffStrategyResult {
   method: PayoffMethod;
+  paymentFrequency: PaymentFrequency;
   totalMonths: number;
   totalInterestPaid: number;
   debtFreeDate: Date;
@@ -90,6 +92,7 @@ export interface PayoffScenario {
   extraMonthlyPayment: number;
   lumpSumPayments: LumpSumPayment[];
   method: PayoffMethod;
+  paymentFrequency?: PaymentFrequency;
 }
 
 /**
@@ -122,11 +125,19 @@ export interface ScenarioComparisonResult {
 }
 
 /**
- * Calculate monthly interest amount for a debt using appropriate method
+ * Get number of payment periods per year based on frequency
  */
-function calculateMonthlyInterest(
+function getPaymentPeriodsPerYear(frequency: PaymentFrequency): number {
+  return frequency === 'biweekly' ? 26 : 12;
+}
+
+/**
+ * Calculate interest amount for a single payment period
+ */
+function calculateInterestForPeriod(
   balance: Decimal,
   annualRate: number,
+  paymentFrequency: PaymentFrequency,
   loanType: 'revolving' | 'installment' = 'revolving',
   compoundingFrequency: 'daily' | 'monthly' | 'quarterly' | 'annually' = 'monthly',
   billingCycleDays: number = 30
@@ -135,6 +146,21 @@ function calculateMonthlyInterest(
 
   const rate = new Decimal(annualRate).dividedBy(100);
 
+  if (paymentFrequency === 'biweekly') {
+    // Bi-weekly payments: interest for 14-day period
+    if (loanType === 'installment') {
+      // For installment loans: use bi-weekly rate
+      // Annual rate ÷ 26 periods
+      const biweeklyRate = rate.dividedBy(26);
+      return balance.times(biweeklyRate);
+    } else {
+      // For revolving credit: 14 days of interest
+      const dailyRate = rate.dividedBy(365);
+      return balance.times(dailyRate).times(14);
+    }
+  }
+
+  // Monthly payments: use original monthly interest calculation
   if (loanType === 'installment') {
     // Installment loans always use simple monthly interest
     const monthlyRate = rate.dividedBy(12);
@@ -161,6 +187,27 @@ function calculateMonthlyInterest(
 }
 
 /**
+ * Calculate monthly interest amount for a debt using appropriate method
+ * @deprecated Use calculateInterestForPeriod instead
+ */
+function calculateMonthlyInterest(
+  balance: Decimal,
+  annualRate: number,
+  loanType: 'revolving' | 'installment' = 'revolving',
+  compoundingFrequency: 'daily' | 'monthly' | 'quarterly' | 'annually' = 'monthly',
+  billingCycleDays: number = 30
+): Decimal {
+  return calculateInterestForPeriod(
+    balance,
+    annualRate,
+    'monthly',
+    loanType,
+    compoundingFrequency,
+    billingCycleDays
+  );
+}
+
+/**
  * Sort debts by Snowball method (smallest balance first)
  */
 function sortBySnowball(debts: DebtInput[]): DebtInput[] {
@@ -181,6 +228,7 @@ function calculateDebtSchedule(
   debt: DebtInput,
   paymentAmount: number,
   startMonth: number,
+  paymentFrequency: PaymentFrequency = 'monthly',
   lumpSumPayments: LumpSumPayment[] = []
 ): DebtPayoffSchedule {
   let balance = new Decimal(debt.remainingBalance);
@@ -193,12 +241,24 @@ function calculateDebtSchedule(
     .filter(ls => !ls.targetDebtId || ls.targetDebtId === debt.id)
     .sort((a, b) => a.month - b.month);
 
-  while (balance.greaterThan(0) && monthsToPayoff < 1000) { // 1000 month safety limit
-    const currentMonth = startMonth + monthsToPayoff + 1; // 1-based month number
+  // Track payment periods (26 for biweekly, 12 for monthly per year)
+  const periodsPerYear = getPaymentPeriodsPerYear(paymentFrequency);
+  let paymentPeriod = 0;
 
-    const interestAmount = calculateMonthlyInterest(
+  while (balance.greaterThan(0) && monthsToPayoff < 1000) { // 1000 month safety limit
+    paymentPeriod++;
+
+    // Calculate current month based on payment periods
+    // For biweekly: every 2 periods ≈ 1 month
+    // For monthly: 1 period = 1 month
+    const currentMonth = paymentFrequency === 'biweekly'
+      ? startMonth + Math.floor(paymentPeriod / 2.17) + 1  // 26 periods ÷ 12 months ≈ 2.17 periods/month
+      : startMonth + paymentPeriod;
+
+    const interestAmount = calculateInterestForPeriod(
       balance,
       debt.interestRate,
+      paymentFrequency,
       debt.loanType || 'revolving',
       debt.compoundingFrequency || 'monthly',
       debt.billingCycleDays || 30
@@ -225,7 +285,6 @@ function calculateDebtSchedule(
     }
 
     totalInterestPaid = totalInterestPaid.plus(interestAmount);
-    monthsToPayoff++;
 
     monthlyBreakdown.push({
       debtId: debt.id,
@@ -238,6 +297,13 @@ function calculateDebtSchedule(
 
     if (balance.equals(0)) break;
   }
+
+  // Convert payment periods to months
+  // For biweekly: 26 periods ≈ 12 months (26 ÷ 2.17 ≈ 12)
+  // For monthly: periods = months
+  monthsToPayoff = paymentFrequency === 'biweekly'
+    ? Math.ceil(paymentPeriod / 2.17)
+    : paymentPeriod;
 
   const payoffDate = new Date();
   payoffDate.setMonth(payoffDate.getMonth() + startMonth + monthsToPayoff);
@@ -261,12 +327,14 @@ export function calculatePayoffStrategy(
   debts: DebtInput[],
   extraPayment: number,
   method: PayoffMethod,
+  paymentFrequency: PaymentFrequency = 'monthly',
   lumpSumPayments: LumpSumPayment[] = []
 ): PayoffStrategyResult {
   if (debts.length === 0) {
     const now = new Date();
     return {
       method,
+      paymentFrequency,
       totalMonths: 0,
       totalInterestPaid: 0,
       debtFreeDate: now,
@@ -305,11 +373,17 @@ export function calculatePayoffStrategy(
   const totalMinimums = debts.reduce((sum, d) => sum + d.minimumPayment, 0);
   const totalAvailable = totalMinimums + extraPayment;
 
+  // For biweekly payments, divide monthly amounts by 2
+  const paymentDivisor = paymentFrequency === 'biweekly' ? 2 : 1;
+
   // Calculate schedules using debt avalanche payment strategy
   const schedules: DebtPayoffSchedule[] = [];
   let currentMonth = 0;
-  let remainingDebts = [...sortedDebts];
-  let availablePayment = totalAvailable;
+  let remainingDebts = [...sortedDebts].map(debt => ({
+    ...debt,
+    minimumPayment: debt.minimumPayment / paymentDivisor,
+  }));
+  let availablePayment = totalAvailable / paymentDivisor;
 
   while (remainingDebts.length > 0) {
     // Pay minimums on all debts except the first
@@ -323,6 +397,7 @@ export function calculatePayoffStrategy(
       remainingDebts[0],
       firstDebtPayment,
       currentMonth,
+      paymentFrequency,
       lumpSumPayments
     );
 
@@ -350,8 +425,12 @@ export function calculatePayoffStrategy(
   const nextDebt = sortedDebts[0];
   const nextSchedule = schedules[0];
 
+  // For recommended payment, use the per-period amount (already divided for biweekly)
+  const recommendedPayment = availablePayment - remainingDebts.slice(1).reduce((sum, d) => sum + d.minimumPayment, 0);
+
   return {
     method,
+    paymentFrequency,
     totalMonths: currentMonth,
     totalInterestPaid,
     debtFreeDate,
@@ -360,7 +439,7 @@ export function calculatePayoffStrategy(
       debtId: nextDebt.id,
       debtName: nextDebt.name,
       currentBalance: nextDebt.remainingBalance,
-      recommendedPayment: totalAvailable - debts.slice(1).reduce((sum, d) => sum + d.minimumPayment, 0),
+      recommendedPayment: availablePayment - remainingDebts.slice(1).reduce((sum, d) => sum + d.minimumPayment, 0),
       monthsUntilPayoff: nextSchedule.monthsToPayoff,
       totalInterest: nextSchedule.totalInterestPaid,
     },
@@ -373,10 +452,11 @@ export function calculatePayoffStrategy(
  */
 export function comparePayoffMethods(
   debts: DebtInput[],
-  extraPayment: number
+  extraPayment: number,
+  paymentFrequency: PaymentFrequency = 'monthly'
 ): ComparisonResult {
-  const snowball = calculatePayoffStrategy(debts, extraPayment, 'snowball');
-  const avalanche = calculatePayoffStrategy(debts, extraPayment, 'avalanche');
+  const snowball = calculatePayoffStrategy(debts, extraPayment, 'snowball', paymentFrequency);
+  const avalanche = calculatePayoffStrategy(debts, extraPayment, 'avalanche', paymentFrequency);
 
   const timeSavings = snowball.totalMonths - avalanche.totalMonths;
   const interestSavings = snowball.totalInterestPaid - avalanche.totalInterestPaid;
@@ -421,6 +501,7 @@ export function calculateScenarioComparison(
       debts,
       scenario.extraMonthlyPayment,
       scenario.method,
+      scenario.paymentFrequency || 'monthly',
       scenario.lumpSumPayments
     );
 

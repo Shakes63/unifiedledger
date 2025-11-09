@@ -285,7 +285,64 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates (Current Session)
 
-### Latest Session - Minimum Payment Warning & Debt-Free Countdown ✅
+### Latest Session - Bi-Weekly Payment Strategy ✅
+
+1. **Implemented Payment Frequency Support**
+   - Added `paymentFrequency` field to debt_settings table (migration `0017_add_payment_frequency_to_debt_settings.sql`)
+   - Two frequencies supported: 'monthly' (12 payments/year) and 'biweekly' (26 payments/year)
+   - Settings persist across sessions with auto-load on component mount
+   - Files: `drizzle/0017_*.sql`, `lib/db/schema.ts`
+
+2. **Enhanced Payoff Calculator with Bi-Weekly Logic**
+   - Created `PaymentFrequency` type and helper functions (`getPaymentPeriodsPerYear`, `calculateInterestForPeriod`)
+   - Accurate bi-weekly interest calculations:
+     - Revolving credit (credit cards): 14 days of daily interest per payment
+     - Installment loans (mortgages, car loans): Annual rate ÷ 26 periods
+   - Proper conversion of payment periods to months (26 periods ÷ 2.17 ≈ 12 months)
+   - Automatic 13th payment effect: 26 × $100 = $2,600/year vs 12 × $200 = $2,400/year
+   - Payment amounts automatically divided by 2 for bi-weekly frequency
+   - Files: `lib/debts/payoff-calculator.ts`
+
+3. **Updated All Debt Management APIs**
+   - **Debt Settings API** (`/api/debts/settings`): GET/PUT with frequency field validation
+   - **Payoff Strategy API** (`/api/debts/payoff-strategy`): Fetches frequency from settings, passes to calculator
+   - **Scenarios API** (`/api/debts/scenarios`): Validates optional per-scenario frequency
+   - **Countdown API** (`/api/debts/countdown`): Uses frequency for accurate projections
+   - **Minimum Warning API** (`/api/debts/minimum-warning`): Compares both plans with same frequency
+   - Files: `app/api/debts/settings/route.ts`, `app/api/debts/payoff-strategy/route.ts`, `app/api/debts/scenarios/route.ts`, `app/api/debts/countdown/route.ts`, `app/api/debts/minimum-warning/route.ts`
+
+4. **Created Payment Frequency UI Components**
+   - **Debt Payoff Strategy**: Payment frequency toggle (Monthly/Bi-Weekly) with visual distinction (blue/green)
+   - Help text shows "26 payments/year (1 extra payment annually)" for bi-weekly
+   - Extra payment label dynamically changes: "Per Payment" vs "Monthly Payment"
+   - Shows annual total for bi-weekly: "$X/year"
+   - Recommended payment display shows "/payment" vs "/month" based on frequency
+   - Auto-saves frequency with 500ms debounce
+   - Files: `components/debts/debt-payoff-strategy.tsx`
+
+5. **Enhanced What-If Calculator with Frequency Support**
+   - Added `currentFrequency` prop to WhatIfCalculator component
+   - Each scenario can have different payment frequency
+   - "Switch to Bi-Weekly" quick template button (green accent, only shows if currently monthly)
+   - Scenario builder includes frequency selector per scenario
+   - Dynamic labels show per-payment amounts and annual totals for bi-weekly
+   - Files: `components/debts/what-if-calculator.tsx`, `components/debts/scenario-builder.tsx`, `app/dashboard/debts/page.tsx`
+
+### Key Features Delivered:
+- **Accurate math**: 26 bi-weekly payments create automatic 13th payment effect
+- **Professional calculations**: Proper 14-day interest periods for revolving credit, bi-weekly rates for loans
+- **Smart UI**: Labels, amounts, and help text all adapt to selected frequency
+- **Visual distinction**: Green color for bi-weekly indicates savings/acceleration
+- **Persistence**: Frequency setting saved and loaded automatically
+- **Per-scenario testing**: What-if calculator allows comparing monthly vs bi-weekly side-by-side
+- **Real-world impact**: Can save 2-4 years on 30-year mortgages, significant interest savings
+
+### Database Migrations Applied:
+- `0017_add_payment_frequency_to_debt_settings.sql` - Added payment_frequency field with 'monthly' default
+
+---
+
+### Previous Session - Minimum Payment Warning & Debt-Free Countdown ✅
 
 1. **Implemented Minimum Payment Warning System**
    - Created dramatic comparison showing cost of paying only minimums
