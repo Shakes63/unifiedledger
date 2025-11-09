@@ -285,7 +285,95 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates (Current Session)
 
-### Latest Session - Professional-Grade Debt Interest Calculations & Persistent Settings ✅
+### Latest Session - What-If Scenario Calculator for Debt Payoff ✅
+
+1. **Implemented What-If Scenario Calculator**
+   - Created comprehensive scenario comparison system for debt payoff strategies
+   - Users can test different payment approaches side-by-side (up to 4 scenarios)
+   - Enhanced payoff calculator to support lump sum payments at specific months
+   - Real-time calculation with 500ms debounce for smooth UX
+   - Files: `lib/debts/payoff-calculator.ts`, `app/api/debts/scenarios/route.ts`
+
+2. **Created Scenario Management Components**
+   - **ScenarioBuilder**: Configure individual scenarios with:
+     - Custom name and extra monthly payment amount
+     - Add/remove multiple lump sum payments (amount + month)
+     - Choose payment method (snowball vs avalanche)
+     - Visual validation and feedback
+   - **ScenarioComparisonCard**: Display results showing:
+     - Total months to debt-free, debt-free date, total interest paid
+     - Savings vs baseline (time + money) with color-coded indicators
+     - Trophy badges for best scenarios (fastest, saves most $, most balanced)
+     - Expandable payoff order details
+   - **WhatIfCalculator**: Main container with:
+     - Quick scenario templates (+$50/mo, +$100/mo, Tax Refund, Bonus, etc.)
+     - Add/remove custom scenarios
+     - Reset functionality
+     - Recommendation summary
+   - Files: `components/debts/scenario-builder.tsx`, `components/debts/scenario-comparison-card.tsx`, `components/debts/what-if-calculator.tsx`
+
+3. **Enhanced Payoff Calculator Backend**
+   - Added `LumpSumPayment` interface for one-time payments
+   - Added `PayoffScenario` interface for scenario configuration
+   - Updated `calculateDebtSchedule()` to apply lump sums at specified months
+   - Created `calculateScenarioComparison()` to process multiple scenarios
+   - Calculates best scenario for time, money, and balanced approach
+   - Accurate interest calculations with proper compounding
+   - Files: `lib/debts/payoff-calculator.ts`
+
+4. **Created Scenarios API Endpoint**
+   - POST `/api/debts/scenarios` accepts multiple scenarios
+   - Comprehensive validation for all inputs (scenarios, lump sums, methods)
+   - Returns comparison results with recommendations
+   - Integrates with existing debt data and settings
+   - Files: `app/api/debts/scenarios/route.ts`
+
+5. **Integrated into Debts Page**
+   - Added collapsible "What-If Scenario Calculator" section
+   - Loads user's current debt settings automatically
+   - Positioned above existing Payoff Strategy section
+   - Only shows when user has active debts and settings loaded
+   - Files: `app/dashboard/debts/page.tsx`
+
+6. **Quick Scenario Templates**
+   - "+$50/month", "+$100/month", "+$200/month" extra payments
+   - "Tax Refund" ($5k lump sum in month 4)
+   - "Year-End Bonus" ($3k lump sum in month 12)
+   - "Double Payments" (2x current extra payment)
+   - One-click to add, fully customizable after adding
+
+7. **Smart Recommendations**
+   - Identifies fastest payoff scenario
+   - Identifies scenario that saves most interest
+   - Calculates most balanced approach (50% time + 50% money weight)
+   - Visual badges and highlights for best options
+   - Recommendation summary showing all three categories
+
+### Key Technical Features:
+- Uses existing professional-grade interest calculations (daily compounding for credit cards, proper amortization for loans)
+- Lump sum payments properly integrated into month-by-month calculations
+- Supports targeting specific debts or following strategy order
+- Maximum 4 scenarios for comparison to keep UI manageable
+- Real-time updates with debounced calculation (500ms)
+- Mobile-responsive design with dark mode styling
+- Full TypeScript type safety throughout
+
+### User Benefits:
+- Test "what if" questions without commitment
+- See exact impact of tax refunds, bonuses, or pay raises
+- Compare multiple strategies simultaneously
+- Get personalized recommendations based on goals
+- Make informed decisions about debt payoff
+- Visual, intuitive interface for complex calculations
+
+### Documentation:
+- Created detailed implementation plan: `docs/what-if-scenario-calculator-plan.md`
+- Updated features list: `docs/features.md`
+- All components fully documented with inline comments
+
+---
+
+### Previous Session - Professional-Grade Debt Interest Calculations & Persistent Settings ✅
 
 1. **Implemented Comprehensive Interest Calculation System**
    - Added database migrations for loan tracking fields (0014, 0015, 0016)

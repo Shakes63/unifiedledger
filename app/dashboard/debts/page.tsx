@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { DebtPayoffTracker } from '@/components/debts/debt-payoff-tracker';
 import { DebtForm } from '@/components/debts/debt-form';
 import { DebtPayoffStrategy } from '@/components/debts/debt-payoff-strategy';
+import { WhatIfCalculator } from '@/components/debts/what-if-calculator';
 import {
   Dialog,
   DialogContent,
@@ -22,13 +23,28 @@ export default function DebtsPage() {
   const [selectedDebt, setSelectedDebt] = useState<any>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'paid_off'>('active');
   const [stats, setStats] = useState<any>(null);
-  const [showStrategy, setShowStrategy] = useState(true);
+  const [showWhatIf, setShowWhatIf] = useState(false);
+  const [showStrategy, setShowStrategy] = useState(false);
+  const [debtSettings, setDebtSettings] = useState<any>(null);
 
-  // Fetch debts
+  // Fetch debts and settings
   useEffect(() => {
     loadDebts();
     loadStats();
+    loadSettings();
   }, [filter]);
+
+  const loadSettings = async () => {
+    try {
+      const response = await fetch('/api/debts/settings');
+      if (response.ok) {
+        const data = await response.json();
+        setDebtSettings(data);
+      }
+    } catch (error) {
+      console.error('Error loading debt settings:', error);
+    }
+  };
 
   const loadDebts = async () => {
     try {
@@ -212,9 +228,37 @@ export default function DebtsPage() {
         ))}
       </div>
 
-      {/* Payoff Strategy Section */}
-      {stats && stats.activeDebtCount > 0 && (
+      {/* What-If Calculator Section */}
+      {stats && stats.activeDebtCount > 0 && debtSettings && (
         <div className="space-y-4">
+          <button
+            onClick={() => setShowWhatIf(!showWhatIf)}
+            className="flex items-center justify-between w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 hover:bg-[#242424] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">💡</span>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold text-white">What-If Scenario Calculator</h3>
+                <p className="text-sm text-gray-400">
+                  Test different payment strategies and see how lump sums affect your timeline
+                </p>
+              </div>
+            </div>
+            {showWhatIf ? (
+              <ChevronUp className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
+
+          {showWhatIf && (
+            <WhatIfCalculator
+              currentExtraPayment={debtSettings.extraMonthlyPayment || 0}
+              currentMethod={debtSettings.preferredMethod || 'avalanche'}
+            />
+          )}
+
+          {/* Payoff Strategy Section */}
           <button
             onClick={() => setShowStrategy(!showStrategy)}
             className="flex items-center justify-between w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 hover:bg-[#242424] transition-colors"

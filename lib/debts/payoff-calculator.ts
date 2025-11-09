@@ -74,6 +74,54 @@ export interface ComparisonResult {
 }
 
 /**
+ * Lump sum payment to apply at specific month
+ */
+export interface LumpSumPayment {
+  month: number;        // Which month to apply (1-based)
+  amount: number;       // Lump sum amount
+  targetDebtId?: string; // Optional: specific debt, otherwise follows strategy
+}
+
+/**
+ * A what-if scenario configuration
+ */
+export interface PayoffScenario {
+  name: string;
+  extraMonthlyPayment: number;
+  lumpSumPayments: LumpSumPayment[];
+  method: PayoffMethod;
+}
+
+/**
+ * Result for a single scenario
+ */
+export interface ScenarioResult {
+  name: string;
+  method: PayoffMethod;
+  totalMonths: number;
+  totalInterestPaid: number;
+  debtFreeDate: Date;
+  payoffOrder: PayoffOrder[];
+  schedules: DebtPayoffSchedule[];
+  savingsVsBaseline: {
+    monthsSaved: number;
+    interestSaved: number;
+  } | null;
+}
+
+/**
+ * Comparison of multiple scenarios
+ */
+export interface ScenarioComparisonResult {
+  scenarios: ScenarioResult[];
+  recommendation: {
+    bestForTime: string;      // Scenario name
+    bestForMoney: string;     // Scenario name
+    mostBalanced: string;     // Scenario name
+  };
+}
+
+/**
  * Calculate monthly interest amount for a debt using appropriate method
  */
 function calculateMonthlyInterest(
@@ -127,19 +175,27 @@ function sortByAvalanche(debts: DebtInput[]): DebtInput[] {
 }
 
 /**
- * Calculate payoff schedule for a single debt
+ * Calculate payoff schedule for a single debt with optional lump sum payments
  */
 function calculateDebtSchedule(
   debt: DebtInput,
   paymentAmount: number,
-  startMonth: number
+  startMonth: number,
+  lumpSumPayments: LumpSumPayment[] = []
 ): DebtPayoffSchedule {
   let balance = new Decimal(debt.remainingBalance);
   const monthlyBreakdown: MonthlyPayment[] = [];
   let totalInterestPaid = new Decimal(0);
   let monthsToPayoff = 0;
 
+  // Filter and sort lump sums for this specific debt (or all if no targetDebtId)
+  const relevantLumpSums = lumpSumPayments
+    .filter(ls => !ls.targetDebtId || ls.targetDebtId === debt.id)
+    .sort((a, b) => a.month - b.month);
+
   while (balance.greaterThan(0) && monthsToPayoff < 1000) { // 1000 month safety limit
+    const currentMonth = startMonth + monthsToPayoff + 1; // 1-based month number
+
     const interestAmount = calculateMonthlyInterest(
       balance,
       debt.interestRate,
@@ -148,6 +204,12 @@ function calculateDebtSchedule(
       debt.billingCycleDays || 30
     );
     let payment = new Decimal(paymentAmount);
+
+    // Check if there's a lump sum payment this month
+    const lumpSumThisMonth = relevantLumpSums.find(ls => ls.month === currentMonth);
+    if (lumpSumThisMonth) {
+      payment = payment.plus(new Decimal(lumpSumThisMonth.amount));
+    }
 
     // If payment would overpay, adjust to exact remaining balance + interest
     if (payment.greaterThan(balance.plus(interestAmount))) {
@@ -198,7 +260,8 @@ function calculateDebtSchedule(
 export function calculatePayoffStrategy(
   debts: DebtInput[],
   extraPayment: number,
-  method: PayoffMethod
+  method: PayoffMethod,
+  lumpSumPayments: LumpSumPayment[] = []
 ): PayoffStrategyResult {
   if (debts.length === 0) {
     const now = new Date();
@@ -259,7 +322,8 @@ export function calculatePayoffStrategy(
     const schedule = calculateDebtSchedule(
       remainingDebts[0],
       firstDebtPayment,
-      currentMonth
+      currentMonth,
+      lumpSumPayments
     );
 
     schedules.push(schedule);
@@ -326,5 +390,85 @@ export function comparePayoffMethods(
     timeSavings,
     interestSavings,
     recommendedMethod,
+  };
+}
+
+/**
+ * Calculate and compare multiple what-if scenarios
+ */
+export function calculateScenarioComparison(
+  debts: DebtInput[],
+  scenarios: PayoffScenario[]
+): ScenarioComparisonResult {
+  if (scenarios.length === 0) {
+    return {
+      scenarios: [],
+      recommendation: {
+        bestForTime: '',
+        bestForMoney: '',
+        mostBalanced: '',
+      },
+    };
+  }
+
+  // Calculate results for each scenario
+  const results: ScenarioResult[] = [];
+  let baselineMonths = 0;
+  let baselineInterest = 0;
+
+  scenarios.forEach((scenario, index) => {
+    const strategy = calculatePayoffStrategy(
+      debts,
+      scenario.extraMonthlyPayment,
+      scenario.method,
+      scenario.lumpSumPayments
+    );
+
+    // First scenario is baseline
+    if (index === 0) {
+      baselineMonths = strategy.totalMonths;
+      baselineInterest = strategy.totalInterestPaid;
+    }
+
+    results.push({
+      name: scenario.name,
+      method: scenario.method,
+      totalMonths: strategy.totalMonths,
+      totalInterestPaid: strategy.totalInterestPaid,
+      debtFreeDate: strategy.debtFreeDate,
+      payoffOrder: strategy.payoffOrder,
+      schedules: strategy.schedules,
+      savingsVsBaseline: index === 0 ? null : {
+        monthsSaved: baselineMonths - strategy.totalMonths,
+        interestSaved: baselineInterest - strategy.totalInterestPaid,
+      },
+    });
+  });
+
+  // Find best scenarios
+  const sortedByTime = [...results].sort((a, b) => a.totalMonths - b.totalMonths);
+  const sortedByMoney = [...results].sort((a, b) => a.totalInterestPaid - b.totalInterestPaid);
+
+  // Most balanced: best combination of time and money savings
+  const scoredResults = results.map(r => {
+    const timeSaving = baselineMonths - r.totalMonths;
+    const moneySaving = baselineInterest - r.totalInterestPaid;
+    // Normalize and combine (50% weight each)
+    const timeScore = baselineMonths > 0 ? timeSaving / baselineMonths : 0;
+    const moneyScore = baselineInterest > 0 ? moneySaving / baselineInterest : 0;
+    return {
+      name: r.name,
+      score: (timeScore + moneyScore) / 2,
+    };
+  });
+  const mostBalanced = scoredResults.sort((a, b) => b.score - a.score)[0];
+
+  return {
+    scenarios: results,
+    recommendation: {
+      bestForTime: sortedByTime[0].name,
+      bestForMoney: sortedByMoney[0].name,
+      mostBalanced: mostBalanced.name,
+    },
   };
 }
