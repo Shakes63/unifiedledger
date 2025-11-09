@@ -7,6 +7,8 @@ import { DebtForm } from '@/components/debts/debt-form';
 import { DebtPayoffStrategy } from '@/components/debts/debt-payoff-strategy';
 import { WhatIfCalculator } from '@/components/debts/what-if-calculator';
 import { MinimumPaymentWarning } from '@/components/debts/minimum-payment-warning';
+import { PaymentAdherenceCard } from '@/components/debts/payment-adherence-card';
+import { PaymentStreakWidget } from '@/components/debts/payment-streak-widget';
 import { DebtFreeCountdown } from '@/components/dashboard/debt-free-countdown';
 import {
   Dialog,
@@ -262,6 +264,12 @@ export default function DebtsPage() {
           </button>
 
           {showMinWarning && <MinimumPaymentWarning />}
+
+          {/* Payment Tracking Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <PaymentAdherenceCard />
+            <PaymentStreakWidget />
+          </div>
 
           {/* What-If Calculator Section */}
           <button

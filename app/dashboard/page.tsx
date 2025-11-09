@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { BillsWidget } from '@/components/dashboard/bills-widget';
 import { DebtCountdownCard } from '@/components/dashboard/debt-countdown-card';
+import { BudgetSurplusCard } from '@/components/dashboard/budget-surplus-card';
 import { useAuth } from '@clerk/nextjs';
 import Decimal from 'decimal.js';
 
@@ -143,7 +144,7 @@ export default function DashboardPage() {
         {/* Overview Cards */}
         <section className="mb-8">
           <h2 className="text-xl font-bold mb-6 text-white">Quick Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Monthly Spending Card */}
             <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
               <div className="flex items-start justify-between mb-4">
@@ -222,6 +223,9 @@ export default function DashboardPage() {
                 <p className="text-xs text-gray-500">No accounts yet</p>
               )}
             </Card>
+
+            {/* Budget Surplus Card */}
+            <BudgetSurplusCard />
 
             {/* Debt Countdown Card */}
             <Card className="border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl overflow-hidden">
