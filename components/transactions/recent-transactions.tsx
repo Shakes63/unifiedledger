@@ -36,7 +36,7 @@ export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTran
         const response = await fetch(`/api/transactions?limit=${limit}`);
         if (response.ok) {
           const data = await response.json();
-          setTransactions(data.reverse().slice(0, limit));
+          setTransactions(data.slice(0, limit)); // API already returns newest first
         }
       } catch (error) {
         console.error('Failed to fetch transactions:', error);

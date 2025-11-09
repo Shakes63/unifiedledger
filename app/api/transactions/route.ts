@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
@@ -457,48 +457,61 @@ export async function POST(request: Request) {
       }
     }
 
-    // Auto-detect and link bills (optional, low-confidence matches only)
+    // Auto-match bills by category
     let linkedBillId: string | null = null;
     try {
-      if (type === 'expense') {
-        const userBills = await db
+      if (type === 'expense' && appliedCategoryId) {
+        // Find bills with matching category
+        const matchingBills = await db
           .select()
           .from(bills)
           .where(
             and(
               eq(bills.userId, userId),
-              eq(bills.isActive, true)
+              eq(bills.isActive, true),
+              eq(bills.categoryId, appliedCategoryId)
             )
           );
 
-        if (userBills.length > 0) {
-          const billsForMatching = userBills.map((bill) => {
-            const patterns = bill.payeePatterns
-              ? JSON.parse(bill.payeePatterns)
-              : [];
+        if (matchingBills.length > 0) {
+          // Collect all pending instances from all matching bills
+          const allPendingInstances = [];
 
-            return {
-              id: bill.id,
-              name: bill.name,
-              expectedAmount: bill.expectedAmount,
-              dueDate: bill.dueDate,
-              isVariableAmount: bill.isVariableAmount ?? false,
-              amountTolerance: bill.amountTolerance ?? 5.0,
-              payeePatterns: Array.isArray(patterns) ? patterns : [],
-            };
-          });
+          for (const bill of matchingBills) {
+            const instances = await db
+              .select()
+              .from(billInstances)
+              .where(
+                and(
+                  eq(billInstances.billId, bill.id),
+                  eq(billInstances.status, 'pending')
+                )
+              );
 
-          const matches = await findMatchingBills({
-            id: transactionId,
-            description,
-            amount: parseFloat(amount),
-            date,
-            type,
-          }, billsForMatching);
+            // Add bill info to each instance for later reference
+            instances.forEach(instance => {
+              allPendingInstances.push({
+                instance,
+                bill,
+              });
+            });
+          }
 
-          // Only auto-link very high confidence matches (90+)
-          if (matches.length > 0 && matches[0].confidence >= 90) {
-            linkedBillId = matches[0].billId;
+          if (allPendingInstances.length > 0) {
+            // Sort by due date ascending (oldest first)
+            // This handles late payments, early payments, and multiple payments automatically:
+            // - Late payment: oldest unpaid instance comes first
+            // - Early payment: if all past paid, next future instance comes first
+            // - Multiple payments: each payment goes to next oldest unpaid instance
+            allPendingInstances.sort((a, b) => {
+              const dateA = new Date(a.instance.dueDate).getTime();
+              const dateB = new Date(b.instance.dueDate).getTime();
+              return dateA - dateB;
+            });
+
+            // Match to the oldest pending instance
+            const match = allPendingInstances[0];
+            linkedBillId = match.bill.id;
 
             // Update transaction with bill link
             await db
@@ -509,31 +522,17 @@ export async function POST(request: Request) {
               })
               .where(eq(transactions.id, transactionId));
 
-            // Find and update the corresponding bill instance
-            const txDate = new Date(date);
-            const billInstance = await db
-              .select()
-              .from(billInstances)
-              .where(
-                and(
-                  eq(billInstances.billId, linkedBillId),
-                  eq(billInstances.status, 'pending')
-                )
-              )
-              .limit(1);
-
-            if (billInstance.length > 0) {
-              await db
-                .update(billInstances)
-                .set({
-                  status: 'paid',
-                  paidDate: date,
-                  actualAmount: parseFloat(amount),
-                  transactionId,
-                  updatedAt: new Date().toISOString(),
-                })
-                .where(eq(billInstances.id, billInstance[0].id));
-            }
+            // Update bill instance
+            await db
+              .update(billInstances)
+              .set({
+                status: 'paid',
+                paidDate: date,
+                actualAmount: parseFloat(amount),
+                transactionId,
+                updatedAt: new Date().toISOString(),
+              })
+              .where(eq(billInstances.id, match.instance.id));
           }
         }
       }
@@ -582,7 +581,7 @@ export async function GET(request: Request) {
       .select()
       .from(transactions)
       .where(eq(transactions.userId, userId))
-      .orderBy(transactions.date)
+      .orderBy(desc(transactions.date))
       .limit(limit)
       .offset(offset);
 

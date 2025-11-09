@@ -285,48 +285,60 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates (Current Session)
 
-### Latest Session - CSV Import Preview & Amount Fix ✅
+### Latest Session - Category-Based Bill Matching & UI Fixes ✅
+
+1. **Bug #69: Implemented Category-Based Bill Matching System**
+   - Root cause: Complex fuzzy matching was unreliable and confusing
+   - Solution: Replaced Levenshtein matching with simple category-based matching
+   - When bill created, user selects a category
+   - Any expense with that category marks the oldest unpaid bill instance as paid
+   - Removed 7-day date restriction - now handles late/early/multiple payments automatically
+   - Sorts pending instances by due date and matches to oldest first
+   - Files: `app/api/transactions/route.ts`, `app/api/transactions/[id]/route.ts`, `components/bills/bill-form.tsx`
+   - Result: Much more intuitive and predictable bill payment tracking
+
+2. **Bug #70: Fixed Bill Edit Button Not Working**
+   - Root cause: Prop name mismatch - edit page passed `initialData` but form expected `bill`
+   - Solution: Fixed prop name and button text logic
+   - Form now pre-populates correctly and shows "Update Bill" instead of "Create Bill"
+   - Files: `app/dashboard/bills/edit/[id]/page.tsx`, `components/bills/bill-form.tsx`
+
+3. **Bug #71: Fixed Transaction Sorting Showing Oldest First**
+   - Root cause: Multiple `.reverse()` calls left over from when API sorted ascending
+   - Solution: Removed all reverse() calls after fixing API to sort descending
+   - Files: `app/api/transactions/route.ts`, `app/dashboard/transactions/page.tsx`, `components/transactions/recent-transactions.tsx`
+   - Transactions now consistently show newest first everywhere
+
+4. **Bug #72: Fixed Sidebar Not Sticky**
+   - Root cause: Parent layout used `min-h-screen` allowing unlimited growth
+   - Solution: Changed layout to `h-screen` with proper overflow handling
+   - Only main content scrolls, sidebar stays fixed
+   - Files: `components/navigation/sidebar.tsx`, `components/navigation/dashboard-layout.tsx`
+
+5. **Bug #73: Added Category Display to Transaction Lists**
+   - Enhancement: Show category name in recent transactions widget
+   - Display format: "Jan 15 • Groceries • Split"
+   - Files: `components/dashboard/recent-transactions.tsx`
+
+### Previous Session - CSV Import Preview & Amount Fix ✅
 
 1. **Bug #60: Fixed CSV Import Preview Button Not Responding** - Major multi-part fix
-   - **Root Cause 1:** UI navigation issues when preview failed to load
-   - **Root Cause 2:** Node.js `Buffer` API used in browser client code causing errors
-   - **Root Cause 3:** Browser `FileReader` API used in Node.js server code causing crashes
-   - **Root Cause 4:** Validation didn't accept withdrawal/deposit as alternative to amount field
-   - **Solution Part 1:** Added console logging and Back button to preview for better UX
-   - **Solution Part 2:** Replaced `Buffer.from()` with native browser `btoa()` for base64 encoding
-   - **Solution Part 3:** Replaced `FileReader` with direct PapaParse parsing on server side
-   - **Solution Part 4:** Updated validation to accept withdrawal/deposit OR amount field
-   - **Solution Part 5:** Smart error handling - only fails if errors AND no data parsed
+   - Replaced Node.js Buffer with browser btoa() for base64 encoding
+   - Replaced browser FileReader with server-side PapaParse parsing
+   - Updated validation to accept withdrawal/deposit OR amount field
    - Files: `csv-import-modal.tsx`, `import-preview.tsx`, `app/api/csv-import/route.ts`
-   - CSV import preview now works end-to-end with comprehensive error handling
 
-2. **Bug #61: Fixed CSV Import Showing $0 Amounts for All Transactions**
-   - Root cause: Dual-column CSVs have both withdrawal AND deposit columns per row
-   - Example: `Withdrawal="82.21", Deposit="0.00"` for expense transactions
-   - Second column with "0.00" was overwriting the first column's valid amount
-   - Solution: Added Decimal.js `.isZero()` check - only set amount if value is non-zero
-   - Now correctly shows $82.21 for withdrawals, $98.25 for deposits
-   - No more $0.00 transactions from dual-column CSV bank exports
-   - Files: `lib/csv-import.ts` (lines 289-321)
+2. **Bug #61: Fixed CSV Import Showing $0 Amounts**
+   - Added Decimal.js `.isZero()` check - only set amount if non-zero
+   - Files: `lib/csv-import.ts`
 
-3. **Bug #62: Fixed CSV Import Button Doing Nothing (400 Bad Request)**
-   - Root cause: Data format mismatch between frontend and backend
-   - Frontend sent row numbers as strings: `['1', '2', '3', ...]`
-   - Backend was checking against staging record IDs (nanoid): `'BfUcRieZARAQKTD95NKL-'`
-   - Filter never found matches, returned "No records to import" error
-   - Solution: Updated backend to filter by row numbers instead of staging IDs
-   - Convert strings to integers and use Set for fast O(1) lookup
-   - Files: `app/api/csv-import/[importId]/confirm/route.ts` (lines 60-72)
-   - Import button now successfully imports all selected transactions into database
+3. **Bug #62: Fixed CSV Import Button 400 Error**
+   - Updated backend to filter by row numbers instead of IDs
+   - Files: `app/api/csv-import/[importId]/confirm/route.ts`
 
-4. **Bug #63: Added Auto-Refresh After CSV Import Success**
-   - Enhancement: Transactions page should automatically refresh after import
-   - Added optional `onSuccess` callback prop to CSVImportModal component
-   - Triggers automatic refresh when user closes the import success modal
-   - Fetches latest transactions from API and updates component state
-   - Shows "Transactions refreshed" toast notification for user feedback
-   - Files: `csv-import-modal.tsx` (lines 34, 41, 241-244), `transactions/page.tsx` (lines 511-524)
-   - User immediately sees newly imported transactions without manual page refresh
+4. **Bug #63: Added Auto-Refresh After CSV Import**
+   - Added `onSuccess` callback to refresh transactions
+   - Files: `csv-import-modal.tsx`, `transactions/page.tsx`
 
 ### Previous Session - Transfer Model & Split UI ✅
 

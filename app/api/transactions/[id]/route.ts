@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
-import { transactions, accounts, budgetCategories, transactionSplits } from '@/lib/db/schema';
+import { transactions, accounts, budgetCategories, transactionSplits, bills, billInstances } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
@@ -216,6 +216,106 @@ export async function PUT(
         updatedAt: new Date().toISOString(),
       })
       .where(eq(transactions.id, id));
+
+    // Auto-match bills by category (if category changed and is expense)
+    try {
+      if (transaction.type === 'expense' && newCategoryId && newCategoryId !== transaction.categoryId) {
+        // First, unlink from old bill instance if it exists
+        if (transaction.billId) {
+          const oldInstance = await db
+            .select()
+            .from(billInstances)
+            .where(eq(billInstances.transactionId, id))
+            .limit(1);
+
+          if (oldInstance.length > 0) {
+            await db
+              .update(billInstances)
+              .set({
+                status: 'pending',
+                paidDate: null,
+                actualAmount: null,
+                transactionId: null,
+                updatedAt: new Date().toISOString(),
+              })
+              .where(eq(billInstances.id, oldInstance[0].id));
+          }
+        }
+
+        // Now find bills with the new category
+        const matchingBills = await db
+          .select()
+          .from(bills)
+          .where(
+            and(
+              eq(bills.userId, userId),
+              eq(bills.isActive, true),
+              eq(bills.categoryId, newCategoryId)
+            )
+          );
+
+        if (matchingBills.length > 0) {
+          // Collect all pending instances from all matching bills
+          const allPendingInstances = [];
+
+          for (const bill of matchingBills) {
+            const instances = await db
+              .select()
+              .from(billInstances)
+              .where(
+                and(
+                  eq(billInstances.billId, bill.id),
+                  eq(billInstances.status, 'pending')
+                )
+              );
+
+            instances.forEach(instance => {
+              allPendingInstances.push({
+                instance,
+                bill,
+              });
+            });
+          }
+
+          if (allPendingInstances.length > 0) {
+            // Sort by due date ascending (oldest first)
+            allPendingInstances.sort((a, b) => {
+              const dateA = new Date(a.instance.dueDate).getTime();
+              const dateB = new Date(b.instance.dueDate).getTime();
+              return dateA - dateB;
+            });
+
+            // Match to the oldest pending instance
+            const match = allPendingInstances[0];
+            const linkedBillId = match.bill.id;
+
+            // Update transaction with bill link
+            await db
+              .update(transactions)
+              .set({
+                billId: linkedBillId,
+                updatedAt: new Date().toISOString(),
+              })
+              .where(eq(transactions.id, id));
+
+            // Update bill instance
+            await db
+              .update(billInstances)
+              .set({
+                status: 'paid',
+                paidDate: newDate,
+                actualAmount: newAmount.toNumber(),
+                transactionId: id,
+                updatedAt: new Date().toISOString(),
+              })
+              .where(eq(billInstances.id, match.instance.id));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error auto-linking bill on update:', error);
+      // Don't fail the transaction update
+    }
 
     return Response.json(
       {

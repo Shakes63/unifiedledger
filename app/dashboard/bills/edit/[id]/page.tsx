@@ -115,7 +115,7 @@ export default function EditBillPage({ params }: PageProps) {
           </CardHeader>
           <CardContent>
             <BillForm
-              initialData={billData}
+              bill={billData}
               onSubmit={handleSubmit}
               onCancel={handleCancel}
               isLoading={isLoading}

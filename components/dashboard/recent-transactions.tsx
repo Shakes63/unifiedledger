@@ -32,10 +32,16 @@ interface Account {
   name: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+}
+
 export function RecentTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [repeatingTxId, setRepeatingTxId] = useState<string | null>(null);
 
@@ -63,6 +69,13 @@ export function RecentTransactions() {
         if (accResponse.ok) {
           const accData = await accResponse.json();
           setAccounts(accData);
+        }
+
+        // Fetch categories
+        const catResponse = await fetch('/api/categories');
+        if (catResponse.ok) {
+          const catData = await catResponse.json();
+          setCategories(catData);
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);
@@ -140,6 +153,12 @@ export function RecentTransactions() {
     if (!accountId) return 'Unknown';
     const account = accounts.find((a) => a.id === accountId);
     return account?.name || 'Unknown';
+  };
+
+  const getCategoryName = (categoryId?: string): string | null => {
+    if (!categoryId) return null;
+    const category = categories.find((c) => c.id === categoryId);
+    return category?.name || null;
   };
 
   const getTransactionDisplay = (transaction: Transaction): { merchant: string | null; description: string } => {
@@ -226,6 +245,7 @@ export function RecentTransactions() {
       {transactions.map((transaction) => {
         const display = getTransactionDisplay(transaction);
         const accountName = getAccountName(transaction.accountId);
+        const categoryName = getCategoryName(transaction.categoryId);
 
         return (
           <Link key={transaction.id} href={`/dashboard/transactions/${transaction.id}`}>
@@ -246,12 +266,13 @@ export function RecentTransactions() {
                     <p className={`text-xs truncate ${display.merchant ? 'text-gray-400' : 'font-medium text-white text-sm'}`}>
                       {display.description}
                     </p>
-                    {/* Date and split indicator */}
+                    {/* Date, category, and split indicator */}
                     <p className="text-xs text-gray-500">
                       {new Date(transaction.date).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                       })}
+                      {categoryName && ` • ${categoryName}`}
                       {transaction.isSplit && ' • Split'}
                     </p>
                   </div>

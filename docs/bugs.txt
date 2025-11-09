@@ -987,5 +987,109 @@ COMPLETED BUGS:
 - Result: Dashboard now correctly displays bills with status "pending" or "paid"
 - Widget successfully filters and shows this month's bills
 
-pending
+✅ 69. Implemented category-based bill matching system:
+- Root cause: Complex Levenshtein distance fuzzy matching was unreliable
+- User requirement: Bills should have categories, transactions with that category auto-mark bills paid
+- Solution Part 1 - Bill matching logic:
+  * Replaced fuzzy matching with simple category-based matching
+  * When expense transaction created with categoryId, finds bills with same category
+  * Removed all Levenshtein distance calculations
+  * Removed confidence scoring (40% string similarity, 30% amount, 20% date, 10% pattern)
+  * Much simpler and more predictable for users
+- Solution Part 2 - Smart oldest-first matching:
+  * Removed 7-day date window restriction (was too limiting)
+  * New logic: Matches to oldest pending bill instance for that category
+  * Sorts all pending instances by due date ascending
+  * Automatically handles late payments, early payments, multiple payments
+  * If current instance paid, next payment automatically goes to next oldest
+- Solution Part 3 - Transaction update matching:
+  * When changing transaction category, unlinks from old bill
+  * Matches to new category's oldest pending instance
+  * Same smart matching logic as creation
+- Files updated:
+  * app/api/transactions/route.ts (lines 460-542) - Creation matching
+  * app/api/transactions/[id]/route.ts (lines 3, 220-318) - Update matching + imports
+  * components/bills/bill-form.tsx (lines 452-457) - Updated info message
+- Result: Bills now use category-based matching
+  * User assigns category to bill
+  * Any expense with that category marks oldest unpaid bill instance as paid
+  * Handles late/early/multiple payments automatically
+  * Much more intuitive than fuzzy matching
 
+✅ 70. Fixed bill edit button not working:
+- Error: Edit button opened form but showed "Create Bill" instead of "Update Bill"
+- Form wasn't pre-populated with existing bill data
+- Root cause: Prop name mismatch between edit page and BillForm component
+- Edit page passed prop `initialData={billData}`
+- BillForm component expected prop named `bill`
+- Solution:
+  * Changed edit page to pass `bill={billData}` instead of initialData
+  * Updated button text logic to show correct loading states:
+    - Loading + bill exists: "Updating..."
+    - Loading + new bill: "Creating..."
+    - Not loading + bill exists: "Update Bill"
+    - Not loading + new bill: "Create Bill"
+- Files updated:
+  * app/dashboard/bills/edit/[id]/page.tsx (line 118) - Fixed prop name
+  * components/bills/bill-form.tsx (line 468) - Fixed button text logic
+- Result: Edit bill form now works correctly
+  * Pre-populates all fields with existing data
+  * Shows "Update Bill" button
+  * Shows "Updating..." while saving
+  * Successfully updates bill via PUT endpoint
+
+✅ 71. Fixed transaction sorting showing oldest first:
+- Issue: After fixing API to sort descending, frontend was reversing it back
+- Root cause: Multiple `.reverse()` calls left over from when API sorted ascending
+- When API changed to desc order, these reverses flipped it back to wrong order
+- Solution: Removed all .reverse() calls from transaction-fetching code
+  * app/dashboard/transactions/page.tsx - Removed from 3 locations:
+    - Line 91: Initial data fetch
+    - Line 218: After repeating transaction
+    - Line 517: After CSV import
+  * components/transactions/recent-transactions.tsx - Line 39: Initial fetch
+- Files updated:
+  * app/api/transactions/route.ts (lines 1-4, 584) - Added desc import, orderBy(desc(date))
+  * app/dashboard/transactions/page.tsx (lines 91, 218, 517) - Removed reverse() calls
+  * components/transactions/recent-transactions.tsx (line 39) - Removed reverse()
+- Result: Transactions now consistently show newest first everywhere
+  * Dashboard recent transactions widget
+  * Main transactions page
+  * After repeating transaction
+  * After CSV import
+
+✅ 72. Fixed sidebar not sticky (scrolled with page):
+- Issue: Sidebar scrolled away when scrolling page content
+- Root cause 1: Sidebar had overflow-y-auto causing entire sidebar to scroll
+- Root cause 2: Parent layout used min-h-screen allowing unlimited growth
+- When container grows beyond viewport, sticky doesn't work
+- Solution Part 1 - Sidebar (components/navigation/sidebar.tsx:100):
+  * Removed overflow-y-auto and overflow-x-hidden from sidebar element
+  * Kept only sticky top-0 and h-screen
+  * Navigation section (middle) has its own overflow-y-auto for scrolling
+- Solution Part 2 - Layout (components/navigation/dashboard-layout.tsx):
+  * Changed root from min-h-screen to h-screen (fixed height, not minimum)
+  * Changed overflow-x-hidden to overflow-hidden (no scrolling on parent)
+  * Content wrapper: Changed to overflow-hidden (no scrolling here)
+  * Main content: Added overflow-y-auto (THIS is where scrolling happens)
+- Files updated:
+  * components/navigation/sidebar.tsx (line 100) - Removed overflow classes
+  * components/navigation/dashboard-layout.tsx (lines 16, 21, 26) - Layout fix
+- Result: Sidebar now properly stays fixed while page content scrolls
+  * Logo and user button always visible at top/bottom
+  * Only navigation menu scrolls if too many items
+  * Main content area scrolls independently
+
+✅ 73. Added category display to transaction lists:
+- Enhancement: Recent transactions should show category name like main page does
+- Solution:
+  * Added Category interface
+  * Added categories state
+  * Fetch categories from /api/categories
+  * Added getCategoryName helper function
+  * Display category in date line: "Jan 15 • Groceries • Split"
+- Files updated:
+  * components/dashboard/recent-transactions.tsx (lines 35-38, 44, 74-79, 158-162, 248, 275)
+- Result: Transactions display includes category between date and split indicator
+  * Quick visual identification of what each transaction is for
+  * Consistent with user expectations 

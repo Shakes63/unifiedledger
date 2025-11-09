@@ -449,10 +449,11 @@ export function BillForm({
       <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg flex gap-2">
         <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-blue-200">
-          <p className="font-medium mb-1">Bill Matching</p>
+          <p className="font-medium mb-1">Category-Based Bill Matching</p>
           <p>
-            This bill will be matched against your transactions. When an expense is created that matches
-            the bill criteria, it will be automatically linked.
+            When you create an expense transaction with the selected category, the oldest unpaid bill instance
+            will be automatically marked as paid. This handles late payments, early payments, and multiple
+            payments intelligently.
           </p>
         </div>
       </div>
@@ -464,7 +465,7 @@ export function BillForm({
           disabled={isLoading}
           className="flex-1 bg-emerald-500 text-white hover:bg-emerald-600 font-medium"
         >
-          {isLoading ? 'Creating...' : bill ? 'Update Bill' : 'Create Bill'}
+          {isLoading ? (bill ? 'Updating...' : 'Creating...') : bill ? 'Update Bill' : 'Create Bill'}
         </Button>
         <Button
           type="button"

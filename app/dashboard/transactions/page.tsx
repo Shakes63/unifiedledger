@@ -88,7 +88,7 @@ export default function TransactionsPage() {
         const txResponse = await fetch('/api/transactions?limit=100');
         if (txResponse.ok) {
           const txData = await txResponse.json();
-          setTransactions(txData.reverse()); // Show newest first
+          setTransactions(txData); // API already returns newest first
           setTotalResults(txData.length);
         }
 
@@ -215,7 +215,7 @@ export default function TransactionsPage() {
           const txResponse = await fetch('/api/transactions?limit=100');
           if (txResponse.ok) {
             const txData = await txResponse.json();
-            setTransactions(txData.reverse());
+            setTransactions(txData); // API already returns newest first
             setTotalResults(txData.length);
           }
         }
@@ -514,7 +514,7 @@ export default function TransactionsPage() {
             const txResponse = await fetch('/api/transactions?limit=100');
             if (txResponse.ok) {
               const txData = await txResponse.json();
-              setTransactions(txData.reverse());
+              setTransactions(txData); // API already returns newest first
               setTotalResults(txData.length);
               toast.success('Transactions refreshed');
             }
