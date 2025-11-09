@@ -190,3 +190,9 @@ For debt system
   - "Show payment history" accordion
   - "Show amortization schedule" accordion
   - Keeps UI clean but data accessible
+
+13. Settings page
+
+14. Theme toggle on settings page
+
+15 New theme that is elegant an girly with pink and turquiose and other colors that work well with those colors. it should be colorful and fun and elegant

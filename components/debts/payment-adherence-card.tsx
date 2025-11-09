@@ -18,7 +18,7 @@ interface AdherenceData {
     monthsAheadOrBehind: number;
     savingsFromBeingAhead?: number;
     additionalCostFromBehind?: number;
-  };
+  } | null;
   message?: string;
 }
 

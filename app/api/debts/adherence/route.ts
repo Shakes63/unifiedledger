@@ -201,27 +201,51 @@ export async function GET() {
       billingCycleDays: debt.billingCycleDays || undefined,
     }));
 
-    // Original projection (using current settings)
-    const originalProjection = calculatePayoffStrategy(
-      debtInputs,
-      extraMonthlyPayment,
-      preferredMethod,
-      paymentFrequency
-    );
+    let projectionAdjustment = null;
 
-    // Adjusted projection (using actual average)
-    const adjustedExtraPayment = Math.max(0, actualAveragePayment - totalMinimumPayment);
-    const adjustedProjection = calculatePayoffStrategy(
-      debtInputs,
-      adjustedExtraPayment,
-      preferredMethod,
-      paymentFrequency
-    );
+    // Only calculate projections if we have reasonable debt amounts
+    // Skip for very long-term debts to avoid timeout
+    const totalDebt = activeDebts.reduce((sum, d) => sum + (d.remainingBalance || 0), 0);
+    const shouldCalculateProjections = totalDebt > 0 && totalDebt < 1000000; // Skip if over $1M
 
-    const monthsAheadOrBehind = originalProjection.totalMonths - adjustedProjection.totalMonths;
-    const interestDifference = new Decimal(originalProjection.totalInterestPaid)
-      .minus(adjustedProjection.totalInterestPaid)
-      .toNumber();
+    if (shouldCalculateProjections) {
+      try {
+        // Original projection (using current settings)
+        const originalProjection = calculatePayoffStrategy(
+          debtInputs,
+          extraMonthlyPayment,
+          preferredMethod,
+          paymentFrequency
+        );
+
+        // Adjusted projection (using actual average)
+        const adjustedExtraPayment = Math.max(0, actualAveragePayment - totalMinimumPayment);
+        const adjustedProjection = calculatePayoffStrategy(
+          debtInputs,
+          adjustedExtraPayment,
+          preferredMethod,
+          paymentFrequency
+        );
+
+        const monthsAheadOrBehind = originalProjection.totalMonths - adjustedProjection.totalMonths;
+        const interestDifference = new Decimal(originalProjection.totalInterestPaid)
+          .minus(adjustedProjection.totalInterestPaid)
+          .toNumber();
+
+        projectionAdjustment = {
+          monthsAheadOrBehind,
+          originalDebtFreeDate: originalProjection.debtFreeDate.toISOString(),
+          adjustedDebtFreeDate: adjustedProjection.debtFreeDate.toISOString(),
+          originalTotalInterest: Math.round(originalProjection.totalInterestPaid),
+          adjustedTotalInterest: Math.round(adjustedProjection.totalInterestPaid),
+          savingsFromBeingAhead: monthsAheadOrBehind > 0 ? Math.round(interestDifference) : undefined,
+          additionalCostFromBehind: monthsAheadOrBehind < 0 ? Math.round(Math.abs(interestDifference)) : undefined,
+        };
+      } catch (projectionError) {
+        console.error('Error calculating projections:', projectionError);
+        // Continue without projection data
+      }
+    }
 
     return Response.json({
       hasDebts: true,
@@ -236,15 +260,7 @@ export async function GET() {
       totalExpectedPayment,
       totalMinimumPayment,
       actualAveragePayment: Math.round(actualAveragePayment * 100) / 100,
-      projectionAdjustment: {
-        monthsAheadOrBehind,
-        originalDebtFreeDate: originalProjection.debtFreeDate.toISOString(),
-        adjustedDebtFreeDate: adjustedProjection.debtFreeDate.toISOString(),
-        originalTotalInterest: Math.round(originalProjection.totalInterestPaid),
-        adjustedTotalInterest: Math.round(adjustedProjection.totalInterestPaid),
-        savingsFromBeingAhead: monthsAheadOrBehind > 0 ? Math.round(interestDifference) : undefined,
-        additionalCostFromBehind: monthsAheadOrBehind < 0 ? Math.round(Math.abs(interestDifference)) : undefined,
-      },
+      projectionAdjustment,
       monthlyData,
     });
   } catch (error) {
