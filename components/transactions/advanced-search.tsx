@@ -42,6 +42,7 @@ interface AdvancedSearchProps {
   tags?: Array<Tag>;
   onSearch: (filters: SearchFilters) => void;
   isLoading?: boolean;
+  initialFilters?: SearchFilters;
 }
 
 export function AdvancedSearch({
@@ -50,27 +51,40 @@ export function AdvancedSearch({
   tags = [],
   onSearch,
   isLoading = false,
+  initialFilters,
 }: AdvancedSearchProps) {
   const [filters, setFilters] = useState<SearchFilters>({
     sortBy: 'date',
     sortOrder: 'desc',
+    ...initialFilters,
   });
 
   const [amountRange, setAmountRange] = useState<[number, number]>([0, 10000]);
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(
-    new Set(filters.categoryIds || [])
+    new Set(initialFilters?.categoryIds || [])
   );
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(
-    new Set(filters.accountIds || [])
+    new Set(initialFilters?.accountIds || [])
   );
   const [selectedTags, setSelectedTags] = useState<Set<string>>(
-    new Set(filters.tagIds || [])
+    new Set(initialFilters?.tagIds || [])
   );
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(
-    new Set(filters.types || [])
+    new Set(initialFilters?.types || [])
   );
   const [showSavedSearches, setShowSavedSearches] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Update filters when initialFilters change
+  useEffect(() => {
+    if (initialFilters) {
+      setFilters(prev => ({ ...prev, ...initialFilters }));
+      setSelectedCategories(new Set(initialFilters.categoryIds || []));
+      setSelectedAccounts(new Set(initialFilters.accountIds || []));
+      setSelectedTags(new Set(initialFilters.tagIds || []));
+      setSelectedTypes(new Set(initialFilters.types || []));
+    }
+  }, [initialFilters]);
 
   const transactionTypes = [
     { value: 'income', label: 'Income' },

@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
-import { transactions, budgetCategories, billInstances, bills, accounts } from '@/lib/db/schema';
+import { transactions, budgetCategories, billInstances, bills, accounts, merchants } from '@/lib/db/schema';
 import { eq, and, lt } from 'drizzle-orm';
 import { format } from 'date-fns';
 
@@ -59,10 +59,11 @@ export async function GET(request: Request) {
         )
       );
 
-    // Enrich transactions with category names and account names
+    // Enrich transactions with category names, merchant names, and account names
     const enrichedTransactions = await Promise.all(
       dayTransactions.map(async (txn) => {
         let categoryName: string | undefined;
+        let merchantName: string | undefined;
         let accountName: string | undefined;
 
         if (txn.categoryId && txn.categoryId !== 'transfer_in' && txn.categoryId !== 'transfer_out') {
@@ -79,6 +80,24 @@ export async function GET(request: Request) {
 
           if (category.length > 0) {
             categoryName = category[0].name;
+          }
+        }
+
+        // Get the merchant name for this transaction
+        if (txn.merchantId) {
+          const merchant = await db
+            .select()
+            .from(merchants)
+            .where(
+              and(
+                eq(merchants.id, txn.merchantId),
+                eq(merchants.userId, userId)
+              )
+            )
+            .limit(1);
+
+          if (merchant.length > 0) {
+            merchantName = merchant[0].name;
           }
         }
 
@@ -110,7 +129,7 @@ export async function GET(request: Request) {
             | 'transfer_in'
             | 'transfer_out',
           category: categoryName,
-          merchant: txn.merchant || null,
+          merchant: merchantName || null,
           accountName: accountName,
         };
       })

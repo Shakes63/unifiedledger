@@ -14,6 +14,9 @@ interface Transaction {
   id: string;
   accountId: string;
   categoryId: string | null;
+  merchantId: string | null;
+  billId: string | null;
+  debtId: string | null;
   transferId: string | null;
   date: string;
   amount: number;
@@ -22,13 +25,69 @@ interface Transaction {
   type: 'income' | 'expense' | 'transfer' | 'transfer_in' | 'transfer_out';
   isPending: boolean;
   isSplit: boolean;
+  isRecurring: boolean;
+  recurringRule: string | null;
+  receiptUrl: string | null;
+  splitParentId: string | null;
+  importHistoryId: string | null;
+  importRowNumber: number | null;
+  syncStatus: string;
   createdAt: string;
   updatedAt: string;
+  // Enriched data
+  account: Account | null;
+  category: Category | null;
+  merchant: Merchant | null;
+  bill: Bill | null;
+  debt: Debt | null;
+  tags: Tag[];
+  customFields: CustomFieldValue[];
 }
 
 interface Account {
   id: string;
   name: string;
+  type: string;
+  color: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  type: string;
+}
+
+interface Merchant {
+  id: string;
+  name: string;
+}
+
+interface Bill {
+  id: string;
+  name: string;
+}
+
+interface Debt {
+  id: string;
+  name: string;
+}
+
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface CustomFieldValue {
+  field: {
+    id: string;
+    name: string;
+    type: string;
+  };
+  value: {
+    id: string;
+    value: string;
+  };
 }
 
 interface TransactionDetailsProps {
@@ -46,7 +105,6 @@ const typeConfig = {
 
 export function TransactionDetails({ transactionId, onDelete }: TransactionDetailsProps) {
   const [transaction, setTransaction] = useState<Transaction | null>(null);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -57,20 +115,13 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
       try {
         setLoading(true);
 
-        // Fetch transaction
+        // Fetch transaction with enriched data
         const txResponse = await fetch(`/api/transactions/${transactionId}`);
         if (!txResponse.ok) {
           throw new Error('Failed to fetch transaction');
         }
         const txData = await txResponse.json();
         setTransaction(txData);
-
-        // Fetch accounts for transfer display
-        const accResponse = await fetch('/api/accounts');
-        if (accResponse.ok) {
-          const accData = await accResponse.json();
-          setAccounts(accData);
-        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
@@ -140,12 +191,6 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
     );
   }
 
-  const getAccountName = (accountId: string | null): string => {
-    if (!accountId) return 'Unknown';
-    const account = accounts.find((a) => a.id === accountId);
-    return account?.name || 'Unknown';
-  };
-
   const typeInfo = typeConfig[transaction.type as keyof typeof typeConfig] || typeConfig.expense;
   const isExpense = transaction.type === 'expense';
   const sign = transaction.type === 'income' || transaction.type === 'transfer_in' || transaction.type === 'transfer' ? '+' : '-';
@@ -199,7 +244,9 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
           {/* Header */}
           <div className="flex items-start justify-between border-b border-[#2a2a2a] pb-4">
             <div className="space-y-1">
-              <h1 className="text-2xl font-bold text-white">{transaction.description}</h1>
+              <h1 className="text-2xl font-bold text-white">
+                {transaction.merchant?.name || transaction.description}
+              </h1>
               <p className="text-[#9ca3af]">
                 {format(new Date(transaction.date), 'EEEE, MMMM d, yyyy')}
               </p>
@@ -214,39 +261,161 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
             </div>
           </div>
 
-          {/* Metadata */}
+          {/* Core Details */}
           <div className="grid grid-cols-2 gap-6">
+            <div>
+              <p className="text-sm text-[#6b7280] uppercase tracking-wide">Account</p>
+              <p className="text-[#ffffff] font-medium mt-1">
+                {transaction.account?.name || 'Unknown'}
+              </p>
+            </div>
             <div>
               <p className="text-sm text-[#6b7280] uppercase tracking-wide">Status</p>
               <p className="text-[#ffffff] font-medium mt-1">
                 {transaction.isPending ? 'Pending' : 'Completed'}
               </p>
             </div>
-            <div>
-              <p className="text-sm text-[#6b7280] uppercase tracking-wide">Date</p>
-              <p className="text-[#ffffff] font-medium mt-1">
-                {format(new Date(transaction.date), 'MMM d, yyyy')}
-              </p>
+          </div>
+
+          {/* Description & Category */}
+          <div className="pt-4 border-t border-[#2a2a2a]">
+            <div className="grid grid-cols-2 gap-6">
+              {transaction.merchant && (
+                <div>
+                  <p className="text-sm text-[#6b7280] uppercase tracking-wide">Description</p>
+                  <p className="text-[#ffffff] font-medium mt-1">
+                    {transaction.description}
+                  </p>
+                </div>
+              )}
+              {transaction.category && (
+                <div>
+                  <p className="text-sm text-[#6b7280] uppercase tracking-wide">Category</p>
+                  <p className="text-[#ffffff] font-medium mt-1">
+                    {transaction.category.name}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Transfer Account Information */}
-          {transaction.type === 'transfer' && (
+          {/* Bill & Debt Linkage */}
+          {(transaction.bill || transaction.debt) && (
+            <div className="pt-4 border-t border-[#2a2a2a]">
+              <div className="grid grid-cols-2 gap-6">
+                {transaction.bill && (
+                  <div>
+                    <p className="text-sm text-[#6b7280] uppercase tracking-wide">Linked Bill</p>
+                    <Link href={`/dashboard/bills`} className="text-[#60a5fa] hover:text-[#93c5fd] font-medium mt-1 block">
+                      {transaction.bill.name}
+                    </Link>
+                  </div>
+                )}
+                {transaction.debt && (
+                  <div>
+                    <p className="text-sm text-[#6b7280] uppercase tracking-wide">Linked Debt</p>
+                    <Link href={`/dashboard/debts`} className="text-[#60a5fa] hover:text-[#93c5fd] font-medium mt-1 block">
+                      {transaction.debt.name}
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Transfer Information */}
+          {(transaction.type === 'transfer_out' || transaction.type === 'transfer_in') && (
+            <div className="pt-4 border-t border-[#2a2a2a]">
+              <p className="text-sm text-[#6b7280] uppercase tracking-wide mb-2">Transfer Details</p>
+              <div className="text-[#ffffff] font-medium">
+                {transaction.type === 'transfer_out' && 'Transfer from this account'}
+                {transaction.type === 'transfer_in' && 'Transfer to this account'}
+              </div>
+            </div>
+          )}
+
+          {/* Tags */}
+          {transaction.tags && transaction.tags.length > 0 && (
+            <div className="pt-4 border-t border-[#2a2a2a]">
+              <p className="text-sm text-[#6b7280] uppercase tracking-wide mb-2">Tags</p>
+              <div className="flex flex-wrap gap-2">
+                {transaction.tags.map(tag => (
+                  <span
+                    key={tag.id}
+                    className="px-3 py-1 rounded-lg text-sm font-medium"
+                    style={{
+                      backgroundColor: `${tag.color}20`,
+                      color: tag.color,
+                    }}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Custom Fields */}
+          {transaction.customFields && transaction.customFields.length > 0 && (
+            <div className="pt-4 border-t border-[#2a2a2a]">
+              <p className="text-sm text-[#6b7280] uppercase tracking-wide mb-3">Custom Fields</p>
+              <div className="space-y-3">
+                {transaction.customFields.map(cf => (
+                  <div key={cf.value.id}>
+                    <p className="text-sm text-[#9ca3af]">{cf.field.name}</p>
+                    <p className="text-[#ffffff] font-medium mt-1">{cf.value.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Receipt */}
+          {transaction.receiptUrl && (
+            <div className="pt-4 border-t border-[#2a2a2a]">
+              <p className="text-sm text-[#6b7280] uppercase tracking-wide mb-2">Receipt</p>
+              <a
+                href={transaction.receiptUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#60a5fa] hover:text-[#93c5fd] font-medium"
+              >
+                View Receipt →
+              </a>
+            </div>
+          )}
+
+          {/* Recurring Info */}
+          {transaction.isRecurring && transaction.recurringRule && (
+            <div className="pt-4 border-t border-[#2a2a2a]">
+              <p className="text-sm text-[#6b7280] uppercase tracking-wide">Recurring Transaction</p>
+              <p className="text-[#ffffff] font-medium mt-1">{transaction.recurringRule}</p>
+            </div>
+          )}
+
+          {/* Import Info */}
+          {transaction.importHistoryId && (
             <div className="pt-4 border-t border-[#2a2a2a]">
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <p className="text-sm text-[#6b7280] uppercase tracking-wide">From Account</p>
-                  <p className="text-[#ffffff] font-medium mt-1">
-                    {getAccountName(transaction.accountId)}
-                  </p>
+                  <p className="text-sm text-[#6b7280] uppercase tracking-wide">Import Source</p>
+                  <p className="text-[#ffffff] font-medium mt-1">CSV Import</p>
                 </div>
-                <div>
-                  <p className="text-sm text-[#6b7280] uppercase tracking-wide">To Account</p>
-                  <p className="text-[#ffffff] font-medium mt-1">
-                    {getAccountName(transaction.transferId)}
-                  </p>
-                </div>
+                {transaction.importRowNumber && (
+                  <div>
+                    <p className="text-sm text-[#6b7280] uppercase tracking-wide">Row Number</p>
+                    <p className="text-[#ffffff] font-medium mt-1">{transaction.importRowNumber}</p>
+                  </div>
+                )}
               </div>
+            </div>
+          )}
+
+          {/* Sync Status (if offline/pending) */}
+          {transaction.syncStatus && transaction.syncStatus !== 'synced' && (
+            <div className="pt-4 border-t border-[#2a2a2a]">
+              <p className="text-sm text-[#6b7280] uppercase tracking-wide">Sync Status</p>
+              <p className="text-[#f59e0b] font-medium mt-1 capitalize">{transaction.syncStatus}</p>
             </div>
           )}
 

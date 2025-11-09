@@ -559,6 +559,7 @@ export default function TransactionsPage() {
             accounts={accounts}
             onSearch={handleAdvancedSearch}
             isLoading={searchLoading}
+            initialFilters={currentFilters}
           />
         </div>
 

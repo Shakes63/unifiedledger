@@ -285,7 +285,53 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates (Current Session)
 
-### Latest Session - Calendar Enhancements & Bill Display ✅
+### Latest Session - Transaction Details, Dashboard Enhancements & Planning ✅
+
+1. **Enhanced Transaction Detail View**
+   - Added comprehensive data display showing all available transaction information
+   - Now displays: account, category, merchant, linked bills, linked debts, tags, custom fields
+   - Shows receipt URLs, recurring info, import details, and sync status
+   - Merchant name displayed as main heading with description as field below
+   - API endpoint enriched to fetch all related data (merchants, bills, debts, tags, custom fields)
+   - Fixed schema references (customFieldId vs fieldId)
+   - Files: `app/api/transactions/[id]/route.ts`, `components/transactions/transaction-details.tsx`
+
+2. **Fixed Calendar Week View Merchant Display**
+   - Updated calendar day API to fetch actual merchant names from merchants table
+   - Previously showed merchantId instead of merchant name
+   - Week view now correctly displays merchant name or falls back to description
+   - Files: `app/api/calendar/day/route.ts`, `components/calendar/calendar-week.tsx`
+
+3. **Dashboard Quick Overview Reorganization**
+   - **Card 1 (Monthly Spending)**: Added category dropdown to filter spending by category
+   - **Card 2 (Accounts)**: Combined total balance and account list
+     - Total balance displayed at top right
+     - Account list shows: name, last 4 digits (inline), balance
+     - Accounts are clickable and link to filtered transactions page
+   - **Card 3**: Empty placeholder for future features
+   - Removed account count and wallet icon for cleaner design
+   - Files: `app/dashboard/page.tsx`
+
+4. **Account-Filtered Transaction Navigation**
+   - Clicking account on dashboard navigates to `/dashboard/transactions?accountId={id}`
+   - Advanced search automatically reflects URL filter parameters
+   - Search section stays collapsed but filter is active in background
+   - When expanded, account checkbox is pre-selected
+   - Files: `app/dashboard/page.tsx`, `app/dashboard/transactions/page.tsx`, `components/transactions/advanced-search.tsx`
+
+5. **Created Planning Documents**
+   - **Debt Payoff Strategy System** (`docs/debtsystemplan.md`)
+     - Snowball vs Avalanche method comparison
+     - Payoff order recommendations
+     - Timeline visualization planning
+     - Extra payment impact calculations
+   - **Budget Tracking System** (`docs/budgetsystemplan.md`)
+     - Category budget vs actual tracking
+     - Variable bill budget comparison
+     - Real-time progress monitoring
+     - Budget analytics and insights
+
+### Previous Session - Calendar Enhancements & Bill Display ✅
 
 1. **Fixed Merchants Page Select.Item Error**
    - Changed empty string value to 'none' in merchant category selector
