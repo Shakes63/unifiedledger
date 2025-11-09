@@ -102,6 +102,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [customFieldsLoading, setCustomFieldsLoading] = useState(true);
   const [accounts, setAccounts] = useState<Array<{ id: string; name: string; currentBalance: number }>>([]);
   const [accountsLoading, setAccountsLoading] = useState(false);
+  const [debts, setDebts] = useState<Array<{ id: string; name: string; remainingBalance: number }>>([]);
+  const [debtsLoading, setDebtsLoading] = useState(false);
   const isEditMode = !!transactionId;
 
   // Load tags and custom fields when component mounts
@@ -216,7 +218,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     }
   }, [isEditMode]);
 
-  // Fetch accounts for "To Account" dropdown
+  // Fetch accounts and debts for dropdowns
   useEffect(() => {
     const fetchAccounts = async () => {
       try {
@@ -233,7 +235,23 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       }
     };
 
+    const fetchDebts = async () => {
+      try {
+        setDebtsLoading(true);
+        const response = await fetch('/api/debts?status=active');
+        if (response.ok) {
+          const data = await response.json();
+          setDebts(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch debts:', error);
+      } finally {
+        setDebtsLoading(false);
+      }
+    };
+
     fetchAccounts();
+    fetchDebts();
   }, []);
 
   // Helper function to get today's date in YYYY-MM-DD format
@@ -246,6 +264,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     accountId: '',
     categoryId: '',
     merchantId: '',
+    debtId: '', // For direct debt payments
     date: getTodaysDate(),
     amount: '',
     description: '',
@@ -737,6 +756,31 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           categoryId={formData.categoryId}
           transactionAmount={parseFloat(formData.amount) || 0}
         />
+      )}
+
+      {/* Debt Selector - Only for expenses */}
+      {formData.type === 'expense' && (
+        <div className="space-y-2">
+          <Label htmlFor="debtId" className="text-sm font-medium text-white">
+            Link to Debt (Optional)
+          </Label>
+          <p className="text-xs text-gray-500 mb-2">
+            Link this payment to a debt to automatically reduce the balance
+          </p>
+          <Select value={formData.debtId} onValueChange={(value) => handleSelectChange('debtId', value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select debt (optional)" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+              <SelectItem value="" className="text-white">None</SelectItem>
+              {debts.map((debt) => (
+                <SelectItem key={debt.id} value={debt.id} className="text-white">
+                  {debt.name} - ${debt.remainingBalance?.toFixed(2)} remaining
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       )}
 
       {/* Split Transaction Toggle */}

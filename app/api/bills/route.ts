@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
-import { bills, billInstances, budgetCategories, accounts } from '@/lib/db/schema';
+import { bills, billInstances, budgetCategories, accounts, debts } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -132,8 +132,10 @@ export async function POST(request: Request) {
     const {
       name,
       categoryId,
+      debtId,
       expectedAmount,
       dueDate,
+      frequency = 'monthly',
       isVariableAmount = false,
       amountTolerance = 5.0,
       payeePatterns,
@@ -200,6 +202,27 @@ export async function POST(request: Request) {
       }
     }
 
+    // Validate debt if provided
+    if (debtId) {
+      const debt = await db
+        .select()
+        .from(debts)
+        .where(
+          and(
+            eq(debts.id, debtId),
+            eq(debts.userId, userId)
+          )
+        )
+        .limit(1);
+
+      if (debt.length === 0) {
+        return Response.json(
+          { error: 'Debt not found' },
+          { status: 404 }
+        );
+      }
+    }
+
     const billId = nanoid();
 
     // Create the bill
@@ -208,8 +231,10 @@ export async function POST(request: Request) {
       userId,
       name,
       categoryId,
+      debtId,
       expectedAmount: parseFloat(expectedAmount),
       dueDate,
+      frequency,
       isVariableAmount,
       amountTolerance,
       payeePatterns: payeePatterns ? JSON.stringify(payeePatterns) : null,
@@ -218,14 +243,38 @@ export async function POST(request: Request) {
       notes,
     });
 
-    // Create initial bill instances for next 3 months
+    // Create initial bill instances based on frequency
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
 
-    for (let i = 0; i < 3; i++) {
-      let month = (currentMonth + i) % 12;
-      let year = currentYear + Math.floor((currentMonth + i) / 12);
+    // Determine how many instances to create and month increment
+    let instanceCount = 3;
+    let monthIncrement = 1;
+
+    switch (frequency) {
+      case 'monthly':
+        instanceCount = 3;
+        monthIncrement = 1;
+        break;
+      case 'quarterly':
+        instanceCount = 3;
+        monthIncrement = 3;
+        break;
+      case 'semi-annual':
+        instanceCount = 2;
+        monthIncrement = 6;
+        break;
+      case 'annual':
+        instanceCount = 2;
+        monthIncrement = 12;
+        break;
+    }
+
+    for (let i = 0; i < instanceCount; i++) {
+      const monthsToAdd = i * monthIncrement;
+      let month = (currentMonth + monthsToAdd) % 12;
+      let year = currentYear + Math.floor((currentMonth + monthsToAdd) / 12);
 
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const instanceDueDate = Math.min(dueDate, daysInMonth);

@@ -32,9 +32,11 @@ export function BillForm({
     name: bill?.name || '',
     expectedAmount: bill?.expectedAmount || '',
     dueDate: bill?.dueDate || '1',
+    frequency: bill?.frequency || 'monthly',
     isVariableAmount: bill?.isVariableAmount || false,
     amountTolerance: bill?.amountTolerance || 5.0,
     categoryId: bill?.categoryId || '',
+    debtId: bill?.debtId || '',
     accountId: bill?.accountId || '',
     autoMarkPaid: bill?.autoMarkPaid !== undefined ? bill.autoMarkPaid : true,
     payeePatterns: bill?.payeePatterns ? JSON.parse(bill.payeePatterns) : [],
@@ -43,18 +45,20 @@ export function BillForm({
 
   const [categories, setCategories] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
+  const [debts, setDebts] = useState<any[]>([]);
   const [newPayeePattern, setNewPayeePattern] = useState('');
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [creatingCategory, setCreatingCategory] = useState(false);
 
-  // Fetch categories and accounts on mount
+  // Fetch categories, accounts, and debts on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [categoriesRes, accountsRes] = await Promise.all([
+        const [categoriesRes, accountsRes, debtsRes] = await Promise.all([
           fetch('/api/categories'),
           fetch('/api/accounts'),
+          fetch('/api/debts?status=active'),
         ]);
 
         if (categoriesRes.ok) {
@@ -67,6 +71,11 @@ export function BillForm({
           const accountsData = await accountsRes.json();
           // API returns array directly, not wrapped in { data: [] }
           setAccounts(Array.isArray(accountsData) ? accountsData : []);
+        }
+
+        if (debtsRes.ok) {
+          const debtsData = await debtsRes.json();
+          setDebts(Array.isArray(debtsData) ? debtsData : []);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -194,9 +203,11 @@ export function BillForm({
       name: formData.name,
       expectedAmount: parseFloat(String(formData.expectedAmount)),
       dueDate,
+      frequency: formData.frequency,
       isVariableAmount: formData.isVariableAmount,
       amountTolerance: parseFloat(String(formData.amountTolerance)) || 5.0,
       categoryId: formData.categoryId || null,
+      debtId: formData.debtId || null,
       accountId: formData.accountId || null,
       autoMarkPaid: formData.autoMarkPaid,
       payeePatterns: formData.payeePatterns.length > 0 ? formData.payeePatterns : null,
@@ -232,8 +243,22 @@ export function BillForm({
         </div>
       </div>
 
-      {/* Due Date and Tolerance */}
+      {/* Frequency and Due Date */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label className="text-gray-400 text-sm mb-2 block">Frequency*</Label>
+          <Select value={formData.frequency} onValueChange={(value) => handleSelectChange('frequency', value)}>
+            <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+              <SelectItem value="monthly" className="text-white">Monthly</SelectItem>
+              <SelectItem value="quarterly" className="text-white">Quarterly (Every 3 months)</SelectItem>
+              <SelectItem value="semi-annual" className="text-white">Semi-Annual (Every 6 months)</SelectItem>
+              <SelectItem value="annual" className="text-white">Annual (Yearly)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div>
           <Label className="text-gray-400 text-sm mb-2 block">Due Date (Day of Month)*</Label>
           <Input
@@ -246,21 +271,23 @@ export function BillForm({
             max="31"
             className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
           />
-          <p className="text-xs text-gray-500 mt-1">Enter the day of month (1-31)</p>
+          <p className="text-xs text-gray-500 mt-1">Day of month (1-31)</p>
         </div>
-        <div>
-          <Label className="text-gray-400 text-sm mb-2 block">Amount Tolerance (%)</Label>
-          <Input
-            name="amountTolerance"
-            type="number"
-            value={formData.amountTolerance}
-            onChange={handleChange}
-            placeholder="5.0"
-            step="0.1"
-            className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
-          />
-          <p className="text-xs text-gray-500 mt-1">For auto-matching (default 5%)</p>
-        </div>
+      </div>
+
+      {/* Amount Tolerance */}
+      <div>
+        <Label className="text-gray-400 text-sm mb-2 block">Amount Tolerance (%)</Label>
+        <Input
+          name="amountTolerance"
+          type="number"
+          value={formData.amountTolerance}
+          onChange={handleChange}
+          placeholder="5.0"
+          step="0.1"
+          className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+        />
+        <p className="text-xs text-gray-500 mt-1">For auto-matching (default 5%)</p>
       </div>
 
       {/* Category and Account */}
@@ -341,6 +368,27 @@ export function BillForm({
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* Link to Debt */}
+      <div>
+        <Label className="text-gray-400 text-sm mb-2 block">Link to Debt (Optional)</Label>
+        <p className="text-xs text-gray-500 mb-2">
+          Link this bill to a debt to automatically track payments and reduce debt balance
+        </p>
+        <Select value={formData.debtId} onValueChange={(value) => handleSelectChange('debtId', value)}>
+          <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+            <SelectValue placeholder="Select debt (optional)" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+            <SelectItem value="" className="text-white">None</SelectItem>
+            {debts.map((debt) => (
+              <SelectItem key={debt.id} value={debt.id} className="text-white">
+                {debt.name} - ${debt.remainingBalance?.toFixed(2)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Toggles */}

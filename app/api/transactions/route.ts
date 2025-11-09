@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
-import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances } from '@/lib/db/schema';
+import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances, debts, debtPayments, debtPayoffMilestones } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
@@ -26,6 +26,7 @@ export async function POST(request: Request) {
       accountId,
       categoryId,
       merchantId,
+      debtId, // For direct debt payments
       date,
       amount,
       description,
@@ -277,6 +278,7 @@ export async function POST(request: Request) {
         accountId,
         categoryId: appliedCategoryId || null,
         merchantId: merchantId || null,
+        debtId: debtId || null,
         date,
         amount: decimalAmount.toNumber(),
         description,
@@ -533,12 +535,132 @@ export async function POST(request: Request) {
                 updatedAt: new Date().toISOString(),
               })
               .where(eq(billInstances.id, match.instance.id));
+
+            // If bill is linked to a debt, create debt payment and update debt balance
+            if (match.bill.debtId) {
+              try {
+                const paymentAmount = parseFloat(amount);
+
+                // Create debt payment record
+                await db.insert(debtPayments).values({
+                  id: nanoid(),
+                  debtId: match.bill.debtId,
+                  userId,
+                  amount: paymentAmount,
+                  paymentDate: date,
+                  transactionId,
+                  notes: `Automatic payment from bill: ${match.bill.name}`,
+                  createdAt: new Date().toISOString(),
+                });
+
+                // Get current debt to calculate new balance
+                const [currentDebt] = await db
+                  .select()
+                  .from(debts)
+                  .where(eq(debts.id, match.bill.debtId));
+
+                if (currentDebt) {
+                  const newBalance = Math.max(0, currentDebt.remainingBalance - paymentAmount);
+
+                  // Update debt remaining balance
+                  await db
+                    .update(debts)
+                    .set({
+                      remainingBalance: newBalance,
+                      status: newBalance === 0 ? 'paid_off' : 'active',
+                      updatedAt: new Date().toISOString(),
+                    })
+                    .where(eq(debts.id, match.bill.debtId));
+
+                  // Check and update debt milestones
+                  const milestones = await db
+                    .select()
+                    .from(debtPayoffMilestones)
+                    .where(eq(debtPayoffMilestones.debtId, match.bill.debtId));
+
+                  for (const milestone of milestones) {
+                    // Check if this milestone should be marked as achieved
+                    if (!milestone.achievedAt && newBalance <= milestone.milestoneBalance) {
+                      await db
+                        .update(debtPayoffMilestones)
+                        .set({
+                          achievedAt: new Date().toISOString(),
+                        })
+                        .where(eq(debtPayoffMilestones.id, milestone.id));
+                    }
+                  }
+                }
+              } catch (debtError) {
+                console.error('Error updating debt payment:', debtError);
+                // Don't fail the whole transaction if debt update fails
+              }
+            }
           }
         }
       }
     } catch (error) {
       // Log error but don't fail transaction creation
       console.error('Error auto-linking bill:', error);
+    }
+
+    // Handle direct debt payments (when transaction has debtId)
+    if (type === 'expense' && debtId) {
+      try {
+        const paymentAmount = parseFloat(amount);
+
+        // Create debt payment record
+        await db.insert(debtPayments).values({
+          id: nanoid(),
+          debtId: debtId,
+          userId,
+          amount: paymentAmount,
+          paymentDate: date,
+          transactionId,
+          notes: `Direct payment: ${description}`,
+          createdAt: new Date().toISOString(),
+        });
+
+        // Get current debt to calculate new balance
+        const [currentDebt] = await db
+          .select()
+          .from(debts)
+          .where(eq(debts.id, debtId));
+
+        if (currentDebt) {
+          const newBalance = Math.max(0, currentDebt.remainingBalance - paymentAmount);
+
+          // Update debt remaining balance
+          await db
+            .update(debts)
+            .set({
+              remainingBalance: newBalance,
+              status: newBalance === 0 ? 'paid_off' : 'active',
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(debts.id, debtId));
+
+          // Check and update debt milestones
+          const milestones = await db
+            .select()
+            .from(debtPayoffMilestones)
+            .where(eq(debtPayoffMilestones.debtId, debtId));
+
+          for (const milestone of milestones) {
+            // Check if this milestone should be marked as achieved
+            if (!milestone.achievedAt && newBalance <= milestone.milestoneBalance) {
+              await db
+                .update(debtPayoffMilestones)
+                .set({
+                  achievedAt: new Date().toISOString(),
+                })
+                .where(eq(debtPayoffMilestones.id, milestone.id));
+            }
+          }
+        }
+      } catch (debtError) {
+        console.error('Error updating direct debt payment:', debtError);
+        // Don't fail the whole transaction if debt update fails
+      }
     }
 
     return Response.json(

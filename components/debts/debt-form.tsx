@@ -127,26 +127,37 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Required fields notice */}
+      <p className="text-sm text-gray-400">
+        Fields marked with <span className="text-red-400">*</span> are required
+      </p>
+
       {/* Name and Creditor */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Debt Name</Label>
+          <Label className="text-gray-400 text-sm mb-1">
+            Debt Name <span className="text-red-400">*</span>
+          </Label>
           <Input
             name="name"
             value={formData.name}
             onChange={handleChange}
             placeholder="e.g., Credit Card Debt"
             className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            required
           />
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Creditor Name</Label>
+          <Label className="text-gray-400 text-sm mb-1">
+            Creditor Name <span className="text-red-400">*</span>
+          </Label>
           <Input
             name="creditorName"
             value={formData.creditorName}
             onChange={handleChange}
             placeholder="e.g., Capital One"
             className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            required
           />
         </div>
       </div>
@@ -154,7 +165,9 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {/* Amounts */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Original Amount</Label>
+          <Label className="text-gray-400 text-sm mb-1">
+            Original Amount <span className="text-red-400">*</span>
+          </Label>
           <Input
             name="originalAmount"
             type="number"
@@ -162,12 +175,15 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             onChange={handleChange}
             placeholder="0.00"
             step="0.01"
-            min="0"
+            min="0.01"
             className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            required
           />
         </div>
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Remaining Balance</Label>
+          <Label className="text-gray-400 text-sm mb-1">
+            Remaining Balance <span className="text-red-400">*</span>
+          </Label>
           <Input
             name="remainingBalance"
             type="number"
@@ -177,6 +193,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             step="0.01"
             min="0"
             className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            required
           />
         </div>
       </div>
@@ -251,13 +268,16 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {/* Dates */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-gray-400 text-sm mb-1">Start Date</Label>
+          <Label className="text-gray-400 text-sm mb-1">
+            Start Date <span className="text-red-400">*</span>
+          </Label>
           <Input
             name="startDate"
             type="date"
             value={formData.startDate}
             onChange={handleChange}
             className="bg-[#242424] border-[#2a2a2a] text-white"
+            required
           />
         </div>
         <div>

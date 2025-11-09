@@ -16,8 +16,8 @@ export async function GET(request: Request) {
     const allDebts = await db.select().from(debts).where(eq(debts.userId, userId));
 
     // Calculate totals
-    const totalOriginalAmount = allDebts.reduce((sum, d) => sum + d.originalAmount, 0);
-    const totalRemainingBalance = allDebts.reduce((sum, d) => sum + d.remainingBalance, 0);
+    const totalOriginalAmount = allDebts.reduce((sum, d) => sum + (d.originalAmount || 0), 0);
+    const totalRemainingBalance = allDebts.reduce((sum, d) => sum + (d.remainingBalance || 0), 0);
     const totalPaidOff = totalOriginalAmount - totalRemainingBalance;
 
     // Get active debts
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
           new Date(p.paymentDate).getTime() >= new Date(monthStart).getTime() &&
           new Date(p.paymentDate).getTime() <= new Date(monthEnd).getTime()
       )
-      .reduce((sum, p) => sum + p.amount, 0);
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
 
     // Calculate debt-to-income estimate (if we had income data)
     // For now, just return debt metrics
@@ -59,10 +59,11 @@ export async function GET(request: Request) {
     // Calculate estimated payoff dates
     const debtDetails = activeDebts.map((debt) => {
       const monthlyPayment = debt.minimumPayment || 0;
+      const remainingBalance = debt.remainingBalance || 0;
       let monthsToPayoff = Infinity;
 
-      if (monthlyPayment > 0) {
-        monthsToPayoff = Math.ceil(debt.remainingBalance / monthlyPayment);
+      if (monthlyPayment > 0 && remainingBalance > 0) {
+        monthsToPayoff = Math.ceil(remainingBalance / monthlyPayment);
       }
 
       const estimatedPayoffDate = new Date();
@@ -70,13 +71,13 @@ export async function GET(request: Request) {
 
       return {
         id: debt.id,
-        name: debt.name,
-        remainingBalance: debt.remainingBalance,
-        minimumPayment: debt.minimumPayment,
+        name: debt.name || 'Unknown Debt',
+        remainingBalance: remainingBalance,
+        minimumPayment: monthlyPayment,
         estimatedMonthsToPayoff: monthsToPayoff === Infinity ? null : monthsToPayoff,
         estimatedPayoffDate: monthsToPayoff === Infinity ? null : estimatedPayoffDate.toISOString(),
-        interestRate: debt.interestRate,
-        priority: debt.priority,
+        interestRate: debt.interestRate || 0,
+        priority: debt.priority || 0,
       };
     });
 

@@ -131,6 +131,7 @@ export const transactions = sqliteTable(
     categoryId: text('category_id'),
     merchantId: text('merchant_id'),
     billId: text('bill_id'),
+    debtId: text('debt_id'), // Direct link to debt for manual/irregular payments
     date: text('date').notNull(),
     amount: real('amount').notNull(),
     description: text('description').notNull(),
@@ -207,8 +208,12 @@ export const bills = sqliteTable(
     userId: text('user_id').notNull(),
     name: text('name').notNull(),
     categoryId: text('category_id'),
+    debtId: text('debt_id'), // Link to debt for debt payment bills
     expectedAmount: real('expected_amount').notNull(),
     dueDate: integer('due_date').notNull(),
+    frequency: text('frequency', {
+      enum: ['monthly', 'quarterly', 'semi-annual', 'annual'],
+    }).default('monthly'),
     isVariableAmount: integer('is_variable_amount', { mode: 'boolean' }).default(false),
     amountTolerance: real('amount_tolerance').default(5.0),
     payeePatterns: text('payee_patterns'),
@@ -986,6 +991,10 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
     fields: [transactions.billId],
     references: [bills.id],
   }),
+  debt: one(debts, {
+    fields: [transactions.debtId],
+    references: [debts.id],
+  }),
   transfer: one(transfers, {
     fields: [transactions.transferId],
     references: [transfers.id],
@@ -1014,6 +1023,10 @@ export const billsRelations = relations(bills, ({ one, many }) => ({
   category: one(budgetCategories, {
     fields: [bills.categoryId],
     references: [budgetCategories.id],
+  }),
+  debt: one(debts, {
+    fields: [bills.debtId],
+    references: [debts.id],
   }),
   instances: many(billInstances),
 }));
