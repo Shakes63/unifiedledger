@@ -37,6 +37,7 @@ interface Transaction {
 interface Category {
   id: string;
   name: string;
+  type: string;
 }
 
 interface Account {
@@ -47,6 +48,7 @@ interface Account {
 interface Merchant {
   id: string;
   name: string;
+  categoryId?: string;
 }
 
 export default function TransactionsPage() {
@@ -66,6 +68,12 @@ export default function TransactionsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [currentFilters, setCurrentFilters] = useState<any>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [updatingTxId, setUpdatingTxId] = useState<string | null>(null);
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [creatingMerchant, setCreatingMerchant] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newMerchantName, setNewMerchantName] = useState('');
+  const [pendingTxId, setPendingTxId] = useState<string | null>(null);
 
   // Auto-filter by account if accountId is in URL
   useEffect(() => {
@@ -274,6 +282,176 @@ export default function TransactionsPage() {
     return account?.name || 'Unknown';
   };
 
+  const getCategoryName = (categoryId?: string): string | null => {
+    if (!categoryId) return null;
+    const category = categories.find((c) => c.id === categoryId);
+    return category?.name || null;
+  };
+
+  const getFilteredCategories = (transactionType: string) => {
+    if (transactionType === 'income') {
+      return categories.filter(c => c.type === 'income');
+    } else if (transactionType === 'expense') {
+      return categories.filter(c => c.type !== 'income');
+    }
+    return categories;
+  };
+
+  const getFilteredMerchants = (transactionType: string) => {
+    if (transactionType === 'income') {
+      // Show merchants linked to income categories, or merchants with no category
+      return merchants.filter(m => {
+        if (!m.categoryId) return true; // Show uncategorized merchants
+        const category = categories.find(c => c.id === m.categoryId);
+        return category?.type === 'income';
+      });
+    } else if (transactionType === 'expense') {
+      // Show merchants linked to expense categories, or merchants with no category
+      return merchants.filter(m => {
+        if (!m.categoryId) return true; // Show uncategorized merchants
+        const category = categories.find(c => c.id === m.categoryId);
+        return category?.type !== 'income';
+      });
+    }
+    return merchants;
+  };
+
+  const handleUpdateTransaction = async (transactionId: string, field: 'categoryId' | 'merchantId', value: string) => {
+    try {
+      setUpdatingTxId(transactionId);
+
+      const response = await fetch(`/api/transactions/${transactionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      });
+
+      if (response.ok) {
+        // Refresh transactions
+        if (currentFilters) {
+          await performSearch(currentFilters, paginationOffset);
+        } else {
+          const txResponse = await fetch('/api/transactions?limit=100');
+          if (txResponse.ok) {
+            const txData = await txResponse.json();
+            setTransactions(txData);
+            setTotalResults(txData.length);
+          }
+        }
+        toast.success(`Transaction updated`);
+      } else {
+        toast.error('Failed to update transaction');
+      }
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      toast.error('Failed to update transaction');
+    } finally {
+      setUpdatingTxId(null);
+    }
+  };
+
+  const handleCreateCategory = async (transactionId: string) => {
+    if (!newCategoryName.trim()) {
+      toast.error('Category name is required');
+      return;
+    }
+
+    try {
+      setUpdatingTxId(transactionId);
+
+      // Get transaction to determine category type
+      const transaction = transactions.find(t => t.id === transactionId);
+      const categoryType = transaction?.type === 'income' ? 'income' : 'variable_expense';
+
+      // Create category
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newCategoryName.trim(),
+          type: categoryType,
+        }),
+      });
+
+      if (response.ok) {
+        const newCategory = await response.json();
+
+        // Refresh categories
+        const catResponse = await fetch('/api/categories');
+        if (catResponse.ok) {
+          const catData = await catResponse.json();
+          setCategories(catData);
+        }
+
+        // Update transaction with new category
+        await handleUpdateTransaction(transactionId, 'categoryId', newCategory.id);
+
+        setNewCategoryName('');
+        setCreatingCategory(false);
+        toast.success('Category created and applied');
+      } else {
+        toast.error('Failed to create category');
+      }
+    } catch (error) {
+      console.error('Error creating category:', error);
+      toast.error('Failed to create category');
+    } finally {
+      setUpdatingTxId(null);
+    }
+  };
+
+  const handleCreateMerchant = async (transactionId: string) => {
+    if (!newMerchantName.trim()) {
+      toast.error('Merchant name is required');
+      return;
+    }
+
+    try {
+      setUpdatingTxId(transactionId);
+
+      // Get transaction to determine merchant category
+      const transaction = transactions.find(t => t.id === transactionId);
+
+      // If transaction has a category, link merchant to it
+      const merchantCategoryId = transaction?.categoryId || null;
+
+      // Create merchant
+      const response = await fetch('/api/merchants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newMerchantName.trim(),
+          categoryId: merchantCategoryId,
+        }),
+      });
+
+      if (response.ok) {
+        const newMerchant = await response.json();
+
+        // Refresh merchants
+        const merResponse = await fetch('/api/merchants?limit=1000');
+        if (merResponse.ok) {
+          const merData = await merResponse.json();
+          setMerchants(merData);
+        }
+
+        // Update transaction with new merchant
+        await handleUpdateTransaction(transactionId, 'merchantId', newMerchant.id);
+
+        setNewMerchantName('');
+        setCreatingMerchant(false);
+        toast.success('Merchant created and applied');
+      } else {
+        toast.error('Failed to create merchant');
+      }
+    } catch (error) {
+      console.error('Error creating merchant:', error);
+      toast.error('Failed to create merchant');
+    } finally {
+      setUpdatingTxId(null);
+    }
+  };
+
   const getTransactionDisplay = (transaction: Transaction): { merchant: string | null; description: string } => {
     if (transaction.type === 'transfer_out') {
       // transfer_out: accountId is source, transferId is destination account
@@ -284,7 +462,14 @@ export default function TransactionsPage() {
     }
     if (transaction.type === 'transfer_in') {
       // transfer_in: accountId is destination, transferId is the paired transfer_out transaction ID
-      // Find the paired transfer_out transaction to get source account
+      // For converted transactions, source account ID is stored in merchantId
+      if (transaction.merchantId) {
+        return {
+          merchant: `${getAccountName(transaction.merchantId)} → ${getAccountName(transaction.accountId)}`,
+          description: transaction.description,
+        };
+      }
+      // Try to find the paired transfer_out transaction to get source account
       const pairedTx = transactions.find(t => t.id === transaction.transferId);
       if (pairedTx) {
         return {
@@ -398,10 +583,16 @@ export default function TransactionsPage() {
             {transactions.map((transaction) => {
               const display = getTransactionDisplay(transaction);
               const accountName = getAccountName(transaction.accountId);
+              const categoryName = getCategoryName(transaction.categoryId);
+              const isTransfer = transaction.type === 'transfer_out' || transaction.type === 'transfer_in';
+              const hasMissingInfo = !isTransfer && (!transaction.categoryId || !transaction.merchantId);
 
               return (
-                <Link key={transaction.id} href={`/dashboard/transactions/${transaction.id}`}>
-                  <Card className="p-2 border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg cursor-pointer">
+                <Card
+                  key={transaction.id}
+                  className={`p-2 border ${hasMissingInfo ? 'border-amber-500/50' : 'border-[#2a2a2a]'} bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg`}
+                >
+                  <Link href={`/dashboard/transactions/${transaction.id}`} className="block">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div className="p-1.5 bg-[#242424] rounded flex-shrink-0">
@@ -418,12 +609,13 @@ export default function TransactionsPage() {
                           <p className={`text-xs truncate ${display.merchant ? 'text-gray-400' : 'font-medium text-white text-sm'}`}>
                             {display.description}
                           </p>
-                          {/* Date and split indicator */}
+                          {/* Date, category, and split indicator */}
                           <p className="text-xs text-gray-500">
                             {new Date(transaction.date).toLocaleDateString('en-US', {
                               month: 'short',
                               day: 'numeric',
                             })}
+                            {categoryName && ` • ${categoryName}`}
                             {transaction.isSplit && ' • Split'}
                           </p>
                         </div>
@@ -471,8 +663,166 @@ export default function TransactionsPage() {
                         </Button>
                       </div>
                     </div>
-                  </Card>
-                </Link>
+                  </Link>
+
+                  {/* Missing Info Section - Inline */}
+                  {hasMissingInfo && (
+                    <div className="mt-3 pt-3 border-t border-amber-500/30" onClick={(e) => e.stopPropagation()}>
+                      <p className="text-xs text-amber-400 mb-2">
+                        {updatingTxId === transaction.id ? 'Updating...' : 'Missing information:'}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {/* Category selector */}
+                        {!transaction.categoryId && (
+                          <div className="flex-1 min-w-[200px]">
+                            {creatingCategory && pendingTxId === transaction.id ? (
+                              <div className="flex gap-1">
+                                <Input
+                                  value={newCategoryName}
+                                  onChange={(e) => setNewCategoryName(e.target.value)}
+                                  placeholder="New category name..."
+                                  className="h-8 text-xs bg-[#242424] border-[#2a2a2a]"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleCreateCategory(transaction.id);
+                                    } else if (e.key === 'Escape') {
+                                      setCreatingCategory(false);
+                                      setNewCategoryName('');
+                                      setPendingTxId(null);
+                                    }
+                                  }}
+                                  autoFocus
+                                  disabled={updatingTxId === transaction.id}
+                                />
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleCreateCategory(transaction.id)}
+                                  disabled={updatingTxId === transaction.id || !newCategoryName.trim()}
+                                  className="h-8 px-2 bg-emerald-500 hover:bg-emerald-600 text-white"
+                                >
+                                  Add
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setCreatingCategory(false);
+                                    setNewCategoryName('');
+                                    setPendingTxId(null);
+                                  }}
+                                  disabled={updatingTxId === transaction.id}
+                                  className="h-8 px-2"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            ) : (
+                              <Select
+                                onValueChange={(value) => {
+                                  if (value === '__create_new__') {
+                                    setCreatingCategory(true);
+                                    setPendingTxId(transaction.id);
+                                  } else {
+                                    handleUpdateTransaction(transaction.id, 'categoryId', value);
+                                  }
+                                }}
+                                disabled={updatingTxId === transaction.id}
+                              >
+                                <SelectTrigger className="h-8 text-xs bg-[#242424] border-[#2a2a2a] hover:bg-[#2a2a2a] disabled:opacity-50">
+                                  <SelectValue placeholder="Select category..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__create_new__" className="text-emerald-400 font-medium">
+                                    + Create new category...
+                                  </SelectItem>
+                                  {getFilteredCategories(transaction.type).map((category) => (
+                                    <SelectItem key={category.id} value={category.id}>
+                                      {category.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Merchant selector (only for non-transfer transactions) */}
+                        {transaction.type !== 'transfer_out' && transaction.type !== 'transfer_in' && !transaction.merchantId && (
+                          <div className="flex-1 min-w-[200px]">
+                            {creatingMerchant && pendingTxId === transaction.id ? (
+                              <div className="flex gap-1">
+                                <Input
+                                  value={newMerchantName}
+                                  onChange={(e) => setNewMerchantName(e.target.value)}
+                                  placeholder="New merchant name..."
+                                  className="h-8 text-xs bg-[#242424] border-[#2a2a2a]"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleCreateMerchant(transaction.id);
+                                    } else if (e.key === 'Escape') {
+                                      setCreatingMerchant(false);
+                                      setNewMerchantName('');
+                                      setPendingTxId(null);
+                                    }
+                                  }}
+                                  autoFocus
+                                  disabled={updatingTxId === transaction.id}
+                                />
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleCreateMerchant(transaction.id)}
+                                  disabled={updatingTxId === transaction.id || !newMerchantName.trim()}
+                                  className="h-8 px-2 bg-emerald-500 hover:bg-emerald-600 text-white"
+                                >
+                                  Add
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setCreatingMerchant(false);
+                                    setNewMerchantName('');
+                                    setPendingTxId(null);
+                                  }}
+                                  disabled={updatingTxId === transaction.id}
+                                  className="h-8 px-2"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            ) : (
+                              <Select
+                                onValueChange={(value) => {
+                                  if (value === '__create_new__') {
+                                    setCreatingMerchant(true);
+                                    setPendingTxId(transaction.id);
+                                  } else {
+                                    handleUpdateTransaction(transaction.id, 'merchantId', value);
+                                  }
+                                }}
+                                disabled={updatingTxId === transaction.id}
+                              >
+                                <SelectTrigger className="h-8 text-xs bg-[#242424] border-[#2a2a2a] hover:bg-[#2a2a2a] disabled:opacity-50">
+                                  <SelectValue placeholder="Select merchant..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__create_new__" className="text-emerald-400 font-medium">
+                                    + Create new merchant...
+                                  </SelectItem>
+                                  {getFilteredMerchants(transaction.type).map((merchant) => (
+                                    <SelectItem key={merchant.id} value={merchant.id}>
+                                      {merchant.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </Card>
               );
             })}
           </div>

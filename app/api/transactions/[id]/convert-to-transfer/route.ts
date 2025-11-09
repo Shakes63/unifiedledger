@@ -191,7 +191,9 @@ export async function POST(
           .set({
             type: 'transfer_in',
             transferId: id, // Link to the transfer_out transaction
+            merchantId: transaction.accountId, // Store source account ID for display
             categoryId: null, // Transfers don't have categories
+            description: `Transfer: ${sourceAccount.name} → ${targetAccount.name}`,
             updatedAt: new Date().toISOString(),
           })
           .where(eq(transactions.id, matchingTransactionId));
@@ -201,8 +203,9 @@ export async function POST(
           .update(transactions)
           .set({
             type: 'transfer_out',
-            transferId: id, // Will be updated below to point to this transaction
+            transferId: transaction.accountId, // Destination account ID
             categoryId: null,
+            description: `Transfer: ${targetAccount.name} → ${sourceAccount.name}`,
             updatedAt: new Date().toISOString(),
           })
           .where(eq(transactions.id, matchingTransactionId));
@@ -216,13 +219,15 @@ export async function POST(
         userId,
         accountId: targetAccountId,
         categoryId: null, // Transfers don't have categories
-        merchantId: null,
+        merchantId: isExpense ? transaction.accountId : null, // For transfer_in, store source account ID
         date: transaction.date,
         amount: amount.toNumber(),
-        description: transaction.description,
+        description: isExpense
+          ? `Transfer: ${sourceAccount.name} → ${targetAccount.name}`
+          : `Transfer: ${targetAccount.name} → ${sourceAccount.name}`,
         notes: transaction.notes,
         type: isExpense ? 'transfer_in' : 'transfer_out',
-        transferId: isExpense ? id : pairedTransactionId, // Will be updated for income case
+        transferId: isExpense ? id : transaction.accountId, // transfer_in: paired tx ID, transfer_out: dest account ID
         isPending: transaction.isPending,
         offlineId: null,
         syncStatus: 'synced',
@@ -258,31 +263,25 @@ export async function POST(
           type: 'transfer_out',
           transferId: targetAccountId, // Link metadata (points to destination account)
           categoryId: null, // Transfers don't have categories
+          description: `Transfer: ${sourceAccount.name} → ${targetAccount.name}`,
           updatedAt: new Date().toISOString(),
         })
         .where(eq(transactions.id, id));
     } else {
-      // income → transfer_in (money entering source account)
+      // income → transfer_in (money entering source account - from targetAccount)
+      // Store source account ID in merchantId since merchants aren't used for transfers
       await db
         .update(transactions)
         .set({
           type: 'transfer_in',
           transferId: pairedTransactionId, // Link to transfer_out transaction
+          merchantId: targetAccountId, // HACK: Store source account ID here for display
           categoryId: null,
+          description: `Transfer: ${targetAccount.name} → ${sourceAccount.name}`,
           updatedAt: new Date().toISOString(),
         })
         .where(eq(transactions.id, id));
 
-      // Update the paired transaction's transferId to point back to this transaction
-      if (!matchedExistingTransaction) {
-        await db
-          .update(transactions)
-          .set({
-            transferId: id,
-            updatedAt: new Date().toISOString(),
-          })
-          .where(eq(transactions.id, pairedTransactionId));
-      }
     }
 
     // Apply new transfer balance effects

@@ -171,7 +171,14 @@ export function RecentTransactions() {
     }
     if (transaction.type === 'transfer_in') {
       // transfer_in: accountId is destination, transferId is the paired transfer_out transaction ID
-      // Find the paired transfer_out transaction to get source account
+      // For converted transactions, source account ID is stored in merchantId
+      if (transaction.merchantId) {
+        return {
+          merchant: `${getAccountName(transaction.merchantId)} → ${getAccountName(transaction.accountId)}`,
+          description: transaction.description,
+        };
+      }
+      // Try to find the paired transfer_out transaction to get source account
       const pairedTx = transactions.find(t => t.id === transaction.transferId);
       if (pairedTx) {
         return {
