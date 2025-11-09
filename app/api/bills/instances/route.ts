@@ -1,7 +1,8 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { billInstances, bills } from '@/lib/db/schema';
-import { eq, and, desc, inArray } from 'drizzle-orm';
+import { eq, and, desc, inArray, lt } from 'drizzle-orm';
+import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,19 @@ export async function GET(request: Request) {
         { status: 401 }
       );
     }
+
+    // First, update any pending bills that are now overdue
+    const today = format(new Date(), 'yyyy-MM-dd');
+    await db
+      .update(billInstances)
+      .set({ status: 'overdue' })
+      .where(
+        and(
+          eq(billInstances.userId, userId),
+          eq(billInstances.status, 'pending'),
+          lt(billInstances.dueDate, today)
+        )
+      );
 
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '50');

@@ -11,6 +11,8 @@ import {
   endOfMonth,
   subMonths,
   addMonths,
+  addWeeks,
+  subWeeks,
   format,
 } from 'date-fns';
 
@@ -36,67 +38,28 @@ export function CalendarHeader({
 
   return (
     <div className="space-y-4">
-      {/* Month/Year and Navigation */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white">
-            {format(currentDate, 'MMMM yyyy')}
-          </h2>
-          <p className="text-[#6b7280] text-sm">
-            {viewMode === 'month' ? 'Month View' : 'Week View'}
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant={viewMode === 'month' ? 'default' : 'outline'}
-            onClick={() => onViewModeChange('month')}
-            className={
-              viewMode === 'month'
-                ? 'bg-blue-500 text-white hover:bg-blue-600'
-                : 'border-[#2a2a2a] text-[#9ca3af] hover:bg-[#242424]'
-            }
-          >
-            Month
-          </Button>
-          <Button
-            size="sm"
-            variant={viewMode === 'week' ? 'default' : 'outline'}
-            onClick={() => onViewModeChange('week')}
-            className={
-              viewMode === 'week'
-                ? 'bg-blue-500 text-white hover:bg-blue-600'
-                : 'border-[#2a2a2a] text-[#9ca3af] hover:bg-[#242424]'
-            }
-          >
-            Week
-          </Button>
-        </div>
-      </div>
-
-      {/* Month Navigation */}
+      {/* Month/Week Navigation Bar - At the very top */}
       <div className="flex items-center justify-between bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3">
         <Button
           size="sm"
           variant="ghost"
           onClick={() =>
-            onDateChange(subMonths(currentDate, 1))
+            onDateChange(viewMode === 'month' ? subMonths(currentDate, 1) : subWeeks(currentDate, 1))
           }
           className="text-[#9ca3af] hover:text-white hover:bg-[#242424]"
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
 
-        <span className="text-[#9ca3af] text-sm font-medium">
-          {format(currentDate, 'MMM d, yyyy')}
-        </span>
+        <h2 className="text-xl font-bold text-white">
+          {format(currentDate, 'MMMM yyyy')}
+        </h2>
 
         <Button
           size="sm"
           variant="ghost"
           onClick={() =>
-            onDateChange(addMonths(currentDate, 1))
+            onDateChange(viewMode === 'month' ? addMonths(currentDate, 1) : addWeeks(currentDate, 1))
           }
           className="text-[#9ca3af] hover:text-white hover:bg-[#242424]"
         >
@@ -104,45 +67,31 @@ export function CalendarHeader({
         </Button>
       </div>
 
-      {/* Quick Navigation */}
-      <div className="flex flex-wrap gap-2">
+      {/* Month/Week View Buttons - Below the navigation bar */}
+      <div className="flex gap-2 justify-center">
         <Button
           size="sm"
-          onClick={() => handleQuickDate(today)}
+          variant={viewMode === 'month' ? 'default' : 'outline'}
+          onClick={() => onViewModeChange('month')}
           className={
-            isToday(currentDate)
+            viewMode === 'month'
               ? 'bg-blue-500 text-white hover:bg-blue-600'
-              : 'bg-[#242424] text-[#9ca3af] hover:bg-[#2a2a2a] border border-[#2a2a2a]'
+              : 'border-[#2a2a2a] text-[#9ca3af] hover:bg-[#242424]'
           }
         >
-          Today
+          Month
         </Button>
         <Button
           size="sm"
-          onClick={() => handleQuickDate(tomorrow)}
+          variant={viewMode === 'week' ? 'default' : 'outline'}
+          onClick={() => onViewModeChange('week')}
           className={
-            isTomorrow(currentDate)
+            viewMode === 'week'
               ? 'bg-blue-500 text-white hover:bg-blue-600'
-              : 'bg-[#242424] text-[#9ca3af] hover:bg-[#2a2a2a] border border-[#2a2a2a]'
+              : 'border-[#2a2a2a] text-[#9ca3af] hover:bg-[#242424]'
           }
         >
-          Tomorrow
-        </Button>
-        <Button
-          size="sm"
-          onClick={() => handleQuickDate(addDays(today, 7))}
-          className="bg-[#242424] text-[#9ca3af] hover:bg-[#2a2a2a] border border-[#2a2a2a]"
-        >
-          Next Week
-        </Button>
-        <Button
-          size="sm"
-          onClick={() =>
-            handleQuickDate(startOfMonth(currentDate))
-          }
-          className="bg-[#242424] text-[#9ca3af] hover:bg-[#2a2a2a] border border-[#2a2a2a]"
-        >
-          Start of Month
+          Week
         </Button>
       </div>
     </div>

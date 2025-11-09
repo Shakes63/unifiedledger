@@ -10,47 +10,71 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Merchant {
   id: string;
   name: string;
+  categoryId?: string;
   usageCount: number;
   lastUsedAt?: string;
   totalSpent: number;
   averageTransaction: number;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  type: string;
+}
+
 export default function MerchantsPage() {
   const [merchants, setMerchants] = useState<Merchant[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedMerchant, setSelectedMerchant] = useState<Merchant | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({ name: '' });
+  const [formData, setFormData] = useState({ name: '', categoryId: '' });
 
-  // Fetch merchants
+  // Fetch merchants and categories
   useEffect(() => {
-    const fetchMerchants = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/merchants?limit=1000');
-        if (response.ok) {
-          const data = await response.json();
-          setMerchants(data);
+
+        // Fetch merchants
+        const merchantsResponse = await fetch('/api/merchants?limit=1000');
+        if (merchantsResponse.ok) {
+          const merchantsData = await merchantsResponse.json();
+          setMerchants(merchantsData);
         } else {
           toast.error('Failed to load merchants');
         }
+
+        // Fetch categories
+        const categoriesResponse = await fetch('/api/categories');
+        if (categoriesResponse.ok) {
+          const categoriesData = await categoriesResponse.json();
+          setCategories(categoriesData);
+        }
       } catch (error) {
-        console.error('Error fetching merchants:', error);
-        toast.error('Error loading merchants');
+        console.error('Error fetching data:', error);
+        toast.error('Error loading data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMerchants();
+    fetchData();
   }, []);
 
   // Handle form submission
@@ -69,21 +93,25 @@ export default function MerchantsPage() {
         const response = await fetch(`/api/merchants/${selectedMerchant.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: formData.name }),
+          body: JSON.stringify({
+            name: formData.name,
+            categoryId: formData.categoryId || null,
+          }),
         });
 
         if (response.ok) {
+          const updatedMerchant = await response.json();
           toast.success('Merchant updated successfully');
           setMerchants(
             merchants.map((m) =>
               m.id === selectedMerchant.id
-                ? { ...m, name: formData.name }
+                ? updatedMerchant
                 : m
             )
           );
           setIsDialogOpen(false);
           setSelectedMerchant(null);
-          setFormData({ name: '' });
+          setFormData({ name: '', categoryId: '' });
         } else {
           const error = await response.json();
           toast.error(error.error || 'Failed to update merchant');
@@ -93,7 +121,10 @@ export default function MerchantsPage() {
         const response = await fetch('/api/merchants', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: formData.name }),
+          body: JSON.stringify({
+            name: formData.name,
+            categoryId: formData.categoryId || null,
+          }),
         });
 
         if (response.ok) {
@@ -101,7 +132,7 @@ export default function MerchantsPage() {
           toast.success('Merchant created successfully');
           setMerchants([result, ...merchants]);
           setIsDialogOpen(false);
-          setFormData({ name: '' });
+          setFormData({ name: '', categoryId: '' });
         } else {
           const error = await response.json();
           toast.error(error.error || 'Failed to create merchant');
@@ -142,15 +173,22 @@ export default function MerchantsPage() {
   // Handle edit
   const handleEdit = (merchant: Merchant) => {
     setSelectedMerchant(merchant);
-    setFormData({ name: merchant.name });
+    setFormData({ name: merchant.name, categoryId: merchant.categoryId || '' });
     setIsDialogOpen(true);
   };
 
   // Handle create
   const handleCreate = () => {
     setSelectedMerchant(null);
-    setFormData({ name: '' });
+    setFormData({ name: '', categoryId: '' });
     setIsDialogOpen(true);
+  };
+
+  // Get category name by ID
+  const getCategoryName = (categoryId?: string): string => {
+    if (!categoryId) return 'None';
+    const category = categories.find(c => c.id === categoryId);
+    return category?.name || 'Unknown';
   };
 
   if (loading) {
@@ -190,6 +228,7 @@ export default function MerchantsPage() {
             <thead>
               <tr className="border-b border-[#2a2a2a]">
                 <th className="text-left py-3 px-4 font-semibold text-gray-300">Name</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-300">Category</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-300">Usage Count</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-300">Total Spent</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-300">Avg Transaction</th>
@@ -203,6 +242,7 @@ export default function MerchantsPage() {
                   className="border-b border-[#2a2a2a] hover:bg-[#1a1a1a]/50 transition-all"
                 >
                   <td className="py-3 px-4 text-white">{merchant.name}</td>
+                  <td className="py-3 px-4 text-gray-400">{getCategoryName(merchant.categoryId)}</td>
                   <td className="py-3 px-4 text-gray-400">{merchant.usageCount}</td>
                   <td className="py-3 px-4 text-gray-400">
                     ${merchant.totalSpent?.toFixed(2) || '0.00'}
@@ -267,10 +307,35 @@ export default function MerchantsPage() {
                 type="text"
                 placeholder="e.g., Starbucks, Amazon"
                 value={formData.name}
-                onChange={(e) => setFormData({ name: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="bg-[#242424] border-[#3a3a3a] text-white"
                 autoFocus
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category" className="text-sm font-medium text-white">
+                Default Category
+              </Label>
+              <Select
+                value={formData.categoryId || 'none'}
+                onValueChange={(value) => setFormData({ ...formData, categoryId: value === 'none' ? '' : value })}
+              >
+                <SelectTrigger className="bg-[#242424] border-[#3a3a3a] text-white">
+                  <SelectValue placeholder="Select category (optional)..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                This helps filter merchants by transaction type (income/expense)
+              </p>
             </div>
 
             <div className="flex gap-2 justify-end">
@@ -280,7 +345,7 @@ export default function MerchantsPage() {
                 onClick={() => {
                   setIsDialogOpen(false);
                   setSelectedMerchant(null);
-                  setFormData({ name: '' });
+                  setFormData({ name: '', categoryId: '' });
                 }}
                 className="bg-[#242424] border-[#3a3a3a] text-gray-400"
               >

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 // PUT - Update a merchant
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -20,6 +20,7 @@ export async function PUT(
       );
     }
 
+    const { id } = await params;
     const body = await request.json();
     const { name, categoryId } = body;
 
@@ -29,7 +30,7 @@ export async function PUT(
       .from(merchants)
       .where(
         and(
-          eq(merchants.id, params.id),
+          eq(merchants.id, id),
           eq(merchants.userId, userId)
         )
       )
@@ -50,12 +51,12 @@ export async function PUT(
         categoryId: categoryId !== undefined ? categoryId : merchant[0].categoryId,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(merchants.id, params.id));
+      .where(eq(merchants.id, id));
 
     const updatedMerchant = await db
       .select()
       .from(merchants)
-      .where(eq(merchants.id, params.id))
+      .where(eq(merchants.id, id))
       .limit(1);
 
     return Response.json(updatedMerchant[0]);
@@ -71,7 +72,7 @@ export async function PUT(
 // DELETE - Delete a merchant
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -83,13 +84,15 @@ export async function DELETE(
       );
     }
 
+    const { id } = await params;
+
     // Verify merchant belongs to user
     const merchant = await db
       .select()
       .from(merchants)
       .where(
         and(
-          eq(merchants.id, params.id),
+          eq(merchants.id, id),
           eq(merchants.userId, userId)
         )
       )
@@ -105,7 +108,7 @@ export async function DELETE(
     // Delete merchant
     await db
       .delete(merchants)
-      .where(eq(merchants.id, params.id));
+      .where(eq(merchants.id, id));
 
     return Response.json({ success: true });
   } catch (error) {

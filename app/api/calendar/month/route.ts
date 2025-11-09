@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
-import { transactions } from '@/lib/db/schema';
-import { eq, and, gte, lte } from 'drizzle-orm';
+import { transactions, billInstances, bills } from '@/lib/db/schema';
+import { eq, and, gte, lte, lt } from 'drizzle-orm';
 import { format, parse } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
@@ -36,6 +36,19 @@ export async function GET(request: Request) {
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
 
+    // Update any pending bills that are now overdue
+    const today = format(new Date(), 'yyyy-MM-dd');
+    await db
+      .update(billInstances)
+      .set({ status: 'overdue' })
+      .where(
+        and(
+          eq(billInstances.userId, userId),
+          eq(billInstances.status, 'pending'),
+          lt(billInstances.dueDate, today)
+        )
+      );
+
     // Get all transactions for the month
     const monthTransactions = await db
       .select()
@@ -58,6 +71,7 @@ export async function GET(request: Request) {
         totalSpent: number;
         billDueCount: number;
         billOverdueCount: number;
+        bills?: Array<{ name: string; status: string; amount: number }>;
       }
     > = {};
 
@@ -72,6 +86,7 @@ export async function GET(request: Request) {
           totalSpent: 0,
           billDueCount: 0,
           billOverdueCount: 0,
+          bills: [],
         };
       }
 
@@ -93,8 +108,61 @@ export async function GET(request: Request) {
       }
     }
 
-    // TODO: Add bill counts when bill system is implemented
-    // For now, billDueCount and billOverdueCount remain 0
+    // Get all bill instances for the month
+    const monthBillInstances = await db
+      .select()
+      .from(billInstances)
+      .where(
+        and(
+          eq(billInstances.userId, userId),
+          gte(billInstances.dueDate, format(startDate, 'yyyy-MM-dd')),
+          lte(billInstances.dueDate, format(endDate, 'yyyy-MM-dd'))
+        )
+      );
+
+    // Add bill details to day summaries
+    for (const billInstance of monthBillInstances) {
+      const dateKey = billInstance.dueDate;
+
+      if (!daySummaries[dateKey]) {
+        daySummaries[dateKey] = {
+          incomeCount: 0,
+          expenseCount: 0,
+          transferCount: 0,
+          totalSpent: 0,
+          billDueCount: 0,
+          billOverdueCount: 0,
+          bills: [],
+        };
+      }
+
+      // Get bill name
+      const bill = await db
+        .select()
+        .from(bills)
+        .where(
+          and(
+            eq(bills.id, billInstance.billId),
+            eq(bills.userId, userId)
+          )
+        )
+        .limit(1);
+
+      if (bill.length > 0) {
+        daySummaries[dateKey].bills = daySummaries[dateKey].bills || [];
+        daySummaries[dateKey].bills!.push({
+          name: bill[0].name,
+          status: billInstance.status || 'pending',
+          amount: billInstance.expectedAmount,
+        });
+      }
+
+      if (billInstance.status === 'overdue') {
+        daySummaries[dateKey].billOverdueCount++;
+      } else if (billInstance.status === 'pending') {
+        daySummaries[dateKey].billDueCount++;
+      }
+    }
 
     return Response.json({
       daySummaries,

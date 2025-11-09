@@ -2,6 +2,7 @@
 
 import { isToday, isSameMonth, format } from 'date-fns';
 import { TransactionIndicators } from './transaction-indicators';
+import { Check } from 'lucide-react';
 
 interface DayTransactionSummary {
   incomeCount: number;
@@ -10,6 +11,7 @@ interface DayTransactionSummary {
   totalSpent: number;
   billDueCount: number;
   billOverdueCount: number;
+  bills?: Array<{ name: string; status: string; amount: number }>;
 }
 
 interface CalendarDayProps {
@@ -32,7 +34,8 @@ export function CalendarDay({
     summary.expenseCount > 0 ||
     summary.transferCount > 0 ||
     summary.billDueCount > 0 ||
-    summary.billOverdueCount > 0
+    summary.billOverdueCount > 0 ||
+    (summary.bills && summary.bills.length > 0)
   );
 
   return (
@@ -55,15 +58,38 @@ export function CalendarDay({
         {format(date, 'd')}
       </span>
 
-      {/* Indicators */}
+      {/* Bills and Indicators */}
       {hasActivity && summary && (
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden flex flex-col gap-1">
+          {/* Bill Names */}
+          {summary.bills && summary.bills.length > 0 && (
+            <div className="space-y-0.5">
+              {summary.bills.map((bill, idx) => (
+                <div
+                  key={idx}
+                  className={`text-[10px] px-1.5 py-0.5 rounded truncate flex items-center gap-0.5 ${
+                    bill.status === 'overdue'
+                      ? 'bg-red-600/20 text-red-500 font-semibold'
+                      : bill.status === 'paid'
+                      ? 'bg-emerald-400/20 text-emerald-400'
+                      : 'bg-amber-400/20 text-amber-400'
+                  }`}
+                  title={`${bill.name} - $${bill.amount.toFixed(2)}${bill.status === 'paid' ? ' (Paid)' : ''}`}
+                >
+                  {bill.status === 'paid' && <Check className="w-2.5 h-2.5 shrink-0" />}
+                  <span className="truncate">{bill.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Transaction Counts */}
           <TransactionIndicators
             incomeCount={summary.incomeCount}
             expenseCount={summary.expenseCount}
             transferCount={summary.transferCount}
-            billDueCount={summary.billDueCount}
-            billOverdueCount={summary.billOverdueCount}
+            billDueCount={0}
+            billOverdueCount={0}
             totalSpent={summary.totalSpent}
             compact
           />

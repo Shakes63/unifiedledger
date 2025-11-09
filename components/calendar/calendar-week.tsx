@@ -8,6 +8,8 @@ import {
   isToday,
 } from 'date-fns';
 import { TransactionIndicators } from './transaction-indicators';
+import { Check, TrendingUp, TrendingDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface DayTransactionSummary {
   incomeCount: number;
@@ -16,6 +18,16 @@ interface DayTransactionSummary {
   totalSpent: number;
   billDueCount: number;
   billOverdueCount: number;
+  bills?: Array<{ name: string; status: string; amount: number }>;
+}
+
+interface Transaction {
+  id: string;
+  description: string;
+  amount: number;
+  type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+  merchant?: string;
+  accountName?: string;
 }
 
 interface CalendarWeekProps {
@@ -32,6 +44,35 @@ export function CalendarWeek({
   const weekStart = startOfWeek(currentDate);
   const weekEnd = endOfWeek(currentDate);
   const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
+  const [weekTransactions, setWeekTransactions] = useState<Record<string, Transaction[]>>({});
+  const [loading, setLoading] = useState(true);
+
+  // Fetch transactions for the week
+  useEffect(() => {
+    const fetchWeekTransactions = async () => {
+      setLoading(true);
+      const transactions: Record<string, Transaction[]> = {};
+
+      for (const day of days) {
+        const dayKey = format(day, 'yyyy-MM-dd');
+        try {
+          const response = await fetch(`/api/calendar/day?date=${day.toISOString()}`);
+          if (response.ok) {
+            const data = await response.json();
+            transactions[dayKey] = data.transactions || [];
+          }
+        } catch (error) {
+          console.error(`Error fetching transactions for ${dayKey}:`, error);
+          transactions[dayKey] = [];
+        }
+      }
+
+      setWeekTransactions(transactions);
+      setLoading(false);
+    };
+
+    fetchWeekTransactions();
+  }, [currentDate]);
 
   return (
     <div className="space-y-4">
@@ -45,27 +86,20 @@ export function CalendarWeek({
         {days.map((day) => {
           const dayKey = format(day, 'yyyy-MM-dd');
           const summary = daySummaries[dayKey];
+          const transactions = weekTransactions[dayKey] || [];
           const isTodayDate = isToday(day);
-          const hasActivity = summary && (
-            summary.incomeCount > 0 ||
-            summary.expenseCount > 0 ||
-            summary.transferCount > 0 ||
-            summary.billDueCount > 0 ||
-            summary.billOverdueCount > 0
-          );
 
           return (
-            <button
+            <div
               key={dayKey}
-              onClick={() => onDayClick?.(day)}
-              className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-3 ${
+              className={`p-3 rounded-lg border-2 transition-all flex flex-col min-h-[300px] ${
                 isTodayDate
-                  ? 'bg-blue-500/10 border-blue-400 shadow-lg shadow-blue-500/20'
-                  : 'bg-[#1a1a1a] border-[#2a2a2a] hover:border-[#3a3a3a] hover:bg-[#242424]'
+                  ? 'bg-blue-500/10 border-blue-400'
+                  : 'bg-[#1a1a1a] border-[#2a2a2a]'
               }`}
             >
               {/* Day name and date */}
-              <div className="text-center w-full">
+              <div className="text-center mb-3 pb-2 border-b border-[#2a2a2a]">
                 <p className="text-xs text-[#6b7280] font-medium">
                   {format(day, 'EEE')}
                 </p>
@@ -78,49 +112,82 @@ export function CalendarWeek({
                 </p>
               </div>
 
-              {/* Indicators */}
-              {hasActivity && summary && (
-                <div className="w-full border-t border-[#2a2a2a] pt-3">
-                  <div className="text-xs space-y-1">
-                    {summary.incomeCount > 0 && (
-                      <div className="flex items-center justify-center gap-1 text-emerald-400">
-                        <span className="font-semibold">
-                          +{summary.incomeCount}
-                        </span>
+              {/* Bills */}
+              {summary?.bills && summary.bills.length > 0 && (
+                <div className="space-y-1 mb-2">
+                  {summary.bills.map((bill, idx) => (
+                    <div
+                      key={idx}
+                      className={`text-[10px] px-1.5 py-1 rounded flex items-center gap-0.5 ${
+                        bill.status === 'overdue'
+                          ? 'bg-red-600/20 text-red-500 font-semibold'
+                          : bill.status === 'paid'
+                          ? 'bg-emerald-400/20 text-emerald-400'
+                          : 'bg-amber-400/20 text-amber-400'
+                      }`}
+                    >
+                      {bill.status === 'paid' && <Check className="w-2.5 h-2.5 shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium">{bill.name}</div>
+                        <div className="text-[9px] opacity-75">${bill.amount.toFixed(2)}</div>
                       </div>
-                    )}
-                    {summary.expenseCount > 0 && (
-                      <div className="flex items-center justify-center gap-1 text-red-400">
-                        <span className="font-semibold">
-                          -{summary.expenseCount}
-                        </span>
-                      </div>
-                    )}
-                    {summary.transferCount > 0 && (
-                      <div className="flex items-center justify-center gap-1 text-blue-400">
-                        <span className="font-semibold">
-                          ↔{summary.transferCount}
-                        </span>
-                      </div>
-                    )}
-                    {summary.billDueCount > 0 && (
-                      <div className="flex items-center justify-center gap-1 text-amber-400">
-                        <span className="font-semibold">
-                          📋{summary.billDueCount}
-                        </span>
-                      </div>
-                    )}
-                    {summary.billOverdueCount > 0 && (
-                      <div className="flex items-center justify-center gap-1 text-red-500">
-                        <span className="font-semibold">
-                          ⚠{summary.billOverdueCount}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               )}
-            </button>
+
+              {/* Transactions List */}
+              {loading ? (
+                <div className="text-[#6b7280] text-xs text-center py-4">Loading...</div>
+              ) : transactions.length > 0 ? (
+                <div className="space-y-1 overflow-y-auto flex-1">
+                  {transactions.map((txn) => {
+                    // For transfers, show the account name
+                    const isTransfer = txn.type === 'transfer_in' || txn.type === 'transfer_out';
+                    let displayName: string;
+
+                    if (isTransfer) {
+                      displayName = txn.accountName || txn.description;
+                    } else {
+                      // For regular transactions, prefer merchant over description
+                      displayName = txn.merchant && txn.merchant.trim() !== ''
+                        ? txn.merchant
+                        : txn.description;
+                    }
+
+                    return (
+                      <div
+                        key={txn.id}
+                        className="text-[10px] px-1.5 py-1 rounded bg-[#242424] hover:bg-[#2a2a2a] transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-1">
+                          <div className="flex-1 min-w-0">
+                            <div className="truncate font-medium text-white">
+                              {displayName}
+                            </div>
+                            {!isTransfer && txn.merchant && txn.merchant.trim() !== '' && txn.description !== txn.merchant && (
+                              <div className="truncate text-[#6b7280] text-[9px]">
+                                {txn.description}
+                              </div>
+                            )}
+                          </div>
+                          <div className={`font-semibold shrink-0 ${
+                            txn.type === 'income' ? 'text-emerald-400' :
+                            txn.type === 'expense' ? 'text-red-400' :
+                            'text-blue-400'
+                          }`}>
+                            {txn.type === 'expense' || txn.type === 'transfer_out' ? '-' : '+'}
+                            ${Math.abs(txn.amount).toFixed(0)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-[#6b7280] text-xs text-center py-4">No transactions</div>
+              )}
+            </div>
           );
         })}
       </div>

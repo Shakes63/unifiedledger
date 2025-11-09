@@ -17,6 +17,7 @@ interface DayTransactionSummary {
   totalSpent: number;
   billDueCount: number;
   billOverdueCount: number;
+  bills?: Array<{ name: string; status: string; amount: number }>;
 }
 
 interface CalendarMonthProps {

@@ -285,7 +285,62 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates (Current Session)
 
-### Latest Session - Category-Based Debt Tracking & Bill Payment UX ✅
+### Latest Session - Calendar Enhancements & Bill Display ✅
+
+1. **Fixed Merchants Page Select.Item Error**
+   - Changed empty string value to 'none' in merchant category selector
+   - Prevents React error: "A <Select.Item /> must have a value prop that is not an empty string"
+   - Files: `app/dashboard/merchants/page.tsx`
+
+2. **Fixed Merchants API for Next.js 15+**
+   - Updated merchants API to await params promise (required in Next.js 15+)
+   - Changed params type from `{ params: { id: string } }` to `{ params: Promise<{ id: string }> }`
+   - Files: `app/api/merchants/[id]/route.ts`
+
+3. **Calendar Bill Display on Due Dates**
+   - Bills now show on their correct due dates in the calendar
+   - Updated month and day APIs to fetch bill instances with bill names
+   - Each day shows bill names as color-coded badges
+   - Files: `app/api/calendar/month/route.ts`, `app/api/calendar/day/route.ts`
+
+4. **Automatic Overdue Bill Detection**
+   - Bills automatically marked as "overdue" when due date passes
+   - Overdue check runs on calendar load and bill instances fetch
+   - Updates all pending bills where `dueDate < today` to status "overdue"
+   - Files: `app/api/calendar/month/route.ts`, `app/api/calendar/day/route.ts`, `app/api/bills/instances/route.ts`
+
+5. **Paid Bills Display with Checkmarks**
+   - Paid bills now show in calendar with green background
+   - Green checkmark (✓) icon displayed before bill name
+   - Updated `hasActivity` check to include paid bills
+   - Files: `components/calendar/calendar-day.tsx`, `components/calendar/calendar-week.tsx`
+
+6. **Calendar Header Reorganization**
+   - Navigation bar moved to top with Month/Year centered
+   - Month/Week view buttons moved below navigation bar (centered)
+   - Removed quick navigation buttons (Today, Tomorrow, etc.)
+   - Files: `components/calendar/calendar-header.tsx`
+
+7. **Week View Navigation Enhancement**
+   - Previous/Next buttons now move by 1 week in week view (instead of 1 month)
+   - Conditionally applies week or month navigation based on viewMode
+   - Files: `components/calendar/calendar-header.tsx`
+
+8. **Week View Transaction Details**
+   - Week view completely redesigned to show transaction lists
+   - Displays merchant name and amount for each transaction
+   - Transfers show account name
+   - Bills appear at top of each day with status colors
+   - Each day column is scrollable for multiple transactions
+   - Files: `components/calendar/calendar-week.tsx`, `app/api/calendar/day/route.ts`
+
+9. **Merchant Display Fix in Calendar**
+   - Fixed logic to properly show merchant names instead of descriptions
+   - Added trim() check to handle empty merchant strings
+   - Shows merchant if set, otherwise falls back to description
+   - Files: `components/calendar/calendar-week.tsx`
+
+### Previous Session - Category-Based Debt Tracking & Bill Payment UX ✅
 
 1. **Implemented Category-Based Debt Tracking System**
    - Added `categoryId` field to debts table (migration `0013_add_category_id_to_debts.sql`)
