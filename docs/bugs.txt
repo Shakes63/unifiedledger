@@ -906,6 +906,86 @@ COMPLETED BUGS:
    * No manual page refresh needed
    * Shows "Transactions refreshed" toast
 
-pending
+✅ 64. Fixed bills not showing correctly on dashboard:
+- Root cause: Bill instances API wasn't joining with bills table
+- BillsWidget expected nested { instance, bill } structure but API only returned instance
+- Solution Part 1 - API Update (app/api/bills/instances/route.ts):
+  * Changed select to join with bills table: .select({ instance: billInstances, bill: bills })
+  * Added .leftJoin(bills, eq(billInstances.billId, bills.id))
+  * Now returns both instance and bill data together
+- Solution Part 2 - Widget Update (components/dashboard/bills-widget.tsx):
+  * Updated data transformation to map { instance, bill } → flat structure with nested bill
+  * Fixed interface to use expectedAmount/actualAmount instead of amount
+  * Updated all amount calculations to use actualAmount || expectedAmount
+  * Bill names now display correctly instead of showing undefined
+- Files updated:
+  * app/api/bills/instances/route.ts (lines 38-48)
+  * components/dashboard/bills-widget.tsx (lines 10-21, 40-47, 69-74, 168-170)
+- Result: Dashboard bills widget now shows bill names, amounts, and status correctly
 
+✅ 65. Fixed debt creation stats fetch error:
+- Error: "Failed to fetch stats" when creating a debt
+- Root cause: Missing export const dynamic = 'force-dynamic' directive
+- API route wasn't properly configured for Next.js 16 dynamic route handling
+- Solution:
+  * Added export const dynamic = 'force-dynamic' at top of file
+  * Ensures route is always dynamically rendered
+  * Matches pattern used in all other API routes
+- Files updated:
+  * app/api/debts/stats/route.ts (line 6)
+- Result: Debt stats API now works correctly without errors
+
+✅ 66. Fixed bills page parseISO error (Cannot read properties of undefined):
+- Error: "Cannot read properties of undefined (reading 'split')" at line 120
+- Error occurred when calling parseISO(instance.dueDate)
+- Root cause: Bills page wasn't transforming the new API response structure
+- After bug #64 fix, API changed to return { instance, bill } structure
+- Bills page was treating it as flat instances, so instance.dueDate was undefined
+- Solution:
+  * Added data transformation similar to BillsWidget fix
+  * Extract raw instances from instancesData.data
+  * Map each row to flatten structure: { ...row.instance, bill: row.bill }
+  * Now instance fields (like dueDate) are at top level where expected
+- Files updated:
+  * app/dashboard/bills/page.tsx (lines 87-92)
+- Result: Bills page now loads without errors, dueDate is properly defined
+
+✅ 67. Fixed debt creation SQL error (no such column: description):
+- Error: SqliteError: no such column: "description" when creating debts
+- Error occurred on GET /api/debts?status=active after debt creation attempt
+- Root cause: Database schema was outdated - debts table missing many columns
+- TypeScript schema (lib/db/schema.ts) had been updated with new fields:
+  * description, creditorName, originalAmount, remainingBalance
+  * interestType, type, color, icon, startDate, targetPayoffDate
+  * status, priority, notes, updatedAt
+- But database migrations only had old schema from initial migration
+- Old schema only had: id, user_id, name, current_balance, minimum_payment, etc.
+- Solution:
+  * Created migration 0007_update_debts_schema.sql
+  * Added all missing columns to debts table with appropriate defaults
+  * Applied migration to sqlite.db database
+  * Verified schema with PRAGMA table_info - now has 26 columns including description
+- Files created:
+  * drizzle/0007_update_debts_schema.sql
+- Result: Debt creation now works without SQL errors
+- All fields properly stored in database
+
+✅ 68. Fixed dashboard bills widget showing no bills:
+- Issue: Dashboard showed "No bills this month" even when bills were entered
+- Root cause: BillsWidget requests bills with status=pending,paid (comma-separated)
+- API was using eq() which expects exact match on a single value
+- API tried to find status exactly equal to "pending,paid" (doesn't exist)
+- Solution:
+  * Added inArray import from drizzle-orm
+  * Updated status filtering logic to handle comma-separated values
+  * Split status parameter by comma and trim whitespace
+  * If multiple values: use inArray(billInstances.status, statusValues)
+  * If single value: use eq(billInstances.status, status) as before
+  * Maintains backward compatibility with single status queries
+- Files updated:
+  * app/api/bills/instances/route.ts (lines 4, 30-38)
+- Result: Dashboard now correctly displays bills with status "pending" or "paid"
+- Widget successfully filters and shows this month's bills
+
+pending
 

@@ -79,8 +79,17 @@ export default function BillsDashboard() {
         const instancesData = await instancesRes.json();
 
         // Handle empty data safely
-        const billsList = Array.isArray(billsData?.data) ? billsData.data : [];
-        const instancesList = Array.isArray(instancesData?.data) ? instancesData.data : [];
+        // Extract bill objects from nested structure { bill, category, account }
+        const billsList = Array.isArray(billsData?.data)
+          ? billsData.data.map((row: any) => row.bill)
+          : [];
+
+        // Extract instance objects from nested structure { instance, bill }
+        const rawInstances = Array.isArray(instancesData?.data) ? instancesData.data : [];
+        const instancesList = rawInstances.map((row: any) => ({
+          ...row.instance,
+          bill: row.bill,
+        }));
 
         setBills(billsList);
         setBillInstances(instancesList);

@@ -11,7 +11,8 @@ interface BillInstance {
   id: string;
   billId: string;
   dueDate: string;
-  amount: number;
+  expectedAmount: number;
+  actualAmount?: number;
   status: 'pending' | 'paid' | 'overdue' | 'skipped';
   bill?: {
     id: string;
@@ -38,7 +39,14 @@ export function BillsWidget() {
 
         if (response.ok) {
           const response_data = await response.json();
-          const billInstances = Array.isArray(response_data) ? response_data : response_data.data || [];
+          const rawData = Array.isArray(response_data) ? response_data : response_data.data || [];
+
+          // Transform the data structure from { instance, bill } to flat structure with nested bill
+          const billInstances = rawData.map((row: any) => ({
+            ...row.instance,
+            bill: row.bill,
+          }));
+
           // Filter for this month only
           const thisMonthBills = billInstances.filter((bill: BillInstance) => {
             const dueDate = new Date(bill.dueDate);
@@ -60,10 +68,10 @@ export function BillsWidget() {
 
   const paidCount = bills.filter((b) => b.status === 'paid').length;
   const pendingCount = bills.filter((b) => b.status === 'pending').length;
-  const totalAmount = bills.reduce((sum, b) => sum + b.amount, 0);
+  const totalAmount = bills.reduce((sum, b) => sum + (b.actualAmount || b.expectedAmount), 0);
   const paidAmount = bills
     .filter((b) => b.status === 'paid')
-    .reduce((sum, b) => sum + b.amount, 0);
+    .reduce((sum, b) => sum + (b.actualAmount || b.expectedAmount), 0);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -157,7 +165,9 @@ export function BillsWidget() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-white">${bill.amount.toFixed(2)}</p>
+                    <p className="text-sm font-semibold text-white">
+                      ${(bill.actualAmount || bill.expectedAmount).toFixed(2)}
+                    </p>
                     <span
                       className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
                         bill.status

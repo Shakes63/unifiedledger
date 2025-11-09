@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { billInstances, bills } from '@/lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +28,13 @@ export async function GET(request: Request) {
     const conditions = [eq(billInstances.userId, userId)];
 
     if (status) {
-      conditions.push(eq(billInstances.status, status as any));
+      // Handle comma-separated status values (e.g., "pending,paid")
+      const statusValues = status.split(',').map(s => s.trim());
+      if (statusValues.length > 1) {
+        conditions.push(inArray(billInstances.status, statusValues as any));
+      } else {
+        conditions.push(eq(billInstances.status, status as any));
+      }
     }
 
     if (billId) {
@@ -36,8 +42,12 @@ export async function GET(request: Request) {
     }
 
     const result = await db
-      .select()
+      .select({
+        instance: billInstances,
+        bill: bills,
+      })
       .from(billInstances)
+      .leftJoin(bills, eq(billInstances.billId, bills.id))
       .where(conditions.length === 1 ? conditions[0] : and(...(conditions as any)))
       .orderBy(desc(billInstances.dueDate))
       .limit(limit)

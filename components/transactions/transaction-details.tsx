@@ -2,11 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { Trash2, Edit, ArrowLeft } from 'lucide-react';
+import { Trash2, Edit, ArrowLeft, ArrowRightLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SplitsList } from './splits-list';
+import { ConvertToTransferModal } from './convert-to-transfer-modal';
 import { toast } from 'sonner';
 
 interface Transaction {
@@ -49,6 +50,7 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -105,6 +107,21 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
     }
   };
 
+  const handleConvertSuccess = () => {
+    // Reload transaction data after conversion
+    setLoading(true);
+    fetch(`/api/transactions/${transactionId}`)
+      .then(res => res.json())
+      .then(data => {
+        setTransaction(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to reload transaction:', err);
+        setLoading(false);
+      });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -146,6 +163,18 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
           </Button>
         </Link>
         <div className="flex gap-2">
+          {/* Only show convert button for income/expense (not transfers) */}
+          {transaction.type !== 'transfer_out' && transaction.type !== 'transfer_in' && transaction.type !== 'transfer' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowConvertModal(true)}
+              className="gap-2"
+            >
+              <ArrowRightLeft className="w-4 h-4" />
+              Convert to Transfer
+            </Button>
+          )}
           <Link href={`/dashboard/transactions/${transactionId}/edit`}>
             <Button variant="outline" size="sm" className="gap-2">
               <Edit className="w-4 h-4" />
@@ -253,6 +282,14 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
       {transaction.isSplit && (
         <SplitsList transactionId={transactionId} />
       )}
+
+      {/* Convert to Transfer Modal */}
+      <ConvertToTransferModal
+        open={showConvertModal}
+        onOpenChange={setShowConvertModal}
+        transaction={transaction}
+        onSuccess={handleConvertSuccess}
+      />
     </div>
   );
 }

@@ -365,6 +365,43 @@ pnpm drizzle-kit migrate   # Apply migration
 - `components/transactions/split-builder.tsx` - Complete UI reorganization
 - `components/transactions/transaction-form.tsx` - Pass category/description to splits
 
+### Latest Session - Convert to Transfer Feature & Bug Fixes ✅
+
+1. **Convert to Transfer Feature** - New feature for converting existing transactions
+   - Created API endpoint `/api/transactions/[id]/convert-to-transfer`
+   - Two modes: Create new paired transaction OR match with existing transaction
+   - Smart matching: finds opposite-type transactions with similar amounts (±1%) and dates (±7 days)
+   - Properly handles balance reversals and applies new transfer effects
+   - Supports both expense→transfer_out and income→transfer_in conversions
+   - Created ConvertToTransferModal component with account selection and transaction matching UI
+   - Added radio-group UI component for mode selection
+   - Integrated "Convert to Transfer" button in transaction details page
+   - Files: `app/api/transactions/[id]/convert-to-transfer/route.ts`, `components/transactions/convert-to-transfer-modal.tsx`, `components/ui/radio-group.tsx`
+
+2. **Bug #64: Bills not showing on dashboard**
+   - Fixed bill instances API to join with bills table
+   - Updated BillsWidget to transform new API response structure `{ instance, bill }`
+   - Fixed interface to use `expectedAmount`/`actualAmount` instead of `amount`
+   - Files: `app/api/bills/instances/route.ts`, `components/dashboard/bills-widget.tsx`
+
+3. **Bug #65: Debt stats fetch error**
+   - Added missing `export const dynamic = 'force-dynamic'` directive
+   - Files: `app/api/debts/stats/route.ts`
+
+4. **Bug #66: Bills page parseISO error**
+   - Updated bills page to transform API response structure
+   - Files: `app/dashboard/bills/page.tsx`
+
+5. **Bug #67: Debt creation SQL error**
+   - Created migration 0007 to add missing columns to debts table
+   - Added: description, creditorName, originalAmount, remainingBalance, interestType, type, color, icon, startDate, targetPayoffDate, status, priority, notes, updatedAt
+   - Files: `drizzle/0007_update_debts_schema.sql`
+
+6. **Bug #68: Dashboard bills widget empty**
+   - Fixed multi-status filtering to handle comma-separated values (e.g., "pending,paid")
+   - Added inArray support for status parameter
+   - Files: `app/api/bills/instances/route.ts`
+
 ## Important Notes
 
 ### Transaction Creation Flow
