@@ -176,10 +176,10 @@ export async function getTaxDeductions(
         categoryId: category.id,
         categoryName: category.name,
         formType: category.formType,
-        lineNumber: category.lineNumber,
+        lineNumber: category.lineNumber || undefined,
         totalAmount: 0,
         transactionCount: 0,
-        isDeductible: category.deductible,
+        isDeductible: category.deductible || false,
       });
     }
 

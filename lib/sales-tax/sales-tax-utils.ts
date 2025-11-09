@@ -158,7 +158,7 @@ export async function getQuarterlyReport(
     totalTax: totalTax.toNumber(),
     taxRate,
     dueDate: quarterInfo.dueDate,
-    submittedDate: filingRecord?.submittedDate,
+    submittedDate: filingRecord?.submittedDate || undefined,
     status: filingRecord?.status || 'pending',
     balanceDue: filingRecord?.balanceDue || totalTax.toNumber(),
   };

@@ -113,7 +113,6 @@ export function ConvertToTransferModal({
 
         const matches = transactions.filter((tx: Transaction) => {
           if (tx.type !== oppositeType) return false;
-          if (tx.type === 'transfer_out' || tx.type === 'transfer_in') return false;
 
           const matchDate = new Date(tx.date);
           const daysDiff = Math.abs((txDate.getTime() - matchDate.getTime()) / (1000 * 60 * 60 * 24));

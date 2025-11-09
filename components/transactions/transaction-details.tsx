@@ -456,7 +456,7 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
       <ConvertToTransferModal
         open={showConvertModal}
         onOpenChange={setShowConvertModal}
-        transaction={transaction}
+        transaction={transaction as any}
         onSuccess={handleConvertSuccess}
       />
     </div>

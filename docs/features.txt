@@ -1,3 +1,5 @@
-check the bugs.txt in the docs folder and start on the next bug.
+check the debtsystemplan.md in the docs folder and start on the next task.
 
-update the claude.md file and commit and push the changes.
+update the debtsystemplan.md and claude.md file and commit and push the changes.
+budgetsystemplan.md
+debtsystemplan.md

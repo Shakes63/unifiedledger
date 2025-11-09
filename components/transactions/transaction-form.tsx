@@ -177,6 +177,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           setFormData({
             accountId: transaction.accountId,
             categoryId: transaction.categoryId || '',
+            merchantId: transaction.merchantId || '',
             date: transaction.date,
             amount: transaction.amount.toString(),
             description: transaction.description,
@@ -623,12 +624,14 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         setFormData({
           accountId: formData.accountId,
           categoryId: '',
+          merchantId: '',
           date: new Date().toISOString().split('T')[0],
           amount: '',
           description: '',
           notes: '',
           type: defaultType,
           isPending: false,
+          toAccountId: '',
         });
         setUseSplits(false);
         setSplits([]);

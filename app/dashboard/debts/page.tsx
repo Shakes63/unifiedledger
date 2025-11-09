@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { DebtPayoffTracker } from '@/components/debts/debt-payoff-tracker';
 import { DebtForm } from '@/components/debts/debt-form';
+import { DebtPayoffStrategy } from '@/components/debts/debt-payoff-strategy';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function DebtsPage() {
   const [debts, setDebts] = useState<any[]>([]);
@@ -21,6 +22,7 @@ export default function DebtsPage() {
   const [selectedDebt, setSelectedDebt] = useState<any>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'paid_off'>('active');
   const [stats, setStats] = useState<any>(null);
+  const [showStrategy, setShowStrategy] = useState(true);
 
   // Fetch debts
   useEffect(() => {
@@ -209,6 +211,33 @@ export default function DebtsPage() {
           </button>
         ))}
       </div>
+
+      {/* Payoff Strategy Section */}
+      {stats && stats.activeDebtCount > 0 && (
+        <div className="space-y-4">
+          <button
+            onClick={() => setShowStrategy(!showStrategy)}
+            className="flex items-center justify-between w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 hover:bg-[#242424] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🎯</span>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold text-white">Debt Payoff Strategy</h3>
+                <p className="text-sm text-gray-400">
+                  Compare Snowball vs Avalanche methods and see your payoff timeline
+                </p>
+              </div>
+            </div>
+            {showStrategy ? (
+              <ChevronUp className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
+
+          {showStrategy && <DebtPayoffStrategy />}
+        </div>
+      )}
 
       {/* Debts List */}
       {loading ? (

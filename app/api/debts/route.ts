@@ -81,14 +81,9 @@ export async function POST(request: Request) {
         id: categoryId,
         userId,
         name: `Debt: ${name}`,
-        type: 'expense',
-        icon: icon || 'credit-card',
-        color: color || '#ef4444',
+        type: 'debt',
         isActive: true,
-        sortOrder: 0,
-        usageCount: 0,
         createdAt: now,
-        updatedAt: now,
       });
     }
 

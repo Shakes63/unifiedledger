@@ -186,9 +186,9 @@ export function CategorySelector({
                 const shownCategoryIds = new Set<string>();
 
                 // Collect all items to display
-                const billItems: JSX.Element[] = [];
-                const debtItems: JSX.Element[] = [];
-                const categoryItems: JSX.Element[] = [];
+                const billItems: React.ReactElement[] = [];
+                const debtItems: React.ReactElement[] = [];
+                const categoryItems: React.ReactElement[] = [];
 
                 // Add bills
                 bills.forEach((bill) => {

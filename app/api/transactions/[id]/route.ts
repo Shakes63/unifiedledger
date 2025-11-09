@@ -239,7 +239,7 @@ export async function PUT(
       if (oldAccount.length > 0 && newAccount.length > 0) {
         // Reverse old transaction effect
         let oldBalance = new Decimal(oldAccount[0].currentBalance || 0);
-        if (transaction.type === 'expense' || transaction.type === 'transfer_out' || transaction.type === 'transfer') {
+        if (transaction.type === 'expense' || transaction.type === 'transfer_out') {
           oldBalance = oldBalance.plus(oldDecimalAmount);
         } else {
           oldBalance = oldBalance.minus(oldDecimalAmount);
@@ -252,7 +252,7 @@ export async function PUT(
 
         // Apply new transaction effect
         let newBalance = new Decimal(newAccount[0].currentBalance || 0);
-        if (transaction.type === 'expense' || transaction.type === 'transfer_out' || transaction.type === 'transfer') {
+        if (transaction.type === 'expense' || transaction.type === 'transfer_out') {
           newBalance = newBalance.minus(newAmount);
         } else {
           newBalance = newBalance.plus(newAmount);
@@ -320,7 +320,7 @@ export async function PUT(
 
         if (matchingBills.length > 0) {
           // Collect all pending instances from all matching bills
-          const allPendingInstances = [];
+          const allPendingInstances: any[] = [];
 
           for (const bill of matchingBills) {
             const instances = await db

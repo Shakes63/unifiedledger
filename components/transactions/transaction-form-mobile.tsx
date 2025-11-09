@@ -55,7 +55,7 @@ export function TransactionFormMobile({
       <div className="flex-1 overflow-y-auto pb-28 md:pb-0">
         <div className="px-4 py-6 max-w-2xl mx-auto">
           <TransactionForm
-            defaultType={defaultType}
+            defaultType={defaultType === 'transfer_in' || defaultType === 'transfer_out' ? undefined : defaultType}
             transactionId={transactionId}
             onEditSuccess={onEditSuccess}
           />

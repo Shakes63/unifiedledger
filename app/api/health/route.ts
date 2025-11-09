@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { budgetCategories } from "@/lib/db/schema";
 
 /**
  * Health Check Endpoint
@@ -17,7 +17,7 @@ import { users } from "@/lib/db/schema";
 export async function GET(request: NextRequest) {
   try {
     // Check database connectivity by running a simple query
-    const connection = await db.select().from(users).limit(1).execute();
+    const connection = await db.select().from(budgetCategories).limit(1).execute();
 
     // Return healthy status
     return NextResponse.json(

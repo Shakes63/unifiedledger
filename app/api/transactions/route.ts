@@ -477,7 +477,7 @@ export async function POST(request: Request) {
 
         if (matchingBills.length > 0) {
           // Collect all pending instances from all matching bills
-          const allPendingInstances = [];
+          const allPendingInstances: any[] = [];
 
           for (const bill of matchingBills) {
             const instances = await db

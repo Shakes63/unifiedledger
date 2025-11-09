@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     }
 
     // Get upcoming bill instances for each bill
-    let billsWithInstances = [];
+    let billsWithInstances: any[] = [];
 
     if (result && result.length > 0) {
       billsWithInstances = await Promise.all(
