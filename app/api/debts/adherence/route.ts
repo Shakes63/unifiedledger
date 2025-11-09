@@ -211,8 +211,9 @@ export async function GET() {
     // Estimate max payoff time (very rough estimate)
     const estimatedMonths = totalMinPayment > 0 ? totalDebt / totalMinPayment : 999;
 
-    // Skip if debt over $500k OR estimated payoff > 360 months (30 years)
-    const shouldCalculateProjections = totalDebt > 0 && totalDebt < 500000 && estimatedMonths < 360;
+    // Skip if debt over $200k OR estimated payoff > 240 months (20 years)
+    // This is very conservative to prevent memory issues
+    const shouldCalculateProjections = totalDebt > 0 && totalDebt < 200000 && estimatedMonths < 240;
 
     if (shouldCalculateProjections) {
       try {

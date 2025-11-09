@@ -245,8 +245,8 @@ function calculateDebtSchedule(
   const periodsPerYear = getPaymentPeriodsPerYear(paymentFrequency);
   let paymentPeriod = 0;
 
-  // Safety limit: max 600 months (50 years) to prevent memory issues
-  const MAX_MONTHS = 600;
+  // Safety limit: max 360 months (30 years) to prevent memory issues
+  const MAX_MONTHS = 360;
 
   while (balance.greaterThan(0) && monthsToPayoff < MAX_MONTHS) {
     paymentPeriod++;

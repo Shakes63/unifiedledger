@@ -58,6 +58,19 @@ export default function DebtsPage() {
 
   const loadPayoffStrategy = async (settings: any) => {
     try {
+      // Check if we should skip loading strategy for very large debts
+      // to prevent memory issues
+      const totalDebt = debts.reduce((sum, d) => sum + (d.remainingBalance || 0), 0);
+      const totalMinPayment = debts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
+      const estimatedMonths = totalMinPayment > 0 ? totalDebt / totalMinPayment : 999;
+
+      // Skip if debt over $200k OR estimated 20+ years
+      if (totalDebt >= 200000 || estimatedMonths >= 240) {
+        console.log('Skipping payoff strategy calculation for large/long-term debts to prevent memory issues');
+        setPayoffStrategy(null);
+        return;
+      }
+
       const extraPayment = settings?.extraMonthlyPayment || 0;
       const method = settings?.preferredMethod || 'avalanche';
       const frequency = settings?.paymentFrequency || 'monthly';
@@ -72,6 +85,7 @@ export default function DebtsPage() {
       }
     } catch (error) {
       console.error('Error loading payoff strategy:', error);
+      setPayoffStrategy(null);
     }
   };
 
