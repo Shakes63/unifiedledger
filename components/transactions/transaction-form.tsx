@@ -31,7 +31,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { HapticFeedbackTypes } from '@/hooks/useHapticFeedback';
 
-type TransactionType = 'income' | 'expense' | 'transfer';
+type TransactionType = 'income' | 'expense' | 'transfer' | 'bill';
 
 interface Tag {
   id: string;
@@ -102,9 +102,29 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [customFieldsLoading, setCustomFieldsLoading] = useState(true);
   const [accounts, setAccounts] = useState<Array<{ id: string; name: string; currentBalance: number }>>([]);
   const [accountsLoading, setAccountsLoading] = useState(false);
-  const [debts, setDebts] = useState<Array<{ id: string; name: string; remainingBalance: number }>>([]);
-  const [debtsLoading, setDebtsLoading] = useState(false);
+  const [pendingBills, setPendingBills] = useState<Array<any>>([]);
+  const [billsLoading, setBillsLoading] = useState(false);
+  const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
   const isEditMode = !!transactionId;
+
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getTodaysDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
+  const [formData, setFormData] = useState({
+    accountId: '',
+    categoryId: '',
+    merchantId: '',
+    date: getTodaysDate(),
+    amount: '',
+    description: '',
+    notes: '',
+    type: defaultType,
+    isPending: false,
+    toAccountId: '', // For transfers
+  });
 
   // Load tags and custom fields when component mounts
   useEffect(() => {
@@ -218,7 +238,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     }
   }, [isEditMode]);
 
-  // Fetch accounts and debts for dropdowns
+  // Fetch accounts for transfer dropdowns
   useEffect(() => {
     const fetchAccounts = async () => {
       try {
@@ -235,44 +255,33 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       }
     };
 
-    const fetchDebts = async () => {
+    fetchAccounts();
+  }, []);
+
+  // Fetch pending bills when type is 'bill'
+  useEffect(() => {
+    const fetchPendingBills = async () => {
+      if (formData.type !== 'bill') {
+        setPendingBills([]);
+        return;
+      }
+
       try {
-        setDebtsLoading(true);
-        const response = await fetch('/api/debts?status=active');
+        setBillsLoading(true);
+        const response = await fetch('/api/bills/instances?status=pending&limit=100');
         if (response.ok) {
           const data = await response.json();
-          setDebts(data);
+          setPendingBills(data.data || []);
         }
       } catch (error) {
-        console.error('Failed to fetch debts:', error);
+        console.error('Failed to fetch pending bills:', error);
       } finally {
-        setDebtsLoading(false);
+        setBillsLoading(false);
       }
     };
 
-    fetchAccounts();
-    fetchDebts();
-  }, []);
-
-  // Helper function to get today's date in YYYY-MM-DD format
-  const getTodaysDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
-
-  const [formData, setFormData] = useState({
-    accountId: '',
-    categoryId: '',
-    merchantId: '',
-    debtId: '', // For direct debt payments
-    date: getTodaysDate(),
-    amount: '',
-    description: '',
-    notes: '',
-    type: defaultType,
-    isPending: false,
-    toAccountId: '', // For transfers
-  });
+    fetchPendingBills();
+  }, [formData.type]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -311,6 +320,34 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       ...prev,
       merchantId: merchantId === 'none' ? '' : merchantId || '',
     }));
+  };
+
+  const handleBillSelect = (billInstanceId: string) => {
+    setSelectedBillInstanceId(billInstanceId);
+
+    if (billInstanceId === 'none') {
+      // Reset form when "none" is selected
+      setFormData((prev) => ({
+        ...prev,
+        amount: '',
+        description: '',
+        categoryId: '',
+      }));
+      return;
+    }
+
+    // Find the selected bill instance
+    const billInstance = pendingBills.find((b: any) => b.instance.id === billInstanceId);
+    if (billInstance) {
+      // Pre-populate form with bill data
+      setFormData((prev) => ({
+        ...prev,
+        amount: billInstance.instance.expectedAmount?.toString() || '',
+        description: billInstance.bill.name || '',
+        categoryId: billInstance.bill.categoryId || '',
+        notes: `Payment for ${billInstance.bill.name} (Due: ${new Date(billInstance.instance.dueDate).toLocaleDateString()})`,
+      }));
+    }
   };
 
   const handleLoadTemplate = (template: any) => {
@@ -438,12 +475,18 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         : '/api/transactions';
       const method = isEditMode ? 'PUT' : 'POST';
 
+      // Convert 'bill' type to 'expense' for API submission
+      const submitData = {
+        ...formData,
+        type: formData.type === 'bill' ? 'expense' : formData.type,
+      };
+
       const response = await fetch(apiUrl, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       });
 
       if (!response.ok) {
@@ -631,12 +674,44 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="bill">Bill Payment</SelectItem>
             <SelectItem value="expense">Expense</SelectItem>
             <SelectItem value="income">Income</SelectItem>
             <SelectItem value="transfer">Transfer</SelectItem>
           </SelectContent>
         </Select>
       </div>
+
+      {/* Bill Selector (for bill payments) */}
+      {formData.type === 'bill' && (
+        <div className="space-y-2">
+          <Label htmlFor="billInstance" className="text-sm font-medium text-white">
+            Select Bill to Pay *
+          </Label>
+          <Select value={selectedBillInstanceId || 'none'} onValueChange={handleBillSelect}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a pending bill" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+              <SelectItem value="none">Select a bill</SelectItem>
+              {billsLoading ? (
+                <SelectItem value="loading" disabled>Loading bills...</SelectItem>
+              ) : pendingBills.length === 0 ? (
+                <SelectItem value="empty" disabled>No pending bills</SelectItem>
+              ) : (
+                pendingBills.map((item: any) => (
+                  <SelectItem key={item.instance.id} value={item.instance.id}>
+                    {item.bill.name} - ${item.instance.expectedAmount?.toFixed(2)} (Due: {new Date(item.instance.dueDate).toLocaleDateString()})
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-gray-500">
+            Selecting a bill will pre-fill the form. You can still edit any field before submitting.
+          </p>
+        </div>
+      )}
 
       {/* Account Selection */}
       <div>
@@ -746,45 +821,20 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         <CategorySelector
           selectedCategory={formData.categoryId}
           onCategoryChange={handleCategoryChange}
-          transactionType={formData.type as 'income' | 'expense'}
+          transactionType={(formData.type === 'bill' ? 'expense' : formData.type) as 'income' | 'expense'}
         />
       )}
 
       {/* Budget Warning */}
-      {formData.type === 'expense' && formData.categoryId && (
+      {(formData.type === 'expense' || formData.type === 'bill') && formData.categoryId && (
         <BudgetWarning
           categoryId={formData.categoryId}
           transactionAmount={parseFloat(formData.amount) || 0}
         />
       )}
 
-      {/* Debt Selector - Only for expenses */}
-      {formData.type === 'expense' && (
-        <div className="space-y-2">
-          <Label htmlFor="debtId" className="text-sm font-medium text-white">
-            Link to Debt (Optional)
-          </Label>
-          <p className="text-xs text-gray-500 mb-2">
-            Link this payment to a debt to automatically reduce the balance
-          </p>
-          <Select value={formData.debtId} onValueChange={(value) => handleSelectChange('debtId', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select debt (optional)" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-              <SelectItem value="" className="text-white">None</SelectItem>
-              {debts.map((debt) => (
-                <SelectItem key={debt.id} value={debt.id} className="text-white">
-                  {debt.name} - ${debt.remainingBalance?.toFixed(2)} remaining
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
       {/* Split Transaction Toggle */}
-      {formData.type !== 'transfer' && (
+      {formData.type !== 'transfer' && formData.type !== 'bill' && (
         <div className="space-y-2">
           <Label className="text-sm font-medium text-white">Split this transaction?</Label>
           <Button

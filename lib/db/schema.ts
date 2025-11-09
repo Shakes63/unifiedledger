@@ -1268,6 +1268,7 @@ export const debts = sqliteTable(
       enum: ['fixed', 'variable', 'none'],
     }).default('none'),
     accountId: text('account_id'),
+    categoryId: text('category_id'), // Auto-created category for tracking debt payments
     type: text('type', {
       enum: ['credit_card', 'personal_loan', 'student_loan', 'mortgage', 'auto_loan', 'medical', 'other'],
     }).default('other'),
@@ -1286,6 +1287,7 @@ export const debts = sqliteTable(
   (table) => ({
     userIdIdx: index('idx_debts_user').on(table.userId),
     statusIdx: index('idx_debts_status').on(table.status),
+    categoryIdx: index('idx_debts_category').on(table.categoryId),
   })
 );
 

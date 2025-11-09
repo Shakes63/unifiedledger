@@ -285,7 +285,124 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates (Current Session)
 
-### Latest Session - Category-Based Bill Matching & UI Fixes ✅
+### Latest Session - Category-Based Debt Tracking & Bill Payment UX ✅
+
+1. **Implemented Category-Based Debt Tracking System**
+   - Added `categoryId` field to debts table (migration `0013_add_category_id_to_debts.sql`)
+   - Auto-creates category when debt is created (named "Debt: {debt name}")
+   - Exception: If debt has monthly bill, no category created (uses bill's category)
+   - Automatic debt payment detection via category matching
+   - Three ways to pay debts:
+     - Via bill category (for recurring monthly payments)
+     - Via debt category (for irregular/ad-hoc payments)
+     - Via direct debtId (legacy, still supported)
+   - Files: `lib/db/schema.ts`, `app/api/debts/route.ts`, `app/api/transactions/route.ts`
+   - Result: Simplified UX - select category and debt auto-updates
+
+2. **Enhanced Category Selector with Grouped Display**
+   - Fetches bills and debts in addition to regular categories
+   - Groups categories with visual separators:
+     - **Bills** section - Active bills with categories
+     - **Debts** section - Active debts with categories
+     - **Categories** section - Regular expense categories
+   - Smart deduplication prevents duplicate category IDs from appearing
+   - Bills/debts show by name but use their category ID behind the scenes
+   - Files: `components/transactions/category-selector.tsx`
+   - Result: Easy to find and pay bills/debts by name
+
+3. **Added "Bill Payment" Transaction Type**
+   - New transaction type appears first in dropdown for quick access
+   - Shows dropdown of pending bills when selected
+   - Auto-populates form with bill data:
+     - Amount (expected amount)
+     - Description (bill name)
+     - Category (bill's category)
+     - Notes (payment details with due date)
+   - All fields remain editable before submission
+   - Converts to 'expense' type on submission
+   - Disables split transactions for bills
+   - Files: `components/transactions/transaction-form.tsx`
+   - Result: Much faster bill payment workflow
+
+4. **Bug Fixes - Select.Item Empty String Values**
+   - Fixed transaction form debt selector
+   - Fixed bill form debt selector
+   - Changed empty string values to 'none' with proper conversion
+   - Files: `components/transactions/transaction-form.tsx`, `components/bills/bill-form.tsx`
+   - Result: No more React errors about empty SelectItem values
+
+5. **Fixed Component Initialization Order**
+   - Moved `formData` state declaration before useEffect hooks
+   - Prevents "Cannot access before initialization" errors
+   - Files: `components/transactions/transaction-form.tsx`
+   - Result: Transaction form loads without errors
+
+### Database Migrations Applied This Session:
+- `0013_add_category_id_to_debts.sql` - Added categoryId to debts table with index
+
+### Previous Session - Debt Payment Integration & Bill Frequency Support ✅
+
+1. **Fixed Missing debt_payments Table Error**
+   - Root cause: Database schema defined `debtPayments` table but migration never created it
+   - Solution: Created migration `0008_add_debt_payments_table.sql`
+   - Also fixed `debt_payoff_milestones` table structure to match schema
+   - Added missing indexes for both tables
+   - Files: `drizzle/0008_add_debt_payments_table.sql`
+   - Result: Debt management features now fully functional
+
+2. **Implemented Complete Transaction → Bill → Debt Integration**
+   - Added `debtId` field to bills table (migration `0010_add_debt_id_to_bills.sql`)
+   - Enhanced bill form with debt selector dropdown (shows active debts with remaining balance)
+   - Updated bills API to validate and store debt linkage
+   - **Automatic Debt Payment Flow**: When expense transaction matches bill category:
+     - Bill instance marked as paid
+     - Debt payment record created automatically
+     - Debt balance reduced by payment amount
+     - Debt status updated to 'paid_off' if balance reaches $0
+     - Milestones checked and marked as achieved (25%, 50%, 75%, 100%)
+   - Files: `lib/db/schema.ts`, `components/bills/bill-form.tsx`, `app/api/bills/route.ts`, `app/api/transactions/route.ts`
+   - Result: Seamless debt tracking through regular bill payments
+
+3. **Added Direct Debt Payment Support (Non-Scheduled Payments)**
+   - Added `debtId` field to transactions table (migration `0011_add_debt_id_to_transactions.sql`)
+   - Enhanced transaction form with debt selector (only for expenses)
+   - Shows helpful text: "Link this payment to a debt to automatically reduce the balance"
+   - **Two Ways to Pay Debts**:
+     - Regular bill payments (monthly/scheduled) → automatic via category matching
+     - Ad-hoc payments (irregular/extra) → manual selection in transaction form
+   - Both methods create debt payment records and update balance/milestones
+   - Files: `lib/db/schema.ts`, `components/transactions/transaction-form.tsx`, `app/api/transactions/route.ts`
+   - Result: Full flexibility for all debt payment scenarios
+
+4. **Added Bill Frequency Support (Quarterly, Semi-Annual, Annual)**
+   - Added `frequency` field to bills table (migration `0012_add_frequency_to_bills.sql`)
+   - Options: Monthly, Quarterly (3 months), Semi-Annual (6 months), Annual (12 months)
+   - Enhanced bill form with frequency selector dropdown
+   - **Smart Instance Generation**:
+     - Monthly: Creates 3 instances (next 3 months)
+     - Quarterly: Creates 3 instances (next 9 months)
+     - Semi-Annual: Creates 2 instances (next 12 months)
+     - Annual: Creates 2 instances (next 2 years)
+   - Auto-payment matching works with all frequencies
+   - Files: `lib/db/schema.ts`, `components/bills/bill-form.tsx`, `app/api/bills/route.ts`
+   - Result: Support for property taxes, insurance premiums, annual subscriptions, etc.
+
+5. **Enhanced Debt Form with Required Field Indicators**
+   - Added red asterisks (*) to all required field labels
+   - Added `required` HTML attribute for browser-level validation
+   - Added helpful notice: "Fields marked with * are required"
+   - Three layers of validation: browser, JavaScript, visual feedback
+   - Files: `components/debts/debt-form.tsx`
+   - Result: Clear user guidance for debt creation
+
+### Database Migrations Applied This Session:
+- `0008_add_debt_payments_table.sql` - Created debt_payments and fixed debt_payoff_milestones
+- `0009_fix_debts_table_structure.sql` - Fixed debts table column names (current_balance → remaining_balance, etc.)
+- `0010_add_debt_id_to_bills.sql` - Added debt_id to bills for linking
+- `0011_add_debt_id_to_transactions.sql` - Added debt_id to transactions for direct payments
+- `0012_add_frequency_to_bills.sql` - Added frequency field to bills
+
+### Previous Session - Category-Based Bill Matching & UI Fixes ✅
 
 1. **Bug #69: Implemented Category-Based Bill Matching System**
    - Root cause: Complex fuzzy matching was unreliable and confusing

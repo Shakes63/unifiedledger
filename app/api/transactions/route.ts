@@ -603,6 +603,88 @@ export async function POST(request: Request) {
       console.error('Error auto-linking bill:', error);
     }
 
+    // Auto-match debts by category (for debts without monthly bills)
+    // Skip if already matched to a bill to avoid double-counting
+    let linkedDebtId: string | null = null;
+    try {
+      if (type === 'expense' && appliedCategoryId && !linkedBillId) {
+        // Find debts with matching category (only debts with their own category, not bill-linked)
+        const matchingDebts = await db
+          .select()
+          .from(debts)
+          .where(
+            and(
+              eq(debts.userId, userId),
+              eq(debts.status, 'active'),
+              eq(debts.categoryId, appliedCategoryId)
+            )
+          );
+
+        if (matchingDebts.length > 0) {
+          // If multiple debts have same category, use the first one (highest priority)
+          const debt = matchingDebts[0];
+          linkedDebtId = debt.id;
+
+          const paymentAmount = parseFloat(amount);
+
+          // Update transaction with debt link
+          await db
+            .update(transactions)
+            .set({
+              debtId: linkedDebtId,
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(transactions.id, transactionId));
+
+          // Create debt payment record
+          await db.insert(debtPayments).values({
+            id: nanoid(),
+            debtId: linkedDebtId,
+            userId,
+            amount: paymentAmount,
+            paymentDate: date,
+            transactionId,
+            notes: `Automatic payment via category: ${debt.name}`,
+            createdAt: new Date().toISOString(),
+          });
+
+          // Get current debt to calculate new balance
+          const newBalance = Math.max(0, debt.remainingBalance - paymentAmount);
+
+          // Update debt remaining balance
+          await db
+            .update(debts)
+            .set({
+              remainingBalance: newBalance,
+              status: newBalance === 0 ? 'paid_off' : 'active',
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(debts.id, linkedDebtId));
+
+          // Check and update debt milestones
+          const milestones = await db
+            .select()
+            .from(debtPayoffMilestones)
+            .where(eq(debtPayoffMilestones.debtId, linkedDebtId));
+
+          for (const milestone of milestones) {
+            // Check if this milestone should be marked as achieved
+            if (!milestone.achievedAt && newBalance <= milestone.milestoneBalance) {
+              await db
+                .update(debtPayoffMilestones)
+                .set({
+                  achievedAt: new Date().toISOString(),
+                })
+                .where(eq(debtPayoffMilestones.id, milestone.id));
+            }
+          }
+        }
+      }
+    } catch (error) {
+      // Log error but don't fail transaction creation
+      console.error('Error auto-linking debt by category:', error);
+    }
+
     // Handle direct debt payments (when transaction has debtId)
     if (type === 'expense' && debtId) {
       try {
@@ -671,6 +753,7 @@ export async function POST(request: Request) {
         appliedCategoryId: appliedCategoryId ? appliedCategoryId : undefined,
         appliedRuleId: appliedRuleId ? appliedRuleId : undefined,
         linkedBillId: linkedBillId ? linkedBillId : undefined,
+        linkedDebtId: linkedDebtId ? linkedDebtId : undefined,
       },
       { status: 201 }
     );

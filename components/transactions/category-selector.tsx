@@ -5,6 +5,9 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectGroup,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -19,6 +22,18 @@ interface Category {
   type: string;
 }
 
+interface Bill {
+  id: string;
+  name: string;
+  categoryId: string;
+}
+
+interface Debt {
+  id: string;
+  name: string;
+  categoryId: string;
+}
+
 interface CategorySelectorProps {
   selectedCategory: string | null;
   onCategoryChange: (categoryId: string | null) => void;
@@ -31,6 +46,8 @@ export function CategorySelector({
   transactionType,
 }: CategorySelectorProps) {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [debts, setDebts] = useState<Debt[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -42,12 +59,14 @@ export function CategorySelector({
   };
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/categories');
-        if (response.ok) {
-          const data = await response.json();
+
+        // Fetch categories
+        const categoriesResponse = await fetch('/api/categories');
+        if (categoriesResponse.ok) {
+          const data = await categoriesResponse.json();
           // Filter categories based on transaction type
           const filteredCategories = data.filter((cat: Category) => {
             if (transactionType === 'income') return cat.type === 'income';
@@ -57,14 +76,48 @@ export function CategorySelector({
           });
           setCategories(filteredCategories);
         }
+
+        // Only fetch bills and debts for expense transactions
+        if (transactionType === 'expense') {
+          // Fetch active bills with categories
+          const billsResponse = await fetch('/api/bills?isActive=true');
+          if (billsResponse.ok) {
+            const billsData = await billsResponse.json();
+            // Bills API returns { data: [...], total, limit, offset }
+            // Each item is { bill, category, account, upcomingInstances }
+            const billsWithCategories = (billsData.data || [])
+              .filter((item: any) => item.bill?.categoryId)
+              .map((item: any) => ({
+                id: item.bill.id,
+                name: item.bill.name,
+                categoryId: item.bill.categoryId,
+              }));
+            setBills(billsWithCategories);
+          }
+
+          // Fetch active debts with categories
+          const debtsResponse = await fetch('/api/debts?status=active');
+          if (debtsResponse.ok) {
+            const debtsData = await debtsResponse.json();
+            // Debts API returns array directly
+            const debtsWithCategories = (debtsData || [])
+              .filter((debt: any) => debt.categoryId)
+              .map((debt: any) => ({
+                id: debt.id,
+                name: debt.name,
+                categoryId: debt.categoryId,
+              }));
+            setDebts(debtsWithCategories);
+          }
+        }
       } catch (error) {
-        console.error('Failed to fetch categories:', error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCategories();
+    fetchData();
   }, [transactionType]);
 
   const handleCreateCategory = async () => {
@@ -121,17 +174,95 @@ export function CategorySelector({
       <label className="text-sm font-medium text-white">Category</label>
       {!isCreating ? (
         <div className="flex gap-2">
-          <Select value={selectedCategory || ''} onValueChange={onCategoryChange}>
+          <Select value={selectedCategory || 'none'} onValueChange={(value) => onCategoryChange(value === 'none' ? null : value)}>
             <SelectTrigger className="flex-1 bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg">
               <SelectValue placeholder="Select or skip" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Skip (No category)</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
+
+              {(() => {
+                // Track which categoryIds we've already shown to prevent duplicates
+                const shownCategoryIds = new Set<string>();
+
+                // Collect all items to display
+                const billItems: JSX.Element[] = [];
+                const debtItems: JSX.Element[] = [];
+                const categoryItems: JSX.Element[] = [];
+
+                // Add bills
+                bills.forEach((bill) => {
+                  if (!shownCategoryIds.has(bill.categoryId)) {
+                    shownCategoryIds.add(bill.categoryId);
+                    billItems.push(
+                      <SelectItem key={`bill-${bill.id}`} value={bill.categoryId}>
+                        {bill.name}
+                      </SelectItem>
+                    );
+                  }
+                });
+
+                // Add debts
+                debts.forEach((debt) => {
+                  if (!shownCategoryIds.has(debt.categoryId)) {
+                    shownCategoryIds.add(debt.categoryId);
+                    debtItems.push(
+                      <SelectItem key={`debt-${debt.id}`} value={debt.categoryId}>
+                        {debt.name}
+                      </SelectItem>
+                    );
+                  }
+                });
+
+                // Add regular categories (excluding those used by bills/debts)
+                categories.forEach((category) => {
+                  if (!shownCategoryIds.has(category.id)) {
+                    shownCategoryIds.add(category.id);
+                    categoryItems.push(
+                      <SelectItem key={`cat-${category.id}`} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    );
+                  }
+                });
+
+                return (
+                  <>
+                    {/* Bills Section */}
+                    {billItems.length > 0 && (
+                      <>
+                        <SelectSeparator />
+                        <SelectGroup>
+                          <SelectLabel>Bills</SelectLabel>
+                          {billItems}
+                        </SelectGroup>
+                      </>
+                    )}
+
+                    {/* Debts Section */}
+                    {debtItems.length > 0 && (
+                      <>
+                        <SelectSeparator />
+                        <SelectGroup>
+                          <SelectLabel>Debts</SelectLabel>
+                          {debtItems}
+                        </SelectGroup>
+                      </>
+                    )}
+
+                    {/* Regular Categories Section */}
+                    {categoryItems.length > 0 && (
+                      <>
+                        <SelectSeparator />
+                        <SelectGroup>
+                          <SelectLabel>Categories</SelectLabel>
+                          {categoryItems}
+                        </SelectGroup>
+                      </>
+                    )}
+                  </>
+                );
+              })()}
             </SelectContent>
           </Select>
           <Button

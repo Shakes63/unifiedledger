@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
-import { debts, debtPayoffMilestones } from '@/lib/db/schema';
+import { debts, debtPayoffMilestones, budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -50,6 +50,7 @@ export async function POST(request: Request) {
       interestRate = 0,
       interestType = 'none',
       accountId,
+      billId, // If debt has a linked bill, use bill's category instead
       type = 'other',
       color = '#ef4444',
       icon = 'credit-card',
@@ -69,6 +70,27 @@ export async function POST(request: Request) {
 
     const debtId = nanoid();
     const now = new Date().toISOString();
+    let categoryId = null;
+
+    // Only create category if no bill is linked
+    // If bill exists, it will have its own category
+    if (!billId) {
+      // Create a category for this debt
+      categoryId = nanoid();
+      await db.insert(budgetCategories).values({
+        id: categoryId,
+        userId,
+        name: `Debt: ${name}`,
+        type: 'expense',
+        icon: icon || 'credit-card',
+        color: color || '#ef4444',
+        isActive: true,
+        sortOrder: 0,
+        usageCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
 
     // Insert the debt
     await db.insert(debts).values({
@@ -83,6 +105,7 @@ export async function POST(request: Request) {
       interestRate,
       interestType,
       accountId,
+      categoryId, // Link to auto-created category (null if bill exists)
       type,
       color,
       icon,

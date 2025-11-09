@@ -376,12 +376,12 @@ export function BillForm({
         <p className="text-xs text-gray-500 mb-2">
           Link this bill to a debt to automatically track payments and reduce debt balance
         </p>
-        <Select value={formData.debtId} onValueChange={(value) => handleSelectChange('debtId', value)}>
+        <Select value={formData.debtId || 'none'} onValueChange={(value) => handleSelectChange('debtId', value === 'none' ? '' : value)}>
           <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
             <SelectValue placeholder="Select debt (optional)" />
           </SelectTrigger>
           <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
-            <SelectItem value="" className="text-white">None</SelectItem>
+            <SelectItem value="none" className="text-white">None</SelectItem>
             {debts.map((debt) => (
               <SelectItem key={debt.id} value={debt.id} className="text-white">
                 {debt.name} - ${debt.remainingBalance?.toFixed(2)}
