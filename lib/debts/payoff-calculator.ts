@@ -246,9 +246,11 @@ function calculateDebtSchedule(
   let paymentPeriod = 0;
 
   // Safety limit: max 360 months (30 years) to prevent memory issues
+  // For biweekly, this means ~780 payment periods (360 months * 2.17 periods/month)
   const MAX_MONTHS = 360;
+  const MAX_PERIODS = paymentFrequency === 'biweekly' ? Math.ceil(MAX_MONTHS * 2.17) : MAX_MONTHS;
 
-  while (balance.greaterThan(0) && monthsToPayoff < MAX_MONTHS) {
+  while (balance.greaterThan(0) && paymentPeriod < MAX_PERIODS) {
     paymentPeriod++;
 
     // Calculate current month based on payment periods
@@ -300,10 +302,10 @@ function calculateDebtSchedule(
 
     if (balance.equals(0)) break;
 
-    // Memory optimization: if we've hit the max limit, stop calculating
-    if (monthsToPayoff >= MAX_MONTHS) {
-      console.warn(`Payoff calculation stopped at ${MAX_MONTHS} months for debt: ${debt.name}`);
-      break;
+    // Additional safety: if principal is not reducing balance, something is wrong
+    if (principalAmount.lessThanOrEqualTo(0) && paymentPeriod > 1) {
+      console.warn(`Payment not reducing balance for debt: ${debt.name}. Payment: ${payment.toNumber()}, Interest: ${interestAmount.toNumber()}`);
+      break; // Prevent infinite loop if payment <= interest
     }
   }
 
@@ -379,7 +381,8 @@ export function calculatePayoffStrategy(
   }));
 
   // Calculate total available for extra payments
-  const totalMinimums = debts.reduce((sum, d) => sum + d.minimumPayment, 0);
+  // IMPORTANT: Default to 0 if minimumPayment is null/undefined to prevent NaN
+  const totalMinimums = debts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
   const totalAvailable = totalMinimums + extraPayment;
 
   // For biweekly payments, divide monthly amounts by 2
@@ -390,7 +393,7 @@ export function calculatePayoffStrategy(
   let currentMonth = 0;
   let remainingDebts = [...sortedDebts].map(debt => ({
     ...debt,
-    minimumPayment: debt.minimumPayment / paymentDivisor,
+    minimumPayment: (debt.minimumPayment || 0) / paymentDivisor,
   }));
   let availablePayment = totalAvailable / paymentDivisor;
 

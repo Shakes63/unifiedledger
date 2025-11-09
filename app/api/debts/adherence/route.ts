@@ -208,49 +208,61 @@ export async function GET() {
     const totalDebt = activeDebts.reduce((sum, d) => sum + (d.remainingBalance || 0), 0);
     const totalMinPayment = activeDebts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
 
-    // Estimate max payoff time (very rough estimate)
-    const estimatedMonths = totalMinPayment > 0 ? totalDebt / totalMinPayment : 999;
-
-    // Skip if debt over $200k OR estimated payoff > 240 months (20 years)
-    // This is very conservative to prevent memory issues
-    const shouldCalculateProjections = totalDebt > 0 && totalDebt < 200000 && estimatedMonths < 240;
+    // Calculate projections for reasonable debt scenarios
+    // The payoff calculator has built-in safety limits (360 months max)
+    const adjustedExtraPayment = Math.max(0, actualAveragePayment - totalMinimumPayment);
+    const shouldCalculateProjections = totalDebt > 0 && totalMinPayment > 0;
 
     if (shouldCalculateProjections) {
       try {
-        // Original projection (using current settings)
-        const originalProjection = calculatePayoffStrategy(
-          debtInputs,
-          extraMonthlyPayment,
-          preferredMethod,
-          paymentFrequency
-        );
+        // Set a timeout to prevent long-running calculations
+        const calculationPromise = Promise.race([
+          (async () => {
+            // Original projection (using current settings)
+            const originalProjection = calculatePayoffStrategy(
+              debtInputs,
+              extraMonthlyPayment,
+              preferredMethod,
+              paymentFrequency
+            );
 
-        // Adjusted projection (using actual average)
-        const adjustedExtraPayment = Math.max(0, actualAveragePayment - totalMinimumPayment);
-        const adjustedProjection = calculatePayoffStrategy(
-          debtInputs,
-          adjustedExtraPayment,
-          preferredMethod,
-          paymentFrequency
-        );
+            // Adjusted projection (using actual average)
+            const adjustedProjection = calculatePayoffStrategy(
+              debtInputs,
+              adjustedExtraPayment,
+              preferredMethod,
+              paymentFrequency
+            );
 
-        const monthsAheadOrBehind = originalProjection.totalMonths - adjustedProjection.totalMonths;
-        const interestDifference = new Decimal(originalProjection.totalInterestPaid)
-          .minus(adjustedProjection.totalInterestPaid)
+            return { originalProjection, adjustedProjection };
+          })(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Calculation timeout')), 5000)
+          )
+        ]);
+
+        const result = await calculationPromise as {
+          originalProjection: any;
+          adjustedProjection: any;
+        };
+
+        const monthsAheadOrBehind = result.originalProjection.totalMonths - result.adjustedProjection.totalMonths;
+        const interestDifference = new Decimal(result.originalProjection.totalInterestPaid)
+          .minus(result.adjustedProjection.totalInterestPaid)
           .toNumber();
 
         projectionAdjustment = {
           monthsAheadOrBehind,
-          originalDebtFreeDate: originalProjection.debtFreeDate.toISOString(),
-          adjustedDebtFreeDate: adjustedProjection.debtFreeDate.toISOString(),
-          originalTotalInterest: Math.round(originalProjection.totalInterestPaid),
-          adjustedTotalInterest: Math.round(adjustedProjection.totalInterestPaid),
+          originalDebtFreeDate: result.originalProjection.debtFreeDate.toISOString(),
+          adjustedDebtFreeDate: result.adjustedProjection.debtFreeDate.toISOString(),
+          originalTotalInterest: Math.round(result.originalProjection.totalInterestPaid),
+          adjustedTotalInterest: Math.round(result.adjustedProjection.totalInterestPaid),
           savingsFromBeingAhead: monthsAheadOrBehind > 0 ? Math.round(interestDifference) : undefined,
           additionalCostFromBehind: monthsAheadOrBehind < 0 ? Math.round(Math.abs(interestDifference)) : undefined,
         };
       } catch (projectionError) {
-        console.error('Error calculating projections:', projectionError);
-        // Continue without projection data
+        console.error('Error calculating projections (skipped):', projectionError);
+        // Continue without projection data - component will handle gracefully
       }
     }
 

@@ -114,6 +114,13 @@ For debt system
   - **Handles edge cases**: No history, irregular payments, broken streaks
   - **Mobile-responsive design**: Gradient backgrounds, smooth animations, celebration states
 
+  **Critical Bug Fixes (2025-11-09)**:
+  - Fixed NULL minimum payment handling that caused NaN propagation and crashes
+  - Fixed infinite loop in debt schedule calculation (loop counter was never incremented)
+  - Added protection against payment ≤ interest infinite loops
+  - Removed overly-conservative safeguards that blocked calculations for reasonable debt amounts
+  - Now reliably handles debts up to 30 years / $1M+ without memory issues
+
 7. ✅ Interactive Amortization Schedule (COMPLETED)
 
   Expand the timeline view:
