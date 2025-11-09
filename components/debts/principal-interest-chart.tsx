@@ -1,0 +1,252 @@
+'use client';
+
+import { useMemo } from 'react';
+import {
+  ComposedChart as RechartsComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ReferenceLine,
+} from 'recharts';
+import type { DebtPayoffSchedule } from '@/lib/debts/payoff-calculator';
+import { ChartContainer } from '@/components/charts/chart-container';
+import { ChartTooltip } from '@/components/charts/chart-tooltip';
+
+interface PrincipalInterestChartProps {
+  schedule: DebtPayoffSchedule;
+  startMonth?: number;
+  className?: string;
+  height?: number;
+  showBalance?: boolean;
+  onMonthClick?: (monthIndex: number) => void;
+}
+
+export function PrincipalInterestChart({
+  schedule,
+  startMonth = 0,
+  className = '',
+  height = 400,
+  showBalance = true,
+  onMonthClick,
+}: PrincipalInterestChartProps) {
+  // Transform monthly breakdown data for chart
+  const chartData = useMemo(() => {
+    return schedule.monthlyBreakdown.map((payment, index) => ({
+      month: `${startMonth + index + 1}`,
+      monthNumber: startMonth + index + 1,
+      principal: parseFloat(payment.principalAmount.toFixed(2)),
+      interest: parseFloat(payment.interestAmount.toFixed(2)),
+      balance: parseFloat(payment.remainingBalance.toFixed(2)),
+      payment: parseFloat(payment.paymentAmount.toFixed(2)),
+    }));
+  }, [schedule.monthlyBreakdown, startMonth]);
+
+  // Calculate key milestones (25%, 50%, 75%, 100%)
+  const milestones = useMemo(() => {
+    const originalBalance = schedule.originalBalance;
+    const marks: { month: number; percent: number; label: string }[] = [];
+
+    schedule.monthlyBreakdown.forEach((payment, index) => {
+      const percentPaid = ((originalBalance - payment.remainingBalance) / originalBalance) * 100;
+
+      if (percentPaid >= 25 && !marks.some(m => m.percent === 25)) {
+        marks.push({ month: startMonth + index + 1, percent: 25, label: '25% Paid' });
+      }
+      if (percentPaid >= 50 && !marks.some(m => m.percent === 50)) {
+        marks.push({ month: startMonth + index + 1, percent: 50, label: '50% Paid' });
+      }
+      if (percentPaid >= 75 && !marks.some(m => m.percent === 75)) {
+        marks.push({ month: startMonth + index + 1, percent: 75, label: '75% Paid' });
+      }
+    });
+
+    // Final payoff
+    marks.push({
+      month: startMonth + schedule.monthsToPayoff,
+      percent: 100,
+      label: 'Paid Off! 🎉',
+    });
+
+    return marks;
+  }, [schedule, startMonth]);
+
+  // Handle chart click
+  const handleChartClick = (data: any) => {
+    if (data && data.activePayload && data.activePayload[0] && onMonthClick) {
+      const monthNumber = data.activePayload[0].payload.monthNumber;
+      const monthIndex = monthNumber - startMonth - 1;
+      onMonthClick(monthIndex);
+    }
+  };
+
+  // Format tick labels - show every Nth month based on total months
+  const tickFormatter = (value: string) => {
+    const totalMonths = schedule.monthlyBreakdown.length;
+
+    // Show fewer labels for longer schedules
+    if (totalMonths > 120) {
+      // Show every 24 months for 10+ year schedules
+      return parseInt(value) % 24 === 1 ? `Mo ${value}` : '';
+    } else if (totalMonths > 60) {
+      // Show every 12 months for 5+ year schedules
+      return parseInt(value) % 12 === 1 ? `Mo ${value}` : '';
+    } else if (totalMonths > 24) {
+      // Show every 6 months for 2+ year schedules
+      return parseInt(value) % 6 === 1 ? `Mo ${value}` : '';
+    }
+    // Show every month for short schedules
+    return `Mo ${value}`;
+  };
+
+  return (
+    <ChartContainer
+      title="Principal vs Interest Breakdown"
+      description="See how your payments split between principal and interest over time"
+      className={className}
+    >
+      <ResponsiveContainer width="100%" height={height}>
+        <RechartsComposedChart
+          data={chartData}
+          margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+          onClick={handleChartClick}
+        >
+          <defs>
+            {/* Gradient for principal */}
+            <linearGradient id="principalGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="#10b981" stopOpacity={0.3} />
+            </linearGradient>
+            {/* Gradient for interest */}
+            <linearGradient id="interestGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#f87171" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="#f87171" stopOpacity={0.3} />
+            </linearGradient>
+          </defs>
+
+          <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
+
+          <XAxis
+            dataKey="month"
+            stroke="#6b7280"
+            style={{ fontSize: '11px' }}
+            tickFormatter={tickFormatter}
+            interval="preserveStartEnd"
+          />
+
+          <YAxis
+            stroke="#6b7280"
+            style={{ fontSize: '12px' }}
+            tickFormatter={(value) => `$${value.toLocaleString()}`}
+          />
+
+          <Tooltip content={<ChartTooltip />} cursor={{ fill: '#242424', opacity: 0.3 }} />
+
+          <Legend
+            wrapperStyle={{ paddingTop: '20px' }}
+            iconType="square"
+          />
+
+          {/* Stacked bars for Principal and Interest */}
+          <Bar
+            dataKey="principal"
+            stackId="payment"
+            fill="url(#principalGradient)"
+            name="Principal"
+            isAnimationActive={true}
+            radius={[0, 0, 0, 0]}
+          />
+          <Bar
+            dataKey="interest"
+            stackId="payment"
+            fill="url(#interestGradient)"
+            name="Interest"
+            isAnimationActive={true}
+            radius={[4, 4, 0, 0]}
+          />
+
+          {/* Balance line overlay */}
+          {showBalance && (
+            <Line
+              type="monotone"
+              dataKey="balance"
+              stroke="#60a5fa"
+              name="Remaining Balance"
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={true}
+            />
+          )}
+
+          {/* Milestone reference lines */}
+          {milestones.map((milestone, index) => (
+            <ReferenceLine
+              key={index}
+              x={milestone.month.toString()}
+              stroke={milestone.percent === 100 ? '#10b981' : '#fbbf24'}
+              strokeDasharray="3 3"
+              strokeWidth={2}
+              label={{
+                value: milestone.label,
+                position: 'top',
+                fill: milestone.percent === 100 ? '#10b981' : '#fbbf24',
+                fontSize: 12,
+                fontWeight: 'bold',
+              }}
+            />
+          ))}
+        </RechartsComposedChart>
+      </ResponsiveContainer>
+
+      {/* Chart Legend/Summary */}
+      <div className="grid grid-cols-3 gap-4 mt-6 p-4 bg-[#242424] rounded-lg">
+        <div>
+          <div className="text-xs text-[#808080] uppercase mb-1">Total Principal</div>
+          <div className="text-lg font-semibold text-[#10b981] font-mono">
+            ${schedule.originalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-[#808080] uppercase mb-1">Total Interest</div>
+          <div className="text-lg font-semibold text-[#f87171] font-mono">
+            ${schedule.totalInterestPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs text-[#808080] uppercase mb-1">Total Paid</div>
+          <div className="text-lg font-semibold text-white font-mono">
+            ${(schedule.originalBalance + schedule.totalInterestPaid).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </div>
+        </div>
+      </div>
+
+      {/* Insight */}
+      <div className="mt-4 p-3 bg-[#60a5fa]/10 border border-[#60a5fa]/30 rounded-lg">
+        <div className="text-sm text-[#60a5fa]">
+          💡 <span className="font-semibold">Insight:</span>{' '}
+          {schedule.monthlyBreakdown.length > 0 && (
+            <>
+              Your first payment is{' '}
+              <span className="font-semibold">
+                {((schedule.monthlyBreakdown[0].interestAmount / schedule.monthlyBreakdown[0].paymentAmount) * 100).toFixed(1)}% interest
+              </span>
+              {schedule.monthlyBreakdown.length > 1 && (
+                <>
+                  , but your last payment is only{' '}
+                  <span className="font-semibold">
+                    {((schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].interestAmount / schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].paymentAmount) * 100).toFixed(1)}% interest
+                  </span>
+                </>
+              )}
+              . Making extra payments early saves the most money!
+            </>
+          )}
+        </div>
+      </div>
+    </ChartContainer>
+  );
+}

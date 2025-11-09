@@ -285,7 +285,101 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates (Current Session)
 
-### Latest Session - Budget Integration & Payment Adherence Tracking ✅
+### Latest Session - Interactive Amortization Schedule Implementation ✅
+
+1. **Implemented Complete Interactive Amortization Schedule Feature**
+   - Created comprehensive planning document: `docs/interactive-amortization-schedule-plan.md`
+   - Full feature specification with 6 phases, design system compliance, and timeline estimates
+   - Installed @tanstack/react-virtual dependency for performance optimization
+   - Files: `docs/interactive-amortization-schedule-plan.md`
+
+2. **Created AmortizationTable Component**
+   - Virtual scrolling for 360+ month schedules (handles 30-year mortgages smoothly)
+   - All columns: Month, Payment, Principal, Interest, Balance with color coding
+   - Cumulative totals showing percent paid and interest percentage per row
+   - Sticky header that stays visible during scrolling
+   - Final payoff row with celebration styling (green gradient, 🎉 emoji, "PAID OFF" badge)
+   - Row click handler for interactive month selection
+   - Keyboard accessibility (Enter/Space to select, Tab navigation)
+   - Summary footer with grand totals
+   - Alternating row colors for readability
+   - Hover states with smooth transitions
+   - Files: `components/debts/amortization-table.tsx`
+
+3. **Created PrincipalInterestChart Component**
+   - Stacked bar chart showing principal (green) vs interest (red) composition
+   - Balance line overlay (blue) showing declining debt over time
+   - Milestone markers at 25%, 50%, 75%, and 100% debt paid
+   - Smart tick formatting: adapts labels based on schedule length (monthly/quarterly/yearly)
+   - Click handler for chart interactivity (syncs with table)
+   - Summary section displaying total principal, interest, and total paid
+   - Insight box explaining benefit of early extra payments
+   - Gradient fills for visual appeal
+   - Uses existing ChartContainer and ChartTooltip infrastructure
+   - Files: `components/debts/principal-interest-chart.tsx`
+
+4. **Created MonthDetailModal Component**
+   - Interactive modal triggered by clicking any month in table or chart
+   - Payment breakdown pie chart (principal vs interest percentages)
+   - Progress ring showing percent of debt paid off
+   - This month's payment details (payment, principal, interest, balance)
+   - Cumulative totals (total paid, principal paid, interest paid through month)
+   - Projection information (months remaining, payoff date)
+   - Previous/Next navigation buttons
+   - Keyboard navigation (arrow keys to navigate, Escape to close)
+   - Special celebration state for final payoff month
+   - Smooth fade/slide animations
+   - Responsive design for mobile
+   - Files: `components/debts/month-detail-modal.tsx`
+
+5. **Created AmortizationScheduleView Container**
+   - Orchestrates all sub-components with shared state management
+   - Multi-debt support with visual debt selector dropdown
+   - Three-tab navigation system:
+     - Overview: Existing PayoffTimeline with visual bars
+     - Full Schedule: AmortizationTable with all months
+     - Charts: PrincipalInterestChart visualizations
+   - State management for active debt, selected month, and view mode
+   - Calculates cumulative start months for each debt in sequence
+   - Connects table/chart clicks to modal display
+   - Info box on overview tab guiding users to other views
+   - Files: `components/debts/amortization-schedule-view.tsx`
+
+6. **Integrated into Debts Page**
+   - Added collapsible "Interactive Amortization Schedule" section
+   - Positioned after Payoff Strategy section, before Debts List
+   - Loads payoff strategy data automatically when debt settings load
+   - Toggle button with chevron icon and descriptive text
+   - Only shows when user has active debts and valid strategy
+   - Files: `app/dashboard/debts/page.tsx`
+
+7. **Documentation Updates**
+   - Updated `docs/features.md` to mark feature #7 as completed
+   - Added comprehensive implementation details listing all components
+   - Removed duplicate entry for "Debt Reduction Chart"
+   - Files: `docs/features.md`
+
+### Key Features Delivered:
+- **Virtual Scrolling**: Handles 360-month schedules (30-year mortgages) smoothly at 60fps
+- **Full Transparency**: Every single payment visible with complete breakdown
+- **Interactive Exploration**: Click any month to see detailed projections
+- **Visual Analytics**: Stacked charts showing principal vs interest composition over time
+- **Milestone Tracking**: Visual markers at 25%, 50%, 75%, 100% paid
+- **Multi-Debt Support**: Switch between debts, each with independent amortization
+- **Keyboard Accessible**: Full keyboard navigation throughout
+- **Performance Optimized**: Memoized calculations, virtual rendering, lazy loading
+- **Mobile Responsive**: All components work beautifully on small screens
+- **Design System Compliance**: Dark mode colors, consistent spacing, monospaced numbers
+
+### Database Migrations Applied:
+- None - Feature uses existing debt and payment data structures
+
+### Dependencies Added:
+- `@tanstack/react-virtual@3.13.12` - Virtual scrolling for large data tables
+
+---
+
+### Previous Session - Budget Integration & Payment Adherence Tracking ✅
 
 1. **Implemented Budget Integration System**
    - Created comprehensive budget surplus calculator connecting budget to debt payoff

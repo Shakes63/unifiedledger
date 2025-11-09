@@ -1,0 +1,205 @@
+'use client';
+
+import { useState } from 'react';
+import type { PayoffStrategyResult } from '@/lib/debts/payoff-calculator';
+import { PayoffTimeline } from './payoff-timeline';
+import { AmortizationTable } from './amortization-table';
+import { PrincipalInterestChart } from './principal-interest-chart';
+import { MonthDetailModal } from './month-detail-modal';
+
+interface AmortizationScheduleViewProps {
+  strategy: PayoffStrategyResult;
+  className?: string;
+}
+
+type ViewMode = 'overview' | 'table' | 'chart';
+
+export function AmortizationScheduleView({
+  strategy,
+  className = '',
+}: AmortizationScheduleViewProps) {
+  const [activeDebtIndex, setActiveDebtIndex] = useState(0);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [view, setView] = useState<ViewMode>('overview');
+
+  // Get currently selected debt's schedule
+  const activeSchedule = strategy.schedules[activeDebtIndex];
+  const hasMultipleDebts = strategy.schedules.length > 1;
+
+  // Calculate start month for each debt (cumulative)
+  const getStartMonth = (index: number): number => {
+    let total = 0;
+    for (let i = 0; i < index; i++) {
+      total += strategy.schedules[i].monthsToPayoff;
+    }
+    return total;
+  };
+
+  const startMonth = getStartMonth(activeDebtIndex);
+
+  // Month navigation handlers
+  const handleMonthClick = (monthIndex: number) => {
+    setSelectedMonth(monthIndex);
+  };
+
+  const handleModalNavigate = (direction: 'prev' | 'next') => {
+    if (selectedMonth === null) return;
+
+    if (direction === 'prev' && selectedMonth > 0) {
+      setSelectedMonth(selectedMonth - 1);
+    } else if (direction === 'next' && selectedMonth < activeSchedule.monthlyBreakdown.length - 1) {
+      setSelectedMonth(selectedMonth + 1);
+    }
+  };
+
+  const handleModalClose = () => {
+    setSelectedMonth(null);
+  };
+
+  return (
+    <div className={className}>
+      {/* Debt Selector (if multiple debts) */}
+      {hasMultipleDebts && (
+        <div className="mb-6 bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] p-4">
+          <label className="block text-sm font-semibold text-[#808080] uppercase mb-3">
+            Select Debt
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {strategy.schedules.map((schedule, index) => {
+              const payoffOrder = strategy.payoffOrder[index];
+              const isActive = activeDebtIndex === index;
+
+              return (
+                <button
+                  key={schedule.debtId}
+                  onClick={() => setActiveDebtIndex(index)}
+                  className={`
+                    p-3 rounded-lg border transition-all text-left
+                    ${isActive
+                      ? 'bg-[#60a5fa]/20 border-[#60a5fa] ring-2 ring-[#60a5fa]/50'
+                      : 'bg-[#242424] border-[#2a2a2a] hover:bg-[#2a2a2a]'
+                    }
+                  `}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg">{payoffOrder.icon || '💳'}</span>
+                    <span className="text-xs font-semibold text-[#808080]">
+                      #{payoffOrder.order}
+                    </span>
+                  </div>
+                  <div className="text-sm font-semibold text-white truncate">
+                    {schedule.debtName}
+                  </div>
+                  <div className="text-xs text-[#808080] mt-1">
+                    ${schedule.originalBalance.toLocaleString()} • {schedule.monthsToPayoff}mo
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* View Tabs */}
+      <div className="mb-6 bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] p-2">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setView('overview')}
+            className={`
+              flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all
+              ${view === 'overview'
+                ? 'bg-[#60a5fa] text-white shadow-lg'
+                : 'text-[#808080] hover:text-white hover:bg-[#242424]'
+              }
+            `}
+          >
+            <span className="mr-2">📅</span>
+            Overview
+          </button>
+          <button
+            onClick={() => setView('table')}
+            className={`
+              flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all
+              ${view === 'table'
+                ? 'bg-[#60a5fa] text-white shadow-lg'
+                : 'text-[#808080] hover:text-white hover:bg-[#242424]'
+              }
+            `}
+          >
+            <span className="mr-2">📋</span>
+            Full Schedule
+          </button>
+          <button
+            onClick={() => setView('chart')}
+            className={`
+              flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all
+              ${view === 'chart'
+                ? 'bg-[#60a5fa] text-white shadow-lg'
+                : 'text-[#808080] hover:text-white hover:bg-[#242424]'
+              }
+            `}
+          >
+            <span className="mr-2">📊</span>
+            Charts
+          </button>
+        </div>
+      </div>
+
+      {/* Content Area */}
+      <div className="space-y-6">
+        {/* Overview Tab */}
+        {view === 'overview' && (
+          <div className="space-y-6">
+            <PayoffTimeline strategy={strategy} />
+
+            <div className="bg-[#60a5fa]/10 border border-[#60a5fa]/30 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">💡</span>
+                <div>
+                  <h4 className="text-sm font-semibold text-[#60a5fa] mb-1">
+                    Interactive Amortization Schedule
+                  </h4>
+                  <p className="text-sm text-white">
+                    Switch to <span className="font-semibold">Full Schedule</span> to see all {activeSchedule.monthlyBreakdown.length} months,
+                    or view <span className="font-semibold">Charts</span> to visualize how your payments split between principal and interest over time.
+                    Click any month to see detailed breakdowns and projections.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Table Tab */}
+        {view === 'table' && (
+          <AmortizationTable
+            schedule={activeSchedule}
+            startMonth={startMonth}
+            onMonthClick={handleMonthClick}
+          />
+        )}
+
+        {/* Chart Tab */}
+        {view === 'chart' && (
+          <PrincipalInterestChart
+            schedule={activeSchedule}
+            startMonth={startMonth}
+            onMonthClick={handleMonthClick}
+            height={500}
+          />
+        )}
+      </div>
+
+      {/* Month Detail Modal */}
+      {selectedMonth !== null && (
+        <MonthDetailModal
+          schedule={activeSchedule}
+          monthIndex={selectedMonth}
+          startMonth={startMonth}
+          onClose={handleModalClose}
+          onNavigate={handleModalNavigate}
+        />
+      )}
+    </div>
+  );
+}

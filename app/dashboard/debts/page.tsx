@@ -10,6 +10,7 @@ import { MinimumPaymentWarning } from '@/components/debts/minimum-payment-warnin
 import { PaymentAdherenceCard } from '@/components/debts/payment-adherence-card';
 import { PaymentStreakWidget } from '@/components/debts/payment-streak-widget';
 import { DebtFreeCountdown } from '@/components/dashboard/debt-free-countdown';
+import { AmortizationScheduleView } from '@/components/debts/amortization-schedule-view';
 import {
   Dialog,
   DialogContent,
@@ -30,7 +31,9 @@ export default function DebtsPage() {
   const [showMinWarning, setShowMinWarning] = useState(false);
   const [showWhatIf, setShowWhatIf] = useState(false);
   const [showStrategy, setShowStrategy] = useState(false);
+  const [showAmortization, setShowAmortization] = useState(false);
   const [debtSettings, setDebtSettings] = useState<any>(null);
+  const [payoffStrategy, setPayoffStrategy] = useState<any>(null);
 
   // Fetch debts and settings
   useEffect(() => {
@@ -45,9 +48,30 @@ export default function DebtsPage() {
       if (response.ok) {
         const data = await response.json();
         setDebtSettings(data);
+        // Load payoff strategy when settings are available
+        loadPayoffStrategy(data);
       }
     } catch (error) {
       console.error('Error loading debt settings:', error);
+    }
+  };
+
+  const loadPayoffStrategy = async (settings: any) => {
+    try {
+      const extraPayment = settings?.extraMonthlyPayment || 0;
+      const method = settings?.preferredMethod || 'avalanche';
+      const frequency = settings?.paymentFrequency || 'monthly';
+
+      const response = await fetch(
+        `/api/debts/payoff-strategy?extraPayment=${extraPayment}&method=${method}&paymentFrequency=${frequency}`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setPayoffStrategy(data);
+      }
+    } catch (error) {
+      console.error('Error loading payoff strategy:', error);
     }
   };
 
@@ -322,6 +346,31 @@ export default function DebtsPage() {
           </button>
 
           {showStrategy && <DebtPayoffStrategy />}
+
+          {/* Amortization Schedule Section */}
+          <button
+            onClick={() => setShowAmortization(!showAmortization)}
+            className="flex items-center justify-between w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 hover:bg-[#242424] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📊</span>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold text-white">Interactive Amortization Schedule</h3>
+                <p className="text-sm text-gray-400">
+                  Explore month-by-month payment breakdowns and visualize principal vs interest
+                </p>
+              </div>
+            </div>
+            {showAmortization ? (
+              <ChevronUp className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            )}
+          </button>
+
+          {showAmortization && payoffStrategy && (
+            <AmortizationScheduleView strategy={payoffStrategy} />
+          )}
         </div>
       )}
 
