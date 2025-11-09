@@ -599,6 +599,7 @@ export const userSettings = sqliteTable(
     textSize: text('text_size', {
       enum: ['small', 'medium', 'large', 'x-large'],
     }).default('medium'),
+    theme: text('theme').default('dark-mode'),
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   }

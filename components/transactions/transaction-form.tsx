@@ -669,7 +669,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Transaction Type */}
       <div className="space-y-2">
-        <Label htmlFor="type" className="text-sm font-medium text-white">
+        <Label htmlFor="type" className="text-sm font-medium text-foreground">
           Transaction Type
         </Label>
         <Select value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}>
@@ -688,14 +688,14 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       {/* Bill Selector (for bill payments) */}
       {formData.type === 'bill' && (
         <div className="space-y-2">
-          <Label htmlFor="billInstance" className="text-sm font-medium text-white">
+          <Label htmlFor="billInstance" className="text-sm font-medium text-foreground">
             Select Bill to Pay *
           </Label>
           <Select value={selectedBillInstanceId || 'none'} onValueChange={handleBillSelect}>
             <SelectTrigger>
               <SelectValue placeholder="Select a pending bill" />
             </SelectTrigger>
-            <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+            <SelectContent className="bg-card border-border">
               <SelectItem value="none">Select a bill</SelectItem>
               {billsLoading ? (
                 <SelectItem value="loading" disabled>Loading bills...</SelectItem>
@@ -710,7 +710,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
               )}
             </SelectContent>
           </Select>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             Selecting a bill will pre-fill the form. You can still edit any field before submitting.
           </p>
         </div>
@@ -720,7 +720,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       <div>
         <div className="space-y-2">
           {formData.type === 'transfer' ? (
-            <Label className="text-sm font-medium text-white">From Account *</Label>
+            <Label className="text-sm font-medium text-foreground">From Account *</Label>
           ) : null}
           <AccountSelector
             selectedAccountId={formData.accountId}
@@ -733,11 +733,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         {/* To Account Selection (for transfers) */}
         {formData.type === 'transfer' && (
           <div className="mt-4 space-y-2">
-            <Label className="text-sm font-medium text-white">
+            <Label className="text-sm font-medium text-foreground">
               To Account *
             </Label>
             <Select value={formData.toAccountId} onValueChange={(value) => handleSelectChange('toAccountId', value)}>
-              <SelectTrigger className="bg-[#1a1a1a] border border-[#2a2a2a] text-white rounded-lg">
+              <SelectTrigger className="bg-card border border-border text-foreground rounded-lg">
                 <SelectValue placeholder="Select destination account" />
               </SelectTrigger>
               <SelectContent>
@@ -745,7 +745,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   <SelectItem key={account.id} value={account.id}>
                     <div className="flex items-center gap-2 w-full">
                       <span className="flex-1 truncate">{account.name}</span>
-                      <span className="text-xs text-gray-400 flex-shrink-0">
+                      <span className="text-xs text-muted-foreground flex-shrink-0">
                         ${account.currentBalance?.toFixed(2) || '0.00'}
                       </span>
                     </div>
@@ -759,7 +759,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Amount */}
       <div className="space-y-2">
-        <Label htmlFor="amount" className="text-sm font-medium text-white">
+        <Label htmlFor="amount" className="text-sm font-medium text-foreground">
           Amount *
         </Label>
         <div className="relative">
@@ -781,7 +781,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Description */}
       <div className="space-y-2">
-        <Label htmlFor="description" className="text-sm font-medium text-white">
+        <Label htmlFor="description" className="text-sm font-medium text-foreground">
           Description *
         </Label>
         <Input
@@ -798,7 +798,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Date */}
       <div className="space-y-2">
-        <Label htmlFor="date" className="text-sm font-medium text-white">
+        <Label htmlFor="date" className="text-sm font-medium text-foreground">
           Date
         </Label>
         <Input
@@ -839,7 +839,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       {/* Split Transaction Toggle */}
       {formData.type !== 'transfer' && formData.type !== 'bill' && (
         <div className="space-y-2">
-          <Label className="text-sm font-medium text-white">Split this transaction?</Label>
+          <Label className="text-sm font-medium text-foreground">Split this transaction?</Label>
           <Button
             type="button"
             variant={useSplits ? 'default' : 'outline'}
@@ -875,7 +875,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             className={`w-full h-12 md:h-10 text-base md:text-sm ${
               useSplits
                 ? 'bg-white text-black hover:bg-gray-100'
-                : 'bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]'
+                : 'bg-elevated text-foreground border-border hover:bg-elevated/80'
             }`}
           >
             <SplitIcon className="w-4 h-4 mr-2" />
@@ -898,7 +898,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Notes */}
       <div className="space-y-2">
-        <Label htmlFor="notes" className="text-sm font-medium text-white">
+        <Label htmlFor="notes" className="text-sm font-medium text-foreground">
           Notes
         </Label>
         <Input
@@ -913,11 +913,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Custom Fields */}
       {customFields.length > 0 && (
-        <div className="space-y-4 border-t border-[#2a2a2a] pt-4">
+        <div className="space-y-4 border-t border-border pt-4">
           <div className="space-y-3">
             {customFields.map((field) => (
               <div key={field.id} className="space-y-2">
-                <Label htmlFor={field.id} className="text-sm font-medium text-white">
+                <Label htmlFor={field.id} className="text-sm font-medium text-foreground">
                   {field.name}
                   {field.isRequired && <span className="text-red-400 ml-1">*</span>}
                 </Label>
@@ -984,10 +984,10 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                       type="checkbox"
                       checked={customFieldValues[field.id] === 'true' || customFieldValues[field.id] === '1'}
                       onChange={(e) => handleCustomFieldChange(field.id, e.target.checked ? 'true' : '')}
-                      className="w-4 h-4 rounded border-[#3a3a3a] bg-[#242424] cursor-pointer"
+                      className="w-4 h-4 rounded border-border bg-elevated cursor-pointer"
                     />
-                    <Label htmlFor={field.id} className="text-sm text-gray-300 cursor-pointer">
-                      {field.description && <span className="text-gray-500">{field.description}</span>}
+                    <Label htmlFor={field.id} className="text-sm text-foreground cursor-pointer">
+                      {field.description && <span className="text-muted-foreground">{field.description}</span>}
                     </Label>
                   </div>
                 )}
@@ -998,7 +998,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                     value={customFieldValues[field.id] || ''}
                     onChange={(e) => handleCustomFieldChange(field.id, e.target.value)}
                     required={field.isRequired}
-                    className="w-full px-3 py-2 bg-[#242424] border border-[#3a3a3a] text-white rounded-lg hover:bg-[#2a2a2a] focus:outline-none focus:ring-2 focus:ring-white/20"
+                    className="w-full px-3 py-2 bg-elevated border border-border text-foreground rounded-lg hover:bg-elevated/80 focus:outline-none focus:ring-2 focus:ring-ring/50"
                   >
                     <option value="">Select an option</option>
                     {field.options.map((option) => (
@@ -1018,7 +1018,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                       const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
                       handleCustomFieldChange(field.id, selected.join(','));
                     }}
-                    className="w-full px-3 py-2 bg-[#242424] border border-[#3a3a3a] text-white rounded-lg hover:bg-[#2a2a2a] focus:outline-none focus:ring-2 focus:ring-white/20"
+                    className="w-full px-3 py-2 bg-elevated border border-border text-foreground rounded-lg hover:bg-elevated/80 focus:outline-none focus:ring-2 focus:ring-ring/50"
                   >
                     {field.options.map((option) => (
                       <option key={option} value={option}>
@@ -1029,7 +1029,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                 )}
 
                 {field.description && field.type !== 'checkbox' && (
-                  <p className="text-xs text-gray-500">{field.description}</p>
+                  <p className="text-xs text-muted-foreground">{field.description}</p>
                 )}
               </div>
             ))}
@@ -1039,7 +1039,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Tags */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium text-white">Tags (Optional)</Label>
+        <Label className="text-sm font-medium text-foreground">Tags (Optional)</Label>
 
         {/* Selected Tags Display */}
         {selectedTagIds.length > 0 && (
@@ -1049,7 +1049,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
               return tag ? (
                 <Badge
                   key={tag.id}
-                  className="text-white"
+                  className="text-foreground"
                   style={{ backgroundColor: tag.color }}
                 >
                   {tag.name}
@@ -1073,14 +1073,14 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             variant="outline"
             onClick={() => setTagsOpen(!tagsOpen)}
             disabled={tagsLoading || loading}
-            className="border-[#2a2a2a] text-gray-400 hover:text-white w-full justify-start"
+            className="border-border text-muted-foreground hover:text-foreground w-full justify-start"
           >
             <Plus className="w-4 h-4 mr-2" />
             {selectedTagIds.length > 0 ? 'Add more tags' : 'Add tags'}
           </Button>
 
           {tagsOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
               {allTags
                 .filter(tag => !selectedTagIds.includes(tag.id))
                 .map((tag) => (
@@ -1093,24 +1093,24 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                         setTagsOpen(false);
                       }
                     }}
-                    className="w-full text-left px-3 py-2 hover:bg-[#242424] transition-colors flex items-center gap-2"
+                    className="w-full text-left px-3 py-2 hover:bg-elevated transition-colors flex items-center gap-2"
                   >
                     <div
                       className="w-3 h-3 rounded"
                       style={{ backgroundColor: tag.color }}
                     />
                     <div className="flex-1">
-                      <p className="text-sm text-white">{tag.name}</p>
+                      <p className="text-sm text-foreground">{tag.name}</p>
                       {tag.description && (
-                        <p className="text-xs text-gray-500">{tag.description}</p>
+                        <p className="text-xs text-muted-foreground">{tag.description}</p>
                       )}
                     </div>
-                    <span className="text-xs text-gray-500">{tag.usageCount}</span>
+                    <span className="text-xs text-muted-foreground">{tag.usageCount}</span>
                   </button>
                 ))}
 
               {/* Create New Tag Section */}
-              <div className="border-t border-[#2a2a2a] px-3 py-2 space-y-2">
+              <div className="border-t border-border px-3 py-2 space-y-2">
                 <div className="flex gap-2">
                   <Input
                     type="text"
@@ -1124,7 +1124,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                       }
                     }}
                     disabled={creatingTag}
-                    className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600 text-sm"
+                    className="bg-elevated border-border text-foreground placeholder-muted-foreground text-sm"
                   />
                   <Button
                     type="button"
@@ -1156,20 +1156,20 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             <Button
               type="button"
               variant="outline"
-              className="bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a] w-full h-10 text-sm"
+              className="bg-elevated text-foreground border-border hover:bg-elevated/80 w-full h-10 text-sm"
               disabled={!formData.accountId || !formData.amount || !formData.description}
             >
               <Save className="w-4 h-4 mr-2" />
               Save as Template
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+          <DialogContent className="bg-card border-border">
             <DialogHeader>
               <DialogTitle>Save Transaction as Template</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="template-name" className="text-sm font-medium text-white">
+                <Label htmlFor="template-name" className="text-sm font-medium text-foreground">
                   Template Name *
                 </Label>
                 <Input
@@ -1177,7 +1177,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   placeholder="e.g., Monthly Grocery Shopping"
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
-                  className="bg-[#242424] border-[#3a3a3a] text-white"
+                  className="bg-elevated border-border text-foreground"
                 />
               </div>
               <div className="flex gap-2">
@@ -1193,7 +1193,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   variant="outline"
                   onClick={() => setSaveTemplateOpen(false)}
                   disabled={savingTemplate}
-                  className="bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]"
+                  className="bg-elevated text-foreground border-border hover:bg-elevated/80"
                 >
                   Cancel
                 </Button>
@@ -1223,7 +1223,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           variant="outline"
           onClick={() => router.back()}
           disabled={loading}
-          className="bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a] h-12 md:h-10 text-base md:text-sm md:px-6 px-4"
+          className="bg-elevated text-foreground border-border hover:bg-elevated/80 h-12 md:h-10 text-base md:text-sm md:px-6 px-4"
         >
           Cancel
         </Button>

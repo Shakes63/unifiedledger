@@ -198,8 +198,37 @@ For debt system
   - "Show amortization schedule" accordion
   - Keeps UI clean but data accessible
 
-13. Settings page
+13. ✅ Settings Section & Theme Chooser (COMPLETED)
 
-14. Theme chooser on settings page
+  Reorganize navigation and add theme management:
+  - New "Settings" section in sidebar
+  - Move Categories, Merchants, Rules, Notifications to Settings
+  - Add Theme settings page with current theme display
+  - Theme preference persistence via API
+  - Color palette preview for each theme
+  - Theme selector with available/coming soon status
 
-15 New theme that is elegant an girly with pink and turquiose and other colors that work well with those colors. it should be colorful and fun and elegant
+  Implementation complete with:
+  - **Sidebar Reorganization**: New Settings section created, items moved from Tools
+  - **Theme Configuration System**: Centralized theme definitions with ThemeColors interface
+  - **Theme Page**: Full color palette display showing all 13 colors (backgrounds, transactions, UI, text)
+  - **Theme Persistence API**: GET/PUT endpoints at `/api/user/settings/theme`
+  - **Theme Selector**: Interactive cards with click-to-select, Active/Coming Soon badges
+  - **Color Previews**: Visual circles showing income/expense/transfer/primary colors
+  - **Database Schema**: Added `theme` field to `userSettings` table (migration 0018)
+  - **Theme Utilities**: Helper functions for theme validation and management
+  - **Auto-creation**: API creates user settings record if it doesn't exist
+  - **Toast Notifications**: Success/error feedback for theme changes
+  - **Locked Themes**: Coming soon themes are visible but disabled with lock icon
+  - **Mobile Responsive**: All components work on small screens
+  - **Dark Mode Styling**: Consistent with existing design system
+
+14. Theme chooser on settings page - ✅ COMPLETED (see #13 above)
+
+15. New theme that is elegant an girly with pink and turquoise and other colors that work well with those colors. it should be colorful and fun and elegant
+
+  Status: Placeholder created, ready for implementation
+  - Theme defined in configuration as "Pink & Turquoise"
+  - Marked as "Coming Soon" on theme page
+  - Placeholder colors defined
+  - Will be fully implemented in future update

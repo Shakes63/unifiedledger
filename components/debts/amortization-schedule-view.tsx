@@ -60,8 +60,8 @@ export function AmortizationScheduleView({
     <div className={className}>
       {/* Debt Selector (if multiple debts) */}
       {hasMultipleDebts && (
-        <div className="mb-6 bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] p-4">
-          <label className="block text-sm font-semibold text-[#808080] uppercase mb-3">
+        <div className="mb-6 bg-card rounded-xl border border-border p-4">
+          <label className="block text-sm font-semibold text-muted-foreground uppercase mb-3">
             Select Debt
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -76,21 +76,21 @@ export function AmortizationScheduleView({
                   className={`
                     p-3 rounded-lg border transition-all text-left
                     ${isActive
-                      ? 'bg-[#60a5fa]/20 border-[#60a5fa] ring-2 ring-[#60a5fa]/50'
-                      : 'bg-[#242424] border-[#2a2a2a] hover:bg-[#2a2a2a]'
+                      ? 'bg-accent/20 border-accent ring-2 ring-accent/50'
+                      : 'bg-elevated border-border hover:bg-[var(--border)]/20'
                     }
                   `}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg">{payoffOrder.icon || '💳'}</span>
-                    <span className="text-xs font-semibold text-[#808080]">
+                    <span className="text-xs font-semibold text-muted-foreground">
                       #{payoffOrder.order}
                     </span>
                   </div>
-                  <div className="text-sm font-semibold text-white truncate">
+                  <div className="text-sm font-semibold text-foreground truncate">
                     {schedule.debtName}
                   </div>
-                  <div className="text-xs text-[#808080] mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     ${schedule.originalBalance.toLocaleString()} • {schedule.monthsToPayoff}mo
                   </div>
                 </button>
@@ -101,15 +101,15 @@ export function AmortizationScheduleView({
       )}
 
       {/* View Tabs */}
-      <div className="mb-6 bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] p-2">
+      <div className="mb-6 bg-card rounded-xl border border-border p-2">
         <div className="flex gap-2">
           <button
             onClick={() => setView('overview')}
             className={`
               flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all
               ${view === 'overview'
-                ? 'bg-[#60a5fa] text-white shadow-lg'
-                : 'text-[#808080] hover:text-white hover:bg-[#242424]'
+                ? 'bg-accent text-accent-foreground shadow-lg'
+                : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
               }
             `}
           >
@@ -121,8 +121,8 @@ export function AmortizationScheduleView({
             className={`
               flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all
               ${view === 'table'
-                ? 'bg-[#60a5fa] text-white shadow-lg'
-                : 'text-[#808080] hover:text-white hover:bg-[#242424]'
+                ? 'bg-accent text-accent-foreground shadow-lg'
+                : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
               }
             `}
           >
@@ -134,8 +134,8 @@ export function AmortizationScheduleView({
             className={`
               flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all
               ${view === 'chart'
-                ? 'bg-[#60a5fa] text-white shadow-lg'
-                : 'text-[#808080] hover:text-white hover:bg-[#242424]'
+                ? 'bg-accent text-accent-foreground shadow-lg'
+                : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
               }
             `}
           >
@@ -152,14 +152,14 @@ export function AmortizationScheduleView({
           <div className="space-y-6">
             <PayoffTimeline strategy={strategy} />
 
-            <div className="bg-[#60a5fa]/10 border border-[#60a5fa]/30 rounded-xl p-4">
+            <div className="bg-accent/10 border border-accent/30 rounded-xl p-4">
               <div className="flex items-start gap-3">
                 <span className="text-2xl">💡</span>
                 <div>
-                  <h4 className="text-sm font-semibold text-[#60a5fa] mb-1">
+                  <h4 className="text-sm font-semibold text-accent mb-1">
                     Interactive Amortization Schedule
                   </h4>
-                  <p className="text-sm text-white">
+                  <p className="text-sm text-foreground">
                     Switch to <span className="font-semibold">Full Schedule</span> to see all {activeSchedule.monthlyBreakdown.length} months,
                     or view <span className="font-semibold">Charts</span> to visualize how your payments split between principal and interest over time.
                     Click any month to see detailed breakdowns and projections.

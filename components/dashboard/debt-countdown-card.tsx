@@ -48,9 +48,9 @@ export function DebtCountdownCard() {
   if (loading) {
     return (
       <div className="animate-pulse h-full flex flex-col items-center justify-center p-4">
-        <div className="w-20 h-20 bg-[#242424] rounded-full mb-3"></div>
-        <div className="h-4 bg-[#242424] rounded w-24 mb-2"></div>
-        <div className="h-3 bg-[#242424] rounded w-32"></div>
+        <div className="w-20 h-20 rounded-full mb-3" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
+        <div className="h-4 rounded w-24 mb-2" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
+        <div className="h-3 rounded w-32" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
       </div>
     );
   }
@@ -59,7 +59,7 @@ export function DebtCountdownCard() {
   if (!data) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-4">
-        <p className="text-sm text-gray-500">No debt data</p>
+        <p className="text-sm text-muted-foreground">No debt data</p>
       </div>
     );
   }
@@ -69,8 +69,8 @@ export function DebtCountdownCard() {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-4">
         <div className="text-4xl mb-2">🎉</div>
-        <p className="text-sm font-semibold text-emerald-400 mb-1">Debt-Free!</p>
-        <p className="text-xs text-gray-500">You have no active debts</p>
+        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-income)' }}>Debt-Free!</p>
+        <p className="text-xs text-muted-foreground">You have no active debts</p>
       </div>
     );
   }
@@ -93,25 +93,25 @@ export function DebtCountdownCard() {
           {/* Countdown */}
           <div className="mb-2">
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-white">
+              <span className="text-2xl font-bold text-foreground">
                 {data.totalMonthsRemaining}
               </span>
-              <span className="text-xs text-gray-400">months</span>
+              <span className="text-xs text-muted-foreground">months</span>
             </div>
-            <div className="text-xs text-gray-500">to freedom</div>
+            <div className="text-xs text-muted-foreground">to freedom</div>
           </div>
 
           {/* Date and Balance - Side by side */}
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <div className="text-xs text-gray-500">Debt-free by</div>
-              <div className="text-xs font-semibold text-emerald-400">
+              <div className="text-xs text-muted-foreground">Debt-free by</div>
+              <div className="text-xs font-semibold" style={{ color: 'var(--color-income)' }}>
                 {formatDate(data.debtFreeDate)}
               </div>
             </div>
             <div>
-              <div className="text-xs text-gray-500">Remaining</div>
-              <div className="text-xs font-mono font-semibold text-white truncate">
+              <div className="text-xs text-muted-foreground">Remaining</div>
+              <div className="text-xs font-mono font-semibold text-foreground truncate">
                 ${data.totalRemainingBalance.toLocaleString('en-US', {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0,
@@ -125,7 +125,8 @@ export function DebtCountdownCard() {
       {/* View Details Link */}
       <Link
         href="/dashboard/debts"
-        className="flex items-center justify-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 transition-colors py-2 border-t border-[#2a2a2a]"
+        className="flex items-center justify-center gap-1 text-xs transition-colors py-2 border-t"
+        style={{ color: 'var(--color-income)', borderColor: 'var(--color-border)' }}
       >
         View Details
         <ArrowRight className="w-3 h-3" />

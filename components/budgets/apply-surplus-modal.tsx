@@ -124,21 +124,21 @@ export function ApplySurplusModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a] max-w-2xl">
+      <DialogContent className="bg-card border-border max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-white">Apply Budget Surplus to Debt</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogTitle className="text-foreground">Apply Budget Surplus to Debt</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Use your available budget surplus to accelerate debt payoff
           </DialogDescription>
         </DialogHeader>
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+            <Loader2 className="w-8 h-8 text-accent animate-spin" />
           </div>
         ) : !suggestion?.hasSuggestion ? (
           <div className="py-8 text-center">
-            <p className="text-gray-400">
+            <p className="text-muted-foreground">
               {suggestion?.reason === 'no_debts'
                 ? 'You have no active debts to pay off.'
                 : 'No surplus available to apply.'}
@@ -149,12 +149,12 @@ export function ApplySurplusModal({
             {/* Amount Selector */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <label className="text-sm text-gray-400">Amount to Apply</label>
+                <label className="text-sm text-muted-foreground">Amount to Apply</label>
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold text-white">
+                  <span className="text-2xl font-bold text-foreground">
                     {formatCurrency(amount)}
                   </span>
-                  <span className="text-xs text-gray-500">/ month</span>
+                  <span className="text-xs text-muted-foreground">/ month</span>
                 </div>
               </div>
 
@@ -168,9 +168,9 @@ export function ApplySurplusModal({
                   step={10}
                   className="w-full"
                 />
-                <div className="flex justify-between text-xs text-gray-500">
+                <div className="flex justify-between text-xs text-muted-foreground">
                   <span>$0</span>
-                  <span className="text-emerald-400">
+                  <span className="text-accent">
                     Suggested: {formatCurrency(suggestedAmount)}
                   </span>
                   <span>{formatCurrency(availableAmount)}</span>
@@ -182,26 +182,26 @@ export function ApplySurplusModal({
             {amount > 0 && suggestion.impact && suggestion.currentPlan && suggestion.suggestedPlan && (
               <div className="grid grid-cols-2 gap-4">
                 {/* Current Plan */}
-                <div className="p-4 bg-[#242424] border border-[#2a2a2a] rounded-lg">
+                <div className="p-4 bg-elevated border border-border rounded-lg">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="p-2 bg-gray-500/20 rounded">
-                      <Clock className="w-4 h-4 text-gray-400" />
+                    <div className="p-2 bg-muted/20 rounded">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
                     </div>
-                    <span className="text-xs text-gray-400">Current Plan</span>
+                    <span className="text-xs text-muted-foreground">Current Plan</span>
                   </div>
                   <div className="space-y-2">
                     <div>
-                      <p className="text-xs text-gray-500">Debt-Free In</p>
-                      <p className="text-lg font-bold text-white">
+                      <p className="text-xs text-muted-foreground">Debt-Free In</p>
+                      <p className="text-lg font-bold text-foreground">
                         {suggestion.currentPlan.monthsToDebtFree} months
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         {formatDate(suggestion.currentPlan.debtFreeDate)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Total Interest</p>
-                      <p className="text-sm font-semibold text-gray-400">
+                      <p className="text-xs text-muted-foreground">Total Interest</p>
+                      <p className="text-sm font-semibold text-muted-foreground">
                         {formatCurrency(suggestion.currentPlan.totalInterest)}
                       </p>
                     </div>
@@ -209,26 +209,26 @@ export function ApplySurplusModal({
                 </div>
 
                 {/* New Plan */}
-                <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                <div className="p-4 bg-accent/10 border border-accent/30 rounded-lg">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="p-2 bg-emerald-500/20 rounded">
-                      <TrendingDown className="w-4 h-4 text-emerald-400" />
+                    <div className="p-2 bg-accent/20 rounded">
+                      <TrendingDown className="w-4 h-4 text-accent" />
                     </div>
-                    <span className="text-xs text-emerald-400">With Surplus</span>
+                    <span className="text-xs text-accent">With Surplus</span>
                   </div>
                   <div className="space-y-2">
                     <div>
-                      <p className="text-xs text-gray-500">Debt-Free In</p>
-                      <p className="text-lg font-bold text-emerald-400">
+                      <p className="text-xs text-muted-foreground">Debt-Free In</p>
+                      <p className="text-lg font-bold text-accent">
                         {suggestion.suggestedPlan.monthsToDebtFree} months
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         {formatDate(suggestion.suggestedPlan.debtFreeDate)}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500">Total Interest</p>
-                      <p className="text-sm font-semibold text-emerald-400">
+                      <p className="text-xs text-muted-foreground">Total Interest</p>
+                      <p className="text-sm font-semibold text-accent">
                         {formatCurrency(suggestion.suggestedPlan.totalInterest)}
                       </p>
                     </div>
@@ -239,27 +239,27 @@ export function ApplySurplusModal({
 
             {/* Savings Summary */}
             {amount > 0 && suggestion.impact && (
-              <div className="p-4 bg-[#242424] border border-[#2a2a2a] rounded-lg">
+              <div className="p-4 bg-elevated border border-border rounded-lg">
                 <div className="flex items-center gap-2 mb-3">
-                  <DollarSign className="w-5 h-5 text-emerald-400" />
-                  <span className="text-sm font-semibold text-white">Impact</span>
+                  <DollarSign className="w-5 h-5 text-accent" />
+                  <span className="text-sm font-semibold text-foreground">Impact</span>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-gray-500">Time Saved</p>
-                    <p className="text-lg font-bold text-emerald-400">
+                    <p className="text-xs text-muted-foreground">Time Saved</p>
+                    <p className="text-lg font-bold text-accent">
                       {suggestion.impact.monthsSaved} month{suggestion.impact.monthsSaved !== 1 ? 's' : ''}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       {suggestion.impact.percentageFaster}% faster
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Interest Saved</p>
-                    <p className="text-lg font-bold text-emerald-400">
+                    <p className="text-xs text-muted-foreground">Interest Saved</p>
+                    <p className="text-lg font-bold text-accent">
                       {formatCurrency(suggestion.impact.interestSaved)}
                     </p>
-                    <p className="text-xs text-gray-500">Less interest paid</p>
+                    <p className="text-xs text-muted-foreground">Less interest paid</p>
                   </div>
                 </div>
               </div>
@@ -270,14 +270,14 @@ export function ApplySurplusModal({
               <Button
                 onClick={onClose}
                 variant="outline"
-                className="flex-1 border-[#2a2a2a] text-gray-400 hover:bg-[#242424]"
+                className="flex-1 border-border text-muted-foreground hover:bg-elevated"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleApply}
                 disabled={applying || amount <= 0}
-                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-medium"
+                className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground font-medium"
               >
                 {applying ? (
                   <>

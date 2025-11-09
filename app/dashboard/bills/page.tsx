@@ -208,7 +208,7 @@ export default function BillsDashboard() {
 
     return (
       <Link href={`/dashboard/bills/${instance.billId}`}>
-        <div className="flex items-center justify-between p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg hover:bg-[#242424] transition-colors cursor-pointer">
+        <div className="flex items-center justify-between p-3 bg-card border border-border rounded-lg hover:bg-elevated transition-colors cursor-pointer">
           <div className="flex items-start gap-3 flex-1">
             <div className="mt-0.5">
               {instance.status === 'paid' && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
@@ -216,8 +216,8 @@ export default function BillsDashboard() {
               {instance.status === 'pending' && <Clock className="w-5 h-5 text-amber-400" />}
             </div>
             <div className="flex-1">
-              <p className="font-medium text-white">{billName}</p>
-              <p className="text-sm text-gray-500">
+              <p className="font-medium text-foreground">{billName}</p>
+              <p className="text-sm text-muted-foreground">
                 Due: {format(dueDate, 'MMM d, yyyy')}
               </p>
               {instance.status === 'overdue' && instance.daysLate > 0 && (
@@ -229,9 +229,9 @@ export default function BillsDashboard() {
             </div>
           </div>
           <div className="text-right">
-            <p className="font-medium text-white">${instance.expectedAmount.toFixed(2)}</p>
+            <p className="font-medium text-foreground">${instance.expectedAmount.toFixed(2)}</p>
             {showDaysUntil && instance.status === 'pending' && (
-              <p className={`text-sm ${daysUntil <= 3 ? 'text-amber-400' : 'text-gray-500'}`}>
+              <p className={`text-sm ${daysUntil <= 3 ? 'text-amber-400' : 'text-muted-foreground'}`}>
                 {daysUntil === 0 && 'Due today'}
                 {daysUntil === 1 && 'Due tomorrow'}
                 {daysUntil > 1 && `${daysUntil} days left`}
@@ -251,7 +251,7 @@ export default function BillsDashboard() {
       <div className="w-full p-6 space-y-4">
         <div className="animate-pulse space-y-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-24 bg-[#1a1a1a] rounded-lg" />
+            <div key={i} className="h-24 bg-card rounded-lg" />
           ))}
         </div>
       </div>
@@ -268,8 +268,8 @@ export default function BillsDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Bills</h1>
-          <p className="text-gray-400 mt-2">Track your upcoming and overdue bills</p>
+          <h1 className="text-3xl font-bold text-foreground">Bills</h1>
+          <p className="text-muted-foreground mt-2">Track your upcoming and overdue bills</p>
         </div>
         <Link href="/dashboard/bills/new">
           <Button className="bg-blue-600 hover:bg-blue-700">
@@ -281,7 +281,7 @@ export default function BillsDashboard() {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+        <Card className="bg-background border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
               <Clock className="w-4 h-4" />
@@ -290,13 +290,13 @@ export default function BillsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-amber-400">{stats.totalUpcoming}</div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               ${stats.totalUpcomingAmount.toFixed(2)} total
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+        <Card className="bg-background border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
@@ -305,13 +305,13 @@ export default function BillsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-red-400">{stats.totalOverdue}</div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               ${stats.totalOverdueAmount.toFixed(2)} total
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+        <Card className="bg-background border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4" />
@@ -320,13 +320,13 @@ export default function BillsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-emerald-400">{stats.paidThisMonth}</div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Keep up the great work!
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+        <Card className="bg-background border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-gray-400 flex items-center gap-2">
               <DollarSign className="w-4 h-4" />
@@ -337,7 +337,7 @@ export default function BillsDashboard() {
             <div className="text-3xl font-bold text-blue-400">
               {bills.length}
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Active bills
             </p>
           </CardContent>
@@ -346,13 +346,13 @@ export default function BillsDashboard() {
 
       {/* Overdue Bills Section */}
       {overdueBills.length > 0 && (
-        <Card className="bg-[#0a0a0a] border-red-900/30">
+        <Card className="bg-background border-red-900/30">
           <CardHeader>
             <CardTitle className="text-red-400 flex items-center gap-2">
               <AlertCircle className="w-5 h-5" />
               Overdue Bills
             </CardTitle>
-            <CardDescription className="text-gray-500">
+            <CardDescription className="text-muted-foreground">
               {overdueBills.length} bill{overdueBills.length !== 1 ? 's' : ''} need immediate attention
             </CardDescription>
           </CardHeader>
@@ -383,7 +383,7 @@ export default function BillsDashboard() {
               <BillItem key={instance.id} instance={instance} />
             ))
           ) : (
-            <p className="text-center text-gray-500 py-8">
+            <p className="text-center text-muted-foreground py-8">
               Great! No bills due in the next 30 days.
             </p>
           )}
@@ -392,13 +392,13 @@ export default function BillsDashboard() {
 
       {/* Paid This Month Section */}
       {paidBills.length > 0 && (
-        <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+        <Card className="bg-background border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-400" />
               Paid This Month
             </CardTitle>
-            <CardDescription className="text-gray-500">
+            <CardDescription className="text-muted-foreground">
               {paidBills.length} bill{paidBills.length !== 1 ? 's' : ''} paid
             </CardDescription>
           </CardHeader>

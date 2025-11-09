@@ -17,6 +17,8 @@ import {
   Bell,
   ChevronLeft,
   Store,
+  Palette,
+  Settings,
 } from 'lucide-react';
 import Image from 'next/image';
 import { HouseholdSelector } from '@/components/household/household-selector';
@@ -57,11 +59,17 @@ const navSections: NavSection[] = [
   {
     title: 'Tools',
     items: [
+      { label: 'Reports', href: '/dashboard/reports', icon: <FileText className="w-4 h-4" /> },
+    ],
+  },
+  {
+    title: 'Settings',
+    items: [
       { label: 'Categories', href: '/dashboard/categories', icon: <PieChart className="w-4 h-4" /> },
       { label: 'Merchants', href: '/dashboard/merchants', icon: <Store className="w-4 h-4" /> },
       { label: 'Rules', href: '/dashboard/rules', icon: <AlertCircle className="w-4 h-4" /> },
       { label: 'Notifications', href: '/dashboard/notifications', icon: <Bell className="w-4 h-4" /> },
-      { label: 'Reports', href: '/dashboard/reports', icon: <FileText className="w-4 h-4" /> },
+      { label: 'Theme', href: '/dashboard/theme', icon: <Palette className="w-4 h-4" /> },
     ],
   },
   {
@@ -76,7 +84,7 @@ const navSections: NavSection[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, toggleSidebar } = useNavigation();
-  const [expandedSections, setExpandedSections] = useState<string[]>(['Core']);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['Core', 'Settings']);
 
   const toggleSection = (title: string) => {
     setExpandedSections((prev) =>
@@ -97,12 +105,12 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`hidden lg:flex flex-col bg-[#1a1a1a] border-r border-[#2a2a2a] h-screen sticky top-0 transition-all duration-300 shrink-0 ${
+      className={`hidden lg:flex flex-col bg-card border-r border-border h-screen sticky top-0 transition-all duration-300 shrink-0 ${
         sidebarOpen ? 'w-64' : 'w-20'
       }`}
     >
       {/* Logo Section */}
-      <div className="p-4 border-b border-[#2a2a2a] flex items-center justify-between">
+      <div className="p-4 border-b border-border flex items-center justify-between">
         {sidebarOpen && (
           <Link href="/dashboard" className="flex items-center gap-3 flex-1">
             <div className="relative w-8 h-8 flex-shrink-0">
@@ -115,8 +123,8 @@ export function Sidebar() {
               />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Unified</h2>
-              <p className="text-xs text-[#6b7280]">Finance</p>
+              <h2 className="text-lg font-bold text-foreground">Unified</h2>
+              <p className="text-xs text-muted-foreground">Finance</p>
             </div>
           </Link>
         )}
@@ -137,7 +145,7 @@ export function Sidebar() {
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
-          className="text-[#9ca3af] hover:text-white flex-shrink-0 ml-2"
+          className="text-muted-foreground hover:text-foreground flex-shrink-0 ml-2"
         >
           <ChevronLeft className={`w-4 h-4 transition-transform ${sidebarOpen ? '' : 'rotate-180'}`} />
         </Button>
@@ -145,7 +153,7 @@ export function Sidebar() {
 
       {/* Household Selector */}
       {sidebarOpen && (
-        <div className="px-4 py-4 border-b border-[#2a2a2a]">
+        <div className="px-4 py-4 border-b border-border">
           <HouseholdSelector />
         </div>
       )}
@@ -164,12 +172,12 @@ export function Sidebar() {
                       <div
                         className={`flex items-center justify-center p-3 rounded-lg transition-colors ${
                           active
-                            ? 'bg-[#10b981]/20 text-[#10b981]'
-                            : 'text-[#9ca3af] hover:text-white hover:bg-[#242424]'
+                            ? 'bg-accent/20 text-accent'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
                         }`}
                         title={item.label}
                       >
-                        <span className={active ? 'text-[#10b981]' : 'text-[#6b7280]'}>
+                        <span className={active ? 'text-accent' : 'text-muted-foreground'}>
                           {item.icon}
                         </span>
                       </div>
@@ -185,7 +193,7 @@ export function Sidebar() {
             <div key={section.title}>
               <button
                 onClick={() => toggleSection(section.title)}
-                className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-[#9ca3af] uppercase tracking-wider hover:text-white transition-colors mb-3"
+                className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors mb-3"
               >
                 <span>{section.title}</span>
                 <ChevronDown
@@ -204,18 +212,18 @@ export function Sidebar() {
                         <div
                           className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${
                             active
-                              ? 'bg-[#10b981]/20 text-[#10b981]'
-                              : 'text-[#9ca3af] hover:text-white hover:bg-[#242424]'
+                              ? 'bg-accent/20 text-accent'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
                           }`}
                         >
                           <div className="flex items-center gap-3">
-                            <span className={active ? 'text-[#10b981]' : 'text-[#6b7280]'}>
+                            <span className={active ? 'text-accent' : 'text-muted-foreground'}>
                               {item.icon}
                             </span>
                             <span>{item.label}</span>
                           </div>
                           {item.badge && (
-                            <span className="px-2 py-0.5 bg-[#10b981]/20 text-[#10b981] text-xs rounded-full">
+                            <span className="px-2 py-0.5 bg-accent/20 text-accent text-xs rounded-full">
                               {item.badge}
                             </span>
                           )}
@@ -231,7 +239,7 @@ export function Sidebar() {
       </nav>
 
       {/* Footer Section */}
-      <div className="p-4 border-t border-[#2a2a2a] space-y-2">
+      <div className="p-4 border-t border-border space-y-2">
         <div className="px-3 py-2 flex items-center justify-center">
           <UserButton />
         </div>

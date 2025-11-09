@@ -202,13 +202,13 @@ export function RecentTransactions() {
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'income':
-        return <ArrowDownLeft className="w-4 h-4 text-emerald-400" />;
+        return <ArrowDownLeft className="w-4 h-4" style={{ color: 'var(--color-income)' }} />;
       case 'expense':
-        return <ArrowUpRight className="w-4 h-4 text-red-400" />;
+        return <ArrowUpRight className="w-4 h-4" style={{ color: 'var(--color-expense)' }} />;
       case 'transfer':
       case 'transfer_in':
       case 'transfer_out':
-        return <ArrowRightLeft className="w-4 h-4 text-blue-400" />;
+        return <ArrowRightLeft className="w-4 h-4" style={{ color: 'var(--color-transfer)' }} />;
       default:
         return null;
     }
@@ -217,31 +217,31 @@ export function RecentTransactions() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'income':
-        return 'bg-emerald-500/20 text-emerald-400';
+        return { backgroundColor: 'color-mix(in oklch, var(--color-income) 20%, transparent)', color: 'var(--color-income)' };
       case 'expense':
-        return 'bg-red-500/20 text-red-400';
+        return { backgroundColor: 'color-mix(in oklch, var(--color-expense) 20%, transparent)', color: 'var(--color-expense)' };
       case 'transfer_in':
       case 'transfer_out':
-        return 'bg-blue-500/20 text-blue-400';
+        return { backgroundColor: 'color-mix(in oklch, var(--color-transfer) 20%, transparent)', color: 'var(--color-transfer)' };
       default:
-        return 'bg-gray-500/20 text-gray-400';
+        return { backgroundColor: 'color-mix(in oklch, var(--color-muted-foreground) 20%, transparent)', color: 'var(--color-muted-foreground)' };
     }
   };
 
   if (loading) {
     return (
-      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] text-center py-12 rounded-xl">
-        <p className="text-gray-400">Loading transactions...</p>
+      <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+        <p className="text-muted-foreground">Loading transactions...</p>
       </Card>
     );
   }
 
   if (transactions.length === 0) {
     return (
-      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] text-center py-12 rounded-xl">
-        <p className="text-gray-400 mb-4">No transactions yet.</p>
+      <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+        <p className="text-muted-foreground mb-4">No transactions yet.</p>
         <Link href="/dashboard/transactions/new">
-          <Button className="bg-white text-black hover:bg-gray-100 font-medium">Add Your First Transaction</Button>
+          <Button className="font-medium" style={{ backgroundColor: 'var(--color-income)', color: 'var(--color-background)' }}>Add Your First Transaction</Button>
         </Link>
       </Card>
     );
@@ -256,25 +256,25 @@ export function RecentTransactions() {
 
         return (
           <Link key={transaction.id} href={`/dashboard/transactions/${transaction.id}`}>
-            <Card className="p-2 border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg cursor-pointer">
-              <div className="flex items-center justify-between gap-2">
+            <Card className="p-2 border rounded-lg cursor-pointer transition-colors" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+              <div className="flex items-center justify-between gap-2" style={{ ':hover': { backgroundColor: 'var(--color-elevated)' } }}>
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <div className="p-1.5 bg-[#242424] rounded flex-shrink-0">
+                  <div className="p-1.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-elevated)' }}>
                     {getTransactionIcon(transaction.type)}
                   </div>
                   <div className="flex-1 min-w-0">
                     {/* Merchant name on top (bold) */}
                     {display.merchant && (
-                      <p className="font-semibold text-white text-sm truncate">
+                      <p className="font-semibold text-foreground text-sm truncate">
                         {display.merchant}
                       </p>
                     )}
                     {/* Description below merchant (or standalone if no merchant) */}
-                    <p className={`text-xs truncate ${display.merchant ? 'text-gray-400' : 'font-medium text-white text-sm'}`}>
+                    <p className={`text-xs truncate ${display.merchant ? 'text-muted-foreground' : 'font-medium text-foreground text-sm'}`}>
                       {display.description}
                     </p>
                     {/* Date, category, and split indicator */}
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       {new Date(transaction.date).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -288,21 +288,22 @@ export function RecentTransactions() {
                   <div className="text-right">
                     {/* Amount */}
                     <p
-                      className={`font-semibold text-sm ${
-                        transaction.type === 'income'
-                          ? 'text-emerald-400'
-                          : transaction.type === 'transfer'
-                          ? 'text-blue-400'
-                          : 'text-white'
-                      }`}
+                      className="font-semibold text-sm"
+                      style={{
+                        color: transaction.type === 'income'
+                          ? 'var(--color-income)'
+                          : transaction.type === 'transfer_out' || transaction.type === 'transfer_in' || transaction.type === 'transfer'
+                          ? 'var(--color-transfer)'
+                          : 'var(--color-foreground)'
+                      }}
                     >
-                      {transaction.type === 'transfer'
+                      {transaction.type === 'transfer' || transaction.type === 'transfer_in' || transaction.type === 'transfer_out'
                         ? ''
                         : transaction.type === 'income' ? '+' : '-'}$
                       {transaction.amount.toFixed(2)}
                     </p>
                     {/* Account name below amount */}
-                    <p className="text-xs text-gray-500 truncate max-w-[100px]">
+                    <p className="text-xs text-muted-foreground truncate max-w-[100px]">
                       {accountName}
                     </p>
                   </div>
@@ -314,7 +315,8 @@ export function RecentTransactions() {
                       handleRepeatTransaction(transaction);
                     }}
                     disabled={repeatingTxId === transaction.id}
-                    className="h-7 w-7 text-gray-400 hover:text-white hover:bg-[#242424] flex-shrink-0"
+                    className="h-7 w-7 flex-shrink-0"
+                    style={{ color: 'var(--color-muted-foreground)' }}
                     title="Repeat this transaction with today's date"
                   >
                     <Copy className="w-3 h-3" />
@@ -326,7 +328,7 @@ export function RecentTransactions() {
         );
       })}
       <Link href="/dashboard/transactions">
-        <Button variant="outline" className="w-full rounded-lg border-[#2a2a2a]">
+        <Button variant="outline" className="w-full rounded-lg" style={{ borderColor: 'var(--color-border)' }}>
           View All Transactions
         </Button>
       </Link>

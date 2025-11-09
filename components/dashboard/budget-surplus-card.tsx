@@ -65,14 +65,14 @@ export function BudgetSurplusCard() {
   // Loading state
   if (loading) {
     return (
-      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
+      <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <div className="animate-pulse">
           <div className="flex items-start justify-between mb-4">
-            <div className="h-4 bg-[#242424] rounded w-24"></div>
-            <div className="w-10 h-10 bg-[#242424] rounded-lg"></div>
+            <div className="h-4 rounded w-24" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
+            <div className="w-10 h-10 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
           </div>
-          <div className="h-8 bg-[#242424] rounded w-32 mb-4"></div>
-          <div className="h-2 bg-[#242424] rounded w-full"></div>
+          <div className="h-8 rounded w-32 mb-4" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
+          <div className="h-2 rounded w-full" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
         </div>
       </Card>
     );
@@ -81,10 +81,10 @@ export function BudgetSurplusCard() {
   // No data
   if (!data) {
     return (
-      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
+      <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <div className="flex flex-col items-center justify-center h-full text-center">
-          <AlertCircle className="w-8 h-8 text-gray-500 mb-2" />
-          <p className="text-sm text-gray-500">Unable to load budget data</p>
+          <AlertCircle className="w-8 h-8 text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">Unable to load budget data</p>
         </div>
       </Card>
     );
@@ -93,16 +93,16 @@ export function BudgetSurplusCard() {
   // No income - show message
   if (!data.hasIncome) {
     return (
-      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
+      <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <div className="flex items-start justify-between mb-4">
-          <p className="text-sm text-gray-400">Budget Surplus</p>
-          <div className="p-3 bg-blue-500/20 rounded-lg">
-            <DollarSign className="w-6 h-6 text-blue-400" />
+          <p className="text-sm text-muted-foreground">Budget Surplus</p>
+          <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--color-transfer)', opacity: 0.2 }}>
+            <DollarSign className="w-6 h-6" style={{ color: 'var(--color-transfer)' }} />
           </div>
         </div>
         <div className="space-y-2">
-          <p className="text-sm text-gray-400">Add income transactions to calculate your budget surplus</p>
-          <p className="text-xs text-gray-500">Track income to see how much you can apply to debt</p>
+          <p className="text-sm text-muted-foreground">Add income transactions to calculate your budget surplus</p>
+          <p className="text-xs text-muted-foreground">Track income to see how much you can apply to debt</p>
         </div>
       </Card>
     );
@@ -111,19 +111,19 @@ export function BudgetSurplusCard() {
   // No debts - show savings message
   if (!data.hasDebts) {
     return (
-      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
+      <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <div className="flex items-start justify-between mb-4">
-          <p className="text-sm text-gray-400">Budget Surplus</p>
-          <div className="p-3 bg-emerald-500/20 rounded-lg">
-            <CheckCircle className="w-6 h-6 text-emerald-400" />
+          <p className="text-sm text-muted-foreground">Budget Surplus</p>
+          <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--color-income)', opacity: 0.2 }}>
+            <CheckCircle className="w-6 h-6" style={{ color: 'var(--color-income)' }} />
           </div>
         </div>
         <div>
-          <h3 className="text-3xl font-bold text-white mb-2">
+          <h3 className="text-3xl font-bold text-foreground mb-2">
             ${data.availableToApply.toFixed(2)}
           </h3>
-          <p className="text-sm text-emerald-400 mb-2">Debt-free! Consider saving this surplus</p>
-          <p className="text-xs text-gray-500">You have no active debts. Great job!</p>
+          <p className="text-sm mb-2" style={{ color: 'var(--color-income)' }}>Debt-free! Consider saving this surplus</p>
+          <p className="text-xs text-muted-foreground">You have no active debts. Great job!</p>
         </div>
       </Card>
     );
@@ -132,19 +132,19 @@ export function BudgetSurplusCard() {
   // Negative surplus - show warning
   if (data.availableToApply <= 0) {
     return (
-      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
+      <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <div className="flex items-start justify-between mb-4">
-          <p className="text-sm text-gray-400">Budget Surplus</p>
-          <div className="p-3 bg-red-500/20 rounded-lg">
-            <AlertCircle className="w-6 h-6 text-red-400" />
+          <p className="text-sm text-muted-foreground">Budget Surplus</p>
+          <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--color-expense)', opacity: 0.2 }}>
+            <AlertCircle className="w-6 h-6" style={{ color: 'var(--color-expense)' }} />
           </div>
         </div>
         <div className="space-y-3">
           <div>
-            <h3 className="text-2xl font-bold text-red-400">
+            <h3 className="text-2xl font-bold" style={{ color: 'var(--color-expense)' }}>
               -${Math.abs(data.availableToApply).toFixed(2)}
             </h3>
-            <p className="text-xs text-gray-500 mt-1">Spending exceeds income</p>
+            <p className="text-xs text-muted-foreground mt-1">Spending exceeds income</p>
           </div>
           {data.debtToIncomeRatio > 0 && (
             <DebtToIncomeIndicator
@@ -153,7 +153,7 @@ export function BudgetSurplusCard() {
               size="small"
             />
           )}
-          <p className="text-xs text-gray-400">Review your budget and reduce expenses</p>
+          <p className="text-xs text-muted-foreground">Review your budget and reduce expenses</p>
         </div>
       </Card>
     );
@@ -162,21 +162,21 @@ export function BudgetSurplusCard() {
   // Has surplus - show main card
   return (
     <>
-      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
+      <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <div className="flex items-start justify-between mb-4">
-          <p className="text-sm text-gray-400">Budget Surplus</p>
-          <div className="p-3 bg-emerald-500/20 rounded-lg">
-            <TrendingDown className="w-6 h-6 text-emerald-400" />
+          <p className="text-sm text-muted-foreground">Budget Surplus</p>
+          <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--color-income)', opacity: 0.2 }}>
+            <TrendingDown className="w-6 h-6" style={{ color: 'var(--color-income)' }} />
           </div>
         </div>
 
         <div className="space-y-4">
           {/* Surplus amount */}
           <div>
-            <h3 className="text-3xl font-bold text-white">
+            <h3 className="text-3xl font-bold text-foreground">
               ${data.availableToApply.toFixed(2)}
             </h3>
-            <p className="text-xs text-gray-500 mt-1">Available this month</p>
+            <p className="text-xs text-muted-foreground mt-1">Available this month</p>
           </div>
 
           {/* Debt-to-Income Indicator */}
@@ -188,32 +188,33 @@ export function BudgetSurplusCard() {
 
           {/* Apply button or success message */}
           {applied ? (
-            <div className="flex items-center gap-2 text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
+            <div className="flex items-center gap-2 rounded-lg p-3 border" style={{ color: 'var(--color-income)', backgroundColor: `color-mix(in oklch, var(--color-income) 10%, transparent)`, borderColor: `color-mix(in oklch, var(--color-income) 30%, transparent)` }}>
               <CheckCircle className="w-4 h-4" />
               <span className="text-sm font-medium">Applied to debt payments!</span>
             </div>
           ) : (
             <Button
               onClick={() => setShowModal(true)}
-              className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium"
+              className="w-full font-medium text-background"
+              style={{ backgroundColor: 'var(--color-income)' }}
             >
               Apply to Debt
             </Button>
           )}
 
           {/* Breakdown */}
-          <div className="pt-2 border-t border-[#2a2a2a] space-y-1">
+          <div className="pt-2 border-t space-y-1" style={{ borderColor: 'var(--color-border)' }}>
             <div className="flex justify-between text-xs">
-              <span className="text-gray-500">Income</span>
-              <span className="text-white">${data.monthlyIncome.toFixed(2)}</span>
+              <span className="text-muted-foreground">Income</span>
+              <span className="text-foreground">${data.monthlyIncome.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-gray-500">Expenses</span>
-              <span className="text-white">-${data.totalActualExpenses.toFixed(2)}</span>
+              <span className="text-muted-foreground">Expenses</span>
+              <span className="text-foreground">-${data.totalActualExpenses.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-gray-500">Debt Minimums</span>
-              <span className="text-white">-${data.totalMinimumPayments.toFixed(2)}</span>
+              <span className="text-muted-foreground">Debt Minimums</span>
+              <span className="text-foreground">-${data.totalMinimumPayments.toFixed(2)}</span>
             </div>
           </div>
         </div>

@@ -97,12 +97,12 @@ export function BillsWidget() {
 
   if (loading) {
     return (
-      <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
+      <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <div className="animate-pulse space-y-4">
-          <div className="h-6 bg-[#242424] rounded w-1/3"></div>
+          <div className="h-6 rounded w-1/3" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-10 bg-[#242424] rounded"></div>
+              <div key={i} className="h-10 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
             ))}
           </div>
         </div>
@@ -111,14 +111,15 @@ export function BillsWidget() {
   }
 
   return (
-    <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
+    <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-white">This Month's Bills</h3>
+        <h3 className="text-lg font-semibold text-foreground">This Month's Bills</h3>
         <Link href="/dashboard/bills">
           <Button
             variant="ghost"
             size="sm"
-            className="text-emerald-400 hover:bg-emerald-400/10"
+            className="hover:bg-elevated"
+            style={{ color: 'var(--color-income)' }}
           >
             View All <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
@@ -129,17 +130,17 @@ export function BillsWidget() {
         <>
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="p-3 bg-[#242424] rounded-lg border border-[#2a2a2a]">
-              <p className="text-gray-500 text-xs mb-1">Total</p>
-              <p className="text-lg font-semibold text-white">${totalAmount.toFixed(2)}</p>
+            <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+              <p className="text-muted-foreground text-xs mb-1">Total</p>
+              <p className="text-lg font-semibold text-foreground">${totalAmount.toFixed(2)}</p>
             </div>
-            <div className="p-3 bg-[#242424] rounded-lg border border-[#2a2a2a]">
-              <p className="text-gray-500 text-xs mb-1">Paid</p>
-              <p className="text-lg font-semibold text-emerald-400">${paidAmount.toFixed(2)}</p>
+            <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+              <p className="text-muted-foreground text-xs mb-1">Paid</p>
+              <p className="text-lg font-semibold" style={{ color: 'var(--color-income)' }}>${paidAmount.toFixed(2)}</p>
             </div>
-            <div className="p-3 bg-[#242424] rounded-lg border border-[#2a2a2a]">
-              <p className="text-gray-500 text-xs mb-1">Pending</p>
-              <p className="text-lg font-semibold text-amber-400">{pendingCount}</p>
+            <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+              <p className="text-muted-foreground text-xs mb-1">Pending</p>
+              <p className="text-lg font-semibold" style={{ color: 'var(--color-warning)' }}>{pendingCount}</p>
             </div>
           </div>
 
@@ -155,17 +156,18 @@ export function BillsWidget() {
               return (
                 <div
                   key={bill.id}
-                  className="flex items-center justify-between p-3 bg-[#242424] rounded-lg border border-[#2a2a2a] hover:border-[#3a3a3a] transition-all"
+                  className="flex items-center justify-between p-3 rounded-lg border transition-all"
+                  style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}
                 >
                   <div className="flex items-center gap-3 flex-1">
                     {getStatusIcon(bill.status)}
                     <div>
-                      <p className="text-sm font-medium text-white">{bill.bill?.name}</p>
-                      <p className="text-xs text-gray-500">Due {formattedDate}</p>
+                      <p className="text-sm font-medium text-foreground">{bill.bill?.name}</p>
+                      <p className="text-xs text-muted-foreground">Due {formattedDate}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-white">
+                    <p className="text-sm font-semibold text-foreground">
                       ${(bill.actualAmount || bill.expectedAmount).toFixed(2)}
                     </p>
                     <span
@@ -183,8 +185,8 @@ export function BillsWidget() {
         </>
       ) : (
         <div className="text-center py-8">
-          <CheckCircle2 className="w-12 h-12 text-emerald-400/50 mx-auto mb-3" />
-          <p className="text-gray-500">No bills this month</p>
+          <CheckCircle2 className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--color-income)', opacity: 0.5 }} />
+          <p className="text-muted-foreground">No bills this month</p>
         </div>
       )}
     </Card>

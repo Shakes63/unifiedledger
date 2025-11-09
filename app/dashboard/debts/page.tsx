@@ -202,15 +202,15 @@ export default function DebtsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Debt Management</h1>
-          <p className="text-gray-400 mt-1">Track and pay off your debts</p>
+            <h1 className="text-3xl font-bold text-foreground">Debt Management</h1>
+          <p className="text-muted-foreground mt-1">Track and pay off your debts</p>
         </div>
         <Button
           onClick={() => {
             setSelectedDebt(null);
             setIsFormOpen(true);
           }}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          className="bg-accent hover:bg-accent/90 text-accent-foreground"
         >
           <Plus className="w-4 h-4 mr-2" />
           Add Debt
@@ -227,25 +227,25 @@ export default function DebtsPage() {
       {/* Summary Stats */}
       {stats && (
         <div className="grid grid-cols-4 gap-4">
-          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-            <p className="text-gray-400 text-sm">Total Debt</p>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-muted-foreground text-sm">Total Debt</p>
             <p className="text-2xl font-bold text-red-400 mt-1">
               ${stats.totalRemainingBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </p>
           </div>
-          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-            <p className="text-gray-400 text-sm">Paid Off</p>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-muted-foreground text-sm">Paid Off</p>
             <p className="text-2xl font-bold text-emerald-400 mt-1">
               ${stats.totalPaidOff.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </p>
           </div>
-          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-            <p className="text-gray-400 text-sm">Progress</p>
-            <p className="text-2xl font-bold text-white mt-1">{Math.round(stats.percentagePaidOff)}%</p>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-muted-foreground text-sm">Progress</p>
+            <p className="text-2xl font-bold text-foreground mt-1">{Math.round(stats.percentagePaidOff)}%</p>
           </div>
-          <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4">
-            <p className="text-gray-400 text-sm">Active Debts</p>
-            <p className="text-2xl font-bold text-white mt-1">{stats.activeDebtCount}</p>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <p className="text-muted-foreground text-sm">Active Debts</p>
+            <p className="text-2xl font-bold text-foreground mt-1">{stats.activeDebtCount}</p>
           </div>
         </div>
       )}
@@ -258,8 +258,8 @@ export default function DebtsPage() {
             onClick={() => setFilter(status)}
             className={`px-4 py-2 rounded transition-colors capitalize ${
               filter === status
-                ? 'bg-emerald-600 text-white'
-                : 'bg-[#1a1a1a] text-gray-400 border border-[#2a2a2a] hover:border-[#3a3a3a]'
+                ? 'bg-accent text-accent-foreground'
+                : 'bg-card text-muted-foreground border border-border hover:bg-elevated'
             }`}
           >
             {status === 'paid_off' ? 'Paid Off' : status}
@@ -272,21 +272,21 @@ export default function DebtsPage() {
         <div className="space-y-4">
           <button
             onClick={() => setShowMinWarning(!showMinWarning)}
-            className="flex items-center justify-between w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 hover:bg-[#242424] transition-colors"
+            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
               <span className="text-2xl">⚠️</span>
               <div className="text-left">
-                <h3 className="text-lg font-semibold text-white">Minimum Payment Warning</h3>
-                <p className="text-sm text-gray-400">
+                <h3 className="text-lg font-semibold text-foreground">Minimum Payment Warning</h3>
+                <p className="text-sm text-muted-foreground">
                   See the true cost of paying only minimum payments
                 </p>
               </div>
             </div>
             {showMinWarning ? (
-              <ChevronUp className="w-5 h-5 text-gray-400" />
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-400" />
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
             )}
           </button>
 
@@ -301,21 +301,21 @@ export default function DebtsPage() {
           {/* What-If Calculator Section */}
           <button
             onClick={() => setShowWhatIf(!showWhatIf)}
-            className="flex items-center justify-between w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 hover:bg-[#242424] transition-colors"
+            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
               <span className="text-2xl">💡</span>
               <div className="text-left">
-                <h3 className="text-lg font-semibold text-white">What-If Scenario Calculator</h3>
-                <p className="text-sm text-gray-400">
+                <h3 className="text-lg font-semibold text-foreground">What-If Scenario Calculator</h3>
+                <p className="text-sm text-muted-foreground">
                   Test different payment strategies and see how lump sums affect your timeline
                 </p>
               </div>
             </div>
             {showWhatIf ? (
-              <ChevronUp className="w-5 h-5 text-gray-400" />
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-400" />
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
             )}
           </button>
 
@@ -330,21 +330,21 @@ export default function DebtsPage() {
           {/* Payoff Strategy Section */}
           <button
             onClick={() => setShowStrategy(!showStrategy)}
-            className="flex items-center justify-between w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-4 hover:bg-[#242424] transition-colors"
+            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
               <span className="text-2xl">🎯</span>
               <div className="text-left">
-                <h3 className="text-lg font-semibold text-white">Debt Payoff Strategy</h3>
-                <p className="text-sm text-gray-400">
+                <h3 className="text-lg font-semibold text-foreground">Debt Payoff Strategy</h3>
+                <p className="text-sm text-muted-foreground">
                   Compare Snowball vs Avalanche methods and see your payoff timeline
                 </p>
               </div>
             </div>
             {showStrategy ? (
-              <ChevronUp className="w-5 h-5 text-gray-400" />
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-gray-400" />
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
             )}
           </button>
 
@@ -380,14 +380,14 @@ export default function DebtsPage() {
       {/* Debts List */}
       {loading ? (
         <div className="text-center py-12">
-          <p className="text-gray-400">Loading debts...</p>
+          <p className="text-muted-foreground">Loading debts...</p>
         </div>
       ) : debts.length === 0 ? (
-        <div className="text-center py-12 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
-          <p className="text-gray-400">No debts yet. You're debt-free!</p>
+        <div className="text-center py-12 bg-card border border-border rounded-lg">
+          <p className="text-muted-foreground">No debts yet. You're debt-free!</p>
           <Button
             onClick={() => setIsFormOpen(true)}
-            className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="mt-4 bg-accent hover:bg-accent/90 text-accent-foreground"
           >
             Add a Debt to Track
           </Button>
@@ -408,10 +408,10 @@ export default function DebtsPage() {
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white max-w-md">
+        <DialogContent className="bg-card border-border text-foreground max-w-md">
           <DialogHeader>
             <DialogTitle>{selectedDebt ? 'Edit Debt' : 'Add New Debt'}</DialogTitle>
-            <DialogDescription className="text-gray-400">
+            <DialogDescription className="text-muted-foreground">
               {selectedDebt
                 ? 'Update your debt information'
                 : 'Add a new debt to track and manage'}

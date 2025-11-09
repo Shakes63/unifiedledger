@@ -13,7 +13,7 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
   const { sidebarOpen } = useNavigation();
 
   return (
-    <div className="h-screen bg-[#0a0a0a] flex flex-col lg:flex-row overflow-hidden w-full max-w-full">
+    <div className="h-screen bg-background flex flex-col lg:flex-row overflow-hidden w-full max-w-full">
       {/* Sidebar - Desktop only */}
       <Sidebar />
 

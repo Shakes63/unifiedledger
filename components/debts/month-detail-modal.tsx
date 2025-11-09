@@ -84,7 +84,7 @@ export function MonthDetailModal({
     },
   ];
 
-  const pieChartColors = ['#10b981', '#f87171'];
+  const pieChartColors = ['var(--chart-3)', 'var(--chart-4)'];
 
   const canGoBack = monthIndex > 0;
   const canGoForward = monthIndex < schedule.monthlyBreakdown.length - 1;
@@ -107,22 +107,22 @@ export function MonthDetailModal({
         aria-labelledby="modal-title"
       >
         <div
-          className="bg-[#1a1a1a] rounded-xl border border-[#2a2a2a] w-full max-w-2xl max-h-[90vh] overflow-y-auto pointer-events-auto animate-in slide-in-from-bottom-4 duration-300"
+          className="bg-card rounded-xl border border-border w-full max-w-2xl max-h-[90vh] overflow-y-auto pointer-events-auto animate-in slide-in-from-bottom-4 duration-300"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a]">
+          <div className="flex items-center justify-between p-6 border-b border-border">
             <div>
-              <h2 id="modal-title" className="text-xl font-semibold text-white">
+              <h2 id="modal-title" className="text-xl font-semibold text-foreground">
                 Month {absoluteMonth} of {startMonth + schedule.monthsToPayoff}
               </h2>
-              <p className="text-sm text-[#808080] mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 {schedule.debtName} • {monthDetails.date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="text-[#808080] hover:text-white transition-colors p-2 rounded-lg hover:bg-[#242424]"
+              className="text-muted-foreground hover:text-foreground transition-colors p-2 rounded-lg hover:bg-elevated"
               aria-label="Close modal"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,7 +137,7 @@ export function MonthDetailModal({
             <div className="grid md:grid-cols-2 gap-6">
               {/* Pie Chart */}
               <div>
-                <h3 className="text-sm font-semibold text-[#808080] uppercase mb-3">Payment Breakdown</h3>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">Payment Breakdown</h3>
                 <PieChart
                   title=""
                   data={pieChartData}
@@ -146,28 +146,28 @@ export function MonthDetailModal({
                 />
                 <div className="mt-3 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#10b981]">Principal</span>
-                    <span className="text-white font-mono">{monthDetails.principalPercent.toFixed(1)}%</span>
+                    <span className="text-[var(--chart-3)]">Principal</span>
+                    <span className="text-foreground font-mono">{monthDetails.principalPercent.toFixed(1)}%</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-[#f87171]">Interest</span>
-                    <span className="text-white font-mono">{monthDetails.interestPercent.toFixed(1)}%</span>
+                    <span className="text-[var(--chart-4)]">Interest</span>
+                    <span className="text-foreground font-mono">{monthDetails.interestPercent.toFixed(1)}%</span>
                   </div>
                 </div>
               </div>
 
               {/* Progress Ring */}
               <div className="flex flex-col items-center justify-center">
-                <h3 className="text-sm font-semibold text-[#808080] uppercase mb-3">Progress</h3>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">Progress</h3>
                 <ProgressRing
                   percentage={monthDetails.percentPaidOff}
                   size="medium"
                 />
                 <div className="mt-4 text-center">
-                  <div className="text-2xl font-bold text-white">
+                  <div className="text-2xl font-bold text-foreground">
                     {monthDetails.percentPaidOff.toFixed(1)}%
                   </div>
-                  <div className="text-sm text-[#808080]">Paid Off</div>
+                  <div className="text-sm text-muted-foreground">Paid Off</div>
                 </div>
                 {isPayoffMonth && (
                   <div className="mt-3 text-2xl">🎉</div>
@@ -176,30 +176,30 @@ export function MonthDetailModal({
             </div>
 
             {/* Payment Details */}
-            <div className="bg-[#242424] rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-[#808080] uppercase mb-3">This Month's Payment</h3>
+            <div className="bg-elevated rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">This Month's Payment</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-xs text-[#808080] mb-1">Total Payment</div>
-                  <div className="text-xl font-semibold text-white font-mono">
+                  <div className="text-xs text-muted-foreground mb-1">Total Payment</div>
+                  <div className="text-xl font-semibold text-foreground font-mono">
                     ${payment.paymentAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-[#808080] mb-1">Remaining Balance</div>
-                  <div className="text-xl font-semibold text-white font-mono">
+                  <div className="text-xs text-muted-foreground mb-1">Remaining Balance</div>
+                  <div className="text-xl font-semibold text-foreground font-mono">
                     ${payment.remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-[#808080] mb-1">Principal</div>
-                  <div className="text-xl font-semibold text-[#10b981] font-mono">
+                  <div className="text-xs text-muted-foreground mb-1">Principal</div>
+                  <div className="text-xl font-semibold text-[var(--chart-3)] font-mono">
                     ${payment.principalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-[#808080] mb-1">Interest</div>
-                  <div className="text-xl font-semibold text-[#f87171] font-mono">
+                  <div className="text-xs text-muted-foreground mb-1">Interest</div>
+                  <div className="text-xl font-semibold text-[var(--chart-4)] font-mono">
                     ${payment.interestAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -207,24 +207,24 @@ export function MonthDetailModal({
             </div>
 
             {/* Cumulative Totals */}
-            <div className="bg-[#242424] rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-[#808080] uppercase mb-3">Through This Month</h3>
+            <div className="bg-elevated rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">Through This Month</h3>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <div className="text-xs text-[#808080] mb-1">Total Paid</div>
-                  <div className="text-lg font-semibold text-white font-mono">
+                  <div className="text-xs text-muted-foreground mb-1">Total Paid</div>
+                  <div className="text-lg font-semibold text-foreground font-mono">
                     ${(monthDetails.cumulativePrincipal + monthDetails.cumulativeInterest).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-[#808080] mb-1">Principal Paid</div>
-                  <div className="text-lg font-semibold text-[#10b981] font-mono">
+                  <div className="text-xs text-muted-foreground mb-1">Principal Paid</div>
+                  <div className="text-lg font-semibold text-[var(--chart-3)] font-mono">
                     ${monthDetails.cumulativePrincipal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-[#808080] mb-1">Interest Paid</div>
-                  <div className="text-lg font-semibold text-[#f87171] font-mono">
+                  <div className="text-xs text-muted-foreground mb-1">Interest Paid</div>
+                  <div className="text-lg font-semibold text-[var(--chart-4)] font-mono">
                     ${monthDetails.cumulativeInterest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -232,29 +232,29 @@ export function MonthDetailModal({
             </div>
 
             {/* Projection */}
-            <div className="bg-[#60a5fa]/10 border border-[#60a5fa]/30 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-[#60a5fa] uppercase mb-2">
+            <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-accent uppercase mb-2">
                 {isPayoffMonth ? 'Congratulations!' : 'Remaining'}
               </h3>
               {isPayoffMonth ? (
-                <p className="text-white">
+                <p className="text-foreground">
                   This is your final payment! You've successfully paid off <span className="font-semibold">{schedule.debtName}</span>.
                   Total interest paid: <span className="font-mono font-semibold">${schedule.totalInterestPaid.toFixed(2)}</span>
                 </p>
               ) : (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="text-xs text-[#60a5fa]/80 mb-1">Months Remaining</div>
-                    <div className="text-2xl font-bold text-white">
+                    <div className="text-xs text-accent/80 mb-1">Months Remaining</div>
+                    <div className="text-2xl font-bold text-foreground">
                       {monthDetails.monthsRemaining}
                     </div>
-                    <div className="text-xs text-[#808080] mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       {Math.floor(monthDetails.monthsRemaining / 12)} years, {monthDetails.monthsRemaining % 12} months
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-[#60a5fa]/80 mb-1">Payoff Date</div>
-                    <div className="text-lg font-semibold text-white">
+                    <div className="text-xs text-accent/80 mb-1">Payoff Date</div>
+                    <div className="text-lg font-semibold text-foreground">
                       {schedule.payoffDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                     </div>
                   </div>
@@ -264,14 +264,14 @@ export function MonthDetailModal({
           </div>
 
           {/* Footer - Navigation */}
-          <div className="flex items-center justify-between p-6 border-t border-[#2a2a2a] bg-[#242424]">
+          <div className="flex items-center justify-between p-6 border-t border-border bg-elevated">
             <button
               onClick={() => onNavigate?.('prev')}
               disabled={!canGoBack}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                 canGoBack
-                  ? 'bg-[#1a1a1a] text-white hover:bg-[#0a0a0a]'
-                  : 'bg-[#1a1a1a] text-[#404040] cursor-not-allowed'
+                  ? 'bg-card text-foreground hover:bg-[var(--background)]'
+                  : 'bg-card text-muted-foreground cursor-not-allowed'
               }`}
               aria-label="Previous month"
             >
@@ -281,7 +281,7 @@ export function MonthDetailModal({
               Previous
             </button>
 
-            <div className="text-sm text-[#808080]">
+            <div className="text-sm text-muted-foreground">
               Use arrow keys to navigate
             </div>
 
@@ -290,8 +290,8 @@ export function MonthDetailModal({
               disabled={!canGoForward}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                 canGoForward
-                  ? 'bg-[#1a1a1a] text-white hover:bg-[#0a0a0a]'
-                  : 'bg-[#1a1a1a] text-[#404040] cursor-not-allowed'
+                  ? 'bg-card text-foreground hover:bg-[var(--background)]'
+                  : 'bg-card text-muted-foreground cursor-not-allowed'
               }`}
               aria-label="Next month"
             >

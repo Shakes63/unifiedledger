@@ -118,33 +118,33 @@ export function PrincipalInterestChart({
           <defs>
             {/* Gradient for principal */}
             <linearGradient id="principalGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0.3} />
+              <stop offset="5%" stopColor="var(--chart-3)" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="var(--chart-3)" stopOpacity={0.3} />
             </linearGradient>
             {/* Gradient for interest */}
             <linearGradient id="interestGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#f87171" stopOpacity={0.8} />
-              <stop offset="95%" stopColor="#f87171" stopOpacity={0.3} />
+              <stop offset="5%" stopColor="var(--chart-4)" stopOpacity={0.8} />
+              <stop offset="95%" stopColor="var(--chart-4)" stopOpacity={0.3} />
             </linearGradient>
           </defs>
 
-          <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
 
           <XAxis
             dataKey="month"
-            stroke="#6b7280"
+            stroke="var(--muted-foreground)"
             style={{ fontSize: '11px' }}
             tickFormatter={tickFormatter}
             interval="preserveStartEnd"
           />
 
           <YAxis
-            stroke="#6b7280"
+            stroke="var(--muted-foreground)"
             style={{ fontSize: '12px' }}
             tickFormatter={(value) => `$${value.toLocaleString()}`}
           />
 
-          <Tooltip content={<ChartTooltip />} cursor={{ fill: '#242424', opacity: 0.3 }} />
+          <Tooltip content={<ChartTooltip />} cursor={{ fill: 'var(--elevated)', opacity: 0.3 }} />
 
           <Legend
             wrapperStyle={{ paddingTop: '20px' }}
@@ -174,7 +174,7 @@ export function PrincipalInterestChart({
             <Line
               type="monotone"
               dataKey="balance"
-              stroke="#60a5fa"
+              stroke="var(--chart-2)"
               name="Remaining Balance"
               strokeWidth={2}
               dot={false}
@@ -187,13 +187,13 @@ export function PrincipalInterestChart({
             <ReferenceLine
               key={index}
               x={milestone.month.toString()}
-              stroke={milestone.percent === 100 ? '#10b981' : '#fbbf24'}
+              stroke={milestone.percent === 100 ? 'var(--chart-3)' : 'var(--chart-1)'}
               strokeDasharray="3 3"
               strokeWidth={2}
               label={{
                 value: milestone.label,
                 position: 'top',
-                fill: milestone.percent === 100 ? '#10b981' : '#fbbf24',
+                fill: milestone.percent === 100 ? 'var(--chart-3)' : 'var(--chart-1)',
                 fontSize: 12,
                 fontWeight: 'bold',
               }}
@@ -203,30 +203,30 @@ export function PrincipalInterestChart({
       </ResponsiveContainer>
 
       {/* Chart Legend/Summary */}
-      <div className="grid grid-cols-3 gap-4 mt-6 p-4 bg-[#242424] rounded-lg">
+      <div className="grid grid-cols-3 gap-4 mt-6 p-4 bg-elevated rounded-lg">
         <div>
-          <div className="text-xs text-[#808080] uppercase mb-1">Total Principal</div>
-          <div className="text-lg font-semibold text-[#10b981] font-mono">
+          <div className="text-xs text-muted-foreground uppercase mb-1">Total Principal</div>
+          <div className="text-lg font-semibold text-[var(--chart-3)] font-mono">
             ${schedule.originalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
         <div>
-          <div className="text-xs text-[#808080] uppercase mb-1">Total Interest</div>
-          <div className="text-lg font-semibold text-[#f87171] font-mono">
+          <div className="text-xs text-muted-foreground uppercase mb-1">Total Interest</div>
+          <div className="text-lg font-semibold text-[var(--chart-4)] font-mono">
             ${schedule.totalInterestPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
         <div>
-          <div className="text-xs text-[#808080] uppercase mb-1">Total Paid</div>
-          <div className="text-lg font-semibold text-white font-mono">
+          <div className="text-xs text-muted-foreground uppercase mb-1">Total Paid</div>
+          <div className="text-lg font-semibold text-foreground font-mono">
             ${(schedule.originalBalance + schedule.totalInterestPaid).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
       </div>
 
       {/* Insight */}
-      <div className="mt-4 p-3 bg-[#60a5fa]/10 border border-[#60a5fa]/30 rounded-lg">
-        <div className="text-sm text-[#60a5fa]">
+      <div className="mt-4 p-3 bg-accent/10 border border-accent/30 rounded-lg">
+        <div className="text-sm text-accent">
           💡 <span className="font-semibold">Insight:</span>{' '}
           {schedule.monthlyBreakdown.length > 0 && (
             <>

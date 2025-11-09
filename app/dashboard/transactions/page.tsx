@@ -243,13 +243,13 @@ function TransactionsContent() {
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'income':
-        return <ArrowDownLeft className="w-4 h-4 text-emerald-400" />;
+        return <ArrowDownLeft className="w-4 h-4" style={{ color: 'var(--color-income)' }} />;
       case 'expense':
-        return <ArrowUpRight className="w-4 h-4 text-red-400" />;
+        return <ArrowUpRight className="w-4 h-4" style={{ color: 'var(--color-expense)' }} />;
       case 'transfer':
       case 'transfer_in':
       case 'transfer_out':
-        return <ArrowRightLeft className="w-4 h-4 text-blue-400" />;
+        return <ArrowRightLeft className="w-4 h-4" style={{ color: 'var(--color-transfer)' }} />;
       default:
         return null;
     }
@@ -258,15 +258,15 @@ function TransactionsContent() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'income':
-        return 'bg-emerald-500/20 text-emerald-400';
+        return { backgroundColor: 'color-mix(in oklch, var(--color-income) 20%, transparent)', color: 'var(--color-income)' };
       case 'expense':
-        return 'bg-red-500/20 text-red-400';
+        return { backgroundColor: 'color-mix(in oklch, var(--color-expense) 20%, transparent)', color: 'var(--color-expense)' };
       case 'transfer':
       case 'transfer_in':
       case 'transfer_out':
-        return 'bg-blue-500/20 text-blue-400';
+        return { backgroundColor: 'color-mix(in oklch, var(--color-transfer) 20%, transparent)', color: 'var(--color-transfer)' };
       default:
-        return 'bg-gray-500/20 text-gray-400';
+        return { backgroundColor: 'color-mix(in oklch, var(--color-muted-foreground) 20%, transparent)', color: 'var(--color-muted-foreground)' };
     }
   };
 
@@ -493,7 +493,7 @@ function TransactionsContent() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-elevated/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b backdrop-blur-sm sticky top-0 z-50" style={{ borderColor: 'var(--color-border)', backgroundColor: 'color-mix(in oklch, var(--color-elevated) 50%, transparent)' }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-4">
           <Link href="/dashboard">
             <Button variant="ghost" size="icon">
@@ -529,12 +529,13 @@ function TransactionsContent() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Toolbar */}
         <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-[#6b7280]">Search & Filter</h2>
+          <h2 className="text-sm font-medium text-muted-foreground">Search & Filter</h2>
           <div className="flex items-center gap-2">
             <Link href="/dashboard/transactions/new">
               <Button
                 size="sm"
-                className="bg-emerald-500 text-white hover:bg-emerald-600 font-medium"
+                className="text-background font-medium"
+                style={{ backgroundColor: 'var(--color-income)' }}
               >
                 <Plus className="w-4 h-4 mr-1" />
                 New Transaction
@@ -565,18 +566,18 @@ function TransactionsContent() {
 
         {/* Transactions List */}
         {loading ? (
-          <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] text-center py-12 rounded-xl">
-            <p className="text-gray-400">Loading transactions...</p>
+          <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+            <p className="text-muted-foreground">Loading transactions...</p>
           </Card>
         ) : transactions.length === 0 ? (
-          <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] text-center py-12 rounded-xl">
-            <p className="text-gray-400 mb-4">
+          <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+            <p className="text-muted-foreground mb-4">
               {transactions.length === 0
                 ? 'No transactions yet.'
                 : 'No transactions match your filters.'}
             </p>
             <Link href="/dashboard/transactions/new">
-              <Button className="bg-white text-black hover:bg-gray-100 font-medium">Add Transaction</Button>
+              <Button className="font-medium" style={{ backgroundColor: 'var(--color-income)', color: 'var(--color-background)' }}>Add Transaction</Button>
             </Link>
           </Card>
         ) : (
@@ -591,27 +592,31 @@ function TransactionsContent() {
               return (
                 <Card
                   key={transaction.id}
-                  className={`p-2 border ${hasMissingInfo ? 'border-amber-500/50' : 'border-[#2a2a2a]'} bg-[#1a1a1a] hover:bg-[#242424] transition-colors rounded-lg`}
+                  className="p-2 border transition-colors rounded-lg"
+                  style={{
+                    borderColor: hasMissingInfo ? 'color-mix(in oklch, var(--color-warning) 50%, transparent)' : 'var(--color-border)',
+                    backgroundColor: 'var(--color-card)'
+                  }}
                 >
                   <Link href={`/dashboard/transactions/${transaction.id}`} className="block">
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center justify-between gap-2" style={{ ':hover': { backgroundColor: 'var(--color-elevated)' } }}>
                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="p-1.5 bg-[#242424] rounded flex-shrink-0">
+                        <div className="p-1.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-elevated)' }}>
                           {getTransactionIcon(transaction.type)}
                         </div>
                         <div className="flex-1 min-w-0">
                           {/* Merchant name on top (bold) */}
                           {display.merchant && (
-                            <p className="font-semibold text-white text-sm truncate">
+                            <p className="font-semibold text-foreground text-sm truncate">
                               {display.merchant}
                             </p>
                           )}
                           {/* Description below merchant (or standalone if no merchant) */}
-                          <p className={`text-xs truncate ${display.merchant ? 'text-gray-400' : 'font-medium text-white text-sm'}`}>
+                          <p className={`text-xs truncate ${display.merchant ? 'text-muted-foreground' : 'font-medium text-foreground text-sm'}`}>
                             {display.description}
                           </p>
                           {/* Date, category, and split indicator */}
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             {new Date(transaction.date).toLocaleDateString('en-US', {
                               month: 'short',
                               day: 'numeric',
@@ -625,13 +630,14 @@ function TransactionsContent() {
                         <div className="text-right">
                           {/* Amount */}
                           <p
-                            className={`font-semibold text-sm ${
-                              transaction.type === 'income'
-                                ? 'text-emerald-400'
-                                : transaction.type === 'transfer'
-                                ? 'text-blue-400'
-                                : 'text-white'
-                            }`}
+                            className="font-semibold text-sm"
+                            style={{
+                              color: transaction.type === 'income'
+                                ? 'var(--color-income)'
+                                : transaction.type === 'transfer' || transaction.type === 'transfer_in' || transaction.type === 'transfer_out'
+                                ? 'var(--color-transfer)'
+                                : 'var(--color-foreground)'
+                            }}
                           >
                             {transaction.type === 'transfer' && accountIdFromUrl
                               ? transaction.accountId === accountIdFromUrl
@@ -645,7 +651,7 @@ function TransactionsContent() {
                             {transaction.amount.toFixed(2)}
                           </p>
                           {/* Account name below amount */}
-                          <p className="text-xs text-gray-500 truncate max-w-[100px]">
+                          <p className="text-xs text-muted-foreground truncate max-w-[100px]">
                             {accountName}
                           </p>
                         </div>
@@ -657,7 +663,8 @@ function TransactionsContent() {
                             handleRepeatTransaction(transaction);
                           }}
                           disabled={repeatingTxId === transaction.id}
-                          className="h-7 w-7 text-gray-400 hover:text-white hover:bg-[#242424] flex-shrink-0"
+                          className="h-7 w-7 flex-shrink-0"
+                          style={{ color: 'var(--color-muted-foreground)' }}
                           title="Repeat this transaction with today's date"
                         >
                           <Copy className="w-3 h-3" />
@@ -668,8 +675,8 @@ function TransactionsContent() {
 
                   {/* Missing Info Section - Inline */}
                   {hasMissingInfo && (
-                    <div className="mt-3 pt-3 border-t border-amber-500/30" onClick={(e) => e.stopPropagation()}>
-                      <p className="text-xs text-amber-400 mb-2">
+                    <div className="mt-3 pt-3 border-t" style={{ borderColor: 'color-mix(in oklch, var(--color-warning) 30%, transparent)' }} onClick={(e) => e.stopPropagation()}>
+                      <p className="text-xs mb-2" style={{ color: 'var(--color-warning)' }}>
                         {updatingTxId === transaction.id ? 'Updating...' : 'Missing information:'}
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -682,7 +689,8 @@ function TransactionsContent() {
                                   value={newCategoryName}
                                   onChange={(e) => setNewCategoryName(e.target.value)}
                                   placeholder="New category name..."
-                                  className="h-8 text-xs bg-[#242424] border-[#2a2a2a]"
+                                  className="h-8 text-xs"
+                                  style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                       handleCreateCategory(transaction.id);
@@ -699,7 +707,8 @@ function TransactionsContent() {
                                   size="sm"
                                   onClick={() => handleCreateCategory(transaction.id)}
                                   disabled={updatingTxId === transaction.id || !newCategoryName.trim()}
-                                  className="h-8 px-2 bg-emerald-500 hover:bg-emerald-600 text-white"
+                                  className="h-8 px-2 text-background"
+                                  style={{ backgroundColor: 'var(--color-income)' }}
                                 >
                                   Add
                                 </Button>
@@ -729,11 +738,11 @@ function TransactionsContent() {
                                 }}
                                 disabled={updatingTxId === transaction.id}
                               >
-                                <SelectTrigger className="h-8 text-xs bg-[#242424] border-[#2a2a2a] hover:bg-[#2a2a2a] disabled:opacity-50">
+                                <SelectTrigger className="h-8 text-xs disabled:opacity-50" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
                                   <SelectValue placeholder="Select category..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="__create_new__" className="text-emerald-400 font-medium">
+                                  <SelectItem value="__create_new__" className="font-medium" style={{ color: 'var(--color-income)' }}>
                                     + Create new category...
                                   </SelectItem>
                                   {getFilteredCategories(transaction.type).map((category) => (
@@ -756,7 +765,8 @@ function TransactionsContent() {
                                   value={newMerchantName}
                                   onChange={(e) => setNewMerchantName(e.target.value)}
                                   placeholder="New merchant name..."
-                                  className="h-8 text-xs bg-[#242424] border-[#2a2a2a]"
+                                  className="h-8 text-xs"
+                                  style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                       handleCreateMerchant(transaction.id);
@@ -773,7 +783,8 @@ function TransactionsContent() {
                                   size="sm"
                                   onClick={() => handleCreateMerchant(transaction.id)}
                                   disabled={updatingTxId === transaction.id || !newMerchantName.trim()}
-                                  className="h-8 px-2 bg-emerald-500 hover:bg-emerald-600 text-white"
+                                  className="h-8 px-2 text-background"
+                                  style={{ backgroundColor: 'var(--color-income)' }}
                                 >
                                   Add
                                 </Button>
@@ -803,11 +814,11 @@ function TransactionsContent() {
                                 }}
                                 disabled={updatingTxId === transaction.id}
                               >
-                                <SelectTrigger className="h-8 text-xs bg-[#242424] border-[#2a2a2a] hover:bg-[#2a2a2a] disabled:opacity-50">
+                                <SelectTrigger className="h-8 text-xs disabled:opacity-50" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
                                   <SelectValue placeholder="Select merchant..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="__create_new__" className="text-emerald-400 font-medium">
+                                  <SelectItem value="__create_new__" className="font-medium" style={{ color: 'var(--color-income)' }}>
                                     + Create new merchant...
                                   </SelectItem>
                                   {getFilteredMerchants(transaction.type).map((merchant) => (
@@ -832,21 +843,23 @@ function TransactionsContent() {
         {/* Pagination Controls */}
         {currentFilters && transactions.length > 0 && (
           <div className="mt-8 flex items-center justify-between">
-            <div className="text-sm text-[#9ca3af]">
+            <div className="text-sm text-muted-foreground">
               Showing {paginationOffset + 1}-{Math.min(paginationOffset + pageSize, totalResults)} of {totalResults}
             </div>
             <div className="flex gap-2">
               <Button
                 onClick={handlePreviousPage}
                 disabled={paginationOffset === 0 || searchLoading}
-                className="bg-[#242424] hover:bg-[#2a2a2a] text-white disabled:opacity-50"
+                className="text-foreground disabled:opacity-50"
+                style={{ backgroundColor: 'var(--color-elevated)' }}
               >
                 Previous
               </Button>
               <Button
                 onClick={handleNextPage}
                 disabled={!hasMore || searchLoading}
-                className="bg-[#242424] hover:bg-[#2a2a2a] text-white disabled:opacity-50"
+                className="text-foreground disabled:opacity-50"
+                style={{ backgroundColor: 'var(--color-elevated)' }}
               >
                 Next
               </Button>
@@ -883,7 +896,7 @@ export default function TransactionsPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-gray-400">Loading transactions...</p>
+        <p className="text-muted-foreground">Loading transactions...</p>
       </div>
     }>
       <TransactionsContent />
