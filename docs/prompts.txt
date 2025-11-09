@@ -1,0 +1,5 @@
+check the debtsystemplan.md in the docs folder and start on the next task.
+
+update the features.md and claude.md file and commit and push the changes.
+budgetsystemplan.md
+debtsystemplan.md
