@@ -7,6 +7,7 @@ import Decimal from 'decimal.js';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import { TransactionData } from '@/lib/rules/condition-evaluator';
 import { findMatchingBills } from '@/lib/bills/bill-matcher';
+import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
 
 export const dynamic = 'force-dynamic';
 
@@ -541,26 +542,40 @@ export async function POST(request: Request) {
               try {
                 const paymentAmount = parseFloat(amount);
 
-                // Create debt payment record
-                await db.insert(debtPayments).values({
-                  id: nanoid(),
-                  debtId: match.bill.debtId,
-                  userId,
-                  amount: paymentAmount,
-                  paymentDate: date,
-                  transactionId,
-                  notes: `Automatic payment from bill: ${match.bill.name}`,
-                  createdAt: new Date().toISOString(),
-                });
-
-                // Get current debt to calculate new balance
+                // Get current debt to calculate interest/principal split
                 const [currentDebt] = await db
                   .select()
                   .from(debts)
                   .where(eq(debts.id, match.bill.debtId));
 
                 if (currentDebt) {
-                  const newBalance = Math.max(0, currentDebt.remainingBalance - paymentAmount);
+                  // Calculate payment breakdown
+                  const breakdown = calculatePaymentBreakdown(
+                    paymentAmount,
+                    currentDebt.remainingBalance,
+                    currentDebt.interestRate || 0,
+                    currentDebt.interestType || 'none',
+                    currentDebt.loanType || 'revolving',
+                    currentDebt.compoundingFrequency || 'monthly',
+                    currentDebt.billingCycleDays || 30
+                  );
+
+                  // Create debt payment record with principal/interest breakdown
+                  await db.insert(debtPayments).values({
+                    id: nanoid(),
+                    debtId: match.bill.debtId,
+                    userId,
+                    amount: paymentAmount,
+                    principalAmount: breakdown.principalAmount,
+                    interestAmount: breakdown.interestAmount,
+                    paymentDate: date,
+                    transactionId,
+                    notes: `Automatic payment from bill: ${match.bill.name}`,
+                    createdAt: new Date().toISOString(),
+                  });
+
+                  // Update balance with ONLY the principal amount
+                  const newBalance = Math.max(0, currentDebt.remainingBalance - breakdown.principalAmount);
 
                   // Update debt remaining balance
                   await db
@@ -636,20 +651,33 @@ export async function POST(request: Request) {
             })
             .where(eq(transactions.id, transactionId));
 
-          // Create debt payment record
+          // Calculate payment breakdown
+          const breakdown = calculatePaymentBreakdown(
+            paymentAmount,
+            debt.remainingBalance,
+            debt.interestRate || 0,
+            debt.interestType || 'none',
+            debt.loanType || 'revolving',
+            debt.compoundingFrequency || 'monthly',
+            debt.billingCycleDays || 30
+          );
+
+          // Create debt payment record with principal/interest breakdown
           await db.insert(debtPayments).values({
             id: nanoid(),
             debtId: linkedDebtId,
             userId,
             amount: paymentAmount,
+            principalAmount: breakdown.principalAmount,
+            interestAmount: breakdown.interestAmount,
             paymentDate: date,
             transactionId,
             notes: `Automatic payment via category: ${debt.name}`,
             createdAt: new Date().toISOString(),
           });
 
-          // Get current debt to calculate new balance
-          const newBalance = Math.max(0, debt.remainingBalance - paymentAmount);
+          // Update balance with ONLY the principal amount
+          const newBalance = Math.max(0, debt.remainingBalance - breakdown.principalAmount);
 
           // Update debt remaining balance
           await db
@@ -690,26 +718,40 @@ export async function POST(request: Request) {
       try {
         const paymentAmount = parseFloat(amount);
 
-        // Create debt payment record
-        await db.insert(debtPayments).values({
-          id: nanoid(),
-          debtId: debtId,
-          userId,
-          amount: paymentAmount,
-          paymentDate: date,
-          transactionId,
-          notes: `Direct payment: ${description}`,
-          createdAt: new Date().toISOString(),
-        });
-
-        // Get current debt to calculate new balance
+        // Get current debt to calculate interest/principal split
         const [currentDebt] = await db
           .select()
           .from(debts)
           .where(eq(debts.id, debtId));
 
         if (currentDebt) {
-          const newBalance = Math.max(0, currentDebt.remainingBalance - paymentAmount);
+          // Calculate payment breakdown
+          const breakdown = calculatePaymentBreakdown(
+            paymentAmount,
+            currentDebt.remainingBalance,
+            currentDebt.interestRate || 0,
+            currentDebt.interestType || 'none',
+            currentDebt.loanType || 'revolving',
+            currentDebt.compoundingFrequency || 'monthly',
+            currentDebt.billingCycleDays || 30
+          );
+
+          // Create debt payment record with principal/interest breakdown
+          await db.insert(debtPayments).values({
+            id: nanoid(),
+            debtId: debtId,
+            userId,
+            amount: paymentAmount,
+            principalAmount: breakdown.principalAmount,
+            interestAmount: breakdown.interestAmount,
+            paymentDate: date,
+            transactionId,
+            notes: `Direct payment: ${description}`,
+            createdAt: new Date().toISOString(),
+          });
+
+          // Update balance with ONLY the principal amount
+          const newBalance = Math.max(0, currentDebt.remainingBalance - breakdown.principalAmount);
 
           // Update debt remaining balance
           await db

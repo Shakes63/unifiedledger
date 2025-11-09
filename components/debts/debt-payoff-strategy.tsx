@@ -14,10 +14,47 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
   const [extraPayment, setExtraPayment] = useState<string>('0');
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
+  // Load saved settings on mount
   useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/debts/settings');
+        if (response.ok) {
+          const settings = await response.json();
+          setExtraPayment(settings.extraMonthlyPayment?.toString() || '0');
+          setMethod(settings.preferredMethod || 'avalanche');
+          setSettingsLoaded(true);
+        }
+      } catch (error) {
+        console.error('Error loading debt settings:', error);
+        setSettingsLoaded(true);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  // Fetch strategy whenever settings change (debounced for extra payment)
+  useEffect(() => {
+    if (!settingsLoaded) return; // Don't fetch until settings are loaded
+
+    // Debounce the fetch to avoid refreshing on every keystroke
+    const timer = setTimeout(() => {
+      fetchStrategy();
+      saveSettings();
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [extraPayment, settingsLoaded]);
+
+  // Fetch strategy and save settings when method changes (no debounce needed)
+  useEffect(() => {
+    if (!settingsLoaded) return;
     fetchStrategy();
-  }, [extraPayment]);
+    saveSettings();
+  }, [method]);
 
   const fetchStrategy = async () => {
     try {
@@ -33,6 +70,21 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
       console.error('Error fetching payoff strategy:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveSettings = async () => {
+    try {
+      await fetch('/api/debts/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          extraMonthlyPayment: parseFloat(extraPayment) || 0,
+          preferredMethod: method,
+        }),
+      });
+    } catch (error) {
+      console.error('Error saving debt settings:', error);
     }
   };
 

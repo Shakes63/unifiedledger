@@ -232,3 +232,190 @@ Build a comprehensive debt payoff calculator that compares **Snowball** (smalles
 - Make informed decisions about extra payments
 - See complete payoff timeline at a glance
 - Visual comparison to choose best strategy
+
+---
+
+## Advanced Interest Calculation System
+
+**Date Implemented:** January 2025
+
+### Overview
+Implemented professional-grade interest calculations that accurately handle all major debt types, matching real-world financial institution calculations.
+
+### New Database Fields (Migration 0016)
+
+**Loan Structure:**
+- `loanType`: 'revolving' | 'installment'
+  - Revolving: Credit cards, lines of credit (variable balance)
+  - Installment: Mortgages, car loans, personal loans (fixed payments)
+- `loanTermMonths`: Total loan term (e.g., 60 for 5-year, 360 for 30-year)
+- `originationDate`: When the loan started
+
+**Interest Calculation:**
+- `compoundingFrequency`: 'daily' | 'monthly' | 'quarterly' | 'annually'
+- `billingCycleDays`: Days in billing cycle (28-31 for credit cards, default 30)
+
+**Credit Card Specific:**
+- `lastStatementDate`: Date of last billing cycle
+- `lastStatementBalance`: Balance on last statement
+
+### Interest Calculation Formulas
+
+#### Revolving Credit (Credit Cards, Lines of Credit)
+
+**Daily Compounding (Most Credit Cards):**
+```
+Daily Rate = APR ÷ 365
+Monthly Interest = Balance × Daily Rate × Billing Cycle Days
+```
+Example: $5,000 @ 18.99% APR, 30-day cycle
+- Monthly Interest = $5,000 × (18.99% ÷ 365) × 30 = $77.96
+
+**Monthly Compounding:**
+```
+Monthly Interest = Balance × (APR ÷ 12)
+```
+
+**Quarterly/Annual:** Converted to monthly equivalents
+
+#### Installment Loans (Mortgages, Car Loans, Personal Loans)
+
+**Standard Amortization:**
+```
+Monthly Interest = Balance × (APR ÷ 12)
+Principal = Payment - Monthly Interest
+```
+
+This creates the classic amortization schedule where:
+- Early payments: Mostly interest
+- Late payments: Mostly principal
+
+Example: $20,000 car loan @ 6% APR, $400 payment
+- Month 1: Interest = $100, Principal = $300
+- Month 60: Interest = $1.92, Principal = $398.08
+
+### Payment Breakdown Storage
+
+**Enhanced Debt Payments Table (Migration 0014):**
+- `principalAmount`: Amount applied to reduce debt balance
+- `interestAmount`: Amount paid as interest
+- `amount`: Total payment (principal + interest)
+
+**Key Feature:** Only `principalAmount` reduces the `remainingBalance`, accurately simulating real debt payoff.
+
+### Updated Components
+
+**1. Payment Calculator (`lib/debts/payment-calculator.ts`)**
+- `calculatePaymentBreakdown()` - Main calculation function
+- `calculateRevolvingInterest()` - Handles daily/monthly/quarterly/annual compounding
+- `calculateInstallmentInterest()` - Handles standard amortization
+- Uses `Decimal.js` for precision (no floating-point errors)
+
+**2. Debt Form (`components/debts/debt-form.tsx`)**
+- Conditional field display based on `loanType`
+- **Installment Loan Section:**
+  - Loan term input (with helpful conversions)
+  - Origination date picker
+- **Revolving Credit Section:**
+  - Compounding frequency selector
+  - Billing cycle days input
+  - Last statement tracking
+- Smart defaults and validation
+
+**3. Debt Settings Persistence (Migration 0015)**
+- New `debt_settings` table stores:
+  - `extraMonthlyPayment`: User's preferred extra payment
+  - `preferredMethod`: 'snowball' | 'avalanche'
+- Settings auto-load on page mount
+- Auto-save with 500ms debounce
+- API endpoints: GET/PUT `/api/debts/settings`
+
+**4. Payoff Strategy Calculator Updates**
+- Properly rolls over minimum payments when debts are paid off
+- Fixed critical bug where paid-off debt's minimum wasn't added to available payment pool
+- Now correctly implements snowball/avalanche cascading payment effect
+
+### Real-World Examples
+
+**Credit Card (Daily Compounding):**
+```
+Balance: $5,000
+APR: 18.99%
+Billing Cycle: 30 days
+Payment: $200
+
+Interest = $5,000 × (0.1899 ÷ 365) × 30 = $77.96
+Principal = $200 - $77.96 = $122.04
+New Balance = $5,000 - $122.04 = $4,877.96
+```
+
+**Car Loan (5-year, 6% APR):**
+```
+Original: $20,000
+Monthly Payment: $386.66 (fixed)
+Month 1: Interest $100, Principal $286.66
+Month 30: Interest $50, Principal $336.66
+Month 60: Interest $1.92, Principal $384.74
+```
+
+**Mortgage (30-year, 4.5% APR):**
+```
+Original: $300,000
+Monthly Payment: $1,520 (fixed)
+Month 1: Interest $1,125, Principal $395
+Month 180: Interest $710, Principal $810
+Month 360: Interest $5.66, Principal $1,514.34
+```
+
+### Integration Points
+
+All three debt payment locations updated:
+1. **Bill-linked debt payments** - Automatic via category matching
+2. **Category-based debt payments** - Automatic for debts with their own category
+3. **Direct debt payments** - Manual selection in transaction form
+
+Each location:
+- Retrieves debt details including new loan fields
+- Calculates proper interest/principal split
+- Stores breakdown in `debt_payments` table
+- Updates `remainingBalance` with ONLY principal amount
+
+### Technical Implementation
+
+**Files Modified:**
+- `drizzle/0014_add_principal_interest_to_debt_payments.sql` - Payment tracking
+- `drizzle/0015_add_debt_settings.sql` - Settings persistence
+- `drizzle/0016_add_debt_loan_fields.sql` - Comprehensive loan tracking
+- `lib/db/schema.ts` - Schema definitions
+- `lib/debts/payment-calculator.ts` - Interest calculation logic
+- `lib/debts/payoff-calculator.ts` - Payoff strategy with proper rollover
+- `app/api/debts/settings/route.ts` - Settings API
+- `app/api/debts/payoff-strategy/route.ts` - Strategy API
+- `app/api/transactions/route.ts` - All 3 payment locations
+- `components/debts/debt-form.tsx` - Enhanced form with conditional fields
+- `components/debts/debt-payoff-strategy.tsx` - Persistent settings
+
+### Accuracy Improvements
+
+**Before:** Simple monthly interest approximation
+```
+Interest ≈ Balance × APR ÷ 12
+```
+- ❌ Incorrect for credit cards (should be daily)
+- ❌ Incorrect for installment loans (doesn't amortize)
+- ❌ No distinction between debt types
+
+**After:** Professional-grade calculations
+- ✅ **Credit cards:** Daily compounding matches statements
+- ✅ **Car loans:** Proper amortization like bank calculates
+- ✅ **Mortgages:** Accurate interest/principal split
+- ✅ **Personal loans:** Correct fixed-payment calculations
+- ✅ **Lines of credit:** Flexible compounding options
+
+### User Experience Enhancements
+
+1. **Smart Form:** Only shows relevant fields based on debt type
+2. **Persistent Settings:** Extra payment amount and method preference saved
+3. **Accurate Projections:** Payoff timelines match real-world scenarios
+4. **Proper Rollover:** Minimum payments cascade correctly when debts are paid
+5. **Professional Accuracy:** Interest calculations match financial institutions

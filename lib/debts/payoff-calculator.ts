@@ -9,6 +9,9 @@ export interface DebtInput {
   minimumPayment: number;
   interestRate: number;
   type: string;
+  loanType?: 'revolving' | 'installment';
+  compoundingFrequency?: 'daily' | 'monthly' | 'quarterly' | 'annually';
+  billingCycleDays?: number;
   color?: string;
   icon?: string;
 }
@@ -71,12 +74,42 @@ export interface ComparisonResult {
 }
 
 /**
- * Calculate monthly interest amount for a debt
+ * Calculate monthly interest amount for a debt using appropriate method
  */
-function calculateMonthlyInterest(balance: Decimal, annualRate: number): Decimal {
+function calculateMonthlyInterest(
+  balance: Decimal,
+  annualRate: number,
+  loanType: 'revolving' | 'installment' = 'revolving',
+  compoundingFrequency: 'daily' | 'monthly' | 'quarterly' | 'annually' = 'monthly',
+  billingCycleDays: number = 30
+): Decimal {
   if (annualRate === 0) return new Decimal(0);
-  const monthlyRate = new Decimal(annualRate).dividedBy(100).dividedBy(12);
-  return balance.times(monthlyRate);
+
+  const rate = new Decimal(annualRate).dividedBy(100);
+
+  if (loanType === 'installment') {
+    // Installment loans always use simple monthly interest
+    const monthlyRate = rate.dividedBy(12);
+    return balance.times(monthlyRate);
+  }
+
+  // Revolving credit: use appropriate compounding frequency
+  switch (compoundingFrequency) {
+    case 'daily':
+      const dailyRate = rate.dividedBy(365);
+      return balance.times(dailyRate).times(billingCycleDays);
+
+    case 'quarterly':
+      const quarterlyRate = rate.dividedBy(4);
+      return balance.times(quarterlyRate).dividedBy(3);
+
+    case 'annually':
+      return balance.times(rate).dividedBy(12);
+
+    case 'monthly':
+    default:
+      return balance.times(rate).dividedBy(12);
+  }
 }
 
 /**
@@ -107,7 +140,13 @@ function calculateDebtSchedule(
   let monthsToPayoff = 0;
 
   while (balance.greaterThan(0) && monthsToPayoff < 1000) { // 1000 month safety limit
-    const interestAmount = calculateMonthlyInterest(balance, debt.interestRate);
+    const interestAmount = calculateMonthlyInterest(
+      balance,
+      debt.interestRate,
+      debt.loanType || 'revolving',
+      debt.compoundingFrequency || 'monthly',
+      debt.billingCycleDays || 30
+    );
     let payment = new Decimal(paymentAmount);
 
     // If payment would overpay, adjust to exact remaining balance + interest
@@ -226,9 +265,14 @@ export function calculatePayoffStrategy(
     schedules.push(schedule);
     currentMonth += schedule.monthsToPayoff;
 
-    // Remove paid-off debt and add its payment to available pool
-    availablePayment = availablePayment; // Keep same total available
+    // Remove paid-off debt from the list
+    const paidOffDebt = remainingDebts[0];
     remainingDebts = remainingDebts.slice(1);
+
+    // Add the paid-off debt's minimum payment to the available pool
+    // This is the core of snowball/avalanche - when one debt is paid off,
+    // its minimum payment rolls over to help pay the next debt faster
+    availablePayment = availablePayment + paidOffDebt.minimumPayment;
   }
 
   // Calculate totals

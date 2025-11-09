@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload, Plus } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -51,7 +51,7 @@ interface Merchant {
   categoryId?: string;
 }
 
-export default function TransactionsPage() {
+function TransactionsContent() {
   const searchParams = useSearchParams();
   const accountIdFromUrl = searchParams.get('accountId');
 
@@ -876,5 +876,17 @@ export default function TransactionsPage() {
         accounts={accounts}
       />
     </div>
+  );
+}
+
+export default function TransactionsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-gray-400">Loading transactions...</p>
+      </div>
+    }>
+      <TransactionsContent />
+    </Suspense>
   );
 }

@@ -285,7 +285,109 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates (Current Session)
 
-### Latest Session - Debt Payoff Strategy Implementation & Build Fixes ✅
+### Latest Session - Professional-Grade Debt Interest Calculations & Persistent Settings ✅
+
+1. **Implemented Comprehensive Interest Calculation System**
+   - Added database migrations for loan tracking fields (0014, 0015, 0016)
+   - Added `loanType` field: 'revolving' (credit cards) vs 'installment' (mortgages, car loans)
+   - Added `loanTermMonths`: Total loan term (60 for 5-year, 360 for 30-year)
+   - Added `originationDate`: When the loan started
+   - Added `compoundingFrequency`: daily, monthly, quarterly, annually
+   - Added `billingCycleDays`: Days in billing cycle (credit cards vary 28-31)
+   - Added `lastStatementDate` and `lastStatementBalance` for credit card tracking
+   - Files: `drizzle/0014_*.sql`, `drizzle/0015_*.sql`, `drizzle/0016_*.sql`, `lib/db/schema.ts`
+
+2. **Enhanced Payment Calculator with Accurate Interest Formulas**
+   - **Revolving Credit (Credit Cards):**
+     - Daily compounding: `(balance × APR ÷ 365) × billing_cycle_days`
+     - Monthly compounding: `balance × APR ÷ 12`
+     - Quarterly/Annual compounding supported
+   - **Installment Loans (Mortgages, Car Loans):**
+     - Standard amortization: `balance × monthly_rate`
+     - Proper interest/principal split matching real amortization schedules
+   - All calculations use Decimal.js for precision
+   - Files: `lib/debts/payment-calculator.ts`
+
+3. **Updated All Three Debt Payment Locations**
+   - Bill-linked debt payments (automatic via category)
+   - Category-based debt payments (automatic for debts with their own category)
+   - Direct debt payments (manual selection in transaction form)
+   - Each now calculates proper interest/principal breakdown
+   - Stores `principalAmount` and `interestAmount` separately in `debt_payments` table
+   - Only `principalAmount` reduces the `remainingBalance`
+   - Files: `app/api/transactions/route.ts`
+
+4. **Fixed Critical Payoff Calculator Bug**
+   - Paid-off debt's minimum payment now properly rolls over to next debt
+   - Fixed line where `availablePayment` wasn't actually increasing
+   - Now correctly implements snowball/avalanche cascading payment effect
+   - Example: Pay off $50 minimum → Next debt gets $50 more toward it
+   - Files: `lib/debts/payoff-calculator.ts`
+
+5. **Implemented Persistent Debt Settings**
+   - Created `debt_settings` table to store user preferences
+   - Saves `extraMonthlyPayment` amount (no more reset to $0 on refresh)
+   - Saves `preferredMethod` (snowball or avalanche)
+   - API endpoints: GET/PUT `/api/debts/settings`
+   - Auto-loads settings on component mount
+   - Auto-saves with 500ms debounce when values change
+   - Files: `drizzle/0015_*.sql`, `app/api/debts/settings/route.ts`, `components/debts/debt-payoff-strategy.tsx`
+
+6. **Enhanced Debt Form with Conditional Fields**
+   - Added loan type selector (revolving vs installment)
+   - **For Installment Loans** (shows when type = installment):
+     - Loan term input (months) with helpful hints
+     - Origination date picker
+   - **For Revolving Credit** (shows when type = revolving):
+     - Compounding frequency selector
+     - Billing cycle days input
+     - Last statement date/balance tracking
+   - Smart defaults and validation throughout
+   - Conditional display keeps form clean and relevant
+   - Files: `components/debts/debt-form.tsx`
+
+7. **Updated Payoff Strategy Calculator**
+   - Now uses proper interest calculations based on loan type
+   - Passes `loanType`, `compoundingFrequency`, `billingCycleDays` to calculator
+   - Projections now match real-world amortization schedules
+   - Files: `lib/debts/payoff-calculator.ts`, `app/api/debts/payoff-strategy/route.ts`
+
+8. **Fixed Build Errors & Wrapped useSearchParams in Suspense**
+   - Added debounce to extra payment input (500ms)
+   - Wrapped transactions page in Suspense boundary for Next.js 15+
+   - Created `TransactionsContent` component and wrapped in `<Suspense>`
+   - All builds now successful
+   - Files: `app/dashboard/transactions/page.tsx`, `components/debts/debt-payoff-strategy.tsx`
+
+9. **Documentation Updates**
+   - Updated `docs/debtsystemplan.md` with comprehensive interest calculation details
+   - Added formulas and real-world examples for all debt types
+   - Documented all new fields and their purposes
+   - Added accuracy comparisons (before vs after)
+   - Files: `docs/debtsystemplan.md`
+
+### Database Migrations Applied This Session:
+- `0014_add_principal_interest_to_debt_payments.sql` - Track principal vs interest
+- `0015_add_debt_settings.sql` - Persist user preferences
+- `0016_add_debt_loan_fields.sql` - Comprehensive loan tracking
+
+### Real-World Accuracy Examples:
+
+**Credit Card (18.99% APR, Daily Compounding):**
+- Old calculation: $5,000 × 18.99% ÷ 12 = $79.13/month
+- New calculation: $5,000 × (18.99% ÷ 365) × 30 days = $77.96/month ✓
+
+**Car Loan ($20,000, 6% APR, 5 years):**
+- Old: Interest always $100/month ✗
+- New: Month 1 = $100, Month 60 = $1.92 (proper amortization) ✓
+
+**Mortgage ($300,000, 4.5% APR, 30 years):**
+- Old: Interest always $1,125/month ✗
+- New: Month 1 = $1,125, Month 360 = $5.66 (proper amortization) ✓
+
+---
+
+### Previous Session - Debt Payoff Strategy Implementation & Build Fixes ✅
 
 1. **Implemented Complete Debt Payoff Strategy System**
    - Created payoff calculator utility with Snowball & Avalanche algorithms

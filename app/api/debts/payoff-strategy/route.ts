@@ -53,6 +53,9 @@ export async function GET(request: NextRequest) {
       minimumPayment: debt.minimumPayment || 0,
       interestRate: debt.interestRate || 0,
       type: debt.type || 'other',
+      loanType: debt.loanType || 'revolving',
+      compoundingFrequency: debt.compoundingFrequency || 'monthly',
+      billingCycleDays: debt.billingCycleDays || 30,
       color: debt.color || undefined,
       icon: debt.icon || undefined,
     }));

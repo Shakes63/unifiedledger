@@ -41,6 +41,18 @@ const INTEREST_TYPES = [
   { value: 'variable', label: 'Variable Rate' },
 ];
 
+const LOAN_TYPES = [
+  { value: 'revolving', label: 'Revolving Credit (Credit Card, Line of Credit)' },
+  { value: 'installment', label: 'Installment Loan (Car, Mortgage, Personal)' },
+];
+
+const COMPOUNDING_FREQUENCIES = [
+  { value: 'daily', label: 'Daily (Most Credit Cards)' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'annually', label: 'Annually' },
+];
+
 interface DebtFormProps {
   debt?: any;
   onSubmit: (data: any) => void;
@@ -63,6 +75,14 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
     startDate: debt?.startDate || '',
     targetPayoffDate: debt?.targetPayoffDate || '',
     priority: debt?.priority || 0,
+    // New loan tracking fields
+    loanType: debt?.loanType || 'revolving',
+    loanTermMonths: debt?.loanTermMonths || '',
+    originationDate: debt?.originationDate || '',
+    compoundingFrequency: debt?.compoundingFrequency || 'monthly',
+    billingCycleDays: debt?.billingCycleDays || 30,
+    lastStatementDate: debt?.lastStatementDate || '',
+    lastStatementBalance: debt?.lastStatementBalance || '',
     notes: debt?.notes || '',
   });
 
@@ -122,6 +142,14 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       remainingBalance: parseFloat(formData.remainingBalance),
       minimumPayment: formData.minimumPayment ? parseFloat(formData.minimumPayment) : undefined,
       interestRate: parseFloat(String(formData.interestRate)),
+      // Loan structure fields
+      loanTermMonths: formData.loanTermMonths ? parseInt(String(formData.loanTermMonths)) : undefined,
+      originationDate: formData.originationDate || undefined,
+      // Interest calculation fields
+      billingCycleDays: formData.billingCycleDays ? parseInt(String(formData.billingCycleDays)) : 30,
+      // Credit card fields
+      lastStatementDate: formData.lastStatementDate || undefined,
+      lastStatementBalance: formData.lastStatementBalance ? parseFloat(String(formData.lastStatementBalance)) : undefined,
     });
   };
 
@@ -264,6 +292,134 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
           </Select>
         </div>
       </div>
+
+      {/* Loan Type */}
+      <div>
+        <Label className="text-gray-400 text-sm mb-1">Loan Type</Label>
+        <Select value={formData.loanType} onValueChange={(v) => handleSelectChange('loanType', v)}>
+          <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+            {LOAN_TYPES.map((t) => (
+              <SelectItem key={t.value} value={t.value} className="text-white">
+                {t.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-gray-500 mt-1">
+          {formData.loanType === 'revolving'
+            ? 'Revolving credit has variable balances (credit cards, lines of credit)'
+            : 'Installment loans have fixed payment schedules (mortgages, car loans, personal loans)'}
+        </p>
+      </div>
+
+      {/* Installment Loan Fields */}
+      {formData.loanType === 'installment' && (
+        <div className="grid grid-cols-2 gap-4 p-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
+          <div className="col-span-2">
+            <p className="text-sm text-blue-400 mb-3">Installment Loan Details</p>
+          </div>
+          <div>
+            <Label className="text-gray-400 text-sm mb-1">Loan Term (months)</Label>
+            <Input
+              name="loanTermMonths"
+              type="number"
+              value={formData.loanTermMonths}
+              onChange={handleChange}
+              placeholder="60 for 5-year loan, 360 for 30-year"
+              min="1"
+              className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Total loan term: 60 months = 5 years, 360 months = 30 years
+            </p>
+          </div>
+          <div>
+            <Label className="text-gray-400 text-sm mb-1">Origination Date</Label>
+            <Input
+              name="originationDate"
+              type="date"
+              value={formData.originationDate}
+              onChange={handleChange}
+              className="bg-[#242424] border-[#2a2a2a] text-white"
+            />
+            <p className="text-xs text-gray-500 mt-1">When did the loan start?</p>
+          </div>
+        </div>
+      )}
+
+      {/* Revolving Credit Fields */}
+      {formData.loanType === 'revolving' && (
+        <div className="space-y-4 p-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
+          <div>
+            <p className="text-sm text-blue-400 mb-3">Revolving Credit Details</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-gray-400 text-sm mb-1">Compounding Frequency</Label>
+              <Select
+                value={formData.compoundingFrequency}
+                onValueChange={(v) => handleSelectChange('compoundingFrequency', v)}
+              >
+                <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#1a1a1a] border-[#2a2a2a]">
+                  {COMPOUNDING_FREQUENCIES.map((t) => (
+                    <SelectItem key={t.value} value={t.value} className="text-white">
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500 mt-1">How often does interest compound?</p>
+            </div>
+            <div>
+              <Label className="text-gray-400 text-sm mb-1">Billing Cycle (days)</Label>
+              <Input
+                name="billingCycleDays"
+                type="number"
+                value={formData.billingCycleDays}
+                onChange={handleChange}
+                placeholder="30"
+                min="28"
+                max="31"
+                className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+              />
+              <p className="text-xs text-gray-500 mt-1">Usually 30 days for credit cards</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label className="text-gray-400 text-sm mb-1">Last Statement Date</Label>
+              <Input
+                name="lastStatementDate"
+                type="date"
+                value={formData.lastStatementDate}
+                onChange={handleChange}
+                className="bg-[#242424] border-[#2a2a2a] text-white"
+              />
+              <p className="text-xs text-gray-500 mt-1">Date of last billing statement</p>
+            </div>
+            <div>
+              <Label className="text-gray-400 text-sm mb-1">Last Statement Balance</Label>
+              <Input
+                name="lastStatementBalance"
+                type="number"
+                value={formData.lastStatementBalance}
+                onChange={handleChange}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                className="bg-[#242424] border-[#2a2a2a] text-white placeholder-gray-600"
+              />
+              <p className="text-xs text-gray-500 mt-1">Balance on last statement</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dates */}
       <div className="grid grid-cols-2 gap-4">

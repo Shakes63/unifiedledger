@@ -1280,6 +1280,20 @@ export const debts = sqliteTable(
       enum: ['active', 'paused', 'paid_off', 'charged_off'],
     }).default('active'),
     priority: integer('priority').default(0),
+    // Loan structure fields
+    loanType: text('loan_type', {
+      enum: ['revolving', 'installment'],
+    }).default('revolving'),
+    loanTermMonths: integer('loan_term_months'),
+    originationDate: text('origination_date'),
+    // Interest calculation fields
+    compoundingFrequency: text('compounding_frequency', {
+      enum: ['daily', 'monthly', 'quarterly', 'annually'],
+    }).default('monthly'),
+    billingCycleDays: integer('billing_cycle_days').default(30),
+    // Credit card specific fields
+    lastStatementDate: text('last_statement_date'),
+    lastStatementBalance: real('last_statement_balance'),
     notes: text('notes'),
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
@@ -1298,6 +1312,8 @@ export const debtPayments = sqliteTable(
     debtId: text('debt_id').notNull(),
     userId: text('user_id').notNull(),
     amount: real('amount').notNull(),
+    principalAmount: real('principal_amount').default(0),
+    interestAmount: real('interest_amount').default(0),
     paymentDate: text('payment_date').notNull(),
     transactionId: text('transaction_id'),
     notes: text('notes'),
@@ -1325,6 +1341,23 @@ export const debtPayoffMilestones = sqliteTable(
   (table) => ({
     userIdIdx: index('idx_debt_payoff_milestones_user').on(table.userId),
     debtIdIdx: index('idx_debt_payoff_milestones_debt').on(table.debtId),
+  })
+);
+
+export const debtSettings = sqliteTable(
+  'debt_settings',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    extraMonthlyPayment: real('extra_monthly_payment').default(0),
+    preferredMethod: text('preferred_method', {
+      enum: ['snowball', 'avalanche'],
+    }).default('avalanche'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_debt_settings_user').on(table.userId),
   })
 );
 
