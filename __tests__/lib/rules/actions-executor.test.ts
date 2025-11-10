@@ -1182,34 +1182,1059 @@ describe("Actions Executor - set_tax_deduction Action", () => {
   });
 });
 
+// ============================================================================
+// SET_SALES_TAX ACTION TESTS
+// ============================================================================
+
 describe("Actions Executor - set_sales_tax Action", () => {
-  it.todo("should apply sales tax to income transaction");
+  it("should apply sales tax to income transaction", async () => {
+    const action = createTestAction("set_sales_tax", {
+      config: { taxCategoryId: "tax-cat-1", enabled: true }
+    });
+    const transaction = createTestTransaction({ type: "income" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.applySalesTax).toEqual({
+      taxCategoryId: "tax-cat-1",
+      enabled: true
+    });
+    expect(result.appliedActions).toHaveLength(1);
+    expect(result.appliedActions[0].type).toBe("set_sales_tax");
+  });
+
+  it("should skip action for expense transaction", async () => {
+    const action = createTestAction("set_sales_tax", {
+      config: { taxCategoryId: "tax-cat-1", enabled: true }
+    });
+    const transaction = createTestTransaction({ type: "expense" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.applySalesTax).toBeUndefined();
+    expect(result.appliedActions).toHaveLength(0);
+  });
+
+  it("should skip action for transfer_out transaction", async () => {
+    const action = createTestAction("set_sales_tax", {
+      config: { taxCategoryId: "tax-cat-1", enabled: true }
+    });
+    const transaction = createTestTransaction({ type: "transfer_out" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.applySalesTax).toBeUndefined();
+    expect(result.appliedActions).toHaveLength(0);
+  });
+
+  it("should skip action for transfer_in transaction", async () => {
+    const action = createTestAction("set_sales_tax", {
+      config: { taxCategoryId: "tax-cat-1", enabled: true }
+    });
+    const transaction = createTestTransaction({ type: "transfer_in" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.applySalesTax).toBeUndefined();
+    expect(result.appliedActions).toHaveLength(0);
+  });
+
+  it("should return validation error for missing config", () => {
+    const actions = [createTestAction("set_sales_tax", {})];
+
+    const errors = validateActions(actions);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("Tax category ID is required");
+  });
+
+  it("should return validation error for missing taxCategoryId", () => {
+    const actions = [createTestAction("set_sales_tax", { config: { enabled: true } })];
+
+    const errors = validateActions(actions);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("Tax category ID is required");
+  });
+
+  it("should have correct applied action structure", async () => {
+    const action = createTestAction("set_sales_tax", {
+      config: { taxCategoryId: "tax-cat-1", enabled: true }
+    });
+    const transaction = createTestTransaction({ type: "income" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    const appliedAction = result.appliedActions[0];
+    expect(appliedAction.type).toBe("set_sales_tax");
+    expect(appliedAction.field).toBe("salesTax");
+    expect(appliedAction).toHaveProperty("originalValue");
+    expect(appliedAction).toHaveProperty("newValue");
+  });
+
+  it("should capture original value as null by default", async () => {
+    const action = createTestAction("set_sales_tax", {
+      config: { taxCategoryId: "tax-cat-1", enabled: true }
+    });
+    const transaction = createTestTransaction({ type: "income" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.appliedActions[0].originalValue).toBe(null);
+  });
+
+  it("should store complete config structure", async () => {
+    const action = createTestAction("set_sales_tax", {
+      config: { taxCategoryId: "tax-cat-1", enabled: true }
+    });
+    const transaction = createTestTransaction({ type: "income" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.applySalesTax).toHaveProperty("taxCategoryId");
+    expect(result.mutations.applySalesTax).toHaveProperty("enabled");
+    expect(result.mutations.applySalesTax.taxCategoryId).toBe("tax-cat-1");
+    expect(result.mutations.applySalesTax.enabled).toBe(true);
+  });
+
+  it("should work with enabled flag as boolean", async () => {
+    const actionTrue = createTestAction("set_sales_tax", {
+      config: { taxCategoryId: "tax-cat-1", enabled: true }
+    });
+    const actionFalse = createTestAction("set_sales_tax", {
+      config: { taxCategoryId: "tax-cat-1", enabled: false }
+    });
+    const transaction = createTestTransaction({ type: "income" });
+
+    const resultTrue = await executeRuleActions("user-1", [actionTrue], transaction);
+    const resultFalse = await executeRuleActions("user-1", [actionFalse], transaction);
+
+    expect(resultTrue.mutations.applySalesTax.enabled).toBe(true);
+    expect(resultFalse.mutations.applySalesTax.enabled).toBe(false);
+  });
 });
+
+// ============================================================================
+// SET_ACCOUNT ACTION TESTS
+// ============================================================================
 
 describe("Actions Executor - set_account Action", () => {
-  it.todo("should set account change configuration");
+  it("should set account change for income transaction", async () => {
+    const action = createTestAction("set_account", { value: "account-2" });
+    const transaction = createTestTransaction({
+      accountId: "account-1",
+      type: "income"
+    });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.changeAccount).toEqual({
+      targetAccountId: "account-2"
+    });
+    expect(result.appliedActions).toHaveLength(1);
+    expect(result.appliedActions[0].type).toBe("set_account");
+    expect(result.appliedActions[0].originalValue).toBe("account-1");
+    expect(result.appliedActions[0].newValue).toBe("account-2");
+  });
+
+  it("should set account change for expense transaction", async () => {
+    const action = createTestAction("set_account", { value: "account-3" });
+    const transaction = createTestTransaction({
+      accountId: "account-1",
+      type: "expense"
+    });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.changeAccount).toEqual({
+      targetAccountId: "account-3"
+    });
+    expect(result.appliedActions).toHaveLength(1);
+  });
+
+  it("should reject transfer_out transaction", async () => {
+    const action = createTestAction("set_account", { value: "account-2" });
+    const transaction = createTestTransaction({ type: "transfer_out" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.changeAccount).toBeUndefined();
+    expect(result.appliedActions).toHaveLength(0);
+  });
+
+  it("should reject transfer_in transaction", async () => {
+    const action = createTestAction("set_account", { value: "account-2" });
+    const transaction = createTestTransaction({ type: "transfer_in" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.changeAccount).toBeUndefined();
+    expect(result.appliedActions).toHaveLength(0);
+  });
+
+  it("should return validation error for missing target account ID", () => {
+    const actions = [createTestAction("set_account", {})];
+
+    const errors = validateActions(actions);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("Account ID is required");
+  });
+
+  it("should have correct applied action structure", async () => {
+    const action = createTestAction("set_account", { value: "account-2" });
+    const transaction = createTestTransaction({ accountId: "account-1", type: "expense" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    const appliedAction = result.appliedActions[0];
+    expect(appliedAction.type).toBe("set_account");
+    expect(appliedAction.field).toBe("accountId");
+    expect(appliedAction).toHaveProperty("originalValue");
+    expect(appliedAction).toHaveProperty("newValue");
+  });
+
+  it("should capture original account ID correctly", async () => {
+    const action = createTestAction("set_account", { value: "account-new" });
+    const transaction = createTestTransaction({ accountId: "account-original", type: "income" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.appliedActions[0].originalValue).toBe("account-original");
+    expect(result.appliedActions[0].newValue).toBe("account-new");
+  });
+
+  it("should store correct changeAccount mutation structure", async () => {
+    const action = createTestAction("set_account", { value: "target-account-id" });
+    const transaction = createTestTransaction({ type: "expense" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.changeAccount).toHaveProperty("targetAccountId");
+    expect(result.mutations.changeAccount.targetAccountId).toBe("target-account-id");
+  });
 });
+
+// ============================================================================
+// CREATE_SPLIT ACTION TESTS
+// ============================================================================
 
 describe("Actions Executor - create_split Action", () => {
-  it.todo("should create valid percentage splits");
+  it("should create valid percentage splits totaling 100%", async () => {
+    const action = createTestAction("create_split", {
+      config: {
+        splits: [
+          { categoryId: "cat-1", percentage: 60, isPercentage: true },
+          { categoryId: "cat-2", percentage: 40, isPercentage: true }
+        ]
+      }
+    });
+    const transaction = createTestTransaction({ amount: 100 });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.createSplits).toHaveLength(2);
+    expect(result.mutations.createSplits[0].percentage).toBe(60);
+    expect(result.mutations.createSplits[1].percentage).toBe(40);
+    expect(result.appliedActions).toHaveLength(1);
+    expect(result.appliedActions[0].type).toBe("create_split");
+  });
+
+  it("should create valid percentage splits totaling less than 100%", async () => {
+    const action = createTestAction("create_split", {
+      config: {
+        splits: [
+          { categoryId: "cat-1", percentage: 50, isPercentage: true },
+          { categoryId: "cat-2", percentage: 30, isPercentage: true }
+        ]
+      }
+    });
+    const transaction = createTestTransaction({ amount: 100 });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.createSplits).toHaveLength(2);
+    expect(result.appliedActions).toHaveLength(1);
+  });
+
+  it("should reject splits with total percentage > 100%", async () => {
+    const action = createTestAction("create_split", {
+      config: {
+        splits: [
+          { categoryId: "cat-1", percentage: 60, isPercentage: true },
+          { categoryId: "cat-2", percentage: 50, isPercentage: true } // Total = 110%
+        ]
+      }
+    });
+    const transaction = createTestTransaction({ amount: 100 });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.createSplits).toBeUndefined();
+    expect(result.appliedActions).toHaveLength(0);
+  });
+
+  it("should create valid fixed amount splits", async () => {
+    const action = createTestAction("create_split", {
+      config: {
+        splits: [
+          { categoryId: "cat-1", amount: 25.50, isPercentage: false },
+          { categoryId: "cat-2", amount: 74.50, isPercentage: false }
+        ]
+      }
+    });
+    const transaction = createTestTransaction({ amount: 100 });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.createSplits).toHaveLength(2);
+    expect(result.mutations.createSplits[0].amount).toBe(25.50);
+    expect(result.mutations.createSplits[1].amount).toBe(74.50);
+    expect(result.appliedActions).toHaveLength(1);
+  });
+
+  it("should create mixed splits (percentage + fixed amount)", async () => {
+    const action = createTestAction("create_split", {
+      config: {
+        splits: [
+          { categoryId: "cat-1", percentage: 50, isPercentage: true },
+          { categoryId: "cat-2", amount: 25.00, isPercentage: false }
+        ]
+      }
+    });
+    const transaction = createTestTransaction({ amount: 100 });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.createSplits).toHaveLength(2);
+    expect(result.mutations.createSplits[0].percentage).toBe(50);
+    expect(result.mutations.createSplits[1].amount).toBe(25.00);
+    expect(result.appliedActions).toHaveLength(1);
+  });
+
+  it("should return validation error for missing config", () => {
+    const actions = [createTestAction("create_split", {})];
+
+    const errors = validateActions(actions);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("Splits configuration is required");
+  });
+
+  it("should return validation error for empty splits array", () => {
+    const actions = [createTestAction("create_split", { config: { splits: [] } })];
+
+    const errors = validateActions(actions);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("At least one split is required");
+  });
+
+  it("should return validation error for missing splits in config", () => {
+    const actions = [createTestAction("create_split", { config: {} })];
+
+    const errors = validateActions(actions);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("Splits configuration is required");
+  });
+
+  it("should have correct applied action structure", async () => {
+    const action = createTestAction("create_split", {
+      config: {
+        splits: [
+          { categoryId: "cat-1", percentage: 100, isPercentage: true }
+        ]
+      }
+    });
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    const appliedAction = result.appliedActions[0];
+    expect(appliedAction.type).toBe("create_split");
+    expect(appliedAction.field).toBe("isSplit");
+    expect(appliedAction.originalValue).toBe("false");
+    expect(appliedAction.newValue).toBe("true");
+  });
+
+  it("should support optional description field per split", async () => {
+    const action = createTestAction("create_split", {
+      config: {
+        splits: [
+          { categoryId: "cat-1", percentage: 60, isPercentage: true, description: "First part" },
+          { categoryId: "cat-2", percentage: 40, isPercentage: true, description: "Second part" }
+        ]
+      }
+    });
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.createSplits).toHaveLength(2);
+    expect(result.mutations.createSplits[0].description).toBe("First part");
+    expect(result.mutations.createSplits[1].description).toBe("Second part");
+  });
+
+  it("should store complete split configuration in mutations", async () => {
+    const action = createTestAction("create_split", {
+      config: {
+        splits: [
+          { categoryId: "cat-1", percentage: 50, isPercentage: true },
+          { categoryId: "cat-2", amount: 25, isPercentage: false }
+        ]
+      }
+    });
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations).toHaveProperty("createSplits");
+    expect(result.mutations.createSplits).toBeInstanceOf(Array);
+    expect(result.mutations.createSplits).toHaveLength(2);
+  });
+
+  it("should handle split with all fields (categoryId, amount, description)", async () => {
+    const action = createTestAction("create_split", {
+      config: {
+        splits: [
+          {
+            categoryId: "cat-1",
+            amount: 75.50,
+            isPercentage: false,
+            description: "Primary expense"
+          },
+          {
+            categoryId: "cat-2",
+            amount: 24.50,
+            isPercentage: false,
+            description: "Secondary expense"
+          }
+        ]
+      }
+    });
+    const transaction = createTestTransaction({ amount: 100 });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.createSplits).toHaveLength(2);
+    expect(result.mutations.createSplits[0]).toEqual({
+      categoryId: "cat-1",
+      amount: 75.50,
+      isPercentage: false,
+      description: "Primary expense"
+    });
+    expect(result.mutations.createSplits[1]).toEqual({
+      categoryId: "cat-2",
+      amount: 24.50,
+      isPercentage: false,
+      description: "Secondary expense"
+    });
+  });
 });
+
+// ============================================================================
+// CONVERT_TO_TRANSFER ACTION TESTS
+// ============================================================================
 
 describe("Actions Executor - convert_to_transfer Action", () => {
-  it.todo("should set transfer conversion config");
+  it("should set transfer conversion with target account", async () => {
+    const action = createTestAction("convert_to_transfer", {
+      config: { targetAccountId: "account-2" }
+    });
+    const transaction = createTestTransaction({ type: "expense" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.convertToTransfer).toEqual({
+      targetAccountId: "account-2",
+      autoMatch: true,
+      matchTolerance: 1,
+      matchDayRange: 7,
+      createIfNoMatch: true
+    });
+    expect(result.appliedActions).toHaveLength(1);
+    expect(result.appliedActions[0].type).toBe("convert_to_transfer");
+  });
+
+  it("should set transfer conversion without target account (auto-detect)", async () => {
+    const action = createTestAction("convert_to_transfer", {
+      config: {}
+    });
+    const transaction = createTestTransaction({ type: "income" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.convertToTransfer).toEqual({
+      targetAccountId: undefined,
+      autoMatch: true,
+      matchTolerance: 1,
+      matchDayRange: 7,
+      createIfNoMatch: true
+    });
+    expect(result.appliedActions).toHaveLength(1);
+  });
+
+  it("should skip action for transfer_out transaction", async () => {
+    const action = createTestAction("convert_to_transfer", {
+      config: { targetAccountId: "account-2" }
+    });
+    const transaction = createTestTransaction({ type: "transfer_out" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.convertToTransfer).toBeUndefined();
+    expect(result.appliedActions).toHaveLength(0);
+  });
+
+  it("should skip action for transfer_in transaction", async () => {
+    const action = createTestAction("convert_to_transfer", {
+      config: { targetAccountId: "account-2" }
+    });
+    const transaction = createTestTransaction({ type: "transfer_in" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.convertToTransfer).toBeUndefined();
+    expect(result.appliedActions).toHaveLength(0);
+  });
+
+  it("should apply default configuration values", async () => {
+    const action = createTestAction("convert_to_transfer", {
+      config: { targetAccountId: "account-2" }
+    });
+    const transaction = createTestTransaction({ type: "expense" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    // Verify all defaults are applied
+    expect(result.mutations.convertToTransfer.autoMatch).toBe(true);
+    expect(result.mutations.convertToTransfer.matchTolerance).toBe(1);
+    expect(result.mutations.convertToTransfer.matchDayRange).toBe(7);
+    expect(result.mutations.convertToTransfer.createIfNoMatch).toBe(true);
+  });
+
+  it("should accept custom configuration values", async () => {
+    const action = createTestAction("convert_to_transfer", {
+      config: {
+        targetAccountId: "account-2",
+        autoMatch: false,
+        matchTolerance: 5,
+        matchDayRange: 14,
+        createIfNoMatch: false
+      }
+    });
+    const transaction = createTestTransaction({ type: "expense" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.convertToTransfer).toEqual({
+      targetAccountId: "account-2",
+      autoMatch: false,
+      matchTolerance: 5,
+      matchDayRange: 14,
+      createIfNoMatch: false
+    });
+  });
+
+  it("should have correct applied action structure", async () => {
+    const action = createTestAction("convert_to_transfer", {
+      config: { targetAccountId: "account-2" }
+    });
+    const transaction = createTestTransaction({ type: "expense" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    const appliedAction = result.appliedActions[0];
+    expect(appliedAction.type).toBe("convert_to_transfer");
+    expect(appliedAction.field).toBe("type");
+    expect(appliedAction).toHaveProperty("originalValue");
+    expect(appliedAction).toHaveProperty("newValue");
+  });
+
+  it("should capture original transaction type correctly", async () => {
+    const action = createTestAction("convert_to_transfer", {
+      config: { targetAccountId: "account-2" }
+    });
+    const expenseTransaction = createTestTransaction({ type: "expense" });
+    const incomeTransaction = createTestTransaction({ type: "income" });
+
+    const expenseResult = await executeRuleActions("user-1", [action], expenseTransaction);
+    const incomeResult = await executeRuleActions("user-1", [action], incomeTransaction);
+
+    expect(expenseResult.appliedActions[0].originalValue).toBe("expense");
+    expect(expenseResult.appliedActions[0].newValue).toBe("transfer_out");
+    expect(incomeResult.appliedActions[0].originalValue).toBe("income");
+    expect(incomeResult.appliedActions[0].newValue).toBe("transfer_out");
+  });
+
+  it("should store complete conversion config in mutations", async () => {
+    const action = createTestAction("convert_to_transfer", {
+      config: { targetAccountId: "account-target" }
+    });
+    const transaction = createTestTransaction({ type: "expense" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations).toHaveProperty("convertToTransfer");
+    expect(result.mutations.convertToTransfer).toHaveProperty("targetAccountId");
+    expect(result.mutations.convertToTransfer).toHaveProperty("autoMatch");
+    expect(result.mutations.convertToTransfer).toHaveProperty("matchTolerance");
+    expect(result.mutations.convertToTransfer).toHaveProperty("matchDayRange");
+    expect(result.mutations.convertToTransfer).toHaveProperty("createIfNoMatch");
+  });
+
+  it("should handle all config fields correctly", async () => {
+    const action = createTestAction("convert_to_transfer", {
+      config: {
+        targetAccountId: "target-id",
+        autoMatch: true,
+        matchTolerance: 2.5,
+        matchDayRange: 10,
+        createIfNoMatch: false
+      }
+    });
+    const transaction = createTestTransaction({ type: "income" });
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    const config = result.mutations.convertToTransfer;
+    expect(config.targetAccountId).toBe("target-id");
+    expect(config.autoMatch).toBe(true);
+    expect(config.matchTolerance).toBe(2.5);
+    expect(config.matchDayRange).toBe(10);
+    expect(config.createIfNoMatch).toBe(false);
+  });
 });
+
+// ============================================================================
+// MULTIPLE ACTIONS EXECUTION TESTS
+// ============================================================================
 
 describe("Actions Executor - Multiple Actions", () => {
-  it.todo("should execute multiple actions in sequence");
+  it("should execute 2 actions in sequence", async () => {
+    mockCategoryQuery("cat-1", "user-1");
+    mockMerchantQuery("merch-1", "user-1");
+
+    const actions = [
+      createTestAction("set_category", { value: "cat-1" }),
+      createTestAction("set_merchant", { value: "merch-1" })
+    ];
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", actions, transaction);
+
+    expect(result.mutations.categoryId).toBe("cat-1");
+    expect(result.mutations.merchantId).toBe("merch-1");
+    expect(result.appliedActions).toHaveLength(2);
+    expect(result.appliedActions[0].type).toBe("set_category");
+    expect(result.appliedActions[1].type).toBe("set_merchant");
+  });
+
+  it("should execute 3+ actions in sequence", async () => {
+    mockCategoryQuery("cat-1", "user-1");
+    mockMerchantQuery("merch-1", "user-1");
+
+    const actions = [
+      createTestAction("set_category", { value: "cat-1" }),
+      createTestAction("set_merchant", { value: "merch-1" }),
+      createTestAction("prepend_description", { pattern: "[Store] " }),
+      createTestAction("append_description", { pattern: " - Paid" })
+    ];
+    const transaction = createTestTransaction({ description: "Purchase" });
+
+    const result = await executeRuleActions("user-1", actions, transaction);
+
+    expect(result.mutations.categoryId).toBe("cat-1");
+    expect(result.mutations.merchantId).toBe("merch-1");
+    expect(result.mutations.description).toBe("[Store] Purchase - Paid");
+    expect(result.appliedActions).toHaveLength(4);
+  });
+
+  it("should update context for subsequent actions", async () => {
+    mockCategoryQuery("cat-1", "user-1");
+    mockMerchantQuery("merch-1", "user-1");
+
+    const actions = [
+      createTestAction("set_category", { value: "cat-1" }),
+      createTestAction("set_merchant", { value: "merch-1" }),
+      createTestAction("prepend_description", { pattern: "[{merchant}] " }),
+      createTestAction("append_description", { pattern: " - {category}" })
+    ];
+    const transaction = createTestTransaction({ description: "Purchase" });
+
+    const result = await executeRuleActions("user-1", actions, transaction);
+
+    // Merchant and category should be available in patterns
+    expect(result.mutations.description).toBe("[Whole Foods] Purchase - Groceries");
+    expect(result.appliedActions).toHaveLength(4);
+  });
+
+  it("should handle set_category then set_tax_deduction dependency", async () => {
+    mockCategoryQuery("cat-2", "user-1"); // For set_category
+    mockCategoryQuery("cat-2", "user-1"); // For set_tax_deduction
+
+    const actions = [
+      createTestAction("set_category", { value: "cat-2" }), // Business Expenses (tax deductible)
+      createTestAction("set_tax_deduction")
+    ];
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", actions, transaction);
+
+    expect(result.mutations.categoryId).toBe("cat-2");
+    expect(result.mutations.isTaxDeductible).toBe(true);
+    expect(result.appliedActions).toHaveLength(2);
+  });
+
+  it("should handle set_merchant then description with {merchant} variable", async () => {
+    mockMerchantQuery("merch-1", "user-1");
+
+    const actions = [
+      createTestAction("set_merchant", { value: "merch-1" }),
+      createTestAction("set_description", { pattern: "Payment to {merchant}" })
+    ];
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", actions, transaction);
+
+    expect(result.mutations.merchantId).toBe("merch-1");
+    expect(result.mutations.description).toBe("Payment to Whole Foods");
+  });
+
+  it("should chain multiple description actions", async () => {
+    const actions = [
+      createTestAction("prepend_description", { pattern: "[TAG] " }),
+      createTestAction("append_description", { pattern: " - Part 1" }),
+      createTestAction("append_description", { pattern: " - Part 2" })
+    ];
+    const transaction = createTestTransaction({ description: "Core" });
+
+    const result = await executeRuleActions("user-1", actions, transaction);
+
+    expect(result.mutations.description).toBe("[TAG] Core - Part 1 - Part 2");
+    expect(result.appliedActions).toHaveLength(3);
+  });
+
+  it("should mix immediate and post-creation actions", async () => {
+    mockCategoryQuery("cat-1", "user-1");
+
+    const actions = [
+      createTestAction("set_category", { value: "cat-1" }), // Immediate
+      createTestAction("set_description", { pattern: "Updated" }), // Immediate
+      createTestAction("set_account", { value: "account-2" }), // Post-creation
+      createTestAction("convert_to_transfer", { config: { targetAccountId: "account-3" } }) // Post-creation
+    ];
+    const transaction = createTestTransaction({ type: "expense" });
+
+    const result = await executeRuleActions("user-1", actions, transaction);
+
+    expect(result.mutations.categoryId).toBe("cat-1");
+    expect(result.mutations.description).toBe("Updated");
+    expect(result.mutations.changeAccount).toEqual({ targetAccountId: "account-2" });
+    expect(result.mutations.convertToTransfer).toBeDefined();
+    expect(result.appliedActions).toHaveLength(4);
+  });
+
+  it("should maintain applied actions array in correct order", async () => {
+    mockCategoryQuery("cat-1", "user-1");
+    mockMerchantQuery("merch-1", "user-1");
+
+    const actions = [
+      createTestAction("set_category", { value: "cat-1" }),
+      createTestAction("set_merchant", { value: "merch-1" }),
+      createTestAction("set_description", { pattern: "Test" })
+    ];
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", actions, transaction);
+
+    expect(result.appliedActions).toHaveLength(3);
+    expect(result.appliedActions[0].type).toBe("set_category");
+    expect(result.appliedActions[1].type).toBe("set_merchant");
+    expect(result.appliedActions[2].type).toBe("set_description");
+  });
+
+  it("should continue execution when one action fails", async () => {
+    mockCategoryQuery("cat-1", "user-1");
+    mockMerchantQuery("merch-invalid", "user-1", true); // This will fail
+
+    const actions = [
+      createTestAction("set_category", { value: "cat-1" }), // Success
+      createTestAction("set_merchant", { value: "merch-invalid" }), // Fails
+      createTestAction("set_description", { pattern: "Test" }) // Should still execute
+    ];
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", actions, transaction);
+
+    // Category and description should succeed even though merchant failed
+    expect(result.mutations.categoryId).toBe("cat-1");
+    expect(result.mutations.description).toBe("Test");
+    expect(result.mutations.merchantId).toBeUndefined();
+    expect(result.appliedActions).toHaveLength(2); // Only successful actions
+  });
+
+  it("should handle error in middle action without stopping subsequent actions", async () => {
+    mockCategoryQuery("cat-1", "user-1");
+    mockCategoryQuery("cat-invalid", "user-1", true); // This will fail
+    mockMerchantQuery("merch-1", "user-1");
+
+    const actions = [
+      createTestAction("set_category", { value: "cat-1" }), // Success
+      createTestAction("set_category", { value: "cat-invalid" }), // Fails (overwrites previous)
+      createTestAction("set_merchant", { value: "merch-1" }) // Should still execute
+    ];
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", actions, transaction);
+
+    expect(result.mutations.categoryId).toBe("cat-1"); // First one succeeded
+    expect(result.mutations.merchantId).toBe("merch-1"); // Third one succeeded
+    expect(result.appliedActions).toHaveLength(2); // Two successful actions
+  });
+
+  it("should collect all mutations correctly", async () => {
+    mockCategoryQuery("cat-1", "user-1");
+    mockMerchantQuery("merch-1", "user-1");
+
+    const actions = [
+      createTestAction("set_category", { value: "cat-1" }),
+      createTestAction("set_merchant", { value: "merch-1" }),
+      createTestAction("set_description", { pattern: "Modified" }),
+      createTestAction("set_account", { value: "account-2" })
+    ];
+    const transaction = createTestTransaction({ type: "expense" });
+
+    const result = await executeRuleActions("user-1", actions, transaction);
+
+    expect(result.mutations).toHaveProperty("categoryId");
+    expect(result.mutations).toHaveProperty("merchantId");
+    expect(result.mutations).toHaveProperty("description");
+    expect(result.mutations).toHaveProperty("changeAccount");
+    expect(Object.keys(result.mutations).length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("should handle empty actions array", async () => {
+    const actions: any[] = [];
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", actions, transaction);
+
+    expect(result.mutations).toEqual({});
+    expect(result.appliedActions).toHaveLength(0);
+    expect(result.errors).toBeUndefined(); // No errors means undefined, not empty array
+  });
 });
+
+// ============================================================================
+// VALIDATION TESTS
+// ============================================================================
 
 describe("Actions Executor - Validation", () => {
-  it.todo("should validate actions correctly");
+  it("should return no errors for valid actions", () => {
+    const actions = [
+      createTestAction("set_category", { value: "cat-1" }),
+      createTestAction("set_merchant", { value: "merch-1" }),
+      createTestAction("set_description", { pattern: "Test" })
+    ];
+
+    const errors = validateActions(actions);
+
+    expect(errors).toHaveLength(0);
+  });
+
+  it("should return error for missing action type", () => {
+    const actions = [{ value: "cat-1" }] as any;
+
+    const errors = validateActions(actions);
+
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0]).toContain("type");
+  });
+
+  it("should return error for missing required value", () => {
+    const actions = [
+      createTestAction("set_category", {}),
+      createTestAction("set_merchant", {})
+    ];
+
+    const errors = validateActions(actions);
+
+    expect(errors.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("should return error for missing required pattern", () => {
+    const actions = [
+      createTestAction("set_description", {}),
+      createTestAction("prepend_description", {}),
+      createTestAction("append_description", {})
+    ];
+
+    const errors = validateActions(actions);
+
+    expect(errors.length).toBeGreaterThanOrEqual(3);
+    expect(errors.every(e => e.includes("Pattern"))).toBe(true);
+  });
+
+  it("should return error for missing required config", () => {
+    const actions = [
+      createTestAction("create_split", {}),
+      createTestAction("set_sales_tax", {})
+    ];
+
+    const errors = validateActions(actions);
+
+    expect(errors.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("should detect invalid action type", () => {
+    const actions = [{ type: "unknown_action", value: "test" }] as any;
+
+    const errors = validateActions(actions);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain("Unknown action type");
+  });
+
+  it("should return multiple validation errors at once", () => {
+    const actions = [
+      { value: "cat-1" }, // Missing type
+      createTestAction("set_description", {}), // Missing pattern
+      createTestAction("unknown_action", { value: "test" }) // Invalid type
+    ] as any;
+
+    const errors = validateActions(actions);
+
+    expect(errors.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("should validate empty actions array as valid", () => {
+    const actions: any[] = [];
+
+    const errors = validateActions(actions);
+
+    expect(errors).toHaveLength(0);
+  });
 });
+
+// ============================================================================
+// ERROR HANDLING TESTS
+// ============================================================================
 
 describe("Actions Executor - Error Handling", () => {
-  it.todo("should handle errors gracefully");
+  it("should handle category not found error", async () => {
+    mockCategoryQuery("cat-invalid", "user-1", true);
+
+    const action = createTestAction("set_category", { value: "cat-invalid" });
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.categoryId).toBeUndefined();
+    expect(result.appliedActions).toHaveLength(0);
+  });
+
+  it("should handle merchant not found error", async () => {
+    mockMerchantQuery("merch-invalid", "user-1", true);
+
+    const action = createTestAction("set_merchant", { value: "merch-invalid" });
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.merchantId).toBeUndefined();
+    expect(result.appliedActions).toHaveLength(0);
+  });
+
+  it("should handle invalid split configuration gracefully", async () => {
+    const action = createTestAction("create_split", {
+      config: {
+        splits: [
+          { categoryId: "cat-1", percentage: 70, isPercentage: true },
+          { categoryId: "cat-2", percentage: 50, isPercentage: true } // Total > 100%
+        ]
+      }
+    });
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", [action], transaction);
+
+    expect(result.mutations.createSplits).toBeUndefined();
+    expect(result.appliedActions).toHaveLength(0);
+  });
+
+  it("should handle errors without stopping execution", async () => {
+    mockCategoryQuery("cat-1", "user-1");
+    mockMerchantQuery("merch-invalid", "user-1", true); // This will fail
+
+    const actions = [
+      createTestAction("set_category", { value: "cat-1" }), // Success
+      createTestAction("set_merchant", { value: "merch-invalid" }), // Fail
+      createTestAction("set_description", { pattern: "Test" }) // Success
+    ];
+    const transaction = createTestTransaction();
+
+    const result = await executeRuleActions("user-1", actions, transaction);
+
+    expect(result.mutations.categoryId).toBe("cat-1");
+    expect(result.mutations.description).toBe("Test");
+    expect(result.appliedActions).toHaveLength(2);
+  });
 });
 
+// ============================================================================
+// UTILITY FUNCTIONS TESTS
+// ============================================================================
+
 describe("Actions Executor - Utility Functions", () => {
-  it.todo("should return action descriptions");
+  it("should return description for set_category", () => {
+    const description = getActionDescription({ type: "set_category", value: "cat-1" });
+    expect(description).toContain("category");
+  });
+
+  it("should return description for set_merchant", () => {
+    const description = getActionDescription({ type: "set_merchant", value: "merch-1" });
+    expect(description).toContain("merchant");
+  });
+
+  it("should return description for description actions", () => {
+    const descSet = getActionDescription({ type: "set_description", pattern: "Test" });
+    const descPrepend = getActionDescription({ type: "prepend_description", pattern: "Test" });
+    const descAppend = getActionDescription({ type: "append_description", pattern: "Test" });
+
+    expect(descSet).toContain("description");
+    expect(descPrepend).toContain("description");
+    expect(descAppend).toContain("description");
+  });
+
+  it("should return description for all action types", () => {
+    const actionTypes: RuleAction['type'][] = [
+      "set_category",
+      "set_merchant",
+      "set_description",
+      "prepend_description",
+      "append_description",
+      "set_tax_deduction",
+      "set_sales_tax",
+      "convert_to_transfer",
+      "create_split",
+      "set_account"
+    ];
+
+    actionTypes.forEach(type => {
+      const action = { type, value: "test", pattern: "test", config: {} } as any;
+      const description = getActionDescription(action);
+      expect(description).toBeTruthy();
+      expect(typeof description).toBe("string");
+    });
+  });
+
+  it("should check if action is implemented", () => {
+    expect(isActionImplemented("set_category")).toBe(true);
+    expect(isActionImplemented("set_merchant")).toBe(true);
+    expect(isActionImplemented("set_description")).toBe(true);
+    expect(isActionImplemented("convert_to_transfer")).toBe(true);
+    expect(isActionImplemented("unknown_action" as any)).toBe(false);
+  });
 });
