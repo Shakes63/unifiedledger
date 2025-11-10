@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus, Zap, Tag, Store, FileText, ArrowRightLeft } from 'lucide-react';
+import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus, Zap, Tag, Store, FileText, ArrowRightLeft, Scissors, Banknote } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import type { RuleAction } from '@/lib/rules/types';
@@ -49,8 +49,13 @@ function getActionLabel(action: RuleAction, categoryName?: string, merchantName?
         return `Transfer to ${accountName}`;
       }
       return 'Convert to Transfer';
+    case 'create_split':
+      const splitCount = action.config?.splits?.length || 0;
+      return `Split into ${splitCount} ${splitCount === 1 ? 'category' : 'categories'}`;
+    case 'set_account':
+      return accountName ? `Move to ${accountName}` : 'Set Account';
     default:
-      return action.type.replace(/_/g, ' ');
+      return String(action.type).replace(/_/g, ' ');
   }
 }
 
@@ -140,6 +145,8 @@ function RuleCard({
                   {rule.actions[0].type === 'set_merchant' && <Store className="w-3 h-3 mr-1" />}
                   {rule.actions[0].type === 'set_tax_deduction' && <FileText className="w-3 h-3 mr-1" />}
                   {rule.actions[0].type === 'convert_to_transfer' && <ArrowRightLeft className="w-3 h-3 mr-1" />}
+                  {rule.actions[0].type === 'create_split' && <Scissors className="w-3 h-3 mr-1 text-[var(--color-primary)]" />}
+                  {rule.actions[0].type === 'set_account' && <Banknote className="w-3 h-3 mr-1 text-[var(--color-primary)]" />}
                   {getActionLabel(rule.actions[0], rule.categoryName)}
                 </Badge>
 

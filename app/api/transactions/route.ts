@@ -9,6 +9,7 @@ import { TransactionData } from '@/lib/rules/condition-evaluator';
 import { executeRuleActions } from '@/lib/rules/actions-executor';
 import { handleTransferConversion } from '@/lib/rules/transfer-action-handler';
 import { handleSplitCreation } from '@/lib/rules/split-action-handler';
+import { handleAccountChange } from '@/lib/rules/account-action-handler';
 import { findMatchingBills } from '@/lib/bills/bill-matcher';
 import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
 
@@ -432,6 +433,27 @@ export async function POST(request: Request) {
           }
         } catch (error) {
           console.error('Split creation error:', error);
+          // Don't fail the transaction
+        }
+      }
+
+      // Handle account change
+      if (postCreationMutations?.changeAccount) {
+        try {
+          const accountResult = await handleAccountChange(
+            userId,
+            transactionId,
+            postCreationMutations.changeAccount.targetAccountId
+          );
+
+          if (!accountResult.success) {
+            console.error('Account change failed:', accountResult.error);
+            // Don't fail the transaction, just log the error
+          } else {
+            console.log(`Account change: moved from ${accountResult.oldAccountId} to ${accountResult.newAccountId}`);
+          }
+        } catch (error) {
+          console.error('Account change error:', error);
           // Don't fail the transaction
         }
       }

@@ -74,7 +74,7 @@
 - ⏳ User documentation
 
 ## Phase 2: Advanced Actions (In Progress)
-**Status:** 2.4 of 5 features complete (48%) 🟢
+**Status:** 4 of 5 features complete (80%) 🟢
 **Plan:** See `docs/rules-actions-phase2-plan.md`
 
 **Completed:**
@@ -113,8 +113,8 @@
      - Full theme integration with semantic CSS variables
      - Production build successful with zero errors
 
-**In Progress:**
-3. 🟡 **Split Transaction Action** (2025-11-10) - Backend Complete, Frontend 40% Complete
+**Completed:**
+3. ✅ **Split Transaction Action** (2025-11-10) - COMPLETE
    - ✅ Backend Implementation Complete:
      - Created `lib/rules/split-action-handler.ts` with split creation logic (~200 lines)
      - Implemented `handleSplitCreation()` with percentage and fixed amount support
@@ -124,21 +124,77 @@
      - Full integration with transaction creation API
      - Full integration with bulk apply rules API
      - Build successful with zero errors
-   - 🟡 Frontend Implementation Partial (40% complete):
+   - ✅ Frontend Implementation Complete (100%):
      - ✅ Added Scissors icon and supporting icons (DollarSign, Percent)
      - ✅ Added "Split Transaction" to action type selector
      - ✅ Implemented helper functions (addSplit, removeSplit, updateSplitField)
-     - ⏳ Large UI component pending (~300 lines):
-       - Split item cards with category selector
-       - Amount/percentage toggle and inputs
-       - Add/remove split buttons
-       - Total validation display
-       - Empty state
-   - **Plan Document:** `docs/split-transaction-action-plan.md`
-   - **Next Steps:** Complete split configuration UI component in rule-builder.tsx
+     - ✅ Complete split configuration UI (~280 lines):
+       - Split item cards with category selector and type display
+       - Amount type toggle (Fixed/Percentage) with pink primary color
+       - Dynamic input fields based on type selection
+       - Optional description field per split
+       - Remove button per split with red error color
+       - Empty state with scissors icon and helper text
+       - Add split button with dashed border
+       - Real-time total percentage validation with color coding
+       - Fixed amount summary display
+       - Warning for >100% percentage (red error state)
+       - Success indicator for exactly 100% (green success state)
+       - Info for <100% (shows unallocated remainder)
+       - Educational info box with lightbulb icon
+     - ✅ Updated rules-manager.tsx:
+       - Added Scissors icon to imports
+       - Added getActionLabel case for create_split
+       - Icon display with pink primary color
+     - ✅ Added validation in rules/page.tsx:
+       - At least one split required
+       - Category required for each split
+       - Amount/percentage validation based on type
+       - Total percentage cannot exceed 100%
+       - Comprehensive error messages
+     - ✅ Full theme integration with CSS variables
+     - ✅ Production build successful with zero errors
+   - **Plan Document:** `docs/split-transaction-action-plan.md` + `docs/split-transaction-ui-completion-plan.md`
+
+**Completed:**
+4. ✅ **Set Account Action** (2025-11-10) - COMPLETE
+   - ✅ Backend Implementation Complete:
+     - Created `lib/rules/account-action-handler.ts` with account change logic (~240 lines)
+     - Implemented `handleAccountChange()` with balance updates for both accounts
+     - Automatic reversal of old account impact (income: subtract, expense: add)
+     - Automatic application to new account (income: add, expense: subtract)
+     - Validation prevents moving transfer transactions
+     - Activity logging to householdActivityLog
+     - Full error handling and audit trail
+   - ✅ Frontend Implementation Complete:
+     - Added Banknote icon to imports
+     - Added "Set Account" to action type selector
+     - Complete configuration UI (~80 lines):
+       - Account selector with color indicators and type display
+       - Helper text explaining functionality
+       - Warning box about balance updates and transfer restrictions
+       - Information box explaining how it works
+       - Common use case examples
+     - Updated rules-manager.tsx:
+       - Added Banknote icon
+       - Added getActionLabel case for set_account
+       - Icon display with pink primary color
+     - Added validation in rules/page.tsx:
+       - Target account required
+       - Clear error messages
+   - ✅ API Integration:
+     - Transaction creation API (`app/api/transactions/route.ts`)
+     - Bulk apply rules API (`app/api/rules/apply-bulk/route.ts`)
+     - Uses householdMembers to get household ID for logging
+     - Correct field names (currentBalance, not balance)
+   - ✅ Full theme integration with CSS variables
+   - ✅ Production build successful with zero errors
+   - **Plan Document:** `docs/set-account-action-plan.md`
 
 **Not Started:**
-4. ⏳ Allow changing the bank account with a rule
 5. ⏳ Make the transfer conversion more robust, with transaction matching and suggestions
+6. Allow income transactions to be marked as subject to sales tax
+7. allow transactions to be marked as subject to sales tax with a rule
+
 
 **Note:** Action types for Phase 2 are defined in the type system. Implementation is happening incrementally per priority order in the Phase 2 plan.

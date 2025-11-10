@@ -67,6 +67,12 @@ function validateAction(action: RuleAction): string | null {
       }
       break;
 
+    case 'set_account':
+      if (!action.value) {
+        return 'Account ID is required for set_account action';
+      }
+      break;
+
     case 'set_description':
     case 'append_description':
     case 'prepend_description':
@@ -303,6 +309,45 @@ async function executeSetTaxDeductionAction(
 }
 
 /**
+ * Execute a set_account action
+ * Changes the transaction's account
+ * Note: Actual account change and balance updates happen AFTER transaction is created
+ */
+async function executeSetAccountAction(
+  action: RuleAction,
+  context: ActionExecutionContext,
+  mutations: TransactionMutations
+): Promise<AppliedAction | null> {
+  const targetAccountId = action.value;
+
+  if (!targetAccountId) {
+    console.error('Set account action missing target account ID');
+    return null;
+  }
+
+  // Validate not a transfer
+  if (context.transaction.type === 'transfer_out' || context.transaction.type === 'transfer_in') {
+    console.error('Cannot change account for transfer transactions');
+    return null;
+  }
+
+  // Store for post-creation processing
+  mutations.changeAccount = {
+    targetAccountId
+  };
+
+  // Store original account ID
+  const originalAccountId = context.transaction.accountId;
+
+  return {
+    type: 'set_account',
+    field: 'accountId',
+    originalValue: originalAccountId,
+    newValue: targetAccountId,
+  };
+}
+
+/**
  * Execute a create_split action
  * Creates transaction splits with specified categories and amounts
  * Note: Actual split creation happens AFTER transaction is created
@@ -444,6 +489,10 @@ export async function executeRuleActions(
 
         case 'set_tax_deduction':
           appliedAction = await executeSetTaxDeductionAction(action, context, mutations);
+          break;
+
+        case 'set_account':
+          appliedAction = await executeSetAccountAction(action, context, mutations);
           break;
 
         case 'create_split':

@@ -8,6 +8,7 @@ import { TransactionData } from '@/lib/rules/condition-evaluator';
 import { executeRuleActions } from '@/lib/rules/actions-executor';
 import { handleTransferConversion } from '@/lib/rules/transfer-action-handler';
 import { handleSplitCreation } from '@/lib/rules/split-action-handler';
+import { handleAccountChange } from '@/lib/rules/account-action-handler';
 import type { AppliedAction } from '@/lib/rules/types';
 export const dynamic = 'force-dynamic';
 
@@ -261,6 +262,21 @@ export async function POST(request: Request) {
               }
             } catch (error) {
               console.error(`Split creation error for ${txn.id}:`, error);
+            }
+          }
+
+          if (executionResult.mutations.changeAccount) {
+            try {
+              const accountResult = await handleAccountChange(
+                userId,
+                txn.id,
+                executionResult.mutations.changeAccount.targetAccountId
+              );
+              if (!accountResult.success) {
+                console.error(`Account change failed for ${txn.id}:`, accountResult.error);
+              }
+            } catch (error) {
+              console.error(`Account change error for ${txn.id}:`, error);
             }
           }
 

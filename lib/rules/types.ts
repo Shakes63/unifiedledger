@@ -130,6 +130,11 @@ export interface TransactionMutations {
   /** Tax deductible flag (if set_tax_deduction action) */
   isTaxDeductible?: boolean;
 
+  /** Account change config (if set_account action - post-creation) */
+  changeAccount?: {
+    targetAccountId: string;
+  };
+
   /** Transfer conversion config (if convert_to_transfer action) */
   convertToTransfer?: TransferConversionConfig;
 

@@ -419,7 +419,7 @@ pnpm drizzle-kit migrate   # Apply migration
 ## Recent Updates - Session Summary
 
 ### Latest: Rules Actions System - Phase 2 Progress (2025-11-10) 🟢
-**Status:** 2.4 of 5 features complete (48%) - Active development ongoing
+**Status:** 4 of 5 features complete (80%) - Active development ongoing
 **Plan Document:** `docs/rules-actions-phase2-plan.md`
 
 **Phase 2A: Set Tax Deduction Action - COMPLETE ✅ (2025-11-09)**
@@ -468,7 +468,7 @@ pnpm drizzle-kit migrate   # Apply migration
   - Production build successful with zero errors
   - **Plan Document:** `docs/convert-to-transfer-ui-plan.md`
 
-**Phase 2C: Split Transaction Action - PARTIAL 🟡 (2025-11-10) - Backend 100%, Frontend 40%**
+**Phase 2C: Split Transaction Action - COMPLETE ✅ (2025-11-10)**
 - **Backend Implementation Complete** (~400 lines):
   - Created `lib/rules/split-action-handler.ts` (NEW FILE):
     - `handleSplitCreation()` - Main orchestration function with Decimal.js precision
@@ -494,32 +494,66 @@ pnpm drizzle-kit migrate   # Apply migration
     - Full error handling (non-fatal)
   - Build Status: ✅ Production build successful, zero errors
 
-- **Frontend Implementation Partial** (~100 lines completed, ~300 lines pending):
+- **Frontend Implementation Complete** (~280 lines):
   - ✅ Added Scissors, DollarSign, Percent icons
   - ✅ Added "Split Transaction" to action type selector
-  - ✅ Implemented helper functions:
-    - `addSplit()` - Creates new empty split with validation
-    - `removeSplit()` - Removes split with null checks
-    - `updateSplitField()` - Updates split field with null checks
-  - ⏳ **Large UI Component Pending** (~300 lines):
-    - Split list container
-    - Individual split item cards with:
-      - Category selector dropdown
-      - Amount type toggle (Fixed/Percentage buttons)
-      - Amount/percentage input fields
-      - Optional description field
-      - Remove button per split
-    - Add Split button
-    - Empty state display
-    - Total percentage/amount validation display
-    - Visual feedback and warnings
-  - ⏳ rules-manager.tsx update (split icon and label)
-  - ⏳ rules page validation for splits
-  - **Plan Document:** `docs/split-transaction-action-plan.md`
-  - **Next Steps:** Complete split configuration UI in rule-builder.tsx
+  - ✅ Implemented helper functions (addSplit, removeSplit, updateSplitField)
+  - ✅ Complete split configuration UI:
+    - Split item cards with category selector and type display
+    - Amount type toggle (Fixed/Percentage) with pink primary color
+    - Dynamic input fields based on type selection
+    - Optional description field per split
+    - Remove button per split with red error color
+    - Empty state with scissors icon and helper text
+    - Add split button with dashed border
+    - Real-time total percentage validation with color coding
+    - Fixed amount summary display
+    - Warning for >100% percentage (red error state)
+    - Success indicator for exactly 100% (green success state)
+    - Info for <100% (shows unallocated remainder)
+    - Educational info box with lightbulb icon
+  - ✅ Updated rules-manager.tsx with split icon and label
+  - ✅ Added validation in rules/page.tsx (at least one split, category required, amount/percentage validation, total percentage ≤ 100%)
+  - ✅ Full theme integration with CSS variables
+  - **Plan Documents:** `docs/split-transaction-action-plan.md` + `docs/split-transaction-ui-completion-plan.md`
+
+**Phase 2D: Set Account Action - COMPLETE ✅ (2025-11-10)**
+- **Backend Implementation Complete** (~240 lines):
+  - Created `lib/rules/account-action-handler.ts` (NEW FILE):
+    - `handleAccountChange()` - Main orchestration with balance updates
+    - `updateAccountBalances()` - Reverses old account impact, applies to new account
+    - `logAccountChange()` - Activity logging via householdMembers
+  - Updated `lib/rules/actions-executor.ts`:
+    - Implemented `executeSetAccountAction()`
+    - Validation prevents moving transfer transactions
+  - Updated `lib/rules/types.ts`:
+    - Added `changeAccount` to TransactionMutations
+  - Integration:
+    - Transaction creation API (`app/api/transactions/route.ts`)
+    - Bulk apply rules API (`app/api/rules/apply-bulk/route.ts`)
+  - Features:
+    - Smart balance updates (income: subtract from old/add to new, expense: reverse)
+    - Transfer protection (validates and rejects transfer_out/transfer_in)
+    - Decimal.js precision for all calculations
+    - Activity logging with household tracking
+    - Full error handling (non-fatal)
+  - Build Status: ✅ Production build successful, zero errors
+
+- **Frontend Implementation Complete** (~80 lines):
+  - ✅ Added Banknote icon
+  - ✅ Added "Set Account" to action type selector
+  - ✅ Complete configuration UI:
+    - Account selector with color indicators and type display
+    - Helper text explaining functionality
+    - Warning box about balance updates and transfer restrictions (amber)
+    - Information box explaining how it works (lightbulb icon)
+    - Common use case examples (4 scenarios)
+  - ✅ Updated rules-manager.tsx with Banknote icon and label
+  - ✅ Added validation in rules/page.tsx (target account required)
+  - ✅ Full theme integration with CSS variables
+  - **Plan Document:** `docs/set-account-action-plan.md`
 
 **Remaining Phase 2 Features:**
-- Priority 4: Set Account Action (~2-3 days)
 - Priority 5: Enhanced Transfer Matching (~1-2 days)
 
 ---

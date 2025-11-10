@@ -113,6 +113,56 @@ export default function RulesPage() {
           return;
         }
       }
+
+      // Validate set_account actions
+      if (action.type === 'set_account') {
+        if (!action.value) {
+          toast.error('Please select a target account for set_account action');
+          return;
+        }
+      }
+
+      // Validate create_split actions
+      if (action.type === 'create_split') {
+        if (!action.config?.splits || action.config.splits.length === 0) {
+          toast.error('Split action must have at least one split configured');
+          return;
+        }
+
+        // Validate each split
+        for (let i = 0; i < action.config.splits.length; i++) {
+          const split = action.config.splits[i];
+
+          // Category required
+          if (!split.categoryId) {
+            toast.error(`Split ${i + 1}: Category is required`);
+            return;
+          }
+
+          // Amount validation based on type
+          if (split.isPercentage) {
+            if (!split.percentage || split.percentage <= 0 || split.percentage > 100) {
+              toast.error(`Split ${i + 1}: Percentage must be between 0.1% and 100%`);
+              return;
+            }
+          } else {
+            if (!split.amount || split.amount <= 0) {
+              toast.error(`Split ${i + 1}: Amount must be greater than 0`);
+              return;
+            }
+          }
+        }
+
+        // Validate total percentage doesn't exceed 100%
+        const totalPercentage = action.config.splits
+          .filter((s: any) => s.isPercentage)
+          .reduce((sum: number, s: any) => sum + (s.percentage || 0), 0);
+
+        if (totalPercentage > 100) {
+          toast.error('Total split percentage cannot exceed 100%');
+          return;
+        }
+      }
     }
 
     try {

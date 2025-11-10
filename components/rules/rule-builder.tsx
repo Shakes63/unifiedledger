@@ -13,7 +13,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Plus, X, ChevronDown, AlertCircle, Zap, Tag, Store, FileEdit, FileText, ArrowRightLeft, Settings, Lightbulb, Scissors, DollarSign, Percent } from 'lucide-react';
+import { Plus, X, ChevronDown, AlertCircle, Zap, Tag, Store, FileEdit, FileText, ArrowRightLeft, Settings, Lightbulb, Scissors, DollarSign, Percent, Banknote } from 'lucide-react';
 import { Condition, ConditionGroup, ComparisonOperator, ConditionField } from '@/lib/rules/condition-evaluator';
 import { RuleAction } from '@/lib/rules/types';
 import { nanoid } from 'nanoid';
@@ -547,6 +547,12 @@ export function RuleBuilder({
                             Split Transaction
                           </div>
                         </SelectItem>
+                        <SelectItem value="set_account">
+                          <div className="flex items-center gap-2">
+                            <Banknote className="h-4 w-4" />
+                            Set Account
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -833,6 +839,369 @@ export function RuleBuilder({
                               It can automatically find and link matching opposite transactions (e.g., expense in one account
                               matching income in another), or create a new transfer pair if none is found.
                             </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {action.type === 'create_split' && (
+                      <div className="flex-1 space-y-4">
+                        {/* Split Items List */}
+                        {action.config?.splits && action.config.splits.length > 0 ? (
+                          <div className="space-y-3">
+                            {action.config.splits.map((split: any, splitIndex: number) => (
+                              <div key={splitIndex} className="bg-elevated border border-border rounded-lg p-4 space-y-3">
+                                {/* Split Header with Remove Button */}
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium text-foreground">
+                                    Split {splitIndex + 1}
+                                  </span>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeSplit(index, splitIndex)}
+                                    className="text-[var(--color-error)] hover:bg-[var(--color-error)]/20 h-7 w-7 p-0"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+
+                                {/* Category Selector */}
+                                <div className="space-y-2">
+                                  <Label className="text-sm text-foreground">Category</Label>
+                                  <Select
+                                    value={split.categoryId || ''}
+                                    onValueChange={(val) =>
+                                      updateSplitField(index, splitIndex, 'categoryId', val)
+                                    }
+                                  >
+                                    <SelectTrigger className="bg-input border-border">
+                                      <SelectValue placeholder="Select category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {loadingData ? (
+                                        <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+                                      ) : categories.length > 0 ? (
+                                        categories.map((category) => (
+                                          <SelectItem key={category.id} value={category.id}>
+                                            <div className="flex items-center gap-2">
+                                              <Tag className="w-3 h-3" />
+                                              {category.name}
+                                              <span className="text-xs text-muted-foreground">
+                                                ({category.type})
+                                              </span>
+                                            </div>
+                                          </SelectItem>
+                                        ))
+                                      ) : (
+                                        <div className="p-2 text-sm text-muted-foreground">No categories found</div>
+                                      )}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                {/* Amount Type Toggle (Fixed vs Percentage) */}
+                                <div className="space-y-2">
+                                  <Label className="text-sm text-foreground">Amount Type</Label>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        updateSplitField(index, splitIndex, 'isPercentage', false);
+                                        if (!split.amount) {
+                                          updateSplitField(index, splitIndex, 'amount', 0);
+                                        }
+                                      }}
+                                      className={`flex-1 ${
+                                        !split.isPercentage
+                                          ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:opacity-90'
+                                          : 'bg-elevated border-border text-foreground hover:bg-elevated hover:border-[var(--color-primary)]/30'
+                                      }`}
+                                    >
+                                      <DollarSign className="h-4 w-4 mr-1" />
+                                      Fixed Amount
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        updateSplitField(index, splitIndex, 'isPercentage', true);
+                                        if (!split.percentage) {
+                                          updateSplitField(index, splitIndex, 'percentage', 0);
+                                        }
+                                      }}
+                                      className={`flex-1 ${
+                                        split.isPercentage
+                                          ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:opacity-90'
+                                          : 'bg-elevated border-border text-foreground hover:bg-elevated hover:border-[var(--color-primary)]/30'
+                                      }`}
+                                    >
+                                      <Percent className="h-4 w-4 mr-1" />
+                                      Percentage
+                                    </Button>
+                                  </div>
+                                </div>
+
+                                {/* Amount/Percentage Input */}
+                                <div className="space-y-2">
+                                  {split.isPercentage ? (
+                                    <>
+                                      <Label className="text-sm text-foreground">Percentage (%)</Label>
+                                      <Input
+                                        type="number"
+                                        min="0.1"
+                                        max="100"
+                                        step="0.1"
+                                        value={split.percentage || ''}
+                                        onChange={(e) =>
+                                          updateSplitField(
+                                            index,
+                                            splitIndex,
+                                            'percentage',
+                                            parseFloat(e.target.value) || 0
+                                          )
+                                        }
+                                        placeholder="e.g., 50"
+                                        className="bg-input border-border"
+                                      />
+                                      <p className="text-xs text-muted-foreground">
+                                        Enter percentage of total transaction amount (0.1% - 100%)
+                                      </p>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Label className="text-sm text-foreground">Amount ($)</Label>
+                                      <Input
+                                        type="number"
+                                        min="0.01"
+                                        step="0.01"
+                                        value={split.amount || ''}
+                                        onChange={(e) =>
+                                          updateSplitField(
+                                            index,
+                                            splitIndex,
+                                            'amount',
+                                            parseFloat(e.target.value) || 0
+                                          )
+                                        }
+                                        placeholder="e.g., 25.00"
+                                        className="bg-input border-border"
+                                      />
+                                      <p className="text-xs text-muted-foreground">
+                                        Enter fixed dollar amount
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
+
+                                {/* Optional Description */}
+                                <div className="space-y-2">
+                                  <Label className="text-sm text-foreground">
+                                    Description
+                                    <span className="text-muted-foreground ml-1">(Optional)</span>
+                                  </Label>
+                                  <Input
+                                    type="text"
+                                    value={split.description || ''}
+                                    onChange={(e) =>
+                                      updateSplitField(index, splitIndex, 'description', e.target.value)
+                                    }
+                                    placeholder="Optional note for this split"
+                                    className="bg-input border-border"
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          // Empty State
+                          <div className="text-center p-6 bg-card border border-border rounded-lg border-dashed">
+                            <Scissors className="w-10 h-10 mx-auto mb-3 text-muted-foreground opacity-50" />
+                            <p className="text-sm text-muted-foreground mb-1">No splits configured</p>
+                            <p className="text-xs text-muted-foreground">
+                              Add splits to divide this transaction across multiple categories.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Add Split Button */}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => addSplit(index)}
+                          className="w-full border-dashed border-2 border-border bg-elevated hover:bg-elevated hover:border-[var(--color-primary)]/30 text-foreground"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Split
+                        </Button>
+
+                        {/* Validation Display */}
+                        {action.config?.splits && action.config.splits.length > 0 && (
+                          <div className="space-y-2">
+                            {/* Total Percentage Display */}
+                            {(() => {
+                              const percentageSplits = action.config.splits.filter((s: any) => s.isPercentage);
+                              const totalPercentage = percentageSplits.reduce(
+                                (sum: number, s: any) => sum + (s.percentage || 0),
+                                0
+                              );
+                              const hasPercentage = percentageSplits.length > 0;
+
+                              if (hasPercentage) {
+                                return (
+                                  <div
+                                    className={`flex items-center gap-2 p-3 rounded-lg border ${
+                                      totalPercentage > 100
+                                        ? 'bg-[var(--color-error)]/10 border-[var(--color-error)]/30'
+                                        : totalPercentage === 100
+                                        ? 'bg-[var(--color-success)]/10 border-[var(--color-success)]/30'
+                                        : 'bg-elevated border-border'
+                                    }`}
+                                  >
+                                    <Percent className="h-4 w-4 text-foreground" />
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-foreground">
+                                        Total Percentage: {totalPercentage.toFixed(1)}%
+                                      </p>
+                                      {totalPercentage > 100 && (
+                                        <p className="text-xs text-[var(--color-error)] mt-0.5">
+                                          Total exceeds 100% - please adjust your splits
+                                        </p>
+                                      )}
+                                      {totalPercentage < 100 && (
+                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                          {(100 - totalPercentage).toFixed(1)}% will remain unallocated
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+
+                            {/* Fixed Amount Summary */}
+                            {(() => {
+                              const fixedSplits = action.config.splits.filter((s: any) => !s.isPercentage);
+                              const totalFixed = fixedSplits.reduce(
+                                (sum: number, s: any) => sum + (s.amount || 0),
+                                0
+                              );
+                              const hasFixed = fixedSplits.length > 0;
+
+                              if (hasFixed) {
+                                return (
+                                  <div className="flex items-center gap-2 p-3 rounded-lg border bg-elevated border-border">
+                                    <DollarSign className="h-4 w-4 text-foreground" />
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-foreground">
+                                        Total Fixed Amount: ${totalFixed.toFixed(2)}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground mt-0.5">
+                                        This amount will be allocated regardless of transaction total
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
+                        )}
+
+                        {/* Information Box */}
+                        <div className="flex items-start gap-2 bg-elevated rounded-lg p-3">
+                          <Lightbulb className="h-4 w-4 text-[var(--color-primary)] mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-xs text-foreground leading-relaxed">
+                              <strong>How it works:</strong> This action automatically splits transactions across multiple categories.
+                              You can use percentages (e.g., 60% Groceries, 40% Household) or fixed amounts (e.g., $50 Food, $30 Gas).
+                              Mixed splits are also supported. Any unallocated amount remains with the original transaction.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {action.type === 'set_account' && (
+                      <div className="flex-1 space-y-4">
+                        {/* Account Selector */}
+                        <div className="space-y-2">
+                          <Label className="text-sm text-foreground">Target Account</Label>
+                          <Select
+                            value={action.value || ''}
+                            onValueChange={(value) => updateAction(index, { ...action, value })}
+                          >
+                            <SelectTrigger className="bg-input border-border">
+                              <SelectValue placeholder="Select account">
+                                {action.value && accounts.find(a => a.id === action.value)?.name}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              {loadingData ? (
+                                <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+                              ) : accounts.length > 0 ? (
+                                accounts.map((account) => (
+                                  <SelectItem key={account.id} value={account.id}>
+                                    <div className="flex items-center gap-2">
+                                      {account.color && (
+                                        <div
+                                          className="w-3 h-3 rounded-full border border-border"
+                                          style={{ backgroundColor: account.color }}
+                                        />
+                                      )}
+                                      <span className="text-foreground">{account.name}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        ({account.type})
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <div className="p-2 text-sm text-muted-foreground">No accounts found</div>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Transactions matching this rule will be moved to this account
+                          </p>
+                        </div>
+
+                        {/* Warning Box */}
+                        <div className="flex items-start gap-2 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-lg p-3">
+                          <AlertCircle className="h-4 w-4 text-[var(--color-warning)] mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-xs text-foreground">
+                              <strong>Important:</strong> Changing an account will update account balances automatically.
+                              Transfer transactions cannot be moved between accounts.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Information Box */}
+                        <div className="flex items-start gap-2 bg-elevated rounded-lg p-3">
+                          <Lightbulb className="h-4 w-4 text-[var(--color-primary)] mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-xs text-foreground leading-relaxed">
+                              <strong>How it works:</strong> This action moves transactions to a different account.
+                              Use this to automatically route transactions to the correct account based on merchant,
+                              amount, or other criteria. Account balances are updated automatically.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Use Case Examples */}
+                        <div className="space-y-2">
+                          <Label className="text-sm text-foreground">Common Use Cases:</Label>
+                          <div className="space-y-1 text-xs text-muted-foreground pl-3">
+                            <p>• Move all business expenses to business account</p>
+                            <p>• Route specific merchants to preferred payment card</p>
+                            <p>• Organize transactions by account type automatically</p>
+                            <p>• Correct misclassified transactions by amount threshold</p>
                           </div>
                         </div>
                       </div>
