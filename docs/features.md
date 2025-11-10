@@ -211,9 +211,26 @@
    - Production build successful with zero errors
    - **Plan Document:** `docs/enhanced-transfer-matching-plan.md`
 
-**Not Started:**
-6. ⏳ Allow income transactions to be marked as subject to sales tax
-7. ⏳ Allow transactions to be marked as subject to sales tax with a rule
+**Completed:**
+6. ✅ **Allow income transactions to be marked as subject to sales tax** (2025-11-10) - COMPLETE
+   - Transaction form UI with sales tax checkbox and tax rate selector
+   - Real-time tax calculation display (sale amount + tax + total)
+   - Tax categories fetched from API
+   - Only shown for income transactions
+   - Full theme integration with CSS variables
+   - Sales tax data included in form submission
+   - Backend creates salesTaxTransactions records automatically
+
+7. ✅ **Allow transactions to be marked as subject to sales tax with a rule** (2025-11-10) - COMPLETE
+   - New rule action type: `set_sales_tax`
+   - Rule builder UI with tax rate selector
+   - Warning and info boxes explaining functionality
+   - Backend validation and execution in actions-executor
+   - Sales tax applied automatically when rules match
+   - Only applies to income transactions
+   - Full integration with bulk apply rules
+   - Sales tax categories API created
+   - Icon and label display in rules manager
 
 
-**Note:** Phase 2 is now COMPLETE (5 of 5 features - 100%)! Action types are defined in the type system and fully implemented.
+**Note:** Phase 2 is now COMPLETE (7 of 7 features - 100%)! All action types are defined in the type system and fully implemented.

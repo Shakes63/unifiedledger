@@ -122,6 +122,14 @@ export default function RulesPage() {
         }
       }
 
+      // Validate set_sales_tax actions
+      if (action.type === 'set_sales_tax') {
+        if (!action.config?.taxCategoryId) {
+          toast.error('Please select a tax rate for set_sales_tax action');
+          return;
+        }
+      }
+
       // Validate create_split actions
       if (action.type === 'create_split') {
         if (!action.config?.splits || action.config.splits.length === 0) {

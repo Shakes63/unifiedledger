@@ -422,7 +422,60 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-### Latest: Enhanced Transfer Matching - Phase 2 COMPLETE (2025-11-10) ✅
+### Latest: Sales Tax Income Tracking - Features 6 & 7 COMPLETE (2025-11-10) ✅
+**Status:** Both features fully implemented (100%)!
+**Plan Document:** `docs/sales-tax-income-tracking-plan.md`
+
+**Feature 6: Manual Sales Tax Marking - COMPLETE ✅**
+- **Transaction Form UI** (~150 lines):
+  - Added sales tax checkbox (income transactions only)
+  - Tax rate selector with percentage display
+  - Real-time calculation preview (sale amount + tax + total)
+  - Full theme integration with CSS variables
+  - Automatic salesTaxTransactions record creation
+  - Files Modified: `components/transactions/transaction-form.tsx`
+
+**Feature 7: Rule-Based Sales Tax - COMPLETE ✅**
+- **Type System** (`lib/rules/types.ts`):
+  - Added `set_sales_tax` to RuleActionType
+  - Created SalesTaxConfig interface
+  - Extended TransactionMutations and AppliedAction types
+- **Backend** (~400 lines):
+  - Created `lib/sales-tax/transaction-sales-tax.ts` (8 utility functions)
+  - Created `lib/rules/sales-tax-action-handler.ts` (validation helpers)
+  - Updated `lib/rules/actions-executor.ts` (executeSetSalesTaxAction)
+  - Updated `app/api/transactions/route.ts` (manual + rule-based handling)
+  - Updated `app/api/transactions/[id]/route.ts` (deletion handling)
+- **API Endpoints** (~119 lines):
+  - Created `app/api/sales-tax/categories/route.ts` (GET + POST)
+  - Full CRUD for sales tax categories
+- **Rule Builder UI** (~120 lines):
+  - Added "Set Sales Tax" action type with Receipt icon
+  - Tax rate selector configuration
+  - Warning and info boxes
+  - Files Modified: `components/rules/rule-builder.tsx`, `components/rules/rules-manager.tsx`, `app/dashboard/rules/page.tsx`
+
+**Total Implementation:**
+- ~1,100+ new lines of production code
+- 4 new files created
+- 10 existing files modified
+- 2 API endpoints (GET + POST)
+- 8 utility functions
+- Zero TypeScript errors
+- Full theme support (Dark Mode + Dark Pink Theme)
+- Build Status: ✅ Production build successful
+
+**Key Features Delivered:**
+- Manual sales tax marking on income transactions
+- Rule-based automatic sales tax application
+- Real-time tax calculation display
+- Integration with quarterly sales tax reporting
+- Income-only validation throughout
+- Decimal.js precision for all calculations
+
+---
+
+### Enhanced Transfer Matching - Phase 2 COMPLETE (2025-11-10) ✅
 **Status:** 5 of 5 features complete (100%) - Phase 2 fully implemented!
 **Plan Document:** `docs/enhanced-transfer-matching-plan.md`
 

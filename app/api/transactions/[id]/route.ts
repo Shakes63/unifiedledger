@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { transactions, accounts, budgetCategories, transactionSplits, bills, billInstances, merchants, debts, tags, transactionTags, customFields, customFieldValues } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
+import { deleteSalesTaxRecord } from '@/lib/sales-tax/transaction-sales-tax';
 
 export const dynamic = 'force-dynamic';
 
@@ -592,6 +593,9 @@ export async function DELETE(
           .set({ currentBalance: newBalance.toNumber() })
           .where(eq(accounts.id, transaction.accountId));
       }
+
+      // Delete sales tax record if exists
+      await deleteSalesTaxRecord(id);
 
       // Delete transaction
       await db

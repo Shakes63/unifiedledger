@@ -13,7 +13,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Plus, X, ChevronDown, AlertCircle, Zap, Tag, Store, FileEdit, FileText, ArrowRightLeft, Settings, Lightbulb, Scissors, DollarSign, Percent, Banknote } from 'lucide-react';
+import { Plus, X, ChevronDown, AlertCircle, Zap, Tag, Store, FileEdit, FileText, ArrowRightLeft, Settings, Lightbulb, Scissors, DollarSign, Percent, Banknote, Receipt } from 'lucide-react';
 import { Condition, ConditionGroup, ComparisonOperator, ConditionField } from '@/lib/rules/condition-evaluator';
 import { RuleAction } from '@/lib/rules/types';
 import { nanoid } from 'nanoid';
@@ -297,16 +297,18 @@ export function RuleBuilder({
   const [categories, setCategories] = useState<Category[]>([]);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [taxCategories, setTaxCategories] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
-  // Fetch categories, merchants, and accounts
+  // Fetch categories, merchants, accounts, and tax categories
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [categoriesRes, merchantsRes, accountsRes] = await Promise.all([
+        const [categoriesRes, merchantsRes, accountsRes, taxCategoriesRes] = await Promise.all([
           fetch('/api/categories'),
           fetch('/api/merchants'),
-          fetch('/api/accounts?sortBy=name&sortOrder=asc')
+          fetch('/api/accounts?sortBy=name&sortOrder=asc'),
+          fetch('/api/sales-tax/categories')
         ]);
 
         if (categoriesRes.ok) {
@@ -322,6 +324,11 @@ export function RuleBuilder({
         if (accountsRes.ok) {
           const accountsData = await accountsRes.json();
           setAccounts(accountsData.data || []);
+        }
+
+        if (taxCategoriesRes.ok) {
+          const taxCategoriesData = await taxCategoriesRes.json();
+          setTaxCategories(taxCategoriesData.categories || []);
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);
@@ -553,6 +560,12 @@ export function RuleBuilder({
                             Set Account
                           </div>
                         </SelectItem>
+                        <SelectItem value="set_sales_tax">
+                          <div className="flex items-center gap-2">
+                            <Receipt className="h-4 w-4 text-[var(--color-warning)]" />
+                            Set Sales Tax
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -653,6 +666,65 @@ export function RuleBuilder({
                             <p className="text-xs text-muted-foreground mt-1">
                               Requires a category to be set (either manually or via a set_category action).
                             </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {action.type === 'set_sales_tax' && (
+                      <div className="flex-1 space-y-4">
+                        {/* Tax Rate Selector */}
+                        <div className="space-y-2">
+                          <Label className="text-sm text-foreground">Tax Rate</Label>
+                          <Select
+                            value={action.config?.taxCategoryId || ''}
+                            onValueChange={(val) =>
+                              updateActionConfig(index, {
+                                ...action.config,
+                                taxCategoryId: val
+                              })
+                            }
+                          >
+                            <SelectTrigger className="bg-input border-border">
+                              <SelectValue placeholder="Select tax rate" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {taxCategories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>
+                                  {cat.name} ({(cat.rate * 100).toFixed(2)}%)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Warning Box */}
+                        <div className="rounded-lg bg-[var(--color-warning)] bg-opacity-10 border border-[var(--color-warning)] p-3">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="h-4 w-4 text-[var(--color-warning)] mt-0.5 flex-shrink-0" />
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              <p className="font-medium text-foreground">Important Notes:</p>
+                              <ul className="list-disc list-inside space-y-0.5 ml-1">
+                                <li>Only applies to income transactions</li>
+                                <li>Creates sales tax record for quarterly reporting</li>
+                                <li>Tax amount calculated automatically based on rate</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Info Box */}
+                        <div className="rounded-lg bg-[var(--color-accent)] bg-opacity-10 border border-[var(--color-accent)] p-3">
+                          <div className="flex items-start gap-2">
+                            <Lightbulb className="h-4 w-4 text-[var(--color-accent)] mt-0.5 flex-shrink-0" />
+                            <div className="text-xs text-muted-foreground space-y-1">
+                              <p className="font-medium text-foreground">Common Use Cases:</p>
+                              <ul className="list-disc list-inside space-y-0.5 ml-1">
+                                <li>Apply tax to all product sales</li>
+                                <li>Apply different rates for different product categories</li>
+                                <li>Automatically track taxable income for filing</li>
+                              </ul>
+                            </div>
                           </div>
                         </div>
                       </div>

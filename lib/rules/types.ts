@@ -14,10 +14,11 @@ export type RuleActionType =
   | 'append_description'     // Append text to description
   | 'prepend_description'    // Prepend text to description
   | 'set_merchant'           // Set transaction merchant
-  | 'set_tax_deduction'      // Mark as tax deductible (future)
-  | 'set_account'            // Change transaction account (future)
-  | 'convert_to_transfer'    // Convert to transfer transaction (future)
-  | 'create_split';          // Split transaction (future)
+  | 'set_tax_deduction'      // Mark as tax deductible
+  | 'set_account'            // Change transaction account
+  | 'convert_to_transfer'    // Convert to transfer transaction
+  | 'create_split'           // Split transaction
+  | 'set_sales_tax';         // Mark transaction as subject to sales tax
 
 /**
  * Rule action definition
@@ -46,7 +47,7 @@ export interface AppliedAction {
   type: RuleActionType;
 
   /** Field that was modified */
-  field: 'categoryId' | 'description' | 'merchantId' | 'accountId' | 'isTaxDeductible' | 'type' | 'isSplit';
+  field: 'categoryId' | 'description' | 'merchantId' | 'accountId' | 'isTaxDeductible' | 'type' | 'isSplit' | 'salesTax';
 
   /** Original value before action */
   originalValue?: string | null;
@@ -110,6 +111,14 @@ export interface SplitConfig {
 }
 
 /**
+ * Sales tax configuration for set_sales_tax action
+ */
+export interface SalesTaxConfig {
+  taxCategoryId: string;
+  enabled: boolean;
+}
+
+/**
  * Transaction mutations to apply
  * Result from actions executor
  */
@@ -140,6 +149,9 @@ export interface TransactionMutations {
 
   /** Split configurations (if create_split action) */
   createSplits?: SplitConfig[];
+
+  /** Sales tax to apply (if set_sales_tax action) */
+  applySalesTax?: SalesTaxConfig;
 }
 
 /**

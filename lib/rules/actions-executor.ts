@@ -17,6 +17,7 @@ import type {
   PATTERN_VARIABLES,
   SplitConfig,
 } from './types';
+import { validateSalesTaxConfig } from './sales-tax-action-handler';
 
 /**
  * Parse description pattern with variable substitution
@@ -83,6 +84,12 @@ function validateAction(action: RuleAction): string | null {
 
     case 'set_tax_deduction':
       // No additional validation needed - depends on category
+      break;
+
+    case 'set_sales_tax':
+      if (!action.config || !action.config.taxCategoryId) {
+        return 'Tax category ID is required for set_sales_tax action';
+      }
       break;
 
     case 'convert_to_transfer':
@@ -309,6 +316,42 @@ async function executeSetTaxDeductionAction(
 }
 
 /**
+ * Execute a set_sales_tax action
+ * Marks transaction as subject to sales tax
+ * Note: Sales tax record creation happens AFTER transaction is created
+ */
+async function executeSetSalesTaxAction(
+  action: RuleAction,
+  context: ActionExecutionContext,
+  mutations: TransactionMutations
+): Promise<AppliedAction | null> {
+  try {
+    // Validate configuration
+    const config = validateSalesTaxConfig(action.config);
+
+    // Only apply to income transactions
+    if (context.transaction.type !== 'income') {
+      console.warn('Sales tax can only be applied to income transactions, skipping');
+      return null;
+    }
+
+    // Store sales tax config for post-creation processing
+    mutations.applySalesTax = config;
+
+    return {
+      type: 'set_sales_tax',
+      field: 'salesTax',
+      originalValue: null,
+      newValue: config.taxCategoryId,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to execute set_sales_tax action:', message);
+    throw error;
+  }
+}
+
+/**
  * Execute a set_account action
  * Changes the transaction's account
  * Note: Actual account change and balance updates happen AFTER transaction is created
@@ -491,6 +534,10 @@ export async function executeRuleActions(
           appliedAction = await executeSetTaxDeductionAction(action, context, mutations);
           break;
 
+        case 'set_sales_tax':
+          appliedAction = await executeSetSalesTaxAction(action, context, mutations);
+          break;
+
         case 'set_account':
           appliedAction = await executeSetAccountAction(action, context, mutations);
           break;
@@ -559,6 +606,8 @@ export function getActionDescription(action: RuleAction): string {
       return `Append "${action.pattern || ''}" to description`;
     case 'set_tax_deduction':
       return 'Mark as tax deductible';
+    case 'set_sales_tax':
+      return 'Apply sales tax';
     case 'set_account':
       return `Move to account ${action.value || '(unknown)'}`;
     case 'convert_to_transfer':
