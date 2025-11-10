@@ -6,6 +6,7 @@ import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import { TransactionData } from '@/lib/rules/condition-evaluator';
+import { executeRuleActions } from '@/lib/rules/actions-executor';
 import { findMatchingBills } from '@/lib/bills/bill-matcher';
 import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
 
@@ -122,6 +123,9 @@ export async function POST(request: Request) {
     // Apply categorization rules if no category provided
     let appliedCategoryId = categoryId;
     let appliedRuleId: string | null = null;
+    let appliedActions: any[] = [];
+    let finalDescription = description;
+    let finalMerchantId = merchantId;
 
     if (!appliedCategoryId && type !== 'transfer_in' && type !== 'transfer_out' && type !== 'transfer') {
       try {
@@ -136,8 +140,75 @@ export async function POST(request: Request) {
         const ruleMatch = await findMatchingRule(userId, transactionData);
 
         if (ruleMatch.matched && ruleMatch.rule) {
-          appliedCategoryId = ruleMatch.rule.categoryId;
           appliedRuleId = ruleMatch.rule.ruleId;
+
+          // Get merchant info if set (for action context)
+          let merchantInfo = null;
+          if (merchantId) {
+            const merchantResult = await db
+              .select()
+              .from(merchants)
+              .where(eq(merchants.id, merchantId))
+              .limit(1);
+            if (merchantResult.length > 0) {
+              merchantInfo = {
+                id: merchantResult[0].id,
+                name: merchantResult[0].name,
+              };
+            }
+          }
+
+          // Get category info if set (for action context)
+          let categoryInfo = null;
+          if (categoryId) {
+            const categoryResult = await db
+              .select()
+              .from(budgetCategories)
+              .where(eq(budgetCategories.id, categoryId))
+              .limit(1);
+            if (categoryResult.length > 0) {
+              categoryInfo = {
+                id: categoryResult[0].id,
+                name: categoryResult[0].name,
+                type: categoryResult[0].type,
+              };
+            }
+          }
+
+          // Execute rule actions
+          const executionResult = await executeRuleActions(
+            userId,
+            ruleMatch.rule.actions,
+            {
+              categoryId: appliedCategoryId || null,
+              description,
+              merchantId: merchantId || null,
+              accountId,
+              amount: parseFloat(amount),
+              date,
+            },
+            merchantInfo,
+            categoryInfo
+          );
+
+          // Apply mutations
+          if (executionResult.mutations.categoryId !== undefined) {
+            appliedCategoryId = executionResult.mutations.categoryId;
+          }
+          if (executionResult.mutations.description) {
+            finalDescription = executionResult.mutations.description;
+          }
+          if (executionResult.mutations.merchantId !== undefined) {
+            finalMerchantId = executionResult.mutations.merchantId;
+          }
+
+          // Store applied actions for logging
+          appliedActions = executionResult.appliedActions;
+
+          // Log any errors from action execution (non-fatal)
+          if (executionResult.errors && executionResult.errors.length > 0) {
+            console.warn('Rule action execution errors:', executionResult.errors);
+          }
         }
       } catch (error) {
         // Log error but don't fail transaction creation
@@ -278,11 +349,11 @@ export async function POST(request: Request) {
         userId,
         accountId,
         categoryId: appliedCategoryId || null,
-        merchantId: merchantId || null,
+        merchantId: finalMerchantId || null,
         debtId: debtId || null,
         date,
         amount: decimalAmount.toNumber(),
-        description,
+        description: finalDescription,
         notes: notes || null,
         type,
         transferId: null,
@@ -371,14 +442,14 @@ export async function POST(request: Request) {
     }
 
     // Track merchant usage if merchantId is provided
-    if (merchantId) {
+    if (finalMerchantId) {
       // Verify merchant exists and belongs to user
       const merchant = await db
         .select()
         .from(merchants)
         .where(
           and(
-            eq(merchants.id, merchantId),
+            eq(merchants.id, finalMerchantId),
             eq(merchants.userId, userId)
           )
         )
@@ -398,7 +469,7 @@ export async function POST(request: Request) {
             totalSpent: newSpent.toNumber(),
             averageTransaction: avgTransaction.toNumber(),
           })
-          .where(eq(merchants.id, merchantId));
+          .where(eq(merchants.id, finalMerchantId));
 
         // Track in usage analytics
         const existingAnalytics = await db
@@ -408,7 +479,7 @@ export async function POST(request: Request) {
             and(
               eq(usageAnalytics.userId, userId),
               eq(usageAnalytics.itemType, 'merchant'),
-              eq(usageAnalytics.itemId, merchantId)
+              eq(usageAnalytics.itemId, finalMerchantId)
             )
           )
           .limit(1);
@@ -424,7 +495,7 @@ export async function POST(request: Request) {
               and(
                 eq(usageAnalytics.userId, userId),
                 eq(usageAnalytics.itemType, 'merchant'),
-                eq(usageAnalytics.itemId, merchantId)
+                eq(usageAnalytics.itemId, finalMerchantId)
               )
             );
         } else {
@@ -433,7 +504,7 @@ export async function POST(request: Request) {
             id: analyticsId,
             userId,
             itemType: 'merchant',
-            itemId: merchantId,
+            itemId: finalMerchantId,
             usageCount: 1,
             lastUsedAt: new Date().toISOString(),
             createdAt: new Date().toISOString(),
@@ -443,14 +514,15 @@ export async function POST(request: Request) {
     }
 
     // Log rule execution if a rule was applied
-    if (appliedRuleId && appliedCategoryId) {
+    if (appliedRuleId) {
       try {
         await db.insert(ruleExecutionLog).values({
           id: nanoid(),
           userId,
           ruleId: appliedRuleId,
           transactionId,
-          appliedCategoryId,
+          appliedCategoryId: appliedCategoryId || null,
+          appliedActions: appliedActions.length > 0 ? JSON.stringify(appliedActions) : null,
           matched: true,
           executedAt: new Date().toISOString(),
         });

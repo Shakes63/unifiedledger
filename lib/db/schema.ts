@@ -701,11 +701,12 @@ export const categorizationRules = sqliteTable(
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
     name: text('name').notNull(),
-    categoryId: text('category_id').notNull(),
+    categoryId: text('category_id'), // Nullable for backward compatibility, use actions instead
     description: text('description'),
     priority: integer('priority').default(100), // Lower number = higher priority
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
     conditions: text('conditions').notNull(), // JSON array of condition groups
+    actions: text('actions'), // JSON array of actions to apply (set_category, set_description, etc.)
     matchCount: integer('match_count').default(0),
     lastMatchedAt: text('last_matched_at'),
     testResults: text('test_results'), // JSON with test run results
@@ -725,7 +726,8 @@ export const ruleExecutionLog = sqliteTable(
     userId: text('user_id').notNull(),
     ruleId: text('rule_id').notNull(),
     transactionId: text('transaction_id').notNull(),
-    appliedCategoryId: text('applied_category_id').notNull(),
+    appliedCategoryId: text('applied_category_id'), // Nullable - may not set category
+    appliedActions: text('applied_actions'), // JSON array of all actions applied
     matched: integer('matched', { mode: 'boolean' }).notNull(),
     executedAt: text('executed_at').default(new Date().toISOString()),
   },

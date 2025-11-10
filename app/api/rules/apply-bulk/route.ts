@@ -1,17 +1,24 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
-import { transactions, budgetCategories, ruleExecutionLog } from '@/lib/db/schema';
+import { transactions, budgetCategories, merchants, ruleExecutionLog } from '@/lib/db/schema';
 import { eq, and, isNull, ne, gte, lte } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import { TransactionData } from '@/lib/rules/condition-evaluator';
+import { executeRuleActions } from '@/lib/rules/actions-executor';
+import type { AppliedAction } from '@/lib/rules/types';
 export const dynamic = 'force-dynamic';
 
 interface BulkApplyResult {
   totalProcessed: number;
   totalUpdated: number;
   errors: { transactionId: string; error: string }[];
-  appliedRules: { transactionId: string; ruleId: string; categoryId: string }[];
+  appliedRules: {
+    transactionId: string;
+    ruleId: string;
+    categoryId: string | null;
+    appliedActions: AppliedAction[];
+  }[];
 }
 
 /**
@@ -147,22 +154,88 @@ export async function POST(request: Request) {
             continue;
           }
 
-          // Update transaction with category from rule
-          await db
-            .update(transactions)
-            .set({
-              categoryId: ruleMatch.rule.categoryId,
-              updatedAt: new Date().toISOString(),
-            })
-            .where(eq(transactions.id, txn.id));
+          // Get merchant info if exists (for action context)
+          let merchantInfo = null;
+          if (txn.merchantId) {
+            const merchantResult = await db
+              .select()
+              .from(merchants)
+              .where(eq(merchants.id, txn.merchantId))
+              .limit(1);
+            if (merchantResult.length > 0) {
+              merchantInfo = {
+                id: merchantResult[0].id,
+                name: merchantResult[0].name,
+              };
+            }
+          }
 
-          // Log the rule execution
+          // Get category info if exists (for action context)
+          let categoryInfo = null;
+          if (txn.categoryId) {
+            const categoryResult = await db
+              .select()
+              .from(budgetCategories)
+              .where(eq(budgetCategories.id, txn.categoryId))
+              .limit(1);
+            if (categoryResult.length > 0) {
+              categoryInfo = {
+                id: categoryResult[0].id,
+                name: categoryResult[0].name,
+                type: categoryResult[0].type,
+              };
+            }
+          }
+
+          // Execute rule actions
+          const executionResult = await executeRuleActions(
+            userId,
+            ruleMatch.rule.actions,
+            {
+              categoryId: txn.categoryId || null,
+              description: txn.description,
+              merchantId: txn.merchantId || null,
+              accountId: txn.accountId,
+              amount: txn.amount,
+              date: txn.date,
+            },
+            merchantInfo,
+            categoryInfo
+          );
+
+          // Build update object with only changed fields
+          const updates: any = {
+            updatedAt: new Date().toISOString(),
+          };
+
+          if (executionResult.mutations.categoryId !== undefined) {
+            updates.categoryId = executionResult.mutations.categoryId;
+          }
+          if (executionResult.mutations.description) {
+            updates.description = executionResult.mutations.description;
+          }
+          if (executionResult.mutations.merchantId !== undefined) {
+            updates.merchantId = executionResult.mutations.merchantId;
+          }
+
+          // Update transaction with all mutations
+          if (Object.keys(updates).length > 1) { // More than just updatedAt
+            await db
+              .update(transactions)
+              .set(updates)
+              .where(eq(transactions.id, txn.id));
+          }
+
+          // Log the rule execution with applied actions
           await db.insert(ruleExecutionLog).values({
             id: nanoid(),
             userId,
             ruleId: ruleMatch.rule.ruleId,
             transactionId: txn.id,
-            appliedCategoryId: ruleMatch.rule.categoryId,
+            appliedCategoryId: executionResult.mutations.categoryId || null,
+            appliedActions: executionResult.appliedActions.length > 0
+              ? JSON.stringify(executionResult.appliedActions)
+              : null,
             matched: true,
             executedAt: new Date().toISOString(),
           });
@@ -171,7 +244,8 @@ export async function POST(request: Request) {
           result.appliedRules.push({
             transactionId: txn.id,
             ruleId: ruleMatch.rule.ruleId,
-            categoryId: ruleMatch.rule.categoryId,
+            categoryId: executionResult.mutations.categoryId || null,
+            appliedActions: executionResult.appliedActions,
           });
         }
       } catch (error) {

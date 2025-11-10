@@ -1,9 +1,11 @@
 import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
-import { categorizationRules, budgetCategories } from '@/lib/db/schema';
+import { categorizationRules, budgetCategories, merchants } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { validateConditionGroup } from '@/lib/rules/condition-evaluator';
+import { validateActions } from '@/lib/rules/actions-executor';
+import type { RuleAction } from '@/lib/rules/types';
 export const dynamic = 'force-dynamic';
 
 /**
@@ -73,36 +75,102 @@ export async function POST(request: Request) {
     const {
       name,
       categoryId,
+      actions,
       description = '',
       priority = 100,
       conditions,
     } = body;
 
     // Validate required fields
-    if (!name || !categoryId || !conditions) {
+    if (!name || (!categoryId && !actions) || !conditions) {
       return Response.json(
-        { error: 'Missing required fields: name, categoryId, conditions' },
+        { error: 'Missing required fields: name, actions (or categoryId), conditions' },
         { status: 400 }
       );
     }
 
-    // Validate category exists and belongs to user
-    const category = await db
-      .select()
-      .from(budgetCategories)
-      .where(
-        and(
-          eq(budgetCategories.id, categoryId),
-          eq(budgetCategories.userId, userId)
-        )
-      )
-      .limit(1);
+    // Parse actions array (or create from categoryId for backward compatibility)
+    let actionsArray: RuleAction[] = [];
+    if (actions) {
+      actionsArray = typeof actions === 'string' ? JSON.parse(actions) : actions;
 
-    if (category.length === 0) {
-      return Response.json(
-        { error: 'Category not found' },
-        { status: 404 }
-      );
+      // Validate actions
+      const actionErrors = validateActions(actionsArray);
+      if (actionErrors.length > 0) {
+        return Response.json(
+          { error: 'Invalid actions', details: actionErrors },
+          { status: 400 }
+        );
+      }
+
+      // Validate referenced entities (categories, merchants)
+      for (const action of actionsArray) {
+        if (action.type === 'set_category' && action.value) {
+          const category = await db
+            .select()
+            .from(budgetCategories)
+            .where(
+              and(
+                eq(budgetCategories.id, action.value),
+                eq(budgetCategories.userId, userId)
+              )
+            )
+            .limit(1);
+
+          if (category.length === 0) {
+            return Response.json(
+              { error: `Category ${action.value} not found` },
+              { status: 404 }
+            );
+          }
+        }
+
+        if (action.type === 'set_merchant' && action.value) {
+          const merchant = await db
+            .select()
+            .from(merchants)
+            .where(
+              and(
+                eq(merchants.id, action.value),
+                eq(merchants.userId, userId)
+              )
+            )
+            .limit(1);
+
+          if (merchant.length === 0) {
+            return Response.json(
+              { error: `Merchant ${action.value} not found` },
+              { status: 404 }
+            );
+          }
+        }
+      }
+    } else if (categoryId) {
+      // Backward compatibility: create actions array from categoryId
+      const category = await db
+        .select()
+        .from(budgetCategories)
+        .where(
+          and(
+            eq(budgetCategories.id, categoryId),
+            eq(budgetCategories.userId, userId)
+          )
+        )
+        .limit(1);
+
+      if (category.length === 0) {
+        return Response.json(
+          { error: 'Category not found' },
+          { status: 404 }
+        );
+      }
+
+      actionsArray = [
+        {
+          type: 'set_category',
+          value: categoryId,
+        },
+      ];
     }
 
     // Validate conditions
@@ -130,12 +198,17 @@ export async function POST(request: Request) {
     const conditionsStr = typeof conditions === 'string'
       ? conditions
       : JSON.stringify(conditions);
+    const actionsStr = JSON.stringify(actionsArray);
+
+    // Extract first set_category action for categoryId field (backward compatibility)
+    const setCategoryAction = actionsArray.find(a => a.type === 'set_category');
 
     await db.insert(categorizationRules).values({
       id: ruleId,
       userId,
       name,
-      categoryId,
+      categoryId: setCategoryAction?.value || categoryId || null,
+      actions: actionsStr,
       description: description || null,
       priority: parseInt(String(priority), 10),
       isActive: true,
@@ -177,6 +250,7 @@ export async function PUT(request: Request) {
       id,
       name,
       categoryId,
+      actions,
       description,
       priority,
       conditions,
@@ -209,8 +283,65 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Validate category if provided
-    if (categoryId) {
+    // Validate and parse actions if provided
+    let actionsArray: RuleAction[] | undefined;
+    if (actions) {
+      const parsedActions: RuleAction[] = typeof actions === 'string' ? JSON.parse(actions) : actions;
+      actionsArray = parsedActions;
+
+      // Validate actions
+      const actionErrors = validateActions(parsedActions);
+      if (actionErrors.length > 0) {
+        return Response.json(
+          { error: 'Invalid actions', details: actionErrors },
+          { status: 400 }
+        );
+      }
+
+      // Validate referenced entities (categories, merchants)
+      for (const action of parsedActions) {
+        if (action.type === 'set_category' && action.value) {
+          const category = await db
+            .select()
+            .from(budgetCategories)
+            .where(
+              and(
+                eq(budgetCategories.id, action.value),
+                eq(budgetCategories.userId, userId)
+              )
+            )
+            .limit(1);
+
+          if (category.length === 0) {
+            return Response.json(
+              { error: `Category ${action.value} not found` },
+              { status: 404 }
+            );
+          }
+        }
+
+        if (action.type === 'set_merchant' && action.value) {
+          const merchant = await db
+            .select()
+            .from(merchants)
+            .where(
+              and(
+                eq(merchants.id, action.value),
+                eq(merchants.userId, userId)
+              )
+            )
+            .limit(1);
+
+          if (merchant.length === 0) {
+            return Response.json(
+              { error: `Merchant ${action.value} not found` },
+              { status: 404 }
+            );
+          }
+        }
+      }
+    } else if (categoryId) {
+      // Backward compatibility: if only categoryId is provided, validate it
       const category = await db
         .select()
         .from(budgetCategories)
@@ -228,6 +359,14 @@ export async function PUT(request: Request) {
           { status: 404 }
         );
       }
+
+      // Create actions array from categoryId
+      actionsArray = [
+        {
+          type: 'set_category',
+          value: categoryId,
+        },
+      ];
     }
 
     // Validate conditions if provided
@@ -258,7 +397,6 @@ export async function PUT(request: Request) {
     };
 
     if (name !== undefined) updates.name = name;
-    if (categoryId !== undefined) updates.categoryId = categoryId;
     if (description !== undefined) updates.description = description || null;
     if (priority !== undefined) updates.priority = parseInt(String(priority), 10);
     if (conditions !== undefined) {
@@ -267,6 +405,18 @@ export async function PUT(request: Request) {
         : JSON.stringify(conditions);
     }
     if (isActive !== undefined) updates.isActive = isActive;
+
+    // Update actions array (and categoryId for backward compatibility)
+    if (actionsArray !== undefined) {
+      updates.actions = JSON.stringify(actionsArray);
+
+      // Extract first set_category action for categoryId field
+      const setCategoryAction = actionsArray.find(a => a.type === 'set_category');
+      updates.categoryId = setCategoryAction?.value || null;
+    } else if (categoryId !== undefined) {
+      // Backward compatibility: if only categoryId is provided without actions
+      updates.categoryId = categoryId;
+    }
 
     await db
       .update(categorizationRules)

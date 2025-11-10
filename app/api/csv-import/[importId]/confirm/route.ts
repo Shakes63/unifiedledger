@@ -108,7 +108,11 @@ export async function POST(
         );
 
         if (ruleMatch.matched && ruleMatch.rule) {
-          categoryId = ruleMatch.rule.categoryId;
+          // Extract categoryId from actions (find first set_category action)
+          const setCategoryAction = ruleMatch.rule.actions.find(a => a.type === 'set_category');
+          if (setCategoryAction && setCategoryAction.value) {
+            categoryId = setCategoryAction.value;
+          }
         } else if (mappedData.category) {
           // Use provided category if available
           categoryId = mappedData.category;

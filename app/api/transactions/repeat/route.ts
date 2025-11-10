@@ -109,7 +109,11 @@ export async function POST(request: Request) {
         const ruleMatch = await findMatchingRule(userId, transactionData);
 
         if (ruleMatch.matched && ruleMatch.rule) {
-          appliedCategoryId = ruleMatch.rule.categoryId;
+          // Extract categoryId from actions (find first set_category action)
+          const setCategoryAction = ruleMatch.rule.actions.find(a => a.type === 'set_category');
+          if (setCategoryAction && setCategoryAction.value) {
+            appliedCategoryId = setCategoryAction.value;
+          }
           appliedRuleId = ruleMatch.rule.ruleId;
         }
       } catch (error) {
