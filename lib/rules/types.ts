@@ -47,13 +47,13 @@ export interface AppliedAction {
   type: RuleActionType;
 
   /** Field that was modified */
-  field: 'categoryId' | 'description' | 'merchantId' | 'accountId' | 'isTaxDeductible' | 'type' | 'isSplit' | 'salesTax';
+  field: 'categoryId' | 'description' | 'merchantId' | 'accountId' | 'isTaxDeductible' | 'isSalesTaxable' | 'type' | 'isSplit';
 
   /** Original value before action */
-  originalValue?: string | null;
+  originalValue?: string | boolean | null;
 
   /** New value after action */
-  newValue: string | null;
+  newValue: string | boolean | null;
 }
 
 /**
@@ -112,10 +112,10 @@ export interface SplitConfig {
 
 /**
  * Sales tax configuration for set_sales_tax action
+ * Simplified to boolean flag - no configuration needed
  */
 export interface SalesTaxConfig {
-  taxCategoryId: string;
-  enabled: boolean;
+  enabled: boolean; // Always true when action exists
 }
 
 /**
@@ -139,6 +139,9 @@ export interface TransactionMutations {
   /** Tax deductible flag (if set_tax_deduction action) */
   isTaxDeductible?: boolean;
 
+  /** Sales taxable flag (if set_sales_tax action) */
+  isSalesTaxable?: boolean;
+
   /** Account change config (if set_account action - post-creation) */
   changeAccount?: {
     targetAccountId: string;
@@ -149,9 +152,6 @@ export interface TransactionMutations {
 
   /** Split configurations (if create_split action) */
   createSplits?: SplitConfig[];
-
-  /** Sales tax to apply (if set_sales_tax action) */
-  applySalesTax?: SalesTaxConfig;
 }
 
 /**
@@ -172,6 +172,7 @@ export interface ActionExecutionContext {
     date: string;
     type: string;
     isTaxDeductible?: boolean;
+    isSalesTaxable?: boolean;
   };
 
   /** Merchant details (if available) */

@@ -74,18 +74,6 @@ interface CustomFieldValue {
   updatedAt: string;
 }
 
-interface TaxCategory {
-  id: string;
-  userId: string;
-  name: string;
-  rate: number;
-  description?: string;
-  isDefault: boolean;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
 interface TransactionFormProps {
   defaultType?: TransactionType;
   transactionId?: string;
@@ -118,22 +106,12 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [billsLoading, setBillsLoading] = useState(false);
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
   const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
-  const [selectedTaxCategoryId, setSelectedTaxCategoryId] = useState<string>('');
-  const [taxCategories, setTaxCategories] = useState<TaxCategory[]>([]);
-  const [taxCategoriesLoading, setTaxCategoriesLoading] = useState(true);
   const isEditMode = !!transactionId;
 
   // Helper function to get today's date in YYYY-MM-DD format
   const getTodaysDate = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
-  };
-
-  // Helper function to calculate sales tax
-  const calculateTax = (amount: string, taxCategoryId: string): number => {
-    const taxCategory = taxCategories.find(c => c.id === taxCategoryId);
-    if (!taxCategory) return 0;
-    return parseFloat(amount) * taxCategory.rate;
   };
 
   const [formData, setFormData] = useState({
@@ -184,24 +162,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       }
     };
 
-    const fetchTaxCategories = async () => {
-      try {
-        setTaxCategoriesLoading(true);
-        const response = await fetch('/api/sales-tax/categories');
-        if (!response.ok) throw new Error('Failed to fetch tax categories');
-
-        const data = await response.json();
-        setTaxCategories(data.categories || []);
-      } catch (error) {
-        console.error('Error fetching tax categories:', error);
-      } finally {
-        setTaxCategoriesLoading(false);
-      }
-    };
-
     fetchTags();
     fetchCustomFields();
-    fetchTaxCategories();
   }, []);
 
   // Load existing transaction data when in edit mode
@@ -519,11 +481,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       const submitData = {
         ...formData,
         type: formData.type === 'bill' ? 'expense' : formData.type,
-        // Include sales tax if enabled for income transactions
-        salesTax: salesTaxEnabled && selectedTaxCategoryId && formData.type === 'income' ? {
-          taxCategoryId: selectedTaxCategoryId,
-          enabled: true,
-        } : null,
+        // Include sales tax boolean for income transactions
+        isSalesTaxable: formData.type === 'income' ? salesTaxEnabled : false,
       };
 
       const response = await fetch(apiUrl, {
@@ -941,68 +900,21 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       )}
 
       {/* Sales Tax Section - Only for income transactions */}
-      {formData.type === 'income' && !taxCategoriesLoading && taxCategories.length > 0 && (
-        <div className="space-y-3 border-t border-border pt-4">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium text-foreground">Subject to Sales Tax</Label>
-            <input
-              type="checkbox"
-              checked={salesTaxEnabled}
-              onChange={(e) => {
-                setSalesTaxEnabled(e.target.checked);
-                if (!e.target.checked) {
-                  setSelectedTaxCategoryId('');
-                }
-              }}
-              className="h-4 w-4 rounded border-border bg-input text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-0"
-            />
-          </div>
-
-          {salesTaxEnabled && (
-            <>
-              <div className="space-y-2">
-                <Label className="text-sm text-muted-foreground">Tax Rate</Label>
-                <Select
-                  value={selectedTaxCategoryId}
-                  onValueChange={setSelectedTaxCategoryId}
-                >
-                  <SelectTrigger className="h-12 md:h-10 text-base md:text-sm bg-input border-border">
-                    <SelectValue placeholder="Select tax rate" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {taxCategories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name} ({(cat.rate * 100).toFixed(2)}%)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedTaxCategoryId && formData.amount && (
-                <div className="rounded-lg bg-card border border-border p-3 space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Sale Amount:</span>
-                    <span className="text-foreground font-mono">
-                      ${parseFloat(formData.amount).toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Sales Tax:</span>
-                    <span className="text-[var(--color-primary)] font-mono">
-                      ${calculateTax(formData.amount, selectedTaxCategoryId).toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm font-medium pt-1 border-t border-border">
-                    <span className="text-foreground">Total:</span>
-                    <span className="text-foreground font-mono">
-                      ${(parseFloat(formData.amount) + calculateTax(formData.amount, selectedTaxCategoryId)).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+      {formData.type === 'income' && (
+        <div className="flex items-center space-x-2 border-t border-border pt-4">
+          <input
+            type="checkbox"
+            id="salesTax"
+            checked={salesTaxEnabled}
+            onChange={(e) => setSalesTaxEnabled(e.target.checked)}
+            className="h-4 w-4 rounded border-border bg-input text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-0"
+          />
+          <label
+            htmlFor="salesTax"
+            className="text-sm text-muted-foreground cursor-pointer"
+          >
+            Subject to sales tax
+          </label>
         </div>
       )}
 

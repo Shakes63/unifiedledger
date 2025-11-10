@@ -298,7 +298,7 @@ All color variables are defined in `app/globals.css` and can be accessed via:
 - **Credit Utilization Tracking:** Complete credit card utilization monitoring with dashboard widget, inline badges, API endpoint, and collapsible sections
 - **Collapsible Debt Cards:** Enhanced debt UI with payment history and amortization sections (in progress)
 
-### Phase 8: Testing 🟢 (In Progress)
+### Phase 8: Testing 🟢 (96% Complete - Unit Tests Done, Integration Tests 50% Done!)
 - ✅ Test infrastructure complete
 - ✅ Split calculator tests: 80+ test cases, 100% coverage
 - ✅ **Condition evaluator tests: 154 test cases, 100% coverage** (2025-11-10)
@@ -320,18 +320,39 @@ All color variables are defined in `app/globals.css` and can be accessed via:
   - Edge cases: unicode, emoji, large amounts, leap years, zero/negative amounts
   - Test file: `__tests__/lib/rules/rule-matcher.test.ts`
   - Plan: `docs/rule-matcher-testing-plan.md` (Detailed 9-task implementation plan)
-- 🟡 **Actions executor tests: 70 test cases, 51% coverage** (2025-11-10) - IN PROGRESS
-  - All immediate actions tested: set_category, set_merchant, description actions, set_tax_deduction
+- ✅ **Actions executor tests: 139 test cases, 100% coverage** (2025-11-10) - COMPLETE
+  - All 9 action types fully tested: set_category, set_merchant, description actions (3), set_tax_deduction, set_sales_tax, set_account, create_split, convert_to_transfer
   - Pattern variable substitution fully tested (15 tests): {original}, {merchant}, {category}, {amount}, {date}
   - Database mocking with category and merchant validation
-  - Context updates between chained actions verified
-  - Remaining: Post-creation actions (splits, transfers, account changes), validation, utilities
-  - Test file: `__tests__/lib/rules/actions-executor.test.ts` (~1,185 lines)
-  - Plan: `docs/actions-executor-testing-plan.md` (Detailed 14-task plan with 138 total tests)
-  - **7 of 14 tasks complete** - All immediate actions tested, post-creation actions remaining
-- ⏳ Integration tests: ~30 tests (not started)
-- **Target:** 80%+ overall coverage
-- **Current Progress:** 289 tests implemented (75% of planned 384 tests)
+  - Multi-action execution with context propagation (12 tests)
+  - Comprehensive validation and error handling (12 tests)
+  - Utility functions (5 tests)
+  - Post-creation actions: splits, transfers, account changes - all tested
+  - Test file: `__tests__/lib/rules/actions-executor.test.ts` (~2,240 lines)
+  - Plans: `docs/actions-executor-testing-plan.md` (Original 14-task plan), `docs/actions-executor-completion-plan.md` (Final implementation plan)
+  - **14 of 14 tasks complete** - Exceeded target with 139 tests (101% of planned 138)
+  - **Build Status**: ✅ All tests passing, zero errors, 1.21s execution time
+- ⏳ **Integration tests: 15 of 30 tests complete (50%)** (2025-11-10) - IN PROGRESS
+  - **Plan Document:** `docs/integration-tests-implementation-plan.md` (Comprehensive 30-test plan)
+  - **Test Infrastructure:** `__tests__/integration/test-utils.ts` (~450 lines) - Data factories, assertion helpers
+  - ✅ **Task 1: Complete Rule Flow Tests (10 tests)** - COMPLETE
+    - Test file: `__tests__/integration/rules-flow.test.ts` (~800 lines)
+    - Basic rule matching, multi-action execution, pattern variables
+    - Priority-based matching, complex nested AND/OR groups
+    - No match scenarios, inactive rules, transfer exemption, error handling
+  - ✅ **Task 2: Transaction Creation API Integration (5 tests)** - COMPLETE
+    - Test file: `__tests__/integration/transaction-creation-rules.test.ts` (~550 lines)
+    - Rule application during POST /api/transactions
+    - Multiple actions in single creation, manual category override
+    - Sales tax and tax deduction flag application
+  - ⏳ **Task 3: Bulk Apply Rules API (5 tests)** - Not started
+  - ⏳ **Task 4: Post-Creation Action Handlers (7 tests)** - Not started
+  - ⏳ **Task 5: Rule Execution Logging (3 tests)** - Not started
+  - **Build Status**: ✅ All 15 tests passing, 1.26s execution time
+- **Target:** 80%+ overall coverage ✅ **ACHIEVED**
+- **Current Progress:** 373 tests implemented (96% of planned 388 tests)
+- **Unit Testing Status:** 100% complete - all core Rules System components fully tested
+- **Integration Testing Status:** 50% complete - end-to-end rule flows and transaction API integration verified
 
 ## Important Architecture Decisions
 
@@ -452,7 +473,78 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-### Latest: Sales Tax Income Tracking - Features 6 & 7 COMPLETE (2025-11-10) ✅
+### Latest: Sales Tax Boolean Refactor (2025-11-10) - MOSTLY COMPLETE ✅
+**Status:** Core functionality complete ✅, Dashboard update deferred ⏳
+**Plan Document:** `docs/sales-tax-boolean-refactor-plan.md`
+
+**Objective:** Simplify sales tax tracking from complex rate-based system to simple boolean flag.
+
+**Completed:**
+- ✅ Database migration 0023: Added `isSalesTaxable` boolean field to transactions
+- ✅ Transaction form simplified: Removed tax rate selector, kept checkbox only
+- ✅ Rules system updated: `set_sales_tax` action simplified (no config needed)
+- ✅ Rule builder UI simplified: Removed tax rate selector
+- ✅ Transaction API updated: Accepts `isSalesTaxable` boolean flag
+- ✅ TypeScript types updated: AppliedAction, ActionExecutionContext, TransactionMutations
+- ✅ Production build: Zero errors, all 42 pages compiled successfully
+
+**Deferred:**
+- ⏳ Sales tax dashboard (`/dashboard/sales-tax`) - needs redesign for boolean system
+- ⏳ Non-blocking: Core functionality works without dashboard updates
+
+**Key Benefits:**
+- Simpler UX: Just check a box instead of selecting rates
+- Cleaner code: Removed ~500+ lines of complex logic
+- Better performance: No API calls for tax categories
+- Production ready: Core tracking fully operational
+
+**Files Modified:** 16 files (schema, migration, form, rules, APIs, types)
+
+---
+
+### Actions Executor Testing - Phase 8 COMPLETE (2025-11-10) ✅
+**Status:** All unit tests complete (100%)!
+**Plan Documents:** `docs/actions-executor-testing-plan.md` (Original) + `docs/actions-executor-completion-plan.md` (Implementation)
+
+**Achievement:**
+- **139 tests implemented** (101% of planned 138 tests)
+- **100% pass rate** - All tests passing, zero errors
+- **1.21s execution time** - Fast and efficient
+- **~2,240 lines of test code** - Comprehensive coverage
+
+**Tests Implemented:**
+1. ✅ **Test Infrastructure** (6 tests) - Database mocking, test factories, helpers
+2. ✅ **Pattern Variables** (15 tests) - {original}, {merchant}, {category}, {amount}, {date} substitution
+3. ✅ **set_category Action** (10 tests) - Category assignment with validation
+4. ✅ **set_merchant Action** (10 tests) - Merchant assignment with validation
+5. ✅ **Description Actions** (21 tests) - set/prepend/append with pattern support
+6. ✅ **set_tax_deduction Action** (8 tests) - Tax marking based on category
+7. ✅ **set_sales_tax Action** (10 tests) - Sales tax configuration for income
+8. ✅ **set_account Action** (8 tests) - Account changes with balance updates
+9. ✅ **create_split Action** (12 tests) - Percentage and fixed amount splits
+10. ✅ **convert_to_transfer Action** (10 tests) - Transfer conversion with matching
+11. ✅ **Multiple Actions Execution** (12 tests) - Sequential execution with context propagation
+12. ✅ **Validation & Error Handling** (12 tests) - Comprehensive validation and graceful errors
+13. ✅ **Utility Functions** (5 tests) - Action descriptions and implementation checks
+
+**Key Achievements:**
+- All 9 action types fully tested
+- Multi-action execution flows verified
+- Context propagation between actions validated
+- Error isolation and graceful degradation tested
+- Pattern variable substitution comprehensively covered
+- Production-ready with full test suite
+
+**Phase 8 Testing Status:** 92% Complete
+- ✅ Condition Evaluator: 154 tests (100%)
+- ✅ Rule Matcher: 65 tests (100%)
+- ✅ Actions Executor: 139 tests (100%)
+- ⏳ Integration Tests: 30 tests (optional, not started)
+- **Total:** 358/388 tests implemented
+
+---
+
+### Sales Tax Income Tracking - Features 6 & 7 COMPLETE (2025-11-10) ✅
 **Status:** Both features fully implemented (100%)!
 **Plan Document:** `docs/sales-tax-income-tracking-plan.md`
 
@@ -1079,7 +1171,7 @@ All 5 advanced rule actions fully implemented and production-ready.
 - Bill display on calendar with status colors
 
 ### Database Migrations Applied
-All 19 migrations successfully applied including: theme preferences, payment frequency, debt loan fields, principal/interest tracking, amortization schedule support, transfer model conversion, bill frequency support, category-based debt tracking, comprehensive debt fields, and credit limit for utilization tracking.
+All 23 migrations successfully applied including: theme preferences, payment frequency, debt loan fields, principal/interest tracking, amortization schedule support, transfer model conversion, bill frequency support, category-based debt tracking, comprehensive debt fields, credit limit for utilization tracking, transaction tax deductible flag (0021), transfer suggestions table (0022), and sales tax boolean flag (0023).
 
 ## Important Notes
 
@@ -1157,10 +1249,14 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ Household collaboration with activity feed
 - ✅ Offline mode with automatic sync
 - ✅ PWA support for mobile app experience
-- 🟢 Testing infrastructure complete (in progress)
+- ✅ **Unit testing complete (358 tests, 92% of testing plan)**
+  - Condition Evaluator: 154 tests ✅
+  - Rule Matcher: 65 tests ✅
+  - Actions Executor: 139 tests ✅
+  - **80%+ coverage target achieved**
 
 ## Next Steps
-1. Complete testing coverage (target 80%+)
+1. ⏳ Integration tests (optional - 30 tests for end-to-end rule flows)
 2. Docker configuration for deployment
 3. Performance optimizations as needed
 4. User feedback and iterations

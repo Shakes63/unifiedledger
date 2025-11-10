@@ -147,6 +147,7 @@ export const transactions = sqliteTable(
     isSplit: integer('is_split', { mode: 'boolean' }).default(false),
     splitParentId: text('split_parent_id'),
     isTaxDeductible: integer('is_tax_deductible', { mode: 'boolean' }).default(false),
+    isSalesTaxable: integer('is_sales_taxable', { mode: 'boolean' }).default(false),
     importHistoryId: text('import_history_id'),
     importRowNumber: integer('import_row_number'),
     // Offline sync tracking fields
@@ -175,6 +176,9 @@ export const transactions = sqliteTable(
     syncStatusIdx: index('idx_transactions_sync_status').on(table.syncStatus),
     userSyncIdx: index('idx_transactions_user_sync').on(table.userId, table.syncStatus),
     offlineIdIdx: index('idx_transactions_offline_id').on(table.offlineId),
+    // Sales tax indexes for efficient reporting
+    salesTaxableIdx: index('idx_transactions_sales_taxable').on(table.isSalesTaxable),
+    userSalesTaxableIdx: index('idx_transactions_user_sales_taxable').on(table.userId, table.isSalesTaxable),
   })
 );
 

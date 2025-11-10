@@ -12,7 +12,7 @@ import { handleSplitCreation } from '@/lib/rules/split-action-handler';
 import { handleAccountChange } from '@/lib/rules/account-action-handler';
 import { findMatchingBills } from '@/lib/bills/bill-matcher';
 import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
-import { createSalesTaxRecord, deleteSalesTaxRecord } from '@/lib/sales-tax/transaction-sales-tax';
+// Sales tax now handled as boolean flag on transaction, no separate records needed
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       type = 'expense',
       isPending = false,
       toAccountId, // For transfers
-      salesTax, // Sales tax configuration { taxCategoryId, enabled }
+      isSalesTaxable = false, // Sales taxable flag (boolean)
       // Offline sync tracking fields
       offlineId,
       syncStatus = 'synced',
@@ -370,6 +370,7 @@ export async function POST(request: Request) {
         transferId: null,
         isPending,
         isTaxDeductible: postCreationMutations?.isTaxDeductible || false,
+        isSalesTaxable: (type === 'income' && (isSalesTaxable || postCreationMutations?.isSalesTaxable)) || false,
         // Offline sync tracking
         offlineId: offlineId || null,
         syncStatus: syncStatus,
@@ -460,41 +461,8 @@ export async function POST(request: Request) {
         }
       }
 
-      // Handle sales tax from manual input
-      if (salesTax?.enabled && salesTax.taxCategoryId && type === 'income') {
-        try {
-          await createSalesTaxRecord({
-            transactionId,
-            userId,
-            accountId,
-            taxCategoryId: salesTax.taxCategoryId,
-            amount: decimalAmount.toNumber(),
-            date,
-          });
-          console.log(`Sales tax record created for transaction ${transactionId}`);
-        } catch (error) {
-          console.error('Failed to create sales tax record:', error);
-          // Non-fatal: transaction still succeeds
-        }
-      }
-
-      // Handle sales tax from rule mutations
-      if (postCreationMutations?.applySalesTax && type === 'income') {
-        try {
-          await createSalesTaxRecord({
-            transactionId,
-            userId,
-            accountId,
-            taxCategoryId: postCreationMutations.applySalesTax.taxCategoryId,
-            amount: decimalAmount.toNumber(),
-            date,
-          });
-          console.log(`Sales tax record created via rule for transaction ${transactionId}`);
-        } catch (error) {
-          console.error('Failed to create sales tax record via rule:', error);
-          // Non-fatal: transaction still succeeds
-        }
-      }
+      // Sales tax is now handled as a boolean flag on the transaction itself
+      // No separate salesTaxTransactions records needed for simplified tracking
     }
 
     // Update category usage if provided

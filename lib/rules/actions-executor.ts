@@ -87,9 +87,7 @@ function validateAction(action: RuleAction): string | null {
       break;
 
     case 'set_sales_tax':
-      if (!action.config || !action.config.taxCategoryId) {
-        return 'Tax category ID is required for set_sales_tax action';
-      }
+      // No configuration needed - presence of action marks as sales taxable
       break;
 
     case 'convert_to_transfer':
@@ -313,8 +311,8 @@ async function executeSetTaxDeductionAction(
 
 /**
  * Execute a set_sales_tax action
- * Marks transaction as subject to sales tax
- * Note: Sales tax record creation happens AFTER transaction is created
+ * Marks transaction as subject to sales tax (boolean flag)
+ * Simplified - no tax category or rate needed
  */
 async function executeSetSalesTaxAction(
   action: RuleAction,
@@ -322,23 +320,20 @@ async function executeSetSalesTaxAction(
   mutations: TransactionMutations
 ): Promise<AppliedAction | null> {
   try {
-    // Validate configuration
-    const config = validateSalesTaxConfig(action.config);
-
     // Only apply to income transactions
     if (context.transaction.type !== 'income') {
       console.warn('Sales tax can only be applied to income transactions, skipping');
       return null;
     }
 
-    // Store sales tax config for post-creation processing
-    mutations.applySalesTax = config;
+    // Set the sales taxable flag
+    mutations.isSalesTaxable = true;
 
     return {
       type: 'set_sales_tax',
-      field: 'salesTax',
-      originalValue: null,
-      newValue: config.taxCategoryId,
+      field: 'isSalesTaxable',
+      originalValue: context.transaction.isSalesTaxable || false,
+      newValue: true,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

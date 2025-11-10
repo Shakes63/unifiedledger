@@ -379,41 +379,66 @@ Test Files  1 passed (1)
 **Coverage:** Comprehensive testing of all 9 action types, pattern variables, error handling, and multi-action execution
 **Build Status:** ✅ All tests passing, zero errors
 
-#### 4. ⏳ **Integration Tests** (NOT STARTED)
-**Status:** 0% - Final phase
-**Plan Document:** `docs/rules-system-testing-plan.md` (Phase 4, Day 7)
-**Estimated Tests:** ~30 tests
+#### 4. ⏳ **Integration Tests** (IN PROGRESS - 50% COMPLETE)
+**Status:** 15/30 tests complete (50%)
+**Plan Document:** `docs/integration-tests-implementation-plan.md`
+**Test Files:**
+- `__tests__/integration/test-utils.ts` - Test helpers and data factories (~450 lines)
+- `__tests__/integration/rules-flow.test.ts` - Complete rule flow tests (10 tests) ✅
+- `__tests__/integration/transaction-creation-rules.test.ts` - Transaction API integration (5 tests) ✅
 
-**Tasks:**
-- Complete rule flow (10 tests)
-- Transaction creation integration (5 tests)
-- Bulk apply rules (5 tests)
-- Rule execution logging (5 tests)
-- Edge case scenarios (5 tests)
+**Completed Tasks:**
+- ✅ Task 1: Complete Rule Flow Tests (10 tests) - COMPLETE 2025-11-10
+  - Basic rule matching and category application
+  - Multi-action execution with context propagation
+  - Pattern variable substitution
+  - Priority-based matching
+  - Complex nested AND/OR groups
+  - No match scenarios, inactive rules, transfer exemption
+  - Error handling with invalid data
+- ✅ Task 2: Transaction Creation API Integration (5 tests) - COMPLETE 2025-11-10
+  - Rule application during POST /api/transactions
+  - Multiple actions in single creation
+  - Manual category override behavior
+  - Sales tax flag application
+  - Tax deduction flag application
 
-**Target:** 90%+ coverage
+**Remaining Tasks:**
+- ⏳ Task 3: Bulk Apply Rules API Integration (5 tests) - Not started
+- ⏳ Task 4: Post-Creation Action Handlers (7 tests) - Not started
+  - Transfer conversion with auto-match
+  - Split creation (percentage & fixed amounts)
+  - Account changes with balance updates
+- ⏳ Task 5: Rule Execution Logging (3 tests) - Not started
+
+**Target:** 90%+ coverage for end-to-end integration scenarios
 
 ### Overall Testing Progress
 
-**Completed:** 358 tests (3/4 components) ✅
-**Remaining:** ~30 tests (1 component)
+**Completed:** 373 tests (5 test suites) ✅
+**Remaining:** ~15 tests (3 tasks)
 **Total Planned:** ~388 tests
-**Current Progress:** 92% of tests implemented
+**Current Progress:** 96% of tests implemented
 
 **Coverage Targets:**
 - Condition Evaluator: ✅ 100% (154 tests - COMPLETE)
 - Rule Matcher: ✅ 95%+ (65 tests - COMPLETE)
 - Actions Executor: ✅ 100% (139 tests - COMPLETE)
-- Integration Tests: ⏳ 90%+ (30 tests - not started)
+- Integration Tests: ⏳ 50% (15/30 tests - IN PROGRESS)
 - **Overall Target:** 80%+ across entire codebase (✅ ACHIEVED)
 
 **Completion Timeline:**
 1. ✅ Condition Evaluator tests (154 tests) - COMPLETE 2025-11-10
 2. ✅ Rule Matcher tests (65 tests) - COMPLETE 2025-11-10
 3. ✅ Actions Executor tests (139 tests) - COMPLETE 2025-11-10
-4. ⏳ Integration tests (~30 tests) - Pending
+4. ⏳ Integration tests (15/30 tests) - IN PROGRESS 2025-11-10
+   - ✅ Complete Rule Flow (10 tests)
+   - ✅ Transaction Creation API (5 tests)
+   - ⏳ Bulk Apply Rules API (5 tests)
+   - ⏳ Post-Creation Actions (7 tests)
+   - ⏳ Rule Execution Logging (3 tests)
 
-**Current Status:** Phase 8 (Testing) is 92% complete! All unit tests for the Rules System are complete with 358 comprehensive tests covering condition evaluation, rule matching, and action execution. Remaining work is integration testing for end-to-end rule flows.
+**Current Status:** Phase 8 (Testing) is 96% complete! All unit tests for the Rules System are complete with 358 comprehensive tests. Integration testing is 50% complete with 15 tests covering complete rule flows and transaction creation API integration. Remaining work: bulk apply rules, post-creation action handlers, and execution logging tests.
 
 **Note:** Test infrastructure is complete and working. Split calculator tests (80+ tests, 100% coverage) were completed previously.
 

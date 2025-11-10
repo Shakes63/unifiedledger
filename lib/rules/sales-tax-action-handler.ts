@@ -11,22 +11,14 @@ import { SalesTaxConfig } from './types';
 
 /**
  * Validate sales tax configuration
- * @param config - Configuration object to validate
+ * Simplified - no config needed, just returns enabled flag
+ * @param config - Configuration object to validate (optional)
  * @returns Validated SalesTaxConfig
- * @throws Error if configuration is invalid
  */
-export function validateSalesTaxConfig(config: any): SalesTaxConfig {
-  if (!config || typeof config !== 'object') {
-    throw new Error('Sales tax configuration must be an object');
-  }
-
-  if (!config.taxCategoryId || typeof config.taxCategoryId !== 'string') {
-    throw new Error('Sales tax configuration must include taxCategoryId');
-  }
-
+export function validateSalesTaxConfig(config?: any): SalesTaxConfig {
+  // No configuration needed - presence of action means enabled
   return {
-    taxCategoryId: config.taxCategoryId,
-    enabled: config.enabled !== false, // Default to true
+    enabled: true,
   };
 }
 
