@@ -461,10 +461,12 @@ Test Files  1 passed (1)
 
 ---
 
-## Sales Tax Boolean Refactor (MOSTLY COMPLETE)
-**Status:** Core functionality complete ✅, Dashboard update deferred ⏳
+## Sales Tax Boolean Refactor (COMPLETE) ✅
+**Status:** All features complete including dashboard update ✅
 **Date:** 2025-11-10
-**Plan Document:** `docs/sales-tax-boolean-refactor-plan.md`
+**Plan Documents:**
+- `docs/sales-tax-boolean-refactor-plan.md` (Original core refactor)
+- `docs/sales-tax-dashboard-boolean-update-plan.md` (Dashboard update)
 
 ### Objective
 Simplify sales tax tracking from a complex rate-based system to a simple boolean flag (yes/no) system for better UX and maintainability.
@@ -500,28 +502,42 @@ Simplify sales tax tracking from a complex rate-based system to a simple boolean
 - ✅ Removed deprecated sales tax record creation code
 - ✅ Clean implementation with proper type safety
 
+**Sales Tax Dashboard (NEW - 2025-11-10):**
+- ✅ Updated `lib/sales-tax/sales-tax-utils.ts` to query transactions table with `isSalesTaxable` boolean
+- ✅ Added `getUserSalesTaxRate()` and `updateUserSalesTaxRate()` helper functions
+- ✅ Created `/api/sales-tax/settings` endpoint (GET + POST) for household-level tax rate configuration
+- ✅ Added tax rate configuration UI card with edit mode, validation, and save functionality
+- ✅ Updated no data state with instructions for boolean system workflow
+- ✅ Updated quarterly filing cards to show "(configured)" label next to tax rate
+- ✅ Converted all hardcoded colors to theme CSS variables (Dark Mode + Dark Pink Theme support)
+- ✅ Chart colors updated to use semantic variables (income, success, warning, error, transfer)
+- ✅ Dashboard now applies configured tax rate at reporting time (one-time setup)
+
 **TypeScript & Build:**
 - ✅ Updated all type definitions (AppliedAction, ActionExecutionContext, TransactionMutations)
 - ✅ Production build successful with zero errors
-- ✅ All 42 pages compiled successfully
+- ✅ All 43 pages compiled successfully
 
-### Deferred for Future Work ⏳
+### Architecture
 
-**Sales Tax Dashboard:**
-- ⏳ Dashboard at `/dashboard/sales-tax` still uses old rate-based system
-- ⏳ Designed for quarterly reporting with tax calculations
-- ⏳ Needs thoughtful redesign to work with boolean flag system
-- ⏳ Non-blocking - core functionality works without dashboard updates
-- **Recommendation:** Redesign dashboard based on actual reporting requirements
+**Data Flow:**
+1. User configures sales tax rate once at household level (e.g., 8.5%)
+2. Income transactions marked with `isSalesTaxable` checkbox (or via rules)
+3. Dashboard queries transactions WHERE `isSalesTaxable = true` AND `type = 'income'`
+4. Tax amount calculated at reporting time: `taxableAmount × configuredRate`
+5. Quarterly reports show totals with applied rate
 
-### Key Benefits
-- **Simpler UX:** Just check a box instead of selecting tax rates
+**Key Benefits:**
+- **Simpler UX:** Just check a box when creating income, set rate once
 - **Cleaner Code:** Removed ~500+ lines of complex tax calculation logic
-- **Better Performance:** No more API calls to fetch tax categories
+- **Better Performance:** No API calls during transaction creation
+- **Flexible Reporting:** Change rate without updating old transactions
 - **Consistent:** Aligns with how tax deductions work (boolean flag)
-- **Production Ready:** Core tracking functionality fully operational
+- **Production Ready:** All functionality fully operational
 
-### Files Modified (16 files)
+### Files Modified (20 files total)
+
+**Core Refactor (16 files):**
 - Database: schema.ts + migration 0023
 - Transaction Form: transaction-form.tsx (~150 lines simplified)
 - Rules: types.ts, actions-executor.ts, sales-tax-action-handler.ts
@@ -529,4 +545,14 @@ Simplify sales tax tracking from a complex rate-based system to a simple boolean
 - API: transactions/route.ts
 - Types: Multiple interface updates for type safety
 
+**Dashboard Update (4 new/modified files):**
+- `lib/sales-tax/sales-tax-utils.ts` (~200 lines modified, 2 new functions)
+- `app/api/sales-tax/settings/route.ts` (~120 lines NEW)
+- `app/dashboard/sales-tax/page.tsx` (~400 lines modified - config UI, theme colors, updated instructions)
+- `docs/sales-tax-dashboard-boolean-update-plan.md` (NEW - detailed implementation plan)
+
 **Build Status:** ✅ Production build successful, zero TypeScript errors
+
+### Future Enhancements (Optional)
+
+1. sales tax rule should allow user to set transactions to true or false. right now it only allows setting to true.

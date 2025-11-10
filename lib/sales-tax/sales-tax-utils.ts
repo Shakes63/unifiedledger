@@ -1,15 +1,17 @@
 /**
  * Sales tax calculation and quarterly reporting utilities
+ * Updated to use isSalesTaxable boolean flag on transactions
  */
 
 import { db } from '@/lib/db';
 import {
-  salesTaxTransactions,
+  transactions,
   quarterlyFilingRecords,
   salesTaxSettings,
 } from '@/lib/db/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import Decimal from 'decimal.js';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Quarter definition
@@ -84,12 +86,71 @@ export function getQuarterDates(year: number): Quarter[] {
  */
 export function calculateTaxAmount(saleAmount: number, taxRate: number): number {
   const sale = new Decimal(saleAmount);
-  const rate = new Decimal(taxRate);
+  const rate = new Decimal(taxRate).dividedBy(100); // Convert percentage to decimal
   return sale.times(rate).toNumber();
 }
 
 /**
+ * Get user's sales tax rate from settings
+ * Returns 0 if not configured
+ */
+export async function getUserSalesTaxRate(userId: string): Promise<number> {
+  const settings = await db
+    .select()
+    .from(salesTaxSettings)
+    .where(eq(salesTaxSettings.userId, userId))
+    .limit(1);
+
+  if (settings.length === 0) {
+    // Return 0% if not configured - user needs to set up their rate
+    return 0;
+  }
+
+  return settings[0].defaultRate;
+}
+
+/**
+ * Update user's sales tax rate
+ */
+export async function updateUserSalesTaxRate(
+  userId: string,
+  rate: number,
+  jurisdiction?: string
+): Promise<void> {
+  const existing = await db
+    .select()
+    .from(salesTaxSettings)
+    .where(eq(salesTaxSettings.userId, userId))
+    .limit(1);
+
+  if (existing.length === 0) {
+    // Create new settings
+    await db.insert(salesTaxSettings).values({
+      id: uuidv4(),
+      userId,
+      defaultRate: rate,
+      jurisdiction: jurisdiction || null,
+      filingFrequency: 'quarterly',
+      enableTracking: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  } else {
+    // Update existing
+    await db
+      .update(salesTaxSettings)
+      .set({
+        defaultRate: rate,
+        jurisdiction: jurisdiction || existing[0].jurisdiction,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(salesTaxSettings.userId, userId));
+  }
+}
+
+/**
  * Get quarterly report for a specific quarter
+ * Uses isSalesTaxable boolean flag on transactions and applies configured tax rate
  * @param userId User ID
  * @param year Tax year
  * @param quarter Quarter (1-4)
@@ -101,7 +162,10 @@ export async function getQuarterlyReport(
   quarter: number,
   accountId?: string
 ): Promise<QuarterlyReport> {
-  // Get transactions for quarter
+  // 1. Get user's configured tax rate
+  const taxRatePercent = await getUserSalesTaxRate(userId);
+
+  // 2. Get quarter date range
   const quarterDates = getQuarterDates(year);
   const quarterInfo = quarterDates.find((q) => q.quarter === quarter);
 
@@ -109,31 +173,35 @@ export async function getQuarterlyReport(
     throw new Error('Invalid quarter');
   }
 
+  // 3. Query transactions with isSalesTaxable = true
   const whereConditions = [
-    eq(salesTaxTransactions.userId, userId),
-    eq(salesTaxTransactions.taxYear, year),
-    eq(salesTaxTransactions.quarter, quarter),
+    eq(transactions.userId, userId),
+    eq(transactions.isSalesTaxable, true),
+    eq(transactions.type, 'income'),
+    gte(transactions.date, quarterInfo.startDate),
+    lte(transactions.date, quarterInfo.endDate),
   ];
 
   if (accountId) {
-    whereConditions.push(eq(salesTaxTransactions.accountId, accountId));
+    whereConditions.push(eq(transactions.accountId, accountId));
   }
 
-  const transactions = await db
+  const taxableTransactions = await db
     .select()
-    .from(salesTaxTransactions)
+    .from(transactions)
     .where(and(...whereConditions));
 
-  // Calculate totals
+  // 4. Calculate total taxable sales
   let totalSales = new Decimal(0);
-  let totalTax = new Decimal(0);
-
-  transactions.forEach((txn) => {
-    totalSales = totalSales.plus(new Decimal(txn.saleAmount));
-    totalTax = totalTax.plus(new Decimal(txn.taxAmount));
+  taxableTransactions.forEach((txn) => {
+    totalSales = totalSales.plus(new Decimal(txn.amount));
   });
 
-  // Get filing record
+  // 5. Calculate tax using configured rate (percentage converted to decimal)
+  const taxRateDecimal = new Decimal(taxRatePercent).dividedBy(100);
+  const totalTax = totalSales.times(taxRateDecimal);
+
+  // 6. Get filing record (if exists)
   const filingRecord = await db
     .select()
     .from(quarterlyFilingRecords)
@@ -147,16 +215,12 @@ export async function getQuarterlyReport(
     .limit(1)
     .then((results) => results[0]);
 
-  const taxRate = totalSales.gt(0)
-    ? totalTax.dividedBy(totalSales).toNumber()
-    : 0;
-
   return {
     year,
     quarter,
     totalSales: totalSales.toNumber(),
     totalTax: totalTax.toNumber(),
-    taxRate,
+    taxRate: taxRateDecimal.toNumber(), // Return as decimal (e.g., 0.085 for 8.5%)
     dueDate: quarterInfo.dueDate,
     submittedDate: filingRecord?.submittedDate || undefined,
     status: filingRecord?.status || 'pending',
