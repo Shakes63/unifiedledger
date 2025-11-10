@@ -167,15 +167,18 @@ function ConditionGroupEditor({
         <span className="text-sm text-muted-foreground">Logic:</span>
         <div className="flex gap-2">
           {(['AND', 'OR'] as const).map((logic) => (
-            <Button
+            <button
               key={logic}
-              variant={group.logic === logic ? 'default' : 'outline'}
-              size="sm"
+              type="button"
               onClick={() => onUpdate({ ...group, logic })}
-              className={group.logic === logic ? 'bg-foreground text-background' : 'bg-elevated text-foreground border-border'}
+              className={`px-3 py-1 text-sm font-medium rounded-md border-2 transition-colors ${
+                group.logic === logic
+                  ? 'bg-[var(--color-transfer)] text-white border-[var(--color-transfer)] hover:opacity-80'
+                  : 'bg-elevated text-foreground border-border hover:bg-elevated hover:border-[var(--color-transfer)]/30'
+              }`}
             >
               {logic}
-            </Button>
+            </button>
           ))}
         </div>
         {level > 0 && onRemove && (

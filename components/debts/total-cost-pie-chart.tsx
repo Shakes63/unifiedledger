@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { AlertTriangle, CheckCircle2, PartyPopper } from 'lucide-react';
 import type { DebtPayoffSchedule } from '@/lib/debts/payoff-calculator';
 
 interface TotalCostPieChartProps {
@@ -206,7 +207,7 @@ export function TotalCostPieChart({
       {costData.interestMultiplier > 1.5 && (
         <div className="bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <div className="text-xl">⚠️</div>
+            <AlertTriangle className="w-5 h-5 text-[var(--color-warning)] flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-[var(--color-warning)] mb-1">
                 High Interest Cost
@@ -224,7 +225,7 @@ export function TotalCostPieChart({
       {costData.interestMultiplier <= 1.2 && costData.interest > 0 && (
         <div className="bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <div className="text-xl">✅</div>
+            <CheckCircle2 className="w-5 h-5 text-[var(--color-success)] flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-[var(--color-success)] mb-1">
                 Great Interest Rate
@@ -242,7 +243,7 @@ export function TotalCostPieChart({
       {costData.interest === 0 && (
         <div className="bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <div className="text-xl">🎉</div>
+            <PartyPopper className="w-5 h-5 text-[var(--color-success)] flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-[var(--color-success)] mb-1">
                 Interest-Free Debt

@@ -2,7 +2,21 @@
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Edit2, Trash2, Copy, ArrowRight } from 'lucide-react';
+import {
+  MoreVertical,
+  Edit2,
+  Trash2,
+  Copy,
+  ArrowRight,
+  Wallet,
+  Building2,
+  CreditCard,
+  PiggyBank,
+  TrendingUp,
+  Banknote,
+  Coins,
+  Briefcase
+} from 'lucide-react';
 import Link from 'next/link';
 import {
   DropdownMenu,
@@ -52,22 +66,31 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
     ? (account.currentBalance / account.creditLimit) * 100
     : null;
 
+  const getAccountIcon = (iconName: string) => {
+    const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+      wallet: Wallet,
+      bank: Building2,
+      'credit-card': CreditCard,
+      'piggy-bank': PiggyBank,
+      'trending-up': TrendingUp,
+      'dollar-sign': Banknote,
+      coins: Coins,
+      briefcase: Briefcase,
+    };
+    return iconMap[iconName] || Wallet;
+  };
+
+  const IconComponent = getAccountIcon(account.icon);
+
   return (
     <Card className="p-6 border border-border bg-card rounded-xl hover:border-border transition-all relative group">
       <div className="flex items-start justify-between mb-6">
         <div className="flex items-center gap-3">
           <div
-            className="w-12 h-12 rounded-lg flex items-center justify-center text-foreground text-lg font-semibold"
-            style={{ backgroundColor: account.color + '20', borderColor: account.color, borderWidth: '2px' }}
+            className="w-12 h-12 rounded-lg flex items-center justify-center"
+            style={{ backgroundColor: account.color + '20', borderColor: account.color, borderWidth: '2px', color: account.color }}
           >
-            {account.icon === 'wallet' && '💼'}
-            {account.icon === 'bank' && '🏦'}
-            {account.icon === 'credit-card' && '💳'}
-            {account.icon === 'piggy-bank' && '🐷'}
-            {account.icon === 'trending-up' && '📈'}
-            {account.icon === 'dollar-sign' && '💵'}
-            {account.icon === 'coins' && '🪙'}
-            {account.icon === 'briefcase' && '💼'}
+            <IconComponent className="w-6 h-6" />
           </div>
           <div>
             <h3 className="text-foreground font-semibold text-lg">{account.name}</h3>

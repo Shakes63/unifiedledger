@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Wallet, DollarSign, CreditCard, TrendingUp, Coins } from 'lucide-react';
+import { Wallet, DollarSign, CreditCard, TrendingUp, Coins, Building2, PiggyBank, Briefcase } from 'lucide-react';
 
 const ACCOUNT_TYPES = [
   { value: 'checking', label: 'Checking', icon: Wallet },
@@ -34,14 +34,14 @@ const ACCOUNT_COLORS = [
 ];
 
 const ACCOUNT_ICONS = [
-  'wallet',
-  'bank',
-  'credit-card',
-  'piggy-bank',
-  'trending-up',
-  'dollar-sign',
-  'coins',
-  'briefcase',
+  { value: 'wallet', label: 'Wallet', icon: Wallet },
+  { value: 'bank', label: 'Bank', icon: Building2 },
+  { value: 'credit-card', label: 'Credit Card', icon: CreditCard },
+  { value: 'piggy-bank', label: 'Piggy Bank', icon: PiggyBank },
+  { value: 'trending-up', label: 'Trending Up', icon: TrendingUp },
+  { value: 'dollar-sign', label: 'Dollar Sign', icon: DollarSign },
+  { value: 'coins', label: 'Coins', icon: Coins },
+  { value: 'briefcase', label: 'Briefcase', icon: Briefcase },
 ];
 
 interface AccountFormProps {
@@ -232,11 +232,11 @@ export function AccountForm({
             type="button"
             onClick={() => handleCheckboxChange('isBusinessAccount')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isBusinessAccount ? 'bg-[var(--color-income)]' : 'bg-elevated'
+              formData.isBusinessAccount ? 'bg-[var(--color-primary)]' : 'bg-elevated'
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-[var(--color-card)] transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                 formData.isBusinessAccount ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
@@ -254,7 +254,9 @@ export function AccountForm({
               type="button"
               onClick={() => handleColorChange(color)}
               className={`w-10 h-10 rounded-lg border-2 transition-all ${
-                formData.color === color ? 'border-[var(--color-card)]' : 'border-transparent'
+                formData.color === color
+                  ? 'border-foreground ring-2 ring-[var(--color-primary)] scale-110'
+                  : 'border-transparent hover:scale-105'
               }`}
               style={{ backgroundColor: color }}
               title={`Color ${color}`}
@@ -267,20 +269,25 @@ export function AccountForm({
       <div>
         <Label className="text-muted-foreground text-sm mb-2 block">Account Icon</Label>
         <div className="flex gap-2 flex-wrap">
-          {ACCOUNT_ICONS.map((icon) => (
-            <button
-              key={icon}
-              type="button"
-              onClick={() => handleIconChange(icon)}
-              className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
-                formData.icon === icon
-                  ? 'border-[var(--color-income)] bg-[var(--color-income)]/10 text-[var(--color-income)]'
-                  : 'border-border bg-elevated text-muted-foreground hover:border-border'
-              }`}
-            >
-              {icon}
-            </button>
-          ))}
+          {ACCOUNT_ICONS.map((iconItem) => {
+            const IconComponent = iconItem.icon;
+            return (
+              <button
+                key={iconItem.value}
+                type="button"
+                onClick={() => handleIconChange(iconItem.value)}
+                className={`w-12 h-12 rounded-lg border-2 transition-all flex items-center justify-center ${
+                  formData.icon === iconItem.value
+                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
+                    : 'border-border bg-elevated text-muted-foreground hover:bg-elevated hover:border-[var(--color-primary)]/30'
+                }`}
+                title={iconItem.label}
+                aria-label={iconItem.label}
+              >
+                <IconComponent className="w-6 h-6" />
+              </button>
+            );
+          })}
         </div>
       </div>
 

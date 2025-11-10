@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import { Lightbulb, AlertTriangle, PartyPopper, Scale } from 'lucide-react';
 import type { DebtPayoffSchedule } from '@/lib/debts/payoff-calculator';
 
 interface PaymentComparisonPieChartsProps {
@@ -238,22 +239,25 @@ export function PaymentComparisonPieCharts({
               <div className="mt-4 text-center">
                 {stage.stage === 'first' && stage.interestPercent > 50 && (
                   <div className="inline-flex items-center gap-1 px-3 py-1 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-full">
+                    <AlertTriangle className="w-3 h-3 text-[var(--color-warning)]" />
                     <span className="text-xs text-[var(--color-warning)]">
-                      💡 Most interest paid early
+                      Most interest paid early
                     </span>
                   </div>
                 )}
                 {stage.stage === 'last' && stage.principalPercent > 90 && (
                   <div className="inline-flex items-center gap-1 px-3 py-1 bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 rounded-full">
+                    <PartyPopper className="w-3 h-3 text-[var(--color-success)]" />
                     <span className="text-xs text-[var(--color-success)]">
-                      🎉 Almost all principal
+                      Almost all principal
                     </span>
                   </div>
                 )}
                 {stage.stage === 'midpoint' && (
                   <div className="inline-flex items-center gap-1 px-3 py-1 bg-accent/10 border border-accent/30 rounded-full">
+                    <Scale className="w-3 h-3 text-accent" />
                     <span className="text-xs text-accent">
-                      ⚖️ Balanced split
+                      Balanced split
                     </span>
                   </div>
                 )}
@@ -266,7 +270,7 @@ export function PaymentComparisonPieCharts({
       {/* Key Insight */}
       <div className="mt-6 p-4 bg-accent/10 border border-accent/30 rounded-lg">
         <div className="flex items-start gap-3">
-          <div className="text-2xl">💡</div>
+          <Lightbulb className="w-6 h-6 text-accent flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-accent mb-1">Key Insight</p>
             <p className="text-sm text-foreground">

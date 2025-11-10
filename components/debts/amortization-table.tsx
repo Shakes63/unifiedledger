@@ -2,6 +2,7 @@
 
 import { useRef, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { ClipboardList, PartyPopper } from 'lucide-react';
 import type { DebtPayoffSchedule } from '@/lib/debts/payoff-calculator';
 
 interface AmortizationTableProps {
@@ -71,7 +72,7 @@ export function AmortizationTable({
       <div className="p-6 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-2xl">📋</span>
+            <ClipboardList className="w-6 h-6 text-foreground" />
             <h3 className="text-lg font-semibold text-foreground">Payment Schedule</h3>
             <span className="text-sm text-muted-foreground">
               ({schedule.monthlyBreakdown.length} payments)
@@ -150,9 +151,7 @@ export function AmortizationTable({
                         Month {monthNumber}
                       </span>
                       {isLastPayment && highlightPayoffMonth && (
-                        <span className="text-lg" title="Debt paid off!">
-                          🎉
-                        </span>
+                        <PartyPopper className="w-5 h-5 text-[var(--color-chart-principal)]" aria-label="Debt paid off!" />
                       )}
                     </div>
 

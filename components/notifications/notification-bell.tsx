@@ -1,7 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell } from 'lucide-react';
+import {
+  Bell,
+  Calendar,
+  AlertTriangle,
+  DollarSign,
+  XCircle,
+  TrendingDown,
+  PartyPopper,
+  CheckCircle2,
+  BarChart3,
+  Info,
+  X
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -126,20 +138,20 @@ export function NotificationBell() {
     }
   };
 
-  const getTypeEmoji = (type: string) => {
-    const emojis: Record<string, string> = {
-      bill_due: '📅',
-      bill_overdue: '⚠️',
-      budget_warning: '💰',
-      budget_exceeded: '❌',
-      low_balance: '📉',
-      savings_milestone: '🎉',
-      debt_milestone: '✅',
-      spending_summary: '📊',
-      reminder: '🔔',
-      system: 'ℹ️',
+  const getTypeIcon = (type: string) => {
+    const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+      bill_due: Calendar,
+      bill_overdue: AlertTriangle,
+      budget_warning: DollarSign,
+      budget_exceeded: XCircle,
+      low_balance: TrendingDown,
+      savings_milestone: PartyPopper,
+      debt_milestone: CheckCircle2,
+      spending_summary: BarChart3,
+      reminder: Bell,
+      system: Info,
     };
-    return emojis[type] || '🔔';
+    return iconMap[type] || Bell;
   };
 
   return (
@@ -178,24 +190,24 @@ export function NotificationBell() {
                 <p>No notifications yet</p>
               </div>
             ) : (
-              notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-3 border-l-4 rounded hover:bg-card transition-colors cursor-pointer ${getPriorityColor(
-                    notification.priority
-                  )}`}
-                  onClick={() => handleMarkAsRead(notification.id)}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">
-                          {getTypeEmoji(notification.type)}
-                        </span>
-                        <p className="font-medium text-foreground text-sm truncate">
-                          {notification.title}
-                        </p>
-                      </div>
+              notifications.map((notification) => {
+                const IconComponent = getTypeIcon(notification.type);
+                return (
+                  <div
+                    key={notification.id}
+                    className={`p-3 border-l-4 rounded hover:bg-card transition-colors cursor-pointer ${getPriorityColor(
+                      notification.priority
+                    )}`}
+                    onClick={() => handleMarkAsRead(notification.id)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <IconComponent className="w-4 h-4 text-foreground flex-shrink-0" />
+                          <p className="font-medium text-foreground text-sm truncate">
+                            {notification.title}
+                          </p>
+                        </div>
                       <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                         {notification.message}
                       </p>
@@ -213,18 +225,19 @@ export function NotificationBell() {
                         </Link>
                       )}
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDismiss(notification.id);
-                      }}
-                      className="text-muted-foreground hover:text-foreground flex-shrink-0"
-                    >
-                      ✕
-                    </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDismiss(notification.id);
+                        }}
+                        className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 

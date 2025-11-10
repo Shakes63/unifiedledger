@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { MapPin, BarChart3, DollarSign, Lightbulb } from 'lucide-react';
 import type { ComparisonResult, PayoffMethod, PaymentFrequency } from '@/lib/debts/payoff-calculator';
 
 interface DebtPayoffStrategyProps {
@@ -236,7 +237,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
         {/* Next Recommended Payment */}
         <div className="bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl">📍</span>
+            <MapPin className="w-6 h-6 text-[var(--color-primary)]" />
             <h3 className="text-lg font-semibold text-foreground">Pay This Next</h3>
           </div>
 
@@ -276,7 +277,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
         {/* Payoff Order */}
         <div className="bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-2 mb-4">
-            <span className="text-2xl">📊</span>
+            <BarChart3 className="w-6 h-6 text-foreground" />
             <h3 className="text-lg font-semibold text-foreground">Your Payoff Order</h3>
           </div>
 
@@ -309,7 +310,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
       {/* Comparison Metrics */}
       <div className="mt-6 bg-card rounded-xl p-6 border border-border">
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">💰</span>
+          <DollarSign className="w-6 h-6 text-[var(--color-income)]" />
           <h3 className="text-lg font-semibold text-foreground">Method Comparison</h3>
         </div>
 
@@ -385,10 +386,13 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
         {/* Recommendation */}
         {comparison.recommendedMethod !== method && (
           <div className="mt-4 p-3 bg-[var(--color-transfer)]/10 border border-[var(--color-transfer)]/30 rounded-lg">
-            <p className="text-sm text-[var(--color-transfer)]">
-              💡 The <strong>{comparison.recommendedMethod}</strong> method could save you{' '}
-              {comparison.timeSavings} months and ${comparison.interestSavings.toFixed(2)} in interest!
-            </p>
+            <div className="flex items-start gap-2">
+              <Lightbulb className="w-4 h-4 text-[var(--color-transfer)] flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-[var(--color-transfer)]">
+                The <strong>{comparison.recommendedMethod}</strong> method could save you{' '}
+                {comparison.timeSavings} months and ${comparison.interestSavings.toFixed(2)} in interest!
+              </p>
+            </div>
           </div>
         )}
       </div>

@@ -140,14 +140,16 @@ export function BudgetWarning({
       )}
 
       {warningLevel === 'warning' && (
-        <p className={`text-xs ${textColor} pt-1`}>
-          ⚠️ You're nearing your budget limit
+        <p className={`text-xs ${textColor} pt-1 flex items-center gap-1`}>
+          <AlertCircle className="w-3 h-3" />
+          You're nearing your budget limit
         </p>
       )}
 
       {warningLevel === 'exceeded' && (
-        <p className={`text-xs ${textColor} pt-1`}>
-          🚨 You've exceeded your budget for this category
+        <p className={`text-xs ${textColor} pt-1 flex items-center gap-1`}>
+          <AlertCircle className="w-3 h-3" />
+          You've exceeded your budget for this category
         </p>
       )}
     </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
-import { Flame, Trophy, Loader2, Star } from 'lucide-react';
+import { Flame, Trophy, Loader2, Star, Gem, PartyPopper, Zap, Target } from 'lucide-react';
 
 interface StreakData {
   hasDebts: boolean;
@@ -68,21 +68,32 @@ export function PaymentStreakWidget() {
       return `Streak ended at ${streak}. Start fresh!`;
     }
     if (streak >= 24) {
-      return 'Incredible dedication! 💎';
+      return 'Incredible dedication!';
     }
     if (streak >= 12) {
-      return 'One full year! Amazing! 🎉';
+      return 'One full year! Amazing!';
     }
     if (streak >= 6) {
-      return 'Half a year! Keep it up! 💪';
+      return 'Half a year! Keep it up!';
     }
     if (streak >= 3) {
-      return 'Great start! Building momentum! 🔥';
+      return 'Great start! Building momentum!';
     }
     if (streak === 1) {
-      return 'First month down! 🎯';
+      return 'First month down!';
     }
     return 'Keep the momentum going!';
+  };
+
+  const getIconComponent = (iconName: string) => {
+    const icons: Record<string, React.ComponentType<{ className?: string }>> = {
+      Flame,
+      Zap,
+      Trophy,
+      Award: Trophy,
+      Gem,
+    };
+    return icons[iconName] || Star;
   };
 
   // Loading state
@@ -185,25 +196,28 @@ export function PaymentStreakWidget() {
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground mb-2">Milestones</p>
             <div className="flex gap-2 flex-wrap">
-              {data.achievements.map((achievement) => (
-                <div
-                  key={achievement.milestone}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    achievement.currentlyActive
-                      ? `bg-gradient-to-r ${streakGradient} text-primary-foreground shadow-lg`
-                      : achievement.achieved
-                      ? 'bg-elevated border border-border text-muted-foreground'
-                      : 'bg-card border border-border text-muted-foreground'
-                  }`}
-                  title={achievement.label}
-                >
-                  <span className="text-base">{achievement.icon}</span>
-                  <span>{achievement.milestone}mo</span>
-                  {achievement.currentlyActive && (
-                    <Star className="w-3 h-3 fill-current" />
-                  )}
-                </div>
-              ))}
+              {data.achievements.map((achievement) => {
+                const IconComponent = getIconComponent(achievement.icon);
+                return (
+                  <div
+                    key={achievement.milestone}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      achievement.currentlyActive
+                        ? `bg-gradient-to-r ${streakGradient} text-primary-foreground shadow-lg`
+                        : achievement.achieved
+                        ? 'bg-elevated border border-border text-muted-foreground'
+                        : 'bg-card border border-border text-muted-foreground'
+                    }`}
+                    title={achievement.label}
+                  >
+                    <IconComponent className="w-4 h-4" />
+                    <span>{achievement.milestone}mo</span>
+                    {achievement.currentlyActive && (
+                      <Star className="w-3 h-3 fill-current" />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

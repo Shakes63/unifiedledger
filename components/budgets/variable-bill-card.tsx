@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Decimal from 'decimal.js';
+import { CheckCircle, AlertTriangle, XCircle, TrendingDown, TrendingUp, ArrowRight, BarChart3 } from 'lucide-react';
 
 interface VariableBillCardProps {
   bill: {
@@ -88,16 +89,16 @@ export function VariableBillCard({
   };
 
   const getVarianceIcon = () => {
-    if (!bill.currentMonth.variance) return '';
+    if (!bill.currentMonth.variance) return null;
 
     const variancePercent = Math.abs(bill.currentMonth.variancePercent || 0);
 
     if (bill.currentMonth.variance < 0) {
-      return '✓';
+      return <CheckCircle className="w-4 h-4" />;
     } else if (variancePercent <= 15) {
-      return '⚠️';
+      return <AlertTriangle className="w-4 h-4" />;
     } else {
-      return '❌';
+      return <XCircle className="w-4 h-4" />;
     }
   };
 
@@ -132,9 +133,9 @@ export function VariableBillCard({
 
   // Trend indicator
   const getTrendIcon = () => {
-    if (bill.trend.direction === 'improving') return '↘️';
-    if (bill.trend.direction === 'worsening') return '↗️';
-    return '→';
+    if (bill.trend.direction === 'improving') return <TrendingDown className="w-5 h-5 text-[var(--color-success)]" />;
+    if (bill.trend.direction === 'worsening') return <TrendingUp className="w-5 h-5 text-[var(--color-error)]" />;
+    return <ArrowRight className="w-5 h-5 text-muted-foreground" />;
   };
 
   const getTrendLabel = () => {
@@ -271,7 +272,7 @@ export function VariableBillCard({
 
                 {bill.currentMonth.variance !== null && (
                   <div className={`flex items-center gap-2 text-sm font-medium ${getVarianceColor()}`}>
-                    <span>{getVarianceIcon()}</span>
+                    {getVarianceIcon()}
                     <span>{getVarianceLabel()}</span>
                   </div>
                 )}
@@ -292,7 +293,8 @@ export function VariableBillCard({
           {/* Historical Averages */}
           <div className="pt-4 border-t border-border">
             <h4 className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
-              📊 Historical Averages
+              <BarChart3 className="w-4 h-4" />
+              Historical Averages
             </h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-muted rounded-lg p-3">
@@ -333,7 +335,7 @@ export function VariableBillCard({
           {/* Trend & Insights */}
           <div className="pt-4 border-t border-border space-y-3">
             <div className="flex items-start gap-2">
-              <span className="text-xl">{getTrendIcon()}</span>
+              {getTrendIcon()}
               <div className="flex-1">
                 <h4 className="text-sm font-medium text-foreground mb-1">{getTrendLabel()}</h4>
                 <p className="text-sm text-muted-foreground">{getInsightMessage()}</p>

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Decimal from 'decimal.js';
+import { AlertTriangle } from 'lucide-react';
 
 interface CategoryBudgetProgressProps {
   category: {
@@ -179,11 +180,11 @@ export function CategoryBudgetProgress({
             <span className="text-muted-foreground">Daily average:</span>
             <span
               className={
-                isPaceTooHigh ? 'text-[var(--color-warning)]' : 'text-foreground'
+                isPaceTooHigh ? 'text-[var(--color-warning)] flex items-center gap-1' : 'text-foreground'
               }
             >
               ${category.dailyAverage.toFixed(2)}
-              {isPaceTooHigh && ' ⚠️'}
+              {isPaceTooHigh && <AlertTriangle className="w-3 h-3" />}
             </span>
           </div>
 

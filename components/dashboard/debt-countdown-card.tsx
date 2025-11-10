@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, PartyPopper } from 'lucide-react';
 
 interface CountdownData {
   hasDebts: boolean;
@@ -68,7 +68,7 @@ export function DebtCountdownCard() {
   if (!data.hasDebts) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-4">
-        <div className="text-4xl mb-2">🎉</div>
+        <PartyPopper className="w-10 h-10 text-[var(--color-income)] mb-2" />
         <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-income)' }}>Debt-Free!</p>
         <p className="text-xs text-muted-foreground">You have no active debts</p>
       </div>

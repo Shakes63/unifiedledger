@@ -1,5 +1,6 @@
 'use client';
 
+import { Calendar, ClipboardList } from 'lucide-react';
 import type { PayoffStrategyResult } from '@/lib/debts/payoff-calculator';
 
 interface PayoffTimelineProps {
@@ -47,7 +48,7 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
       {/* Timeline Chart */}
       <div className="bg-card rounded-xl p-6 border border-border mb-6">
         <div className="flex items-center gap-2 mb-6">
-          <span className="text-2xl">📅</span>
+          <Calendar className="w-6 h-6 text-foreground" />
           <h3 className="text-lg font-semibold text-foreground">Payoff Timeline</h3>
         </div>
 
@@ -104,7 +105,7 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
       {/* Monthly Breakdown Table */}
       <div className="bg-card rounded-xl p-6 border border-border">
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-2xl">📋</span>
+          <ClipboardList className="w-6 h-6 text-foreground" />
           <h3 className="text-lg font-semibold text-foreground">Payment Schedule</h3>
         </div>
 

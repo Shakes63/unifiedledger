@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, Target, BarChart3, Lightbulb, AlertTriangle } from 'lucide-react';
 
 export default function DebtsPage() {
   const [debts, setDebts] = useState<any[]>([]);
@@ -310,7 +310,7 @@ export default function DebtsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">🎯</span>
+              <Target className="w-6 h-6 text-[var(--color-primary)]" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">Debt Payoff Strategy</h3>
                 <p className="text-sm text-muted-foreground">
@@ -337,7 +337,7 @@ export default function DebtsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">📊</span>
+              <BarChart3 className="w-6 h-6 text-[var(--color-primary)]" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">Payment Tracking</h3>
                 <p className="text-sm text-muted-foreground">
@@ -369,7 +369,7 @@ export default function DebtsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">💡</span>
+              <Lightbulb className="w-6 h-6 text-[var(--color-primary)]" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">What-If Scenario Calculator</h3>
                 <p className="text-sm text-muted-foreground">
@@ -402,7 +402,7 @@ export default function DebtsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">⚠️</span>
+              <AlertTriangle className="w-6 h-6 text-[var(--color-warning)]" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">Minimum Payment Warning</h3>
                 <p className="text-sm text-muted-foreground">

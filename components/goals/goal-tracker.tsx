@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronUp, Edit2, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Trash2, Check } from 'lucide-react';
 
 interface Milestone {
   id: string;
@@ -78,7 +78,7 @@ export function GoalTracker({
             !milestones.find((existing) => existing.id === m.id && existing.achievedAt)
         );
         newlyAchieved.forEach((m: Milestone) => {
-          toast.success(`Milestone reached! ${m.percentage}% of goal achieved! 🎉`);
+          toast.success(`Milestone reached! ${m.percentage}% of goal achieved!`);
         });
       }
 
@@ -206,7 +206,7 @@ export function GoalTracker({
                       />
                     </div>
                     {milestone.achievedAt && (
-                      <span className="text-[var(--color-income)] text-xs">✓</span>
+                      <Check className="w-4 h-4 text-[var(--color-income)] flex-shrink-0" />
                     )}
                   </div>
                 ))}

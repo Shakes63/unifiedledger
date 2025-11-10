@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AlertTriangle, Zap, Target, Clock, Banknote, PartyPopper, Turtle } from 'lucide-react';
 
 interface MinimumOnlyScenario {
   totalMonths: number;
@@ -111,7 +112,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
       <div className={className}>
         <div className="bg-gradient-to-r from-[var(--color-warning)]/30 to-[var(--color-warning)]/20 border border-[var(--color-warning)]/50 rounded-xl p-6">
           <div className="flex items-start gap-4">
-            <span className="text-4xl">⚠️</span>
+            <AlertTriangle className="w-10 h-10 text-[var(--color-warning)]" />
             <div>
               <h3 className="text-xl font-bold text-[var(--color-warning)] mb-2">
                 Only Paying Minimums?
@@ -133,9 +134,12 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
                   </span>
                 </div>
               </div>
-              <p className="text-muted-foreground mt-4 text-sm">
-                💡 <strong>Tip:</strong> Add even a small extra payment in the Payoff Strategy section below to see how much faster you can become debt-free and how much you can save!
-              </p>
+              <div className="mt-4 text-sm text-muted-foreground flex items-start gap-2">
+                <Zap className="w-4 h-4 text-[var(--color-success)] mt-0.5 flex-shrink-0" />
+                <p>
+                  <strong>Tip:</strong> Add even a small extra payment in the Payoff Strategy section below to see how much faster you can become debt-free and how much you can save!
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -152,7 +156,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
       <div className="bg-gradient-to-r from-[var(--color-warning)]/30 to-[var(--color-warning)]/20 border border-[var(--color-warning)]/50 rounded-xl p-6 space-y-6">
         {/* Header */}
         <div className="flex items-start gap-3">
-          <span className="text-3xl">⚠️</span>
+          <AlertTriangle className="w-8 h-8 text-[var(--color-warning)]" />
           <div>
             <h3 className="text-xl font-bold text-[var(--color-warning)]">The True Cost of Minimum Payments</h3>
             <p className="text-muted-foreground text-sm mt-1">
@@ -166,7 +170,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
           {/* Minimum Only Column */}
           <div className="bg-gradient-to-br from-[var(--color-error)]/20 to-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-lg p-5">
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-2xl">🐌</span>
+              <Turtle className="w-6 h-6 text-[var(--color-error)]" />
               <h4 className="text-lg font-semibold text-[var(--color-error)]">Minimum Payments Only</h4>
             </div>
 
@@ -210,7 +214,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
           {/* Current Plan Column */}
           <div className="bg-gradient-to-br from-[var(--color-income)]/20 to-[var(--color-income)]/10 border border-[var(--color-income)]/30 rounded-lg p-5">
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-2xl">⚡</span>
+              <Zap className="w-6 h-6 text-[var(--color-income)]" />
               <h4 className="text-lg font-semibold text-[var(--color-income)]">Your Current Plan</h4>
             </div>
 
@@ -257,7 +261,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
         {/* Savings Highlight */}
         <div className="bg-gradient-to-r from-[var(--color-primary)]/30 to-[var(--color-primary)]/20 border border-[var(--color-primary)]/40 rounded-lg p-5">
           <div className="flex items-start gap-3">
-            <span className="text-3xl">🎯</span>
+            <Target className="w-8 h-8 text-[var(--color-primary)]" />
             <div className="flex-1">
               <h4 className="text-lg font-semibold text-[var(--color-primary)] mb-3">
                 By paying ${data.currentPlanScenario.extraPayment.toLocaleString()} extra per month, you will:
@@ -266,7 +270,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-elevated/40 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">⏱️</span>
+                    <Clock className="w-5 h-5 text-[var(--color-primary)]" />
                     <div className="text-sm text-muted-foreground">Time Saved</div>
                   </div>
                   <div className="text-2xl font-bold text-[var(--color-primary)]">
@@ -284,7 +288,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
 
                 <div className="bg-elevated/40 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">💵</span>
+                    <Banknote className="w-5 h-5 text-[var(--color-primary)]" />
                     <div className="text-sm text-muted-foreground">Interest Saved</div>
                   </div>
                   <div className="text-2xl font-bold font-mono text-[var(--color-primary)]">
@@ -297,7 +301,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
 
                 <div className="bg-elevated/40 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xl">🎉</span>
+                    <PartyPopper className="w-5 h-5 text-[var(--color-primary)]" />
                     <div className="text-sm text-muted-foreground">Debt-Free Sooner</div>
                   </div>
                   <div className="text-lg font-semibold text-[var(--color-primary)]">
@@ -314,8 +318,10 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
 
         {/* Warning Message */}
         <div className="bg-[var(--color-error)]/20 border border-[var(--color-error)]/30 rounded-lg p-4">
-          <p className="text-[var(--color-error)] text-sm font-medium">
-            ⚠️ <strong>WARNING:</strong> If you only pay minimums, you'll pay{' '}
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-[var(--color-error)] mt-0.5 flex-shrink-0" />
+            <p className="text-[var(--color-error)] text-sm font-medium">
+              <strong>WARNING:</strong> If you only pay minimums, you'll pay{' '}
             <span className="text-[var(--color-error)] font-bold">
               {interestMultiplier >= 2
                 ? `${Math.round(interestMultiplier)}x more`
@@ -329,7 +335,8 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
                 : `${Math.round((timeMultiplier - 1) * 100)}% longer`
               }
             </span>!
-          </p>
+            </p>
+          </div>
         </div>
       </div>
     </div>

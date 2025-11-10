@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import Image from 'next/image';
+import { DollarSign, BarChart3, Target } from 'lucide-react';
 
 export default async function Home() {
   const { userId } = await auth();
@@ -76,21 +77,21 @@ export default async function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#2a2a2a]">
               <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4">
-                <span className="text-2xl">💰</span>
+                <DollarSign className="w-6 h-6 text-blue-400" />
               </div>
               <h4 className="text-lg font-semibold text-white mb-2">Track Transactions</h4>
               <p className="text-gray-400">Easily log income and expenses with smart categorization</p>
             </div>
             <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#2a2a2a]">
               <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center mb-4">
-                <span className="text-2xl">📊</span>
+                <BarChart3 className="w-6 h-6 text-emerald-400" />
               </div>
               <h4 className="text-lg font-semibold text-white mb-2">Budget Management</h4>
               <p className="text-gray-400">Set budgets and monitor spending across categories</p>
             </div>
             <div className="p-6 bg-[#1a1a1a] rounded-xl border border-[#2a2a2a]">
               <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
-                <span className="text-2xl">🎯</span>
+                <Target className="w-6 h-6 text-purple-400" />
               </div>
               <h4 className="text-lg font-semibold text-white mb-2">Financial Goals</h4>
               <p className="text-gray-400">Track savings goals and debt payoff progress</p>

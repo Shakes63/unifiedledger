@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
+import { Lightbulb, PartyPopper } from 'lucide-react';
 import type { DebtPayoffSchedule } from '@/lib/debts/payoff-calculator';
 import { ChartContainer } from '@/components/charts/chart-container';
 import { ChartTooltip } from '@/components/charts/chart-tooltip';
@@ -69,7 +70,7 @@ export function PrincipalInterestChart({
     marks.push({
       month: startMonth + schedule.monthsToPayoff,
       percent: 100,
-      label: 'Paid Off! 🎉',
+      label: 'Paid Off!',
     });
 
     return marks;
@@ -226,25 +227,28 @@ export function PrincipalInterestChart({
 
       {/* Insight */}
       <div className="mt-4 p-3 bg-accent/10 border border-accent/30 rounded-lg">
-        <div className="text-sm text-accent">
-          💡 <span className="font-semibold">Insight:</span>{' '}
-          {schedule.monthlyBreakdown.length > 0 && (
-            <>
-              Your first payment is{' '}
-              <span className="font-semibold">
-                {((schedule.monthlyBreakdown[0].interestAmount / schedule.monthlyBreakdown[0].paymentAmount) * 100).toFixed(1)}% interest
-              </span>
-              {schedule.monthlyBreakdown.length > 1 && (
-                <>
-                  , but your last payment is only{' '}
-                  <span className="font-semibold">
-                    {((schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].interestAmount / schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].paymentAmount) * 100).toFixed(1)}% interest
-                  </span>
-                </>
-              )}
-              . Making extra payments early saves the most money!
-            </>
-          )}
+        <div className="flex items-start gap-2 text-sm text-accent">
+          <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <div>
+            <span className="font-semibold">Insight:</span>{' '}
+            {schedule.monthlyBreakdown.length > 0 && (
+              <>
+                Your first payment is{' '}
+                <span className="font-semibold">
+                  {((schedule.monthlyBreakdown[0].interestAmount / schedule.monthlyBreakdown[0].paymentAmount) * 100).toFixed(1)}% interest
+                </span>
+                {schedule.monthlyBreakdown.length > 1 && (
+                  <>
+                    , but your last payment is only{' '}
+                    <span className="font-semibold">
+                      {((schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].interestAmount / schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].paymentAmount) * 100).toFixed(1)}% interest
+                    </span>
+                  </>
+                )}
+                . Making extra payments early saves the most money!
+              </>
+            )}
+          </div>
         </div>
       </div>
     </ChartContainer>

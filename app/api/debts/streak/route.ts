@@ -13,11 +13,11 @@ interface StreakMilestone {
 }
 
 const MILESTONES: StreakMilestone[] = [
-  { months: 3, label: 'Quarter Streak', icon: '🔥' },
-  { months: 6, label: 'Half Year Streak', icon: '💪' },
-  { months: 12, label: '1 Year Streak', icon: '🏆' },
-  { months: 24, label: '2 Year Streak', icon: '🥇' },
-  { months: 36, label: '3 Year Streak', icon: '💎' },
+  { months: 3, label: 'Quarter Streak', icon: 'Flame' },
+  { months: 6, label: 'Half Year Streak', icon: 'Zap' },
+  { months: 12, label: '1 Year Streak', icon: 'Trophy' },
+  { months: 24, label: '2 Year Streak', icon: 'Award' },
+  { months: 36, label: '3 Year Streak', icon: 'Gem' },
 ];
 
 export async function GET() {

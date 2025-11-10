@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { BudgetAnalyticsChart } from './budget-analytics-chart';
 import { CategoryTrendChart } from './category-trend-chart';
 import { toast } from 'sonner';
+import { BarChart3, Settings, AlertTriangle, DollarSign, Lightbulb } from 'lucide-react';
 
 interface AnalyticsData {
   period: {
@@ -128,15 +129,15 @@ export function BudgetAnalyticsSection() {
   const getRecommendationIcon = (type: string) => {
     switch (type) {
       case 'budget_adjustment':
-        return '⚙️';
+        return <Settings className="w-5 h-5" />;
       case 'spending_alert':
-        return '⚠️';
+        return <AlertTriangle className="w-5 h-5" />;
       case 'savings_opportunity':
-        return '💰';
+        return <DollarSign className="w-5 h-5" />;
       case 'consistency_improvement':
-        return '📊';
+        return <BarChart3 className="w-5 h-5" />;
       default:
-        return '💡';
+        return <Lightbulb className="w-5 h-5" />;
     }
   };
 
@@ -183,7 +184,8 @@ export function BudgetAnalyticsSection() {
       {/* Header with Period Selector */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          📊 Budget Analytics
+          <BarChart3 className="w-5 h-5" />
+          Budget Analytics
         </h2>
         <select
           value={monthsPeriod}
@@ -309,7 +311,7 @@ export function BudgetAnalyticsSection() {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">⚠️</span>
+                <AlertTriangle className="w-5 h-5 text-[var(--color-warning)]" />
                 <h3 className="text-base font-semibold text-foreground">Overspending Alert</h3>
               </div>
               <p className="text-sm text-muted-foreground mb-3">
@@ -338,7 +340,10 @@ export function BudgetAnalyticsSection() {
       {/* Recommendations */}
       {analyticsData.recommendations.length > 0 && (
         <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="text-base font-semibold text-foreground mb-4">💡 Recommendations</h3>
+          <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Lightbulb className="w-5 h-5" />
+            Recommendations
+          </h3>
           <div className="space-y-3">
             {analyticsData.recommendations.slice(0, 5).map((rec, idx) => (
               <div
@@ -346,7 +351,7 @@ export function BudgetAnalyticsSection() {
                 className={`p-4 border rounded-lg ${getPriorityColor(rec.priority)}`}
               >
                 <div className="flex items-start gap-3">
-                  <span className="text-xl">{getRecommendationIcon(rec.type)}</span>
+                  {getRecommendationIcon(rec.type)}
                   <div className="flex-1">
                     <p className="text-sm font-medium text-foreground mb-1">{rec.message}</p>
                     <p className="text-sm text-muted-foreground">{rec.suggestedAction}</p>

@@ -22,7 +22,7 @@ import { ExportButton } from '@/components/reports/export-button';
 import { PaymentBreakdownSection } from '@/components/debts/payment-breakdown-section';
 import { DebtReductionChart } from '@/components/debts/debt-reduction-chart';
 import { AmortizationScheduleView } from '@/components/debts/amortization-schedule-view';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, BarChart3, TrendingDown, TrendingUp } from 'lucide-react';
 
 type Period = 'month' | 'year' | '12months';
 
@@ -388,7 +388,7 @@ export default function ReportsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">📊</span>
+              <BarChart3 className="w-6 h-6 text-[var(--color-primary)]" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">Payment Breakdown Analysis</h3>
                 <p className="text-sm text-muted-foreground">
@@ -413,7 +413,7 @@ export default function ReportsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">📉</span>
+              <TrendingDown className="w-6 h-6 text-[var(--color-income)]" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">Debt Reduction Progress</h3>
                 <p className="text-sm text-muted-foreground">
@@ -436,7 +436,7 @@ export default function ReportsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">📈</span>
+              <TrendingUp className="w-6 h-6 text-[var(--color-primary)]" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">Interactive Amortization Schedule</h3>
                 <p className="text-sm text-muted-foreground">

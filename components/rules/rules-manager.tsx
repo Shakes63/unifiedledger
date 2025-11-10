@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus } from 'lucide-react';
+import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 interface Rule {
   id: string;
@@ -35,6 +36,7 @@ function RuleCard({
   onToggle,
   onMoveUp,
   onMoveDown,
+  onApply,
 }: {
   rule: Rule;
   index: number;
@@ -44,7 +46,20 @@ function RuleCard({
   onToggle?: (id: string, active: boolean) => void;
   onMoveUp?: (id: string) => void;
   onMoveDown?: (id: string) => void;
+  onApply?: (id: string) => void;
 }) {
+  const [applying, setApplying] = useState(false);
+
+  const handleApply = async () => {
+    if (!onApply) return;
+
+    setApplying(true);
+    try {
+      await onApply(rule.id);
+    } finally {
+      setApplying(false);
+    }
+  };
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'Never';
     const date = new Date(dateString);
@@ -118,6 +133,18 @@ function RuleCard({
               title="Move down (lower priority)"
             >
               <ArrowDown className="w-4 h-4" />
+            </Button>
+
+            {/* Apply Rule */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleApply}
+              disabled={applying || !rule.isActive}
+              className="text-[var(--color-warning)] hover:bg-[var(--color-warning)]/20 disabled:opacity-50"
+              title="Apply this rule to existing uncategorized transactions"
+            >
+              <Zap className="w-4 h-4" />
             </Button>
 
             {/* Toggle Active */}
@@ -241,6 +268,28 @@ export function RulesManager({
     }
   };
 
+  const handleApplyRule = async (ruleId: string) => {
+    try {
+      const response = await fetch(`/api/rules/apply-bulk?ruleId=${ruleId}&limit=100`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) throw new Error('Failed to apply rule');
+
+      const result = await response.json();
+
+      if (result.totalUpdated > 0) {
+        toast.success(`Applied rule to ${result.totalUpdated} transaction${result.totalUpdated !== 1 ? 's' : ''}`);
+        // Refresh rules to update match counts
+        fetchRules();
+      } else {
+        toast.info('No matching uncategorized transactions found');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to apply rule');
+    }
+  };
+
   const handleChangePriority = async (ruleId: string, direction: 'up' | 'down') => {
     const ruleIndex = rules.findIndex(r => r.id === ruleId);
     if (ruleIndex === -1) return;
@@ -349,6 +398,7 @@ export function RulesManager({
               onToggle={handleToggle}
               onMoveUp={() => handleChangePriority(rule.id, 'up')}
               onMoveDown={() => handleChangePriority(rule.id, 'down')}
+              onApply={handleApplyRule}
             />
           ))}
         </div>

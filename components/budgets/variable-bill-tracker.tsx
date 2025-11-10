@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { VariableBillCard } from './variable-bill-card';
 import { toast } from 'sonner';
 import Decimal from 'decimal.js';
+import { FileText, BarChart3, Lightbulb } from 'lucide-react';
 
 interface VariableBillData {
   id: string;
@@ -261,7 +262,7 @@ export function VariableBillTracker() {
     return (
       <div className="bg-card border border-border rounded-xl p-6">
         <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
-          <div className="text-4xl mb-2">📝</div>
+          <FileText className="w-16 h-16 text-muted-foreground mb-2" />
           <h3 className="text-lg font-semibold text-foreground">No variable bills yet</h3>
           <p className="text-sm text-muted-foreground max-w-md">
             Variable bills help you track costs that change month-to-month, like utilities or phone
@@ -283,7 +284,8 @@ export function VariableBillTracker() {
       {/* Header with Month Navigation */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          📝 Variable Bills
+          <FileText className="w-5 h-5" />
+          Variable Bills
         </h2>
         <div className="flex items-center gap-2">
           <button
@@ -316,7 +318,10 @@ export function VariableBillTracker() {
       {/* Summary Card */}
       {summary && (
         <div className="bg-card border border-border rounded-xl p-6">
-          <h3 className="text-sm font-medium text-foreground mb-4">📊 Summary</h3>
+          <h3 className="text-sm font-medium text-foreground mb-4 flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Summary
+          </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <div>
               <div className="text-xs text-muted-foreground mb-1">Total Expected</div>
@@ -403,7 +408,7 @@ export function VariableBillTracker() {
       {insight && summary && summary.paidCount > 0 && (
         <div className="bg-card border border-border rounded-xl p-6">
           <div className="flex items-start gap-3">
-            <span className="text-2xl">💡</span>
+            <Lightbulb className="w-6 h-6 text-[var(--color-warning)]" />
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-foreground mb-1">Overall Insight</h3>
               <p className="text-sm text-foreground mb-2">{insight.message}</p>

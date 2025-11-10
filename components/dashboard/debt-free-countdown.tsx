@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ProgressRing } from '@/components/ui/progress-ring';
+import { PartyPopper, Target, Flame, Medal, Award, Zap } from 'lucide-react';
 
 interface Milestone {
   percentage: number;
@@ -63,30 +64,30 @@ export function DebtFreeCountdown() {
 
   const getMotivationalMessage = (percentage: number) => {
     if (percentage >= 100) {
-      return "You did it! You're debt-free! 🎉";
+      return "You did it! You're debt-free!";
     } else if (percentage >= 75) {
-      return "So close! The finish line is in sight! 🏁";
+      return "So close! The finish line is in sight!";
     } else if (percentage >= 50) {
-      return "More than halfway! You're crushing it! 🔥";
+      return "More than halfway! You're crushing it!";
     } else if (percentage >= 25) {
-      return "You're a quarter of the way there! 🎯";
+      return "You're a quarter of the way there!";
     } else {
-      return "You're just getting started - stay strong! 💪";
+      return "You're just getting started - stay strong!";
     }
   };
 
   const getMilestoneIcon = (percentage: number) => {
     switch (percentage) {
       case 25:
-        return '🏅'; // Bronze
+        return <Medal className="w-6 h-6" />; // Bronze
       case 50:
-        return '🥈'; // Silver
+        return <Medal className="w-6 h-6" />; // Silver
       case 75:
-        return '🥇'; // Gold
+        return <Award className="w-6 h-6" />; // Gold
       case 100:
-        return '🎉'; // Party
+        return <PartyPopper className="w-6 h-6" />; // Party
       default:
-        return '🎯';
+        return <Target className="w-6 h-6" />;
     }
   };
 
@@ -111,7 +112,7 @@ export function DebtFreeCountdown() {
     return (
       <div className="bg-gradient-to-br from-[var(--color-income)]/20 to-[var(--color-income)]/10 border border-[var(--color-income)]/30 rounded-xl p-8">
         <div className="text-center">
-          <div className="text-6xl mb-4">🎉</div>
+          <PartyPopper className="w-16 h-16 text-[var(--color-income)] mx-auto mb-4" />
           <h2 className="text-3xl font-bold text-[var(--color-income)] mb-2">
             You're Debt-Free!
           </h2>
@@ -128,9 +129,12 @@ export function DebtFreeCountdown() {
     <div className="bg-gradient-to-br from-card to-elevated border border-border rounded-xl p-6 md:p-8">
       {/* Header */}
       <div className="text-center mb-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-          🎯 Debt-Free Countdown
-        </h2>
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Target className="w-6 h-6 md:w-8 md:h-8 text-foreground" />
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+            Debt-Free Countdown
+          </h2>
+        </div>
         <p className="text-muted-foreground text-sm md:text-base">
           {getMotivationalMessage(data.percentageComplete)}
         </p>
@@ -187,8 +191,8 @@ export function DebtFreeCountdown() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-sm text-[var(--color-primary)] mb-1">Next Milestone</div>
-                  <div className="text-xl font-bold text-[var(--color-primary)]">
-                    {getMilestoneIcon(data.nextMilestone.percentage)}{' '}
+                  <div className="text-xl font-bold text-[var(--color-primary)] flex items-center gap-2">
+                    {getMilestoneIcon(data.nextMilestone.percentage)}
                     {data.nextMilestone.percentage}% Complete
                   </div>
                   <div className="text-xs text-[var(--color-primary)]/70 mt-1">
@@ -207,10 +211,10 @@ export function DebtFreeCountdown() {
                 className="flex-1 text-center"
               >
                 <div
-                  className={`text-2xl transition-all ${
+                  className={`transition-all flex justify-center ${
                     milestone.achieved
-                      ? 'opacity-100 scale-110'
-                      : 'opacity-30 scale-90 grayscale'
+                      ? 'opacity-100 scale-110 text-[var(--color-income)]'
+                      : 'opacity-30 scale-90 grayscale text-muted-foreground'
                   }`}
                 >
                   {getMilestoneIcon(milestone.percentage)}
@@ -221,7 +225,6 @@ export function DebtFreeCountdown() {
                   }`}
                 >
                   {milestone.percentage}%
-                  {milestone.achieved && ' ✓'}
                 </div>
               </div>
             ))}

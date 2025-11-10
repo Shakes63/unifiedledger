@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { ProgressRing } from '@/components/ui/progress-ring';
+import { PartyPopper } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface SummaryData {
@@ -155,8 +156,8 @@ export function DebtReductionSummary({ summary, isLoading }: DebtReductionSummar
           </p>
         )}
         {monthsRemaining === 0 && (
-          <p className="text-xs text-[var(--color-success)] mt-2 font-semibold">
-            This month! 🎉
+          <p className="text-xs text-[var(--color-success)] mt-2 font-semibold flex items-center gap-1 justify-center">
+            This month! <PartyPopper className="w-3 h-3" />
           </p>
         )}
       </div>

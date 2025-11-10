@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Calendar, ClipboardList, BarChart3, Lightbulb, CreditCard } from 'lucide-react';
 import type { PayoffStrategyResult } from '@/lib/debts/payoff-calculator';
 import { PayoffTimeline } from './payoff-timeline';
 import { AmortizationTable } from './amortization-table';
@@ -82,7 +83,7 @@ export function AmortizationScheduleView({
                   `}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg">{payoffOrder.icon || '💳'}</span>
+                    <CreditCard className="w-4 h-4 text-muted-foreground" />
                     <span className="text-xs font-semibold text-muted-foreground">
                       #{payoffOrder.order}
                     </span>
@@ -106,40 +107,40 @@ export function AmortizationScheduleView({
           <button
             onClick={() => setView('overview')}
             className={`
-              flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all
+              flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2
               ${view === 'overview'
                 ? 'bg-accent text-accent-foreground shadow-lg'
                 : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
               }
             `}
           >
-            <span className="mr-2">📅</span>
+            <Calendar className="w-4 h-4" />
             Overview
           </button>
           <button
             onClick={() => setView('table')}
             className={`
-              flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all
+              flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2
               ${view === 'table'
                 ? 'bg-accent text-accent-foreground shadow-lg'
                 : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
               }
             `}
           >
-            <span className="mr-2">📋</span>
+            <ClipboardList className="w-4 h-4" />
             Full Schedule
           </button>
           <button
             onClick={() => setView('chart')}
             className={`
-              flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all
+              flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2
               ${view === 'chart'
                 ? 'bg-accent text-accent-foreground shadow-lg'
                 : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
               }
             `}
           >
-            <span className="mr-2">📊</span>
+            <BarChart3 className="w-4 h-4" />
             Charts
           </button>
         </div>
@@ -154,7 +155,7 @@ export function AmortizationScheduleView({
 
             <div className="bg-accent/10 border border-accent/30 rounded-xl p-4">
               <div className="flex items-start gap-3">
-                <span className="text-2xl">💡</span>
+                <Lightbulb className="w-6 h-6 text-accent flex-shrink-0" />
                 <div>
                   <h4 className="text-sm font-semibold text-accent mb-1">
                     Interactive Amortization Schedule

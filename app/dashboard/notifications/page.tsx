@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { AlertCircle, Trash2, Archive, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Trash2, Archive, CheckCircle2, Calendar, DollarSign, BarChart3, TrendingDown, PartyPopper, Bell, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -141,26 +141,27 @@ export default function NotificationsPage() {
   };
 
   const getTypeIcon = (type: string) => {
+    const iconClass = "w-6 h-6";
     switch (type) {
       case 'bill_due':
       case 'bill_overdue':
-        return '📅';
+        return <Calendar className={`${iconClass} text-[var(--color-warning)]`} />;
       case 'budget_warning':
       case 'budget_exceeded':
-        return '💰';
+        return <DollarSign className={`${iconClass} text-[var(--color-error)]`} />;
       case 'budget_review':
-        return '📊';
+        return <BarChart3 className={`${iconClass} text-[var(--color-primary)]`} />;
       case 'low_balance':
-        return '📉';
+        return <TrendingDown className={`${iconClass} text-[var(--color-error)]`} />;
       case 'savings_milestone':
       case 'debt_milestone':
-        return '🎉';
+        return <PartyPopper className={`${iconClass} text-[var(--color-success)]`} />;
       case 'spending_summary':
-        return '📊';
+        return <BarChart3 className={`${iconClass} text-[var(--color-primary)]`} />;
       case 'reminder':
-        return '🔔';
+        return <Bell className={`${iconClass} text-[var(--color-primary)]`} />;
       default:
-        return 'ℹ️';
+        return <Info className={`${iconClass} text-muted-foreground`} />;
     }
   };
 
@@ -224,7 +225,7 @@ export default function NotificationsPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
                   {/* Icon */}
-                  <div className="text-3xl">{getTypeIcon(notification.type)}</div>
+                  <div className="flex-shrink-0 mt-1">{getTypeIcon(notification.type)}</div>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">

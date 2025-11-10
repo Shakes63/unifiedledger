@@ -4,6 +4,7 @@ import { useMemo, useEffect } from 'react';
 import type { DebtPayoffSchedule } from '@/lib/debts/payoff-calculator';
 import { PieChart } from '@/components/charts/pie-chart';
 import { ProgressRing } from '@/components/ui/progress-ring';
+import { PartyPopper } from 'lucide-react';
 
 interface MonthDetailModalProps {
   schedule: DebtPayoffSchedule;
@@ -170,7 +171,9 @@ export function MonthDetailModal({
                   <div className="text-sm text-muted-foreground">Paid Off</div>
                 </div>
                 {isPayoffMonth && (
-                  <div className="mt-3 text-2xl">🎉</div>
+                  <div className="mt-3">
+                    <PartyPopper className="w-8 h-8 text-[var(--color-success)]" />
+                  </div>
                 )}
               </div>
             </div>
