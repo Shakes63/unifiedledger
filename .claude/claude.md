@@ -418,8 +418,8 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-### Latest: Rules Actions System - Phase 2 Progress (2025-11-10) 🟡
-**Status:** 1.5 of 5 features complete (30%) - Backend implementations ongoing
+### Latest: Rules Actions System - Phase 2 Progress (2025-11-10) 🟢
+**Status:** 2.4 of 5 features complete (48%) - Active development ongoing
 **Plan Document:** `docs/rules-actions-phase2-plan.md`
 
 **Phase 2A: Set Tax Deduction Action - COMPLETE ✅ (2025-11-09)**
@@ -429,7 +429,7 @@ pnpm drizzle-kit migrate   # Apply migration
 - Automatically marks transactions as tax deductible when category is configured
 - Build successful, zero errors
 
-**Phase 2B: Convert to Transfer Action - Backend Complete ✅ (2025-11-10)**
+**Phase 2B: Convert to Transfer Action - COMPLETE ✅ (2025-11-10)**
 - **Backend Implementation** (~500 lines):
   - Created `lib/rules/transfer-action-handler.ts` (NEW FILE):
     - `handleTransferConversion()` - Main orchestration function
@@ -451,16 +451,74 @@ pnpm drizzle-kit migrate   # Apply migration
     - Full error handling (non-fatal)
   - Build Status: ✅ Production build successful, zero errors
 
-- **UI Implementation** ⏳ (Not Started):
-  - Add action type to rule-builder.tsx selector
-  - Account selector with optional target
-  - Auto-match toggle and configuration options
-  - Advanced settings (tolerance, date range, create if no match)
-  - Icon and label display in rules-manager.tsx
-  - See `docs/rules-actions-phase2-plan.md` Task 2.4 for specifications
+- **UI Implementation Complete** (~200 lines):
+  - Added Account interface and accounts state to rule-builder.tsx
+  - Accounts fetched and displayed in selector with color indicators
+  - Added "Convert to Transfer" action type to selector with ArrowRightLeft icon
+  - Complete configuration UI implemented with all options:
+    - Target account selector (optional, auto-detect mode)
+    - Auto-match toggle with advanced options
+    - Amount tolerance slider (0-10%)
+    - Date range input (1-30 days)
+    - Create pair toggle with warning states
+    - Information boxes with usage instructions
+  - Updated rules-manager.tsx to display transfer icon and label
+  - Added validation in rules page for tolerance and date range
+  - Full theme integration with semantic CSS variables
+  - Production build successful with zero errors
+  - **Plan Document:** `docs/convert-to-transfer-ui-plan.md`
+
+**Phase 2C: Split Transaction Action - PARTIAL 🟡 (2025-11-10) - Backend 100%, Frontend 40%**
+- **Backend Implementation Complete** (~400 lines):
+  - Created `lib/rules/split-action-handler.ts` (NEW FILE):
+    - `handleSplitCreation()` - Main orchestration function with Decimal.js precision
+    - `calculateSplitTotal()` - Helper for validation
+    - `calculateTotalPercentage()` - Helper for percentage validation
+    - `validateSplitConfig()` - Comprehensive validation
+  - Updated `lib/rules/actions-executor.ts`:
+    - Implemented `executeCreateSplitAction()`
+    - Stores split config for post-creation processing
+    - Validation for splits configuration
+  - Updated `lib/rules/types.ts`:
+    - Added `SplitConfig` interface
+    - Extended `TransactionMutations` to include `createSplits`
+    - Added 'isSplit' to AppliedAction field types
+  - Integration:
+    - Transaction creation API (`app/api/transactions/route.ts`)
+    - Bulk apply rules API (`app/api/rules/apply-bulk/route.ts`)
+  - Features:
+    - Percentage-based and fixed amount splits
+    - Mixed split support (some percentage, some fixed)
+    - Total validation (percentage ≤ 100%, amount ≤ transaction total)
+    - Category validation
+    - Full error handling (non-fatal)
+  - Build Status: ✅ Production build successful, zero errors
+
+- **Frontend Implementation Partial** (~100 lines completed, ~300 lines pending):
+  - ✅ Added Scissors, DollarSign, Percent icons
+  - ✅ Added "Split Transaction" to action type selector
+  - ✅ Implemented helper functions:
+    - `addSplit()` - Creates new empty split with validation
+    - `removeSplit()` - Removes split with null checks
+    - `updateSplitField()` - Updates split field with null checks
+  - ⏳ **Large UI Component Pending** (~300 lines):
+    - Split list container
+    - Individual split item cards with:
+      - Category selector dropdown
+      - Amount type toggle (Fixed/Percentage buttons)
+      - Amount/percentage input fields
+      - Optional description field
+      - Remove button per split
+    - Add Split button
+    - Empty state display
+    - Total percentage/amount validation display
+    - Visual feedback and warnings
+  - ⏳ rules-manager.tsx update (split icon and label)
+  - ⏳ rules page validation for splits
+  - **Plan Document:** `docs/split-transaction-action-plan.md`
+  - **Next Steps:** Complete split configuration UI in rule-builder.tsx
 
 **Remaining Phase 2 Features:**
-- Priority 3: Split Transaction Action (~3 days)
 - Priority 4: Set Account Action (~2-3 days)
 - Priority 5: Enhanced Transfer Matching (~1-2 days)
 

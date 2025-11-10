@@ -11,7 +11,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { Plus, X, ChevronDown, AlertCircle, Zap, Tag, Store, FileEdit, FileText } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Plus, X, ChevronDown, AlertCircle, Zap, Tag, Store, FileEdit, FileText, ArrowRightLeft, Settings, Lightbulb, Scissors, DollarSign, Percent } from 'lucide-react';
 import { Condition, ConditionGroup, ComparisonOperator, ConditionField } from '@/lib/rules/condition-evaluator';
 import { RuleAction } from '@/lib/rules/types';
 import { nanoid } from 'nanoid';
@@ -53,6 +55,14 @@ interface Category {
 interface Merchant {
   id: string;
   name: string;
+}
+
+interface Account {
+  id: string;
+  name: string;
+  type: string;
+  color?: string;
+  icon?: string;
 }
 
 interface RuleBuilderProps {
@@ -286,15 +296,17 @@ export function RuleBuilder({
   const [actions, setActions] = useState<RuleAction[]>(initialActions);
   const [categories, setCategories] = useState<Category[]>([]);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
-  // Fetch categories and merchants
+  // Fetch categories, merchants, and accounts
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [categoriesRes, merchantsRes] = await Promise.all([
+        const [categoriesRes, merchantsRes, accountsRes] = await Promise.all([
           fetch('/api/categories'),
-          fetch('/api/merchants')
+          fetch('/api/merchants'),
+          fetch('/api/accounts?sortBy=name&sortOrder=asc')
         ]);
 
         if (categoriesRes.ok) {
@@ -305,6 +317,11 @@ export function RuleBuilder({
         if (merchantsRes.ok) {
           const merchantsData = await merchantsRes.json();
           setMerchants(merchantsData);
+        }
+
+        if (accountsRes.ok) {
+          const accountsData = await accountsRes.json();
+          setAccounts(accountsData.data || []);
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);
@@ -343,6 +360,54 @@ export function RuleBuilder({
   const removeAction = (index: number) => {
     const newActions = actions.filter((_, i) => i !== index);
     handleActionsUpdate(newActions);
+  };
+
+  const updateActionConfig = (index: number, config: any) => {
+    const newActions = [...actions];
+    newActions[index].config = config;
+    handleActionsUpdate(newActions);
+  };
+
+  const addSplit = (actionIndex: number) => {
+    const newSplit = {
+      categoryId: '',
+      amount: 0,
+      percentage: 0,
+      isPercentage: false,
+      description: '',
+    };
+
+    const updatedActions = [...actions];
+    if (!updatedActions[actionIndex].config) {
+      updatedActions[actionIndex].config = { splits: [] };
+    }
+    if (!updatedActions[actionIndex].config.splits) {
+      updatedActions[actionIndex].config.splits = [];
+    }
+
+    updatedActions[actionIndex].config.splits.push(newSplit);
+    handleActionsUpdate(updatedActions);
+  };
+
+  const removeSplit = (actionIndex: number, splitIndex: number) => {
+    const updatedActions = [...actions];
+    if (updatedActions[actionIndex].config?.splits) {
+      updatedActions[actionIndex].config.splits.splice(splitIndex, 1);
+      handleActionsUpdate(updatedActions);
+    }
+  };
+
+  const updateSplitField = (
+    actionIndex: number,
+    splitIndex: number,
+    field: string,
+    value: any
+  ) => {
+    const updatedActions = [...actions];
+    if (updatedActions[actionIndex].config?.splits) {
+      updatedActions[actionIndex].config.splits[splitIndex][field] = value;
+      handleActionsUpdate(updatedActions);
+    }
   };
 
   return (
@@ -434,12 +499,54 @@ export function RuleBuilder({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="set_category">Set Category</SelectItem>
-                        <SelectItem value="set_description">Set Description</SelectItem>
-                        <SelectItem value="prepend_description">Prepend to Description</SelectItem>
-                        <SelectItem value="append_description">Append to Description</SelectItem>
-                        <SelectItem value="set_merchant">Set Merchant</SelectItem>
-                        <SelectItem value="set_tax_deduction">Mark as Tax Deductible</SelectItem>
+                        <SelectItem value="set_category">
+                          <div className="flex items-center gap-2">
+                            <Tag className="h-4 w-4" />
+                            Set Category
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="set_description">
+                          <div className="flex items-center gap-2">
+                            <FileEdit className="h-4 w-4" />
+                            Set Description
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="prepend_description">
+                          <div className="flex items-center gap-2">
+                            <FileEdit className="h-4 w-4" />
+                            Prepend to Description
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="append_description">
+                          <div className="flex items-center gap-2">
+                            <FileEdit className="h-4 w-4" />
+                            Append to Description
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="set_merchant">
+                          <div className="flex items-center gap-2">
+                            <Store className="h-4 w-4" />
+                            Set Merchant
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="set_tax_deduction">
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            Mark as Tax Deductible
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="convert_to_transfer">
+                          <div className="flex items-center gap-2">
+                            <ArrowRightLeft className="h-4 w-4" />
+                            Convert to Transfer
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="create_split">
+                          <div className="flex items-center gap-2">
+                            <Scissors className="h-4 w-4" />
+                            Split Transaction
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -539,6 +646,192 @@ export function RuleBuilder({
                             </p>
                             <p className="text-xs text-muted-foreground mt-1">
                               Requires a category to be set (either manually or via a set_category action).
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {action.type === 'convert_to_transfer' && (
+                      <div className="flex-1 space-y-4">
+                        {/* Target Account Selector */}
+                        <div className="space-y-2">
+                          <Label className="text-sm text-foreground">
+                            Target Account
+                            <span className="text-muted-foreground ml-1">(Optional)</span>
+                          </Label>
+                          <Select
+                            value={action.config?.targetAccountId || ''}
+                            onValueChange={(val) =>
+                              updateActionConfig(index, {
+                                ...action.config,
+                                targetAccountId: val || undefined
+                              })
+                            }
+                          >
+                            <SelectTrigger className="bg-input border-border">
+                              <SelectValue placeholder="Auto-detect or select account" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="">
+                                <div className="flex items-center gap-2">
+                                  <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
+                                  <span>Auto-detect account</span>
+                                </div>
+                              </SelectItem>
+                              {accounts.map((acc) => (
+                                <SelectItem key={acc.id} value={acc.id}>
+                                  <div className="flex items-center gap-2">
+                                    {acc.color && (
+                                      <div
+                                        className="w-3 h-3 rounded-full border border-border"
+                                        style={{ backgroundColor: acc.color }}
+                                      />
+                                    )}
+                                    <span className="text-foreground">{acc.name}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      ({acc.type})
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Leave blank to auto-match with any account. Specify an account to only match transfers with that account.
+                          </p>
+                        </div>
+
+                        {/* Auto-Match Toggle */}
+                        <div className="flex items-center justify-between bg-elevated rounded-lg p-3 border border-border">
+                          <div className="flex-1 mr-4">
+                            <Label className="text-sm text-foreground font-medium">
+                              Auto-Match with Existing Transaction
+                            </Label>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Search for matching opposite transaction to link as transfer pair (recommended)
+                            </p>
+                          </div>
+                          <Switch
+                            checked={action.config?.autoMatch ?? true}
+                            onCheckedChange={(checked) =>
+                              updateActionConfig(index, { ...action.config, autoMatch: checked })
+                            }
+                          />
+                        </div>
+
+                        {/* Advanced Options - Only show if Auto-Match is enabled */}
+                        {(action.config?.autoMatch ?? true) && (
+                          <div className="space-y-3 border-l-2 border-[var(--color-primary)] pl-4 mt-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Settings className="h-4 w-4 text-[var(--color-primary)]" />
+                              <span className="text-sm font-medium text-foreground">Advanced Matching Options</span>
+                            </div>
+
+                            {/* Amount Tolerance */}
+                            <div className="space-y-2">
+                              <Label className="text-sm text-foreground">
+                                Amount Tolerance (%)
+                              </Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                max="10"
+                                step="0.1"
+                                value={action.config?.matchTolerance ?? 1}
+                                onChange={(e) =>
+                                  updateActionConfig(index, {
+                                    ...action.config,
+                                    matchTolerance: parseFloat(e.target.value) || 1,
+                                  })
+                                }
+                                className="bg-input border-border"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Allow amount difference up to this percentage (default: 1%).
+                                For $100 transaction with 1% tolerance, will match $99-$101.
+                              </p>
+                            </div>
+
+                            {/* Date Range */}
+                            <div className="space-y-2">
+                              <Label className="text-sm text-foreground">
+                                Date Range (days)
+                              </Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                max="30"
+                                value={action.config?.matchDayRange ?? 7}
+                                onChange={(e) =>
+                                  updateActionConfig(index, {
+                                    ...action.config,
+                                    matchDayRange: parseInt(e.target.value) || 7,
+                                  })
+                                }
+                                className="bg-input border-border"
+                              />
+                              <p className="text-xs text-muted-foreground">
+                                Search ±N days from transaction date (default: 7 days).
+                                Larger range = more matches but less precision.
+                              </p>
+                            </div>
+
+                            {/* Create if No Match Toggle */}
+                            <div className="flex items-center justify-between bg-card rounded-lg p-3 border border-border">
+                              <div className="flex-1 mr-4">
+                                <Label className="text-sm text-foreground font-medium">
+                                  Create Transfer Pair if No Match
+                                </Label>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Automatically create matching transaction if no suitable match is found
+                                </p>
+                              </div>
+                              <Switch
+                                checked={action.config?.createIfNoMatch ?? true}
+                                onCheckedChange={(checked) =>
+                                  updateActionConfig(index, { ...action.config, createIfNoMatch: checked })
+                                }
+                              />
+                            </div>
+
+                            {/* Warning if Create Pair enabled but no target account */}
+                            {(action.config?.createIfNoMatch ?? true) && !action.config?.targetAccountId && (
+                              <div className="flex items-start gap-2 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-lg p-3">
+                                <AlertCircle className="h-4 w-4 text-[var(--color-warning)] mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                  <p className="text-xs text-foreground">
+                                    <strong>Note:</strong> To create transfer pairs automatically, you should specify a target account above.
+                                    Without a target account, the system can only link with existing transactions.
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Auto-Match Disabled State - Show Info */}
+                        {!(action.config?.autoMatch ?? true) && (
+                          <div className="flex items-start gap-2 bg-elevated border border-border rounded-lg p-3">
+                            <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-xs text-muted-foreground">
+                                Auto-matching is disabled. The transaction will be converted to a transfer type,
+                                but will not be automatically linked with other transactions.
+                                You can manually link it later.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* General Information Box */}
+                        <div className="flex items-start gap-2 bg-elevated rounded-lg p-3 mt-4">
+                          <Lightbulb className="h-4 w-4 text-[var(--color-primary)] mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-xs text-foreground leading-relaxed">
+                              <strong>How it works:</strong> This action converts transactions to transfers between accounts.
+                              It can automatically find and link matching opposite transactions (e.g., expense in one account
+                              matching income in another), or create a new transfer pair if none is found.
                             </p>
                           </div>
                         </div>

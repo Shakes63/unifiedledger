@@ -46,7 +46,7 @@ export interface AppliedAction {
   type: RuleActionType;
 
   /** Field that was modified */
-  field: 'categoryId' | 'description' | 'merchantId' | 'accountId' | 'isTaxDeductible' | 'type';
+  field: 'categoryId' | 'description' | 'merchantId' | 'accountId' | 'isTaxDeductible' | 'type' | 'isSplit';
 
   /** Original value before action */
   originalValue?: string | null;
@@ -99,6 +99,17 @@ export interface TransferConversionConfig {
 }
 
 /**
+ * Split configuration for create_split action
+ */
+export interface SplitConfig {
+  categoryId: string;
+  amount?: number;
+  percentage?: number;
+  isPercentage: boolean;
+  description?: string;
+}
+
+/**
  * Transaction mutations to apply
  * Result from actions executor
  */
@@ -122,7 +133,8 @@ export interface TransactionMutations {
   /** Transfer conversion config (if convert_to_transfer action) */
   convertToTransfer?: TransferConversionConfig;
 
-  // Future: split fields
+  /** Split configurations (if create_split action) */
+  createSplits?: SplitConfig[];
 }
 
 /**

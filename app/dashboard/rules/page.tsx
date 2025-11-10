@@ -100,6 +100,19 @@ export default function RulesPage() {
         toast.error('Please enter a pattern for all description actions');
         return;
       }
+      if (action.type === 'convert_to_transfer' && action.config) {
+        const { matchTolerance, matchDayRange } = action.config;
+
+        if (matchTolerance !== undefined && (matchTolerance < 0 || matchTolerance > 10)) {
+          toast.error('Amount tolerance must be between 0% and 10%');
+          return;
+        }
+
+        if (matchDayRange !== undefined && (matchDayRange < 1 || matchDayRange > 30)) {
+          toast.error('Date range must be between 1 and 30 days');
+          return;
+        }
+      }
     }
 
     try {

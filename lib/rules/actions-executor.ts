@@ -15,6 +15,7 @@ import type {
   ActionExecutionContext,
   ActionExecutionResult,
   PATTERN_VARIABLES,
+  SplitConfig,
 } from './types';
 
 /**
@@ -82,9 +83,17 @@ function validateAction(action: RuleAction): string | null {
       // No additional validation needed - config is optional
       break;
 
-    case 'set_account':
     case 'create_split':
-      // Future actions - not yet implemented
+      if (!action.config || !action.config.splits || !Array.isArray(action.config.splits)) {
+        return 'Splits configuration is required for create_split action';
+      }
+      if (action.config.splits.length === 0) {
+        return 'At least one split is required for create_split action';
+      }
+      break;
+
+    case 'set_account':
+      // Future action - not yet implemented
       return `Action type ${action.type} is not yet implemented`;
 
     default:
@@ -294,6 +303,48 @@ async function executeSetTaxDeductionAction(
 }
 
 /**
+ * Execute a create_split action
+ * Creates transaction splits with specified categories and amounts
+ * Note: Actual split creation happens AFTER transaction is created
+ */
+async function executeCreateSplitAction(
+  action: RuleAction,
+  context: ActionExecutionContext,
+  mutations: TransactionMutations
+): Promise<AppliedAction | null> {
+  const config = action.config || {};
+
+  if (!config.splits || !Array.isArray(config.splits) || config.splits.length === 0) {
+    console.warn('No splits configured for create_split action');
+    return null;
+  }
+
+  // Validate split configuration
+  const splits = config.splits as SplitConfig[];
+
+  // Check total percentage if using percentages
+  const totalPercentage = splits
+    .filter((s) => s.isPercentage && s.percentage !== undefined)
+    .reduce((sum, s) => sum + (s.percentage || 0), 0);
+
+  if (totalPercentage > 100) {
+    console.error(`Total split percentage (${totalPercentage}%) exceeds 100%`);
+    return null;
+  }
+
+  // Store split request in mutations
+  // Actual split creation happens AFTER transaction is created
+  mutations.createSplits = splits;
+
+  return {
+    type: 'create_split',
+    field: 'isSplit',
+    originalValue: 'false',
+    newValue: 'true',
+  };
+}
+
+/**
  * Execute a convert_to_transfer action
  * Stores conversion configuration for post-creation processing
  * Note: Actual conversion happens AFTER transaction is created (needs transaction ID)
@@ -393,6 +444,10 @@ export async function executeRuleActions(
 
         case 'set_tax_deduction':
           appliedAction = await executeSetTaxDeductionAction(action, context, mutations);
+          break;
+
+        case 'create_split':
+          appliedAction = await executeCreateSplitAction(action, context, mutations);
           break;
 
         case 'convert_to_transfer':

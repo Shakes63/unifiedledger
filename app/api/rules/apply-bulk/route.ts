@@ -6,6 +6,8 @@ import { nanoid } from 'nanoid';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import { TransactionData } from '@/lib/rules/condition-evaluator';
 import { executeRuleActions } from '@/lib/rules/actions-executor';
+import { handleTransferConversion } from '@/lib/rules/transfer-action-handler';
+import { handleSplitCreation } from '@/lib/rules/split-action-handler';
 import type { AppliedAction } from '@/lib/rules/types';
 export const dynamic = 'force-dynamic';
 
@@ -229,6 +231,37 @@ export async function POST(request: Request) {
               .update(transactions)
               .set(updates)
               .where(eq(transactions.id, txn.id));
+          }
+
+          // Handle post-creation actions (convert to transfer, create splits)
+          if (executionResult.mutations.convertToTransfer) {
+            try {
+              const transferResult = await handleTransferConversion(
+                userId,
+                txn.id,
+                executionResult.mutations.convertToTransfer
+              );
+              if (!transferResult.success) {
+                console.error(`Transfer conversion failed for ${txn.id}:`, transferResult.error);
+              }
+            } catch (error) {
+              console.error(`Transfer conversion error for ${txn.id}:`, error);
+            }
+          }
+
+          if (executionResult.mutations.createSplits) {
+            try {
+              const splitResult = await handleSplitCreation(
+                userId,
+                txn.id,
+                executionResult.mutations.createSplits
+              );
+              if (!splitResult.success) {
+                console.error(`Split creation failed for ${txn.id}:`, splitResult.error);
+              }
+            } catch (error) {
+              console.error(`Split creation error for ${txn.id}:`, error);
+            }
           }
 
           // Log the rule execution with applied actions

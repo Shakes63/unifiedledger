@@ -8,6 +8,7 @@ import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import { TransactionData } from '@/lib/rules/condition-evaluator';
 import { executeRuleActions } from '@/lib/rules/actions-executor';
 import { handleTransferConversion } from '@/lib/rules/transfer-action-handler';
+import { handleSplitCreation } from '@/lib/rules/split-action-handler';
 import { findMatchingBills } from '@/lib/bills/bill-matcher';
 import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
 
@@ -410,6 +411,27 @@ export async function POST(request: Request) {
           }
         } catch (error) {
           console.error('Transfer conversion error:', error);
+          // Don't fail the transaction
+        }
+      }
+
+      // Handle split creation
+      if (postCreationMutations?.createSplits) {
+        try {
+          const splitResult = await handleSplitCreation(
+            userId,
+            transactionId,
+            postCreationMutations.createSplits
+          );
+
+          if (!splitResult.success) {
+            console.error('Split creation failed:', splitResult.error);
+            // Don't fail the transaction, just log the error
+          } else {
+            console.log(`Split creation: created ${splitResult.createdSplits.length} splits`);
+          }
+        } catch (error) {
+          console.error('Split creation error:', error);
           // Don't fail the transaction
         }
       }

@@ -74,7 +74,7 @@
 - ⏳ User documentation
 
 ## Phase 2: Advanced Actions (In Progress)
-**Status:** 1.5 of 5 features complete (30%) 🟢
+**Status:** 2.4 of 5 features complete (48%) 🟢
 **Plan:** See `docs/rules-actions-phase2-plan.md`
 
 **Completed:**
@@ -87,8 +87,7 @@
    - Icon and label display in rules-manager.tsx
    - Build successful with zero errors
 
-**In Progress:**
-2. 🟡 **Convert to Transfer Action** (2025-11-10) - Backend Complete, UI Pending
+2. ✅ **Convert to Transfer Action** (2025-11-10) - COMPLETE
    - ✅ Backend Implementation Complete:
      - Created `lib/rules/transfer-action-handler.ts` with post-creation logic
      - Implemented `executeConvertToTransferAction` in actions-executor.ts
@@ -98,14 +97,47 @@
      - Full error handling and audit logging
      - Integration with transaction creation API and bulk apply rules
      - Build successful with zero errors
-   - ⏳ UI Implementation Pending:
-     - Add action type selector in rule-builder.tsx
-     - Create configuration UI with account selector and matching options
-     - Add icon and label display in rules-manager.tsx
-     - See `docs/rules-actions-phase2-plan.md` Task 2.4 for UI specifications
+   - ✅ UI Implementation Complete (2025-11-10):
+     - Added Account interface and accounts state to rule-builder.tsx
+     - Accounts fetched and displayed in selector with color indicators
+     - Added "Convert to Transfer" action type to selector with ArrowRightLeft icon
+     - Complete configuration UI implemented with all options:
+       - Target account selector (optional, auto-detect mode)
+       - Auto-match toggle with advanced options
+       - Amount tolerance slider (0-10%)
+       - Date range input (1-30 days)
+       - Create pair toggle with warning states
+       - Information boxes with usage instructions
+     - Updated rules-manager.tsx to display transfer icon and label
+     - Added validation in rules page for tolerance and date range
+     - Full theme integration with semantic CSS variables
+     - Production build successful with zero errors
+
+**In Progress:**
+3. 🟡 **Split Transaction Action** (2025-11-10) - Backend Complete, Frontend 40% Complete
+   - ✅ Backend Implementation Complete:
+     - Created `lib/rules/split-action-handler.ts` with split creation logic (~200 lines)
+     - Implemented `handleSplitCreation()` with percentage and fixed amount support
+     - Added validation helpers: `calculateSplitTotal`, `calculateTotalPercentage`, `validateSplitConfig`
+     - Integrated into `lib/rules/actions-executor.ts` with `executeCreateSplitAction`
+     - Added SplitConfig to `lib/rules/types.ts`
+     - Full integration with transaction creation API
+     - Full integration with bulk apply rules API
+     - Build successful with zero errors
+   - 🟡 Frontend Implementation Partial (40% complete):
+     - ✅ Added Scissors icon and supporting icons (DollarSign, Percent)
+     - ✅ Added "Split Transaction" to action type selector
+     - ✅ Implemented helper functions (addSplit, removeSplit, updateSplitField)
+     - ⏳ Large UI component pending (~300 lines):
+       - Split item cards with category selector
+       - Amount/percentage toggle and inputs
+       - Add/remove split buttons
+       - Total validation display
+       - Empty state
+   - **Plan Document:** `docs/split-transaction-action-plan.md`
+   - **Next Steps:** Complete split configuration UI component in rule-builder.tsx
 
 **Not Started:**
-3. ⏳ Allow splitting transactions with a rule
 4. ⏳ Allow changing the bank account with a rule
 5. ⏳ Make the transfer conversion more robust, with transaction matching and suggestions
 
