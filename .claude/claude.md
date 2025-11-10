@@ -320,10 +320,18 @@ All color variables are defined in `app/globals.css` and can be accessed via:
   - Edge cases: unicode, emoji, large amounts, leap years, zero/negative amounts
   - Test file: `__tests__/lib/rules/rule-matcher.test.ts`
   - Plan: `docs/rule-matcher-testing-plan.md` (Detailed 9-task implementation plan)
-- ⏳ Actions executor tests: ~80 tests (not started)
+- 🟡 **Actions executor tests: 70 test cases, 51% coverage** (2025-11-10) - IN PROGRESS
+  - All immediate actions tested: set_category, set_merchant, description actions, set_tax_deduction
+  - Pattern variable substitution fully tested (15 tests): {original}, {merchant}, {category}, {amount}, {date}
+  - Database mocking with category and merchant validation
+  - Context updates between chained actions verified
+  - Remaining: Post-creation actions (splits, transfers, account changes), validation, utilities
+  - Test file: `__tests__/lib/rules/actions-executor.test.ts` (~1,185 lines)
+  - Plan: `docs/actions-executor-testing-plan.md` (Detailed 14-task plan with 138 total tests)
+  - **7 of 14 tasks complete** - All immediate actions tested, post-creation actions remaining
 - ⏳ Integration tests: ~30 tests (not started)
 - **Target:** 80%+ overall coverage
-- **Current Progress:** 299 tests implemented (70% of planned 314 tests)
+- **Current Progress:** 289 tests implemented (75% of planned 384 tests)
 
 ## Important Architecture Decisions
 

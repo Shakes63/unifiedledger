@@ -351,23 +351,32 @@ Test Files  1 passed (1)
 
 ### In Progress / Remaining:
 
-#### 3. ⏳ **Actions Executor Tests** (NOT STARTED)
-**Status:** 0% - Pending rule matcher completion
-**Plan Document:** `docs/rules-system-testing-plan.md` (Phase 3, Days 5-6)
-**Estimated Tests:** ~80 tests
+#### 3. 🟡 **Actions Executor Tests** (IN PROGRESS - 51% COMPLETE)
+**Status:** 70/138 tests complete (51%)
+**Plan Document:** `docs/actions-executor-testing-plan.md` (Detailed 14-task plan)
+**Test File:** `__tests__/lib/rules/actions-executor.test.ts` (~1,185 lines)
+**Estimated Tests:** ~138 tests
 
-**Tasks:**
-- Category actions (8 tests)
-- Description actions (15 tests) - pattern variables
-- Merchant actions (5 tests)
-- Tax deduction actions (5 tests)
-- Transfer actions (12 tests)
-- Split actions (15 tests)
-- Account actions (8 tests)
-- Sales tax actions (8 tests)
-- Multiple actions (4 tests)
+**Completed Tasks (7/14):**
+- ✅ Test infrastructure (6 tests)
+- ✅ Pattern variables - basic (8 tests)
+- ✅ Pattern variables - advanced (7 tests)
+- ✅ set_category action (10 tests)
+- ✅ set_merchant action (10 tests)
+- ✅ Description actions: set/prepend/append (21 tests)
+- ✅ set_tax_deduction action (8 tests)
+
+**Remaining Tasks (7/14):**
+- ⏳ set_sales_tax action (10 tests)
+- ⏳ set_account action (8 tests)
+- ⏳ create_split action (12 tests)
+- ⏳ convert_to_transfer action (10 tests)
+- ⏳ Multiple actions execution (12 tests)
+- ⏳ Validation & error handling (15 tests)
+- ⏳ Utility functions (10 tests)
 
 **Target:** 95%+ coverage
+**Current Progress:** All immediate actions tested, post-creation actions remaining
 
 #### 4. ⏳ **Integration Tests** (NOT STARTED)
 **Status:** 0% - Final phase
@@ -385,21 +394,26 @@ Test Files  1 passed (1)
 
 ### Overall Testing Progress
 
-**Completed:** 219 tests (2/4 components)
-**Remaining:** ~95 tests (2 components)
-**Total Planned:** ~314 tests
-**Current Progress:** 70% of tests implemented
+**Completed:** 289 tests (2.5/4 components)
+**Remaining:** ~95 tests (1.5 components)
+**Total Planned:** ~384 tests
+**Current Progress:** 75% of tests implemented
 
 **Coverage Targets:**
 - Condition Evaluator: ✅ 100% (achieved)
 - Rule Matcher: ✅ 95%+ (achieved)
-- Actions Executor: ⏳ 95%+ (not started)
+- Actions Executor: 🟡 51% (70/138 tests - IN PROGRESS)
 - Integration Tests: ⏳ 90%+ (not started)
 - **Overall Target:** 80%+ across entire codebase
 
 **Next Steps:**
-1. ✅ ~~Implement Rule Matcher tests (~50 tests, Days 3-4)~~ COMPLETE
-2. Implement Actions Executor tests (~80 tests, Days 5-6)
-3. Implement Integration tests (~30 tests, Day 7)
+1. ✅ ~~Implement Condition Evaluator tests (~154 tests)~~ COMPLETE
+2. ✅ ~~Implement Rule Matcher tests (~65 tests)~~ COMPLETE
+3. 🟡 **Complete Actions Executor tests (68 remaining tests)**
+4. ⏳ Implement Integration tests (~30 tests)
 
-**Note:** Test infrastructure is complete and working. Split calculator tests (80+ tests, 100% coverage) were completed previously. Focus is now on the Rules System testing.
+**Current Status:** Actions Executor testing is 51% complete. All immediate actions (category, merchant, description, tax deduction) are fully tested. Remaining tasks focus on post-creation actions (splits, transfers, account changes) and comprehensive validation/error handling.
+
+**Note:** Test infrastructure is complete and working. Split calculator tests (80+ tests, 100% coverage) were completed previously.
+
+10. the sales tax should be a boolean and not a rate.

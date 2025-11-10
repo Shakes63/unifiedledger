@@ -105,10 +105,6 @@ function validateAction(action: RuleAction): string | null {
       }
       break;
 
-    case 'set_account':
-      // Future action - not yet implemented
-      return `Action type ${action.type} is not yet implemented`;
-
     default:
       return `Unknown action type: ${action.type}`;
   }
