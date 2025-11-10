@@ -5,6 +5,7 @@ import { BudgetSummaryCard } from '@/components/budgets/budget-summary-card';
 import { CategoryBudgetProgress } from '@/components/budgets/category-budget-progress';
 import { BudgetManagerModal } from '@/components/budgets/budget-manager-modal';
 import { VariableBillTracker } from '@/components/budgets/variable-bill-tracker';
+import { BudgetAnalyticsSection } from '@/components/budgets/budget-analytics-section';
 import { toast } from 'sonner';
 
 interface BudgetOverview {
@@ -393,6 +394,11 @@ export default function BudgetsPage() {
         {/* Variable Bill Tracking */}
         <div className="pt-6 border-t border-border">
           <VariableBillTracker />
+        </div>
+
+        {/* Budget Analytics & Insights */}
+        <div className="pt-6 border-t border-border">
+          <BudgetAnalyticsSection />
         </div>
 
         {/* Budget Manager Modal */}
