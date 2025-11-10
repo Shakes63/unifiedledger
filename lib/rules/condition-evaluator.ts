@@ -90,7 +90,7 @@ function evaluateCondition(condition: Condition, transaction: TransactionData): 
   }
 
   // Convert field value to string for comparison (except for numeric operations)
-  const stringFieldValue = String(fieldValue).toLowerCase();
+  const stringFieldValue = caseSensitive ? String(fieldValue) : String(fieldValue).toLowerCase();
   const normalizedValue = caseSensitive ? value : value.toLowerCase();
 
   // Apply operator

@@ -234,3 +234,118 @@
 
 
 **Note:** Phase 2 is now COMPLETE (7 of 7 features - 100%)! All action types are defined in the type system and fully implemented.
+
+---
+
+## Phase 8: Testing & Quality Assurance (IN PROGRESS)
+**Status:** 1 of 3 components complete (33%) 🟢
+**Plan:** See `docs/rules-system-testing-plan.md` for full 7-day testing roadmap
+
+### Completed Components:
+
+#### 1. ✅ **Condition Evaluator Tests** (2025-11-10) - COMPLETE
+**Status:** 100% coverage achieved ✅
+**Plan Document:** `docs/rules-system-testing-plan.md` (Phase 1)
+**Summary Document:** `docs/condition-evaluator-testing-completion-summary.md`
+**Test File:** `__tests__/lib/rules/condition-evaluator.test.ts`
+
+**Implementation Complete:**
+- ✅ **154 tests created** - All passing with 100% coverage
+- ✅ **All 14 operators tested:**
+  - String: equals, not_equals, contains, not_contains, starts_with, ends_with (50+ tests)
+  - Numeric: greater_than, less_than, between (15 tests)
+  - Date: matches_day, matches_weekday, matches_month (20 tests)
+  - Advanced: regex, in_list (20 tests)
+- ✅ **All 8 fields tested:**
+  - description, amount, account_name, date, day_of_month, weekday, month, notes (15 tests)
+- ✅ **Edge cases & error handling:** 20+ tests
+  - Special characters, unicode, emojis
+  - Large/small numbers, invalid inputs
+  - Invalid dates, malformed values
+- ✅ **Validation functions:** 15 tests
+  - validateCondition (single condition validation)
+  - validateConditionGroup (recursive group validation)
+
+**Bug Fixed:**
+- ✅ **Critical: Case-sensitive flag not respected** (`lib/rules/condition-evaluator.ts:93`)
+  - Issue: `stringFieldValue` was always lowercased, ignoring `caseSensitive` parameter
+  - Impact: All case-sensitive string comparisons now work correctly
+  - Tests affected: 19 tests (all now passing)
+
+**Build Status:** ✅ Production build successful, zero TypeScript errors
+
+**Test Execution:**
+```bash
+Test Files  1 passed (1)
+     Tests  154 passed (154)
+  Duration  1.41s
+```
+
+### In Progress / Remaining:
+
+#### 2. ⏳ **Rule Matcher Tests** (NOT STARTED)
+**Status:** 0% - Next priority
+**Plan Document:** `docs/rules-system-testing-plan.md` (Phase 2, Days 3-4)
+**Estimated Tests:** ~50 tests
+
+**Tasks:**
+- Basic rule matching (10 tests)
+- Priority-based matching (10 tests)
+- Recursive AND/OR groups (15 tests)
+- Transaction field matching (10 tests)
+- Edge cases (5 tests)
+
+**Target:** 95%+ coverage
+
+#### 3. ⏳ **Actions Executor Tests** (NOT STARTED)
+**Status:** 0% - Pending rule matcher completion
+**Plan Document:** `docs/rules-system-testing-plan.md` (Phase 3, Days 5-6)
+**Estimated Tests:** ~80 tests
+
+**Tasks:**
+- Category actions (8 tests)
+- Description actions (15 tests) - pattern variables
+- Merchant actions (5 tests)
+- Tax deduction actions (5 tests)
+- Transfer actions (12 tests)
+- Split actions (15 tests)
+- Account actions (8 tests)
+- Sales tax actions (8 tests)
+- Multiple actions (4 tests)
+
+**Target:** 95%+ coverage
+
+#### 4. ⏳ **Integration Tests** (NOT STARTED)
+**Status:** 0% - Final phase
+**Plan Document:** `docs/rules-system-testing-plan.md` (Phase 4, Day 7)
+**Estimated Tests:** ~30 tests
+
+**Tasks:**
+- Complete rule flow (10 tests)
+- Transaction creation integration (5 tests)
+- Bulk apply rules (5 tests)
+- Rule execution logging (5 tests)
+- Edge case scenarios (5 tests)
+
+**Target:** 90%+ coverage
+
+### Overall Testing Progress
+
+**Completed:** 154 tests (1/4 components)
+**Remaining:** ~160 tests (3 components)
+**Total Planned:** ~314 tests
+**Current Progress:** 49% of tests implemented
+
+**Coverage Targets:**
+- Condition Evaluator: ✅ 100% (achieved)
+- Rule Matcher: ⏳ 95%+ (not started)
+- Actions Executor: ⏳ 95%+ (not started)
+- Integration Tests: ⏳ 90%+ (not started)
+- **Overall Target:** 80%+ across entire codebase
+
+**Next Steps:**
+1. Implement Rule Matcher tests (~50 tests, Days 3-4)
+2. Implement Actions Executor tests (~80 tests, Days 5-6)
+3. Implement Integration tests (~30 tests, Day 7)
+
+**Note:** Test infrastructure is complete and working. Split calculator tests (80+ tests, 100% coverage) were completed previously. Focus is now on the Rules System testing.

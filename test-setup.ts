@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom";
-import { vi, afterEach } from "vitest";
+import { vi, afterEach, beforeAll } from "vitest";
 
 // Mock Next.js modules
 vi.mock("next/navigation", () => ({
@@ -26,10 +26,7 @@ vi.mock("next/headers", () => ({
 }));
 
 vi.mock("next/image", () => ({
-  default: (props: any) => {
-    // eslint-disable-next-line jsx-a11y/alt-text
-    return <img {...props} />;
-  },
+  default: (props: any) => props,
 }));
 
 // Mock Clerk authentication
