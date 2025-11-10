@@ -1295,6 +1295,7 @@ export const debts = sqliteTable(
     // Credit card specific fields
     lastStatementDate: text('last_statement_date'),
     lastStatementBalance: real('last_statement_balance'),
+    creditLimit: real('credit_limit'), // Credit limit for credit cards (for utilization tracking)
     notes: text('notes'),
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),

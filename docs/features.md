@@ -184,12 +184,54 @@ For debt system
   - **Accessibility**: Proper ARIA labels, keyboard navigation, color contrast
   - **Empty State**: Gracefully handles users with no debts or no payment history
 
-9. Principal vs Interest Pie Chart
+9. ✅ Principal vs Interest Pie Chart (COMPLETED)
 
   For each debt, show:
   - How much of each payment goes to principal vs interest
   - Visual comparison early vs late in loan term
   - Total interest paid vs remaining
+
+  Implementation complete with:
+  - **PaymentComparisonPieCharts Component**: Side-by-side comparison of first, midpoint, and final payments
+    - Three pie charts showing payment composition at different stages
+    - Percentage and dollar amount breakdowns
+    - Color-coded legends with emoji indicators
+    - Insight badges highlighting key points (e.g., "Most interest paid early")
+    - Responsive grid layout (3 cols desktop, 2 cols tablet, 1 col mobile)
+  - **TotalCostPieChart Component**: Overall cost breakdown showing true cost of borrowing
+    - Large pie chart visualizing principal vs total interest
+    - Interest multiplier calculation (e.g., "You'll pay 1.5x the original amount")
+    - Total cost banner with payment timeline
+    - Smart alerts based on interest rate (high/great/zero interest)
+    - Statistics grid with detailed breakdowns
+  - **PaymentBreakdownSection Container**: Orchestrates all pie chart components
+    - Collapsible section (default collapsed to save space)
+    - Multi-debt support with visual debt selector
+    - Insight box with actionable savings tips
+    - Quick action buttons linking to What-If Calculator and Payoff Strategy
+    - Educational content explaining payment composition changes
+  - **Theme Integration**: All colors use CSS variables for consistency
+    - Uses `--color-chart-principal` (green) for principal amounts
+    - Uses `--color-chart-interest` (red) for interest amounts
+    - Semantic color tokens for all UI elements
+    - Works seamlessly with Dark Mode and Dark Pink themes
+  - **Responsive Design**: Optimized for all screen sizes
+    - Mobile: Single column layout with smaller pie charts (200px height)
+    - Tablet: 2-column grid for comparisons
+    - Desktop: 3-column grid for comparisons, 2:1 split for total cost section
+  - **Interactive Features**: Enhanced user experience
+    - Hover tooltips showing detailed breakdown
+    - Smooth animations on chart rendering
+    - Percentage labels rendered directly on pie segments
+    - Custom tooltip formatting with dollar amounts
+  - **Educational Insights**: Helps users understand payment dynamics
+    - Key insight banner explaining composition changes
+    - Contextual tips based on payment stage
+    - Smart savings recommendations
+    - Interest multiplier warnings for high-cost debt
+  - **Integrated on Debts Page**: Positioned between Payment Tracking and Debt Reduction Chart
+  - **Performance Optimized**: Memoized calculations, efficient data transformations
+  - **Accessibility**: ARIA labels, keyboard navigation, proper color contrast
 
 10. Payment Frequency Options
 
@@ -198,13 +240,32 @@ For debt system
   - Some people get paid bi-weekly and want to match
   - Adjust interest calculations accordingly
 
-11. Credit Utilization Tracking
+11. 🟢 Credit Utilization Tracking (IN PROGRESS)
 
   For credit cards specifically:
   - Track utilization % (balance ÷ limit)
   - Alert when over 30% (impacts credit score)
   - Show credit limit fields
   - Calculate total available credit
+
+  Implementation in progress:
+  - ✅ **Database Migration (0019)**: Added `creditLimit` field to debts table
+  - ✅ **Schema Update**: Updated debts schema with nullable creditLimit field
+  - ✅ **Utility Functions** (lib/debts/credit-utilization-utils.ts):
+    - calculateUtilization() - Calculate percentage (balance ÷ limit)
+    - getUtilizationLevel() - Determine health level (excellent/good/fair/poor/critical)
+    - getUtilizationColor() - Get theme-aware CSS color variable
+    - getUtilizationLabel() & getUtilizationEmoji() - Display helpers
+    - calculateCreditStats() - Aggregate statistics across all cards
+    - calculatePaymentToTarget() - Calculate payment needed to reach 30%
+    - estimateCreditScoreImpact() - Rough credit score impact estimation
+  - ✅ **Color-Coded Health Levels**: Excellent (0-10%), Good (10-30%), Fair (30-50%), Poor (50-75%), Critical (75%+)
+  - 🔲 Debt form credit limit input (next)
+  - 🔲 Credit utilization API endpoint
+  - 🔲 CreditUtilizationWidget component
+  - 🔲 CreditUtilizationBadge component
+  - 🔲 DebtPayoffTracker enhancement
+  - 🔲 Dashboard integration
 
 12. Collapsible Debt Cards
 
