@@ -230,13 +230,19 @@ All color variables are defined in `app/globals.css` and can be accessed via:
 - **Usage Tracking:** Accounts, categories, merchants sorted by usage
 - **Smart Categorization:** Auto-apply categories based on merchant history
 - **Rules System:** 14 operators, 8 fields, recursive AND/OR groups, priority-based matching
-  - **Enhanced with Actions System** ✅ (Phase 1 Complete): Rules can now perform multiple actions beyond categorization
-    - **5 Action Types**: Set category, set description, prepend/append description, set merchant
-    - **Pattern Variables**: {original}, {merchant}, {category}, {amount}, {date} for dynamic text
-    - **Full UI**: Action builder with inline pattern editor, category/merchant selectors
-    - **Backward Compatible**: Old rules automatically converted to new format
-    - **Future (Phase 2)**: Convert to transfer, split transaction, change account, set tax deduction
-    - **Plans**: `docs/rules-actions-implementation-plan.md` + `docs/rules-actions-ui-implementation-plan.md`
+  - **Enhanced with Actions System** 🟢 (Phase 1 Complete, Phase 2 In Progress): Rules can now perform multiple actions beyond categorization
+    - **Phase 1 Complete (6 Action Types)**:
+      - Set category, set description, prepend/append description, set merchant, set tax deduction
+      - Pattern Variables: {original}, {merchant}, {category}, {amount}, {date} for dynamic text
+      - Full UI: Action builder with inline pattern editor, category/merchant selectors
+      - Backward Compatible: Old rules automatically converted to new format
+    - **Phase 2 In Progress (30% Complete)**:
+      - ✅ **Set Tax Deduction**: Marks transactions as tax deductible when category is configured as such (migration 0021)
+      - 🟡 **Convert to Transfer**: Backend complete with intelligent matching (±1% amount, ±7 days), UI pending
+      - ⏳ **Split Transaction**: Create multi-category splits automatically (not started)
+      - ⏳ **Change Account**: Move transactions between accounts (not started)
+      - ⏳ **Enhanced Matching**: ML-powered transfer suggestions (not started)
+    - **Plans**: `docs/rules-actions-implementation-plan.md` (Phase 1) + `docs/rules-actions-phase2-plan.md` (Phase 2)
 - **Transaction History:** Repeat/clone functionality, save as templates
 - **Split Transactions:** Visual editor, amount/percentage support, full CRUD
 - **Advanced Search:** 11 filter types, saved searches, pagination
@@ -412,7 +418,55 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-### Latest: Rules Actions System - Complete Implementation (2025-11-09) ✅
+### Latest: Rules Actions System - Phase 2 Progress (2025-11-10) 🟡
+**Status:** 1.5 of 5 features complete (30%) - Backend implementations ongoing
+**Plan Document:** `docs/rules-actions-phase2-plan.md`
+
+**Phase 2A: Set Tax Deduction Action - COMPLETE ✅ (2025-11-09)**
+- Database migration 0021: Added `isTaxDeductible` to transactions table
+- Backend: Implemented `executeSetTaxDeductionAction` in actions-executor.ts
+- UI: Added action type selector, configuration UI with warning, icon display
+- Automatically marks transactions as tax deductible when category is configured
+- Build successful, zero errors
+
+**Phase 2B: Convert to Transfer Action - Backend Complete ✅ (2025-11-10)**
+- **Backend Implementation** (~500 lines):
+  - Created `lib/rules/transfer-action-handler.ts` (NEW FILE):
+    - `handleTransferConversion()` - Main orchestration function
+    - `findMatchingTransaction()` - Intelligent matching (±1% amount, ±7 days, opposite type)
+    - `updateAccountBalances()` - Account balance updates for transfer pairs
+  - Updated `lib/rules/actions-executor.ts`:
+    - Implemented `executeConvertToTransferAction()`
+    - Stores conversion config for post-creation processing
+  - Updated `lib/rules/types.ts`:
+    - Added `TransferConversionConfig` interface
+    - Extended `TransactionMutations` to include `convertToTransfer`
+  - Integration:
+    - Transaction creation API (`app/api/transactions/route.ts`)
+    - Bulk apply rules API (`app/api/rules/apply-bulk/route.ts`)
+  - Features:
+    - Auto-match with existing opposite transactions
+    - Create new transfer pairs if no match found
+    - Configurable tolerance and date range
+    - Full error handling (non-fatal)
+  - Build Status: ✅ Production build successful, zero errors
+
+- **UI Implementation** ⏳ (Not Started):
+  - Add action type to rule-builder.tsx selector
+  - Account selector with optional target
+  - Auto-match toggle and configuration options
+  - Advanced settings (tolerance, date range, create if no match)
+  - Icon and label display in rules-manager.tsx
+  - See `docs/rules-actions-phase2-plan.md` Task 2.4 for specifications
+
+**Remaining Phase 2 Features:**
+- Priority 3: Split Transaction Action (~3 days)
+- Priority 4: Set Account Action (~2-3 days)
+- Priority 5: Enhanced Transfer Matching (~1-2 days)
+
+---
+
+### Rules Actions System - Phase 1 Complete (2025-11-09) ✅
 **Status:** Backend complete ✅, UI complete ✅, Bugs fixed ✅
 **Plan Documents:**
 - `docs/rules-actions-implementation-plan.md` (Backend - Phase 1A & 1B)

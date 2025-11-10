@@ -7,6 +7,7 @@ import Decimal from 'decimal.js';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import { TransactionData } from '@/lib/rules/condition-evaluator';
 import { executeRuleActions } from '@/lib/rules/actions-executor';
+import { handleTransferConversion } from '@/lib/rules/transfer-action-handler';
 import { findMatchingBills } from '@/lib/bills/bill-matcher';
 import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
 
@@ -126,6 +127,7 @@ export async function POST(request: Request) {
     let appliedActions: any[] = [];
     let finalDescription = description;
     let finalMerchantId = merchantId;
+    let postCreationMutations: any = null;
 
     if (!appliedCategoryId && type !== 'transfer_in' && type !== 'transfer_out' && type !== 'transfer') {
       try {
@@ -186,6 +188,8 @@ export async function POST(request: Request) {
               accountId,
               amount: parseFloat(amount),
               date,
+              type,
+              isTaxDeductible: false,
             },
             merchantInfo,
             categoryInfo
@@ -204,6 +208,9 @@ export async function POST(request: Request) {
 
           // Store applied actions for logging
           appliedActions = executionResult.appliedActions;
+
+          // Store execution result for post-creation processing
+          postCreationMutations = executionResult.mutations;
 
           // Log any errors from action execution (non-fatal)
           if (executionResult.errors && executionResult.errors.length > 0) {
@@ -358,6 +365,7 @@ export async function POST(request: Request) {
         type,
         transferId: null,
         isPending,
+        isTaxDeductible: postCreationMutations?.isTaxDeductible || false,
         // Offline sync tracking
         offlineId: offlineId || null,
         syncStatus: syncStatus,
@@ -382,6 +390,29 @@ export async function POST(request: Request) {
           usageCount: (account[0].usageCount || 0) + 1,
         })
         .where(eq(accounts.id, accountId));
+
+      // Handle post-creation actions (convert to transfer, etc.)
+      if (postCreationMutations?.convertToTransfer) {
+        try {
+          const transferResult = await handleTransferConversion(
+            userId,
+            transactionId,
+            postCreationMutations.convertToTransfer
+          );
+
+          if (!transferResult.success) {
+            console.error('Transfer conversion failed:', transferResult.error);
+            // Don't fail the transaction, just log the error
+          } else if (transferResult.matchedTransactionId) {
+            console.log(`Transfer conversion: matched with transaction ${transferResult.matchedTransactionId}`);
+          } else if (transferResult.createdTransactionId) {
+            console.log(`Transfer conversion: created new transaction ${transferResult.createdTransactionId}`);
+          }
+        } catch (error) {
+          console.error('Transfer conversion error:', error);
+          // Don't fail the transaction
+        }
+      }
     }
 
     // Update category usage if provided

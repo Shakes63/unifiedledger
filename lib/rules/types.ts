@@ -46,7 +46,7 @@ export interface AppliedAction {
   type: RuleActionType;
 
   /** Field that was modified */
-  field: 'categoryId' | 'description' | 'merchantId' | 'accountId' | 'isTaxDeductible';
+  field: 'categoryId' | 'description' | 'merchantId' | 'accountId' | 'isTaxDeductible' | 'type';
 
   /** Original value before action */
   originalValue?: string | null;
@@ -88,6 +88,17 @@ export interface RuleEvaluationResult {
 }
 
 /**
+ * Transfer conversion configuration
+ */
+export interface TransferConversionConfig {
+  targetAccountId?: string;
+  autoMatch: boolean;
+  matchTolerance: number;
+  matchDayRange: number;
+  createIfNoMatch: boolean;
+}
+
+/**
  * Transaction mutations to apply
  * Result from actions executor
  */
@@ -103,11 +114,15 @@ export interface TransactionMutations {
 
   /** Account to move to (if set_account action - future) */
   accountId?: string | null;
+  originalAccountId?: string | null;
 
-  /** Tax deductible flag (if set_tax_deduction action - future) */
+  /** Tax deductible flag (if set_tax_deduction action) */
   isTaxDeductible?: boolean;
 
-  // Future: split and transfer fields
+  /** Transfer conversion config (if convert_to_transfer action) */
+  convertToTransfer?: TransferConversionConfig;
+
+  // Future: split fields
 }
 
 /**
@@ -126,6 +141,8 @@ export interface ActionExecutionContext {
     accountId: string;
     amount: number;
     date: string;
+    type: string;
+    isTaxDeductible?: boolean;
   };
 
   /** Merchant details (if available) */

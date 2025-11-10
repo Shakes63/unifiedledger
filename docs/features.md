@@ -73,14 +73,40 @@
 - ⏳ End-to-end testing
 - ⏳ User documentation
 
-## Phase 2: Advanced Actions (Future)
-**Status:** Not started
-**Plan:** See `docs/rules-actions-implementation-plan.md` (Phase 2 section)
+## Phase 2: Advanced Actions (In Progress)
+**Status:** 1.5 of 5 features complete (30%) 🟢
+**Plan:** See `docs/rules-actions-phase2-plan.md`
 
-3. ⏳ Make the transfer conversion more robust, with transaction matching and suggestions
-4. ⏳ Allow converting to transfer with a rule
-5. ⏳ Allow splitting transactions with a rule
-6. ⏳ Allow changing the bank account with a rule
-7. ⏳ Allow setting tax deduction with a rule
+**Completed:**
+1. ✅ **Set Tax Deduction Action** (2025-11-09) - COMPLETE
+   - Added `isTaxDeductible` field to transactions table (migration 0021)
+   - Implemented `executeSetTaxDeductionAction` in actions-executor.ts
+   - UI integrated in rule-builder.tsx with informative warning
+   - Automatically marks transactions as tax deductible when category is configured as such
+   - Full validation and error handling
+   - Icon and label display in rules-manager.tsx
+   - Build successful with zero errors
 
-**Note:** Action types for Phase 2 are defined in the type system but not yet implemented in the actions executor.
+**In Progress:**
+2. 🟡 **Convert to Transfer Action** (2025-11-10) - Backend Complete, UI Pending
+   - ✅ Backend Implementation Complete:
+     - Created `lib/rules/transfer-action-handler.ts` with post-creation logic
+     - Implemented `executeConvertToTransferAction` in actions-executor.ts
+     - Intelligent transaction matching (±1% amount, ±7 days, opposite type)
+     - Auto-linking with existing transactions or creating new transfer pairs
+     - Account balance updates for both source and target accounts
+     - Full error handling and audit logging
+     - Integration with transaction creation API and bulk apply rules
+     - Build successful with zero errors
+   - ⏳ UI Implementation Pending:
+     - Add action type selector in rule-builder.tsx
+     - Create configuration UI with account selector and matching options
+     - Add icon and label display in rules-manager.tsx
+     - See `docs/rules-actions-phase2-plan.md` Task 2.4 for UI specifications
+
+**Not Started:**
+3. ⏳ Allow splitting transactions with a rule
+4. ⏳ Allow changing the bank account with a rule
+5. ⏳ Make the transfer conversion more robust, with transaction matching and suggestions
+
+**Note:** Action types for Phase 2 are defined in the type system. Implementation is happening incrementally per priority order in the Phase 2 plan.

@@ -146,6 +146,7 @@ export const transactions = sqliteTable(
     receiptUrl: text('receipt_url'),
     isSplit: integer('is_split', { mode: 'boolean' }).default(false),
     splitParentId: text('split_parent_id'),
+    isTaxDeductible: integer('is_tax_deductible', { mode: 'boolean' }).default(false),
     importHistoryId: text('import_history_id'),
     importRowNumber: integer('import_row_number'),
     // Offline sync tracking fields

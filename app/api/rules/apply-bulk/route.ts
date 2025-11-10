@@ -198,6 +198,8 @@ export async function POST(request: Request) {
               accountId: txn.accountId,
               amount: txn.amount,
               date: txn.date,
+              type: txn.type || 'expense',
+              isTaxDeductible: txn.isTaxDeductible || false,
             },
             merchantInfo,
             categoryInfo
@@ -216,6 +218,9 @@ export async function POST(request: Request) {
           }
           if (executionResult.mutations.merchantId !== undefined) {
             updates.merchantId = executionResult.mutations.merchantId;
+          }
+          if (executionResult.mutations.isTaxDeductible !== undefined) {
+            updates.isTaxDeductible = executionResult.mutations.isTaxDeductible;
           }
 
           // Update transaction with all mutations

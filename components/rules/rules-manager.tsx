@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus, Zap, Tag, Store } from 'lucide-react';
+import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus, Zap, Tag, Store, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import type { RuleAction } from '@/lib/rules/types';
@@ -42,6 +42,8 @@ function getActionLabel(action: RuleAction, categoryName?: string, merchantName?
       return `Prepend: "${action.pattern}"`;
     case 'append_description':
       return `Append: "${action.pattern}"`;
+    case 'set_tax_deduction':
+      return 'Tax Deductible';
     default:
       return action.type.replace(/_/g, ' ');
   }
@@ -131,6 +133,7 @@ function RuleCard({
                 <Badge variant="secondary" className="bg-accent/20 text-accent-foreground border-accent/40">
                   {rule.actions[0].type === 'set_category' && <Tag className="w-3 h-3 mr-1" />}
                   {rule.actions[0].type === 'set_merchant' && <Store className="w-3 h-3 mr-1" />}
+                  {rule.actions[0].type === 'set_tax_deduction' && <FileText className="w-3 h-3 mr-1" />}
                   {getActionLabel(rule.actions[0], rule.categoryName)}
                 </Badge>
 

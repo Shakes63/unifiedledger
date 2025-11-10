@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card } from '@/components/ui/card';
-import { Plus, X, ChevronDown, AlertCircle, Zap, Tag, Store, FileEdit } from 'lucide-react';
+import { Plus, X, ChevronDown, AlertCircle, Zap, Tag, Store, FileEdit, FileText } from 'lucide-react';
 import { Condition, ConditionGroup, ComparisonOperator, ConditionField } from '@/lib/rules/condition-evaluator';
 import { RuleAction } from '@/lib/rules/types';
 import { nanoid } from 'nanoid';
@@ -439,6 +439,7 @@ export function RuleBuilder({
                         <SelectItem value="prepend_description">Prepend to Description</SelectItem>
                         <SelectItem value="append_description">Append to Description</SelectItem>
                         <SelectItem value="set_merchant">Set Merchant</SelectItem>
+                        <SelectItem value="set_tax_deduction">Mark as Tax Deductible</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -524,6 +525,22 @@ export function RuleBuilder({
                           <code className="px-1 py-0.5 bg-elevated rounded text-[var(--color-primary)]">{'{category}'}</code>
                           <code className="px-1 py-0.5 bg-elevated rounded text-[var(--color-primary)]">{'{amount}'}</code>
                           <code className="px-1 py-0.5 bg-elevated rounded text-[var(--color-primary)]">{'{date}'}</code>
+                        </div>
+                      </div>
+                    )}
+
+                    {action.type === 'set_tax_deduction' && (
+                      <div className="flex-1 bg-elevated rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="h-4 w-4 text-[var(--color-warning)] mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm text-foreground">
+                              This action will mark transactions as tax deductible if their category is configured as tax deductible.
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Requires a category to be set (either manually or via a set_category action).
+                            </p>
+                          </div>
                         </div>
                       </div>
                     )}

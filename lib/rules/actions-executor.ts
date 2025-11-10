@@ -75,8 +75,14 @@ function validateAction(action: RuleAction): string | null {
       break;
 
     case 'set_tax_deduction':
-    case 'set_account':
+      // No additional validation needed - depends on category
+      break;
+
     case 'convert_to_transfer':
+      // No additional validation needed - config is optional
+      break;
+
+    case 'set_account':
     case 'create_split':
       // Future actions - not yet implemented
       return `Action type ${action.type} is not yet implemented`;
@@ -235,6 +241,95 @@ function executeDescriptionAction(
 }
 
 /**
+ * Execute a set_tax_deduction action
+ * Marks transaction as tax deductible if the category is configured as tax deductible
+ */
+async function executeSetTaxDeductionAction(
+  action: RuleAction,
+  context: ActionExecutionContext,
+  mutations: TransactionMutations
+): Promise<AppliedAction | null> {
+  // Get the category ID (either from mutations or context)
+  const categoryId = mutations.categoryId || context.transaction.categoryId;
+
+  if (!categoryId) {
+    // Can't set tax deduction without a category
+    console.warn('Cannot set tax deduction: no category assigned to transaction');
+    return null;
+  }
+
+  // Fetch category to check if it's tax deductible
+  const category = await db
+    .select()
+    .from(budgetCategories)
+    .where(
+      and(
+        eq(budgetCategories.id, categoryId),
+        eq(budgetCategories.userId, context.userId)
+      )
+    )
+    .limit(1);
+
+  if (category.length === 0) {
+    console.warn(`Category ${categoryId} not found for tax deduction check`);
+    return null;
+  }
+
+  if (!category[0].isTaxDeductible) {
+    // Category is not configured as tax deductible, skip this action
+    console.info(`Category ${category[0].name} is not tax deductible, skipping action`);
+    return null;
+  }
+
+  // Apply mutation
+  const originalValue = context.transaction.isTaxDeductible || false;
+  mutations.isTaxDeductible = true;
+
+  return {
+    type: 'set_tax_deduction',
+    field: 'isTaxDeductible',
+    originalValue: originalValue.toString(),
+    newValue: 'true',
+  };
+}
+
+/**
+ * Execute a convert_to_transfer action
+ * Stores conversion configuration for post-creation processing
+ * Note: Actual conversion happens AFTER transaction is created (needs transaction ID)
+ */
+async function executeConvertToTransferAction(
+  action: RuleAction,
+  context: ActionExecutionContext,
+  mutations: TransactionMutations
+): Promise<AppliedAction | null> {
+  const config = action.config || {};
+
+  // Validate: can't convert if already a transfer
+  if (context.transaction.type === 'transfer_in' || context.transaction.type === 'transfer_out') {
+    console.warn('Cannot convert transaction that is already a transfer');
+    return null;
+  }
+
+  // Store conversion request in mutations
+  // Actual conversion happens AFTER transaction is created
+  mutations.convertToTransfer = {
+    targetAccountId: config.targetAccountId,
+    autoMatch: config.autoMatch ?? true,
+    matchTolerance: config.matchTolerance ?? 1,
+    matchDayRange: config.matchDayRange ?? 7,
+    createIfNoMatch: config.createIfNoMatch ?? true,
+  };
+
+  return {
+    type: 'convert_to_transfer',
+    field: 'type',
+    originalValue: context.transaction.type,
+    newValue: 'transfer_out',
+  };
+}
+
+/**
  * Execute all rule actions on a transaction
  * Returns mutations to apply and list of applied actions for audit
  */
@@ -248,6 +343,8 @@ export async function executeRuleActions(
     accountId: string;
     amount: number;
     date: string;
+    type: string;
+    isTaxDeductible?: boolean;
   },
   existingMerchant?: { id: string; name: string } | null,
   existingCategory?: { id: string; name: string; type: string } | null
@@ -292,6 +389,14 @@ export async function executeRuleActions(
         case 'prepend_description':
         case 'append_description':
           appliedAction = executeDescriptionAction(action, context, mutations);
+          break;
+
+        case 'set_tax_deduction':
+          appliedAction = await executeSetTaxDeductionAction(action, context, mutations);
+          break;
+
+        case 'convert_to_transfer':
+          appliedAction = await executeConvertToTransferAction(action, context, mutations);
           break;
 
         default:
@@ -371,6 +476,8 @@ export function isActionImplemented(actionType: string): boolean {
     'set_description',
     'prepend_description',
     'append_description',
+    'set_tax_deduction',
+    'convert_to_transfer',
   ];
   return implementedActions.includes(actionType);
 }
