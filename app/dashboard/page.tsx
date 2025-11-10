@@ -10,6 +10,7 @@ import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { BillsWidget } from '@/components/dashboard/bills-widget';
 import { DebtCountdownCard } from '@/components/dashboard/debt-countdown-card';
 import { BudgetSurplusCard } from '@/components/dashboard/budget-surplus-card';
+import { BudgetSummaryWidget } from '@/components/dashboard/budget-summary-widget';
 import { CreditUtilizationWidget } from '@/components/debts/credit-utilization-widget';
 import { useAuth } from '@clerk/nextjs';
 import Decimal from 'decimal.js';
@@ -227,6 +228,9 @@ export default function DashboardPage() {
 
             {/* Credit Utilization Widget - Conditional */}
             <CreditUtilizationWidget />
+
+            {/* Budget Summary Widget - Conditional */}
+            <BudgetSummaryWidget />
 
             {/* Budget Surplus Card */}
             <BudgetSurplusCard />
