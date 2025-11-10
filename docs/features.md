@@ -267,13 +267,38 @@ For debt system
   - 🔲 DebtPayoffTracker enhancement
   - 🔲 Dashboard integration
 
-12. Collapsible Debt Cards
+12. 🟢 Collapsible Debt Cards (IN PROGRESS)
 
   When you have many debts:
   - Expand/collapse individual debts
   - "Show payment history" accordion
   - "Show amortization schedule" accordion
   - Keeps UI clean but data accessible
+
+  Implementation in progress:
+  - ✅ **Implementation Plan**: Comprehensive 10-step plan documented (docs/collapsible-debt-cards-plan.md)
+  - ✅ **PaymentHistoryList Component** (components/debts/payment-history-list.tsx):
+    - Fetches and displays all payments for a debt
+    - Reverse chronological order with date formatting
+    - Shows principal/interest split when available
+    - Highlights large payments (>$500 or >3x average)
+    - "Show All" toggle for long histories (initially shows 5)
+    - Empty state, loading skeleton, error handling
+    - Total payments summary
+    - Relative time display using date-fns
+    - Theme integration with CSS variables
+  - ✅ **DebtAmortizationSection Component** (components/debts/debt-amortization-section.tsx):
+    - Wrapper for AmortizationScheduleView (single debt view)
+    - Fetches and filters payoff strategy for specific debt
+    - Loading state with spinner animation
+    - Error handling with helpful messages
+    - Hides for debts with 0% interest
+    - Integrates with debt settings (extra payments, frequency)
+  - 🔲 Update DebtPayoffTracker with collapsible UI (next)
+  - 🔲 Add expand/collapse all controls
+  - 🔲 localStorage persistence
+  - 🔲 Smooth animations
+  - 🔲 Custom hook for state management
 
 13. ✅ Settings Section & Theme Chooser (COMPLETED)
 
