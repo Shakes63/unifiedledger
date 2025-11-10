@@ -405,7 +405,60 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-### Latest: Variable Bill Tracking - Phase 3 (2025-11-09) ✅
+### Latest: Reports Page Chart Fixes (2025-11-09) ✅
+- **Fixed Three Broken Charts on Reports Page**: Resolved data structure mismatch
+  - **Problem**: Charts expected `name` property for x-axis, APIs returned `month`/`week`
+  - **Solution**: Added data transformation function in reports page (app/dashboard/reports/page.tsx:104-111)
+  - **Charts Fixed**:
+    - Income vs Expenses LineChart ✅
+    - Cash Flow Analysis AreaChart ✅
+    - Net Worth Trend LineChart ✅
+  - **Build Status**: ✅ Production build successful
+  - **Files Modified**: 1 file (`app/dashboard/reports/page.tsx`)
+  - **Lines Changed**: +10 lines (transformation logic)
+
+### Budget System Phase 5 - Integration & Polish (2025-11-09) ✅
+- **Monthly Budget Review Notifications**: Automated end-of-month budget performance summaries
+  - **Notification Type**: New `budget_review` notification type added to schema
+  - **Service**: `lib/notifications/budget-review.ts` - Comprehensive review generator
+  - **API Endpoint**: `/api/notifications/budget-review` - Manual trigger support
+  - **Preference Toggle**: Added to notification preferences UI (Budget Alerts section)
+  - **Key Features**:
+    - Adherence score calculation (0-100)
+    - Top 3 overspending and underspending categories
+    - Savings rate and month-over-month comparison
+    - Performance-based recommendations (Excellent/Good/Needs Improvement)
+    - Scheduled for last day of month at 8 PM UTC
+  - **Cron Setup**: Documented in `docs/CRON_JOB_SETUP.md` with Vercel configuration
+  - **Lines of Code**: 477 lines (1 new file + updates)
+
+- **Budget Export to CSV**: Export functionality for external budget analysis
+  - **Export Utility**: `lib/budgets/budget-export.ts` - CSV generation with PapaParse
+  - **API Endpoint**: `/api/budgets/export` - Flexible export with query parameters
+  - **Modal Component**: `components/budgets/budget-export-modal.tsx` - User-friendly export dialog
+  - **Dashboard Integration**: Export button added to budget dashboard Quick Actions
+  - **Key Features**:
+    - Date range selection (1-12 months)
+    - Category type filtering (all, income, expenses, savings)
+    - Summary row option (totals across all months)
+    - Variable bills inclusion toggle
+    - Month picker with 24-month history + 12-month future range
+    - Automatic file download with descriptive filename
+  - **CSV Structure**: Month, Category, Type, Budgeted, Actual, Remaining, Percentage, Status, Daily_Avg, Projected_Month_End
+  - **Theme Integration**: Full CSS variable usage for modal and button styling
+  - **Lines of Code**: 520 lines (3 new files)
+
+- **Documentation Updates**:
+  - `docs/budget-phase5-implementation-plan.md` - Complete 12-task implementation plan
+  - `docs/CRON_JOB_SETUP.md` - Monthly budget review cron job documentation
+  - `docs/budgetsystemplan.md` - Phase 5 marked as COMPLETE
+  - `.claude/CLAUDE.md` - Updated with Phase 5 completion summary
+
+- **Total Implementation**: 997 lines across 5 new files + 7 file updates
+- **Build Status**: ✅ Ready for production (pending build verification)
+- **All Budget System Phases (1-5) Now Complete!** 🎉
+
+### Variable Bill Tracking - Phase 3 (2025-11-09) ✅
 - **Variable Bill Tracking System**: Complete implementation for tracking bills with fluctuating costs
   - **API Endpoint**:
     - `/api/budgets/bills/variable` - Comprehensive variable bill tracking with historical analysis

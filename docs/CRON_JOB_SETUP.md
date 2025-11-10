@@ -10,6 +10,7 @@ The application has multiple cron-compatible endpoints that check various condit
 |----------|---------|-----------|
 | `/api/notifications/bill-reminders` | Check for upcoming/overdue bills | Daily (8 AM UTC) |
 | `/api/notifications/budget-warnings` | Check budget spending thresholds | Daily (9 AM UTC) |
+| `/api/cron/budget-review` | Send monthly budget performance reviews | Monthly (Last day at 8 PM UTC) |
 | `/api/notifications/low-balance-alerts` | Check account balances | Daily (8 AM UTC) |
 | `/api/notifications/savings-milestones` | Check savings goal progress | Daily (10 AM UTC) |
 | `/api/notifications/debt-milestones` | Check debt payoff progress | Daily (10 AM UTC) |
@@ -282,6 +283,84 @@ Users can configure via Notification Preferences:
 Daily at 8 AM UTC: 0 8 * * *
 ```
 
+## Monthly Budget Review Endpoint
+
+The `/api/cron/budget-review` endpoint (via `lib/notifications/budget-review.ts`) sends monthly budget performance summaries to all users at the end of each month.
+
+### Configuration
+
+Users can configure via Notification Preferences:
+- **Monthly Budget Review Enabled** - Toggle monthly reviews on/off (default: enabled)
+
+### How It Works
+
+1. Runs on the last day of each month (days 28-31, with date check)
+2. For each user with reviews enabled:
+   - Calculates adherence score (0-100) based on budget vs actual spending
+   - Identifies top 3 overspending and underspending categories
+   - Calculates savings rate for the month
+   - Generates insights and recommendations based on performance level
+3. Creates `budget_review` notification with comprehensive summary
+4. Links to budget dashboard for detailed review
+
+### Performance Levels
+
+- **Excellent (90-100):** User stayed within budget in most categories
+- **Good (70-89):** Minor adjustments suggested for specific categories
+- **Needs Improvement (<70):** Review recommended for top overspending categories
+
+### Recommended Schedule
+
+```
+Monthly on last day at 8 PM UTC: 0 20 28-31 * *
+```
+
+**Important:** The cron should run on days 28-31. The function internally checks if it's the last day of the month to avoid duplicate notifications.
+
+### Manual Trigger
+
+To manually trigger a budget review for testing:
+
+```bash
+curl -X POST https://yourdomain.com/api/notifications/budget-review?month=2025-05
+```
+
+The `month` parameter is optional and defaults to the previous month.
+
+### Creating the Cron Handler
+
+Create `/api/cron/budget-review/route.ts`:
+
+```typescript
+import { NextResponse } from 'next/server';
+import { runMonthlyBudgetReviewCron } from '@/lib/notifications/budget-review';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: Request) {
+  // Verify the request is from Vercel (if using Vercel Cron)
+  const authHeader = request.headers.get('authorization');
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  try {
+    await runMonthlyBudgetReviewCron();
+    return NextResponse.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Budget review cron error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process budget reviews' },
+      { status: 500 }
+    );
+  }
+}
+```
+
 ## Example Vercel Configuration with Multiple Crons
 
 If using Vercel, configure all notification crons in `vercel.json`:
@@ -302,6 +381,10 @@ If using Vercel, configure all notification crons in `vercel.json`:
       "schedule": "0 9 * * *"
     },
     {
+      "path": "/api/cron/budget-review",
+      "schedule": "0 20 28-31 * *"
+    },
+    {
       "path": "/api/cron/savings-milestones",
       "schedule": "0 10 * * *"
     },
@@ -317,13 +400,15 @@ If using Vercel, configure all notification crons in `vercel.json`:
 
 1. Choose your cron service
 2. Set up scheduled calls to all notification endpoints:
-   - `/api/notifications/bill-reminders`
-   - `/api/notifications/budget-warnings`
-   - `/api/notifications/low-balance-alerts`
-   - `/api/notifications/savings-milestones` (if using goals)
-   - `/api/notifications/debt-milestones` (if using debt tracking)
+   - `/api/notifications/bill-reminders` (Daily)
+   - `/api/notifications/budget-warnings` (Daily)
+   - `/api/cron/budget-review` (Monthly, last day)
+   - `/api/notifications/low-balance-alerts` (Daily)
+   - `/api/notifications/savings-milestones` (Daily, if using goals)
+   - `/api/notifications/debt-milestones` (Daily, if using debt tracking)
 3. Test each endpoint manually
 4. Monitor for 24-48 hours to ensure they're working
-5. Adjust schedules if needed based on user timezone
+5. For monthly budget review, wait until month-end to verify
+6. Adjust schedules if needed based on user timezone
 
 For more information on the notification system, see [NOTIFICATIONS.md](./NOTIFICATIONS.md)

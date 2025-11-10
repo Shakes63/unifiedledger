@@ -4,8 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { BudgetSummaryCard } from '@/components/budgets/budget-summary-card';
 import { CategoryBudgetProgress } from '@/components/budgets/category-budget-progress';
 import { BudgetManagerModal } from '@/components/budgets/budget-manager-modal';
+import { BudgetExportModal } from '@/components/budgets/budget-export-modal';
 import { VariableBillTracker } from '@/components/budgets/variable-bill-tracker';
 import { BudgetAnalyticsSection } from '@/components/budgets/budget-analytics-section';
+import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface BudgetOverview {
@@ -52,6 +54,7 @@ export default function BudgetsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [isManagerModalOpen, setIsManagerModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Initialize selected month to current month
   useEffect(() => {
@@ -291,6 +294,13 @@ export default function BudgetsPage() {
           >
             Use Template ▼
           </button>
+          <button
+            onClick={() => setIsExportModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Export Budget
+          </button>
         </div>
 
         {/* Empty State */}
@@ -407,6 +417,13 @@ export default function BudgetsPage() {
           onClose={() => setIsManagerModalOpen(false)}
           onSave={refreshBudgetData}
           month={selectedMonth}
+        />
+
+        {/* Budget Export Modal */}
+        <BudgetExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          currentMonth={selectedMonth}
         />
       </div>
     </div>

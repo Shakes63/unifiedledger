@@ -100,11 +100,21 @@ export default function ReportsPage() {
         fetch(`/api/reports/merchant-analysis?period=${period}`).then((r) => r.json()),
       ]);
 
+      // Transform data to use 'name' as x-axis key (required by chart components)
+      const transformData = (data: any[], period: Period) => {
+        if (!data) return [];
+        const xKey = period === 'month' ? 'week' : 'month';
+        return data.map(item => ({
+          name: item[xKey] || item.name || '',
+          ...item
+        }));
+      };
+
       setData({
-        incomeVsExpenses: ivE,
+        incomeVsExpenses: { ...ivE, data: transformData(ivE?.data, period) },
         categoryBreakdown: cb,
-        cashFlow: cf,
-        netWorth: nw,
+        cashFlow: { ...cf, data: transformData(cf?.data, period) },
+        netWorth: { ...nw, history: transformData(nw?.history, period) },
         budgetVsActual: bva,
         merchantAnalysis: ma,
       });

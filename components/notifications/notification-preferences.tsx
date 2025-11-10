@@ -19,6 +19,7 @@ interface NotificationPreferences {
   budgetWarningEnabled: boolean;
   budgetWarningThreshold: number;
   budgetExceededAlert: boolean;
+  budgetReviewEnabled: boolean;
   lowBalanceAlertEnabled: boolean;
   lowBalanceThreshold: number;
   savingsMilestoneEnabled: boolean;
@@ -77,6 +78,7 @@ export function NotificationPreferences() {
           budgetWarningEnabled: preferences.budgetWarningEnabled,
           budgetWarningThreshold: preferences.budgetWarningThreshold,
           budgetExceededAlert: preferences.budgetExceededAlert,
+          budgetReviewEnabled: preferences.budgetReviewEnabled,
           lowBalanceAlertEnabled: preferences.lowBalanceAlertEnabled,
           lowBalanceThreshold: preferences.lowBalanceThreshold,
           savingsMilestoneEnabled: preferences.savingsMilestoneEnabled,
@@ -341,6 +343,27 @@ export function NotificationPreferences() {
                 setPreferences({
                   ...preferences,
                   budgetExceededAlert: value,
+                })
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label htmlFor="budget-review" className="text-muted-foreground">
+                Monthly budget review
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Receive a summary of your budget performance at the end of each month
+              </p>
+            </div>
+            <Switch
+              id="budget-review"
+              checked={preferences.budgetReviewEnabled}
+              onCheckedChange={(value) =>
+                setPreferences({
+                  ...preferences,
+                  budgetReviewEnabled: value,
                 })
               }
             />

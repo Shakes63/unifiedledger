@@ -148,6 +148,8 @@ export default function NotificationsPage() {
       case 'budget_warning':
       case 'budget_exceeded':
         return '💰';
+      case 'budget_review':
+        return '📊';
       case 'low_balance':
         return '📉';
       case 'savings_milestone':

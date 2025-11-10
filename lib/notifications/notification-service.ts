@@ -8,6 +8,7 @@ export type NotificationType =
   | 'bill_overdue'
   | 'budget_warning'
   | 'budget_exceeded'
+  | 'budget_review'
   | 'low_balance'
   | 'savings_milestone'
   | 'debt_milestone'
@@ -185,6 +186,7 @@ export async function getOrCreatePreferences(userId: string) {
       budgetWarningEnabled: true,
       budgetWarningThreshold: 80,
       budgetExceededAlert: true,
+      budgetReviewEnabled: true,
       lowBalanceAlertEnabled: true,
       lowBalanceThreshold: 100.0,
       savingsMilestoneEnabled: true,
