@@ -19,6 +19,10 @@ import {
 } from '@/components/charts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExportButton } from '@/components/reports/export-button';
+import { PaymentBreakdownSection } from '@/components/debts/payment-breakdown-section';
+import { DebtReductionChart } from '@/components/debts/debt-reduction-chart';
+import { AmortizationScheduleView } from '@/components/debts/amortization-schedule-view';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 type Period = 'month' | 'year' | '12months';
 
@@ -48,10 +52,39 @@ export default function ReportsPage() {
   const [data, setData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showPaymentBreakdown, setShowPaymentBreakdown] = useState(false);
+  const [showDebtReduction, setShowDebtReduction] = useState(false);
+  const [showAmortization, setShowAmortization] = useState(false);
+  const [payoffStrategy, setPayoffStrategy] = useState<any>(null);
 
   useEffect(() => {
     fetchReports();
+    loadPayoffStrategy();
   }, [period]);
+
+  const loadPayoffStrategy = async () => {
+    try {
+      // Fetch debt settings first
+      const settingsResponse = await fetch('/api/debts/settings');
+      const settings = settingsResponse.ok ? await settingsResponse.json() : null;
+
+      const extraPayment = settings?.extraMonthlyPayment || 0;
+      const method = settings?.preferredMethod || 'avalanche';
+      const frequency = settings?.paymentFrequency || 'monthly';
+
+      const response = await fetch(
+        `/api/debts/payoff-strategy?extraPayment=${extraPayment}&method=${method}&paymentFrequency=${frequency}`
+      );
+
+      if (response.ok) {
+        const strategyData = await response.json();
+        setPayoffStrategy(strategyData);
+      }
+    } catch (error) {
+      console.error('Error loading payoff strategy:', error);
+      setPayoffStrategy(null);
+    }
+  };
 
   const fetchReports = async () => {
     try {
@@ -330,6 +363,89 @@ export default function ReportsPage() {
         bars={[{ dataKey: 'amount', fill: COLOR_PALETTE.expense, name: 'Amount' }]}
         layout="vertical"
       />
+
+      {/* Debt Analysis Section */}
+      {payoffStrategy && payoffStrategy.schedules && payoffStrategy.schedules.length > 0 && (
+        <div className="space-y-4 mt-8">
+          <div className="border-t border-border pt-6">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Debt Analysis</h2>
+            <p className="text-muted-foreground mb-6">Comprehensive debt tracking and payment projections</p>
+          </div>
+
+          {/* Payment Breakdown Section */}
+          <button
+            onClick={() => setShowPaymentBreakdown(!showPaymentBreakdown)}
+            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📊</span>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold text-foreground">Payment Breakdown Analysis</h3>
+                <p className="text-sm text-muted-foreground">
+                  Principal vs Interest breakdown and total cost visualization
+                </p>
+              </div>
+            </div>
+            {showPaymentBreakdown ? (
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
+
+          {showPaymentBreakdown && (
+            <PaymentBreakdownSection strategy={payoffStrategy} />
+          )}
+
+          {/* Debt Reduction Progress Chart */}
+          <button
+            onClick={() => setShowDebtReduction(!showDebtReduction)}
+            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📉</span>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold text-foreground">Debt Reduction Progress</h3>
+                <p className="text-sm text-muted-foreground">
+                  Historical progress and future projections
+                </p>
+              </div>
+            </div>
+            {showDebtReduction ? (
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
+
+          {showDebtReduction && <DebtReductionChart />}
+
+          {/* Interactive Amortization Schedule */}
+          <button
+            onClick={() => setShowAmortization(!showAmortization)}
+            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📈</span>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold text-foreground">Interactive Amortization Schedule</h3>
+                <p className="text-sm text-muted-foreground">
+                  Month-by-month payment breakdowns and visualizations
+                </p>
+              </div>
+            </div>
+            {showAmortization ? (
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
+
+          {showAmortization && (
+            <AmortizationScheduleView strategy={payoffStrategy} />
+          )}
+        </div>
+      )}
       </div>
     </div>
   );

@@ -5,7 +5,16 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronUp, Edit2, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Trash2, CreditCard, AlertTriangle, History, BarChart3 } from 'lucide-react';
+import { CreditUtilizationBadge } from './credit-utilization-badge';
+import { PaymentHistoryList } from './payment-history-list';
+import { DebtAmortizationSection } from './debt-amortization-section';
+import { useDebtExpansion } from '@/lib/hooks/use-debt-expansion';
+import {
+  calculateUtilization,
+  calculatePaymentToTarget,
+  getUtilizationRecommendation,
+} from '@/lib/debts/credit-utilization-utils';
 
 interface Milestone {
   id: string;
@@ -27,12 +36,17 @@ interface DebtTrackerProps {
     color: string;
     status: string;
     targetPayoffDate?: string;
+    creditLimit?: number | null;
+    loanType?: 'revolving' | 'installment';
+    compoundingFrequency?: 'daily' | 'monthly' | 'quarterly' | 'annually';
+    billingCycleDays?: number;
   };
   milestones?: Milestone[];
   payments?: any[];
   onEdit?: (debt: any) => void;
   onDelete?: (debtId: string) => void;
   onPayment?: (debtId: string, amount: number) => void;
+  defaultExpanded?: boolean;
 }
 
 export function DebtPayoffTracker({
@@ -42,9 +56,14 @@ export function DebtPayoffTracker({
   onEdit,
   onDelete,
   onPayment,
+  defaultExpanded = false,
 }: DebtTrackerProps) {
+  const { isExpanded, toggle: toggleExpanded } = useDebtExpansion(debt.id, defaultExpanded);
   const [showMilestones, setShowMilestones] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [showUtilization, setShowUtilization] = useState(false);
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+  const [showAmortization, setShowAmortization] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
 
   const progressPercent = Math.min((debt.originalAmount - debt.remainingBalance) / debt.originalAmount * 100, 100);
@@ -54,6 +73,15 @@ export function DebtPayoffTracker({
         (new Date(debt.targetPayoffDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
       )
     : null;
+
+  // Credit utilization calculations (for credit cards only)
+  const isCreditCard = debt.type === 'credit_card';
+  const hasLimit = isCreditCard && debt.creditLimit && debt.creditLimit > 0;
+  const utilization = hasLimit ? calculateUtilization(debt.remainingBalance, debt.creditLimit!) : 0;
+  const available = hasLimit ? Math.max(0, debt.creditLimit! - debt.remainingBalance) : 0;
+  const paymentToTarget = hasLimit ? calculatePaymentToTarget(debt.remainingBalance, debt.creditLimit!, 30) : 0;
+  const recommendation = hasLimit ? getUtilizationRecommendation(utilization) : '';
+  const isOverTarget = utilization > 30;
 
   const handlePayment = async () => {
     const amount = parseFloat(paymentAmount);
@@ -86,63 +114,101 @@ export function DebtPayoffTracker({
   return (
     <Card className="bg-card border-border p-4 hover:border-border transition-colors">
       <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <div
-                className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: debt.color }}
+        {/* Clickable Header */}
+        <div>
+          <div
+            onClick={toggleExpanded}
+            className="flex items-start justify-between cursor-pointer hover:bg-elevated/50 transition-colors rounded-lg -mx-2 -mt-2 px-2 pt-2 pb-2"
+          >
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <div
+                  className="w-4 h-4 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: debt.color }}
+                />
+                <h3 className="font-semibold text-foreground">{debt.name}</h3>
+                {debt.status === 'paid_off' && (
+                  <span className="text-xs bg-[var(--color-income)]/30 text-[var(--color-income)] px-2 py-1 rounded">
+                    Paid Off
+                  </span>
+                )}
+                {debt.status === 'paused' && (
+                  <span className="text-xs bg-[var(--color-warning)]/30 text-[var(--color-warning)] px-2 py-1 rounded">
+                    Paused
+                  </span>
+                )}
+                {/* Credit Utilization Badge */}
+                {hasLimit && (
+                  <CreditUtilizationBadge
+                    balance={debt.remainingBalance}
+                    creditLimit={debt.creditLimit!}
+                    size="sm"
+                    showPercentage={true}
+                    showTooltip={true}
+                  />
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">{debt.creditorName}</p>
+            </div>
+            <div className="flex gap-2 items-start">
+              <ChevronDown
+                className={`w-5 h-5 text-muted-foreground transition-transform duration-300 flex-shrink-0 ${
+                  isExpanded ? 'rotate-180' : ''
+                }`}
               />
-              <h3 className="font-semibold text-foreground">{debt.name}</h3>
-              {debt.status === 'paid_off' && (
-                <span className="text-xs bg-[var(--color-income)]/30 text-[var(--color-income)] px-2 py-1 rounded">
-                  Paid Off
-                </span>
-              )}
-              {debt.status === 'paused' && (
-                <span className="text-xs bg-[var(--color-warning)]/30 text-[var(--color-warning)] px-2 py-1 rounded">
-                  Paused
-                </span>
+              <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                {onEdit && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onEdit(debt)}
+                    className="text-muted-foreground hover:text-foreground hover:bg-elevated"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onDelete(debt.id)}
+                    className="text-muted-foreground hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/20"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Collapsed Summary */}
+          {!isExpanded && (
+            <div className="flex items-center justify-between gap-4 text-sm text-muted-foreground mt-2 px-2">
+              <span className="font-mono">
+                ${debt.remainingBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} / ${debt.originalAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+              </span>
+              <span className="font-semibold">{Math.round(progressPercent)}% paid</span>
+              {daysLeft !== null && daysLeft >= 0 && (
+                <span className="hidden sm:inline">{daysLeft} days left</span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{debt.creditorName}</p>
-          </div>
-          <div className="flex gap-2">
-            {onEdit && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => onEdit(debt)}
-                className="text-muted-foreground hover:text-foreground hover:bg-elevated"
-              >
-                <Edit2 className="w-4 h-4" />
-              </Button>
-            )}
-            {onDelete && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => onDelete(debt.id)}
-                className="text-muted-foreground hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/20"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Progress Bar */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-center text-sm">
-            <span className="text-muted-foreground">
-              ${debt.remainingBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} remaining of $
-              {debt.originalAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-            </span>
-            <span className="text-foreground font-semibold">{Math.round(progressPercent)}%</span>
-          </div>
-          <Progress value={progressPercent} className="h-2 bg-elevated" />
-        </div>
+        {/* Expandable Content */}
+        {isExpanded && (
+          <div className="space-y-4">
+            {/* Progress Bar */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">
+                  ${debt.remainingBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })} remaining of $
+                  {debt.originalAmount.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                </span>
+                <span className="text-foreground font-semibold">{Math.round(progressPercent)}%</span>
+              </div>
+              <Progress value={progressPercent} className="h-2 bg-elevated" />
+            </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 text-center text-sm">
@@ -182,6 +248,85 @@ export function DebtPayoffTracker({
               <span className="text-xs text-muted-foreground">Interest Rate</span>
               <span className="text-sm text-foreground font-semibold">{debt.interestRate.toFixed(2)}%</span>
             </div>
+          </div>
+        )}
+
+        {/* Credit Utilization Section (Credit Cards Only) */}
+        {hasLimit && (
+          <div className="border-t border-border pt-3">
+            <button
+              onClick={() => setShowUtilization(!showUtilization)}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full"
+            >
+              {showUtilization ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+              <CreditCard className="w-4 h-4" />
+              <span>Credit Utilization</span>
+              {isOverTarget && (
+                <AlertTriangle className="w-3 h-3 text-[var(--color-warning)] ml-auto" />
+              )}
+            </button>
+
+            {showUtilization && (
+              <div className="mt-4 space-y-3 bg-elevated rounded-lg p-3 border border-border">
+                {/* Utilization Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Utilization</span>
+                    <span className="text-foreground font-semibold">{utilization.toFixed(1)}%</span>
+                  </div>
+                  <Progress value={utilization} className="h-2 bg-card" />
+                  <div className="flex justify-between items-center text-xs text-muted-foreground">
+                    <span>0%</span>
+                    <span className="text-[var(--color-warning)]">30% target</span>
+                    <span>100%</span>
+                  </div>
+                </div>
+
+                {/* Credit Info Grid */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground text-xs mb-1">Credit Limit</p>
+                    <p className="text-foreground font-semibold font-mono">
+                      ${debt.creditLimit!.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs mb-1">Available Credit</p>
+                    <p className="text-[var(--color-success)] font-semibold font-mono">
+                      ${available.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Recommendation */}
+                {recommendation && (
+                  <div className="bg-card rounded-lg p-3 border border-border">
+                    <p className="text-xs text-muted-foreground">{recommendation}</p>
+                  </div>
+                )}
+
+                {/* Payment to Target */}
+                {paymentToTarget > 0 && (
+                  <div className="bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-lg p-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-[var(--color-warning)] mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold text-foreground mb-1">
+                          Pay ${paymentToTarget.toLocaleString()} to reach 30%
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Keeping utilization below 30% helps maintain a healthy credit score.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -225,40 +370,94 @@ export function DebtPayoffTracker({
           </div>
         )}
 
-        {/* Record Payment Button */}
-        {debt.status !== 'paid_off' && (
-          <div className="border-t border-border pt-3">
-            {!showPayment ? (
-              <Button
-                onClick={() => setShowPayment(true)}
-                className="w-full bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+            {/* Payment History Section */}
+            <div className="border-t border-border pt-3">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowPaymentHistory(!showPaymentHistory);
+                }}
+                className="flex items-center justify-between w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Record Payment
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  placeholder="Amount"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  className="flex-1 bg-elevated border border-border rounded px-3 py-2 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-[var(--color-income)]"
-                  step="0.01"
-                  min="0"
-                />
-                <Button
-                  onClick={handlePayment}
-                  className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+                <span className="flex items-center gap-2">
+                  {showPaymentHistory ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                  <History className="w-4 h-4" />
+                  Payment History
+                </span>
+              </button>
+              {showPaymentHistory && (
+                <div className="mt-3">
+                  <PaymentHistoryList debtId={debt.id} />
+                </div>
+              )}
+            </div>
+
+            {/* Amortization Schedule Section */}
+            {debt.interestRate > 0 && (
+              <div className="border-t border-border pt-3">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAmortization(!showAmortization);
+                  }}
+                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Record
-                </Button>
-                <Button
-                  onClick={() => setShowPayment(false)}
-                  variant="outline"
-                  className="border-border text-muted-foreground hover:text-foreground"
-                >
-                  Cancel
-                </Button>
+                  {showAmortization ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                  <BarChart3 className="w-4 h-4" />
+                  Amortization Schedule
+                </button>
+                {showAmortization && (
+                  <div className="mt-3">
+                    <DebtAmortizationSection debt={debt} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Record Payment Button */}
+            {debt.status !== 'paid_off' && (
+              <div className="border-t border-border pt-3">
+                {!showPayment ? (
+                  <Button
+                    onClick={() => setShowPayment(true)}
+                    className="w-full bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+                  >
+                    Record Payment
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      placeholder="Amount"
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                      className="flex-1 bg-elevated border border-border rounded px-3 py-2 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-[var(--color-income)]"
+                      step="0.01"
+                      min="0"
+                    />
+                    <Button
+                      onClick={handlePayment}
+                      className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+                    >
+                      Record
+                    </Button>
+                    <Button
+                      onClick={() => setShowPayment(false)}
+                      variant="outline"
+                      className="border-border text-muted-foreground hover:text-foreground"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </div>

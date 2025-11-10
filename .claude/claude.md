@@ -268,6 +268,9 @@ All color variables are defined in `app/globals.css` and can be accessed via:
 - **Reports:** 6 endpoints (income vs expenses, category breakdown, cash flow, net worth, budget vs actual, merchant analysis)
 - **Tax Dashboard:** Deduction tracking, quarterly payment estimates, form type organization
 - **Sales Tax:** Quarterly reporting, all 50 states, filing deadlines
+- **Principal vs Interest Pie Charts:** Payment composition visualization at different stages
+- **Credit Utilization Tracking:** Complete credit card utilization monitoring with dashboard widget, inline badges, API endpoint, and collapsible sections
+- **Collapsible Debt Cards:** Enhanced debt UI with payment history and amortization sections (in progress)
 
 ### Phase 8: Testing 🟢 (In Progress)
 - Test infrastructure complete
@@ -393,7 +396,55 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-### Latest: Theme System & Dashboard Styling ✅
+### Latest: Collapsible Debt Cards & Page Reorganization (2025-11-09) ✅
+- **Collapsible Debt Cards**: Complete implementation with localStorage persistence
+  - **DebtPayoffTracker Enhancement**: Clickable headers to expand/collapse entire card
+  - **PaymentHistoryList Component**: Displays all payments with principal/interest breakdown, large payment highlighting
+  - **DebtAmortizationSection Component**: Per-debt amortization schedules with three-tab view
+  - **useDebtExpansion Hook**: Custom hook for state management with localStorage persistence
+  - **Expand/Collapse All Controls**: Bulk controls for managing multiple debts
+  - **Default State**: All debts collapsed by default for clean UI
+  - **Theme Integration**: All components use CSS variables
+  - **Smooth Animations**: 300ms CSS transitions for all interactions
+
+- **Debts Page Reorganization**: Improved information hierarchy
+  - Debt cards moved above analysis sections for better UX
+  - Payoff Strategy section moved up in priority
+  - Payment Tracking (Adherence & Streak) now in collapsible section
+  - Minimum Payment Warning moved to bottom
+  - Logical flow: View debts → Strategy → Tracking → Analysis → Warning
+
+- **Reports Page Enhancement**: Advanced debt analysis consolidated
+  - **Payment Breakdown Analysis**: Principal vs Interest pie charts moved from debts page
+  - **Debt Reduction Progress**: Historical + projected charts moved from debts page
+  - **Interactive Amortization Schedule**: Full schedule view moved from debts page
+  - New "Debt Analysis" section with three collapsible subsections
+  - All debt visualizations now accessible in Reports alongside financial reports
+
+### Credit Utilization Tracking (2025-11-09) ✅
+- **Credit Utilization Tracking**: Completed full implementation for credit card monitoring
+  - **Debt Form Enhancement**: Credit limit input field (credit cards only) with real-time utilization display
+  - **API Endpoint** (app/api/debts/credit-utilization/route.ts): Aggregate statistics, per-card details, recommendations
+  - **CreditUtilizationBadge Component**: Inline badge with emoji, color-coding, and hover tooltip
+  - **CreditUtilizationWidget Component**: Dashboard widget with progress ring, health score, quick stats
+  - **DebtPayoffTracker Enhancement**: Collapsible utilization section, payment calculator, warning indicators
+  - **Dashboard Integration**: Widget auto-displays when credit cards with limits exist
+  - **Health Levels**: Color-coded (Excellent 0-10%, Good 10-30%, Fair 30-50%, Poor 50-75%, Critical 75%+)
+  - **Smart Recommendations**: Actionable advice based on utilization level
+  - **Payment Calculator**: Shows exact amount needed to reach 30% target
+  - **Theme Integration**: All components use CSS variables, works with both themes
+  - **Responsive**: Optimized for mobile, tablet, and desktop
+
+### Principal vs Interest Pie Chart ✅
+- **Principal vs Interest Pie Chart**: Completed comprehensive payment breakdown visualization
+  - PaymentComparisonPieCharts showing first, midpoint, and final payment composition
+  - TotalCostPieChart displaying overall principal vs interest breakdown
+  - Interest multiplier calculation and warnings for high-cost debt
+  - Collapsible PaymentBreakdownSection with multi-debt support
+  - Educational insights explaining payment dynamics
+  - Integrated between Payment Tracking and Debt Reduction Chart
+
+### Theme System & Dashboard Styling ✅
 - Full theme infrastructure with Dark Mode (default) + Dark Pink Theme
 - Theme persistence to database, loads on app start
 - Dynamic CSS variable application - changes apply instantly
@@ -438,7 +489,7 @@ pnpm drizzle-kit migrate   # Apply migration
 - Bill display on calendar with status colors
 
 ### Database Migrations Applied
-All 18 migrations successfully applied including: theme preferences, payment frequency, debt loan fields, principal/interest tracking, amortization schedule support, transfer model conversion, bill frequency support, category-based debt tracking, and comprehensive debt fields.
+All 19 migrations successfully applied including: theme preferences, payment frequency, debt loan fields, principal/interest tracking, amortization schedule support, transfer model conversion, bill frequency support, category-based debt tracking, comprehensive debt fields, and credit limit for utilization tracking.
 
 ## Important Notes
 

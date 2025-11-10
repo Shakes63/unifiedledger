@@ -240,7 +240,7 @@ For debt system
   - Some people get paid bi-weekly and want to match
   - Adjust interest calculations accordingly
 
-11. 🟢 Credit Utilization Tracking (IN PROGRESS)
+11. ✅ Credit Utilization Tracking (COMPLETED)
 
   For credit cards specifically:
   - Track utilization % (balance ÷ limit)
@@ -248,7 +248,7 @@ For debt system
   - Show credit limit fields
   - Calculate total available credit
 
-  Implementation in progress:
+  Implementation complete with:
   - ✅ **Database Migration (0019)**: Added `creditLimit` field to debts table
   - ✅ **Schema Update**: Updated debts schema with nullable creditLimit field
   - ✅ **Utility Functions** (lib/debts/credit-utilization-utils.ts):
@@ -260,14 +260,53 @@ For debt system
     - calculatePaymentToTarget() - Calculate payment needed to reach 30%
     - estimateCreditScoreImpact() - Rough credit score impact estimation
   - ✅ **Color-Coded Health Levels**: Excellent (0-10%), Good (10-30%), Fair (30-50%), Poor (50-75%), Critical (75%+)
-  - 🔲 Debt form credit limit input (next)
-  - 🔲 Credit utilization API endpoint
-  - 🔲 CreditUtilizationWidget component
-  - 🔲 CreditUtilizationBadge component
-  - 🔲 DebtPayoffTracker enhancement
-  - 🔲 Dashboard integration
+  - ✅ **Debt Form Credit Limit Input** (components/debts/debt-form.tsx):
+    - Conditional credit limit field (credit cards only)
+    - Real-time utilization calculation with color-coded display
+    - Validation: credit limit must be >= balance
+    - Helper text explaining 30% rule
+    - Theme-aware styling
+  - ✅ **Credit Utilization API Endpoint** (app/api/debts/credit-utilization/route.ts):
+    - GET endpoint returning per-card and aggregate statistics
+    - Filters for active credit cards with limits set
+    - Calculates utilization, available credit, payment to target
+    - Provides recommendations and estimated credit score impact
+    - Health score calculation (0-100)
+  - ✅ **CreditUtilizationBadge Component** (components/debts/credit-utilization-badge.tsx):
+    - Inline badge showing utilization with emoji indicator
+    - Size variants (sm/md/lg)
+    - Color-coded based on health level
+    - Hover tooltip with detailed breakdown
+    - Shows balance, limit, available credit, and recommendation
+  - ✅ **CreditUtilizationWidget Component** (components/debts/credit-utilization-widget.tsx):
+    - Dashboard widget with circular progress ring
+    - Shows overall utilization percentage
+    - Quick stats: available credit, cards over 30%
+    - Health score progress bar
+    - Links to full debt management page
+    - Loading, error, and empty states
+    - Conditional rendering (only shows if credit cards exist)
+  - ✅ **DebtPayoffTracker Enhancement** (components/debts/debt-payoff-tracker.tsx):
+    - Credit utilization badge in card header (for credit cards)
+    - Collapsible "Credit Utilization" section
+    - Visual utilization progress bar with 30% target marker
+    - Displays credit limit and available credit
+    - Recommendation messages for high utilization
+    - Payment calculator showing amount needed to reach 30%
+    - Warning indicators for cards over target
+  - ✅ **Dashboard Integration** (app/dashboard/page.tsx):
+    - CreditUtilizationWidget added to dashboard grid
+    - Positioned after Accounts card
+    - Responsive grid layout (1 col mobile, 2 col tablet/desktop)
+    - Auto-hides when no credit cards with limits exist
+  - ✅ **Theme Integration**: All components use CSS variables for colors
+    - Success/warning/error colors from theme config
+    - Consistent with Dark Mode and Dark Pink themes
+    - Smooth transitions and hover states
+  - ✅ **Responsive Design**: All components optimized for mobile, tablet, and desktop
+  - ✅ **Accessibility**: Proper ARIA labels, keyboard navigation, color contrast
 
-12. 🟢 Collapsible Debt Cards (IN PROGRESS)
+12. ✅ Collapsible Debt Cards (COMPLETED)
 
   When you have many debts:
   - Expand/collapse individual debts
@@ -275,7 +314,7 @@ For debt system
   - "Show amortization schedule" accordion
   - Keeps UI clean but data accessible
 
-  Implementation in progress:
+  Implementation complete with:
   - ✅ **Implementation Plan**: Comprehensive 10-step plan documented (docs/collapsible-debt-cards-plan.md)
   - ✅ **PaymentHistoryList Component** (components/debts/payment-history-list.tsx):
     - Fetches and displays all payments for a debt
@@ -294,11 +333,37 @@ For debt system
     - Error handling with helpful messages
     - Hides for debts with 0% interest
     - Integrates with debt settings (extra payments, frequency)
-  - 🔲 Update DebtPayoffTracker with collapsible UI (next)
-  - 🔲 Add expand/collapse all controls
-  - 🔲 localStorage persistence
-  - 🔲 Smooth animations
-  - 🔲 Custom hook for state management
+  - ✅ **Collapsible Main Card** (components/debts/debt-payoff-tracker.tsx):
+    - Click header to expand/collapse entire debt card
+    - Collapsed shows: name, creditor, balance, quick stats
+    - Expanded shows: full details, payment form, milestones, history, amortization
+    - Smooth CSS transitions (300ms duration)
+    - Chevron icon with rotation animation
+  - ✅ **Payment History Accordion**:
+    - Integrated into DebtPayoffTracker
+    - Toggle button with History icon
+    - Fetches payment data on demand (lazy loading)
+    - Shows all payment details in chronological order
+  - ✅ **Amortization Schedule Accordion**:
+    - Integrated into DebtPayoffTracker
+    - Toggle button with BarChart3 icon
+    - Only shown for debts with interest > 0
+    - Full three-tab view (Overview, Schedule, Charts)
+  - ✅ **Expand/Collapse All Controls** (app/dashboard/debts/page.tsx):
+    - "Expand All" / "Collapse All" buttons above debt list
+    - Only shown when 2+ debts exist
+    - Debt count indicator
+    - Default state: all debts collapsed for clean UI
+  - ✅ **localStorage Persistence** (lib/hooks/use-debt-expansion.ts):
+    - Custom useDebtExpansion hook
+    - Saves user preference per debt
+    - Respects Expand All/Collapse All overrides
+    - Handles client-side hydration properly
+  - ✅ **Smooth Animations**: CSS transitions for all expand/collapse actions
+  - ✅ **Theme Integration**: All colors use CSS variables
+  - ✅ **Responsive Design**: Works on mobile, tablet, desktop
+  - ✅ **Accessibility**: Proper click event handling, stopPropagation for nested buttons
+  - ✅ **Performance**: Lazy loading of payment history and amortization data
 
 13. ✅ Settings Section & Theme Chooser (COMPLETED)
 
@@ -334,3 +399,36 @@ For debt system
   - Available on theme page
   - Full color palette implemented with pink accents
   - Deep aubergine backgrounds with turquoise, pink, and purple accents
+
+16. ✅ Page Reorganization & UX Improvements (COMPLETED)
+
+  Reorganize debts and reports pages for better information hierarchy:
+  - Move debt cards above analysis sections on debts page
+  - Consolidate advanced debt visualizations in reports page
+  - Make payment tracking collapsible to reduce clutter
+  - Reorder sections by priority and user workflow
+
+  Implementation complete with:
+  - **Debts Page Reorganization**:
+    - Debt cards moved to top (immediately after filters) for quick access
+    - Payoff Strategy section moved up in priority (position 6)
+    - Payment Tracking (Adherence & Streak) now in collapsible section with 📊 icon
+    - What-If Calculator remains accessible as collapsible section
+    - Minimum Payment Warning moved to bottom as cautionary analysis
+    - Improved flow: View debts → Choose strategy → Track payments → Analyze scenarios → Review warnings
+
+  - **Reports Page Enhancement**:
+    - New "Debt Analysis" section added to reports page
+    - **Payment Breakdown Analysis** (📊): Principal vs Interest pie charts moved from debts page
+    - **Debt Reduction Progress** (📉): Historical + projected charts moved from debts page
+    - **Interactive Amortization Schedule** (📈): Full schedule view moved from debts page
+    - All three sections collapsible for clean presentation
+    - Debt analysis only appears when active debts with payoff strategy exist
+    - Seamlessly integrated with existing financial reports
+
+  - **UX Benefits**:
+    - Reduced cognitive load on debts page (focused on action items)
+    - Advanced analysis consolidated in reports (comprehensive view)
+    - All sections collapsible by default for clean UI
+    - Better separation of concerns: Debts = Action, Reports = Analysis
+    - Consistent collapsible pattern across both pages

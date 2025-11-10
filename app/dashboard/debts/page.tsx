@@ -10,9 +10,6 @@ import { MinimumPaymentWarning } from '@/components/debts/minimum-payment-warnin
 import { PaymentAdherenceCard } from '@/components/debts/payment-adherence-card';
 import { PaymentStreakWidget } from '@/components/debts/payment-streak-widget';
 import { DebtFreeCountdown } from '@/components/dashboard/debt-free-countdown';
-import { AmortizationScheduleView } from '@/components/debts/amortization-schedule-view';
-import { DebtReductionChart } from '@/components/debts/debt-reduction-chart';
-import { PaymentBreakdownSection } from '@/components/debts/payment-breakdown-section';
 import {
   Dialog,
   DialogContent,
@@ -33,9 +30,9 @@ export default function DebtsPage() {
   const [showMinWarning, setShowMinWarning] = useState(false);
   const [showWhatIf, setShowWhatIf] = useState(false);
   const [showStrategy, setShowStrategy] = useState(false);
-  const [showAmortization, setShowAmortization] = useState(false);
+  const [showPaymentTracking, setShowPaymentTracking] = useState(false);
   const [debtSettings, setDebtSettings] = useState<any>(null);
-  const [payoffStrategy, setPayoffStrategy] = useState<any>(null);
+  const [allExpanded, setAllExpanded] = useState<boolean | null>(null);
 
   // Fetch debts and settings
   useEffect(() => {
@@ -50,33 +47,9 @@ export default function DebtsPage() {
       if (response.ok) {
         const data = await response.json();
         setDebtSettings(data);
-        // Load payoff strategy when settings are available
-        loadPayoffStrategy(data);
       }
     } catch (error) {
       console.error('Error loading debt settings:', error);
-    }
-  };
-
-  const loadPayoffStrategy = async (settings: any) => {
-    try {
-      // The payoff calculator has built-in safety limits (360 months max)
-      // and proper handling for edge cases, so no need for client-side checks
-      const extraPayment = settings?.extraMonthlyPayment || 0;
-      const method = settings?.preferredMethod || 'avalanche';
-      const frequency = settings?.paymentFrequency || 'monthly';
-
-      const response = await fetch(
-        `/api/debts/payoff-strategy?extraPayment=${extraPayment}&method=${method}&paymentFrequency=${frequency}`
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setPayoffStrategy(data);
-      }
-    } catch (error) {
-      console.error('Error loading payoff strategy:', error);
-      setPayoffStrategy(null);
     }
   };
 
@@ -269,46 +242,128 @@ export default function DebtsPage() {
         ))}
       </div>
 
-      {/* Minimum Payment Warning Section */}
+      {/* Debts List */}
+      {loading ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading debts...</p>
+        </div>
+      ) : debts.length === 0 ? (
+        <div className="text-center py-12 bg-card border border-border rounded-lg">
+          <p className="text-muted-foreground">No debts yet. You're debt-free!</p>
+          <Button
+            onClick={() => setIsFormOpen(true)}
+            className="mt-4 bg-accent hover:bg-accent/90 text-accent-foreground"
+          >
+            Add a Debt to Track
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Expand/Collapse All Controls */}
+          {debts.length > 1 && (
+            <div className="flex gap-2 items-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAllExpanded(true)}
+                className="text-sm border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
+              >
+                <ChevronDown className="w-4 h-4 mr-1" />
+                Expand All
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAllExpanded(false)}
+                className="text-sm border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
+              >
+                <ChevronUp className="w-4 h-4 mr-1" />
+                Collapse All
+              </Button>
+              <span className="text-xs text-muted-foreground ml-2">
+                {debts.length} {debts.length === 1 ? 'debt' : 'debts'}
+              </span>
+            </div>
+          )}
+
+          {/* Debts Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {debts.map((debt) => (
+              <DebtPayoffTracker
+                key={debt.id}
+                debt={debt}
+                onEdit={handleEditDebt}
+                onDelete={handleDeleteDebt}
+                onPayment={handlePayment}
+                defaultExpanded={allExpanded ?? false}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Payoff Strategy Section */}
       {stats && stats.activeDebtCount > 0 && debtSettings && (
         <div className="space-y-4">
           <button
-            onClick={() => setShowMinWarning(!showMinWarning)}
+            onClick={() => setShowStrategy(!showStrategy)}
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">⚠️</span>
+              <span className="text-2xl">🎯</span>
               <div className="text-left">
-                <h3 className="text-lg font-semibold text-foreground">Minimum Payment Warning</h3>
+                <h3 className="text-lg font-semibold text-foreground">Debt Payoff Strategy</h3>
                 <p className="text-sm text-muted-foreground">
-                  See the true cost of paying only minimum payments
+                  Compare Snowball vs Avalanche methods and see your payoff timeline
                 </p>
               </div>
             </div>
-            {showMinWarning ? (
+            {showStrategy ? (
               <ChevronUp className="w-5 h-5 text-muted-foreground" />
             ) : (
               <ChevronDown className="w-5 h-5 text-muted-foreground" />
             )}
           </button>
 
-          {showMinWarning && <MinimumPaymentWarning />}
+          {showStrategy && <DebtPayoffStrategy />}
+        </div>
+      )}
 
-          {/* Payment Tracking Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <PaymentAdherenceCard />
-            <PaymentStreakWidget />
-          </div>
+      {/* Payment Tracking Section */}
+      {stats && stats.activeDebtCount > 0 && (
+        <div className="space-y-4">
+          <button
+            onClick={() => setShowPaymentTracking(!showPaymentTracking)}
+            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">📊</span>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold text-foreground">Payment Tracking</h3>
+                <p className="text-sm text-muted-foreground">
+                  Monitor payment adherence and track your payment streak
+                </p>
+              </div>
+            </div>
+            {showPaymentTracking ? (
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
 
-          {/* Payment Breakdown Section */}
-          {payoffStrategy && (
-            <PaymentBreakdownSection strategy={payoffStrategy} />
+          {showPaymentTracking && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <PaymentAdherenceCard />
+              <PaymentStreakWidget />
+            </div>
           )}
+        </div>
+      )}
 
-          {/* Debt Reduction Progress Chart */}
-          <DebtReductionChart />
-
-          {/* What-If Calculator Section */}
+      {/* What-If Calculator Section */}
+      {stats && stats.activeDebtCount > 0 && debtSettings && (
+        <div className="space-y-4">
           <button
             onClick={() => setShowWhatIf(!showWhatIf)}
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
@@ -336,83 +391,33 @@ export default function DebtsPage() {
               currentFrequency={debtSettings.paymentFrequency || 'monthly'}
             />
           )}
-
-          {/* Payoff Strategy Section */}
-          <button
-            onClick={() => setShowStrategy(!showStrategy)}
-            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">🎯</span>
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-foreground">Debt Payoff Strategy</h3>
-                <p className="text-sm text-muted-foreground">
-                  Compare Snowball vs Avalanche methods and see your payoff timeline
-                </p>
-              </div>
-            </div>
-            {showStrategy ? (
-              <ChevronUp className="w-5 h-5 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
-            )}
-          </button>
-
-          {showStrategy && <DebtPayoffStrategy />}
-
-          {/* Amortization Schedule Section */}
-          <button
-            onClick={() => setShowAmortization(!showAmortization)}
-            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">📊</span>
-              <div className="text-left">
-                <h3 className="text-lg font-semibold text-foreground">Interactive Amortization Schedule</h3>
-                <p className="text-sm text-muted-foreground">
-                  Explore month-by-month payment breakdowns and visualize principal vs interest
-                </p>
-              </div>
-            </div>
-            {showAmortization ? (
-              <ChevronUp className="w-5 h-5 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
-            )}
-          </button>
-
-          {showAmortization && payoffStrategy && (
-            <AmortizationScheduleView strategy={payoffStrategy} />
-          )}
         </div>
       )}
 
-      {/* Debts List */}
-      {loading ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Loading debts...</p>
-        </div>
-      ) : debts.length === 0 ? (
-        <div className="text-center py-12 bg-card border border-border rounded-lg">
-          <p className="text-muted-foreground">No debts yet. You're debt-free!</p>
-          <Button
-            onClick={() => setIsFormOpen(true)}
-            className="mt-4 bg-accent hover:bg-accent/90 text-accent-foreground"
+      {/* Minimum Payment Warning Section */}
+      {stats && stats.activeDebtCount > 0 && debtSettings && (
+        <div className="space-y-4">
+          <button
+            onClick={() => setShowMinWarning(!showMinWarning)}
+            className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
-            Add a Debt to Track
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {debts.map((debt) => (
-            <DebtPayoffTracker
-              key={debt.id}
-              debt={debt}
-              onEdit={handleEditDebt}
-              onDelete={handleDeleteDebt}
-              onPayment={handlePayment}
-            />
-          ))}
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div className="text-left">
+                <h3 className="text-lg font-semibold text-foreground">Minimum Payment Warning</h3>
+                <p className="text-sm text-muted-foreground">
+                  See the true cost of paying only minimum payments
+                </p>
+              </div>
+            </div>
+            {showMinWarning ? (
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
+
+          {showMinWarning && <MinimumPaymentWarning />}
         </div>
       )}
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { Info } from 'lucide-react';
+import { calculateUtilization, getUtilizationLevel, getUtilizationColor } from '@/lib/debts/credit-utilization-utils';
 
 const DEBT_TYPES = [
   { value: 'credit_card', label: 'Credit Card' },
@@ -84,7 +86,25 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
     lastStatementDate: debt?.lastStatementDate || '',
     lastStatementBalance: debt?.lastStatementBalance || '',
     notes: debt?.notes || '',
+    // Credit utilization tracking
+    creditLimit: debt?.creditLimit || '',
   });
+
+  // Calculate credit utilization in real-time
+  const creditUtilization = useMemo(() => {
+    if (formData.type !== 'credit_card') return null;
+
+    const balance = parseFloat(String(formData.remainingBalance)) || 0;
+    const limit = parseFloat(String(formData.creditLimit)) || 0;
+
+    if (limit === 0) return null;
+
+    const utilization = calculateUtilization(balance, limit);
+    const level = getUtilizationLevel(utilization);
+    const color = getUtilizationColor(utilization);
+
+    return { utilization, level, color };
+  }, [formData.type, formData.remainingBalance, formData.creditLimit]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -136,6 +156,22 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       return;
     }
 
+    // Validate credit limit for credit cards
+    if (formData.type === 'credit_card' && formData.creditLimit) {
+      const creditLimit = parseFloat(String(formData.creditLimit));
+      const balance = parseFloat(String(formData.remainingBalance));
+
+      if (creditLimit < balance) {
+        toast.error('Credit limit must be greater than or equal to remaining balance');
+        return;
+      }
+
+      if (creditLimit <= 0) {
+        toast.error('Credit limit must be greater than 0');
+        return;
+      }
+    }
+
     onSubmit({
       ...formData,
       originalAmount: parseFloat(formData.originalAmount),
@@ -150,6 +186,8 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       // Credit card fields
       lastStatementDate: formData.lastStatementDate || undefined,
       lastStatementBalance: formData.lastStatementBalance ? parseFloat(String(formData.lastStatementBalance)) : undefined,
+      // Credit utilization
+      creditLimit: formData.creditLimit ? parseFloat(String(formData.creditLimit)) : undefined,
     });
   };
 
@@ -225,6 +263,63 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
           />
         </div>
       </div>
+
+      {/* Credit Limit (Credit Cards Only) */}
+      {formData.type === 'credit_card' && (
+        <div className="p-4 bg-card rounded-lg border border-border">
+          <div className="flex items-center gap-2 mb-3">
+            <Label className="text-sm text-[var(--color-primary)]">Credit Utilization Tracking</Label>
+            <Info className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-muted-foreground text-sm mb-1">Credit Limit (Optional)</Label>
+              <Input
+                name="creditLimit"
+                type="number"
+                value={formData.creditLimit}
+                onChange={handleChange}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+              />
+              <div className="flex items-start gap-2 mt-2">
+                <Info className="w-3 h-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  Credit utilization is a key factor in credit scores. Experts recommend keeping utilization below 30% per card.
+                </p>
+              </div>
+            </div>
+
+            {/* Real-time Utilization Display */}
+            {creditUtilization && (
+              <div className="flex items-center justify-between p-3 bg-elevated rounded-lg border border-border">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Current Utilization:</span>
+                  <span
+                    className="text-sm font-semibold"
+                    style={{ color: creditUtilization.color }}
+                  >
+                    {creditUtilization.utilization.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-xs px-2 py-1 rounded-full font-medium border"
+                    style={{
+                      borderColor: creditUtilization.color,
+                      color: creditUtilization.color
+                    }}
+                  >
+                    {creditUtilization.level.charAt(0).toUpperCase() + creditUtilization.level.slice(1)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Payment Info */}
       <div className="grid grid-cols-2 gap-4">
