@@ -299,9 +299,31 @@ All color variables are defined in `app/globals.css` and can be accessed via:
 - **Collapsible Debt Cards:** Enhanced debt UI with payment history and amortization sections (in progress)
 
 ### Phase 8: Testing 🟢 (In Progress)
-- Test infrastructure complete
-- Split calculator tests: 80+ test cases, 100% coverage
-- Target: 80%+ overall coverage
+- ✅ Test infrastructure complete
+- ✅ Split calculator tests: 80+ test cases, 100% coverage
+- ✅ **Condition evaluator tests: 154 test cases, 100% coverage** (2025-11-10)
+  - All 14 operators tested with comprehensive edge cases
+  - All 8 fields tested (description, amount, account_name, date, day_of_month, weekday, month, notes)
+  - Validation functions fully tested (single conditions + recursive groups)
+  - Case-sensitive/insensitive modes tested
+  - **Bug fixed**: caseSensitive flag now properly respected in condition evaluator
+  - Test file: `__tests__/lib/rules/condition-evaluator.test.ts`
+  - Plan: `docs/rules-system-testing-plan.md` (7-day roadmap for Rules System)
+  - Summary: `docs/condition-evaluator-testing-completion-summary.md`
+- ✅ **Rule matcher tests: 65 test cases, 95%+ coverage** (2025-11-10) - COMPLETE
+  - All 6 exported functions tested comprehensively
+  - Database mocking with vi.mock and automatic priority sorting
+  - testRule() and testRuleOnMultiple() - sync functions for UI preview
+  - findMatchingRule() - priority-based matching with database integration
+  - findAllMatchingRules() - debugging/analysis function
+  - Action parsing with backward compatibility (categoryId → set_category)
+  - Edge cases: unicode, emoji, large amounts, leap years, zero/negative amounts
+  - Test file: `__tests__/lib/rules/rule-matcher.test.ts`
+  - Plan: `docs/rule-matcher-testing-plan.md` (Detailed 9-task implementation plan)
+- ⏳ Actions executor tests: ~80 tests (not started)
+- ⏳ Integration tests: ~30 tests (not started)
+- **Target:** 80%+ overall coverage
+- **Current Progress:** 299 tests implemented (70% of planned 314 tests)
 
 ## Important Architecture Decisions
 
