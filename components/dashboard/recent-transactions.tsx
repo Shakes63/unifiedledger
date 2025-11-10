@@ -256,8 +256,8 @@ export function RecentTransactions() {
 
         return (
           <Link key={transaction.id} href={`/dashboard/transactions/${transaction.id}`}>
-            <Card className="p-2 border rounded-lg cursor-pointer transition-colors" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
-              <div className="flex items-center justify-between gap-2" style={{ ':hover': { backgroundColor: 'var(--color-elevated)' } }}>
+            <Card className="p-2 border rounded-lg cursor-pointer transition-colors hover:bg-elevated" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   <div className="p-1.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-elevated)' }}>
                     {getTransactionIcon(transaction.type)}

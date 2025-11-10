@@ -1,4 +1,4 @@
-check the features.md in the docs folder and start on the next feature before implementing please make a detailed step by step plan for doing so making sure to integrate it well into the existing UI and styling. the plan should be added to a file in the docs folder. When the plan is complete start on the first task in the plan.
+check the features.md in the docs folder and start on the next feature before implementing please think hard and make a detailed step by step plan for doing so making sure to integrate it well into the existing UI and styling using the theme variables everywhere it makes sense to. the plan should be added to a file in the docs folder. When the plan is complete start on the first task in the plan.
 
 update the features.md and claude.md file and commit and push the changes.
 budgetsystemplan.md

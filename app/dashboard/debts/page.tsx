@@ -11,6 +11,7 @@ import { PaymentAdherenceCard } from '@/components/debts/payment-adherence-card'
 import { PaymentStreakWidget } from '@/components/debts/payment-streak-widget';
 import { DebtFreeCountdown } from '@/components/dashboard/debt-free-countdown';
 import { AmortizationScheduleView } from '@/components/debts/amortization-schedule-view';
+import { DebtReductionChart } from '@/components/debts/debt-reduction-chart';
 import {
   Dialog,
   DialogContent,
@@ -297,6 +298,9 @@ export default function DebtsPage() {
             <PaymentAdherenceCard />
             <PaymentStreakWidget />
           </div>
+
+          {/* Debt Reduction Progress Chart */}
+          <DebtReductionChart />
 
           {/* What-If Calculator Section */}
           <button
