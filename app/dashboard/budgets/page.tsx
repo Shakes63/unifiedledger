@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { BudgetSummaryCard } from '@/components/budgets/budget-summary-card';
 import { CategoryBudgetProgress } from '@/components/budgets/category-budget-progress';
 import { BudgetManagerModal } from '@/components/budgets/budget-manager-modal';
+import { VariableBillTracker } from '@/components/budgets/variable-bill-tracker';
 import { toast } from 'sonner';
 
 interface BudgetOverview {
@@ -388,6 +389,11 @@ export default function BudgetsPage() {
             )}
           </div>
         )}
+
+        {/* Variable Bill Tracking */}
+        <div className="pt-6 border-t border-border">
+          <VariableBillTracker />
+        </div>
 
         {/* Budget Manager Modal */}
         <BudgetManagerModal

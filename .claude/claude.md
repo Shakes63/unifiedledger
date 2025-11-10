@@ -252,6 +252,7 @@ All color variables are defined in `app/globals.css` and can be accessed via:
   - Copy budgets from previous month
   - Budget templates (50/30/20, Zero-based, 60% solution)
   - Budget warnings during transaction entry
+  - **Variable Bill Tracking:** Expected vs actual comparison, historical averages (3/6/12-month), trend analysis, intelligent budget recommendations
 - **Tags:** Color-coded tags with usage tracking
 - **Custom Fields:** 8 field types (text, number, date, select, etc.)
 - **Notifications:** 10 types (bill reminders, budget warnings, low balance, etc.)
@@ -404,7 +405,35 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-### Latest: Budget Tracking System - Phase 1 (2025-11-09) ✅
+### Latest: Variable Bill Tracking - Phase 3 (2025-11-09) ✅
+- **Variable Bill Tracking System**: Complete implementation for tracking bills with fluctuating costs
+  - **API Endpoint**:
+    - `/api/budgets/bills/variable` - Comprehensive variable bill tracking with historical analysis
+  - **Components Created**:
+    - `VariableBillCard` - Individual bill display with expected vs actual, trend analysis, insights
+    - `VariableBillTracker` - Main container with summary, filters, month navigation
+  - **Key Features**:
+    - Current month expected vs actual comparison
+    - Historical averages (3-month, 6-month, 12-month, all-time)
+    - Trend detection (improving/worsening/stable)
+    - Intelligent budget recommendations based on 6-month average + buffer
+    - Inline editing of expected amounts
+    - Color-coded variance indicators (green savings, amber/red overages)
+    - Monthly breakdown view (last 12 months)
+    - Filter by: All Bills, Under Budget, Over Budget, Pending
+    - Overall insights with actionable recommendations
+    - Expand/collapse all controls with localStorage persistence
+  - **Dashboard Integration**: Integrated into `/app/dashboard/budgets` page
+  - **Theme Integration**: Full CSS variable usage, works with Dark Mode and Dark Pink Theme
+  - **Financial Calculations**: Uses Decimal.js throughout for precision
+  - **Documentation**:
+    - `docs/variable-bill-tracking-plan.md` - Detailed 8-task implementation plan
+    - `docs/variable-bill-tracking-completion-summary.md` - Complete implementation summary
+    - `docs/budgetsystemplan.md` - Updated with Phase 3 completion status
+  - **Build Status**: ✅ Successful production build verified
+  - **Lines of Code**: 1,688 lines (4 new files)
+
+### Budget Tracking System - Phase 1 (2025-11-09) ✅
 - **Budget Setup & Management**: Complete implementation of comprehensive budget tracking system
   - **API Endpoints** (4 new endpoints):
     - `/api/budgets/overview` - Comprehensive budget overview with summary, per-category breakdown, projections
