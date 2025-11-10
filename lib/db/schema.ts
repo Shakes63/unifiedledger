@@ -280,6 +280,35 @@ export const transfers = sqliteTable(
   })
 );
 
+export const transferSuggestions = sqliteTable(
+  'transfer_suggestions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    sourceTransactionId: text('source_transaction_id').notNull(),
+    suggestedTransactionId: text('suggested_transaction_id').notNull(),
+
+    // Scoring breakdown
+    amountScore: real('amount_score').notNull(),
+    dateScore: real('date_score').notNull(),
+    descriptionScore: real('description_score').notNull(),
+    accountScore: real('account_score').notNull(),
+    totalScore: real('total_score').notNull(),
+    confidence: text('confidence', { enum: ['high', 'medium', 'low'] }).notNull(),
+
+    // User action tracking
+    status: text('status', { enum: ['pending', 'accepted', 'rejected', 'expired'] }).default('pending'),
+    reviewedAt: text('reviewed_at'),
+
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_transfer_suggestions_user').on(table.userId),
+    sourceIdx: index('idx_transfer_suggestions_source').on(table.sourceTransactionId),
+    statusIdx: index('idx_transfer_suggestions_status').on(table.status),
+  })
+);
+
 export const nonMonthlyBills = sqliteTable(
   'non_monthly_bills',
   {

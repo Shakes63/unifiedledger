@@ -230,19 +230,23 @@ All color variables are defined in `app/globals.css` and can be accessed via:
 - **Usage Tracking:** Accounts, categories, merchants sorted by usage
 - **Smart Categorization:** Auto-apply categories based on merchant history
 - **Rules System:** 14 operators, 8 fields, recursive AND/OR groups, priority-based matching
-  - **Enhanced with Actions System** 🟢 (Phase 1 Complete, Phase 2 In Progress): Rules can now perform multiple actions beyond categorization
+  - **Enhanced with Actions System** ✅ (Phase 1 & Phase 2 COMPLETE): Rules can now perform multiple actions beyond categorization
     - **Phase 1 Complete (6 Action Types)**:
       - Set category, set description, prepend/append description, set merchant, set tax deduction
       - Pattern Variables: {original}, {merchant}, {category}, {amount}, {date} for dynamic text
       - Full UI: Action builder with inline pattern editor, category/merchant selectors
       - Backward Compatible: Old rules automatically converted to new format
-    - **Phase 2 In Progress (30% Complete)**:
+    - **Phase 2 COMPLETE (5 Action Types - 100%)**:
       - ✅ **Set Tax Deduction**: Marks transactions as tax deductible when category is configured as such (migration 0021)
-      - 🟡 **Convert to Transfer**: Backend complete with intelligent matching (±1% amount, ±7 days), UI pending
-      - ⏳ **Split Transaction**: Create multi-category splits automatically (not started)
-      - ⏳ **Change Account**: Move transactions between accounts (not started)
-      - ⏳ **Enhanced Matching**: ML-powered transfer suggestions (not started)
-    - **Plans**: `docs/rules-actions-implementation-plan.md` (Phase 1) + `docs/rules-actions-phase2-plan.md` (Phase 2)
+      - ✅ **Convert to Transfer**: Full implementation with intelligent matching (±1% amount, ±7 days), UI complete
+      - ✅ **Split Transaction**: Create multi-category splits automatically with percentage and fixed amounts
+      - ✅ **Set Account**: Move transactions between accounts with automatic balance updates
+      - ✅ **Enhanced Transfer Matching**: Multi-factor scoring (amount 40pts, date 30pts, description 20pts, account 10pts)
+        - Confidence levels: High (≥90% auto-links), Medium (70-89% suggestions), Low (<70% creates new)
+        - Description similarity using Levenshtein distance (fastest-levenshtein library)
+        - Transfer suggestions database + 3 API endpoints + modal UI + dashboard widget
+        - Full theme integration, zero TypeScript errors
+    - **Plans**: `docs/rules-actions-implementation-plan.md` (Phase 1), `docs/rules-actions-phase2-plan.md` (Phase 2), `docs/enhanced-transfer-matching-plan.md` (Enhanced Matching)
 - **Transaction History:** Repeat/clone functionality, save as templates
 - **Split Transactions:** Visual editor, amount/percentage support, full CRUD
 - **Advanced Search:** 11 filter types, saved searches, pagination
@@ -418,9 +422,77 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-### Latest: Rules Actions System - Phase 2 Progress (2025-11-10) 🟢
-**Status:** 4 of 5 features complete (80%) - Active development ongoing
-**Plan Document:** `docs/rules-actions-phase2-plan.md`
+### Latest: Enhanced Transfer Matching - Phase 2 COMPLETE (2025-11-10) ✅
+**Status:** 5 of 5 features complete (100%) - Phase 2 fully implemented!
+**Plan Document:** `docs/enhanced-transfer-matching-plan.md`
+
+**Phase 2E: Enhanced Transfer Matching - COMPLETE ✅ (2025-11-10)**
+- **Backend Implementation Complete** (~250 lines):
+  - Enhanced `lib/rules/transfer-action-handler.ts`:
+    - `scoreTransferMatch()` - Multi-factor scoring algorithm
+    - `calculateDescriptionSimilarity()` - Levenshtein distance comparison using fastest-levenshtein
+    - Updated `findMatchingTransaction()` - Returns scored matches with confidence levels
+    - Updated `handleTransferConversion()` - Handles high/medium/low confidence matches
+    - `storeSuggestions()` - Stores medium-confidence matches for user review
+  - Scoring Algorithm:
+    - Amount similarity: 0-40 points (exact match = 40, within tolerance scales down)
+    - Date proximity: 0-30 points (same day = 30, within range scales down)
+    - Description similarity: 0-20 points (Levenshtein distance normalized)
+    - Account history: 0-10 points (placeholder for future ML)
+  - Confidence Levels:
+    - High (≥90): Auto-links immediately
+    - Medium (70-89): Stores suggestion for manual review
+    - Low (<70): Creates new transfer pair
+  - Database Schema:
+    - Created `transferSuggestions` table with scoring breakdown
+    - Migration 0022: Full schema with indexes
+  - Build Status: ✅ Production build successful, zero errors
+
+- **API Implementation Complete** (~350 lines):
+  - GET `/api/transfer-suggestions` - Fetch suggestions with pagination and filtering
+    - Status filtering (pending/accepted/rejected/expired)
+    - Joins with transactions and accounts for full details
+    - Returns sorted by total score (descending)
+  - POST `/api/transfer-suggestions/[id]/accept` - Accept suggestion and create transfer link
+    - Validates suggestion exists and is pending
+    - Checks transactions aren't already transfers
+    - Creates transferId and links both transactions
+    - Updates suggestion status to accepted
+  - POST `/api/transfer-suggestions/[id]/reject` - Dismiss suggestion
+    - Updates suggestion status to rejected
+  - Full error handling and authorization checks
+  - Build Status: ✅ Production build successful, zero errors
+
+- **UI Implementation Complete** (~600 lines):
+  - `components/transactions/transfer-suggestions-modal.tsx` (NEW FILE):
+    - Visual transaction comparison cards
+    - Score breakdown bars with color-coded progress
+    - Confidence badges (High/Medium/Low with semantic colors)
+    - Accept/reject actions with loading states
+    - Empty state with helpful messaging
+    - Responsive design (mobile/tablet/desktop)
+  - `components/dashboard/transfer-suggestions-widget.tsx` (NEW FILE):
+    - Dashboard widget showing pending suggestion count
+    - "Review Suggestions" button with warning color
+    - Auto-refreshes count when modal closes
+    - Conditionally renders (hidden when no suggestions)
+  - Full theme integration:
+    - All colors use CSS variables (bg-card, text-foreground, etc.)
+    - Confidence badges use semantic colors (success/warning/error)
+    - Transaction type colors (income/expense)
+  - Build Status: ✅ Production build successful, zero errors
+
+**Total Implementation:**
+- ~1,200 new lines of production code
+- 1 database migration (0022)
+- 2 new components
+- 3 API endpoints
+- Enhanced 1 existing handler with scoring
+- Zero TypeScript errors
+- Full theme support (Dark Mode + Dark Pink Theme)
+
+**Phase 2 Now 100% Complete! 🎉**
+All 5 advanced rule actions fully implemented and production-ready.
 
 **Phase 2A: Set Tax Deduction Action - COMPLETE ✅ (2025-11-09)**
 - Database migration 0021: Added `isTaxDeductible` to transactions table
