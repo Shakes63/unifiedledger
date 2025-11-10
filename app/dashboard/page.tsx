@@ -47,6 +47,12 @@ export default function DashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  // Fix hydration mismatch by only rendering Select after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     // Initialize user on first load
@@ -152,19 +158,25 @@ export default function DashboardPage() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground mb-3">This Month</p>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-full text-foreground" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Total Spending</SelectItem>
-                      {categories.map(category => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {mounted ? (
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                      <SelectTrigger className="w-full text-foreground" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Total Spending</SelectItem>
+                        {categories.map(category => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="w-full text-foreground px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)', border: '1px solid' }}>
+                      Total Spending
+                    </div>
+                  )}
                 </div>
                 <div className="p-3 ml-3 rounded-lg bg-[var(--color-expense)]/20">
                   <TrendingUp className="w-6 h-6 text-[var(--color-expense)]" />
