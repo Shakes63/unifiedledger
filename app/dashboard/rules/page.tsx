@@ -7,26 +7,16 @@ import { BulkApplyRules } from '@/components/rules/bulk-apply-rules';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ConditionGroup, Condition } from '@/lib/rules/condition-evaluator';
-
-interface Category {
-  id: string;
-  name: string;
-}
+import type { RuleAction } from '@/lib/rules/types';
 
 interface Rule {
   id: string;
   name: string;
-  categoryId: string;
+  categoryId?: string;
+  actions?: RuleAction[];
   priority: number;
   isActive: boolean;
 }
@@ -34,10 +24,8 @@ interface Rule {
 export default function RulesPage() {
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [formData, setFormData] = useState({
     name: '',
-    categoryId: '',
     priority: 1,
     isActive: true,
   });
@@ -45,31 +33,14 @@ export default function RulesPage() {
     logic: 'AND',
     conditions: [],
   } as ConditionGroup);
+  const [actions, setActions] = useState<RuleAction[]>([]);
   const [saving, setSaving] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  // Fetch categories on mount
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch('/api/categories');
-      if (response.ok) {
-        const data = await response.json();
-        setCategories(data);
-      }
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-    }
-  };
 
   const handleCreateRule = () => {
     setEditingRule(null);
     setFormData({
       name: '',
-      categoryId: '',
       priority: 1,
       isActive: true,
     });
@@ -77,12 +48,13 @@ export default function RulesPage() {
       logic: 'AND',
       conditions: [],
     } as ConditionGroup);
+    setActions([]);
     setShowBuilder(true);
   };
 
   const handleEditRule = async (rule: Rule) => {
     try {
-      // Fetch full rule details including conditions
+      // Fetch full rule details including conditions and actions
       const response = await fetch(`/api/rules?id=${rule.id}`);
       if (!response.ok) throw new Error('Failed to fetch rule details');
 
@@ -91,11 +63,11 @@ export default function RulesPage() {
       setEditingRule(rule);
       setFormData({
         name: fullRule.name,
-        categoryId: fullRule.categoryId,
         priority: fullRule.priority,
         isActive: fullRule.isActive,
       });
       setConditions(fullRule.conditions || { logic: 'AND', conditions: [] } as ConditionGroup);
+      setActions(fullRule.actions || []);
       setShowBuilder(true);
     } catch (err) {
       toast.error('Failed to load rule details');
@@ -109,9 +81,25 @@ export default function RulesPage() {
       return;
     }
 
-    if (!formData.categoryId) {
-      toast.error('Please select a category');
+    if (actions.length === 0) {
+      toast.error('Please add at least one action');
       return;
+    }
+
+    // Validate actions
+    for (const action of actions) {
+      if (action.type === 'set_category' && !action.value) {
+        toast.error('Please select a category for all set_category actions');
+        return;
+      }
+      if (action.type === 'set_merchant' && !action.value) {
+        toast.error('Please select a merchant for all set_merchant actions');
+        return;
+      }
+      if (action.type.includes('description') && !action.pattern) {
+        toast.error('Please enter a pattern for all description actions');
+        return;
+      }
     }
 
     try {
@@ -122,17 +110,17 @@ export default function RulesPage() {
         ? {
             id: editingRule.id,
             name: formData.name,
-            categoryId: formData.categoryId,
             priority: formData.priority,
             isActive: formData.isActive,
             conditions,
+            actions,
           }
         : {
             name: formData.name,
-            categoryId: formData.categoryId,
             priority: formData.priority,
             isActive: formData.isActive,
             conditions,
+            actions,
           };
 
       const response = await fetch('/api/rules', {
@@ -207,26 +195,6 @@ export default function RulesPage() {
               />
             </div>
 
-            {/* Category */}
-            <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Category</Label>
-              <Select
-                value={formData.categoryId}
-                onValueChange={(value) => setFormData({ ...formData, categoryId: value })}
-              >
-                <SelectTrigger className="bg-elevated border-border text-foreground">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Priority */}
             <div>
               <Label className="text-muted-foreground text-sm mb-2 block">
@@ -242,19 +210,13 @@ export default function RulesPage() {
             </div>
           </div>
 
-          {/* Conditions */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Conditions</h3>
-              <p className="text-sm text-muted-foreground">
-                Define when this rule should be applied
-              </p>
-            </div>
-            <RuleBuilder
-              initialConditions={conditions}
-              onConditionsChange={setConditions}
-            />
-          </div>
+          {/* Conditions & Actions */}
+          <RuleBuilder
+            initialConditions={conditions}
+            onConditionsChange={setConditions}
+            initialActions={actions}
+            onActionsChange={setActions}
+          />
 
           {/* Actions */}
           <div className="flex gap-3 pt-4 border-t border-border">

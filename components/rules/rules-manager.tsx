@@ -3,15 +3,17 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus, Zap } from 'lucide-react';
+import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus, Zap, Tag, Store } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import type { RuleAction } from '@/lib/rules/types';
 
 interface Rule {
   id: string;
   name: string;
-  categoryId: string;
+  categoryId?: string;
   categoryName?: string;
+  actions?: RuleAction[];
   priority: number;
   isActive: boolean;
   matchCount: number;
@@ -25,6 +27,24 @@ interface RulesManagerProps {
   onDeleteRule?: (ruleId: string) => void;
   onToggleRule?: (ruleId: string, isActive: boolean) => void;
   onChangePriority?: (ruleId: string, newPriority: number) => void;
+}
+
+// Helper function to get action label
+function getActionLabel(action: RuleAction, categoryName?: string, merchantName?: string): string {
+  switch (action.type) {
+    case 'set_category':
+      return `Category: ${categoryName || 'Unknown'}`;
+    case 'set_merchant':
+      return `Merchant: ${merchantName || 'Unknown'}`;
+    case 'set_description':
+      return `Set: "${action.pattern?.substring(0, 30)}${(action.pattern?.length || 0) > 30 ? '...' : ''}"`;
+    case 'prepend_description':
+      return `Prepend: "${action.pattern}"`;
+    case 'append_description':
+      return `Append: "${action.pattern}"`;
+    default:
+      return action.type.replace(/_/g, ' ');
+  }
 }
 
 function RuleCard({
@@ -97,10 +117,38 @@ function RuleCard({
             <p className="text-sm text-muted-foreground mb-2">{rule.description}</p>
           )}
 
+          {/* Action Preview */}
+          <div className="flex items-center gap-2 flex-wrap mb-2">
+            {rule.actions && rule.actions.length > 0 ? (
+              <>
+                {/* Action Count Badge */}
+                <Badge className="bg-[var(--color-primary)]/20 text-[var(--color-primary)] border-[var(--color-primary)]/40">
+                  <Zap className="w-3 h-3 mr-1" />
+                  {rule.actions.length} action{rule.actions.length !== 1 ? 's' : ''}
+                </Badge>
+
+                {/* First Action Preview */}
+                <Badge variant="secondary" className="bg-accent/20 text-accent-foreground border-accent/40">
+                  {rule.actions[0].type === 'set_category' && <Tag className="w-3 h-3 mr-1" />}
+                  {rule.actions[0].type === 'set_merchant' && <Store className="w-3 h-3 mr-1" />}
+                  {getActionLabel(rule.actions[0], rule.categoryName)}
+                </Badge>
+
+                {/* "+X more" Badge */}
+                {rule.actions.length > 1 && (
+                  <Badge variant="outline" className="bg-elevated text-muted-foreground border-border">
+                    +{rule.actions.length - 1} more
+                  </Badge>
+                )}
+              </>
+            ) : (
+              <Badge variant="outline" className="bg-muted/20 text-muted-foreground border-border">
+                No actions
+              </Badge>
+            )}
+          </div>
+
           <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-            <div>
-              <span className="text-muted-foreground font-medium">Category:</span> {rule.categoryName || 'Unknown'}
-            </div>
             <div>
               <span className="text-muted-foreground font-medium">Matched:</span> {rule.matchCount} times
             </div>
@@ -410,7 +458,8 @@ export function RulesManager({
           <p className="font-semibold text-foreground mb-2">How Rules Work:</p>
           <ul className="list-disc list-inside space-y-1">
             <li>Rules are applied in order by priority (lower number = higher priority)</li>
-            <li>The first matching rule's category is applied automatically</li>
+            <li>The first matching rule's actions are applied automatically</li>
+            <li>Actions can set category, modify description, or set merchant</li>
             <li>Rules only apply to transactions without a manually selected category</li>
             <li>Toggle rules on/off without deleting them</li>
             <li>Match counts help you identify your most effective rules</li>

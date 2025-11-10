@@ -9,7 +9,7 @@ import type { RuleAction } from '@/lib/rules/types';
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/rules - List all rules for the user
+ * GET /api/rules - List all rules for the user or get a single rule by ID
  */
 export async function GET(request: Request) {
   try {
@@ -23,6 +23,64 @@ export async function GET(request: Request) {
     }
 
     const url = new URL(request.url);
+    const ruleId = url.searchParams.get('id');
+
+    // Get single rule by ID
+    if (ruleId) {
+      const rule = await db
+        .select()
+        .from(categorizationRules)
+        .where(
+          and(
+            eq(categorizationRules.id, ruleId),
+            eq(categorizationRules.userId, userId)
+          )
+        )
+        .limit(1);
+
+      if (rule.length === 0) {
+        return Response.json(
+          { error: 'Rule not found' },
+          { status: 404 }
+        );
+      }
+
+      // Parse actions from JSON string to array
+      const ruleData = rule[0];
+      try {
+        let actions: RuleAction[] = [];
+
+        if (ruleData.actions) {
+          actions = typeof ruleData.actions === 'string'
+            ? JSON.parse(ruleData.actions)
+            : ruleData.actions;
+        } else if (ruleData.categoryId) {
+          // Backward compatibility: create action from categoryId if no actions exist
+          actions = [{
+            type: 'set_category',
+            value: ruleData.categoryId,
+          }];
+        }
+
+        const parsedRule = {
+          ...ruleData,
+          conditions: typeof ruleData.conditions === 'string'
+            ? JSON.parse(ruleData.conditions)
+            : ruleData.conditions,
+          actions,
+        };
+
+        return Response.json(parsedRule);
+      } catch (parseError) {
+        console.error('Error parsing rule data:', parseError);
+        return Response.json(
+          { error: 'Failed to parse rule data' },
+          { status: 500 }
+        );
+      }
+    }
+
+    // List all rules
     const limit = parseInt(url.searchParams.get('limit') || '100');
     const activeOnly = url.searchParams.get('active') === 'true';
 
@@ -47,7 +105,35 @@ export async function GET(request: Request) {
       .orderBy(desc(categorizationRules.priority))
       .limit(limit);
 
-    return Response.json(rules);
+    // Parse actions for all rules
+    try {
+      const parsedRules = rules.map(rule => {
+        let actions: RuleAction[] = [];
+
+        if (rule.actions) {
+          actions = typeof rule.actions === 'string'
+            ? JSON.parse(rule.actions)
+            : rule.actions;
+        } else if (rule.categoryId) {
+          // Backward compatibility: create action from categoryId if no actions exist
+          actions = [{
+            type: 'set_category',
+            value: rule.categoryId,
+          }];
+        }
+
+        return {
+          ...rule,
+          actions,
+        };
+      });
+
+      return Response.json(parsedRules);
+    } catch (parseError) {
+      console.error('Error parsing rules data:', parseError);
+      // Return rules without parsing if there's an error
+      return Response.json(rules);
+    }
   } catch (error) {
     console.error('Rules fetch error:', error);
     return Response.json(
