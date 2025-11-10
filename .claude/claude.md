@@ -396,7 +396,25 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-### Latest: Collapsible Debt Cards & Page Reorganization (2025-11-09) ✅
+### Latest: Payment Frequency Options (2025-11-09) ✅
+- **Payment Frequency Expansion**: Complete implementation of weekly and quarterly payment options
+  - **Database Schema**: Updated paymentFrequency enum to support all four frequencies ('weekly', 'biweekly', 'monthly', 'quarterly')
+  - **Type System**: Updated PaymentFrequency type throughout codebase
+  - **Interest Calculation Updates** (lib/debts/payoff-calculator.ts):
+    - Weekly: 7-day periods for revolving credit, annual rate ÷ 52 for installment loans
+    - Quarterly: 91.25-day periods for revolving credit, annual rate ÷ 4 for installment loans
+    - Maintains existing monthly and bi-weekly calculations
+    - Accurate for both revolving credit and installment loans
+  - **UI Components Updated**:
+    - Debt Payoff Strategy: 2x2 responsive grid, color-coded buttons, educational helper text
+    - What-If Calculator: Quick templates for weekly and quarterly scenarios
+    - Scenario Builder: Full frequency selection per scenario
+  - **Color Coding**: Weekly (green/success), Bi-weekly (pink/primary), Monthly (accent), Quarterly (amber/warning)
+  - **API Updates**: Settings API validation accepts all four frequencies
+  - **User Education**: Helper text explains payments/year and payoff speed for each frequency
+  - **Performance**: Build verified successful, no degradation with weekly schedules
+
+### Collapsible Debt Cards & Page Reorganization (2025-11-09) ✅
 - **Collapsible Debt Cards**: Complete implementation with localStorage persistence
   - **DebtPayoffTracker Enhancement**: Clickable headers to expand/collapse entire card
   - **PaymentHistoryList Component**: Displays all payments with principal/interest breakdown, large payment highlighting

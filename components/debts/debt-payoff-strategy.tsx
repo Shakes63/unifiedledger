@@ -121,32 +121,61 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
         {/* Payment Frequency Toggle */}
         <div className="mb-3">
           <Label className="text-foreground text-sm mb-2 block">Payment Frequency</Label>
-          <div className="flex items-center gap-2 bg-card rounded-lg p-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-card rounded-lg p-1">
+            <button
+              onClick={() => setPaymentFrequency('weekly')}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                paymentFrequency === 'weekly'
+                  ? 'bg-[var(--color-success)] text-white'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
+              }`}
+            >
+              Weekly
+            </button>
+            <button
+              onClick={() => setPaymentFrequency('biweekly')}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                paymentFrequency === 'biweekly'
+                  ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
+              }`}
+            >
+              Bi-Weekly
+            </button>
             <button
               onClick={() => setPaymentFrequency('monthly')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 paymentFrequency === 'monthly'
-                  ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
-                  : 'text-muted-foreground hover:text-foreground'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
               }`}
             >
               Monthly
             </button>
             <button
-              onClick={() => setPaymentFrequency('biweekly')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                paymentFrequency === 'biweekly'
-                  ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
-                  : 'text-muted-foreground hover:text-foreground'
+              onClick={() => setPaymentFrequency('quarterly')}
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                paymentFrequency === 'quarterly'
+                  ? 'bg-[var(--color-warning)] text-white'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
               }`}
             >
-              Bi-Weekly
+              Quarterly
             </button>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {paymentFrequency === 'biweekly'
-              ? '26 payments/year (1 extra payment annually)'
-              : '12 payments per year'}
+            {paymentFrequency === 'weekly' && (
+              <>52 payments/year - Fastest payoff, ideal for weekly paychecks</>
+            )}
+            {paymentFrequency === 'biweekly' && (
+              <>26 payments/year - 1 extra payment annually accelerates payoff</>
+            )}
+            {paymentFrequency === 'monthly' && (
+              <>12 payments/year - Standard payment schedule</>
+            )}
+            {paymentFrequency === 'quarterly' && (
+              <>4 payments/year - For irregular income, slower payoff</>
+            )}
           </p>
         </div>
 

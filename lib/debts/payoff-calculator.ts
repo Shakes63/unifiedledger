@@ -1,7 +1,7 @@
 import Decimal from 'decimal.js';
 
 export type PayoffMethod = 'snowball' | 'avalanche';
-export type PaymentFrequency = 'monthly' | 'biweekly';
+export type PaymentFrequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
 
 export interface DebtInput {
   id: string;
@@ -128,7 +128,18 @@ export interface ScenarioComparisonResult {
  * Get number of payment periods per year based on frequency
  */
 function getPaymentPeriodsPerYear(frequency: PaymentFrequency): number {
-  return frequency === 'biweekly' ? 26 : 12;
+  switch (frequency) {
+    case 'weekly':
+      return 52;
+    case 'biweekly':
+      return 26;
+    case 'monthly':
+      return 12;
+    case 'quarterly':
+      return 4;
+    default:
+      return 12;
+  }
 }
 
 /**
@@ -146,17 +157,43 @@ function calculateInterestForPeriod(
 
   const rate = new Decimal(annualRate).dividedBy(100);
 
+  // Handle different payment frequencies
+  if (paymentFrequency === 'weekly') {
+    // Weekly payments: interest for 7-day period
+    if (loanType === 'installment') {
+      // For installment loans: Annual rate ÷ 52 periods
+      const weeklyRate = rate.dividedBy(52);
+      return balance.times(weeklyRate);
+    } else {
+      // For revolving credit: 7 days of interest
+      const dailyRate = rate.dividedBy(365);
+      return balance.times(dailyRate).times(7);
+    }
+  }
+
   if (paymentFrequency === 'biweekly') {
     // Bi-weekly payments: interest for 14-day period
     if (loanType === 'installment') {
-      // For installment loans: use bi-weekly rate
-      // Annual rate ÷ 26 periods
+      // For installment loans: Annual rate ÷ 26 periods
       const biweeklyRate = rate.dividedBy(26);
       return balance.times(biweeklyRate);
     } else {
       // For revolving credit: 14 days of interest
       const dailyRate = rate.dividedBy(365);
       return balance.times(dailyRate).times(14);
+    }
+  }
+
+  if (paymentFrequency === 'quarterly') {
+    // Quarterly payments: interest for ~91.25 days (365/4)
+    if (loanType === 'installment') {
+      // For installment loans: Annual rate ÷ 4 periods
+      const quarterlyRate = rate.dividedBy(4);
+      return balance.times(quarterlyRate);
+    } else {
+      // For revolving credit: ~91.25 days of interest
+      const dailyRate = rate.dividedBy(365);
+      return balance.times(dailyRate).times(91.25);
     }
   }
 

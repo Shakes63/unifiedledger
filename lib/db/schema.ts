@@ -1356,7 +1356,7 @@ export const debtSettings = sqliteTable(
       enum: ['snowball', 'avalanche'],
     }).default('avalanche'),
     paymentFrequency: text('payment_frequency', {
-      enum: ['monthly', 'biweekly'],
+      enum: ['weekly', 'biweekly', 'monthly', 'quarterly'],
     }).default('monthly'),
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),

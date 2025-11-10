@@ -126,20 +126,20 @@ export function ScenarioBuilder({
       {/* Payment Frequency */}
       <div className="mb-4">
         <Label className="text-foreground mb-2 block">Payment Frequency</Label>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => handleFrequencyChange('monthly')}
-            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              (scenario.paymentFrequency || 'monthly') === 'monthly'
-                ? 'bg-[var(--color-transfer)] text-primary-foreground'
+            onClick={() => handleFrequencyChange('weekly')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              scenario.paymentFrequency === 'weekly'
+                ? 'bg-[var(--color-success)] text-white'
                 : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
-            Monthly
+            Weekly
           </button>
           <button
             onClick={() => handleFrequencyChange('biweekly')}
-            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
               scenario.paymentFrequency === 'biweekly'
                 ? 'bg-[var(--color-primary)] text-white'
                 : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
@@ -147,11 +147,32 @@ export function ScenarioBuilder({
           >
             Bi-Weekly
           </button>
+          <button
+            onClick={() => handleFrequencyChange('monthly')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              (scenario.paymentFrequency || 'monthly') === 'monthly'
+                ? 'bg-accent text-accent-foreground'
+                : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => handleFrequencyChange('quarterly')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              scenario.paymentFrequency === 'quarterly'
+                ? 'bg-[var(--color-warning)] text-white'
+                : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
+            }`}
+          >
+            Quarterly
+          </button>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          {scenario.paymentFrequency === 'biweekly'
-            ? '26 payments/year (1 extra annually)'
-            : '12 payments per year'}
+          {scenario.paymentFrequency === 'weekly' && '52 payments/year - Fastest payoff'}
+          {scenario.paymentFrequency === 'biweekly' && '26 payments/year - 1 extra annually'}
+          {(scenario.paymentFrequency === 'monthly' || !scenario.paymentFrequency) && '12 payments/year - Standard'}
+          {scenario.paymentFrequency === 'quarterly' && '4 payments/year - Slower payoff'}
         </p>
       </div>
 

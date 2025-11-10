@@ -11,7 +11,7 @@ import type { ScenarioComparisonResult } from '@/lib/debts/payoff-calculator';
 interface WhatIfCalculatorProps {
   currentExtraPayment: number;
   currentMethod: 'snowball' | 'avalanche';
-  currentFrequency?: 'monthly' | 'biweekly';
+  currentFrequency?: 'weekly' | 'biweekly' | 'monthly' | 'quarterly';
 }
 
 export function WhatIfCalculator({
@@ -127,11 +127,25 @@ export function WhatIfCalculator({
           extraMonthlyPayment: currentExtraPayment + 200,
         });
         break;
+      case 'weekly':
+        addScenario({
+          name: 'Weekly Payments',
+          extraMonthlyPayment: currentExtraPayment,
+          paymentFrequency: 'weekly',
+        });
+        break;
       case 'biweekly':
         addScenario({
           name: 'Switch to Bi-Weekly',
           extraMonthlyPayment: currentExtraPayment,
           paymentFrequency: 'biweekly',
+        });
+        break;
+      case 'quarterly':
+        addScenario({
+          name: 'Quarterly Payments',
+          extraMonthlyPayment: currentExtraPayment,
+          paymentFrequency: 'quarterly',
         });
         break;
       case 'tax-refund':
@@ -225,14 +239,34 @@ export function WhatIfCalculator({
           >
             +$200/month
           </Button>
+          {currentFrequency !== 'weekly' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => addQuickScenario('weekly')}
+              className="border-[var(--color-success)] text-[var(--color-success)] hover:bg-[var(--color-success)]/20"
+            >
+              Weekly
+            </Button>
+          )}
           {currentFrequency !== 'biweekly' && (
             <Button
               variant="outline"
               size="sm"
               onClick={() => addQuickScenario('biweekly')}
-              className="border-[var(--color-income)] text-[var(--color-income)] hover:text-primary-foreground hover:bg-[var(--color-income)]/20"
+              className="border-[var(--color-income)] text-[var(--color-income)] hover:bg-[var(--color-income)]/20"
             >
               Bi-Weekly
+            </Button>
+          )}
+          {currentFrequency !== 'quarterly' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => addQuickScenario('quarterly')}
+              className="border-[var(--color-warning)] text-[var(--color-warning)] hover:bg-[var(--color-warning)]/20"
+            >
+              Quarterly
             </Button>
           )}
           <Button
