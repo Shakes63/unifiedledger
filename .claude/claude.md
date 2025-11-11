@@ -491,7 +491,51 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-### Latest: Recent Transactions Component Enhancements (2025-11-10) - COMPLETE ✅
+### Latest: Fix Rule Creation - Make category_id Nullable (2025-11-10) - COMPLETE ✅
+**Status:** Bug fix complete ✅
+**Plan Document:** `docs/fix-rule-creation-nullable-category-plan.md`
+
+**Problem:** Rules without "Set Category" action failed with `NOT NULL constraint failed: categorization_rules.category_id` error.
+
+**Root Cause:**
+- Original schema (migration 0000) defined `category_id` as NOT NULL
+- Migration 0020 added `actions` column but didn't alter `category_id` to be nullable
+- API code tried to insert `null` for rules without set_category action
+
+**Solution:** Created migration 0024 to make `category_id` nullable.
+
+**Completed:**
+- ✅ **Migration 0024** (`drizzle/0024_make_category_id_nullable.sql`):
+  - Recreated `categorization_rules` table with `category_id` nullable (SQLite limitation workaround)
+  - Copied all existing rules data (1 rule preserved)
+  - Dropped old table, renamed new table
+  - Recreated indexes: `idx_categorization_rules_user`, `idx_categorization_rules_priority`
+
+- ✅ **Verification:**
+  - Database schema updated: `category_id TEXT` with `notnull=0`
+  - All data preserved
+  - All indexes recreated
+  - Build successful with zero TypeScript errors
+
+**Impact:**
+- **Before:** Could NOT create rules with only description/merchant/tax actions
+- **After:** Can create rules with any action type combination
+- Multi-action rules system now fully functional
+
+**Example Working Rules:**
+- Rule with only "Prepend Description" action ✅
+- Rule with only "Set Merchant" action ✅
+- Rule with "Set Tax Deduction" + "Append Description" ✅
+- Rule with "Set Sales Tax" action only ✅
+
+**Files Modified:** 1 file
+- Created: `drizzle/0024_make_category_id_nullable.sql` (~75 lines)
+
+**Build Status:** ✅ All 43 pages compiled successfully, zero TypeScript errors
+
+---
+
+### Recent Transactions Component Enhancements (2025-11-10) - COMPLETE ✅
 **Status:** All features complete ✅
 **Plan Document:** `docs/recent-transactions-enhancements-plan.md`
 

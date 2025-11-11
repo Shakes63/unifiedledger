@@ -807,9 +807,73 @@ Enhance the RecentTransactions component with scrollable view and account filter
 
 ---
 
+## Fix: Rule Creation with Nullable category_id (COMPLETE) ✅
+**Status:** Bug fix complete ✅
+**Date:** 2025-11-10
+**Plan Document:** `docs/fix-rule-creation-nullable-category-plan.md`
+
+### Problem
+Rules without "Set Category" action failed with SQL error:
+```
+SqliteError: NOT NULL constraint failed: categorization_rules.category_id
+```
+
+### Root Cause
+- Original schema (migration 0000) defined `category_id` as NOT NULL
+- Migration 0020 added `actions` column for multi-action rules but didn't alter `category_id` to be nullable
+- API code tried to insert `null` for rules without set_category action, causing constraint violation
+
+### Solution
+Created migration 0024 to make `category_id` nullable by recreating the table (SQLite limitation).
+
+### Completed ✅
+
+**Migration 0024:**
+- Created new table with `category_id` nullable
+- Copied all existing rules data
+- Dropped old table
+- Renamed new table
+- Recreated indexes (`idx_categorization_rules_user`, `idx_categorization_rules_priority`)
+
+**Verification:**
+- Database schema updated: `category_id TEXT` (nullable)
+- All existing rules preserved (1 rule verified)
+- All indexes recreated correctly
+- Build successful with zero TypeScript errors
+
+### Impact
+
+**Before Fix:**
+- Could NOT create rules with only description actions
+- Could NOT create rules with only merchant actions
+- Could NOT create rules with only tax marking actions
+- Multi-action system was partially broken
+
+**After Fix:**
+- ✅ Can create rules with any action type combination
+- ✅ Rules without set_category action work correctly
+- ✅ Multi-action rules system fully functional
+- ✅ Backward compatibility maintained for existing rules
+
+**Example Working Rules:**
+1. Rule with only "Prepend Description" action
+2. Rule with only "Set Merchant" action
+3. Rule with "Set Tax Deduction" + "Append Description" actions
+4. Rule with "Set Sales Tax" action only
+
+### Files Modified
+
+- Created: `drizzle/0024_make_category_id_nullable.sql`
+- Database: `sqlite.db` (schema updated)
+
+**Build Status:** ✅ All 43 pages compiled successfully, zero TypeScript errors
+
+---
+
 ### Future Enhancements (Optional)
 
 1. ✅ **COMPLETE:** Save & Add Another button for bulk data entry (Transaction, Account, Bill, Debt forms)
 2. ✅ **COMPLETE:** Dashboard redesign - condensed and focused layout (2025-11-10)
 3. ✅ **COMPLETE:** Recent Transactions - scrollable with 50 transactions (2025-11-10)
 4. ✅ **COMPLETE:** Recent Transactions - filterable by bank account (2025-11-10)
+5. ✅ **COMPLETE:** Fix rule creation NOT NULL constraint error (2025-11-10)
