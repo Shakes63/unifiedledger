@@ -251,6 +251,47 @@ export const darkTurquoiseTheme: Theme = {
 };
 
 /**
+ * Light Turquoise Theme
+ * Bright, professional light theme with turquoise/cyan accents
+ */
+export const lightTurquoiseTheme: Theme = {
+  id: 'light-turquoise',
+  name: 'Light Turquoise',
+  description: 'Bright, professional light theme with turquoise/cyan accents',
+  isAvailable: true,
+  mode: 'light',
+  colors: {
+    // Background colors (OKLCH) - bright with cool tint
+    background: 'oklch(0.985000 0.005000 200.000000)',
+    surface: 'oklch(0.976000 0.008000 200.000000)',
+    elevated: 'oklch(0.950000 0.012000 200.000000)',
+    border: 'oklch(0.780000 0.020000 200.000000)',
+
+    // Semantic colors (OKLCH) - turquoise theme for light mode
+    income: 'oklch(0.550000 0.160000 200.000000)',     // Deep turquoise
+    expense: 'oklch(0.600000 0.180000 40.000000)',     // Coral
+    transfer: 'oklch(0.580000 0.150000 180.000000)',   // Teal
+
+    // UI colors (OKLCH) - turquoise accents
+    primary: 'oklch(0.550000 0.160000 200.000000)',    // Turquoise
+    success: 'oklch(0.520000 0.150000 180.000000)',    // Deep teal
+    warning: 'oklch(0.650000 0.180000 80.000000)',     // Amber
+    error: 'oklch(0.580000 0.200000 25.000000)',       // Deep red
+
+    // Text colors (OKLCH) - dark for light mode
+    textPrimary: 'oklch(0.180000 0.010000 200.000000)',
+    textSecondary: 'oklch(0.420000 0.015000 200.000000)',
+    textMuted: 'oklch(0.600000 0.012000 200.000000)',
+
+    // Foregrounds (OKLCH)
+    primaryForeground: 'oklch(1.000000 0.000000 0.000000)',
+    secondaryForeground: 'oklch(0.180000 0.010000 200.000000)',
+    accentForeground: 'oklch(1.000000 0.000000 0.000000)',
+    destructiveForeground: 'oklch(1.000000 0.000000 0.000000)',
+  },
+};
+
+/**
  * All available themes
  */
 export const themes: Theme[] = [
@@ -258,6 +299,7 @@ export const themes: Theme[] = [
   darkPinkTheme,
   darkBlueTheme,
   darkTurquoiseTheme,
+  lightTurquoiseTheme,
   lightBubblegumTheme,
 ];
 
