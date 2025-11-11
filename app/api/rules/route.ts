@@ -9,6 +9,23 @@ import type { RuleAction } from '@/lib/rules/types';
 export const dynamic = 'force-dynamic';
 
 /**
+ * Migrate old sales tax actions to new format
+ * Old: no config or config without value
+ * New: config: { value: true }
+ */
+function migrateSalesTaxActions(actions: RuleAction[]): RuleAction[] {
+  return actions.map(action => {
+    if (action.type === 'set_sales_tax' && typeof action.config?.value !== 'boolean') {
+      return {
+        ...action,
+        config: { value: true }
+      };
+    }
+    return action;
+  });
+}
+
+/**
  * GET /api/rules - List all rules for the user or get a single rule by ID
  */
 export async function GET(request: Request) {
@@ -61,6 +78,9 @@ export async function GET(request: Request) {
             value: ruleData.categoryId,
           }];
         }
+
+        // Migrate old sales tax actions to new format
+        actions = migrateSalesTaxActions(actions);
 
         const parsedRule = {
           ...ruleData,
@@ -121,6 +141,9 @@ export async function GET(request: Request) {
             value: rule.categoryId,
           }];
         }
+
+        // Migrate old sales tax actions to new format
+        actions = migrateSalesTaxActions(actions);
 
         return {
           ...rule,

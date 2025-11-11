@@ -112,10 +112,10 @@ export interface SplitConfig {
 
 /**
  * Sales tax configuration for set_sales_tax action
- * Simplified to boolean flag - no configuration needed
+ * Simplified to boolean flag with bidirectional support
  */
 export interface SalesTaxConfig {
-  enabled: boolean; // Always true when action exists
+  value: boolean; // true = taxable, false = not taxable
 }
 
 /**

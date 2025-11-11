@@ -13,7 +13,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Plus, X, ChevronDown, AlertCircle, Zap, Tag, Store, FileEdit, FileText, ArrowRightLeft, Settings, Lightbulb, Scissors, DollarSign, Percent, Banknote, Receipt } from 'lucide-react';
+import { Plus, X, ChevronDown, AlertCircle, Zap, Tag, Store, FileEdit, FileText, ArrowRightLeft, Settings, Lightbulb, Scissors, DollarSign, Percent, Banknote, Receipt, CheckCircle2, XCircle } from 'lucide-react';
 import { Condition, ConditionGroup, ComparisonOperator, ConditionField } from '@/lib/rules/condition-evaluator';
 import { RuleAction } from '@/lib/rules/types';
 import { nanoid } from 'nanoid';
@@ -489,8 +489,9 @@ export function RuleBuilder({
                       onValueChange={(type: any) => {
                         const updated: RuleAction = {
                           type,
-                          value: type === 'set_category' || type === 'set_merchant' ? '' : undefined,
+                          value: type === 'set_category' || type === 'set_merchant' || type === 'set_account' ? '' : undefined,
                           pattern: type.includes('description') ? '' : undefined,
+                          config: type === 'set_sales_tax' ? { value: true } : undefined,
                         };
                         updateAction(index, updated);
                       }}
@@ -665,33 +666,93 @@ export function RuleBuilder({
                     )}
 
                     {action.type === 'set_sales_tax' && (
-                      <div className="flex-1 space-y-4">
-                        {/* Info Box */}
-                        <div className="rounded-lg border border-border bg-card p-4">
-                          <div className="flex items-start space-x-2">
-                            <AlertCircle className="h-4 w-4 text-[var(--color-accent)] mt-0.5 flex-shrink-0" />
-                            <div className="text-sm">
-                              <p className="text-foreground font-medium mb-1">Sales Tax Marking</p>
-                              <p className="text-muted-foreground">
-                                Transactions matching this rule will be automatically marked as subject to sales tax. Only applies to income transactions.
-                              </p>
-                            </div>
+                      <div className="flex-1 space-y-3">
+                        {/* Value Selector */}
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">
+                            Mark Transaction As
+                          </label>
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* Taxable Option */}
+                            <button
+                              type="button"
+                              onClick={() => updateActionConfig(index, { value: true })}
+                              className={`
+                                px-4 py-3 rounded-lg border-2 transition-all
+                                ${action.config?.value === true
+                                  ? 'border-[var(--color-success)] bg-[var(--color-success)]/10'
+                                  : 'border-border bg-card hover:bg-elevated'
+                                }
+                              `}
+                            >
+                              <div className="flex items-center justify-center gap-2">
+                                <CheckCircle2 className="h-5 w-5 text-[var(--color-success)]" />
+                                <div className="text-left">
+                                  <div className="font-medium text-foreground">Taxable</div>
+                                  <div className="text-xs text-muted-foreground">Subject to sales tax</div>
+                                </div>
+                              </div>
+                            </button>
+
+                            {/* Not Taxable Option */}
+                            <button
+                              type="button"
+                              onClick={() => updateActionConfig(index, { value: false })}
+                              className={`
+                                px-4 py-3 rounded-lg border-2 transition-all
+                                ${action.config?.value === false
+                                  ? 'border-[var(--color-error)] bg-[var(--color-error)]/10'
+                                  : 'border-border bg-card hover:bg-elevated'
+                                }
+                              `}
+                            >
+                              <div className="flex items-center justify-center gap-2">
+                                <XCircle className="h-5 w-5 text-[var(--color-error)]" />
+                                <div className="text-left">
+                                  <div className="font-medium text-foreground">Not Taxable</div>
+                                  <div className="text-xs text-muted-foreground">Exempt from sales tax</div>
+                                </div>
+                              </div>
+                            </button>
                           </div>
                         </div>
 
-                        {/* Usage Examples */}
-                        <div className="rounded-lg bg-[var(--color-accent)] bg-opacity-10 border border-[var(--color-accent)] p-3">
-                          <div className="flex items-start gap-2">
-                            <Lightbulb className="h-4 w-4 text-[var(--color-accent)] mt-0.5 flex-shrink-0" />
-                            <div className="text-xs text-muted-foreground space-y-1">
-                              <p className="font-medium text-foreground">Common Use Cases:</p>
-                              <ul className="list-disc list-inside space-y-0.5 ml-1">
-                                <li>Mark all product sales as taxable</li>
-                                <li>Track taxable income for quarterly reporting</li>
-                                <li>Separate taxable from non-taxable income</li>
-                              </ul>
-                            </div>
+                        {/* Educational Info */}
+                        <div className="flex items-start gap-2 p-3 bg-card border border-border rounded-lg">
+                          <Lightbulb className="h-5 w-5 text-[var(--color-warning)] flex-shrink-0 mt-0.5" />
+                          <div className="text-sm text-muted-foreground">
+                            <p className="mb-2">
+                              <strong className="text-foreground">How it works:</strong>
+                            </p>
+                            <ul className="list-disc list-inside space-y-1 ml-2">
+                              <li>Select "Taxable" to mark matching income as subject to sales tax</li>
+                              <li>Select "Not Taxable" to explicitly mark income as tax-exempt</li>
+                              <li>Only applies to income transactions (expenses are always excluded)</li>
+                            </ul>
                           </div>
+                        </div>
+
+                        {/* Examples */}
+                        <div className="flex items-start gap-2 p-3 bg-card border border-border rounded-lg">
+                          <Lightbulb className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                          <div className="text-sm text-muted-foreground">
+                            <p className="mb-2">
+                              <strong className="text-foreground">Common use cases:</strong>
+                            </p>
+                            <ul className="list-disc list-inside space-y-1 ml-2">
+                              <li><strong>Taxable:</strong> Product sales, retail transactions, taxable services</li>
+                              <li><strong>Not Taxable:</strong> Nonprofit clients, wholesale, out-of-state services</li>
+                            </ul>
+                          </div>
+                        </div>
+
+                        {/* Warning for Income Only */}
+                        <div className="flex items-start gap-2 p-3 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 rounded-lg">
+                          <AlertCircle className="h-5 w-5 text-[var(--color-warning)] flex-shrink-0 mt-0.5" />
+                          <p className="text-sm text-muted-foreground">
+                            This action only applies to <strong className="text-foreground">income</strong> transactions.
+                            Expense transactions will be skipped automatically.
+                          </p>
                         </div>
                       </div>
                     )}

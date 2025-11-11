@@ -16,8 +16,8 @@ import type {
   ActionExecutionResult,
   PATTERN_VARIABLES,
   SplitConfig,
+  SalesTaxConfig,
 } from './types';
-import { validateSalesTaxConfig } from './sales-tax-action-handler';
 
 /**
  * Parse description pattern with variable substitution
@@ -87,7 +87,10 @@ function validateAction(action: RuleAction): string | null {
       break;
 
     case 'set_sales_tax':
-      // No configuration needed - presence of action marks as sales taxable
+      // Validate config.value is boolean
+      if (typeof action.config?.value !== 'boolean') {
+        return 'Sales tax action requires a boolean value (taxable or not taxable)';
+      }
       break;
 
     case 'convert_to_transfer':
@@ -312,7 +315,7 @@ async function executeSetTaxDeductionAction(
 /**
  * Execute a set_sales_tax action
  * Marks transaction as subject to sales tax (boolean flag)
- * Simplified - no tax category or rate needed
+ * Supports both true (taxable) and false (not taxable)
  */
 async function executeSetSalesTaxAction(
   action: RuleAction,
@@ -326,14 +329,21 @@ async function executeSetSalesTaxAction(
       return null;
     }
 
-    // Set the sales taxable flag
-    mutations.isSalesTaxable = true;
+    // Get the value from config (should be validated already)
+    const value = action.config?.value;
+    if (typeof value !== 'boolean') {
+      console.error('Sales tax action missing boolean value in config');
+      return null;
+    }
+
+    // Set the sales taxable flag to the configured value
+    mutations.isSalesTaxable = value;
 
     return {
       type: 'set_sales_tax',
       field: 'isSalesTaxable',
       originalValue: context.transaction.isSalesTaxable || false,
-      newValue: true,
+      newValue: value,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

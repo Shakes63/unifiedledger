@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus, Zap, Tag, Store, FileText, ArrowRightLeft, Scissors, Banknote, Receipt } from 'lucide-react';
+import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus, Zap, Tag, Store, FileText, ArrowRightLeft, Scissors, Banknote, Receipt, CheckCircle2, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import type { RuleAction } from '@/lib/rules/types';
@@ -45,7 +45,8 @@ function getActionLabel(action: RuleAction, categoryName?: string, merchantName?
     case 'set_tax_deduction':
       return 'Tax Deductible';
     case 'set_sales_tax':
-      return 'Sales Tax';
+      const salesTaxValue = action.config?.value;
+      return salesTaxValue === false ? 'Mark Not Taxable' : 'Mark Taxable';
     case 'convert_to_transfer':
       if (action.config?.targetAccountId && accountName) {
         return `Transfer to ${accountName}`;
@@ -146,7 +147,13 @@ function RuleCard({
                   {rule.actions[0].type === 'set_category' && <Tag className="w-3 h-3 mr-1" />}
                   {rule.actions[0].type === 'set_merchant' && <Store className="w-3 h-3 mr-1" />}
                   {rule.actions[0].type === 'set_tax_deduction' && <FileText className="w-3 h-3 mr-1" />}
-                  {rule.actions[0].type === 'set_sales_tax' && <Receipt className="w-3 h-3 mr-1 text-[var(--color-warning)]" />}
+                  {rule.actions[0].type === 'set_sales_tax' && (
+                    rule.actions[0].config?.value === false ? (
+                      <XCircle className="w-3 h-3 mr-1 text-[var(--color-error)]" />
+                    ) : (
+                      <CheckCircle2 className="w-3 h-3 mr-1 text-[var(--color-success)]" />
+                    )
+                  )}
                   {rule.actions[0].type === 'convert_to_transfer' && <ArrowRightLeft className="w-3 h-3 mr-1" />}
                   {rule.actions[0].type === 'create_split' && <Scissors className="w-3 h-3 mr-1 text-[var(--color-primary)]" />}
                   {rule.actions[0].type === 'set_account' && <Banknote className="w-3 h-3 mr-1 text-[var(--color-primary)]" />}

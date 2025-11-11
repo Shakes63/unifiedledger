@@ -11,14 +11,14 @@ import { SalesTaxConfig } from './types';
 
 /**
  * Validate sales tax configuration
- * Simplified - no config needed, just returns enabled flag
+ * Ensures config has a boolean value
  * @param config - Configuration object to validate (optional)
  * @returns Validated SalesTaxConfig
  */
 export function validateSalesTaxConfig(config?: any): SalesTaxConfig {
-  // No configuration needed - presence of action means enabled
+  // Default to taxable (true) if no value specified
   return {
-    enabled: true,
+    value: typeof config?.value === 'boolean' ? config.value : true,
   };
 }
 

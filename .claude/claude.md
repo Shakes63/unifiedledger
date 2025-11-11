@@ -491,7 +491,72 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-### Latest: Sales Tax Dashboard Boolean Update (2025-11-10) - COMPLETE ✅
+### Latest: Sales Tax Bidirectional Rule Action (2025-11-10) - COMPLETE ✅
+**Status:** All features complete ✅
+**Plan Document:** `docs/sales-tax-bidirectional-plan.md`
+
+**Objective:** Enable sales tax rule action to set `isSalesTaxable` to either `true` OR `false`, allowing users to explicitly mark transactions as taxable or not taxable.
+
+**Completed:**
+- ✅ **Type System** (1 file):
+  - Updated `SalesTaxConfig` interface with `value: boolean` property
+  - Replaced `enabled` with `value` in type definitions
+
+- ✅ **Actions Executor** (2 files):
+  - Updated validation to check for boolean value
+  - Updated `executeSetSalesTaxAction` to read and apply config.value
+  - Supports both true (taxable) and false (not taxable)
+  - Removed unused import
+
+- ✅ **Rule Builder UI** (~100 lines):
+  - Added CheckCircle2 and XCircle icons
+  - Implemented two-button toggle for Taxable/Not Taxable selection
+  - Green (success) color for taxable, red (error) color for not taxable
+  - Educational info boxes with common use cases
+  - Warning about income-only application
+  - Default initialization to `value: true` for new actions
+
+- ✅ **Rules Manager Display** (~30 lines):
+  - Updated `getActionLabel` to show "Mark Taxable" or "Mark Not Taxable"
+  - Dynamic icon rendering (CheckCircle2 for true, XCircle for false)
+  - Color-coded badges (green for taxable, red for not taxable)
+
+- ✅ **Rules Page Validation** (~10 lines):
+  - Added validation for boolean value existence
+  - Clear error messages for missing configuration
+
+- ✅ **Backward Compatibility** (~30 lines):
+  - Created `migrateSalesTaxActions` helper function in API
+  - Auto-migrates old rules to `config: { value: true }`
+  - Applied in both single rule fetch and list endpoints
+  - Existing rules continue to work seamlessly
+
+- ✅ **Production Build**: Zero errors, all 43 pages compiled successfully
+
+**Architecture:**
+- `config: { value: true }` - Marks income as subject to sales tax
+- `config: { value: false }` - Explicitly marks income as tax-exempt
+
+**Use Cases:**
+- **Taxable:** Product sales, retail transactions, taxable services
+- **Not Taxable:** Nonprofit clients, wholesale, out-of-state services
+
+**Key Benefits:**
+1. Flexibility: Rules can now mark transactions as both taxable AND not taxable
+2. Explicit Control: Users can create rules for tax-exempt scenarios
+3. Better UX: Clear visual distinction with color-coded buttons
+4. Backward Compatible: Old rules automatically default to taxable (true)
+5. Production Ready: All functionality tested and working
+
+**Files Modified:** 7 files
+- Core: `lib/rules/types.ts`, `lib/rules/actions-executor.ts`, `lib/rules/sales-tax-action-handler.ts`
+- UI: `components/rules/rule-builder.tsx`, `components/rules/rules-manager.tsx`
+- Validation: `app/dashboard/rules/page.tsx`
+- API: `app/api/rules/route.ts`
+
+---
+
+### Sales Tax Dashboard Boolean Update (2025-11-10) - COMPLETE ✅
 **Status:** All features complete including dashboard ✅
 **Plan Documents:**
 - `docs/sales-tax-boolean-refactor-plan.md` (Original core refactor)
