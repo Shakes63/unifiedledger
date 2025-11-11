@@ -51,7 +51,7 @@ export default function AccountsPage() {
   }, []);
 
   // Create or update account
-  const handleSubmit = async (formData: any) => {
+  const handleSubmit = async (formData: any, saveMode: 'save' | 'saveAndAdd' = 'save') => {
     try {
       setIsSubmitting(true);
 
@@ -66,16 +66,25 @@ export default function AccountsPage() {
 
       if (response.ok || response.status === 201) {
         const result = await response.json();
-        toast.success(selectedAccount ? 'Account updated successfully' : 'Account created successfully');
+
+        // Show appropriate toast message
+        if (saveMode === 'saveAndAdd') {
+          toast.success(`Account "${formData.name}" saved successfully!`);
+        } else {
+          toast.success(selectedAccount ? 'Account updated successfully' : 'Account created successfully');
+        }
 
         // Refresh accounts list
         const fetchResponse = await fetch('/api/accounts');
         if (fetchResponse.ok) {
           const data = await fetchResponse.json();
           setAccounts(data);
-          // Close dialog and reset
-          setIsDialogOpen(false);
-          setSelectedAccount(null);
+
+          // Only close dialog for regular save, keep open for save & add another
+          if (saveMode === 'save') {
+            setIsDialogOpen(false);
+            setSelectedAccount(null);
+          }
         } else {
           toast.error(`Account ${selectedAccount ? 'updated' : 'created'} but failed to refresh list`);
         }

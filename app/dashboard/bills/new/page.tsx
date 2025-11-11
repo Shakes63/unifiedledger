@@ -12,7 +12,7 @@ export default function NewBillPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: any, saveMode: 'save' | 'saveAndAdd' = 'save') => {
     try {
       setIsLoading(true);
 
@@ -30,8 +30,15 @@ export default function NewBillPage() {
       }
 
       const result = await response.json();
-      toast.success('Bill created successfully');
-      router.push('/dashboard/bills');
+
+      // Show appropriate toast message
+      if (saveMode === 'saveAndAdd') {
+        toast.success(`Bill "${data.name}" saved successfully!`);
+        // Stay on the page for adding another bill
+      } else {
+        toast.success('Bill created successfully');
+        router.push('/dashboard/bills');
+      }
     } catch (error) {
       console.error('Error creating bill:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create bill');

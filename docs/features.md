@@ -635,8 +635,33 @@ Enable sales tax rule action to set `isSalesTaxable` to either `true` OR `false`
 
 ---
 
+## "Save & Add Another" Feature (COMPLETE) ✅
+**Status:** All 4 forms complete ✅
+**Date:** 2025-11-10
+**Plan Document:** `docs/save-and-add-another-plan.md`
+
+### Completed ✅
+
+**All Four Forms Enhanced:**
+1. ✅ Transaction Form - Account & type preserved
+2. ✅ Account Form - Account type preserved
+3. ✅ Bill Form - Frequency preserved
+4. ✅ Debt Form - Debt type & loan type preserved
+
+**Key Features:**
+- Two-button layout (Save and Save & Add Another)
+- Intelligent field preservation for rapid bulk entry
+- Success toasts show item names
+- Focus management for keyboard workflows
+- Theme-integrated button styling
+- Only shown in create mode (not edit mode)
+
+**Files Modified:** 11 files (~310 lines)
+**Build Status:** ✅ All builds successful, zero TypeScript errors
+
+---
+
 ### Future Enhancements (Optional)
 
-1. make a button on the new transaction form and the new account form
-  that will create the item and then reset the form so the user can enter
-  multiple transactions or create multiple accounts in a row. and do the same for bills and debts.
+1. ✅ **COMPLETE:** Save & Add Another button for bulk data entry (Transaction, Account, Bill, Debt forms)
+2. rearrange and condense main dashboard. The dashboard should have a quick overview but it should have all of that important information in one bar but the main thing that the dashboard should focus on is tracking the bills that are due this month and entering transactions as well as seeing some of the recent transactions. It does not need so much space being taken up by the rest of the cards.

@@ -106,6 +106,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [billsLoading, setBillsLoading] = useState(false);
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
   const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
+  const [saveMode, setSaveMode] = useState<'save' | 'saveAndAdd' | null>(null);
   const isEditMode = !!transactionId;
 
   // Helper function to get today's date in YYYY-MM-DD format
@@ -623,34 +624,73 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           onEditSuccess?.() || router.push(`/dashboard/transactions/${txId}`);
         }, 1500);
       } else {
-        // For create mode, reset form and redirect to dashboard
-        setFormData({
-          accountId: formData.accountId,
-          categoryId: '',
-          merchantId: '',
-          date: new Date().toISOString().split('T')[0],
-          amount: '',
-          description: '',
-          notes: '',
-          type: defaultType,
-          isPending: false,
-          toAccountId: '',
-        });
-        setUseSplits(false);
-        setSplits([]);
+        // For create mode, check save mode
+        if (saveMode === 'saveAndAdd') {
+          // Save & Add Another: Reset form but keep account and type
+          const preservedAccount = formData.accountId;
+          const preservedType = formData.type;
 
-        if (formRef.current) {
-          formRef.current.reset();
+          toast.success(`Transaction "${formData.description}" saved successfully!`);
+
+          // Reset all form fields
+          setFormData({
+            accountId: preservedAccount,
+            categoryId: '',
+            merchantId: '',
+            date: getTodaysDate(),
+            amount: '',
+            description: '',
+            notes: '',
+            type: preservedType,
+            isPending: false,
+            toAccountId: '',
+          });
+
+          // Reset other form state
+          setUseSplits(false);
+          setSplits([]);
+          setSelectedTagIds([]);
+          setCustomFieldValues({});
+          setSalesTaxEnabled(false);
+          setSelectedBillInstanceId('');
+          setSuccess(false);
+          setSaveMode(null);
+
+          // Focus on description field for quick data entry
+          setTimeout(() => {
+            document.getElementById('description')?.focus();
+          }, 100);
+        } else {
+          // Regular Save: Reset form and redirect to dashboard
+          setFormData({
+            accountId: formData.accountId,
+            categoryId: '',
+            merchantId: '',
+            date: new Date().toISOString().split('T')[0],
+            amount: '',
+            description: '',
+            notes: '',
+            type: defaultType,
+            isPending: false,
+            toAccountId: '',
+          });
+          setUseSplits(false);
+          setSplits([]);
+
+          if (formRef.current) {
+            formRef.current.reset();
+          }
+
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 1500);
         }
-
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 1500);
       }
     } catch (err) {
       // Haptic feedback on error
       HapticFeedbackTypes.transactionError();
       setError(err instanceof Error ? err.message : 'An error occurred');
+      setSaveMode(null); // Reset save mode on error
     } finally {
       setLoading(false);
     }
@@ -1226,26 +1266,41 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       </div>
 
       {/* Submit Buttons - Mobile optimized with 44px minimum height */}
-      <div className="flex gap-2 pt-4 flex-col md:flex-row md:pb-0 pb-4">
-        <Button
-          type="submit"
-          disabled={loading}
-          className="flex-1 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium h-12 md:h-10 text-base md:text-sm"
-        >
-          {isEditMode
-            ? loading
-              ? 'Updating...'
-              : 'Update Transaction'
-            : loading
-            ? 'Creating...'
-            : 'Create Transaction'}
-        </Button>
+      <div className="space-y-2 pt-4 md:pb-0 pb-4">
+        {/* Primary action buttons */}
+        <div className="flex gap-2 flex-col md:flex-row">
+          <Button
+            type="submit"
+            onClick={() => setSaveMode('save')}
+            disabled={loading}
+            className="flex-1 bg-[var(--color-primary)] text-white hover:opacity-90 font-medium h-12 md:h-10 text-base md:text-sm"
+          >
+            {isEditMode
+              ? loading && saveMode === 'save'
+                ? 'Updating...'
+                : 'Update Transaction'
+              : loading && saveMode === 'save'
+              ? 'Saving...'
+              : 'Save'}
+          </Button>
+          {!isEditMode && (
+            <Button
+              type="submit"
+              onClick={() => setSaveMode('saveAndAdd')}
+              disabled={loading}
+              className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 font-medium h-12 md:h-10 text-base md:text-sm"
+            >
+              {loading && saveMode === 'saveAndAdd' ? 'Saving...' : 'Save & Add Another'}
+            </Button>
+          )}
+        </div>
+        {/* Cancel button */}
         <Button
           type="button"
           variant="outline"
           onClick={() => router.back()}
           disabled={loading}
-          className="bg-elevated text-foreground border-border hover:bg-elevated/80 h-12 md:h-10 text-base md:text-sm md:px-6 px-4"
+          className="w-full bg-elevated text-foreground border-border hover:bg-elevated/80 h-12 md:h-10 text-base md:text-sm"
         >
           Cancel
         </Button>

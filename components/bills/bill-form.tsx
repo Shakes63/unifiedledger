@@ -17,7 +17,7 @@ import { AlertCircle, Plus, X } from 'lucide-react';
 
 interface BillFormProps {
   bill?: any;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: any, saveMode?: 'save' | 'saveAndAdd') => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -28,6 +28,7 @@ export function BillForm({
   onCancel,
   isLoading = false,
 }: BillFormProps) {
+  const [saveMode, setSaveMode] = useState<'save' | 'saveAndAdd' | null>(null);
   const [formData, setFormData] = useState({
     name: bill?.name || '',
     expectedAmount: bill?.expectedAmount || '',
@@ -185,17 +186,20 @@ export function BillForm({
 
     if (!formData.name.trim()) {
       toast.error('Bill name is required');
+      setSaveMode(null);
       return;
     }
 
     if (!formData.expectedAmount || parseFloat(String(formData.expectedAmount)) <= 0) {
       toast.error('Expected amount must be greater than 0');
+      setSaveMode(null);
       return;
     }
 
     const dueDate = parseInt(formData.dueDate);
     if (dueDate < 1 || dueDate > 31) {
       toast.error('Due date must be between 1 and 31');
+      setSaveMode(null);
       return;
     }
 
@@ -212,7 +216,35 @@ export function BillForm({
       autoMarkPaid: formData.autoMarkPaid,
       payeePatterns: formData.payeePatterns.length > 0 ? formData.payeePatterns : null,
       notes: formData.notes || null,
-    });
+    }, saveMode || 'save');
+
+    // If save & add another, reset form
+    if (saveMode === 'saveAndAdd') {
+      const preservedFrequency = formData.frequency;
+      setFormData({
+        name: '',
+        expectedAmount: '',
+        dueDate: '1',
+        frequency: preservedFrequency,
+        isVariableAmount: false,
+        amountTolerance: 5.0,
+        categoryId: '',
+        debtId: '',
+        accountId: '',
+        autoMarkPaid: true,
+        payeePatterns: [],
+        notes: '',
+      });
+      setNewPayeePattern('');
+      setIsCreatingCategory(false);
+      setNewCategoryName('');
+      setSaveMode(null);
+
+      // Focus on name field for quick data entry
+      setTimeout(() => {
+        document.getElementById('bill-name')?.focus();
+      }, 100);
+    }
   };
 
   return (
@@ -222,6 +254,7 @@ export function BillForm({
         <div>
           <Label className="text-muted-foreground text-sm mb-2 block">Bill Name*</Label>
           <Input
+            id="bill-name"
             name="name"
             value={formData.name}
             onChange={handleChange}
@@ -507,19 +540,40 @@ export function BillForm({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 pt-4 border-t border-border">
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className="flex-1 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
-        >
-          {isLoading ? (bill ? 'Updating...' : 'Creating...') : bill ? 'Update Bill' : 'Create Bill'}
-        </Button>
+      <div className="space-y-2 pt-4 border-t border-border">
+        {/* Primary action buttons */}
+        <div className="flex gap-2">
+          <Button
+            type="submit"
+            onClick={() => setSaveMode('save')}
+            disabled={isLoading}
+            className="flex-1 bg-[var(--color-primary)] text-white hover:opacity-90 font-medium"
+          >
+            {bill
+              ? isLoading && saveMode === 'save'
+                ? 'Updating...'
+                : 'Update Bill'
+              : isLoading && saveMode === 'save'
+              ? 'Saving...'
+              : 'Save'}
+          </Button>
+          {!bill && (
+            <Button
+              type="submit"
+              onClick={() => setSaveMode('saveAndAdd')}
+              disabled={isLoading}
+              className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 font-medium"
+            >
+              {isLoading && saveMode === 'saveAndAdd' ? 'Saving...' : 'Save & Add Another'}
+            </Button>
+          )}
+        </div>
+        {/* Cancel button */}
         <Button
           type="button"
           onClick={onCancel}
           variant="outline"
-          className="flex-1 bg-elevated border-border text-foreground hover:bg-elevated"
+          className="w-full bg-elevated border-border text-foreground hover:bg-elevated"
         >
           Cancel
         </Button>

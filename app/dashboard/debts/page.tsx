@@ -90,7 +90,7 @@ export default function DebtsPage() {
     }
   };
 
-  const handleCreateDebt = async (data: any) => {
+  const handleCreateDebt = async (data: any, saveMode: 'save' | 'saveAndAdd' = 'save') => {
     try {
       const response = await fetch('/api/debts', {
         method: 'POST',
@@ -100,9 +100,15 @@ export default function DebtsPage() {
 
       if (!response.ok) throw new Error('Failed to create debt');
 
-      toast.success('Debt added successfully!');
-      setIsFormOpen(false);
-      setSelectedDebt(null);
+      // Show appropriate toast message
+      if (saveMode === 'saveAndAdd') {
+        toast.success(`Debt "${data.name}" saved successfully!`);
+        // Keep dialog open for adding another debt
+      } else {
+        toast.success('Debt added successfully!');
+        setIsFormOpen(false);
+        setSelectedDebt(null);
+      }
       loadDebts();
       loadStats();
     } catch (error) {

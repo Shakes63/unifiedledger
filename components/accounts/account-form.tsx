@@ -46,7 +46,7 @@ const ACCOUNT_ICONS = [
 
 interface AccountFormProps {
   account?: any;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: any, saveMode?: 'save' | 'saveAndAdd') => void;
   onCancel?: () => void;
   isLoading?: boolean;
 }
@@ -57,6 +57,7 @@ export function AccountForm({
   onCancel,
   isLoading = false,
 }: AccountFormProps) {
+  const [saveMode, setSaveMode] = useState<'save' | 'saveAndAdd' | null>(null);
   const [formData, setFormData] = useState({
     name: account?.name || '',
     type: account?.type || 'checking',
@@ -112,11 +113,13 @@ export function AccountForm({
 
     if (!formData.name.trim()) {
       toast.error('Account name is required');
+      setSaveMode(null);
       return;
     }
 
     if (!formData.type) {
       toast.error('Account type is required');
+      setSaveMode(null);
       return;
     }
 
@@ -132,7 +135,29 @@ export function AccountForm({
       isBusinessAccount: formData.isBusinessAccount,
     };
 
-    onSubmit(submitData);
+    onSubmit(submitData, saveMode || 'save');
+
+    // If save & add another, reset form
+    if (saveMode === 'saveAndAdd') {
+      const preservedType = formData.type;
+      setFormData({
+        name: '',
+        type: preservedType,
+        bankName: '',
+        accountNumberLast4: '',
+        currentBalance: 0,
+        creditLimit: '',
+        color: '#3b82f6',
+        icon: 'wallet',
+        isBusinessAccount: false,
+      });
+      setSaveMode(null);
+
+      // Focus on name field for quick data entry
+      setTimeout(() => {
+        document.getElementById('account-name')?.focus();
+      }, 100);
+    }
   };
 
   return (
@@ -142,6 +167,7 @@ export function AccountForm({
         <div>
           <Label className="text-muted-foreground text-sm mb-2 block">Account Name</Label>
           <Input
+            id="account-name"
             name="name"
             value={formData.name}
             onChange={handleChange}
@@ -292,20 +318,41 @@ export function AccountForm({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 pt-4 border-t border-border">
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className="flex-1 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
-        >
-          {isLoading ? 'Creating...' : account ? 'Update Account' : 'Create Account'}
-        </Button>
+      <div className="space-y-2 pt-4 border-t border-border">
+        {/* Primary action buttons */}
+        <div className="flex gap-2">
+          <Button
+            type="submit"
+            onClick={() => setSaveMode('save')}
+            disabled={isLoading}
+            className="flex-1 bg-[var(--color-primary)] text-white hover:opacity-90 font-medium"
+          >
+            {account
+              ? isLoading && saveMode === 'save'
+                ? 'Updating...'
+                : 'Update Account'
+              : isLoading && saveMode === 'save'
+              ? 'Saving...'
+              : 'Save'}
+          </Button>
+          {!account && (
+            <Button
+              type="submit"
+              onClick={() => setSaveMode('saveAndAdd')}
+              disabled={isLoading}
+              className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 font-medium"
+            >
+              {isLoading && saveMode === 'saveAndAdd' ? 'Saving...' : 'Save & Add Another'}
+            </Button>
+          )}
+        </div>
+        {/* Cancel button */}
         {onCancel && (
           <Button
             type="button"
             onClick={onCancel}
             variant="outline"
-            className="flex-1 bg-elevated border-border text-foreground hover:bg-elevated"
+            className="w-full bg-elevated border-border text-foreground hover:bg-elevated"
           >
             Cancel
           </Button>

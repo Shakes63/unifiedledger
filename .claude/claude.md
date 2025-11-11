@@ -491,7 +491,86 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-### Latest: Sales Tax Bidirectional Rule Action (2025-11-10) - COMPLETE ✅
+### Latest: "Save & Add Another" Feature (2025-11-10) - COMPLETE ✅
+**Status:** All 4 forms complete ✅
+**Plan Document:** `docs/save-and-add-another-plan.md`
+
+**Objective:** Add "Save & Add Another" functionality to Transaction, Account, Bill, and Debt forms to allow rapid bulk data entry without navigating away from the form after each save.
+
+**Completed:**
+- ✅ **Phase 1: Transaction Form Enhancement**
+  - Added `saveMode` state to track which button was clicked
+  - Implemented two-button layout (Save and Save & Add Another)
+  - Form resets with account and type preserved
+  - Success toast shows transaction description
+  - Focus returns to description field after reset
+  - Files Modified: `components/transactions/transaction-form.tsx` (~80 lines)
+
+- ✅ **Phase 2: Account Form Enhancement**
+  - Added `saveMode` state to AccountForm component
+  - Updated button layout with two save buttons
+  - Form resets with account type preserved
+  - Dialog stays open when using "Save & Add Another"
+  - Toast message shows account name when saved
+  - Focus returns to account name field after reset
+  - Files Modified: `components/accounts/account-form.tsx`, `app/dashboard/accounts/page.tsx` (~100 lines)
+
+- ✅ **Phase 3: Bill Form Enhancement**
+  - Added `saveMode` state to BillForm component
+  - Updated button layout with two save buttons
+  - Form resets with frequency preserved
+  - Page stays open when using "Save & Add Another"
+  - Toast message shows bill name when saved
+  - Focus returns to bill name field after reset
+  - Files Modified: `components/bills/bill-form.tsx`, `app/dashboard/bills/new/page.tsx` (~85 lines)
+
+- ✅ **Phase 4: Debt Form Enhancement**
+  - Added `saveMode` state to DebtForm component
+  - Updated button layout with two save buttons
+  - Form resets with debt type and loan type preserved
+  - Dialog stays open when using "Save & Add Another"
+  - Toast message shows debt name when saved
+  - Focus returns to debt name field after reset
+  - Files Modified: `components/debts/debt-form.tsx`, `app/dashboard/debts/page.tsx` (~95 lines)
+
+- ✅ **Phase 5: Documentation & Polish**
+  - Updated `docs/features.md` to mark feature complete
+  - Updated `.claude/CLAUDE.md` with completion summary
+  - Final production build verification
+
+**Key Features Delivered:**
+1. Two-button layout on all four forms (Save and Save & Add Another)
+2. Consistent button styling using theme CSS variables (pink primary, accent secondary)
+3. Forms reset properly after using "Save & Add Another"
+4. Intelligent defaults preserved:
+   - Transaction: Account, Type
+   - Account: Account Type
+   - Bill: Payment Frequency
+   - Debt: Debt Type, Loan Type
+5. Success toasts show helpful messages with item names
+6. Focus returns to appropriate field after reset (name/description)
+7. Error handling prevents form reset on failures
+8. Loading states work for both buttons
+9. Only shown in create mode (not edit mode)
+10. Works in both themes (Dark Mode + Dark Pink Theme)
+
+**Files Modified:** 11 files (~360 lines total)
+- Components: 4 files
+- Pages: 3 files
+- Documentation: 4 files
+
+**Build Status:** ✅ All builds successful, zero TypeScript errors
+
+**Benefits:**
+- Improved productivity for bulk data entry
+- Consistent UX across all four forms
+- Intelligent context preservation
+- Clear feedback with toast notifications
+- Keyboard-friendly with focus management
+
+---
+
+### Sales Tax Bidirectional Rule Action (2025-11-10) - COMPLETE ✅
 **Status:** All features complete ✅
 **Plan Document:** `docs/sales-tax-bidirectional-plan.md`
 

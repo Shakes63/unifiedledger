@@ -57,12 +57,13 @@ const COMPOUNDING_FREQUENCIES = [
 
 interface DebtFormProps {
   debt?: any;
-  onSubmit: (data: any) => void;
+  onSubmit: (data: any, saveMode?: 'save' | 'saveAndAdd') => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
 
 export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFormProps) {
+  const [saveMode, setSaveMode] = useState<'save' | 'saveAndAdd' | null>(null);
   const [formData, setFormData] = useState({
     name: debt?.name || '',
     description: debt?.description || '',
@@ -133,26 +134,31 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
 
     if (!formData.name.trim()) {
       toast.error('Debt name is required');
+      setSaveMode(null);
       return;
     }
 
     if (!formData.creditorName.trim()) {
       toast.error('Creditor name is required');
+      setSaveMode(null);
       return;
     }
 
     if (!formData.originalAmount || parseFloat(formData.originalAmount) <= 0) {
       toast.error('Original amount must be greater than 0');
+      setSaveMode(null);
       return;
     }
 
     if (formData.remainingBalance === '' || parseFloat(formData.remainingBalance) < 0) {
       toast.error('Remaining balance is required and must be >= 0');
+      setSaveMode(null);
       return;
     }
 
     if (!formData.startDate) {
       toast.error('Start date is required');
+      setSaveMode(null);
       return;
     }
 
@@ -163,11 +169,13 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
 
       if (creditLimit < balance) {
         toast.error('Credit limit must be greater than or equal to remaining balance');
+        setSaveMode(null);
         return;
       }
 
       if (creditLimit <= 0) {
         toast.error('Credit limit must be greater than 0');
+        setSaveMode(null);
         return;
       }
     }
@@ -188,7 +196,43 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       lastStatementBalance: formData.lastStatementBalance ? parseFloat(String(formData.lastStatementBalance)) : undefined,
       // Credit utilization
       creditLimit: formData.creditLimit ? parseFloat(String(formData.creditLimit)) : undefined,
-    });
+    }, saveMode || 'save');
+
+    // If save & add another, reset form
+    if (saveMode === 'saveAndAdd') {
+      const preservedType = formData.type;
+      const preservedLoanType = formData.loanType;
+      setFormData({
+        name: '',
+        description: '',
+        creditorName: '',
+        originalAmount: '',
+        remainingBalance: '',
+        minimumPayment: '',
+        interestRate: 0,
+        interestType: 'none',
+        type: preservedType,
+        color: '#ef4444',
+        startDate: '',
+        targetPayoffDate: '',
+        priority: 0,
+        loanType: preservedLoanType,
+        loanTermMonths: '',
+        originationDate: '',
+        compoundingFrequency: 'monthly',
+        billingCycleDays: 30,
+        lastStatementDate: '',
+        lastStatementBalance: '',
+        notes: '',
+        creditLimit: '',
+      });
+      setSaveMode(null);
+
+      // Focus on name field for quick data entry
+      setTimeout(() => {
+        document.getElementById('debt-name')?.focus();
+      }, 100);
+    }
   };
 
   return (
@@ -205,6 +249,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             Debt Name <span className="text-[var(--color-error)]">*</span>
           </Label>
           <Input
+            id="debt-name"
             name="name"
             value={formData.name}
             onChange={handleChange}
@@ -599,19 +644,40 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-3 pt-4">
-        <Button
-          type="submit"
-          disabled={isLoading}
-          className="flex-1 bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
-        >
-          {isLoading ? 'Saving...' : debt ? 'Update Debt' : 'Create Debt'}
-        </Button>
+      <div className="space-y-2 pt-4">
+        {/* Primary action buttons */}
+        <div className="flex gap-2">
+          <Button
+            type="submit"
+            onClick={() => setSaveMode('save')}
+            disabled={isLoading}
+            className="flex-1 bg-[var(--color-primary)] text-white hover:opacity-90 font-medium"
+          >
+            {debt
+              ? isLoading && saveMode === 'save'
+                ? 'Updating...'
+                : 'Update Debt'
+              : isLoading && saveMode === 'save'
+              ? 'Saving...'
+              : 'Save'}
+          </Button>
+          {!debt && (
+            <Button
+              type="submit"
+              onClick={() => setSaveMode('saveAndAdd')}
+              disabled={isLoading}
+              className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 font-medium"
+            >
+              {isLoading && saveMode === 'saveAndAdd' ? 'Saving...' : 'Save & Add Another'}
+            </Button>
+          )}
+        </div>
+        {/* Cancel button */}
         <Button
           type="button"
           onClick={onCancel}
           variant="outline"
-          className="flex-1 border-border text-muted-foreground hover:text-foreground"
+          className="w-full border-border text-muted-foreground hover:text-foreground"
         >
           Cancel
         </Button>
