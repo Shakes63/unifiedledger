@@ -491,7 +491,126 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-### Latest: "Save & Add Another" Feature (2025-11-10) - COMPLETE ✅
+### Latest: Recent Transactions Component Enhancements (2025-11-10) - COMPLETE ✅
+**Status:** All features complete ✅
+**Plan Document:** `docs/recent-transactions-enhancements-plan.md`
+
+**Objective:** Enhance the RecentTransactions component with scrollable view showing 50 transactions and account filtering.
+
+**Completed:**
+- ✅ **Scrollable View with 50 Transactions**:
+  - Updated API call from `limit=5` to `limit=50`
+  - Added scrollable container with `max-h-[600px]` (shows ~8-10 transactions before scroll)
+  - Smooth scrolling with `scroll-smooth` class
+  - Custom scrollbar styling using theme CSS variables
+  - "View All Transactions" button positioned outside scroll area
+
+- ✅ **Account Filtering**:
+  - Added account selector dropdown with "All Accounts" default option
+  - Individual account options with color dot indicators
+  - Client-side filtering by selected account ID
+  - Intelligent transfer handling (shows in both source and destination accounts)
+  - Empty state when filter returns no results
+  - Filter only displays when user has 2+ accounts
+
+- ✅ **Custom Scrollbar Styling** (`app/globals.css`):
+  - Webkit scrollbar: 8px width, themed track/thumb with hover states
+  - Firefox scrollbar: thin width with themed colors
+  - Uses CSS variables: `--color-muted`, `--color-border`, `--color-foreground`
+
+**Filter Logic:**
+- Regular transactions: Filter by `accountId`
+- Transfer out: Match source (`accountId`) OR destination (`transferId`)
+- Transfer in: Match destination (`accountId`) OR source (`merchantId` for converted transfers)
+
+**Key Benefits:**
+1. 10x more transactions visible (5 → 50)
+2. Smooth scrolling with themed scrollbar
+3. Account-specific transaction views
+4. Transfer-aware filtering (shows in both accounts)
+5. Clean UX (filter hidden with single account)
+
+**Files Modified:** 2 files (~75 lines total)
+- `components/dashboard/recent-transactions.tsx` (~50 lines added/modified)
+- `app/globals.css` (~25 lines added)
+
+**Build Status:** ✅ Production build successful, zero TypeScript errors, all 43 pages compiled
+
+---
+
+### Dashboard Redesign - Condensed & Focused Layout (2025-11-10) - COMPLETE ✅
+**Status:** All components complete ✅
+**Plan Document:** `docs/dashboard-redesign-plan.md`
+
+**Objective:** Redesign the main dashboard to be more focused and less cluttered, with emphasis on bills due this month, transaction entry, and recent transactions.
+
+**Completed:**
+- ✅ **CompactStatsBar Component** (~200 lines):
+  - Single row with 4-5 stat cards (Total Balance, Monthly Spending, Bills Due, Budget Adherence, Debt Progress)
+  - Responsive grid: 2 columns mobile, 3-5 columns desktop
+  - Icons from lucide-react with theme colors
+  - Loading skeletons with smooth animations
+  - Conditional rendering (only shows Budget/Debt stats if user has them)
+  - Independent data fetching per component
+
+- ✅ **EnhancedBillsWidget Component** (~300 lines):
+  - Shows 8-10 bills (increased from 5)
+  - Progress bar: X of Y bills paid with visual percentage
+  - Amount summary cards: Total / Paid / Remaining
+  - Color-coded status badges (Green=paid, Amber=pending, Red=overdue)
+  - Sort toggle: By Date or By Amount
+  - Days until due display (Today, Tomorrow, X days)
+  - Max height with vertical scroll for long lists
+  - Educational empty state with "Add a Bill" CTA
+
+- ✅ **CollapsibleSection Component** (~80 lines):
+  - Generic collapsible container for secondary information
+  - Chevron icon with 180° rotation animation
+  - localStorage persistence (remembers user's expand/collapse preference)
+  - Smooth 300ms CSS transitions
+  - Configurable title, default state, and storage key
+
+- ✅ **Dashboard Page Reorganization** (~150 lines modified):
+  - Removed large "Quick Overview" section with 6 cards
+  - Replaced with CompactStatsBar (single row)
+  - Moved Add Transaction button higher in hierarchy
+  - Replaced BillsWidget with EnhancedBillsWidget
+  - Recent Transactions kept visible (no changes)
+  - Wrapped Budget widgets in "Budget Details" collapsible section (collapsed by default)
+  - Wrapped Debt/Credit widgets in "Debt & Credit" collapsible section (collapsed by default)
+  - Removed ~120 lines of unused state management code
+
+**New Dashboard Layout:**
+```
+1. CompactStatsBar (one row, 4-5 metrics)
+2. Add Transaction Button (prominent, full width)
+3. EnhancedBillsWidget (expanded view, progress tracking)
+4. Recent Transactions (5 transactions)
+5. Collapsible "Budget Details" (BudgetSummaryWidget + BudgetSurplusCard)
+6. Collapsible "Debt & Credit" (CreditUtilizationWidget + DebtCountdownCard)
+```
+
+**Key Benefits:**
+1. Reduced clutter - primary info visible without scrolling
+2. Bills front and center with enhanced tracking
+3. Quick transaction entry prominently placed
+4. Stats bar provides at-a-glance overview
+5. Progressive disclosure for secondary details
+6. Better performance with component-level data fetching
+7. Mobile responsive (grid collapses appropriately)
+8. Full theme compatibility (Dark Mode + Dark Pink Theme)
+
+**Files Modified:** 4 files (~580 new lines, ~120 removed)
+- Created: `components/dashboard/compact-stats-bar.tsx`
+- Created: `components/dashboard/enhanced-bills-widget.tsx`
+- Created: `components/dashboard/collapsible-section.tsx`
+- Modified: `app/dashboard/page.tsx`
+
+**Build Status:** ✅ Production build successful, zero TypeScript errors, all 43 pages compiled
+
+---
+
+### "Save & Add Another" Feature (2025-11-10) - COMPLETE ✅
 **Status:** All 4 forms complete ✅
 **Plan Document:** `docs/save-and-add-another-plan.md`
 

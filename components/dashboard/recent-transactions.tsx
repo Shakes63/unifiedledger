@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy } from 'lucide-react';
@@ -30,6 +31,7 @@ interface Merchant {
 interface Account {
   id: string;
   name: string;
+  color: string;
 }
 
 interface Category {
@@ -44,14 +46,15 @@ export function RecentTransactions() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [repeatingTxId, setRepeatingTxId] = useState<string | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Fetch transactions
-        const txResponse = await fetch('/api/transactions?limit=5');
+        // Fetch transactions (50 for scrollable list)
+        const txResponse = await fetch('/api/transactions?limit=50');
         if (txResponse.ok) {
           const data = await txResponse.json();
           setTransactions(data);
@@ -228,6 +231,25 @@ export function RecentTransactions() {
     }
   };
 
+  // Filter transactions by selected account
+  const filteredTransactions = selectedAccountId === 'all'
+    ? transactions
+    : transactions.filter(tx => {
+        // For regular transactions (income/expense)
+        if (tx.type !== 'transfer_out' && tx.type !== 'transfer_in') {
+          return tx.accountId === selectedAccountId;
+        }
+        // For transfer_out: accountId is source, transferId is destination account
+        if (tx.type === 'transfer_out') {
+          return tx.accountId === selectedAccountId || tx.transferId === selectedAccountId;
+        }
+        // For transfer_in: accountId is destination, merchantId stores source account (for converted transfers)
+        if (tx.type === 'transfer_in') {
+          return tx.accountId === selectedAccountId || tx.merchantId === selectedAccountId;
+        }
+        return false;
+      });
+
   if (loading) {
     return (
       <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
@@ -248,8 +270,41 @@ export function RecentTransactions() {
   }
 
   return (
-    <div className="space-y-2">
-      {transactions.map((transaction) => {
+    <div>
+      {/* Account Filter */}
+      {accounts.length > 1 && (
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-sm text-muted-foreground">Filter:</span>
+          <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+            <SelectTrigger
+              className="w-[220px]"
+              style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Accounts</SelectItem>
+              {accounts.map(account => (
+                <SelectItem key={account.id} value={account.id}>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-2 h-2 rounded-full"
+                      style={{ backgroundColor: account.color || '#3b82f6' }}
+                    />
+                    <span>{account.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* Scrollable Transaction List */}
+      {filteredTransactions.length > 0 ? (
+        <>
+          <div className="space-y-2 max-h-[600px] overflow-y-auto scroll-smooth custom-scrollbar">
+            {filteredTransactions.map((transaction) => {
         const display = getTransactionDisplay(transaction);
         const accountName = getAccountName(transaction.accountId);
         const categoryName = getCategoryName(transaction.categoryId);
@@ -326,12 +381,21 @@ export function RecentTransactions() {
             </Card>
           </Link>
         );
-      })}
-      <Link href="/dashboard/transactions">
-        <Button variant="outline" className="w-full rounded-lg" style={{ borderColor: 'var(--color-border)' }}>
-          View All Transactions
-        </Button>
-      </Link>
+            })}
+          </div>
+
+          {/* View All Button - Outside scroll container */}
+          <Link href="/dashboard/transactions">
+            <Button variant="outline" className="w-full rounded-lg mt-4" style={{ borderColor: 'var(--color-border)' }}>
+              View All Transactions
+            </Button>
+          </Link>
+        </>
+      ) : (
+        <Card className="p-6 border text-center py-8 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+          <p className="text-muted-foreground">No transactions found for this account.</p>
+        </Card>
+      )}
     </div>
   );
 }

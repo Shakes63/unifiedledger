@@ -267,4 +267,30 @@
     max-width: 100%;
     overflow-x: hidden;
   }
+
+  /* Custom scrollbar for transaction lists and other scrollable components */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: var(--color-muted);
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--color-foreground);
+    opacity: 0.8;
+  }
+
+  /* Firefox scrollbar */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) var(--color-muted);
+  }
 }
