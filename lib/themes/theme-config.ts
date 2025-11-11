@@ -210,12 +210,54 @@ export const darkBlueTheme: Theme = {
 };
 
 /**
+ * Dark Turquoise Theme
+ * Vibrant dark theme with turquoise/cyan accents
+ */
+export const darkTurquoiseTheme: Theme = {
+  id: 'dark-turquoise',
+  name: 'Dark Turquoise',
+  description: 'Vibrant dark theme with turquoise/cyan accents',
+  isAvailable: true,
+  mode: 'dark',
+  colors: {
+    // Background colors (OKLCH) - same as dark mode
+    background: 'oklch(0.144788 0.000000 0.000000)',
+    surface: 'oklch(0.217787 0.000000 0.000000)',
+    elevated: 'oklch(0.260325 0.000000 0.000000)',
+    border: 'oklch(0.285017 0.000000 0.000000)',
+
+    // Semantic colors (OKLCH) - turquoise theme
+    income: 'oklch(0.750000 0.150000 200.000000)',     // Bright cyan
+    expense: 'oklch(0.720000 0.180000 40.000000)',     // Coral
+    transfer: 'oklch(0.680000 0.140000 180.000000)',   // Teal
+
+    // UI colors (OKLCH) - turquoise accents
+    primary: 'oklch(0.750000 0.150000 200.000000)',    // Turquoise
+    success: 'oklch(0.780000 0.160000 210.000000)',    // Bright cyan
+    warning: 'oklch(0.768590 0.164659 70.080390)',     // Amber
+    error: 'oklch(0.636834 0.207849 25.331328)',       // Red
+
+    // Text colors (OKLCH) - same as dark mode
+    textPrimary: 'oklch(1.000000 0.000000 0.000000)',
+    textSecondary: 'oklch(0.713660 0.019176 261.324645)',
+    textMuted: 'oklch(0.551019 0.023361 264.363742)',
+
+    // Foregrounds (OKLCH) - same as dark mode
+    primaryForeground: 'oklch(0.000000 0.000000 0.000000)',
+    secondaryForeground: 'oklch(1.000000 0.000000 0.000000)',
+    accentForeground: 'oklch(0.000000 0.000000 0.000000)',
+    destructiveForeground: 'oklch(1.000000 0.000000 0.000000)',
+  },
+};
+
+/**
  * All available themes
  */
 export const themes: Theme[] = [
   darkModeTheme,
   darkPinkTheme,
   darkBlueTheme,
+  darkTurquoiseTheme,
   lightBubblegumTheme,
 ];
 

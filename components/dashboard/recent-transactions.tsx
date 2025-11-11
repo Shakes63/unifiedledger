@@ -349,7 +349,7 @@ export function RecentTransactions() {
                           ? 'var(--color-income)'
                           : transaction.type === 'transfer_out' || transaction.type === 'transfer_in' || transaction.type === 'transfer'
                           ? 'var(--color-transfer)'
-                          : 'var(--color-foreground)'
+                          : 'var(--color-expense)'
                       }}
                     >
                       {transaction.type === 'transfer' || transaction.type === 'transfer_in' || transaction.type === 'transfer_out'

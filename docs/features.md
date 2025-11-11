@@ -870,6 +870,118 @@ Created migration 0024 to make `category_id` nullable by recreating the table (S
 
 ---
 
+## Fix: Recent Transactions Expense Amount Color (COMPLETE) ✅
+**Status:** Bug fix complete ✅
+**Date:** 2025-11-10
+**Plan Document:** `docs/fix-recent-transactions-expense-color-plan.md`
+
+### Problem
+Expense amounts in the RecentTransactions component were displaying in the default foreground color (white) instead of the theme-specific expense color (red/pink).
+
+### Root Cause
+The ternary operator for transaction amount colors had a fallback to `'var(--color-foreground)'` for expense transactions instead of `'var(--color-expense)'`.
+
+### Solution
+Updated the color logic in `components/dashboard/recent-transactions.tsx` (line 352) to use `'var(--color-expense)'` for expense transactions.
+
+### Completed ✅
+
+**Code Change:**
+- Changed `'var(--color-foreground)'` to `'var(--color-expense)'` in amount styling logic
+- Single line fix in `components/dashboard/recent-transactions.tsx`
+
+**Build Verification:**
+- ✅ Production build successful with zero TypeScript errors
+- ✅ All 43 pages compiled successfully
+
+**Visual Results:**
+- **Dark Mode Theme:** Expense amounts now display in red (`oklch(0.710627 0.166148 22.216224)`)
+- **Dark Pink Theme:** Expense amounts now display in pink (`oklch(0.725266 0.175227 349.760748)`)
+- **Dark Blue Theme:** Expense amounts now display in red (`oklch(0.710627 0.166148 22.216224)`)
+- **Light Bubblegum Theme:** Expense amounts now display in hot pink (`oklch(0.820000 0.220000 350.000000)`)
+
+**Key Benefits:**
+1. **Visual Consistency:** All transaction types now use their semantic colors
+2. **Better Readability:** Expense amounts stand out with proper color coding
+3. **Theme Cohesion:** Color scheme is consistent across entire dashboard
+4. **Quick Scanning:** Users can identify transaction types by color at a glance
+
+**Files Modified:** 1 file
+- Modified: `components/dashboard/recent-transactions.tsx` (1 line changed)
+
+**Build Status:** ✅ All builds successful, zero TypeScript errors
+
+---
+
+## Dark Turquoise Theme (COMPLETE) ✅
+**Status:** All features complete ✅
+**Date:** 2025-11-10
+**Plan Document:** `docs/dark-turquoise-theme-plan.md`
+
+### Objective
+Create a professional dark theme featuring turquoise/cyan as the primary accent color, offering users a fresh, ocean-inspired alternative to existing themes.
+
+### Completed ✅
+
+**Color Palette:**
+- **Primary:** Turquoise/Cyan (`oklch(0.750000 0.150000 200.000000)`)
+- **Income:** Bright Cyan (`oklch(0.750000 0.150000 200.000000)`)
+- **Expense:** Coral/Orange (`oklch(0.720000 0.180000 40.000000)`)
+- **Transfer:** Teal/Aqua (`oklch(0.680000 0.140000 180.000000)`)
+- **Success:** Bright Cyan (`oklch(0.780000 0.160000 210.000000)`)
+- **Background:** Neutral dark grays (same as Dark Mode and Dark Blue themes)
+
+**Theme Configuration:**
+- ✅ Added `darkTurquoiseTheme` constant to `lib/themes/theme-config.ts`
+- ✅ Defined all 15 color properties using OKLCH color space
+- ✅ Added to `themes` array export for theme switcher
+- ✅ Theme ID: `dark-turquoise`
+- ✅ Theme name: "Dark Turquoise"
+- ✅ Description: "Vibrant dark theme with turquoise/cyan accents"
+
+**CSS Variables:**
+- ✅ Added complete CSS variable block to `app/globals.css`
+- ✅ All 32 CSS variables mapped (backgrounds, text, semantic colors, UI states)
+- ✅ Consistent with existing theme architecture
+- ✅ Chart colors configured (principal: turquoise, interest: coral)
+
+**Build Verification:**
+- ✅ Production build successful with zero TypeScript errors
+- ✅ All 43 pages compiled successfully
+- ✅ Theme switcher automatically includes new theme
+- ✅ No breaking changes to existing themes
+
+**Visual Characteristics:**
+- **Vibrant Energy:** Bright turquoise creates an energetic, modern feel
+- **Ocean Aesthetic:** Cyan/turquoise/teal palette evokes ocean depths
+- **High Contrast:** Coral expenses pop against turquoise income
+- **Professional:** Maintains dark mode sophistication
+- **Accessible:** All colors meet WCAG contrast requirements
+
+**Key Benefits:**
+1. **Theme Variety:** 5 total themes now available (3 dark, 2 light)
+2. **Distinct Identity:** Clear visual separation from green/pink/blue themes
+3. **Cohesive Design:** Follows established theme architecture
+4. **Instant Switching:** No page reload required, seamless theme changes
+5. **Persistent:** Automatically saved to database and syncs across devices
+
+**Theme Comparison:**
+| Element | Dark Green | Dark Pink | Dark Blue | **Dark Turquoise** |
+|---------|-----------|-----------|-----------|-------------------|
+| Primary | Green | Pink | Blue | **Turquoise** |
+| Income | Green | Turquoise | Green | **Cyan** |
+| Expense | Red | Pink | Red | **Coral** |
+| Transfer | Blue | Purple | Blue | **Teal** |
+| Vibe | Professional | Elegant | Tech | **Ocean/Modern** |
+
+**Files Modified:** 2 files
+- Modified: `lib/themes/theme-config.ts` (~50 lines added)
+- Modified: `app/globals.css` (~30 lines added)
+
+**Build Status:** ✅ All builds successful, zero TypeScript errors
+
+---
+
 ### Future Enhancements (Optional)
 
 1. ✅ **COMPLETE:** Save & Add Another button for bulk data entry (Transaction, Account, Bill, Debt forms)
@@ -877,7 +989,7 @@ Created migration 0024 to make `category_id` nullable by recreating the table (S
 3. ✅ **COMPLETE:** Recent Transactions - scrollable with 50 transactions (2025-11-10)
 4. ✅ **COMPLETE:** Recent Transactions - filterable by bank account (2025-11-10)
 5. ✅ **COMPLETE:** Fix rule creation NOT NULL constraint error (2025-11-10)
-6. Fix the recent transactions expense amount not following theme colors
-7. Make a new Dark mode Turqiose theme 
+6. ✅ **COMPLETE:** Fix recent transactions expense amount not following theme colors (2025-11-10)
+7. ✅ **COMPLETE:** Make a new Dark mode Turquoise theme (2025-11-10) 
 8. Make a new Light mode Turquiose Theme
 9. Make a new light mode blue theme
