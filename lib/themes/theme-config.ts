@@ -292,6 +292,47 @@ export const lightTurquoiseTheme: Theme = {
 };
 
 /**
+ * Light Blue Theme
+ * Classic professional light theme with corporate blue accents
+ */
+export const lightBlueTheme: Theme = {
+  id: 'light-blue',
+  name: 'Light Blue',
+  description: 'Classic light theme with professional blue accents',
+  isAvailable: true,
+  mode: 'light',
+  colors: {
+    // Background colors (OKLCH) - bright with cool blue tint
+    background: 'oklch(0.980000 0.003000 250.000000)',
+    surface: 'oklch(0.970000 0.003000 250.000000)',
+    elevated: 'oklch(0.950000 0.005000 250.000000)',
+    border: 'oklch(0.850000 0.008000 250.000000)',
+
+    // Semantic colors (OKLCH) - traditional financial colors
+    income: 'oklch(0.550000 0.140000 155.000000)',     // Deep green
+    expense: 'oklch(0.550000 0.180000 25.000000)',     // Deep red
+    transfer: 'oklch(0.500000 0.180000 250.000000)',   // Deep blue
+
+    // UI colors (OKLCH) - professional blue accents
+    primary: 'oklch(0.500000 0.180000 250.000000)',    // Deep blue
+    success: 'oklch(0.520000 0.150000 180.000000)',    // Teal
+    warning: 'oklch(0.600000 0.180000 75.000000)',     // Amber
+    error: 'oklch(0.550000 0.200000 25.000000)',       // Deep red
+
+    // Text colors (OKLCH) - dark for light mode
+    textPrimary: 'oklch(0.180000 0.010000 250.000000)',
+    textSecondary: 'oklch(0.420000 0.015000 250.000000)',
+    textMuted: 'oklch(0.500000 0.010000 250.000000)',
+
+    // Foregrounds (OKLCH)
+    primaryForeground: 'oklch(0.980000 0.003000 250.000000)',
+    secondaryForeground: 'oklch(0.180000 0.010000 250.000000)',
+    accentForeground: 'oklch(0.180000 0.010000 250.000000)',
+    destructiveForeground: 'oklch(0.980000 0.003000 250.000000)',
+  },
+};
+
+/**
  * All available themes
  */
 export const themes: Theme[] = [
@@ -301,6 +342,7 @@ export const themes: Theme[] = [
   darkTurquoiseTheme,
   lightTurquoiseTheme,
   lightBubblegumTheme,
+  lightBlueTheme,
 ];
 
 /**
