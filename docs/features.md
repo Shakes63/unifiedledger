@@ -877,3 +877,7 @@ Created migration 0024 to make `category_id` nullable by recreating the table (S
 3. ✅ **COMPLETE:** Recent Transactions - scrollable with 50 transactions (2025-11-10)
 4. ✅ **COMPLETE:** Recent Transactions - filterable by bank account (2025-11-10)
 5. ✅ **COMPLETE:** Fix rule creation NOT NULL constraint error (2025-11-10)
+6. Fix the recent transactions expense amount not following theme colors
+7. Make a new Dark mode Turqiose theme 
+8. Make a new Light mode Turquiose Theme
+9. Make a new light mode blue theme
