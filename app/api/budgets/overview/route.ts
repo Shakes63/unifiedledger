@@ -150,8 +150,10 @@ export async function GET(request: Request) {
           }
         } else {
           // For expenses/savings: original logic
-          if (percentage >= 100) {
+          if (percentage > 100) {
             status = 'exceeded'; // Over budget (bad)
+          } else if (percentage === 100) {
+            status = 'on_track'; // Exactly on budget (right on target)
           } else if (percentage >= 80) {
             status = 'warning'; // Close to limit
           } else {
