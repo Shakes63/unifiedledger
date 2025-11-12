@@ -3,8 +3,7 @@
 ---
 
 ## 🆕 ADD NEW BUGS HERE
-(No new bugs reported)
-
+this error is for the logo in the sidebar: sidebar.tsx:119 Image with src "http://localhost:3000/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
 ---
 
 ## 📊 Current Status
