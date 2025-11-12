@@ -21,7 +21,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, monthlyBudget, dueDate, isTaxDeductible } = body;
+    const { name, monthlyBudget, dueDate, isTaxDeductible, incomeFrequency } = body;
 
     // Verify category belongs to user
     const category = await db
@@ -37,6 +37,17 @@ export async function PUT(
       );
     }
 
+    // Validate income frequency if provided
+    if (incomeFrequency) {
+      const validFrequencies = ['weekly', 'biweekly', 'monthly', 'variable'];
+      if (!validFrequencies.includes(incomeFrequency)) {
+        return Response.json(
+          { error: 'Invalid income frequency. Must be weekly, biweekly, monthly, or variable' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Update the category
     await db.update(budgetCategories)
       .set({
@@ -44,6 +55,7 @@ export async function PUT(
         monthlyBudget: monthlyBudget ?? category[0].monthlyBudget,
         dueDate: dueDate !== undefined ? dueDate : category[0].dueDate,
         isTaxDeductible: isTaxDeductible !== undefined ? isTaxDeductible : category[0].isTaxDeductible,
+        incomeFrequency: incomeFrequency !== undefined ? incomeFrequency : category[0].incomeFrequency,
       })
       .where(eq(budgetCategories.id, id));
 

@@ -141,7 +141,7 @@ export function BudgetSummaryCard({ summary, month }: BudgetSummaryCardProps) {
             </span>
             {incomeVariance > 0 ? (
               <span className="text-xs text-[var(--color-success)]">
-                ✓ Above target by ${Math.abs(incomeVariance).toFixed(2)}
+                ✓ Exceeding expected by ${Math.abs(incomeVariance).toFixed(2)}
               </span>
             ) : incomeVariance < 0 ? (
               <span
@@ -151,10 +151,10 @@ export function BudgetSummaryCard({ summary, month }: BudgetSummaryCardProps) {
                     : 'text-[var(--color-warning)]'
                 }`}
               >
-                Below target by ${Math.abs(incomeVariance).toFixed(2)}
+                Below expected by ${Math.abs(incomeVariance).toFixed(2)}
               </span>
             ) : (
-              <span className="text-xs text-muted-foreground">On target</span>
+              <span className="text-xs text-muted-foreground">Meeting expected</span>
             )}
           </div>
         </div>

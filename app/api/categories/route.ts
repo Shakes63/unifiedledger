@@ -7,11 +7,11 @@ export const dynamic = 'force-dynamic';
 
 // Default categories to create for new users
 const DEFAULT_CATEGORIES = [
-  // Income categories
-  { name: 'Salary', type: 'income' },
-  { name: 'Bonus', type: 'income' },
-  { name: 'Investment', type: 'income' },
-  { name: 'Other Income', type: 'income' },
+  // Income categories (with sensible frequency defaults)
+  { name: 'Salary', type: 'income', incomeFrequency: 'monthly' },
+  { name: 'Bonus', type: 'income', incomeFrequency: 'variable' },
+  { name: 'Investment', type: 'income', incomeFrequency: 'variable' },
+  { name: 'Other Income', type: 'income', incomeFrequency: 'variable' },
 
   // Variable expenses
   { name: 'Groceries', type: 'variable_expense' },
@@ -79,13 +79,24 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, type, monthlyBudget = 0, dueDate, isTaxDeductible = false } = body;
+    const { name, type, monthlyBudget = 0, dueDate, isTaxDeductible = false, incomeFrequency } = body;
 
     if (!name || !type) {
       return Response.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
+    }
+
+    // Validate income frequency if provided
+    if (incomeFrequency) {
+      const validFrequencies = ['weekly', 'biweekly', 'monthly', 'variable'];
+      if (!validFrequencies.includes(incomeFrequency)) {
+        return Response.json(
+          { error: 'Invalid income frequency. Must be weekly, biweekly, monthly, or variable' },
+          { status: 400 }
+        );
+      }
     }
 
     const categoryId = nanoid();
@@ -98,6 +109,7 @@ export async function POST(request: Request) {
       monthlyBudget,
       dueDate: dueDate || null,
       isTaxDeductible,
+      incomeFrequency: type === 'income' && incomeFrequency ? incomeFrequency : 'variable',
       createdAt: new Date().toISOString(),
     });
 
@@ -148,6 +160,7 @@ export async function PUT(request: Request) {
       type: cat.type as any,
       monthlyBudget: 0,
       dueDate: (cat as any).dueDate || null,
+      incomeFrequency: (cat as any).incomeFrequency || 'variable',
       sortOrder: index,
       createdAt: new Date().toISOString(),
     }));

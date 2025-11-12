@@ -42,6 +42,7 @@ export function CategoryForm({
     dueDate: category?.dueDate || '',
     isTaxDeductible: category?.isTaxDeductible || false,
     isActive: category?.isActive !== undefined ? category.isActive : true,
+    incomeFrequency: category?.incomeFrequency || 'variable',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,6 +87,7 @@ export function CategoryForm({
       dueDate: formData.dueDate ? parseInt(formData.dueDate) : null,
       isTaxDeductible: formData.isTaxDeductible,
       isActive: formData.isActive,
+      incomeFrequency: formData.type === 'income' ? formData.incomeFrequency : undefined,
     };
 
     onSubmit(submitData);
@@ -139,6 +141,30 @@ export function CategoryForm({
         />
         <p className="text-xs text-muted-foreground mt-1">Set to 0 for no budget limit</p>
       </div>
+
+      {/* Income Frequency (for income categories) */}
+      {formData.type === 'income' && (
+        <div>
+          <Label className="text-muted-foreground text-sm mb-2 block">Income Frequency</Label>
+          <Select
+            value={formData.incomeFrequency}
+            onValueChange={(value) => handleSelectChange('incomeFrequency', value)}
+          >
+            <SelectTrigger className="bg-elevated border-border text-foreground">
+              <SelectValue placeholder="Select frequency" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="weekly">Weekly (52 times/year)</SelectItem>
+              <SelectItem value="biweekly">Biweekly (26 times/year)</SelectItem>
+              <SelectItem value="monthly">Monthly (12 times/year)</SelectItem>
+              <SelectItem value="variable">Variable (use daily average)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            How often do you receive this income? This helps budget tracking provide accurate projections.
+          </p>
+        </div>
+      )}
 
       {/* Due Date (for bill categories) */}
       {isBillType && (
