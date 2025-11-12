@@ -365,6 +365,9 @@ export function VariableBillTracker() {
       {/* Filter & Controls */}
       <div className="flex flex-wrap items-center gap-2">
         <select
+          id="variable-bills-filter"
+          name="bill_filter"
+          aria-label="Filter variable bills by status"
           value={filter}
           onChange={e => setFilter(e.target.value as FilterType)}
           className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
