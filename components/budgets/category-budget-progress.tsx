@@ -168,20 +168,24 @@ export function CategoryBudgetProgress({
             </span>
             <span
               className={
-                category.type === 'income'
-                  ? category.remaining >= 0
+                category.remaining === 0
+                  ? 'text-[var(--color-success)]' // Exactly on target (green)
+                  : category.type === 'income'
+                  ? category.remaining > 0
                     ? 'text-[var(--color-warning)]' // Income shortfall
                     : 'text-[var(--color-success)]' // Extra income!
-                  : category.remaining >= 0
+                  : category.remaining > 0
                   ? 'text-[var(--color-success)]' // Under budget
                   : 'text-[var(--color-error)]' // Over budget
               }
             >
-              {category.type === 'income'
-                ? category.remaining >= 0
+              {category.remaining === 0
+                ? 'Right on target'
+                : category.type === 'income'
+                ? category.remaining > 0
                   ? `$${category.remaining.toFixed(2)} below target`
                   : `$${Math.abs(category.remaining).toFixed(2)} above target`
-                : category.remaining >= 0
+                : category.remaining > 0
                 ? `$${category.remaining.toFixed(2)} remaining`
                 : `$${Math.abs(category.remaining).toFixed(2)} over`}
             </span>
