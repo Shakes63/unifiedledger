@@ -491,8 +491,8 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-**Quick Status:** All 9 tracked bugs are now fully fixed (100% complete)! 🎉
-**Latest Update:** Dialog Accessibility Completion (2025-11-12)
+**Quick Status:** All 10 tracked bugs are now fully fixed (100% complete)! 🎉
+**Latest Update:** Reports Page Chart Dimensions Fix (2025-11-12)
 **Detailed Bug Tracking:** See `docs/bugs.md`
 **All Plan Files:** See `docs/` folder
 
@@ -502,6 +502,7 @@ pnpm drizzle-kit migrate   # Apply migration
 
 | Date | Session | Status | Plan File |
 |------|---------|--------|-----------|
+| 2025-11-12 | Reports Chart Dimensions (Bug #10) | ✅ COMPLETE | `docs/fix-reports-chart-dimensions-plan.md` |
 | 2025-11-12 | Dialog Accessibility (Bug #6) | ✅ COMPLETE | `docs/dialog-accessibility-completion-plan.md` |
 | 2025-11-11 | Budget Export Fix (Bug #9) | ✅ COMPLETE | `docs/budget-export-fix-plan.md` |
 | 2025-11-11 | Budget Income Display (Bug #7) | ✅ COMPLETE | `docs/budget-income-display-logic-fix-plan.md` |
@@ -512,7 +513,55 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ---
 
-### Latest: Dialog Accessibility Completion (2025-11-12) - COMPLETE ✅
+### Latest: Reports Page Chart Dimensions Fix (2025-11-12) - COMPLETE ✅
+**Status:** All chart dimension warnings eliminated ✅
+**Plan Document:** `docs/fix-reports-chart-dimensions-plan.md`
+**Bug Tracking:** `docs/bugs.md` - Bug #10
+
+**Objective:** Fix console warnings on Reports page: "The width(-1) and height(-1) of chart should be greater than 0".
+
+**Problem Statement:**
+The Reports page was showing console warnings for LineChart and BarChart components. ResponsiveContainer from recharts couldn't properly measure height from Tailwind's `h-80` class, resulting in -1 dimensions and console warnings.
+
+**Solution Implemented:**
+- ✅ **Single Fix for All Charts:** Added explicit `style={{ height: '320px' }}` to ChartContainer wrapper
+  - File: `components/charts/chart-container.tsx` (line 49)
+  - 320px matches Tailwind's `h-80` class (20rem × 16px)
+  - Fixes all 6 chart components at once (LineChart, BarChart, PieChart, AreaChart, ComposedChart, ProgressChart)
+
+**Key Achievements:**
+1. **Zero Console Warnings** - All chart dimension warnings eliminated
+2. **Single Fix** - One line change fixes all 6 chart types
+3. **Consistent with Bug #5** - Same proven solution used before
+4. **Production Ready** - Build successful with zero TypeScript errors
+
+**Build Status:**
+- ✅ Production build successful (7.6s compile time)
+- ✅ All 43 pages compiled successfully
+- ✅ Zero TypeScript errors
+- ✅ All chart dimension warnings eliminated
+
+**Files Modified:** 1 file (1 line changed)
+- `components/charts/chart-container.tsx` - Added explicit height style
+
+**Affected Components (all fixed):**
+- LineChart (2 instances on Reports page)
+- BarChart (2 instances on Reports page)
+- PieChart (1 instance on Reports page)
+- AreaChart (1 instance on Reports page)
+- Plus any other pages using these chart components
+
+**Impact:**
+- **Before:** Console warnings on Reports page, charts rendered but with warnings
+- **After:** Zero warnings, clean console, all charts render perfectly ✅
+
+**All Bugs Now Complete:**
+- Bug #10 resolved
+- All 10 tracked bugs now fully fixed (100% completion rate) 🎉
+
+---
+
+### Dialog Accessibility Completion (2025-11-12) - COMPLETE ✅
 **Status:** All 7 dialogs now fully accessible ✅
 **Plan Document:** `docs/dialog-accessibility-completion-plan.md`
 **Bug Tracking:** `docs/bugs.md` - Bug #6

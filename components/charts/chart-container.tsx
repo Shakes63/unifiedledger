@@ -46,7 +46,7 @@ export function ChartContainer({
             </div>
           </div>
         ) : (
-          <div className="w-full h-80 overflow-x-auto">{children}</div>
+          <div className="w-full h-80 overflow-x-auto" style={{ height: '320px' }}>{children}</div>
         )}
       </CardContent>
     </Card>

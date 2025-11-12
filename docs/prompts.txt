@@ -1,6 +1,6 @@
 check the bugs.md in the docs folder and start on the next incomplete task. Before implementing please think hard and make a detailed step by step plan for doing so making sure to integrate it well into the existing application architecture as well as UI and styling using the theme variables everywhere it makes sense to. the plan should be added to a file in the docs folder. When the plan is complete start on the first task in the plan.
 
-update the bugs.md and claude.md files making sure to note if the task was not completed all the way and where to find the plan file for it if there is one. always leave a section at the top of the bugs.md file for me to add more bugs. then commit and push the changes.
+update the bugs.md and claude.md files making sure to note if the task was not completed all the way and where to find the plan file for it if there is one. always leave a section at the top of the bugs.md file for me to add more bugs. if a bug has been completely fixed then only leave the name of the bug marked fixed and a 1 or 2 line description of the fix. then commit and push the changes.
 
 
 features.md
