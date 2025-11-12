@@ -60,6 +60,9 @@ export const budgetCategories = sqliteTable(
     sortOrder: integer('sort_order').default(0),
     usageCount: integer('usage_count').default(0),
     lastUsedAt: text('last_used_at'),
+    incomeFrequency: text('income_frequency', {
+      enum: ['weekly', 'biweekly', 'monthly', 'variable'],
+    }).default('variable'),
     createdAt: text('created_at').default(new Date().toISOString()),
   },
   (table) => ({

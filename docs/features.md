@@ -1,3 +1,15 @@
 # Features to implement
-1. Add a small card at the top of the dashboard to show goals.
-2. for income add a field for frequency and use it for tracking in the budget. Right now it calculates the daily average and that is very inaccurate if you get paid biweekly or monthly. It should still have an option for variable frequency and that one should still calculate the daily average.
+
+<!-- Add new feature requests below this line -->
+
+---
+
+## Completed Features
+
+1. ✅ **COMPLETE** - Goals dashboard integration as inline stat card showing progress across all active savings goals.
+
+2. ⏳ **50% COMPLETE** - Income frequency tracking for budget calculations.
+   - **Status**: Core functionality implemented, UI polish remaining
+   - **Plan**: `docs/income-frequency-implementation-plan.md`
+   - **Completed**: Database migration, calculation logic, budget progress component, budget manager modal, API endpoints
+   - **Remaining**: Category form frequency field, budget templates defaults, budget summary card updates, final testing

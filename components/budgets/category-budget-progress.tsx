@@ -18,6 +18,8 @@ interface CategoryBudgetProgressProps {
     budgetedDailyAverage: number;
     projectedMonthEnd: number;
     isOverBudget: boolean;
+    incomeFrequency?: 'weekly' | 'biweekly' | 'monthly' | 'variable';
+    shouldShowDailyAverage: boolean;
   };
   daysRemaining: number;
   onEdit: (categoryId: string, newBudget: number) => void;
@@ -88,7 +90,14 @@ export function CategoryBudgetProgress({
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <h3 className="text-base font-medium text-foreground">{category.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-medium text-foreground">{category.name}</h3>
+            {category.incomeFrequency && category.incomeFrequency !== 'variable' && (
+              <span className="px-2 py-0.5 text-xs rounded-full bg-[var(--color-income)]/20 text-[var(--color-income)] capitalize">
+                {category.incomeFrequency === 'biweekly' ? 'Bi-weekly' : category.incomeFrequency}
+              </span>
+            )}
+          </div>
           <span className="text-xs text-muted-foreground capitalize">
             {category.type.replace(/_/g, ' ')}
           </span>
@@ -198,11 +207,12 @@ export function CategoryBudgetProgress({
         <div className="text-xs text-muted-foreground italic">No budget set</div>
       )}
 
-      {/* Daily Spending & Projections - Hide for bills (paid once per month) */}
+      {/* Daily Spending & Projections - Hide for bills and non-variable income */}
       {category.monthlyBudget > 0 &&
         daysRemaining > 0 &&
         category.type !== 'monthly_bill' &&
-        category.type !== 'non_monthly_bill' && (
+        category.type !== 'non_monthly_bill' &&
+        category.shouldShowDailyAverage && (
         <div className="mt-3 pt-3 border-t border-border space-y-1">
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">Daily average:</span>
@@ -264,6 +274,27 @@ export function CategoryBudgetProgress({
             </div>
           )}
 
+          <div className="text-xs text-muted-foreground">
+            {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} left
+          </div>
+        </div>
+      )}
+
+      {/* Frequency-based Income Projection */}
+      {category.monthlyBudget > 0 &&
+        daysRemaining > 0 &&
+        category.type === 'income' &&
+        !category.shouldShowDailyAverage &&
+        category.incomeFrequency && (
+        <div className="mt-3 pt-3 border-t border-border space-y-1">
+          <div className="text-xs text-muted-foreground">
+            Expected this month: ${category.monthlyBudget.toFixed(2)}
+          </div>
+          {category.actualSpent < category.monthlyBudget && (
+            <div className="text-xs text-muted-foreground">
+              Waiting for {category.incomeFrequency} payment
+            </div>
+          )}
           <div className="text-xs text-muted-foreground">
             {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} left
           </div>

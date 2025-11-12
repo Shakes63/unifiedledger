@@ -32,6 +32,7 @@ export async function GET(request: Request) {
         type: budgetCategories.type,
         monthlyBudget: budgetCategories.monthlyBudget,
         sortOrder: budgetCategories.sortOrder,
+        incomeFrequency: budgetCategories.incomeFrequency,
       })
       .from(budgetCategories)
       .where(
@@ -112,6 +113,17 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
+
+      // Validate incomeFrequency if provided
+      if (budget.incomeFrequency !== undefined) {
+        const validFrequencies = ['weekly', 'biweekly', 'monthly', 'variable'];
+        if (!validFrequencies.includes(budget.incomeFrequency)) {
+          return Response.json(
+            { error: `Invalid incomeFrequency. Must be one of: ${validFrequencies.join(', ')}` },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     // Update each category budget
@@ -140,12 +152,20 @@ export async function POST(request: Request) {
         );
       }
 
+      // Build update object
+      const updateData: any = {
+        monthlyBudget: new Decimal(budget.monthlyBudget).toNumber(),
+      };
+
+      // Include income frequency if provided (for income categories)
+      if (budget.incomeFrequency !== undefined && existingCategory[0].type === 'income') {
+        updateData.incomeFrequency = budget.incomeFrequency;
+      }
+
       // Update the budget
       const updated = await db
         .update(budgetCategories)
-        .set({
-          monthlyBudget: new Decimal(budget.monthlyBudget).toNumber(),
-        })
+        .set(updateData)
         .where(eq(budgetCategories.id, budget.categoryId))
         .returning();
 

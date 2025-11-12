@@ -19,6 +19,43 @@ interface CategoryBudgetStatus {
   budgetedDailyAverage: number;
   projectedMonthEnd: number;
   isOverBudget: boolean;
+  incomeFrequency?: 'weekly' | 'biweekly' | 'monthly' | 'variable';
+  shouldShowDailyAverage: boolean;
+}
+
+/**
+ * Calculate expected income and projection based on frequency
+ */
+function calculateIncomeProjection(
+  frequency: 'weekly' | 'biweekly' | 'monthly' | 'variable' | null | undefined,
+  monthlyBudget: number,
+  actualReceived: number,
+  daysElapsed: number,
+  daysRemaining: number
+): {
+  projectedMonthEnd: number;
+  shouldShowDailyAverage: boolean;
+} {
+  // Default to variable if not specified
+  if (!frequency || frequency === 'variable') {
+    // Use existing daily average logic
+    const dailyAvg = daysElapsed > 0 ? new Decimal(actualReceived).div(daysElapsed).toNumber() : 0;
+    const projection = daysRemaining > 0
+      ? new Decimal(actualReceived).plus(new Decimal(dailyAvg).times(daysRemaining)).toNumber()
+      : actualReceived;
+
+    return {
+      projectedMonthEnd: projection,
+      shouldShowDailyAverage: true,
+    };
+  }
+
+  // For frequency-based income (weekly, biweekly, monthly):
+  // Project the full budget amount since income frequency is predictable
+  return {
+    projectedMonthEnd: monthlyBudget,
+    shouldShowDailyAverage: false,
+  };
 }
 
 export async function GET(request: Request) {
@@ -125,12 +162,30 @@ export async function GET(request: Request) {
         ? new Decimal(monthlyBudget).div(daysInMonth).toNumber()
         : 0;
 
-      // Project month-end spending based on current daily average
-      const projectedMonthEnd = daysElapsed > 0 && daysRemaining > 0
-        ? new Decimal(actualSpent)
-            .plus(new Decimal(dailyAverage).times(daysRemaining))
-            .toNumber()
-        : actualSpent;
+      // Calculate projection based on category type and income frequency
+      let projectedMonthEnd = actualSpent;
+      let shouldShowDailyAverage = true;
+
+      if (category.type === 'income') {
+        // Use frequency-based projection for income
+        const projection = calculateIncomeProjection(
+          category.incomeFrequency as any,
+          monthlyBudget,
+          actualSpent,
+          daysElapsed,
+          daysRemaining
+        );
+        projectedMonthEnd = projection.projectedMonthEnd;
+        shouldShowDailyAverage = projection.shouldShowDailyAverage;
+      } else {
+        // For expenses: use daily average projection
+        projectedMonthEnd = daysElapsed > 0 && daysRemaining > 0
+          ? new Decimal(actualSpent)
+              .plus(new Decimal(dailyAverage).times(daysRemaining))
+              .toNumber()
+          : actualSpent;
+        shouldShowDailyAverage = true;
+      }
 
       // Determine status (logic differs for income vs expenses)
       let status: 'on_track' | 'warning' | 'exceeded' | 'unbudgeted' = 'unbudgeted';
@@ -181,6 +236,8 @@ export async function GET(request: Request) {
         budgetedDailyAverage,
         projectedMonthEnd,
         isOverBudget,
+        incomeFrequency: category.type === 'income' ? (category.incomeFrequency || undefined) : undefined,
+        shouldShowDailyAverage,
       });
     }
 

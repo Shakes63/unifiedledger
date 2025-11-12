@@ -18,6 +18,7 @@ export function CompactStatsBar() {
   const [billsDueCount, setBillsDueCount] = useState<number>(0);
   const [budgetAdherence, setBudgetAdherence] = useState<number | null>(null);
   const [debtProgress, setDebtProgress] = useState<number | null>(null);
+  const [goalsProgress, setGoalsProgress] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -111,6 +112,31 @@ export function CompactStatsBar() {
         } catch (err) {
           // Debt data not available, skip
         }
+
+        // Fetch goals progress (optional - only if user has active goals)
+        try {
+          const goalsResponse = await fetch('/api/savings-goals?status=active');
+          if (goalsResponse.ok) {
+            const goalsData = await goalsResponse.json();
+            if (Array.isArray(goalsData) && goalsData.length > 0) {
+              const totalTarget = goalsData.reduce((sum: number, g: any) => {
+                return new Decimal(sum).plus(new Decimal(g.targetAmount || 0)).toNumber();
+              }, 0);
+              const totalSaved = goalsData.reduce((sum: number, g: any) => {
+                return new Decimal(sum).plus(new Decimal(g.currentAmount || 0)).toNumber();
+              }, 0);
+              if (totalTarget > 0) {
+                const progressPercent = new Decimal(totalSaved)
+                  .div(totalTarget)
+                  .times(100)
+                  .toNumber();
+                setGoalsProgress(Math.min(100, Math.max(0, progressPercent)));
+              }
+            }
+          }
+        } catch (err) {
+          // Goals data not available, skip
+        }
       } catch (error) {
         console.error('Failed to fetch dashboard stats:', error);
       } finally {
@@ -163,6 +189,17 @@ export function CompactStatsBar() {
       value: loading ? '...' : `${debtProgress.toFixed(0)}%`,
       icon: <TrendingDown className="w-5 h-5" />,
       color: 'var(--color-transfer)',
+      loading,
+    });
+  }
+
+  // Add goals progress if available
+  if (goalsProgress !== null) {
+    stats.push({
+      label: 'Goals Progress',
+      value: loading ? '...' : `${goalsProgress.toFixed(0)}%`,
+      icon: <Target className="w-5 h-5" />,
+      color: goalsProgress >= 70 ? 'var(--color-success)' : goalsProgress >= 30 ? 'var(--color-warning)' : 'var(--color-error)',
       loading,
     });
   }

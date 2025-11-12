@@ -17,6 +17,7 @@ interface Category {
   type: 'income' | 'variable_expense' | 'monthly_bill' | 'savings' | 'debt' | 'non_monthly_bill';
   monthlyBudget: number;
   sortOrder: number;
+  incomeFrequency?: 'weekly' | 'biweekly' | 'monthly' | 'variable';
 }
 
 interface BudgetManagerModalProps {
@@ -34,6 +35,7 @@ export function BudgetManagerModal({
 }: BudgetManagerModalProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [budgetValues, setBudgetValues] = useState<Record<string, string>>({});
+  const [frequencies, setFrequencies] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -56,12 +58,17 @@ export function BudgetManagerModal({
       const data = await response.json();
       setCategories(data.budgets);
 
-      // Initialize budget values
+      // Initialize budget values and frequencies
       const initialValues: Record<string, string> = {};
+      const initialFrequencies: Record<string, string> = {};
       data.budgets.forEach((cat: Category) => {
         initialValues[cat.id] = cat.monthlyBudget.toFixed(2);
+        if (cat.type === 'income') {
+          initialFrequencies[cat.id] = cat.incomeFrequency || 'variable';
+        }
       });
       setBudgetValues(initialValues);
+      setFrequencies(initialFrequencies);
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error('Failed to load categories');
@@ -80,10 +87,18 @@ export function BudgetManagerModal({
 
       // Convert budget values to numbers and build request
       const budgets = Object.entries(budgetValues)
-        .map(([categoryId, value]) => ({
-          categoryId,
-          monthlyBudget: parseFloat(value) || 0,
-        }))
+        .map(([categoryId, value]) => {
+          const category = categories.find(c => c.id === categoryId);
+          const budget: any = {
+            categoryId,
+            monthlyBudget: parseFloat(value) || 0,
+          };
+          // Include income frequency for income categories
+          if (category?.type === 'income' && frequencies[categoryId]) {
+            budget.incomeFrequency = frequencies[categoryId];
+          }
+          return budget;
+        })
         .filter(b => !isNaN(b.monthlyBudget) && b.monthlyBudget >= 0);
 
       const response = await fetch('/api/budgets', {
@@ -184,25 +199,45 @@ export function BudgetManagerModal({
   };
 
   const renderCategoryInput = (category: Category) => (
-    <div key={category.id} className="flex items-center gap-3">
-      <label
-        htmlFor={`budget-${category.id}`}
-        className="flex-1 text-sm text-foreground"
-      >
-        {category.name}
-      </label>
-      <div className="flex items-center gap-1">
-        <span className="text-sm text-muted-foreground">$</span>
-        <input
-          id={`budget-${category.id}`}
-          type="number"
-          min="0"
-          step="0.01"
-          value={budgetValues[category.id] || '0'}
-          onChange={e => handleValueChange(category.id, e.target.value)}
-          className="w-32 bg-input border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-        />
+    <div key={category.id} className="space-y-2">
+      <div className="flex items-center gap-3">
+        <label
+          htmlFor={`budget-${category.id}`}
+          className="flex-1 text-sm text-foreground"
+        >
+          {category.name}
+        </label>
+        <div className="flex items-center gap-1">
+          <span className="text-sm text-muted-foreground">$</span>
+          <input
+            id={`budget-${category.id}`}
+            type="number"
+            min="0"
+            step="0.01"
+            value={budgetValues[category.id] || '0'}
+            onChange={e => handleValueChange(category.id, e.target.value)}
+            className="w-32 bg-input border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          />
+        </div>
       </div>
+      {category.type === 'income' && (
+        <div className="flex items-center gap-2 ml-4">
+          <label htmlFor={`frequency-${category.id}`} className="text-xs text-muted-foreground">
+            Frequency:
+          </label>
+          <select
+            id={`frequency-${category.id}`}
+            value={frequencies[category.id] || 'variable'}
+            onChange={e => setFrequencies(prev => ({ ...prev, [category.id]: e.target.value }))}
+            className="flex-1 bg-input border border-border rounded-lg px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          >
+            <option value="weekly">Weekly</option>
+            <option value="biweekly">Biweekly (Every 2 weeks)</option>
+            <option value="monthly">Monthly</option>
+            <option value="variable">Variable (use daily average)</option>
+          </select>
+        </div>
+      )}
     </div>
   );
 

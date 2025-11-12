@@ -4,7 +4,11 @@
 
 ## 🆕 ADD NEW BUGS HERE
 
-_(No active bugs - add new bugs here using the template below)_
+1. getting this error on the variable bills filter dropdown and the budget analytics filter dropdown: A form field element has neither an id nor a name attribute. This might prevent the browser from correctly autofilling the form.
+
+To fix this issue, add a unique id or name attribute to a form field. This is not strictly needed, but still recommended even if you have an autocomplete attribute on the same element.
+
+2. getting this error on the logo in the sidebar: sidebar.tsx:119 Image with src "http://localhost:3000/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
 
 **Template:**
 ```markdown
@@ -71,15 +75,6 @@ All 10 tracked bugs from initial development have been fixed (100% complete)! �
 
 ---
 
-## 🏗️ Latest Build Status
-
-✅ **Production build successful** (2025-11-12)
-- All 43 pages compiled successfully
-- Zero TypeScript errors
-- Build time: 7.6s
-- All chart dimension warnings eliminated
-
----
 
 ## 💡 Known Minor Issues (Not Blocking)
 
@@ -91,17 +86,3 @@ These are minor warnings/deprecations that don't affect functionality:
 
 **Note:** These don't require immediate action but can be addressed as polish improvements.
 
----
-
-## 🎉 Achievement Unlocked
-
-**All Initial Bugs Resolved!**
-
-Every bug discovered during initial development has been fixed with:
-- ✅ Improved performance (75% faster bill creation)
-- ✅ Enhanced accessibility (WCAG 2.1 compliant dialogs)
-- ✅ Better reliability (proper error handling, correct calculations)
-- ✅ Cleaner console (zero warnings)
-- ✅ All charts render properly
-
-Ready for production! 🚀
