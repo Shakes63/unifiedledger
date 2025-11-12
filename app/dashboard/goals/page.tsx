@@ -17,6 +17,7 @@ import { Plus } from 'lucide-react';
 export default function GoalsPage() {
   const [goals, setGoals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<any>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
@@ -29,13 +30,39 @@ export default function GoalsPage() {
   const loadGoals = async () => {
     try {
       setLoading(true);
+      setError(null); // Clear previous errors
       const params = filter !== 'all' ? `?status=${filter}` : '';
       const response = await fetch(`/api/savings-goals${params}`);
-      if (!response.ok) throw new Error('Failed to fetch goals');
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+
+        // Different error messages based on status code
+        let errorMessage = 'Failed to load goals';
+        if (response.status === 401) {
+          errorMessage = 'Please sign in to view goals';
+        } else if (response.status === 500) {
+          errorMessage = 'Server error loading goals. Please try again.';
+        }
+
+        setError(errorMessage);
+        toast.error(errorMessage);
+        setGoals([]);
+        return;
+      }
+
       const data = await response.json();
-      setGoals(data);
+
+      // Empty array is valid - don't show error
+      setGoals(Array.isArray(data) ? data : []);
+      setError(null);
     } catch (error) {
-      toast.error('Failed to load goals');
+      // Only network errors reach here
+      console.error('Network error loading goals:', error);
+      const errorMessage = 'Network error. Please check your connection.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      setGoals([]);
     } finally {
       setLoading(false);
     }
@@ -44,10 +71,18 @@ export default function GoalsPage() {
   const loadGoalDetails = async (goalId: string) => {
     try {
       const response = await fetch(`/api/savings-goals/${goalId}`);
-      if (!response.ok) throw new Error('Failed to fetch goal');
+      if (!response.ok) {
+        if (response.status === 404) {
+          toast.error('Goal not found');
+        } else {
+          toast.error('Failed to load goal details');
+        }
+        return null;
+      }
       return await response.json();
     } catch (error) {
-      toast.error('Failed to load goal details');
+      console.error('Error loading goal details:', error);
+      toast.error('Network error loading goal details');
       return null;
     }
   };
@@ -60,14 +95,23 @@ export default function GoalsPage() {
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) throw new Error('Failed to create goal');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 400) {
+          toast.error(errorData.error || 'Invalid goal data');
+        } else {
+          toast.error('Failed to create goal. Please try again.');
+        }
+        return;
+      }
 
       toast.success('Goal created successfully!');
       setIsFormOpen(false);
       setSelectedGoal(null);
       loadGoals();
     } catch (error) {
-      toast.error('Failed to create goal');
+      console.error('Error creating goal:', error);
+      toast.error('Network error. Please check your connection.');
     }
   };
 
@@ -81,14 +125,25 @@ export default function GoalsPage() {
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) throw new Error('Failed to update goal');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 400) {
+          toast.error(errorData.error || 'Invalid goal data');
+        } else if (response.status === 404) {
+          toast.error('Goal not found');
+        } else {
+          toast.error('Failed to update goal. Please try again.');
+        }
+        return;
+      }
 
       toast.success('Goal updated successfully!');
       setIsFormOpen(false);
       setSelectedGoal(null);
       loadGoals();
     } catch (error) {
-      toast.error('Failed to update goal');
+      console.error('Error updating goal:', error);
+      toast.error('Network error. Please check your connection.');
     }
   };
 
@@ -100,12 +155,20 @@ export default function GoalsPage() {
         method: 'DELETE',
       });
 
-      if (!response.ok) throw new Error('Failed to delete goal');
+      if (!response.ok) {
+        if (response.status === 404) {
+          toast.error('Goal not found');
+        } else {
+          toast.error('Failed to delete goal. Please try again.');
+        }
+        return;
+      }
 
       toast.success('Goal deleted successfully!');
       loadGoals();
     } catch (error) {
-      toast.error('Failed to delete goal');
+      console.error('Error deleting goal:', error);
+      toast.error('Network error. Please check your connection.');
     }
   };
 
@@ -194,6 +257,16 @@ export default function GoalsPage() {
       {loading ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground">Loading goals...</p>
+        </div>
+      ) : error ? (
+        <div className="text-center py-12 bg-card border border-[var(--color-error)] rounded-lg">
+          <p className="text-[var(--color-error)] mb-4">{error}</p>
+          <Button
+            onClick={loadGoals}
+            className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+          >
+            Retry
+          </Button>
         </div>
       ) : goals.length === 0 ? (
         <div className="text-center py-12 bg-card border border-border rounded-lg">

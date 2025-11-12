@@ -8,14 +8,11 @@ export async function GET(request: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      console.error('[Savings Goals GET] No userId from auth');
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
 
     const url = new URL(request.url);
     const status = url.searchParams.get('status');
-
-    console.log('[Savings Goals GET] Fetching goals for user:', userId, 'status:', status);
 
     const conditions = [eq(savingsGoals.userId, userId)];
     if (status) {
@@ -28,19 +25,20 @@ export async function GET(request: Request) {
       .where(and(...conditions))
       .orderBy(savingsGoals.priority);
 
-    console.log('[Savings Goals GET] Found', goals.length, 'goals');
+    // Empty array is a successful result
     return new Response(JSON.stringify(goals), { status: 200 });
   } catch (error) {
-    console.error('[Savings Goals GET] Error:', error);
-    // Log the full error details
-    if (error instanceof Error) {
-      console.error('[Savings Goals GET] Error message:', error.message);
-      console.error('[Savings Goals GET] Error stack:', error.stack);
-    }
+    // Log detailed error information for debugging
+    console.error('[Savings Goals GET] Database error occurred:');
+    console.error('Error type:', error?.constructor?.name);
+    console.error('Error message:', error instanceof Error ? error.message : String(error));
+    console.error('Full error:', error);
+
     return new Response(
       JSON.stringify({
-        error: 'Failed to fetch savings goals',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Database error fetching goals',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        type: error?.constructor?.name || 'Unknown'
       }),
       { status: 500 }
     );
@@ -51,12 +49,10 @@ export async function POST(request: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      console.error('[Savings Goals POST] No userId from auth');
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
 
     const body = await request.json();
-    console.log('[Savings Goals POST] Request body:', JSON.stringify(body).substring(0, 200));
 
     const {
       name,
@@ -75,7 +71,6 @@ export async function POST(request: Request) {
     } = body;
 
     if (!name || !targetAmount) {
-      console.error('[Savings Goals POST] Missing required fields:', { name, targetAmount });
       return new Response(
         JSON.stringify({ error: 'Name and target amount are required' }),
         { status: 400 }
@@ -84,8 +79,6 @@ export async function POST(request: Request) {
 
     const goalId = nanoid();
     const now = new Date().toISOString();
-
-    console.log('[Savings Goals POST] Creating goal with ID:', goalId);
 
     // Insert the goal
     await db.insert(savingsGoals).values({
@@ -108,8 +101,6 @@ export async function POST(request: Request) {
       updatedAt: now,
     });
 
-    console.log('[Savings Goals POST] Goal created, creating milestones');
-
     // Create milestones (25%, 50%, 75%, 100%)
     const targetAmountNum = parseFloat(String(targetAmount));
     const milestones = [
@@ -130,8 +121,6 @@ export async function POST(request: Request) {
       });
     }
 
-    console.log('[Savings Goals POST] Milestones created, fetching goal');
-
     const goal = await db
       .select()
       .from(savingsGoals)
@@ -142,15 +131,9 @@ export async function POST(request: Request) {
       return new Response(JSON.stringify({ error: 'Failed to retrieve created goal' }), { status: 500 });
     }
 
-    console.log('[Savings Goals POST] Success, returning goal');
     return new Response(JSON.stringify(goal[0]), { status: 201 });
   } catch (error) {
-    console.error('[Savings Goals POST] Error:', error);
-    // Log the full error details
-    if (error instanceof Error) {
-      console.error('[Savings Goals POST] Error message:', error.message);
-      console.error('[Savings Goals POST] Error stack:', error.stack);
-    }
+    console.error('[Savings Goals POST] Database error:', error);
     return new Response(
       JSON.stringify({
         error: 'Failed to create savings goal',
