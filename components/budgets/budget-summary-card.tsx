@@ -38,6 +38,21 @@ export function BudgetSummaryCard({ summary, month }: BudgetSummaryCardProps) {
           .toNumber()
       : 0;
 
+  // Calculate income variance
+  const incomeVariance = new Decimal(summary.totalIncomeActual)
+    .minus(summary.totalIncome)
+    .toNumber();
+
+  // Determine income status (reversed from expenses)
+  const incomeStatus =
+    incomePercentage >= 100
+      ? 'ahead' // Meeting or exceeding income target (green)
+      : incomePercentage >= 80
+      ? 'on_track' // Close to target (green)
+      : incomePercentage >= 50
+      ? 'warning' // Significant shortfall (amber)
+      : 'critical'; // Severe shortfall (red)
+
   const expensePercentage =
     summary.totalExpenseBudget > 0
       ? new Decimal(summary.totalExpenseActual)
@@ -108,7 +123,15 @@ export function BudgetSummaryCard({ summary, month }: BudgetSummaryCardProps) {
           </div>
           <div className="w-full bg-muted rounded-lg h-3 overflow-hidden">
             <div
-              className="h-full bg-[var(--color-income)] transition-all duration-300"
+              className={`h-full transition-all duration-300 ${
+                incomeStatus === 'ahead'
+                  ? 'bg-[var(--color-success)]'
+                  : incomeStatus === 'on_track'
+                  ? 'bg-[var(--color-income)]'
+                  : incomeStatus === 'warning'
+                  ? 'bg-[var(--color-warning)]'
+                  : 'bg-[var(--color-error)]'
+              }`}
               style={{ width: `${Math.min(100, incomePercentage)}%` }}
             />
           </div>
@@ -116,6 +139,23 @@ export function BudgetSummaryCard({ summary, month }: BudgetSummaryCardProps) {
             <span className="text-xs text-muted-foreground">
               {incomePercentage.toFixed(1)}%
             </span>
+            {incomeVariance > 0 ? (
+              <span className="text-xs text-[var(--color-success)]">
+                ✓ Above target by ${Math.abs(incomeVariance).toFixed(2)}
+              </span>
+            ) : incomeVariance < 0 ? (
+              <span
+                className={`text-xs ${
+                  incomeStatus === 'critical'
+                    ? 'text-[var(--color-error)]'
+                    : 'text-[var(--color-warning)]'
+                }`}
+              >
+                Below target by ${Math.abs(incomeVariance).toFixed(2)}
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">On target</span>
+            )}
           </div>
         </div>
 

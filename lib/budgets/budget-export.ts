@@ -82,7 +82,10 @@ async function getBudgetDataForMonth(
   const categoryData: CategoryBudgetData[] = [];
 
   for (const category of filteredCategories) {
-    // Calculate actual spending from transactions
+    // Calculate actual spending/income from transactions
+    // Query the correct transaction type based on category type
+    const transactionType = category.type === 'income' ? 'income' : 'expense';
+
     const categoryTransactions = await db
       .select({
         total: sum(transactions.amount),
@@ -92,7 +95,7 @@ async function getBudgetDataForMonth(
         and(
           eq(transactions.userId, userId),
           eq(transactions.categoryId, category.id),
-          eq(transactions.type, 'expense'),
+          eq(transactions.type, transactionType),
           gte(transactions.date, monthStart),
           lte(transactions.date, monthEnd)
         )
@@ -103,18 +106,42 @@ async function getBudgetDataForMonth(
       : 0;
 
     const monthlyBudget = category.monthlyBudget || 0;
-    const remaining = monthlyBudget - actualSpent;
+
+    // Calculate remaining based on category type
+    // Income: positive if over target (extra income), negative if short
+    // Expense: positive if under budget (money saved), negative if over
+    const remaining = category.type === 'income'
+      ? actualSpent - monthlyBudget
+      : monthlyBudget - actualSpent;
+
     const percentage = monthlyBudget > 0 ? (actualSpent / monthlyBudget) * 100 : 0;
 
+    // Determine status based on category type (logic differs for income vs expenses)
     let status: string;
     if (monthlyBudget === 0) {
       status = 'Unbudgeted';
-    } else if (percentage >= 100) {
-      status = 'Exceeded';
-    } else if (percentage >= 80) {
-      status = 'Warning';
     } else {
-      status = 'On Track';
+      if (category.type === 'income') {
+        // For income: exceeding budget is good, falling short is bad
+        if (percentage >= 100) {
+          status = 'Met Target'; // Meeting or exceeding income target
+        } else if (percentage >= 80) {
+          status = 'On Track'; // Close to target
+        } else if (percentage >= 50) {
+          status = 'Below Target'; // Income shortfall
+        } else {
+          status = 'Severe Shortfall'; // Critical income shortfall
+        }
+      } else {
+        // For expenses: original logic (exceeding is bad)
+        if (percentage >= 100) {
+          status = 'Exceeded'; // Over budget
+        } else if (percentage >= 80) {
+          status = 'Warning'; // Close to limit
+        } else {
+          status = 'On Track'; // Under budget
+        }
+      }
     }
 
     const dailyAverage = daysElapsed > 0 ? actualSpent / daysElapsed : 0;
@@ -219,7 +246,14 @@ export function generateBudgetCSV(
         sum + monthData.categories.reduce((s, c) => s + c.actualSpent, 0),
       0
     );
-    const totalRemaining = totalBudgeted - totalActual;
+
+    // Sum pre-calculated remaining values (already accounts for income/expense logic)
+    const totalRemaining = data.reduce(
+      (sum, monthData) =>
+        sum + monthData.categories.reduce((s, c) => s + c.remaining, 0),
+      0
+    );
+
     const totalPercentage = totalBudgeted > 0 ? (totalActual / totalBudgeted) * 100 : 0;
 
     rows.push({

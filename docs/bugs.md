@@ -71,36 +71,62 @@
 - Theme-integrated error UI using CSS variables
 - Detailed error logging for debugging (error type, message, full stack)
 
-## ❌ NOT FIXED
-
-### 7. Budget Income Display Logic - NOT FIXED ❌
+### 7. Budget Income Display Logic - FIXED ✅
 **Problem:** Budget items for income are marking it as a bad thing when the actual amount goes above the budgeted amount. That should be a good thing.
-**Status:** NOT STARTED
-**Plan File:** None yet - needs implementation plan
-**Notes:** This is a logic reversal bug. For income categories, exceeding budget should show as positive (green), not negative (red).
-**Suggested Fix Location:** Budget progress components where income variance is calculated and displayed.
-**Components to Check:**
-- `components/budgets/category-budget-progress.tsx`
-- `components/budgets/budget-summary-card.tsx`
-- Any other components displaying budget variance for income categories
+**Solution:** Reversed display logic for income categories - exceeding income budget now shows as positive (green), falling short shows as negative (amber/red)
+**Files Modified:**
+- `app/api/budgets/overview/route.ts` - Updated status logic and adherence score calculation
+- `components/budgets/category-budget-progress.tsx` - Fixed colors, text, pace, and projections
+- `components/budgets/budget-summary-card.tsx` - Added income variance indicators with proper colors
+**Status:** COMPLETE
+**Plan File:** `docs/budget-income-display-logic-fix-plan.md`
+**Details:**
+- Income actual > budget → Green progress bar, "above target" in green
+- Income actual < budget → Amber/red, "below target" in amber/red
+- Expenses continue to work correctly (unchanged behavior)
+- Adherence score now rewards exceeding income targets
+- Pace indicators: Too low for income = warning, too high for expenses = warning
+- Projections reversed: Income shortfall = warning, expense overage = error
+- Summary card displays income variance with appropriate sentiment
 
 ---
 
 ## Summary
 
-**Total Bugs Tracked:** 8
-- ✅ **Fully Fixed:** 6 bugs (1, 2, 3, 4, 5, 8)
-- ⚠️ **Partially Fixed:** 1 bug (6 - Dialog Accessibility)
-- ❌ **Not Fixed:** 1 bug (7 - Budget Income Display Logic)
+**Total Bugs Tracked:** 9
+- ✅ **Fully Fixed:** 8 bugs (1, 2, 3, 4, 5, 7, 8, 9)
+- ⚠️ **Partially Fixed:** 1 bug (6 - Dialog Accessibility - 1 of 20+ dialogs fixed)
+- ❌ **Not Fixed:** 0 bugs
+
+### 9. Budget Export Incorrect Values - FIXED ✅
+**Problem:** Budget export showed $0 for income categories even when they had actual transactions (e.g., $1500 salary showed as $0 in CSV)
+**Root Cause:**
+- Transaction query hardcoded to `type = 'expense'`, ignoring all income transactions
+- Status logic not reversed for income (same as display bug #7)
+- Remaining calculation wrong for income (wrong sign)
+- Summary row remaining calculated incorrectly (mixed income/expense amounts)
+**Solution:** Fixed all 4 issues in budget export logic
+**Files Modified:** `lib/budgets/budget-export.ts`
+**Status:** COMPLETE
+**Plan File:** `docs/budget-export-fix-plan.md`
+**Details:**
+- Fixed transaction query to use correct type based on category (income → 'income', others → 'expense')
+- Reversed status logic for income ("Met Target" when ≥100%, "Below Target" when <80%)
+- Fixed remaining calculation (income: actual - budget, expense: budget - actual)
+- Fixed summary row to sum pre-calculated remaining values instead of mixing totals
+**Impact:**
+- **Before:** Income categories showed $0 actual, wrong status, wrong remaining sign
+- **After:** All categories show correct actual amounts, proper status, correct remaining values
 
 **Implementation Plans:**
 - `docs/bug-fixes-implementation-plan.md` - Bugs 1-6
 - `docs/fix-goals-page-error-plan.md` - Bug 8
-- Bug 7 - No plan file yet (needs to be created)
+- `docs/budget-income-display-logic-fix-plan.md` - Bug 7
+- `docs/budget-export-fix-plan.md` - Bug 9
 
 ## Build Status
 
 ✅ Production build successful (2025-11-11)
 - All 43 pages compiled successfully
 - Zero TypeScript errors
-- Build time: 7.9s
+- Build time: 8.2s

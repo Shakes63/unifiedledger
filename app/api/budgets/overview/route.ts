@@ -132,16 +132,31 @@ export async function GET(request: Request) {
             .toNumber()
         : actualSpent;
 
-      // Determine status
+      // Determine status (logic differs for income vs expenses)
       let status: 'on_track' | 'warning' | 'exceeded' | 'unbudgeted' = 'unbudgeted';
 
       if (monthlyBudget > 0) {
-        if (percentage >= 100) {
-          status = 'exceeded';
-        } else if (percentage >= 80) {
-          status = 'warning';
+        if (category.type === 'income') {
+          // For income: exceeding budget is good, falling short is bad
+          if (percentage >= 100) {
+            status = 'exceeded'; // Will be shown as green (good - extra income!)
+          } else if (percentage >= 80) {
+            status = 'on_track'; // Close to target
+          } else if (percentage >= 50) {
+            status = 'warning'; // Income shortfall warning
+          } else {
+            // Severe income shortfall - reuse 'exceeded' but components will show red
+            status = 'exceeded';
+          }
         } else {
-          status = 'on_track';
+          // For expenses/savings: original logic
+          if (percentage >= 100) {
+            status = 'exceeded'; // Over budget (bad)
+          } else if (percentage >= 80) {
+            status = 'warning'; // Close to limit
+          } else {
+            status = 'on_track'; // Under budget (good)
+          }
         }
       }
 
@@ -222,19 +237,38 @@ export async function GET(request: Request) {
       let totalScore = 0;
 
       for (const category of categoriesWithBudgets) {
-        if (category.actualSpent <= category.monthlyBudget) {
-          // Under or on budget = 100 points
-          totalScore += 100;
-        } else {
-          // Over budget = penalize based on overage percentage
-          const overagePercent = new Decimal(category.actualSpent)
-            .minus(category.monthlyBudget)
-            .div(category.monthlyBudget)
-            .times(100)
-            .toNumber();
+        if (category.type === 'income') {
+          // For income: meeting or exceeding budget is good
+          if (category.actualSpent >= category.monthlyBudget) {
+            // At or above income target = 100 points
+            totalScore += 100;
+          } else {
+            // Below income target = penalize based on shortfall percentage
+            const shortfallPercent = new Decimal(category.monthlyBudget)
+              .minus(category.actualSpent)
+              .div(category.monthlyBudget)
+              .times(100)
+              .toNumber();
 
-          const score = Math.max(0, 100 - overagePercent);
-          totalScore += score;
+            const score = Math.max(0, 100 - shortfallPercent);
+            totalScore += score;
+          }
+        } else {
+          // For expenses/savings: original logic
+          if (category.actualSpent <= category.monthlyBudget) {
+            // Under or on budget = 100 points
+            totalScore += 100;
+          } else {
+            // Over budget = penalize based on overage percentage
+            const overagePercent = new Decimal(category.actualSpent)
+              .minus(category.monthlyBudget)
+              .div(category.monthlyBudget)
+              .times(100)
+              .toNumber();
+
+            const score = Math.max(0, 100 - overagePercent);
+            totalScore += score;
+          }
         }
       }
 

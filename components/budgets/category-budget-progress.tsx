@@ -52,10 +52,13 @@ export function CategoryBudgetProgress({
     }
   };
 
-  // Determine progress bar color
+  // Determine progress bar color (logic differs for income vs expenses)
   const getProgressColor = () => {
+    const isIncome = category.type === 'income';
+
     if (category.status === 'exceeded') {
-      return 'bg-[var(--color-error)]';
+      // For income: exceeded = good (green), for expenses: exceeded = bad (red)
+      return isIncome ? 'bg-[var(--color-success)]' : 'bg-[var(--color-error)]';
     } else if (category.status === 'warning') {
       return 'bg-[var(--color-warning)]';
     } else if (category.status === 'on_track') {
@@ -64,15 +67,21 @@ export function CategoryBudgetProgress({
     return 'bg-muted';
   };
 
-  // Check if spending pace is too high
+  // Check if pace is problematic (logic differs for income vs expenses)
+  const isIncome = category.type === 'income';
   const isPaceTooHigh =
     daysRemaining > 0 &&
     category.budgetedDailyAverage > 0 &&
-    category.dailyAverage > category.budgetedDailyAverage * 1.2; // 20% over pace
+    (isIncome
+      ? category.dailyAverage < category.budgetedDailyAverage * 0.8 // Income pace 20% below target
+      : category.dailyAverage > category.budgetedDailyAverage * 1.2); // Expense pace 20% above target
 
-  // Check if projected to exceed
+  // Check if projected to exceed (meaning differs for income vs expenses)
   const isProjectedToExceed =
-    category.monthlyBudget > 0 && category.projectedMonthEnd > category.monthlyBudget;
+    category.monthlyBudget > 0 &&
+    (isIncome
+      ? category.projectedMonthEnd < category.monthlyBudget // Income shortfall
+      : category.projectedMonthEnd > category.monthlyBudget); // Expense overage
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 hover:bg-elevated transition-colors">
@@ -148,19 +157,31 @@ export function CategoryBudgetProgress({
           <div className="flex items-center justify-between text-xs">
             <span
               className={
-                category.isOverBudget ? 'text-[var(--color-error)]' : 'text-muted-foreground'
+                category.isOverBudget
+                  ? category.type === 'income'
+                    ? 'text-[var(--color-success)]' // Income over budget = good (green)
+                    : 'text-[var(--color-error)]' // Expense over budget = bad (red)
+                  : 'text-muted-foreground'
               }
             >
               {category.percentage.toFixed(1)}%
             </span>
             <span
               className={
-                category.remaining >= 0
-                  ? 'text-[var(--color-success)]'
-                  : 'text-[var(--color-error)]'
+                category.type === 'income'
+                  ? category.remaining >= 0
+                    ? 'text-[var(--color-warning)]' // Income shortfall
+                    : 'text-[var(--color-success)]' // Extra income!
+                  : category.remaining >= 0
+                  ? 'text-[var(--color-success)]' // Under budget
+                  : 'text-[var(--color-error)]' // Over budget
               }
             >
-              {category.remaining >= 0
+              {category.type === 'income'
+                ? category.remaining >= 0
+                  ? `$${category.remaining.toFixed(2)} below target`
+                  : `$${Math.abs(category.remaining).toFixed(2)} above target`
+                : category.remaining >= 0
                 ? `$${category.remaining.toFixed(2)} remaining`
                 : `$${Math.abs(category.remaining).toFixed(2)} over`}
             </span>
@@ -190,29 +211,49 @@ export function CategoryBudgetProgress({
 
           {isPaceTooHigh && (
             <div className="text-xs text-[var(--color-warning)]">
-              Pace too high (budget: ${category.budgetedDailyAverage.toFixed(2)}/day)
+              {isIncome
+                ? `Pace too low (target: $${category.budgetedDailyAverage.toFixed(2)}/day)`
+                : `Pace too high (budget: $${category.budgetedDailyAverage.toFixed(2)}/day)`}
             </div>
           )}
 
           {isProjectedToExceed && (
-            <div className="text-xs text-[var(--color-error)]">
-              Projected: ${category.projectedMonthEnd.toFixed(2)} (over by $
-              {new Decimal(category.projectedMonthEnd)
-                .minus(category.monthlyBudget)
-                .toNumber()
-                .toFixed(2)}
-              )
+            <div
+              className={`text-xs ${
+                isIncome ? 'text-[var(--color-warning)]' : 'text-[var(--color-error)]'
+              }`}
+            >
+              {isIncome
+                ? `Projected: $${category.projectedMonthEnd.toFixed(2)} (short by $${new Decimal(
+                    category.monthlyBudget
+                  )
+                    .minus(category.projectedMonthEnd)
+                    .toNumber()
+                    .toFixed(2)})`
+                : `Projected: $${category.projectedMonthEnd.toFixed(2)} (over by $${new Decimal(
+                    category.projectedMonthEnd
+                  )
+                    .minus(category.monthlyBudget)
+                    .toNumber()
+                    .toFixed(2)})`}
             </div>
           )}
 
           {!isProjectedToExceed && category.projectedMonthEnd > 0 && (
             <div className="text-xs text-[var(--color-success)]">
-              Projected: ${category.projectedMonthEnd.toFixed(2)} (under by $
-              {new Decimal(category.monthlyBudget)
-                .minus(category.projectedMonthEnd)
-                .toNumber()
-                .toFixed(2)}
-              )
+              {isIncome
+                ? `Projected: $${category.projectedMonthEnd.toFixed(2)} (above by $${new Decimal(
+                    category.projectedMonthEnd
+                  )
+                    .minus(category.monthlyBudget)
+                    .toNumber()
+                    .toFixed(2)})`
+                : `Projected: $${category.projectedMonthEnd.toFixed(2)} (under by $${new Decimal(
+                    category.monthlyBudget
+                  )
+                    .minus(category.projectedMonthEnd)
+                    .toNumber()
+                    .toFixed(2)})`}
             </div>
           )}
 
