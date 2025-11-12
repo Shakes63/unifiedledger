@@ -124,9 +124,30 @@
 - `docs/budget-income-display-logic-fix-plan.md` - Bug 7
 - `docs/budget-export-fix-plan.md` - Bug 9
 
+## Enhancements (Post-Fix Polish)
+
+### 10. "Right on target" for exact budget matches - COMPLETE ✅
+**Enhancement:** When budget is at exactly 100% (remaining = $0.00), now displays "Right on target" in green instead of "$0.00 below target" or "$0.00 remaining"
+**Files Modified:** `components/budgets/category-budget-progress.tsx`
+**Impact:** Better UX for both income and expense categories when exactly on budget
+**Commit:** ba7e90d
+
+### 11. Bills at 100% showing green progress bar - COMPLETE ✅
+**Problem:** Bills at exactly 100% showed red progress bar due to floating point precision issues
+**Solution:** Use tolerance check (within $0.01) instead of exact comparison for status determination
+**Files Modified:**
+- `app/api/budgets/overview/route.ts` - Tolerance-based status logic
+- `components/budgets/category-budget-progress.tsx` - Hides daily averages for bill types
+**Details:**
+- At exactly 100% → Green bar + "Right on target"
+- Daily average/projection hidden for `monthly_bill` and `non_monthly_bill` types (bills paid once per month don't need daily tracking)
+**Commits:** cca0d98, fda2657
+
+---
+
 ## Build Status
 
 ✅ Production build successful (2025-11-11)
 - All 43 pages compiled successfully
 - Zero TypeScript errors
-- Build time: 8.2s
+- Build time: 8.0s
