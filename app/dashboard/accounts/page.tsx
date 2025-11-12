@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountForm } from '@/components/accounts/account-form';
@@ -256,6 +256,9 @@ export default function AccountsPage() {
               <DialogTitle className="text-foreground">
                 {selectedAccount ? 'Edit Account' : 'Create New Account'}
               </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Set up a financial account to track your transactions and balances
+              </DialogDescription>
             </DialogHeader>
             <AccountForm
               account={selectedAccount}

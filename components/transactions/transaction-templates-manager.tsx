@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -140,6 +141,9 @@ export function TransactionTemplatesManager({
       <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a] max-w-2xl">
         <DialogHeader>
           <DialogTitle>Transaction Templates</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Quick-start transactions from your saved templates
+          </DialogDescription>
         </DialogHeader>
 
         {error && (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRightLeft, Check, X, Loader2 } from 'lucide-react';
@@ -151,9 +151,9 @@ export function TransferSuggestionsModal({
             <ArrowRightLeft className="h-5 w-5 text-[var(--color-primary)]" />
             Transfer Match Suggestions
           </DialogTitle>
-          <p className="text-sm text-muted-foreground mt-2">
+          <DialogDescription className="text-muted-foreground">
             Review potential transfer matches found by the smart matching algorithm
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         {loading ? (

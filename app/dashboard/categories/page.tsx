@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { CategoryForm } from '@/components/categories/category-form';
@@ -280,6 +280,9 @@ export default function CategoriesPage() {
               <DialogTitle className="text-foreground">
                 {selectedCategory ? 'Edit Category' : 'Create New Category'}
               </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Organize your transactions by creating custom income, expense, or bill categories
+              </DialogDescription>
             </DialogHeader>
             <CategoryForm
               category={selectedCategory}

@@ -16,6 +16,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -1228,6 +1229,9 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           <DialogContent className="bg-card border-border">
             <DialogHeader>
               <DialogTitle>Save Transaction as Template</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
+                Save this transaction configuration as a reusable template for quick entry
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">

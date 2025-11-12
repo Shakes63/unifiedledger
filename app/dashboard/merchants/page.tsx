@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -295,6 +296,9 @@ export default function MerchantsPage() {
             <DialogTitle className="text-foreground">
               {selectedMerchant ? 'Edit Merchant' : 'Create Merchant'}
             </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Add merchants and vendors to categorize your transactions automatically
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
