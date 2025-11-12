@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { DebtToIncomeIndicator } from '@/components/budgets/debt-to-income-indicator';
 import { ApplySurplusModal } from '@/components/budgets/apply-surplus-modal';
 import { DollarSign, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
+import { useAuth } from '@clerk/nextjs';
 
 interface BudgetSummary {
   monthlyIncome: number;
@@ -26,19 +27,35 @@ interface BudgetSummary {
 }
 
 export function BudgetSurplusCard() {
+  const { isLoaded, isSignedIn } = useAuth();
   const [data, setData] = useState<BudgetSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [authError, setAuthError] = useState(false);
 
   useEffect(() => {
-    fetchBudgetSummary();
-  }, []);
+    // Only fetch when auth is fully loaded and user is signed in
+    if (isLoaded && isSignedIn) {
+      fetchBudgetSummary();
+    } else if (isLoaded && !isSignedIn) {
+      setAuthError(true);
+      setLoading(false);
+    }
+  }, [isLoaded, isSignedIn]);
 
   const fetchBudgetSummary = async () => {
     try {
       setLoading(true);
+      setAuthError(false);
       const response = await fetch('/api/budgets/summary');
+
+      if (response.status === 401) {
+        console.error('Budget summary: Unauthorized');
+        setAuthError(true);
+        setLoading(false);
+        return;
+      }
 
       if (!response.ok) {
         throw new Error('Failed to fetch budget summary');
@@ -73,6 +90,19 @@ export function BudgetSurplusCard() {
           </div>
           <div className="h-8 rounded w-32 mb-4" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
           <div className="h-2 rounded w-full" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
+        </div>
+      </Card>
+    );
+  }
+
+  // Auth error
+  if (authError) {
+    return (
+      <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+        <div className="flex flex-col items-center justify-center h-full text-center">
+          <AlertCircle className="w-8 h-8 text-[var(--color-error)] mb-2" />
+          <p className="text-sm font-medium text-foreground mb-1">Authentication Required</p>
+          <p className="text-xs text-muted-foreground">Please sign in to view budget data</p>
         </div>
       </Card>
     );

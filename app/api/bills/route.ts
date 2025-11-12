@@ -160,79 +160,81 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate category if provided
+    // Batch validation queries in parallel for better performance
+    const validationPromises = [];
+
     if (categoryId) {
-      const category = await db
-        .select()
-        .from(budgetCategories)
-        .where(
-          and(
-            eq(budgetCategories.id, categoryId),
-            eq(budgetCategories.userId, userId)
+      validationPromises.push(
+        db
+          .select()
+          .from(budgetCategories)
+          .where(
+            and(
+              eq(budgetCategories.id, categoryId),
+              eq(budgetCategories.userId, userId)
+            )
           )
-        )
-        .limit(1);
-
-      if (category.length === 0) {
-        return Response.json(
-          { error: 'Category not found' },
-          { status: 404 }
-        );
-      }
+          .limit(1)
+          .then(result => ({ type: 'category', found: result.length > 0 }))
+      );
     }
 
-    // Validate account if provided
     if (accountId) {
-      const account = await db
-        .select()
-        .from(accounts)
-        .where(
-          and(
-            eq(accounts.id, accountId),
-            eq(accounts.userId, userId)
+      validationPromises.push(
+        db
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.id, accountId),
+              eq(accounts.userId, userId)
+            )
           )
-        )
-        .limit(1);
-
-      if (account.length === 0) {
-        return Response.json(
-          { error: 'Account not found' },
-          { status: 404 }
-        );
-      }
+          .limit(1)
+          .then(result => ({ type: 'account', found: result.length > 0 }))
+      );
     }
 
-    // Validate debt if provided
     if (debtId) {
-      const debt = await db
-        .select()
-        .from(debts)
-        .where(
-          and(
-            eq(debts.id, debtId),
-            eq(debts.userId, userId)
+      validationPromises.push(
+        db
+          .select()
+          .from(debts)
+          .where(
+            and(
+              eq(debts.id, debtId),
+              eq(debts.userId, userId)
+            )
           )
-        )
-        .limit(1);
+          .limit(1)
+          .then(result => ({ type: 'debt', found: result.length > 0 }))
+      );
+    }
 
-      if (debt.length === 0) {
-        return Response.json(
-          { error: 'Debt not found' },
-          { status: 404 }
-        );
+    // Execute all validation queries in parallel
+    if (validationPromises.length > 0) {
+      const validationResults = await Promise.all(validationPromises);
+      for (const result of validationResults) {
+        if (!result.found) {
+          return Response.json(
+            { error: `${result.type.charAt(0).toUpperCase() + result.type.slice(1)} not found` },
+            { status: 404 }
+          );
+        }
       }
     }
 
     const billId = nanoid();
+    const parsedExpectedAmount = parseFloat(expectedAmount);
 
-    // Create the bill
-    const newBill = await db.insert(bills).values({
+    // Prepare bill data
+    const billData = {
       id: billId,
       userId,
       name,
       categoryId,
       debtId,
-      expectedAmount: parseFloat(expectedAmount),
+      expectedAmount: parsedExpectedAmount,
       dueDate,
       frequency,
       isVariableAmount,
@@ -241,12 +243,7 @@ export async function POST(request: Request) {
       accountId,
       autoMarkPaid,
       notes,
-    });
-
-    // Create initial bill instances based on frequency
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
+    };
 
     // Determine how many instances to create and month increment
     let instanceCount = 3;
@@ -271,6 +268,12 @@ export async function POST(request: Request) {
         break;
     }
 
+    // Prepare all bill instances data for batch insert
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    const instancesData = [];
+
     for (let i = 0; i < instanceCount; i++) {
       const monthsToAdd = i * monthIncrement;
       let month = (currentMonth + monthsToAdd) % 12;
@@ -282,39 +285,26 @@ export async function POST(request: Request) {
         .toISOString()
         .split('T')[0];
 
-      await db.insert(billInstances).values({
+      instancesData.push({
         id: nanoid(),
         userId,
         billId,
         dueDate: dueDateString,
-        expectedAmount: parseFloat(expectedAmount),
-        status: 'pending',
+        expectedAmount: parsedExpectedAmount,
+        status: 'pending' as const,
       });
     }
 
-    // Fetch and return created bill with instances
-    const createdBill = await db
-      .select()
-      .from(bills)
-      .where(eq(bills.id, billId))
-      .limit(1);
+    // Execute bill and instances creation in parallel
+    await Promise.all([
+      db.insert(bills).values(billData),
+      db.insert(billInstances).values(instancesData),
+    ]);
 
-    const billInstancesList = await db
-      .select()
-      .from(billInstances)
-      .where(eq(billInstances.billId, billId))
-      .orderBy(billInstances.dueDate);
-
-    if (!createdBill || createdBill.length === 0) {
-      return Response.json(
-        { error: 'Failed to retrieve created bill' },
-        { status: 500 }
-      );
-    }
-
+    // Return the bill data directly without re-fetching from database
     return Response.json({
-      bill: createdBill[0],
-      instances: billInstancesList || [],
+      bill: billData,
+      instances: instancesData,
     });
   } catch (error) {
     console.error('Error creating bill:', error);

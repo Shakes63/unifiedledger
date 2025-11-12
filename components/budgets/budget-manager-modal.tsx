@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import Decimal from 'decimal.js';
 import { toast } from 'sonner';
@@ -210,6 +211,9 @@ export function BudgetManagerModal({
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Set Monthly Budgets</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Configure budget amounts for your income, expenses, bills, and savings categories. Changes will apply to the current month.
+          </DialogDescription>
         </DialogHeader>
 
         {loading ? (

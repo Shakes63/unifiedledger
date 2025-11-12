@@ -143,15 +143,15 @@ export function BudgetAnalyticsChart({ data, height = 350 }: BudgetAnalyticsChar
 
   if (data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 bg-card border border-border rounded-xl">
+      <div className="flex items-center justify-center bg-card border border-border rounded-xl" style={{ height: `${height}px` }}>
         <p className="text-muted-foreground">No data available</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full" style={{ height: `${height}px` }}>
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full" style={{ height: `${height}px`, minHeight: `${height}px` }}>
+      <ResponsiveContainer width="100%" height={height}>
         <LineChart
           data={data}
           margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
