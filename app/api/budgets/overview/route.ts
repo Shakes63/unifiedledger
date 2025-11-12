@@ -149,11 +149,15 @@ export async function GET(request: Request) {
             status = 'exceeded';
           }
         } else {
-          // For expenses/savings: original logic
-          if (percentage > 100) {
+          // For expenses/savings: check if at or under budget
+          // Use small tolerance for floating point comparison (within $0.01)
+          const isAtBudget = Math.abs(remaining) < 0.01;
+          const isOverBudget = remaining < -0.01; // More than 1 cent over
+
+          if (isOverBudget) {
             status = 'exceeded'; // Over budget (bad)
-          } else if (percentage === 100) {
-            status = 'on_track'; // Exactly on budget (right on target)
+          } else if (isAtBudget) {
+            status = 'on_track'; // At budget (right on target)
           } else if (percentage >= 80) {
             status = 'warning'; // Close to limit
           } else {
