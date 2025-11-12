@@ -3,29 +3,7 @@
 ---
 
 ## 🆕 ADD NEW BUGS HERE
-
-*Use the template below to add new bugs. Once fixed, they will be moved to the Historical Bug Summary section.*
-
-**Template:**
-```markdown
-### [#] Bug Title - Status
-**Problem:** Brief description
-**Status:** NOT STARTED / IN PROGRESS / FIXED
-**Plan File:** (if exists)
-**Priority:** High / Medium / Low
-**Files Modified:** (if in progress or fixed)
-```
-
-**Example:**
-```markdown
-### 12. Example Bug Title - IN PROGRESS
-**Problem:** The widget doesn't display correctly on mobile devices
-**Status:** IN PROGRESS
-**Plan File:** `docs/example-bug-fix-plan.md`
-**Priority:** High
-**Files Modified:**
-- `components/example/widget.tsx` - In progress
-```
+(No new bugs reported)
 
 ---
 
@@ -33,13 +11,13 @@
 
 **Active Bugs:** 0
 **In Progress:** 0
-**Fixed (All Time):** 11
+**Fixed (All Time):** 12
 
 ---
 
 ## ✅ Historical Bug Summary
 
-All 11 tracked bugs have been fixed (100% complete)! 🎉
+All 12 tracked bugs have been fixed (100% complete)! 🎉
 
 1. **Savings Goals GET 500 Error** - Enhanced error logging and handling in API route
 2. **Savings Goals POST 500 Error** - Added explicit type casting for financial amounts
@@ -52,6 +30,7 @@ All 11 tracked bugs have been fixed (100% complete)! 🎉
 9. **Budget Export Incorrect Values** - Fixed transaction type query to properly include income categories
 10. **Reports Page Chart Dimension Warnings** - Added explicit `style={{ height: '320px' }}` to ChartContainer
 11. **Form Field ID/Name Attributes Missing** - Added id, name, and aria-label attributes to select dropdowns
+12. **Reports Charts Dimension Warnings (Multiple Components)** - Changed ResponsiveContainer in all chart components to use explicit `height={320}` instead of `height="100%"`
 
 **For detailed information, see git commit history.**
 

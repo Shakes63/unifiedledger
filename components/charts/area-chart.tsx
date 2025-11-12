@@ -59,7 +59,7 @@ export function AreaChart({
       error={error}
       className={className}
     >
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height={320}>
         <RechartsAreaChart data={data} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
           <defs>
             {areas.map((area) => (

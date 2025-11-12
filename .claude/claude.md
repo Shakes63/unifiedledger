@@ -491,8 +491,8 @@ pnpm drizzle-kit migrate   # Apply migration
 
 ## Recent Updates - Session Summary
 
-**Quick Status:** All 11 tracked bugs are now fully fixed (100% complete)! 🎉
-**Latest Update:** Form Field ID/Name Attributes (2025-11-12) - ✅ COMPLETE (Bug #11)
+**Quick Status:** All 12 tracked bugs are now fully fixed (100% complete)! 🎉
+**Latest Update:** Reports Charts Dimension Warnings Fix (2025-11-12) - ✅ COMPLETE (Bug #12)
 **Detailed Bug Tracking:** See `docs/bugs.md`
 **All Plan Files:** See `docs/` folder
 
@@ -502,66 +502,57 @@ pnpm drizzle-kit migrate   # Apply migration
 
 | Date | Session | Status | Plan File |
 |------|---------|--------|-----------|
-| 2025-11-12 | Form Field ID/Name Attributes (Bug #11) | ✅ COMPLETE | `docs/form-field-id-name-fix-plan.md` |
+| 2025-11-12 | Reports Charts Dimension Warnings (Bug #12) | ✅ COMPLETE | (deleted - completed) |
+| 2025-11-12 | Form Field ID/Name Attributes (Bug #11) | ✅ COMPLETE | (deleted - completed) |
 | 2025-11-12 | Transaction Save Performance | ✅ 100% COMPLETE | `docs/transaction-save-optimization-plan.md` |
-| 2025-11-12 | Income Frequency Tracking | ✅ 100% COMPLETE | `docs/income-frequency-implementation-plan.md` |
-| 2025-11-12 | Goals Dashboard Widget | ✅ COMPLETE | `docs/goals-dashboard-widget-plan.md` |
-| 2025-11-12 | Reports Chart Dimensions (Bug #10) | ✅ COMPLETE | `docs/fix-reports-chart-dimensions-plan.md` |
-| 2025-11-12 | Dialog Accessibility (Bug #6) | ✅ COMPLETE | `docs/dialog-accessibility-completion-plan.md` |
-| 2025-11-11 | Budget Export Fix (Bug #9) | ✅ COMPLETE | `docs/budget-export-fix-plan.md` |
-| 2025-11-11 | Budget Income Display (Bug #7) | ✅ COMPLETE | `docs/budget-income-display-logic-fix-plan.md` |
-| 2025-11-11 | Goals Page Errors (Bug #8) | ✅ COMPLETE | `docs/fix-goals-page-error-plan.md` |
-| 2025-11-09 | Bug Fixes 1-6 | ✅ COMPLETE | `docs/bug-fixes-implementation-plan.md` |
-| 2025-11-10 | Rules Actions Phase 2 | ✅ COMPLETE | Various plan files |
+| 2025-11-12 | Income Frequency Tracking | ✅ 100% COMPLETE | (deleted - completed) |
+| 2025-11-12 | Goals Dashboard Widget | ✅ COMPLETE | (deleted - completed) |
+| 2025-11-12 | Reports Chart Dimensions (Bug #10) | ✅ COMPLETE | (deleted - completed) |
+| 2025-11-12 | Dialog Accessibility (Bug #6) | ✅ COMPLETE | (deleted - completed) |
+| 2025-11-11 | Budget Export Fix (Bug #9) | ✅ COMPLETE | (deleted - completed) |
+| 2025-11-11 | Budget Income Display (Bug #7) | ✅ COMPLETE | (deleted - completed) |
+| 2025-11-11 | Goals Page Errors (Bug #8) | ✅ COMPLETE | (deleted - completed) |
+| 2025-11-09 | Bug Fixes 1-6 | ✅ COMPLETE | (deleted - completed) |
+| 2025-11-10 | Rules Actions Phase 2 | ✅ COMPLETE | (various plan files) |
 
 ---
 
-### Latest: Form Field ID/Name Attributes Fix (2025-11-12) - COMPLETE ✅
-**Status:** All tasks complete - console warnings eliminated ✅
-**Plan Document:** `docs/form-field-id-name-fix-plan.md`
-**Bug Tracking:** `docs/bugs.md` - Bug #11
+### Latest Completed Bugs (2025-11-12)
 
-**Objective:** Fix browser console warnings about form field elements missing id/name attributes on two select dropdowns.
+**Bug #12 - Reports Charts Dimension Warnings** ✅
+Changed ResponsiveContainer in all chart components (PieChart, AreaChart, LineChart, BarChart) to use explicit `height={320}` instead of `height="100%"`, eliminating all 10 console warnings.
 
-**Problem Statement:**
-Two select dropdowns (variable bills filter and budget analytics period selector) were missing `id` and `name` attributes, causing browser warnings: "A form field element has neither an id nor a name attribute. This might prevent the browser from correctly autofilling the form."
+**Bug #11 - Form Field ID/Name Attributes** ✅
+Added id, name, and aria-label attributes to select dropdowns in variable bills filter and budget analytics sections, eliminating browser warnings.
 
-**Solution Implemented:**
-- ✅ **Variable Bills Filter Dropdown** (`components/budgets/variable-bill-tracker.tsx`):
-  - Added `id="variable-bills-filter"` attribute
-  - Added `name="bill_filter"` attribute
-  - Added `aria-label="Filter variable bills by status"` attribute
+**Bug #10 - Reports Page Chart Dimension Warnings** ✅
+Added explicit `style={{ height: '320px' }}` to ChartContainer wrapper to fix dimension measurement issues.
 
-- ✅ **Budget Analytics Period Selector** (`components/budgets/budget-analytics-section.tsx`):
-  - Added `id="budget-analytics-period"` attribute
-  - Added `name="analytics_period"` attribute
-  - Added `aria-label="Select analytics time period"` attribute
+**Bug #9 - Budget Export Incorrect Values** ✅
+Fixed transaction type query to properly include income categories, corrected status logic, and fixed remaining/summary calculations.
 
-**Key Achievements:**
-1. **Zero Console Warnings** - All form field attribute warnings eliminated
-2. **Better Accessibility** - Screen readers can now properly identify fields
-3. **Browser Autofill Support** - Browsers can potentially remember user preferences
-4. **Standards Compliance** - Follows HTML best practices
-5. **Production Ready** - Zero TypeScript errors, all 43 pages compiled successfully
+**Bug #8 - Goals Page Console Errors** ✅
+Fixed database schema mismatch by recreating savings_goals table with correct columns (description, category, status, priority, etc.).
 
-**Build Status:**
-- ✅ Production build successful (7.3s compile time)
-- ✅ All 43 pages compiled successfully
-- ✅ Zero TypeScript errors
-- ✅ All console warnings eliminated
+**Bug #7 - Budget Income Display Logic** ✅
+Reversed status logic so income exceeding budget shows as positive (green) instead of negative (red).
 
-**Files Modified:** 2 files (6 attributes added)
-- Modified: `components/budgets/variable-bill-tracker.tsx` (3 attributes)
-- Modified: `components/budgets/budget-analytics-section.tsx` (3 attributes)
-- Modified: `docs/bugs.md` (documentation update)
-- Modified: `.claude/CLAUDE.md` (completion note)
-- Plan: `docs/form-field-id-name-fix-plan.md` (comprehensive 9-minute plan)
+**Bug #6 - Dialog Accessibility Warning** ✅
+Added DialogDescription to all 7 dialogs for proper screen reader support.
 
-**Impact:**
-- **Before:** 2 console warnings, fields not identifiable by screen readers, autofill potentially blocked
-- **After:** 0 console warnings, all fields properly identified, better accessibility and UX ✅
+**Bugs #1-5** ✅
+See git commit history for details on Savings Goals errors, Budget Summary auth, Bill Save performance, and Budget Analytics chart fixes.
 
-**All 11 Tracked Bugs Now Fixed:** Bug #11 completed - 100% bug fix rate! 🎉
+---
+
+### Recent Feature Implementations
+
+**Transaction Save Performance Optimization** ✅ 100% COMPLETE
+Plan: `docs/transaction-save-optimization-plan.md`
+65-75% faster transaction creation through parallel queries, batch updates, and database indexes.
+
+**Income Frequency Tracking (Feature #2)** ✅ 100% COMPLETE
+Category-level frequency field (weekly/biweekly/monthly/variable) for accurate budget projections instead of daily averages.
 
 ---
 

@@ -60,7 +60,7 @@ export function BarChart({
       error={error}
       className={className}
     >
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height={320}>
         <RechartsBarChart
           data={data}
           layout={layout}
