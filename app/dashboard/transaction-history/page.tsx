@@ -1,4 +1,5 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/better-auth';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,9 +11,11 @@ export const metadata = {
 };
 
 export default async function TransactionHistoryPage() {
-  const { userId } = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-  if (!userId) {
+  if (!session) {
     redirect('/sign-in');
   }
 

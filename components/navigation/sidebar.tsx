@@ -24,7 +24,7 @@ import {
 import Image from 'next/image';
 import { HouseholdSelector } from '@/components/household/household-selector';
 import { Button } from '@/components/ui/button';
-import { UserButton } from '@clerk/nextjs';
+import { UserMenu } from '@/components/auth/user-menu';
 import { useNavigation } from '@/context/navigation-context';
 
 interface NavItem {
@@ -242,7 +242,7 @@ export function Sidebar() {
       {/* Footer Section */}
       <div className="p-4 border-t border-border space-y-2">
         <div className="px-3 py-2 flex items-center justify-center">
-          <UserButton />
+          <UserMenu />
         </div>
       </div>
     </aside>

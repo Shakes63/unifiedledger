@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactionTags, tags, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -9,14 +9,7 @@ export const dynamic = 'force-dynamic';
 // POST - Add a tag to a transaction
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const { transactionId, tagId } = body;
@@ -120,14 +113,7 @@ export async function POST(request: Request) {
 // DELETE - Remove a tag from a transaction
 export async function DELETE(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const { transactionId, tagId } = body;

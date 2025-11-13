@@ -23,7 +23,7 @@ import {
 import Image from 'next/image';
 import { HouseholdSelector } from '@/components/household/household-selector';
 import { Button } from '@/components/ui/button';
-import { UserButton } from '@clerk/nextjs';
+import { UserMenu } from '@/components/auth/user-menu';
 
 interface NavItem {
   label: string;
@@ -118,7 +118,7 @@ export function MobileNav() {
           </Link>
 
           <div className="flex items-center gap-3">
-            <UserButton />
+            <UserMenu />
             <Button
               variant="ghost"
               size="icon"

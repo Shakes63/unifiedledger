@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { betterAuthClient } from '@/lib/better-auth-client';
 import { useOnlineStatus } from './useOnlineStatus';
 import { offlineTransactionQueue, OfflineTransaction } from '@/lib/offline/transaction-queue';
 import { nanoid } from 'nanoid';
@@ -10,16 +10,18 @@ import { nanoid } from 'nanoid';
  * Returns functions for submitting transactions that work offline
  */
 export function useOfflineTransaction() {
-  const { userId } = useAuth();
+  const { data: session } = betterAuthClient.useSession();
   const { isOnline } = useOnlineStatus();
 
   /**
    * Submit a transaction, queuing it offline if necessary
    */
   const submitTransaction = async (formData: Record<string, any>) => {
-    if (!userId) {
+    if (!session?.user?.id) {
       throw new Error('User not authenticated');
     }
+
+    const userId = session.user.id;
 
     if (isOnline) {
       // Submit directly to server

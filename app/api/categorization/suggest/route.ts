@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { merchants, transactions, budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -13,14 +13,7 @@ interface CategorizationSuggestion {
 
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const url = new URL(request.url);
     const description = url.searchParams.get('description');

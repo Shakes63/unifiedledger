@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 import { NavigationProvider } from "@/context/navigation-context";
 import { PerformanceProvider } from "@/components/providers/performance-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -45,36 +44,34 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <NavigationProvider>
-        <PerformanceProvider>
-          <html
-            lang="en"
-            className="dark overflow-x-hidden"
-            suppressHydrationWarning
-            style={{ maxWidth: '100vw', width: '100%' }}
-            data-theme={DEFAULT_THEME_ID}
+    <NavigationProvider>
+      <PerformanceProvider>
+        <html
+          lang="en"
+          className="dark overflow-x-hidden"
+          suppressHydrationWarning
+          style={{ maxWidth: '100vw', width: '100%' }}
+          data-theme={DEFAULT_THEME_ID}
+        >
+          <head>
+            <meta name="mobile-web-app-capable" content="yes" />
+            <meta name="apple-mobile-web-app-capable" content="yes" />
+            <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+            <meta name="apple-mobile-web-app-title" content="Unified Ledger" />
+            <meta name="theme-color" content="#0a0a0a" />
+          </head>
+          <body
+            className={`${inter.variable} ${jetbrainsMono.variable} antialiased text-white overflow-x-hidden w-full`}
+            style={{ maxWidth: '100vw', position: 'relative' }}
           >
-            <head>
-              <meta name="mobile-web-app-capable" content="yes" />
-              <meta name="apple-mobile-web-app-capable" content="yes" />
-              <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-              <meta name="apple-mobile-web-app-title" content="Unified Ledger" />
-              <meta name="theme-color" content="#0a0a0a" />
-            </head>
-            <body
-              className={`${inter.variable} ${jetbrainsMono.variable} antialiased text-white overflow-x-hidden w-full`}
-              style={{ maxWidth: '100vw', position: 'relative' }}
-            >
-              <ThemeProvider>
-                <div className="w-full max-w-full overflow-x-hidden">
-                  {children}
-                </div>
-              </ThemeProvider>
-            </body>
-          </html>
-        </PerformanceProvider>
-      </NavigationProvider>
-    </ClerkProvider>
+            <ThemeProvider>
+              <div className="w-full max-w-full overflow-x-hidden">
+                {children}
+              </div>
+            </ThemeProvider>
+          </body>
+        </html>
+      </PerformanceProvider>
+    </NavigationProvider>
   );
 }

@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { merchants, usageAnalytics, budgetCategories } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -14,14 +14,7 @@ interface Suggestion {
 
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const url = new URL(request.url);
     const query = url.searchParams.get('q');

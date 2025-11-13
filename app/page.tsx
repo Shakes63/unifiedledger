@@ -1,13 +1,16 @@
 import { redirect } from 'next/navigation';
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@/lib/better-auth';
+import { headers } from 'next/headers';
 import Image from 'next/image';
 import { DollarSign, BarChart3, Target } from 'lucide-react';
 
 export default async function Home() {
-  const { userId } = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
   // Redirect authenticated users to dashboard
-  if (userId) {
+  if (session) {
     redirect('/dashboard');
   }
 

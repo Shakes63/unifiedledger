@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { getOrCreatePreferences, updatePreferences } from '@/lib/notifications/notification-service';
 
 export const dynamic = 'force-dynamic';
@@ -6,14 +6,7 @@ export const dynamic = 'force-dynamic';
 // GET - Get user's notification preferences
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const preferences = await getOrCreatePreferences(userId);
 
@@ -30,14 +23,7 @@ export async function GET(request: Request) {
 // PATCH - Update user's notification preferences
 export async function PATCH(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
 
