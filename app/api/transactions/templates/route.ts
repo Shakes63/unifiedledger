@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactionTemplates, accounts, budgetCategories } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -9,14 +9,7 @@ export const dynamic = 'force-dynamic';
 // GET - List all transaction templates
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '50');
@@ -32,6 +25,9 @@ export async function GET(request: Request) {
 
     return Response.json(templates);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Template fetch error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -43,14 +39,7 @@ export async function GET(request: Request) {
 // POST - Create a new transaction template
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const {
@@ -137,6 +126,9 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Template creation error:', error);
     return Response.json(
       { error: 'Internal server error' },

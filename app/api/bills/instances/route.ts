@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { billInstances, bills } from '@/lib/db/schema';
 import { eq, and, desc, inArray, lt } from 'drizzle-orm';
@@ -9,14 +9,7 @@ export const dynamic = 'force-dynamic';
 // GET - List bill instances with filtering
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     // First, update any pending bills that are now overdue
     const today = format(new Date(), 'yyyy-MM-dd');
@@ -79,6 +72,9 @@ export async function GET(request: Request) {
       offset,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching bill instances:', error);
     return Response.json(
       { error: 'Failed to fetch bill instances' },
@@ -90,14 +86,7 @@ export async function GET(request: Request) {
 // POST - Create a bill instance (for manual creation)
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const {
@@ -177,6 +166,9 @@ export async function POST(request: Request) {
 
     return Response.json(createdInstance[0]);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error creating bill instance:', error);
     return Response.json(
       { error: 'Failed to create bill instance' },

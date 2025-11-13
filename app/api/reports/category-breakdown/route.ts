@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import {
   getTransactionsByDateRange,
   getCurrentMonthRange,
@@ -18,11 +18,7 @@ import {
  */
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const period = request.nextUrl.searchParams.get('period') || 'month';
     const txnType = request.nextUrl.searchParams.get('type') || 'expense';
@@ -65,6 +61,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ data, period, type: txnType });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error generating category breakdown report:', error);
     return NextResponse.json(
       { error: 'Failed to generate report' },

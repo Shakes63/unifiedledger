@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { debts, debtPayments } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -22,11 +22,7 @@ const MILESTONES: StreakMilestone[] = [
 
 export async function GET() {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     // 1. Get all active debts to calculate total minimum payment
     const activeDebts = await db
@@ -216,6 +212,9 @@ export async function GET() {
       monthlyQualification: monthlyHistory.slice(-12), // Last 12 months
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Payment streak error:', error);
     return Response.json(
       { error: 'Failed to calculate payment streak' },

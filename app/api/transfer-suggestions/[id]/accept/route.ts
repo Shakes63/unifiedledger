@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transferSuggestions, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -14,10 +14,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const { id: suggestionId } = await params;
 
@@ -121,6 +118,9 @@ export async function POST(
       transferId,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error accepting transfer suggestion:', error);
     return NextResponse.json(
       { error: 'Failed to accept suggestion' },

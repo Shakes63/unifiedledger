@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { testRule, testRuleOnMultiple } from '@/lib/rules/rule-matcher';
 import { TransactionData } from '@/lib/rules/condition-evaluator';
 export const dynamic = 'force-dynamic';
@@ -8,14 +8,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const { rule, transactions } = body;
@@ -64,6 +57,9 @@ export async function POST(request: Request) {
       results,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Rule test error:', error);
     return Response.json(
       { error: 'Internal server error' },

@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { customFields, customFieldValues } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -11,15 +11,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await requireAuth();
     const { id } = await params;
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     const field = await db
       .select()
@@ -44,6 +37,9 @@ export async function GET(
       options: field[0].options ? JSON.parse(field[0].options) : null,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching custom field:', error);
     return Response.json(
       { error: 'Failed to fetch custom field' },
@@ -58,15 +54,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await requireAuth();
     const { id } = await params;
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     const body = await request.json();
     const {
@@ -151,6 +140,9 @@ export async function PUT(
       options: updated[0].options ? JSON.parse(updated[0].options) : null,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error updating custom field:', error);
     return Response.json(
       { error: 'Failed to update custom field' },
@@ -165,15 +157,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await requireAuth();
     const { id } = await params;
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     // Verify field exists and belongs to user
     const field = await db
@@ -207,6 +192,9 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error deleting custom field:', error);
     return Response.json(
       { error: 'Failed to delete custom field' },

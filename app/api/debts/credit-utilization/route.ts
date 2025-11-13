@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { debts } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
@@ -15,12 +15,8 @@ import {
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
   try {
+    const { userId } = await requireAuth();
     // Get all active credit card debts with credit limits set
     const creditCards = await db
       .select()
@@ -122,6 +118,9 @@ export async function GET(request: Request) {
       { status: 200 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
     console.error('Error fetching credit utilization:', error);
     return new Response(JSON.stringify({ error: 'Failed to fetch credit utilization data' }), {
       status: 500,

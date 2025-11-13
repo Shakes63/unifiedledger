@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactions, transactionSplits, budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -16,14 +16,7 @@ export async function GET(
 ) {
   const { id: transactionId } = await params;
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     // Verify transaction exists and belongs to user
     const transaction = await db
@@ -58,6 +51,9 @@ export async function GET(
 
     return Response.json(splits);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching splits:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -76,14 +72,7 @@ export async function POST(
 ) {
   const { id: transactionId } = await params;
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
     const body = await request.json();
     const {
       categoryId,
@@ -180,6 +169,9 @@ export async function POST(
 
     return Response.json(newSplit[0], { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error creating split:', error);
     return Response.json(
       { error: 'Internal server error' },

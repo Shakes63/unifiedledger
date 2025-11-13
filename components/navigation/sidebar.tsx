@@ -115,12 +115,11 @@ export function Sidebar() {
       <div className="p-4 border-b border-border flex items-center justify-between gap-2 min-w-0">
         {sidebarOpen && (
           <Link href="/dashboard" className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="relative w-8 h-8 flex-shrink-0">
+            <div className="relative w-8 h-8 shrink-0">
               <Image
                 src="/logo.png"
                 alt="UnifiedLedger"
-                width={32}
-                height={32}
+                fill
                 className="object-contain"
               />
             </div>
@@ -138,6 +137,7 @@ export function Sidebar() {
                 width={32}
                 height={32}
                 className="object-contain"
+                style={{ height: 'auto' }}
               />
             </div>
           </Link>
@@ -146,7 +146,7 @@ export function Sidebar() {
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
-          className="text-muted-foreground hover:text-foreground flex-shrink-0"
+          className="text-muted-foreground hover:text-foreground shrink-0"
         >
           <ChevronLeft className={`w-4 h-4 transition-transform ${sidebarOpen ? '' : 'rotate-180'}`} />
         </Button>

@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { accounts, budgetCategories } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -55,14 +55,7 @@ const DEFAULT_CATEGORIES = [
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     // Check if user already has accounts
     const existingAccounts = await db
@@ -116,6 +109,9 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Initialization error:', error);
     return Response.json(
       { error: 'Internal server error' },

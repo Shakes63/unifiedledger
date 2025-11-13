@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { budgetCategories } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -42,14 +42,7 @@ const DEFAULT_CATEGORIES = [
 
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const userCategories = await db
       .select()
@@ -59,6 +52,9 @@ export async function GET(request: Request) {
 
     return Response.json(userCategories);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Category fetch error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -69,14 +65,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const { name, type, monthlyBudget = 0, dueDate, isTaxDeductible = false, incomeFrequency } = body;
@@ -118,6 +107,9 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Category creation error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -129,14 +121,7 @@ export async function POST(request: Request) {
 // Initialize default categories for new users
 export async function PUT(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     // Check if user already has categories
     const existingCategories = await db
@@ -172,6 +157,9 @@ export async function PUT(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Category initialization error:', error);
     return Response.json(
       { error: 'Internal server error' },

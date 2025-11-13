@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { betterAuthClient } from '@/lib/better-auth-client';
 import { RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { offlineTransactionQueue } from '@/lib/offline/transaction-queue';
 import { syncPendingTransactions, getSyncStatus, SyncSummary } from '@/lib/offline/offline-sync';
@@ -12,7 +12,8 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
  * Shows pending transactions and sync progress
  */
 export function SyncStatus() {
-  const { userId } = useAuth();
+  const { data: session } = betterAuthClient.useSession();
+  const userId = session?.user?.id;
   const { isOnline } = useOnlineStatus();
   const [syncStatus, setSyncStatus] = useState({
     pending: 0,
@@ -134,7 +135,8 @@ export function SyncStatus() {
  * Shows list of pending/synced transactions
  */
 export function PendingTransactionsList() {
-  const { userId } = useAuth();
+  const { data: session } = betterAuthClient.useSession();
+  const userId = session?.user?.id;
   const [transactions, setTransactions] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 

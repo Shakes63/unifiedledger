@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { getUserPermissions, isMemberOfHousehold } from '@/lib/household/permissions';
 
 export const dynamic = 'force-dynamic';
@@ -8,11 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ householdId: string }> }
 ) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const { householdId } = await params;
 
@@ -29,6 +25,9 @@ export async function GET(
 
     return Response.json(permissions);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching permissions:', error);
     return Response.json(
       { error: 'Internal server error' },

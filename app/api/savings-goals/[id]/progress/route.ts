@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { savingsGoals, savingsMilestones } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -7,12 +7,8 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
   try {
+    const { userId } = await requireAuth();
     const { id } = await params;
     const body = await request.json();
     const { currentAmount, increment } = body;
@@ -83,6 +79,9 @@ export async function PUT(
       { status: 200 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error updating savings goal progress:', error);
     return new Response(JSON.stringify({ error: 'Failed to update progress' }), { status: 500 });
   }

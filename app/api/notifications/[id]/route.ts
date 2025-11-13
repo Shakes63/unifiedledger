@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { notifications } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -12,15 +12,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await requireAuth();
     const { id } = await params;
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     const notification = await db
       .select()
@@ -42,6 +35,9 @@ export async function GET(
 
     return Response.json(notification[0]);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching notification:', error);
     return Response.json(
       { error: 'Failed to fetch notification' },
@@ -56,15 +52,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await requireAuth();
     const { id } = await params;
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     const body = await request.json();
     const { isRead, isDismissed } = body;
@@ -104,6 +93,9 @@ export async function PATCH(
 
     return Response.json(updated[0]);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error updating notification:', error);
     return Response.json(
       { error: 'Failed to update notification' },
@@ -118,15 +110,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await requireAuth();
     const { id } = await params;
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     // Verify notification exists and belongs to user
     const notification = await db
@@ -156,6 +141,9 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error deleting notification:', error);
     return Response.json(
       { error: 'Failed to delete notification' },

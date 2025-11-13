@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import {
   getTransactionsByDateRange,
   getCurrentMonthRange,
@@ -19,11 +19,7 @@ import { eq } from 'drizzle-orm';
  */
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const period = request.nextUrl.searchParams.get('period') || 'month';
     const limit = parseInt(request.nextUrl.searchParams.get('limit') || '10', 10);
@@ -81,6 +77,9 @@ export async function GET(request: NextRequest) {
       period,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error generating merchant analysis report:', error);
     return NextResponse.json(
       { error: 'Failed to generate report' },

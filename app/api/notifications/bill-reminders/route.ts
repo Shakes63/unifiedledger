@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { checkAndCreateBillReminders } from '@/lib/notifications/bill-reminders';
 
 export const dynamic = 'force-dynamic';
@@ -24,6 +24,9 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error in bill reminders endpoint:', error);
     return Response.json(
       { error: 'Failed to process bill reminders' },
@@ -37,14 +40,7 @@ export async function POST(request: Request) {
  */
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     // User endpoint - just trigger the global check
     // This would typically be called daily by a cron job
@@ -56,6 +52,9 @@ export async function GET(request: Request) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error checking bill reminders:', error);
     return Response.json(
       { error: 'Failed to check bill reminders' },

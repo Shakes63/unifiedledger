@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactions, transactionTags, tags } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -10,15 +10,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await requireAuth();
     const { id } = await params;
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     // Verify transaction belongs to user
     const transaction = await db
@@ -65,6 +58,9 @@ export async function GET(
 
     return Response.json(txTags);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching transaction tags:', error);
     return Response.json(
       { error: 'Internal server error' },

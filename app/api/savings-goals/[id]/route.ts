@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { savingsGoals, savingsMilestones } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -7,12 +7,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
   try {
+    const { userId } = await requireAuth();
     const { id } = await params;
     const goal = await db
       .select()
@@ -32,6 +28,9 @@ export async function GET(
 
     return new Response(JSON.stringify({ ...goal, milestones }), { status: 200 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching savings goal:', error);
     return new Response(JSON.stringify({ error: 'Failed to fetch savings goal' }), { status: 500 });
   }
@@ -41,12 +40,8 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
   try {
+    const { userId } = await requireAuth();
     const { id } = await params;
     const body = await request.json();
 
@@ -110,6 +105,9 @@ export async function PUT(
 
     return new Response(JSON.stringify(updatedGoal), { status: 200 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error updating savings goal:', error);
     return new Response(JSON.stringify({ error: 'Failed to update savings goal' }), { status: 500 });
   }
@@ -119,12 +117,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
   try {
+    const { userId } = await requireAuth();
     const { id } = await params;
 
     // Verify user owns this goal
@@ -146,6 +140,9 @@ export async function DELETE(
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error deleting savings goal:', error);
     return new Response(JSON.stringify({ error: 'Failed to delete savings goal' }), { status: 500 });
   }

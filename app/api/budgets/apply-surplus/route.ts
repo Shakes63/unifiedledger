@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { debts, debtSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -10,11 +10,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     // 1. Get amount from request
     const body = await request.json();
@@ -124,6 +120,9 @@ export async function POST(request: Request) {
       message: `Successfully applied $${amount.toFixed(2)} to your extra monthly payment`,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Apply surplus error:', error);
     return Response.json(
       { error: 'Failed to apply surplus to debt payments' },

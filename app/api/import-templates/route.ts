@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { importTemplates } from '@/lib/db/schema';
 import { nanoid } from 'nanoid';
@@ -12,11 +12,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const templates = await db
       .select()
@@ -25,6 +21,9 @@ export async function GET() {
 
     return Response.json(templates);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching import templates:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -39,11 +38,7 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
 
@@ -99,6 +94,9 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error creating import template:', error);
     return Response.json(
       { error: 'Internal server error' },

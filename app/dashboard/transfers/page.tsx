@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { betterAuthClient } from '@/lib/better-auth-client';
 import { Button } from '@/components/ui/button';
 import { TransferList } from '@/components/transfers/transfer-list';
 import { QuickTransferModal } from '@/components/transfers/quick-transfer-modal';
@@ -30,14 +30,14 @@ interface Transfer {
 }
 
 export default function TransfersPage() {
-  const { isLoaded } = useAuth();
+  const { data: session, isPending } = betterAuthClient.useSession();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (isPending || !session) return;
 
     const loadData = async () => {
       try {
@@ -60,7 +60,7 @@ export default function TransfersPage() {
     };
 
     loadData();
-  }, [isLoaded]);
+  }, [isPending, session]);
 
   const loadTransfers = async () => {
     try {
@@ -79,7 +79,7 @@ export default function TransfersPage() {
     loadTransfers();
   };
 
-  if (!isLoaded) {
+  if (isPending) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-6 h-6 animate-spin text-blue-400" />

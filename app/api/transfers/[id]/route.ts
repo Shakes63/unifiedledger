@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transfers, accounts, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -16,14 +16,7 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const transfer = await db
       .select()
@@ -63,6 +56,9 @@ export async function GET(
       toAccountName: toAccount[0]?.name,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching transfer:', error);
     return Response.json(
       { error: 'Failed to fetch transfer' },
@@ -82,14 +78,7 @@ export async function PUT(
 ) {
   const { id } = await params;
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const transfer = await db
       .select()
@@ -134,6 +123,9 @@ export async function PUT(
       message: 'Transfer updated successfully',
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error updating transfer:', error);
     return Response.json(
       { error: 'Failed to update transfer' },
@@ -153,14 +145,7 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const transfer = await db
       .select()
@@ -270,6 +255,9 @@ export async function DELETE(
       message: 'Transfer deleted successfully',
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error deleting transfer:', error);
     return Response.json(
       { error: 'Failed to delete transfer' },

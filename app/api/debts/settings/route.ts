@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { debtSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -8,11 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const settings = await db
       .select()
@@ -35,6 +31,9 @@ export async function GET() {
       paymentFrequency: settings[0].paymentFrequency || 'monthly',
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching debt settings:', error);
     return Response.json({ error: 'Failed to fetch settings' }, { status: 500 });
   }
@@ -42,11 +41,7 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const { extraMonthlyPayment, preferredMethod, paymentFrequency } = body;
@@ -89,6 +84,9 @@ export async function PUT(request: Request) {
 
     return Response.json({ success: true });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error saving debt settings:', error);
     return Response.json({ error: 'Failed to save settings' }, { status: 500 });
   }

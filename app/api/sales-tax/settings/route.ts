@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { salesTaxSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -11,10 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export async function GET() {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const settings = await db
       .select()
@@ -34,6 +31,9 @@ export async function GET() {
 
     return NextResponse.json(settings[0]);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error getting sales tax settings:', error);
     return NextResponse.json(
       { error: 'Failed to get settings' },
@@ -48,10 +48,7 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const { defaultRate, jurisdiction, filingFrequency } = body;
@@ -110,6 +107,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(updated);
     }
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error updating sales tax settings:', error);
     return NextResponse.json(
       { error: 'Failed to update settings' },

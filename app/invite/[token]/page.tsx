@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useAuth } from '@clerk/nextjs';
+import { betterAuthClient } from '@/lib/better-auth-client';
 import { Loader2, CheckCircle2, XCircle, LogIn } from 'lucide-react';
 import Link from 'next/link';
 
@@ -19,8 +19,9 @@ interface InvitationData {
 export default function InvitationPage() {
   const router = useRouter();
   const params = useParams();
-  const { userId, isSignedIn } = useAuth();
+  const { data: session, isPending } = betterAuthClient.useSession();
   const token = params.token as string;
+  const isSignedIn = !!session;
 
   const [invitation, setInvitation] = useState<InvitationData | null>(null);
   const [loading, setLoading] = useState(true);

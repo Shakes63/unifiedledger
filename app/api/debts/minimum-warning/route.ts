@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { debts, debtSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -8,11 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     // Fetch user's active debts
     const activeDebts = await db
@@ -103,6 +99,9 @@ export async function GET() {
 
     return Response.json(response);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error calculating minimum payment warning:', error);
     return Response.json({ error: 'Failed to calculate minimum payment warning' }, { status: 500 });
   }

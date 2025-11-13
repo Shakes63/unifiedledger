@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { categorizationRules, budgetCategories, merchants } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -30,14 +30,7 @@ function migrateSalesTaxActions(actions: RuleAction[]): RuleAction[] {
  */
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const url = new URL(request.url);
     const ruleId = url.searchParams.get('id');
@@ -158,6 +151,9 @@ export async function GET(request: Request) {
       return Response.json(rules);
     }
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Rules fetch error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -171,14 +167,7 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const {
@@ -332,6 +321,9 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Rule creation error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -345,14 +337,7 @@ export async function POST(request: Request) {
  */
 export async function PUT(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const {
@@ -536,6 +521,9 @@ export async function PUT(request: Request) {
       message: 'Rule updated successfully',
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Rule update error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -549,14 +537,7 @@ export async function PUT(request: Request) {
  */
 export async function DELETE(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const url = new URL(request.url);
     const ruleId = url.searchParams.get('id');
@@ -596,6 +577,9 @@ export async function DELETE(request: Request) {
       message: 'Rule deleted successfully',
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Rule deletion error:', error);
     return Response.json(
       { error: 'Internal server error' },

@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { NextResponse } from 'next/server';
 import { exportBudgetToCSV, generateExportFilename, BudgetExportOptions } from '@/lib/budgets/budget-export';
 
@@ -18,11 +18,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     // Get query parameters
     const url = new URL(request.url);
@@ -126,6 +122,9 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error exporting budget:', error);
 
     if (error instanceof Error) {

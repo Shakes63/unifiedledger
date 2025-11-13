@@ -3,20 +3,20 @@
 ---
 
 ## 🆕 ADD NEW BUGS HERE
-this error is for the logo in the sidebar: sidebar.tsx:119 Image with src "http://localhost:3000/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+
 ---
 
 ## 📊 Current Status
 
 **Active Bugs:** 0
 **In Progress:** 0
-**Fixed (All Time):** 12
+**Fixed (All Time):** 14
 
 ---
 
 ## ✅ Historical Bug Summary
 
-All 12 tracked bugs have been fixed (100% complete)! 🎉
+All 14 tracked bugs have been fixed (100% complete)! 🎉
 
 1. **Savings Goals GET 500 Error** - Enhanced error logging and handling in API route
 2. **Savings Goals POST 500 Error** - Added explicit type casting for financial amounts
@@ -30,6 +30,8 @@ All 12 tracked bugs have been fixed (100% complete)! 🎉
 10. **Reports Page Chart Dimension Warnings** - Added explicit `style={{ height: '320px' }}` to ChartContainer
 11. **Form Field ID/Name Attributes Missing** - Added id, name, and aria-label attributes to select dropdowns
 12. **Reports Charts Dimension Warnings (Multiple Components)** - Changed ResponsiveContainer in all chart components to use explicit `height={320}` instead of `height="100%"`
+13. **Image Aspect Ratio Warning** - Added explicit `style={{ height: 'auto' }}` to both logo Image components in sidebar for proper aspect ratio maintenance
+14. **Clerk Redirect URL Deprecation** - Updated environment variables from deprecated `AFTER_SIGN_IN_URL` to new `SIGN_IN_FALLBACK_REDIRECT_URL` for better redirect handling and to eliminate deprecation warnings
 
 **For detailed information, see git commit history.**
 
@@ -39,8 +41,6 @@ All 12 tracked bugs have been fixed (100% complete)! 🎉
 
 These are minor warnings/deprecations that don't affect functionality:
 
-1. **Clerk Deprecation:** `afterSignInUrl` prop deprecated → Use `fallbackRedirectUrl` or `forceRedirectUrl` instead
-2. **Image Aspect Ratio:** sidebar.tsx:119 - Image with src has width or height modified without auto
-3. **Middleware Convention:** Next.js deprecation warning - "middleware" file convention should use "proxy" instead
+1. **Middleware Convention:** Next.js deprecation warning - "middleware" file convention should use "proxy" instead
 
 **Note:** These don't require immediate action but can be addressed as polish improvements.

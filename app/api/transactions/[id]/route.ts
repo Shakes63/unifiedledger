@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactions, accounts, budgetCategories, transactionSplits, bills, billInstances, merchants, debts, tags, transactionTags, customFields, customFieldValues } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -12,15 +12,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await requireAuth();
     const { id } = await params;
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     const transaction = await db
       .select()
@@ -106,6 +99,9 @@ export async function GET(
 
     return Response.json(enrichedTransaction);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Transaction fetch error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -119,15 +115,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await requireAuth();
     const { id } = await params;
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     // Get existing transaction
     const existingTransaction = await db
@@ -390,6 +379,9 @@ export async function PUT(
       { status: 200 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Transaction update error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -403,15 +395,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await requireAuth();
     const { id } = await params;
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     // Get transaction to verify ownership and get details
     const existingTransaction = await db
@@ -613,6 +598,9 @@ export async function DELETE(
       { status: 200 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Transaction delete error:', error);
     return Response.json(
       { error: 'Internal server error' },

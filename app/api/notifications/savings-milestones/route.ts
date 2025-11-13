@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth, getAuthUser } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { savingsGoals } from '@/lib/db/schema';
 import { checkAndCreateSavingsMilestoneNotifications } from '@/lib/notifications/savings-milestones';
@@ -6,7 +6,8 @@ import { checkAndCreateSavingsMilestoneNotifications } from '@/lib/notifications
 export async function POST(request: Request) {
   // For cron jobs, we might not have auth context
   // In that case, check for a cron secret header
-  const { userId } = await auth();
+  const user = await getAuthUser();
+  const userId = user?.userId;
 
   const authHeader = request.headers.get('Authorization');
   const isCronJob = authHeader === `Bearer ${process.env.CRON_SECRET}`;
@@ -52,6 +53,9 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
     console.error('Error checking savings milestones:', error);
     return new Response(
       JSON.stringify({ error: 'Failed to check savings milestones' }),
@@ -61,12 +65,8 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
   try {
+    const { userId } = await requireAuth();
     // Get stats for current user
     const { getSavingsMilestoneStats } = await import(
       '@/lib/notifications/savings-milestones'
@@ -74,6 +74,9 @@ export async function GET(request: Request) {
     const stats = await getSavingsMilestoneStats(userId);
     return new Response(JSON.stringify(stats), { status: 200 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
     console.error('Error getting milestone stats:', error);
     return new Response(
       JSON.stringify({ error: 'Failed to get milestone stats' }),

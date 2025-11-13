@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories, merchants, ruleExecutionLog } from '@/lib/db/schema';
 import { eq, and, isNull, ne, gte, lte } from 'drizzle-orm';
@@ -36,14 +36,7 @@ interface BulkApplyResult {
  */
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const url = new URL(request.url);
     const ruleId = url.searchParams.get('ruleId');
@@ -312,6 +305,9 @@ export async function POST(request: Request) {
 
     return Response.json(result);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Bulk rule application error:', error);
     return Response.json(
       { error: 'Internal server error' },

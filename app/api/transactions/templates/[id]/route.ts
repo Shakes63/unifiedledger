@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactionTemplates, budgetCategories, accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -11,15 +11,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await requireAuth();
     const { id } = await params;
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     const template = await db
       .select()
@@ -41,6 +34,9 @@ export async function GET(
 
     return Response.json(template[0]);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Template fetch error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -55,15 +51,8 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await requireAuth();
     const { id } = await params;
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     // Verify template belongs to user
     const existing = await db
@@ -164,6 +153,9 @@ export async function PUT(
       message: 'Template updated successfully',
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Template update error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -178,15 +170,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
+    const { userId } = await requireAuth();
     const { id } = await params;
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
 
     // Verify template belongs to user
     const existing = await db
@@ -221,6 +206,9 @@ export async function DELETE(
       message: 'Template deleted successfully',
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Template deletion error:', error);
     return Response.json(
       { error: 'Internal server error' },

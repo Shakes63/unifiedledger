@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import { betterAuthClient } from '@/lib/better-auth-client';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { CalendarHeader } from '@/components/calendar/calendar-header';
 import { CalendarMonth } from '@/components/calendar/calendar-month';
@@ -36,7 +36,7 @@ interface Bill {
 }
 
 export default function CalendarPage() {
-  const { isLoaded } = useAuth();
+  const { data: session, isPending } = betterAuthClient.useSession();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [daySummaries, setDaySummaries] = useState<
@@ -52,7 +52,7 @@ export default function CalendarPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    if (isPending || !session) return;
 
     const loadCalendarData = async () => {
       try {
@@ -78,7 +78,7 @@ export default function CalendarPage() {
     };
 
     loadCalendarData();
-  }, [isLoaded, currentDate]);
+  }, [isPending, session, currentDate]);
 
   const handleDayClick = async (date: Date) => {
     try {
@@ -104,7 +104,7 @@ export default function CalendarPage() {
     }
   };
 
-  if (!isLoaded) {
+  if (isPending) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-6 h-6 animate-spin text-[var(--color-primary)]" />

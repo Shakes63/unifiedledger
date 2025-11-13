@@ -1,16 +1,12 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { debts, debtPayoffMilestones, budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
   try {
+    const { userId } = await requireAuth();
     const url = new URL(request.url);
     const status = url.searchParams.get('status');
 
@@ -27,18 +23,17 @@ export async function GET(request: Request) {
 
     return new Response(JSON.stringify(debtList), { status: 200 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching debts:', error);
     return new Response(JSON.stringify({ error: 'Failed to fetch debts' }), { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
   try {
+    const { userId } = await requireAuth();
     const body = await request.json();
     const {
       name,
@@ -144,6 +139,9 @@ export async function POST(request: Request) {
 
     return new Response(JSON.stringify(debt[0]), { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error creating debt:', error);
     return new Response(JSON.stringify({ error: 'Failed to create debt' }), { status: 500 });
   }

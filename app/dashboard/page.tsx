@@ -12,10 +12,10 @@ import { DebtCountdownCard } from '@/components/dashboard/debt-countdown-card';
 import { BudgetSurplusCard } from '@/components/dashboard/budget-surplus-card';
 import { BudgetSummaryWidget } from '@/components/dashboard/budget-summary-widget';
 import { CreditUtilizationWidget } from '@/components/debts/credit-utilization-widget';
-import { useAuth } from '@clerk/nextjs';
+import { betterAuthClient } from '@/lib/better-auth-client';
 
 export default function DashboardPage() {
-  const { isLoaded } = useAuth();
+  const { data: session, isPending } = betterAuthClient.useSession();
 
   useEffect(() => {
     // Initialize user on first load
@@ -32,10 +32,10 @@ export default function DashboardPage() {
       }
     };
 
-    if (isLoaded) {
+    if (!isPending && session) {
       initializeUser();
     }
-  }, [isLoaded]);
+  }, [isPending, session]);
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">

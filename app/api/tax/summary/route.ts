@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { getTaxYearSummary, getCurrentTaxYear, estimateQuarterlyTax } from '@/lib/tax/tax-utils';
 
 /**
@@ -10,11 +10,7 @@ import { getTaxYearSummary, getCurrentTaxYear, estimateQuarterlyTax } from '@/li
  */
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const yearParam = request.nextUrl.searchParams.get('year');
     const year = yearParam ? parseInt(yearParam, 10) : getCurrentTaxYear();
@@ -35,6 +31,9 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error generating tax summary:', error);
     return NextResponse.json(
       { error: 'Failed to generate tax summary' },

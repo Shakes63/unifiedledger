@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances, debts, debtPayments, debtPayoffMilestones } from '@/lib/db/schema';
 import { eq, and, desc, asc } from 'drizzle-orm';
@@ -22,14 +22,7 @@ export async function POST(request: Request) {
   const startTime = performance.now();
 
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const {
@@ -963,6 +956,9 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Transaction creation error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -973,14 +969,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '50');
@@ -1021,6 +1010,9 @@ export async function GET(request: Request) {
 
     return Response.json(processedTransactions);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Transaction fetch error:', error);
     return Response.json(
       { error: 'Internal server error' },

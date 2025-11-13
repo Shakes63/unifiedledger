@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { savingsGoals, savingsMilestones } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -6,10 +6,7 @@ import { nanoid } from 'nanoid';
 
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const url = new URL(request.url);
     const status = url.searchParams.get('status');
@@ -28,6 +25,9 @@ export async function GET(request: Request) {
     // Empty array is a successful result
     return new Response(JSON.stringify(goals), { status: 200 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     // Log detailed error information for debugging
     console.error('[Savings Goals GET] Database error occurred:');
     console.error('Error type:', error?.constructor?.name);
@@ -47,10 +47,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
 
@@ -133,6 +130,9 @@ export async function POST(request: Request) {
 
     return new Response(JSON.stringify(goal[0]), { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('[Savings Goals POST] Database error:', error);
     return new Response(
       JSON.stringify({

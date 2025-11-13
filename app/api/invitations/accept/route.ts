@@ -1,6 +1,7 @@
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { householdInvitations, householdMembers } from '@/lib/db/schema';
+import { user as betterAuthUser } from '@/auth-schema';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -8,11 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId, email } = await requireAuth();
 
     const body = await request.json();
     const { token } = body;
@@ -56,12 +53,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get user info from Clerk
-    const clerk = await clerkClient();
-    const user = await clerk.users.getUser(userId);
-    const userName = user.firstName && user.lastName
-      ? `${user.firstName} ${user.lastName}`
-      : user.firstName || user.username || '';
+    // Get user info from Better Auth
+    const user = await db
+      .select()
+      .from(betterAuthUser)
+      .where(eq(betterAuthUser.id, userId))
+      .get();
+
+    const userName = user?.name || '';
 
     // Add user to household
     const memberId = nanoid();
@@ -90,6 +89,9 @@ export async function POST(request: Request) {
       householdId: inv.householdId,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error accepting invitation:', error);
     return Response.json(
       { error: 'Internal server error' },

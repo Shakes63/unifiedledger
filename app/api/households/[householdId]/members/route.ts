@@ -1,6 +1,7 @@
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { householdMembers } from '@/lib/db/schema';
+import { user as betterAuthUser } from '@/auth-schema';
 import { eq, and } from 'drizzle-orm';
 import { hasPermission, isMemberOfHousehold } from '@/lib/household/permissions';
 
@@ -11,11 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ householdId: string }> }
 ) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const { householdId } = await params;
 
@@ -42,17 +39,19 @@ export async function GET(
       .from(householdMembers)
       .where(eq(householdMembers.householdId, householdId));
 
-    // Backfill missing userNames from Clerk
+    // Backfill missing userNames from Better Auth
     const updatedMembers = await Promise.all(
       members.map(async (member) => {
-        // If userName is missing or empty, fetch from Clerk
+        // If userName is missing or empty, fetch from Better Auth
         if (!member.userName || member.userName.trim() === '') {
           try {
-            const clerk = await clerkClient();
-            const user = await clerk.users.getUser(member.userId);
-            const userName = user.firstName && user.lastName
-              ? `${user.firstName} ${user.lastName}`
-              : user.firstName || user.username || '';
+            const user = await db
+              .select()
+              .from(betterAuthUser)
+              .where(eq(betterAuthUser.id, member.userId))
+              .get();
+
+            const userName = user?.name || user?.email || '';
 
             if (userName) {
               // Update in database
@@ -74,6 +73,9 @@ export async function GET(
 
     return Response.json(updatedMembers);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching members:', error);
     return Response.json(
       { error: 'Internal server error' },

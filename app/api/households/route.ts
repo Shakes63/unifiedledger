@@ -1,20 +1,14 @@
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { households, householdMembers } from '@/lib/db/schema';
+import { user as betterAuthUser } from '@/auth-schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     // Get all households the user is a member of
     const result = await db
@@ -30,6 +24,9 @@ export async function GET(request: Request) {
 
     return Response.json(result);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Household fetch error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -40,14 +37,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId, email } = await requireAuth();
 
     const body = await request.json();
     const { name } = body;
@@ -61,13 +51,15 @@ export async function POST(request: Request) {
 
     const householdId = nanoid();
 
-    // Get user info from Clerk
-    const clerk = await clerkClient();
-    const user = await clerk.users.getUser(userId);
-    const userEmail = user.emailAddresses[0]?.emailAddress || '';
-    const userName = user.firstName && user.lastName
-      ? `${user.firstName} ${user.lastName}`
-      : user.firstName || user.username || '';
+    // Get user info from Better Auth
+    const user = await db
+      .select()
+      .from(betterAuthUser)
+      .where(eq(betterAuthUser.id, userId))
+      .get();
+
+    const userEmail = user?.email || email || '';
+    const userName = user?.name || '';
 
     // Create household
     await db.insert(households).values({
@@ -98,6 +90,9 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Household creation error:', error);
     return Response.json(
       { error: 'Internal server error' },

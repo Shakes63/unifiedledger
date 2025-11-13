@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { savedSearchFilters } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -19,14 +19,7 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const search = await db
       .select()
@@ -51,6 +44,9 @@ export async function GET(
       filters: JSON.parse(search[0].filters),
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching saved search:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -66,14 +62,7 @@ export async function PUT(
 ) {
   const { id } = await params;
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body: UpdateSearchInput = await request.json();
     const { name, description, filters, isDefault } = body;
@@ -126,6 +115,9 @@ export async function PUT(
 
     return Response.json({ message: 'Saved search updated successfully' });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error updating saved search:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -141,14 +133,7 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     // Verify search belongs to user before deleting
     const existing = await db
@@ -175,6 +160,9 @@ export async function DELETE(
 
     return Response.json({ message: 'Saved search deleted successfully' });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error deleting saved search:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -190,14 +178,7 @@ export async function POST(
 ) {
   const { id } = await params;
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const existing = await db
       .select()
@@ -239,6 +220,9 @@ export async function POST(
       filters: JSON.parse(updated[0].filters),
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error using saved search:', error);
     return Response.json(
       { error: 'Internal server error' },

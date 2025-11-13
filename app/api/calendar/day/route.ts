@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories, billInstances, bills, accounts, merchants } from '@/lib/db/schema';
 import { eq, and, lt } from 'drizzle-orm';
@@ -13,14 +13,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const { searchParams } = new URL(request.url);
     const dateStr = searchParams.get('date');
@@ -203,6 +196,9 @@ export async function GET(request: Request) {
       summary,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching calendar day data:', error);
     return Response.json(
       { error: 'Failed to fetch day details' },

@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { debts, debtPayments } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -17,13 +17,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-      });
-    }
+    const { userId } = await requireAuth();
 
     // Get all active debts for the user
     const userDebts = await db
@@ -193,6 +187,12 @@ export async function GET(request: Request) {
       }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401 }
+      );
+    }
     console.error('Error fetching debt reduction chart:', error);
     return new Response(
       JSON.stringify({

@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { householdInvitations } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -7,11 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const { token } = body;
@@ -57,6 +53,9 @@ export async function POST(request: Request) {
 
     return Response.json({ message: 'Invitation declined successfully' });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error declining invitation:', error);
     return Response.json(
       { error: 'Internal server error' },

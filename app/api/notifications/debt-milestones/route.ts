@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth, getAuthUser } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { debts } from '@/lib/db/schema';
 import { checkAndCreateDebtPayoffMilestoneNotifications } from '@/lib/notifications/debt-milestones';
@@ -7,7 +7,8 @@ import { sql } from 'drizzle-orm';
 export async function POST(request: Request) {
   // For cron jobs, we might not have auth context
   // In that case, check for a cron secret header
-  const { userId } = await auth();
+  const user = await getAuthUser();
+  const userId = user?.userId;
 
   const authHeader = request.headers.get('Authorization');
   const isCronJob = authHeader === `Bearer ${process.env.CRON_SECRET}`;
@@ -53,6 +54,9 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
     console.error('Error checking debt payoff milestones:', error);
     return new Response(
       JSON.stringify({ error: 'Failed to check debt payoff milestones' }),
@@ -62,12 +66,8 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
   try {
+    const { userId } = await requireAuth();
     // Get stats for current user
     const { getDebtPayoffMilestoneStats } = await import(
       '@/lib/notifications/debt-milestones'
@@ -75,6 +75,9 @@ export async function GET(request: Request) {
     const stats = await getDebtPayoffMilestoneStats(userId);
     return new Response(JSON.stringify(stats), { status: 200 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
     console.error('Error getting debt milestone stats:', error);
     return new Response(
       JSON.stringify({ error: 'Failed to get debt milestone stats' }),

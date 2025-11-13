@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactions, searchHistory, transactionTags, customFieldValues } from '@/lib/db/schema';
 import { eq, and, or, gte, lte, like, inArray, sql } from 'drizzle-orm';
@@ -27,14 +27,7 @@ interface SearchFilters {
 export async function GET(request: Request) {
   try {
     const startTime = performance.now();
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     // Parse query parameters
     const url = new URL(request.url);
@@ -244,6 +237,9 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Transaction search error:', error);
     return Response.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },

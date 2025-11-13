@@ -7,7 +7,7 @@ A comprehensive mobile-first personal finance application built with Next.js, fe
 - **Framework:** Next.js 16 (App Router) + React 19 + TypeScript 5.9
 - **Styling:** Tailwind CSS v4 + shadcn/ui (17 components)
 - **Database:** SQLite with Drizzle ORM
-- **Authentication:** Clerk
+- **Authentication:** Better Auth (migrating from Clerk - 85% complete, backend fully migrated)
 - **Package Manager:** pnpm
 - **PWA:** next-pwa (temporarily disabled - awaiting Next.js 16 Turbopack support)
 
@@ -264,7 +264,9 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ All 12 tracked bugs fixed (100%)
 
 ## Next Steps
-1. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
-2. Docker configuration for deployment
-3. Performance optimizations as needed
-4. User feedback and iterations
+1. ⏳ **Authentication Migration (85% complete)** - Complete Clerk → Better Auth migration (see `docs/CLERK-TO-BETTER-AUTH-COMPLETE-SWITCHOVER-PLAN.md`)
+   - Remaining: Navigation components, auth pages, layout, testing, cleanup
+2. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
+3. Docker configuration for deployment
+4. Performance optimizations as needed
+5. User feedback and iterations

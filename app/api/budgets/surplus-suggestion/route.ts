@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { debts, debtSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -9,11 +9,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     // 1. Fetch budget summary
     const summaryResponse = await fetch(
@@ -148,6 +144,9 @@ export async function GET() {
       frequency: paymentFrequency,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Surplus suggestion error:', error);
     return Response.json(
       { error: 'Failed to calculate surplus suggestion' },

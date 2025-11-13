@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { accounts } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -7,14 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const userAccounts = await db
       .select()
@@ -24,6 +17,9 @@ export async function GET(request: Request) {
 
     return Response.json(userAccounts);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Account fetch error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -34,14 +30,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const {
@@ -92,6 +81,9 @@ export async function POST(request: Request) {
       throw dbError;
     }
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Account creation error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     console.error('Error details:', errorMessage);

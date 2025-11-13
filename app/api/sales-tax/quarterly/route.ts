@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import {
   getYearlyQuarterlyReports,
   getQuarterlyReport,
@@ -18,11 +18,7 @@ import {
  */
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const yearParam = request.nextUrl.searchParams.get('year');
     const quarterParam = request.nextUrl.searchParams.get('quarter');
@@ -103,6 +99,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(summary);
     }
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error getting quarterly reports:', error);
     return NextResponse.json(
       { error: 'Failed to get quarterly reports' },

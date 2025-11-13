@@ -8,7 +8,7 @@
  * @handler GET - Retrieve stored metrics for analysis
  */
 
-import { auth } from "@clerk/nextjs/server";
+import { requireAuth } from "@/lib/auth-helpers";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -37,11 +37,7 @@ const metricsStore = new Map<
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const { metric, timestamp, url, userAgent } = body;
@@ -73,6 +69,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("[Performance] Error storing metric:", error);
     return NextResponse.json(
       { error: "Failed to store metric" },
@@ -91,11 +90,7 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 500);
@@ -127,6 +122,9 @@ export async function GET(request: NextRequest) {
       limit,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("[Performance] Error retrieving metrics:", error);
     return NextResponse.json(
       { error: "Failed to retrieve metrics" },

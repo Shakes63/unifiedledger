@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories } from '@/lib/db/schema';
 import { eq, and, gte, lte, sum } from 'drizzle-orm';
@@ -60,11 +60,7 @@ function calculateIncomeProjection(
 
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     // Get month parameter from query string (default to current month)
     const url = new URL(request.url);
@@ -368,6 +364,9 @@ export async function GET(request: Request) {
       groupedCategories,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Budget overview error:', error);
     return Response.json(
       { error: 'Failed to fetch budget overview' },

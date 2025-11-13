@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { salesTaxCategories } from '@/lib/db/schema';
 import { eq, and, desc, asc } from 'drizzle-orm';
@@ -12,11 +12,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     // Fetch active tax categories, sorted by default first, then by name
     const categories = await db
@@ -35,6 +31,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ categories });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Failed to fetch sales tax categories:', error);
     return NextResponse.json(
       { error: 'Failed to fetch sales tax categories' },
@@ -49,11 +48,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const { name, rate, description, isDefault } = body;
@@ -113,6 +108,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(createdCategory[0], { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Failed to create sales tax category:', error);
     return NextResponse.json(
       { error: 'Failed to create sales tax category' },

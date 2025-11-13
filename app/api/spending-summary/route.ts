@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories } from '@/lib/db/schema';
 import { eq, and, gte, lte, sum, sql, inArray } from 'drizzle-orm';
@@ -27,14 +27,7 @@ interface SpendingSummary {
 
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const url = new URL(request.url);
     const period = url.searchParams.get('period') || 'monthly'; // 'weekly' or 'monthly'
@@ -166,6 +159,9 @@ export async function GET(request: Request) {
 
     return Response.json(summary);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Spending summary error:', error);
     return Response.json(
       { error: 'Failed to generate spending summary' },

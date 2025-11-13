@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { households, householdMembers } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -11,11 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ householdId: string }> }
 ) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const { householdId } = await params;
 
@@ -43,6 +39,9 @@ export async function GET(
 
     return Response.json(household[0]);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching household:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -56,11 +55,7 @@ export async function PUT(
   { params }: { params: Promise<{ householdId: string }> }
 ) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const { householdId } = await params;
     const body = await request.json();
@@ -94,6 +89,9 @@ export async function PUT(
 
     return Response.json(result[0]);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error updating household:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -107,11 +105,7 @@ export async function DELETE(
   { params }: { params: Promise<{ householdId: string }> }
 ) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const { householdId } = await params;
 
@@ -129,6 +123,9 @@ export async function DELETE(
 
     return Response.json({ message: 'Household deleted successfully' });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error deleting household:', error);
     return Response.json(
       { error: 'Internal server error' },

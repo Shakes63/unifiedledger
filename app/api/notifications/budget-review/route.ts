@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { NextResponse } from 'next/server';
 import { generateMonthlyBudgetReview } from '@/lib/notifications/budget-review';
 
@@ -13,11 +13,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     // Get month parameter from query string or default to last month
     const url = new URL(request.url);
@@ -71,6 +67,9 @@ export async function POST(request: Request) {
       message: `Budget review notification created for ${month}`,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error generating budget review:', error);
     return NextResponse.json(
       { error: 'Failed to generate budget review' },

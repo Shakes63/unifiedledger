@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transferSuggestions, transactions, accounts } from '@/lib/db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
@@ -15,10 +15,7 @@ import { eq, and, desc, sql } from 'drizzle-orm';
  */
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const { searchParams } = new URL(request.url);
     const statusParam = searchParams.get('status') || 'pending';
@@ -116,6 +113,9 @@ export async function GET(request: NextRequest) {
       offset,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching transfer suggestions:', error);
     return NextResponse.json(
       { error: 'Failed to fetch suggestions' },

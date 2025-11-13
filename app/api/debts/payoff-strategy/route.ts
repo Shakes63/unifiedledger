@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { debts, debtSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -15,10 +15,7 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const { searchParams } = new URL(request.url);
 
@@ -80,6 +77,9 @@ export async function GET(request: NextRequest) {
     }
 
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error calculating payoff strategy:', error);
     return NextResponse.json(
       { error: 'Failed to calculate payoff strategy' },

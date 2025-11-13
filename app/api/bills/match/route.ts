@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactions, bills, billInstances } from '@/lib/db/schema';
 import { eq, and, desc, gte, lte } from 'drizzle-orm';
@@ -12,14 +12,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const {
@@ -190,6 +183,9 @@ export async function POST(request: Request) {
       })),
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error matching bills:', error);
     return Response.json(
       { error: 'Failed to match bills' },
@@ -203,14 +199,7 @@ export async function POST(request: Request) {
  */
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '20');
@@ -249,6 +238,9 @@ export async function GET(request: Request) {
       })),
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching unmatched transactions:', error);
     return Response.json(
       { error: 'Failed to fetch transactions' },

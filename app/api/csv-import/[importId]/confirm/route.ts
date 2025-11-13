@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import {
   importHistory,
@@ -21,11 +21,7 @@ export async function POST(
   { params }: { params: Promise<{ importId: string }> }
 ) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const { importId } = await params;
     const body = await request.json();
@@ -185,6 +181,9 @@ export async function POST(
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error confirming CSV import:', error);
     return Response.json(
       { error: 'Internal server error' },

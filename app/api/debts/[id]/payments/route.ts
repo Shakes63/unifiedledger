@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { debts, debtPayments, debtPayoffMilestones } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -8,12 +8,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
   try {
+    const { userId } = await requireAuth();
     const { id } = await params;
 
     // Verify user owns this debt
@@ -35,6 +31,9 @@ export async function GET(
 
     return new Response(JSON.stringify(payments), { status: 200 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching debt payments:', error);
     return new Response(JSON.stringify({ error: 'Failed to fetch payments' }), { status: 500 });
   }
@@ -44,12 +43,8 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
   try {
+    const { userId } = await requireAuth();
     const { id } = await params;
     const body = await request.json();
     const { amount, paymentDate, transactionId, notes } = body;
@@ -119,6 +114,9 @@ export async function POST(
 
     return new Response(JSON.stringify(payment), { status: 201 });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error creating debt payment:', error);
     return new Response(JSON.stringify({ error: 'Failed to record payment' }), { status: 500 });
   }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { DebtToIncomeIndicator } from '@/components/budgets/debt-to-income-indicator';
 import { ApplySurplusModal } from '@/components/budgets/apply-surplus-modal';
 import { DollarSign, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
-import { useAuth } from '@clerk/nextjs';
+import { betterAuthClient } from '@/lib/better-auth-client';
 
 interface BudgetSummary {
   monthlyIncome: number;
@@ -27,7 +27,9 @@ interface BudgetSummary {
 }
 
 export function BudgetSurplusCard() {
-  const { isLoaded, isSignedIn } = useAuth();
+  const { data: session, isPending } = betterAuthClient.useSession();
+  const isLoaded = !isPending;
+  const isSignedIn = !!session;
   const [data, setData] = useState<BudgetSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

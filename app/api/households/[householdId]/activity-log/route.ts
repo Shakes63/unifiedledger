@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { householdActivityLog, householdMembers } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -7,12 +7,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ householdId: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
-
   try {
+    const { userId } = await requireAuth();
     const { householdId } = await params;
 
     // Verify user is a member of this household
@@ -79,6 +75,9 @@ export async function GET(
       { status: 200 }
     );
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
     console.error('Error fetching activity log:', error);
     return new Response(JSON.stringify({ error: 'Failed to fetch activity log' }), {
       status: 500,

@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -14,11 +14,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const url = new URL(request.url);
     const month = url.searchParams.get('month');
@@ -48,6 +44,9 @@ export async function GET(request: Request) {
       month: month || new Date().toISOString().slice(0, 7), // YYYY-MM
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Fetch budgets error:', error);
     return Response.json(
       { error: 'Failed to fetch budgets' },
@@ -70,11 +69,7 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const { month, budgets } = body;
@@ -178,6 +173,9 @@ export async function POST(request: Request) {
       categories: updatedCategories,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Update budgets error:', error);
     return Response.json(
       { error: 'Failed to update budgets' },

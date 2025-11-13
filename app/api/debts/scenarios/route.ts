@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { debts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -36,10 +36,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const { scenarios } = body;
@@ -141,6 +138,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(comparison);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error calculating scenarios:', error);
     return NextResponse.json(
       { error: 'Failed to calculate scenarios' },

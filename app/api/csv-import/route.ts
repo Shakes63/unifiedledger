@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { importHistory, importStaging, transactions } from '@/lib/db/schema';
@@ -46,11 +46,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const body = (await request.json()) as CSVImportRequest;
 
@@ -342,6 +338,9 @@ export async function POST(request: NextRequest) {
 
     return Response.json(summary);
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error processing CSV import:', error);
     return Response.json(
       { error: 'Internal server error' },

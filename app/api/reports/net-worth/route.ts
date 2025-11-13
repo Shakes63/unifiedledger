@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { eq, and } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { accounts, transactions } from '@/lib/db/schema';
@@ -14,11 +14,7 @@ import Decimal from 'decimal.js';
  */
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const period = request.nextUrl.searchParams.get('period') || '12months';
 
@@ -123,6 +119,9 @@ export async function GET(request: NextRequest) {
       period,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error generating net worth report:', error);
     return NextResponse.json(
       { error: 'Failed to generate report' },

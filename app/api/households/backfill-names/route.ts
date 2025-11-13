@@ -1,7 +1,8 @@
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { householdMembers } from '@/lib/db/schema';
-import { sql } from 'drizzle-orm';
+import { user as betterAuthUser } from '@/auth-schema';
+import { sql, eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,11 +14,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     // Get all household members without userName
     const membersWithoutName = await db
@@ -32,15 +29,16 @@ export async function POST(request: Request) {
     const errors: string[] = [];
 
     // Update each member
-    const clerk = await clerkClient();
     for (const member of membersWithoutName) {
       try {
-        // Fetch user info from Clerk
-        const user = await clerk.users.getUser(member.userId);
+        // Fetch user info from Better Auth
+        const user = await db
+          .select()
+          .from(betterAuthUser)
+          .where(eq(betterAuthUser.id, member.userId))
+          .get();
 
-        const userName = user.firstName && user.lastName
-          ? `${user.firstName} ${user.lastName}`
-          : user.firstName || user.username || '';
+        const userName = user?.name || user?.email || '';
 
         if (userName) {
           // Update the member
@@ -73,6 +71,9 @@ export async function POST(request: Request) {
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error in backfill-names:', error);
     return Response.json(
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },

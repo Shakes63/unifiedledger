@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactions, merchants, bills, billInstances } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -12,14 +12,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const {
@@ -162,6 +155,9 @@ export async function POST(request: Request) {
       analyzed: relevantTransactions.length,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error detecting bills:', error);
     return Response.json(
       { error: 'Failed to detect bills' },
@@ -175,14 +171,7 @@ export async function POST(request: Request) {
  */
 export async function PUT(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const { bills: billsToCreate } = body;
@@ -255,6 +244,9 @@ export async function PUT(request: Request) {
       billIds: createdBills,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error creating bills:', error);
     return Response.json(
       { error: 'Failed to create bills' },

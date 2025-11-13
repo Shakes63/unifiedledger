@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -22,11 +22,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     const body = await request.json();
     const { fromMonth, toMonth } = body;
@@ -95,6 +91,9 @@ export async function POST(request: Request) {
       note: 'Currently using monthlyBudget field which applies to all months. Historical tracking coming soon.',
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Copy budgets error:', error);
     return Response.json(
       { error: 'Failed to copy budgets' },

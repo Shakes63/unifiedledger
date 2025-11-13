@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { bills, billInstances } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
@@ -160,11 +160,7 @@ function calculateRecommendedBudget(
  */
 export async function GET(request: Request) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     // Get query parameters
     const url = new URL(request.url);
@@ -389,6 +385,9 @@ export async function GET(request: Request) {
       bills: billsData,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Variable bill tracking error:', error);
     return Response.json(
       { error: 'Failed to fetch variable bill data' },
