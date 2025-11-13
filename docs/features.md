@@ -2,6 +2,50 @@
 
 <!-- Add new feature requests below this line -->
 
+## Settings Page - Not Yet Implemented
+
+The following settings exist in the UI but are not fully functional:
+
+### Notifications Tab
+- **Status:** Placeholder only - entire tab shows "Notification settings coming soon..."
+- **Missing:** All notification preference toggles (10 types: bill reminders, budget warnings, low balance, goal milestones, debt payoff, budget reviews, household activity, transfer suggestions, import completion, system updates)
+- **Notes:** NotificationPreferences table exists in schema but no UI implementation
+
+### Profile Tab
+- **Partially Implemented:** Name and email updates work
+- **Not Implemented:**
+  - Display Name field (shows in UI but may not save properly)
+  - Bio field (shows in UI but may not save properly)
+  - Profile picture/avatar upload (no UI for this yet)
+  - Email verification flow
+
+### Data Management Tab
+- **Not Implemented:**
+  - Reset App Data function (shows error "This feature requires backend implementation")
+  - Import preferences/default template selector (not in UI)
+  - Auto-backup settings (not in UI)
+
+### Privacy & Security Tab
+- **Not Implemented:**
+  - Session timeout setting (mentioned in plan but not in UI)
+  - GeoIP location lookup for sessions (shows null)
+
+### Advanced Tab
+- **Partially Implemented:** All toggles save to database
+- **Not Implemented:**
+  - Toggles don't actually affect app behavior yet (except animations)
+  - Developer mode doesn't show IDs/debug info anywhere
+  - Experimental features flag doesn't unlock anything
+
+### General Missing Features
+- Email verification for new accounts
+- Two-factor authentication (2FA)
+- OAuth provider management
+- Scheduled data backups
+- Profile picture upload and storage
+- Session timeout enforcement
+- Advanced permission system (beyond basic roles)
+
 ---
 
 ## Completed Features
