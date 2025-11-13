@@ -19,6 +19,7 @@ import {
   Bell,
   Store,
   Calculator,
+  Settings,
 } from 'lucide-react';
 import Image from 'next/image';
 import { HouseholdSelector } from '@/components/household/household-selector';
@@ -62,8 +63,8 @@ const navSections: NavSection[] = [
       { label: 'Categories', href: '/dashboard/categories', icon: <PieChart className="w-4 h-4" /> },
       { label: 'Merchants', href: '/dashboard/merchants', icon: <Store className="w-4 h-4" /> },
       { label: 'Rules', href: '/dashboard/rules', icon: <AlertCircle className="w-4 h-4" /> },
-      { label: 'Notifications', href: '/dashboard/notifications', icon: <Bell className="w-4 h-4" /> },
       { label: 'Reports', href: '/dashboard/reports', icon: <FileText className="w-4 h-4" /> },
+      { label: 'Settings', href: '/dashboard/settings', icon: <Settings className="w-4 h-4" /> },
     ],
   },
   {

@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Settings, Palette, LogOut } from 'lucide-react';
+import { Settings, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function UserMenu() {
@@ -79,18 +79,11 @@ export function UserMenu() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator className="bg-border" />
         <DropdownMenuItem
-          onClick={() => router.push('/dashboard/settings')}
+          onClick={() => router.push('/dashboard/settings?tab=profile')}
           className="text-foreground hover:bg-elevated cursor-pointer"
         >
           <Settings className="w-4 h-4 mr-2" />
           Settings
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => router.push('/dashboard/theme')}
-          className="text-foreground hover:bg-elevated cursor-pointer"
-        >
-          <Palette className="w-4 h-4 mr-2" />
-          Theme
         </DropdownMenuItem>
         <DropdownMenuSeparator className="bg-border" />
         <DropdownMenuItem

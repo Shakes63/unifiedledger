@@ -639,6 +639,22 @@ export const userSettings = sqliteTable(
       enum: ['small', 'medium', 'large', 'x-large'],
     }).default('medium'),
     theme: text('theme').default('dark-mode'),
+    // Financial Preferences
+    fiscalYearStart: integer('fiscal_year_start').default(1), // 1-12 (January = 1)
+    defaultAccountId: text('default_account_id'),
+    defaultBudgetMethod: text('default_budget_method').default('monthly'), // monthly, zero-based, 50/30/20
+    budgetPeriod: text('budget_period').default('monthly'), // monthly, bi-weekly, weekly
+    showCents: integer('show_cents', { mode: 'boolean' }).default(true),
+    negativeNumberFormat: text('negative_number_format').default('-$100'), // -$100, ($100), $100-
+    defaultTransactionType: text('default_transaction_type').default('expense'), // income, expense, transfer
+    autoCategorization: integer('auto_categorization', { mode: 'boolean' }).default(true),
+    // Privacy & Security
+    sessionTimeout: integer('session_timeout').default(30), // minutes of inactivity
+    dataRetentionYears: integer('data_retention_years').default(7), // years to keep transactions
+    // Advanced
+    developerMode: integer('developer_mode', { mode: 'boolean' }).default(false),
+    enableAnimations: integer('enable_animations', { mode: 'boolean' }).default(true),
+    experimentalFeatures: integer('experimental_features', { mode: 'boolean' }).default(false),
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   }
