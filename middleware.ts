@@ -1,20 +1,12 @@
 // Better Auth middleware for protecting routes
-// Checks for valid session and redirects to sign-in if not authenticated
+// Checks for valid session cookie and redirects to sign-in if not authenticated
 
-import { betterFetch } from "@better-fetch/fetch";
-import type { Session } from "better-auth/types";
 import { NextResponse, type NextRequest } from "next/server";
 
 export default async function middleware(request: NextRequest) {
-  const { data: session } = await betterFetch<Session>(
-    "/api/better-auth/get-session",
-    {
-      baseURL: request.nextUrl.origin,
-      headers: {
-        cookie: request.headers.get("cookie") || "",
-      },
-    }
-  );
+  // Check if Better Auth session cookie exists
+  const sessionCookie = request.cookies.get("better-auth.session_token");
+  const hasSession = !!sessionCookie;
 
   // Define protected routes
   const isProtectedRoute =
@@ -24,14 +16,16 @@ export default async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/budgets") ||
     request.nextUrl.pathname.startsWith("/settings");
 
-  // Redirect to sign-in if accessing protected route without session
-  if (isProtectedRoute && !session) {
-    return NextResponse.redirect(new URL("/sign-in", request.url));
+  // Redirect to sign-in if accessing protected route without session cookie
+  if (isProtectedRoute && !hasSession) {
+    const signInUrl = new URL("/sign-in", request.url);
+    signInUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
+    return NextResponse.redirect(signInUrl);
   }
 
   // Redirect to dashboard if accessing auth pages with active session
   if ((request.nextUrl.pathname.startsWith("/sign-in") ||
-       request.nextUrl.pathname.startsWith("/sign-up")) && session) {
+       request.nextUrl.pathname.startsWith("/sign-up")) && hasSession) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
