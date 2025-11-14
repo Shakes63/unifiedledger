@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ interface HouseholdMember {
   userId: string;
   userName?: string;
   userEmail: string;
+  userAvatarUrl?: string | null;
   role: string;
   joinedAt: string;
 }
@@ -294,13 +296,25 @@ export default function HouseholdManagementPage() {
               key={member.id}
               className="flex items-center justify-between p-4 bg-elevated rounded-lg border border-border"
             >
-              <div className="flex-1">
-                <p className="font-medium text-foreground">
-                  {member.userName || member.userEmail}
-                </p>
-                <p className="text-sm text-[#6b7280]">{member.userEmail}</p>
+              <div className="flex items-center gap-4 flex-1 min-w-0">
+                {/* User Avatar */}
+                <UserAvatar
+                  userId={member.userId}
+                  userName={member.userName || member.userEmail}
+                  avatarUrl={member.userAvatarUrl}
+                  size="md"
+                  className="shrink-0"
+                />
+
+                {/* User Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-foreground truncate">
+                    {member.userName || member.userEmail}
+                  </p>
+                  <p className="text-sm text-muted-foreground truncate">{member.userEmail}</p>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 {userPermissions.manage_permissions ? (
                   <Select
                     value={member.role}

@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { householdActivityLog, householdMembers } from '@/lib/db/schema';
+import { user as betterAuthUser } from '@/auth-schema';
 import { eq, and, desc } from 'drizzle-orm';
 
 export async function GET(
@@ -47,10 +48,23 @@ export async function GET(
       .where(and(...conditions));
     const totalCount = allResults.length;
 
-    // Apply pagination and sorting
+    // Apply pagination and sorting with user avatar
     const activities = await db
-      .select()
+      .select({
+        id: householdActivityLog.id,
+        householdId: householdActivityLog.householdId,
+        userId: householdActivityLog.userId,
+        userName: householdActivityLog.userName,
+        userAvatarUrl: betterAuthUser.image,
+        activityType: householdActivityLog.activityType,
+        description: householdActivityLog.description,
+        entityType: householdActivityLog.entityType,
+        entityId: householdActivityLog.entityId,
+        metadata: householdActivityLog.metadata,
+        createdAt: householdActivityLog.createdAt,
+      })
       .from(householdActivityLog)
+      .leftJoin(betterAuthUser, eq(householdActivityLog.userId, betterAuthUser.id))
       .where(and(...conditions))
       .orderBy(desc(householdActivityLog.createdAt))
       .limit(limit)

@@ -2,6 +2,7 @@
 
 import { betterAuthClient } from '@/lib/better-auth-client';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,13 +12,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { Settings, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function UserMenu() {
   const router = useRouter();
   const { data: session, isPending } = betterAuthClient.useSession();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarLoading, setAvatarLoading] = useState(true);
+
+  // Fetch avatar URL when session is available
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetch('/api/profile/avatar')
+        .then(res => res.json())
+        .then(data => setAvatarUrl(data.avatarUrl || null))
+        .catch(() => setAvatarUrl(null))
+        .finally(() => setAvatarLoading(false));
+    } else {
+      setAvatarLoading(false);
+    }
+  }, [session?.user?.id]);
 
   const handleSignOut = async () => {
     try {
@@ -30,7 +46,7 @@ export function UserMenu() {
     }
   };
 
-  if (isPending) {
+  if (isPending || avatarLoading) {
     return (
       <div className="w-8 h-8 rounded-full bg-elevated animate-pulse" />
     );
@@ -38,29 +54,21 @@ export function UserMenu() {
 
   if (!session) return null;
 
-  // Get user initials for avatar
-  const getInitials = (name: string | null | undefined) => {
-    if (!name) return '?';
-    const parts = name.split(' ');
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    }
-    return name[0].toUpperCase();
-  };
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-full h-8 w-8 hover:bg-elevated"
+          className="rounded-full h-8 w-8 hover:bg-elevated p-0"
         >
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-[var(--color-primary)] text-background text-sm">
-              {getInitials(session.user.name)}
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar
+            userId={session.user.id}
+            userName={session.user.name || session.user.email}
+            avatarUrl={avatarUrl}
+            size="sm"
+            showRing={false}
+          />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent

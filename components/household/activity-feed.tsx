@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { toast } from 'sonner';
 import {
   ArrowRightLeft,
@@ -96,9 +97,9 @@ export function ActivityFeed({ householdId, limit = 20 }: ActivityFeedProps) {
 
   if (loading) {
     return (
-      <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-6">
+      <Card className="bg-card border-border p-6">
         <div className="text-center py-8">
-          <p className="text-gray-400">Loading activity...</p>
+          <p className="text-muted-foreground">Loading activity...</p>
         </div>
       </Card>
     );
@@ -106,42 +107,51 @@ export function ActivityFeed({ householdId, limit = 20 }: ActivityFeedProps) {
 
   if (activities.length === 0) {
     return (
-      <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-6">
+      <Card className="bg-card border-border p-6">
         <div className="text-center py-8">
-          <p className="text-gray-400">No activity yet</p>
+          <p className="text-muted-foreground">No activity yet</p>
         </div>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-[#1a1a1a] border-[#2a2a2a] p-6">
+    <Card className="bg-card border-border p-6">
       <div className="space-y-4">
         {activities.map((activity) => (
           <div
             key={activity.id}
-            className="flex gap-4 py-3 border-b border-[#2a2a2a] last:border-b-0"
+            className="flex gap-3 py-3 border-b border-border last:border-b-0"
           >
-            {/* Icon */}
+            {/* User Avatar */}
+            <UserAvatar
+              userId={activity.userId}
+              userName={activity.userName || 'Unknown User'}
+              avatarUrl={activity.userAvatarUrl}
+              size="sm"
+              className="shrink-0"
+            />
+
+            {/* Activity Type Icon */}
             <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full bg-[#242424] ${
-                ACTIVITY_COLORS[activity.activityType] || 'text-gray-400'
+              className={`flex items-center justify-center w-6 h-6 rounded-full bg-elevated shrink-0 ${
+                ACTIVITY_COLORS[activity.activityType] || 'text-muted-foreground'
               }`}
             >
-              {ACTIVITY_ICONS[activity.activityType] || <Zap className="w-4 h-4" />}
+              {ACTIVITY_ICONS[activity.activityType] || <Zap className="w-3 h-3" />}
             </div>
 
             {/* Content */}
-            <div className="flex-1">
-              <div className="flex items-baseline justify-between">
-                <div>
-                  <p className="text-sm text-white">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-foreground">
                     <span className="font-semibold">{activity.userName || 'Unknown User'}</span>
                     {' '}
-                    <span className="text-gray-400">{activity.description}</span>
+                    <span className="text-muted-foreground">{activity.description}</span>
                   </p>
                   {activity.metadata && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {Object.entries(activity.metadata)
                         .slice(0, 2)
                         .map(([key, value]) => `${key}: ${value}`)
@@ -149,7 +159,7 @@ export function ActivityFeed({ householdId, limit = 20 }: ActivityFeedProps) {
                     </p>
                   )}
                 </div>
-                <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
+                <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
                   {formatDistanceToNow(new Date(activity.createdAt), {
                     addSuffix: true,
                   })}

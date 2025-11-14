@@ -177,16 +177,16 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
 **Latest (2025-11-14):**
-- Avatar Upload (CORE COMPLETE - INTEGRATION PENDING): Implemented profile picture upload system
+- Avatar Upload (100% COMPLETE): Full profile picture upload system with display throughout app
   - Upload interface in Settings > Profile tab with file validation, preview, and optimization
-  - UserAvatar component with initials fallback and deterministic colors (4 size variants)
+  - UserAvatar component with initials fallback and deterministic colors (4 size variants: sm, md, lg, xl)
   - API endpoints: POST /api/profile/avatar/upload, GET/DELETE /api/profile/avatar
   - Image optimization with sharp (resize to 400x400, compress to JPEG)
   - Split utilities: `avatar-client-utils.ts` (client-safe) and `avatar-utils.ts` (server-only with sharp)
-  - Database migration: `0030_add_avatar_updated_at.sql`
+  - Database: Avatar stored in Better Auth `user.image` field with `imageUpdatedAt` timestamp
   - File storage in `public/uploads/avatars/` with .gitignore configuration
-  - **Pending:** Integration into sidebar, mobile nav, activity feed, household members
-  - **Implementation Plan:** See `docs/AVATAR_UPLOAD_IMPLEMENTATION_PLAN.md`
+  - **Integrated everywhere:** UserMenu (sidebar + mobile nav), Activity Feed, Household Members list
+  - Fully themed with semantic CSS variables, responsive design, initials fallback with deterministic colors
 
 **Previous (2025-11-13):**
 - Notifications Tab (FULLY COMPLETE): Implemented granular notification channel selection system
@@ -298,13 +298,15 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ Offline mode with automatic sync
 - ✅ PWA support for mobile app experience
 - ✅ Unified Settings Page (ALL 3 phases complete - 9 comprehensive tabs)
+- ✅ Avatar Upload (100% complete - upload, display, initials fallback throughout app)
 - ✅ Testing complete (386 tests, 99.5% of plan, 100% unit coverage, 93% integration coverage)
 - ✅ All 12 tracked bugs fixed (100%)
 
 ## Next Steps
 1. ✅ **Authentication Migration (100% complete)** - Clerk → Better Auth migration complete! (see `docs/BETTER-AUTH-MIGRATION-COMPLETE.md`)
 2. ✅ **Settings Page (100% complete)** - All 3 phases complete with 9 comprehensive tabs
-3. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
-4. Docker configuration for deployment
-5. Performance optimizations as needed
-6. User feedback and iterations
+3. ✅ **Avatar Upload (100% complete)** - Full profile picture system integrated throughout app
+4. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
+5. Docker configuration for deployment
+6. Performance optimizations as needed
+7. User feedback and iterations

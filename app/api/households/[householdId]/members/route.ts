@@ -24,19 +24,21 @@ export async function GET(
       );
     }
 
-    // Get all members
+    // Get all members with avatar URLs
     const members = await db
       .select({
         id: householdMembers.id,
         userId: householdMembers.userId,
         userEmail: householdMembers.userEmail,
         userName: householdMembers.userName,
+        userAvatarUrl: betterAuthUser.image,
         role: householdMembers.role,
         joinedAt: householdMembers.joinedAt,
         invitedBy: householdMembers.invitedBy,
         isActive: householdMembers.isActive,
       })
       .from(householdMembers)
+      .leftJoin(betterAuthUser, eq(householdMembers.userId, betterAuthUser.id))
       .where(eq(householdMembers.householdId, householdId));
 
     // Backfill missing userNames from Better Auth
