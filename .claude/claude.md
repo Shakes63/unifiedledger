@@ -18,6 +18,7 @@ A comprehensive mobile-first personal finance application built with Next.js, fe
 - `recharts@3.3.0` - Charts
 - `sonner@2.0.7` - Toast notifications
 - `uuid@13.0.0` - UUID generation for database records
+- `sharp@0.34.5` - Image processing and optimization for avatars
 
 ## Project Structure
 ```
@@ -42,7 +43,9 @@ unifiedledger/
 │   ├── bills/                    # Bill matching
 │   ├── notifications/            # Notification service
 │   ├── tax/                      # Tax utilities
-│   └── sales-tax/                # Sales tax utilities
+│   ├── sales-tax/                # Sales tax utilities
+│   ├── avatar-client-utils.ts    # Client-safe avatar utilities
+│   └── avatar-utils.ts           # Server-only avatar utilities (sharp)
 └── docs/                         # Documentation
 ```
 
@@ -173,7 +176,19 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
-**Latest (2025-11-13):**
+**Latest (2025-11-14):**
+- Avatar Upload (CORE COMPLETE - INTEGRATION PENDING): Implemented profile picture upload system
+  - Upload interface in Settings > Profile tab with file validation, preview, and optimization
+  - UserAvatar component with initials fallback and deterministic colors (4 size variants)
+  - API endpoints: POST /api/profile/avatar/upload, GET/DELETE /api/profile/avatar
+  - Image optimization with sharp (resize to 400x400, compress to JPEG)
+  - Split utilities: `avatar-client-utils.ts` (client-safe) and `avatar-utils.ts` (server-only with sharp)
+  - Database migration: `0030_add_avatar_updated_at.sql`
+  - File storage in `public/uploads/avatars/` with .gitignore configuration
+  - **Pending:** Integration into sidebar, mobile nav, activity feed, household members
+  - **Implementation Plan:** See `docs/AVATAR_UPLOAD_IMPLEMENTATION_PLAN.md`
+
+**Previous (2025-11-13):**
 - Notifications Tab (FULLY COMPLETE): Implemented granular notification channel selection system
   - Per-notification-type delivery channels (push/email) with extendable architecture for future channels (SMS, Slack, Webhook)
   - 9 notification types with independent channel preferences: Bill Reminders, Budget Warnings, Budget Exceeded, Budget Reviews, Low Balance, Savings Milestones, Debt Milestones, Weekly Summaries, Monthly Summaries

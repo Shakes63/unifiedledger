@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AvatarUpload } from '@/components/ui/avatar-upload';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
@@ -13,6 +14,8 @@ interface ProfileData {
   displayName: string | null;
   bio: string | null;
   emailVerified: boolean;
+  id: string;
+  image: string | null;
 }
 
 export function ProfileTab() {
@@ -169,6 +172,20 @@ export function ProfileTab() {
 
   return (
     <div className="space-y-8">
+      {/* Avatar Upload */}
+      {profile && (
+        <div>
+          <AvatarUpload
+            userId={profile.id}
+            userName={profile.name}
+            avatarUrl={profile.image}
+            onAvatarUpdate={(newUrl) => {
+              setProfile({ ...profile, image: newUrl });
+            }}
+          />
+        </div>
+      )}
+
       {/* Profile Information */}
       <div className="space-y-4">
         <div>
