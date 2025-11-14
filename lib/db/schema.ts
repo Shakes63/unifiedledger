@@ -671,6 +671,123 @@ export const userSettings = sqliteTable(
   }
 );
 
+// ============================================================================
+// USER-PER-HOUSEHOLD PREFERENCES (NEW - Phase 0)
+// ============================================================================
+
+export const userHouseholdPreferences = sqliteTable(
+  'user_household_preferences',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
+
+    // Preferences
+    dateFormat: text('date_format', {
+      enum: ['MM/DD/YYYY', 'DD/MM/YYYY', 'YYYY-MM-DD'],
+    }).default('MM/DD/YYYY'),
+    numberFormat: text('number_format', {
+      enum: ['en-US', 'en-GB', 'de-DE', 'fr-FR'],
+    }).default('en-US'),
+    defaultAccountId: text('default_account_id'),
+    firstDayOfWeek: text('first_day_of_week', {
+      enum: ['sunday', 'monday'],
+    }).default('sunday'),
+
+    // Financial Display
+    showCents: integer('show_cents', { mode: 'boolean' }).default(true),
+    negativeNumberFormat: text('negative_number_format').default('-$100'),
+    defaultTransactionType: text('default_transaction_type').default('expense'),
+
+    // Theme
+    theme: text('theme').default('dark-mode'),
+
+    // Notifications - Bill Reminders
+    billRemindersEnabled: integer('bill_reminders_enabled', { mode: 'boolean' }).default(true),
+    billRemindersChannels: text('bill_reminders_channels').default('["push","email"]'),
+
+    // Notifications - Budget Warnings
+    budgetWarningsEnabled: integer('budget_warnings_enabled', { mode: 'boolean' }).default(true),
+    budgetWarningsChannels: text('budget_warnings_channels').default('["push","email"]'),
+
+    // Notifications - Budget Exceeded
+    budgetExceededEnabled: integer('budget_exceeded_enabled', { mode: 'boolean' }).default(true),
+    budgetExceededChannels: text('budget_exceeded_channels').default('["push","email"]'),
+
+    // Notifications - Budget Reviews
+    budgetReviewEnabled: integer('budget_review_enabled', { mode: 'boolean' }).default(true),
+    budgetReviewChannels: text('budget_review_channels').default('["push","email"]'),
+
+    // Notifications - Low Balance
+    lowBalanceEnabled: integer('low_balance_enabled', { mode: 'boolean' }).default(true),
+    lowBalanceChannels: text('low_balance_channels').default('["push","email"]'),
+
+    // Notifications - Savings Milestones
+    savingsMilestonesEnabled: integer('savings_milestones_enabled', { mode: 'boolean' }).default(true),
+    savingsMilestonesChannels: text('savings_milestones_channels').default('["push","email"]'),
+
+    // Notifications - Debt Milestones
+    debtMilestonesEnabled: integer('debt_milestones_enabled', { mode: 'boolean' }).default(true),
+    debtMilestonesChannels: text('debt_milestones_channels').default('["push","email"]'),
+
+    // Notifications - Weekly Summaries
+    weeklySummariesEnabled: integer('weekly_summaries_enabled', { mode: 'boolean' }).default(false),
+    weeklySummariesChannels: text('weekly_summaries_channels').default('["email"]'),
+
+    // Notifications - Monthly Summaries
+    monthlySummariesEnabled: integer('monthly_summaries_enabled', { mode: 'boolean' }).default(true),
+    monthlySummariesChannels: text('monthly_summaries_channels').default('["email"]'),
+
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    // Composite unique constraint: one record per user per household
+    userHouseholdUnique: uniqueIndex('idx_user_household_prefs_unique').on(
+      table.userId,
+      table.householdId
+    ),
+    userIdIdx: index('idx_user_household_prefs_user').on(table.userId),
+    householdIdIdx: index('idx_user_household_prefs_household').on(table.householdId),
+  })
+);
+
+// ============================================================================
+// HOUSEHOLD SETTINGS (NEW - Phase 0)
+// ============================================================================
+
+export const householdSettings = sqliteTable(
+  'household_settings',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id').notNull().unique(),
+
+    // Preferences
+    currency: text('currency').default('USD'),
+    currencySymbol: text('currency_symbol').default('$'),
+    timeFormat: text('time_format', {
+      enum: ['12h', '24h'],
+    }).default('12h'),
+    fiscalYearStart: integer('fiscal_year_start').default(1), // 1-12
+
+    // Financial
+    defaultBudgetMethod: text('default_budget_method').default('monthly'),
+    budgetPeriod: text('budget_period').default('monthly'),
+    autoCategorization: integer('auto_categorization', { mode: 'boolean' }).default(true),
+
+    // Data Management
+    dataRetentionYears: integer('data_retention_years').default(7),
+    autoCleanupEnabled: integer('auto_cleanup_enabled', { mode: 'boolean' }).default(false),
+    cacheStrategy: text('cache_strategy').default('normal'),
+
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    householdIdIdx: index('idx_household_settings_household').on(table.householdId),
+  })
+);
+
 export const userSessions = sqliteTable(
   'user_sessions',
   {
