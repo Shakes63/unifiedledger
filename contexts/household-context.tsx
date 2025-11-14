@@ -73,6 +73,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     try {
       setPreferencesLoading(true);
       const response = await fetch(`/api/user/households/${householdId}/preferences`, { credentials: 'include' });
+
       if (response.ok) {
         const data = await response.json();
         setPreferences(data);

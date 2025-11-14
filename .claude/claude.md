@@ -273,19 +273,20 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
   - ✅ All components use semantic theme variables for full theme integration
   - ✅ Zero overhead when developer mode is disabled (conditional rendering)
   - ✅ Fixed bug: Corrected `/api/goals` endpoint to `/api/savings-goals` in Advanced settings tab
-- Household Data Isolation Phase 0 (85% COMPLETE): Settings architecture nearly complete
+- Household Data Isolation Phase 0 (80% COMPLETE): Settings architecture nearly complete
   - ✅ Phase 0.1: Database & Migration - Created `user_household_preferences` and `household_settings` tables with migrations (4 migration files, data migrated)
   - ✅ Phase 0.2: API Endpoints - 6 new endpoints for managing user-per-household preferences and household settings with proper authorization
   - ✅ Phase 0.3: UI Restructure - Redesigned settings page with 3-tier structure (User Settings / My Settings / Household Settings tabs)
-  - ✅ Phase 0.4: Theme & Notifications (85% complete) - Core implementation complete, testing pending
+  - ✅ Phase 0.4: Theme & Notifications (100% COMPLETE - 2025-11-14) - Per-household theme and notification preferences
     - ✅ Household Context Provider updated with preference loading and automatic theme switching
     - ✅ Theme Provider simplified to use household context
     - ✅ Theme Tab migrated to per-household API
     - ✅ Notifications Tab completely migrated to per-household API (all field names updated, deprecated fields removed)
     - ✅ Household switcher updated with async handling and loading states (shows "Switching..." with spinner)
     - ✅ Migration helper utility created (`lib/migrations/migrate-to-household-preferences.ts`) for automatic data migration
-    - ⏳ Manual testing pending (~2-3 hours)
-    - See `docs/phase-0.4-implementation-plan.md`, `docs/phase-0.4-remaining-tasks-plan.md` for detailed plans
+    - ✅ Fixed 3 critical bugs: API response structure, missing credentials, Date object usage
+    - ✅ Manual testing completed and passed
+    - See `docs/phase-0.4-completion-summary.md` for full details
   - ⏳ Phase 0.5: Testing & Polish (pending) - Comprehensive testing and bug fixes
   - See `docs/phase-0-implementation-progress.md` for detailed status
 - Household Favorite Feature (100% COMPLETE): Star/favorite households to pin them to top of sidebar

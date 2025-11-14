@@ -99,7 +99,7 @@ export async function updateSessionActivity(sessionId: string): Promise<void> {
   }
 
   try {
-    const now = Date.now();
+    const now = new Date(); // Date object for Drizzle timestamp fields
 
     await db
       .update(authSchema.session)

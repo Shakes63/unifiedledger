@@ -71,15 +71,13 @@ export async function GET(
 
     // If preferences don't exist, return defaults
     if (!preferences || preferences.length === 0) {
-      return Response.json({ preferences: DEFAULT_PREFERENCES });
+      return Response.json(DEFAULT_PREFERENCES);
     }
 
     // Return preferences merged with defaults (in case new fields were added)
     return Response.json({
-      preferences: {
-        ...DEFAULT_PREFERENCES,
-        ...preferences[0],
-      },
+      ...DEFAULT_PREFERENCES,
+      ...preferences[0],
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

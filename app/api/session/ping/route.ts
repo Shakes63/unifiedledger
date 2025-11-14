@@ -4,7 +4,8 @@
  */
 
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth-helpers';
+import { auth } from '@/lib/better-auth';
+import { headers } from 'next/headers';
 import { updateSessionActivity, validateSession } from '@/lib/session-utils';
 import * as authSchema from '@/auth-schema';
 import { db } from '@/lib/db';
@@ -14,27 +15,16 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    // Get session from cookie (Better Auth stores session data in session_data cookie)
-    const cookies = request.headers.get('cookie') || '';
-    const sessionDataMatch = cookies.match(/better-auth\.session_data=([^;]+)/);
+    // Get session using Better Auth API
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
 
-    if (!sessionDataMatch) {
+    if (!session || !session.session) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 });
     }
 
-    // Parse the session data cookie to extract the token
-    let sessionToken: string | undefined;
-    try {
-      const sessionData = JSON.parse(atob(sessionDataMatch[1].split('.')[0]));
-      sessionToken = sessionData?.session?.session?.token;
-    } catch (e) {
-      console.error('Failed to parse session cookie:', e);
-      return NextResponse.json({ error: 'Invalid session cookie' }, { status: 401 });
-    }
-
-    if (!sessionToken) {
-      return NextResponse.json({ error: 'No session token found' }, { status: 401 });
-    }
+    const sessionToken = session.session.token;
 
     // Validate session
     const validation = await validateSession(sessionToken);

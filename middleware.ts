@@ -26,7 +26,7 @@ export default async function middleware(request: NextRequest) {
       const sessionData = JSON.parse(atob(sessionDataCookie.value.split('.')[0]));
       sessionToken = sessionData?.session?.session?.token;
     } catch (e) {
-      console.error('Failed to parse session cookie:', e);
+      console.error('[Middleware] Failed to parse session cookie:', e);
     }
   }
 

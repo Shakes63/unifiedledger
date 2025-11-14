@@ -58,6 +58,7 @@ export function NotificationsTab() {
         const response = await fetch(`/api/user/households/${selectedHousehold.id}/preferences`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ [key]: value }),
         });
 
@@ -66,7 +67,7 @@ export function NotificationsTab() {
           throw new Error(errorData.error || 'Failed to update preference');
         }
 
-        // Refresh preferences from context
+        // Refresh preferences from context to update UI
         await refreshPreferences();
         toast.success('Preference updated');
       } catch (err) {

@@ -64,14 +64,21 @@ export function SessionActivityProvider({ children }: SessionActivityProviderPro
           if (response.status === 401) {
             const reason = data.reason;
 
-            if (reason === 'inactive') {
-              toast.error('Your session has expired due to inactivity');
-            } else {
-              toast.error('Your session has expired');
-            }
+            // Only show toast and redirect if we have a clear reason
+            // Otherwise, silently fail (might be a temporary issue)
+            if (reason) {
+              if (reason === 'inactive') {
+                toast.error('Your session has expired due to inactivity');
+              } else {
+                toast.error('Your session has expired');
+              }
 
-            // Redirect to sign-in
-            router.push(`/sign-in?reason=${reason || 'expired'}&callbackUrl=${pathname}`);
+              // Redirect to sign-in
+              router.push(`/sign-in?reason=${reason}&callbackUrl=${pathname}`);
+            } else {
+              // Log but don't logout for generic 401s (might be parsing issue)
+              console.warn('Session ping returned 401 without reason:', data);
+            }
             return;
           }
 
