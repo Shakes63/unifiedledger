@@ -3,25 +3,7 @@
 ---
 
 ## 🆕 ADD NEW BUGS HERE
-1. ## Error Type
-Console Error
 
-## Error Message
-Failed to upload avatar
-
-
-    at handleUpload (components/ui/avatar-upload.tsx:80:15)
-
-## Code Frame
-  78 |
-  79 |       if (!response.ok) {
-> 80 |         throw new Error(data.error || 'Upload failed');
-     |               ^
-  81 |       }
-  82 |
-  83 |       toast.success('Avatar updated successfully!');
-
-Next.js version: 16.0.1 (Turbopack)
 
 ---
 

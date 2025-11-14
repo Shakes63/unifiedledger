@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +33,7 @@ interface CSVImportModalProps {
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
   accounts: Array<{ id: string; name: string }>;
+  defaultTemplateId?: string;
 }
 
 export function CSVImportModal({
@@ -40,6 +41,7 @@ export function CSVImportModal({
   onOpenChange,
   onSuccess,
   accounts,
+  defaultTemplateId,
 }: CSVImportModalProps) {
   const [step, setStep] = useState<Step>('upload');
   const [file, setFile] = useState<File | null>(null);
@@ -63,6 +65,51 @@ export function CSVImportModal({
   // Preview data
   const [previewData, setPreviewData] = useState<any>(null);
   const [importId, setImportId] = useState<string>('');
+
+  // Load default template when modal opens
+  useEffect(() => {
+    if (open && defaultTemplateId) {
+      loadDefaultTemplate(defaultTemplateId);
+    }
+  }, [open, defaultTemplateId]);
+
+  const loadDefaultTemplate = async (templateId: string) => {
+    try {
+      const response = await fetch(`/api/import-templates/${templateId}`);
+      if (!response.ok) {
+        console.error('Failed to load default template');
+        return;
+      }
+
+      const template = await response.json();
+
+      // Apply template settings
+      setDelimiter(template.delimiter || ',');
+      setHasHeaderRow(template.hasHeaderRow ?? true);
+      setSkipRows(template.skipRows || 0);
+      setDateFormat(template.dateFormat || 'MM/DD/YYYY');
+
+      if (template.defaultAccountId) {
+        setDefaultAccountId(template.defaultAccountId);
+      }
+
+      // Parse and apply column mappings if they exist
+      if (template.columnMappings) {
+        try {
+          const parsedMappings = typeof template.columnMappings === 'string'
+            ? JSON.parse(template.columnMappings)
+            : template.columnMappings;
+          setMappings(parsedMappings);
+        } catch (error) {
+          console.error('Failed to parse column mappings:', error);
+        }
+      }
+
+      toast.success(`Loaded template: ${template.name}`);
+    } catch (error) {
+      console.error('Error loading default template:', error);
+    }
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];

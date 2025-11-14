@@ -214,12 +214,19 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
   - ✅ All styling uses semantic theme variables
   - ✅ Graceful degradation if GeoIP service fails
   - Migrations: `0039_add_session_location.sql`, `0040_add_session_location_better_auth.sql`
-- Import Preferences (28% COMPLETE): Default CSV import template selection in Data Management settings
-  - ✅ Phase 1: Database Schema - Added `defaultImportTemplateId` to userSettings table
-  - ✅ Phase 2: API Updates - Updated /api/user/settings with validation
-  - ⏳ Phase 3-7: UI, CSV modal integration, transactions page, testing, documentation
-  - See `docs/import-preferences-implementation-plan.md` for remaining work
+- Import Preferences (100% COMPLETE): Default CSV import template selection in Data Management settings
+  - ✅ Database schema with `defaultImportTemplateId` in userSettings table
+  - ✅ API validation ensuring template belongs to user
+  - ✅ Data Management Tab UI with template selector and details display
+  - ✅ CSV Import Modal auto-loads default template settings
+  - ✅ Transactions page integration
   - Migration: `0041_add_default_import_template.sql`
+- Experimental Features System (30% COMPLETE): Infrastructure for gating features behind experimental flag
+  - ✅ Experimental Features Context provider for managing enabled state
+  - ✅ Feature flag helper with 3 feature definitions (Quick Entry, Enhanced Search, Advanced Charts)
+  - ✅ FeatureGate component for conditional rendering
+  - ⏳ ExperimentalBadge component, Advanced tab updates, and feature implementations pending
+  - See `docs/experimental-features-implementation-plan.md` for remaining work
 - Email Verification Flow (100% COMPLETE): Complete email verification system implemented
   - ✅ Email service infrastructure with Resend (primary) and SMTP/Nodemailer (fallback for self-hosting)
   - ✅ Email configuration utility with automatic provider selection (`lib/email/email-config.ts`)
@@ -407,7 +414,8 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ Household Favorite Feature (100% complete - star/favorite households to pin to top)
 - ✅ Developer Mode Feature (100% complete - entity ID badges, DEV indicator, developer tools panel)
 - ✅ GeoIP Location Lookup (100% complete - session location display with country flags)
-- ⏳ Import Preferences (28% complete - backend ready, UI pending)
+- ✅ Import Preferences (100% complete - default template selection in Data Management settings)
+- ⏳ Experimental Features System (30% complete - infrastructure ready, features pending)
 - ⏳ Household Data Isolation Phase 0 (85% complete - core implementation done, testing pending)
 - ✅ Testing complete (386 tests, 99.5% of plan, 100% unit coverage, 93% integration coverage)
 - ✅ All 12 tracked bugs fixed (100%)

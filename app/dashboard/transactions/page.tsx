@@ -69,6 +69,7 @@ function TransactionsContent() {
   const [hasMore, setHasMore] = useState(false);
   const [currentFilters, setCurrentFilters] = useState<any>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [defaultImportTemplateId, setDefaultImportTemplateId] = useState<string | undefined>(undefined);
   const [updatingTxId, setUpdatingTxId] = useState<string | null>(null);
   const [creatingCategory, setCreatingCategory] = useState(false);
   const [creatingMerchant, setCreatingMerchant] = useState(false);
@@ -120,6 +121,13 @@ function TransactionsContent() {
         if (merResponse.ok) {
           const merData = await merResponse.json();
           setMerchants(merData);
+        }
+
+        // Fetch user settings for default import template
+        const settingsResponse = await fetch('/api/user/settings');
+        if (settingsResponse.ok) {
+          const settingsData = await settingsResponse.json();
+          setDefaultImportTemplateId(settingsData.defaultImportTemplateId || undefined);
         }
       } catch (error) {
         console.error('Failed to fetch initial data:', error);
@@ -907,6 +915,7 @@ function TransactionsContent() {
           }
         }}
         accounts={accounts}
+        defaultTemplateId={defaultImportTemplateId}
       />
     </div>
   );

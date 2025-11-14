@@ -9,22 +9,25 @@
 
 ## In Progress Features
 
-### Import Preferences (Data Management Tab)
-**Status:** 28% Complete - Backend ready, UI pending
-**Progress:** 2 of 7 phases complete
+### Experimental Features System
+**Status:** 30% Complete - Phase 1 (Infrastructure) complete
+**Progress:** 3 of 10 tasks complete
 
 **Completed:**
-- ✅ Phase 1: Database Schema - Added `defaultImportTemplateId` to userSettings table with migration
-- ✅ Phase 2: API Updates - Updated /api/user/settings to handle defaultImportTemplateId with validation
+- ✅ Experimental Features Context provider
+- ✅ Feature flag helper with feature definitions (3 features: Quick Entry, Enhanced Search, Advanced Charts)
+- ✅ FeatureGate component
 
 **Remaining Work:**
-- ⏳ Phase 3: Data Management Tab UI - Add Import Preferences section with template selector
-- ⏳ Phase 4: CSV Import Modal Integration - Pre-select default template when modal opens
-- ⏳ Phase 5: Transactions Page Integration - Pass default template to import modal
-- ⏳ Phase 6: Testing - Verify all scenarios work correctly
-- ⏳ Phase 7: Documentation - Update docs
+- ⏳ Create ExperimentalBadge component
+- ⏳ Update Advanced tab with feature list
+- ⏳ Implement Quick Entry Mode feature
+- ⏳ Implement Enhanced Search feature
+- ⏳ Implement Advanced Charts feature
+- ⏳ Testing
+- ⏳ Documentation
 
-**Implementation Plan:** `docs/import-preferences-implementation-plan.md`
+**Implementation Plan:** `docs/experimental-features-implementation-plan.md`
 
 ---
 
@@ -74,11 +77,10 @@ All financial data (transactions, accounts, budgets, bills, goals, debts) is sti
 - ✅ All features complete
 
 **Data Management Tab:**
-- ⏳ Import preferences/default template selector (IN PROGRESS - see above)
 - ❌ Auto-backup settings (not in UI)
 
 **Advanced Tab:**
-- ❌ Experimental features flag doesn't unlock anything
+- ⏳ Experimental features flag (IN PROGRESS - see above)
 
 **General Missing:**
 - ❌ Two-factor authentication (2FA)
@@ -138,3 +140,4 @@ All financial data (transactions, accounts, budgets, bills, goals, debts) is sti
 17. ✅ **Session Timeout Enforcement** - Automatic logout after configurable inactivity period with Remember Me option
 18. ✅ **Email Verification Flow** - Complete email verification system with verification on signup and email change flow
 19. ✅ **GeoIP Location Lookup** - Session location display with country flags using ip-api.com geolocation
+20. ✅ **Import Preferences** - Default CSV import template selection in Data Management settings with auto-load on import

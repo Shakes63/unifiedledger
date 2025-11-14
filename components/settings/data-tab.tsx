@@ -22,8 +22,19 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Database, Trash2, AlertTriangle, Loader2, Shield, CheckCircle2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Database, Trash2, AlertTriangle, Loader2, Shield, CheckCircle2, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface ImportTemplate {
+  id: string;
+  name: string;
+  description: string | null;
+  usageCount: number;
+  lastUsedAt: string | null;
+  isFavorite: boolean;
+  createdAt: string;
+}
 
 export function DataTab() {
   const [dataRetentionYears, setDataRetentionYears] = useState('7');
@@ -35,8 +46,15 @@ export function DataTab() {
   const [resetConfirmed, setResetConfirmed] = useState(false);
   const [resetting, setResetting] = useState(false);
 
+  // Import preferences state
+  const [importTemplates, setImportTemplates] = useState<ImportTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [defaultImportTemplateId, setDefaultImportTemplateId] = useState<string | null>(null);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
   useEffect(() => {
     fetchSettings();
+    fetchImportTemplates();
   }, []);
 
   async function fetchSettings() {
@@ -45,11 +63,26 @@ export function DataTab() {
       if (response.ok) {
         const data = await response.json();
         setDataRetentionYears(data.dataRetentionYears?.toString() || '7');
+        setDefaultImportTemplateId(data.defaultImportTemplateId || null);
       }
     } catch (error) {
       toast.error('Failed to load settings');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchImportTemplates() {
+    try {
+      const response = await fetch('/api/import-templates');
+      if (response.ok) {
+        const templates = await response.json();
+        setImportTemplates(templates);
+      }
+    } catch (error) {
+      console.error('Failed to load import templates:', error);
+    } finally {
+      setLoadingTemplates(false);
     }
   }
 
@@ -74,6 +107,38 @@ export function DataTab() {
       toast.error('Failed to update settings');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleTemplateChange(value: string) {
+    try {
+      setSavingTemplate(true);
+      const templateId = value === 'none' ? null : value;
+
+      const response = await fetch('/api/user/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          defaultImportTemplateId: templateId,
+        }),
+      });
+
+      if (response.ok) {
+        setDefaultImportTemplateId(templateId);
+        if (templateId) {
+          const template = importTemplates.find((t) => t.id === templateId);
+          toast.success(`Default import template set to "${template?.name}"`);
+        } else {
+          toast.success('Default import template cleared');
+        }
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to update template preference');
+      }
+    } catch (error) {
+      toast.error('Failed to update template preference');
+    } finally {
+      setSavingTemplate(false);
     }
   }
 
@@ -211,6 +276,120 @@ export function DataTab() {
               </p>
             </div>
           </div>
+        </Card>
+      </div>
+
+      <Separator className="bg-border" />
+
+      {/* Import Preferences Section */}
+      <div>
+        <h3 className="text-lg font-semibold text-foreground mb-2">Import Preferences</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Set your default CSV import template for faster imports
+        </p>
+
+        <Card className="p-4 bg-elevated border-border">
+          {loadingTemplates ? (
+            <div className="flex items-center justify-center py-4 text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              Loading templates...
+            </div>
+          ) : importTemplates.length > 0 ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="defaultTemplate" className="text-foreground">
+                  Default Import Template
+                </Label>
+                <Select
+                  value={defaultImportTemplateId || 'none'}
+                  onValueChange={handleTemplateChange}
+                  disabled={savingTemplate}
+                >
+                  <SelectTrigger
+                    id="defaultTemplate"
+                    name="defaultTemplate"
+                    aria-label="Select default import template"
+                    className="bg-background border-border text-foreground"
+                  >
+                    <SelectValue placeholder="No default template" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="none" className="text-foreground hover:bg-elevated">
+                      No default template
+                    </SelectItem>
+                    {importTemplates.map((template) => (
+                      <SelectItem
+                        key={template.id}
+                        value={template.id}
+                        className="text-foreground hover:bg-elevated"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>{template.name}</span>
+                          {template.usageCount > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              ({template.usageCount} uses)
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  The selected template will be pre-selected when you import CSV files
+                </p>
+              </div>
+
+              {/* Display selected template details */}
+              {defaultImportTemplateId && (() => {
+                const selectedTemplate = importTemplates.find(
+                  (t) => t.id === defaultImportTemplateId
+                );
+                return selectedTemplate ? (
+                  <Card className="p-4 bg-card border-border">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-foreground">
+                          {selectedTemplate.name}
+                        </span>
+                        {selectedTemplate.isFavorite && (
+                          <Badge variant="secondary" className="bg-[var(--color-primary)] text-white">
+                            Favorite
+                          </Badge>
+                        )}
+                      </div>
+                      {selectedTemplate.description && (
+                        <p className="text-xs text-muted-foreground">
+                          {selectedTemplate.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        {selectedTemplate.lastUsedAt && (
+                          <span>
+                            Last used: {new Date(selectedTemplate.lastUsedAt).toLocaleDateString()}
+                          </span>
+                        )}
+                        <span>Used {selectedTemplate.usageCount} times</span>
+                      </div>
+                    </div>
+                  </Card>
+                ) : null;
+              })()}
+            </div>
+          ) : (
+            <div className="flex items-start gap-3">
+              <FileSpreadsheet className="w-5 h-5 text-muted-foreground mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-medium text-foreground mb-1">No Templates Yet</h4>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Import templates help you quickly import CSV files from the same source. Create your first template when importing a CSV file.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  To create a template, go to Transactions → Import CSV, and save your column mappings as a template.
+                </p>
+              </div>
+            </div>
+          )}
         </Card>
       </div>
 
