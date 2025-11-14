@@ -277,7 +277,7 @@ export function RulesManager({
   const fetchRules = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/rules');
+      const response = await fetch('/api/rules', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch rules');
       const data = await response.json();
 
@@ -285,7 +285,7 @@ export function RulesManager({
       const rulesWithCategories = await Promise.all(
         data.map(async (rule: any) => {
           try {
-            const catResponse = await fetch(`/api/categories`);
+            const catResponse = await fetch(`/api/categories`, { credentials: 'include' });
             if (catResponse.ok) {
               const categories = await catResponse.json();
               const category = categories.find((c: any) => c.id === rule.categoryId);
@@ -312,9 +312,7 @@ export function RulesManager({
     if (!confirm('Are you sure you want to delete this rule?')) return;
 
     try {
-      const response = await fetch(`/api/rules?id=${ruleId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/rules?id=${ruleId}`, { credentials: 'include', method: 'DELETE', });
 
       if (!response.ok) throw new Error('Failed to delete rule');
 
@@ -344,9 +342,7 @@ export function RulesManager({
 
   const handleApplyRule = async (ruleId: string) => {
     try {
-      const response = await fetch(`/api/rules/apply-bulk?ruleId=${ruleId}&limit=100`, {
-        method: 'POST',
-      });
+      const response = await fetch(`/api/rules/apply-bulk?ruleId=${ruleId}&limit=100`, { credentials: 'include', method: 'POST', });
 
       if (!response.ok) throw new Error('Failed to apply rule');
 

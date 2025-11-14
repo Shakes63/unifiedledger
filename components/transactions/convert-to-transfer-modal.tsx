@@ -66,7 +66,7 @@ export function ConvertToTransferModal({
     if (open && transaction) {
       const fetchAccounts = async () => {
         try {
-          const response = await fetch('/api/accounts');
+          const response = await fetch('/api/accounts', { credentials: 'include' });
           if (response.ok) {
             const data = await response.json();
             // Filter out the current transaction's account
@@ -95,7 +95,7 @@ export function ConvertToTransferModal({
         setLoadingMatches(true);
 
         // Fetch transactions from target account
-        const response = await fetch(`/api/transactions?accountId=${targetAccountId}&limit=100`);
+        const response = await fetch(`/api/transactions?accountId=${targetAccountId}&limit=100`, { credentials: 'include' });
         if (!response.ok) {
           throw new Error('Failed to fetch transactions');
         }

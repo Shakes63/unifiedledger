@@ -33,9 +33,7 @@ export function BillsWidget() {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-        const response = await fetch(
-          `/api/bills/instances?status=pending,paid&sortBy=dueDate`
-        );
+        const response = await fetch(`/api/bills/instances?status=pending,paid&sortBy=dueDate`, { credentials: 'include' });
 
         if (response.ok) {
           const response_data = await response.json();

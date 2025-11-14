@@ -65,9 +65,9 @@ export function BillForm({
     const fetchData = async () => {
       try {
         const [categoriesRes, accountsRes, debtsRes] = await Promise.all([
-          fetch('/api/categories'),
-          fetch('/api/accounts'),
-          fetch('/api/debts?status=active'),
+          fetch('/api/categories', { credentials: 'include' }),
+          fetch('/api/accounts', { credentials: 'include' }),
+          fetch('/api/debts?status=active', { credentials: 'include' }),
         ]);
 
         if (categoriesRes.ok) {

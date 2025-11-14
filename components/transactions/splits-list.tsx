@@ -26,7 +26,7 @@ export function SplitsList({ transactionId }: SplitsListProps) {
     const fetchSplits = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/transactions/${transactionId}/splits`);
+        const response = await fetch(`/api/transactions/${transactionId}/splits`, { credentials: 'include' });
         if (!response.ok) {
           throw new Error('Failed to fetch splits');
         }

@@ -68,7 +68,7 @@ export function ApplySurplusModal({
   const fetchSuggestion = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/budgets/surplus-suggestion');
+      const response = await fetch('/api/budgets/surplus-suggestion', { credentials: 'include' });
 
       if (!response.ok) {
         throw new Error('Failed to fetch suggestion');

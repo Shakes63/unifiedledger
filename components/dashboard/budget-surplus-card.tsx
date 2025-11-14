@@ -50,7 +50,7 @@ export function BudgetSurplusCard() {
     try {
       setLoading(true);
       setAuthError(false);
-      const response = await fetch('/api/budgets/summary');
+      const response = await fetch('/api/budgets/summary', { credentials: 'include' });
 
       if (response.status === 401) {
         console.error('Budget summary: Unauthorized');

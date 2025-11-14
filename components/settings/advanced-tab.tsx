@@ -41,7 +41,7 @@ export function AdvancedTab() {
 
   async function fetchSettings() {
     try {
-      const response = await fetch('/api/user/settings');
+      const response = await fetch('/api/user/settings', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setEnableAnimations(data.enableAnimations !== false);
@@ -58,12 +58,12 @@ export function AdvancedTab() {
     try {
       // Fetch statistics from various endpoints
       const [txnRes, accountsRes, categoriesRes, billsRes, goalsRes, debtsRes] = await Promise.all([
-        fetch('/api/transactions?limit=1'),
-        fetch('/api/accounts?limit=1'),
-        fetch('/api/categories?limit=1'),
-        fetch('/api/bills?limit=1'),
-        fetch('/api/savings-goals?limit=1'),
-        fetch('/api/debts?limit=1'),
+        fetch('/api/transactions?limit=1', { credentials: 'include' }),
+        fetch('/api/accounts?limit=1', { credentials: 'include' }),
+        fetch('/api/categories?limit=1', { credentials: 'include' }),
+        fetch('/api/bills?limit=1', { credentials: 'include' }),
+        fetch('/api/savings-goals?limit=1', { credentials: 'include' }),
+        fetch('/api/debts?limit=1', { credentials: 'include' }),
       ]);
 
       const txnData = await txnRes.json();

@@ -40,7 +40,7 @@ export function MerchantSelector({
     const fetchMerchants = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/merchants');
+        const response = await fetch('/api/merchants', { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setMerchants(data);

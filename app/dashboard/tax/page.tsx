@@ -56,7 +56,7 @@ export default function TaxPage() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/tax/summary?year=${year}`);
+      const response = await fetch(`/api/tax/summary?year=${year}`, { credentials: 'include' });
 
       if (!response.ok) {
         throw new Error('Failed to load tax data');

@@ -51,9 +51,7 @@ export function TransferList({
 
     try {
       setIsDeleting(true);
-      const response = await fetch(`/api/transfers/${transferId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/transfers/${transferId}`, { credentials: 'include', method: 'DELETE', });
 
       if (!response.ok) {
         const error = await response.json();

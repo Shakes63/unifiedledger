@@ -54,7 +54,7 @@ export default function MerchantsPage() {
         setLoading(true);
 
         // Fetch merchants
-        const merchantsResponse = await fetch('/api/merchants?limit=1000');
+        const merchantsResponse = await fetch('/api/merchants?limit=1000', { credentials: 'include' });
         if (merchantsResponse.ok) {
           const merchantsData = await merchantsResponse.json();
           setMerchants(merchantsData);
@@ -63,7 +63,7 @@ export default function MerchantsPage() {
         }
 
         // Fetch categories
-        const categoriesResponse = await fetch('/api/categories');
+        const categoriesResponse = await fetch('/api/categories', { credentials: 'include' });
         if (categoriesResponse.ok) {
           const categoriesData = await categoriesResponse.json();
           setCategories(categoriesData);
@@ -155,9 +155,7 @@ export default function MerchantsPage() {
     }
 
     try {
-      const response = await fetch(`/api/merchants/${merchantId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/merchants/${merchantId}`, { credentials: 'include', method: 'DELETE', });
 
       if (response.ok) {
         toast.success('Merchant deleted successfully');

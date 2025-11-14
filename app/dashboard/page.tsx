@@ -21,9 +21,7 @@ export default function DashboardPage() {
     // Initialize user on first load
     const initializeUser = async () => {
       try {
-        const response = await fetch('/api/auth/init', {
-          method: 'POST',
-        });
+        const response = await fetch('/api/auth/init', { credentials: 'include', method: 'POST', });
         if (response.ok) {
           console.log('User initialized');
         }

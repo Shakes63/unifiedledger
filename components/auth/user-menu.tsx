@@ -25,7 +25,7 @@ export function UserMenu() {
   // Fetch avatar URL when session is available
   useEffect(() => {
     if (session?.user?.id) {
-      fetch('/api/profile/avatar')
+      fetch('/api/profile/avatar', { credentials: 'include' })
         .then(res => res.json())
         .then(data => setAvatarUrl(data.avatarUrl || null))
         .catch(() => setAvatarUrl(null))

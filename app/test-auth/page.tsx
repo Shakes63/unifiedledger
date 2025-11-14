@@ -67,7 +67,7 @@ export default function TestAuthPage() {
     setLoading(true);
     setApiResponse(null);
     try {
-      const response = await fetch('/api/test-better-auth');
+      const response = await fetch('/api/test-better-auth', { credentials: 'include' });
       const data = await response.json();
 
       if (response.ok) {

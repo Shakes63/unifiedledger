@@ -79,7 +79,7 @@ export function VariableBillTracker() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/budgets/bills/variable?month=${month}`);
+        const response = await fetch(`/api/budgets/bills/variable?month=${month}`, { credentials: 'include' });
 
         if (!response.ok) {
           throw new Error('Failed to fetch variable bill data');
@@ -170,7 +170,7 @@ export function VariableBillTracker() {
       toast.success('Budget updated successfully');
 
       // Refresh data
-      const dataResponse = await fetch(`/api/budgets/bills/variable?month=${month}`);
+      const dataResponse = await fetch(`/api/budgets/bills/variable?month=${month}`, { credentials: 'include' });
       const data = await dataResponse.json();
       setBills(data.bills || []);
       setSummary(data.summary || null);

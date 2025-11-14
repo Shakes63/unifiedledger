@@ -61,7 +61,7 @@ export default function SalesTaxPage() {
 
   const fetchTaxRateSettings = async () => {
     try {
-      const response = await fetch('/api/sales-tax/settings');
+      const response = await fetch('/api/sales-tax/settings', { credentials: 'include' });
       if (response.ok) {
         const settings = await response.json();
         setTaxRate(settings.defaultRate);
@@ -106,7 +106,7 @@ export default function SalesTaxPage() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/sales-tax/quarterly?year=${year}`);
+      const response = await fetch(`/api/sales-tax/quarterly?year=${year}`, { credentials: 'include' });
 
       if (!response.ok) {
         throw new Error('Failed to load sales tax data');

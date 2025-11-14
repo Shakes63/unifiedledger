@@ -40,7 +40,7 @@ export function BudgetWarning({
     const checkBudget = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/budgets/check?categoryId=${categoryId}`);
+        const response = await fetch(`/api/budgets/check?categoryId=${categoryId}`, { credentials: 'include' });
 
         if (!response.ok) {
           console.error('Failed to check budget');

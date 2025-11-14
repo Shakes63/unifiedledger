@@ -84,7 +84,7 @@ export function TransferSuggestionsModal({
   const fetchSuggestions = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/transfer-suggestions?status=pending&limit=20');
+      const response = await fetch('/api/transfer-suggestions?status=pending&limit=20', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch suggestions');
 
       const data = await response.json();
@@ -100,9 +100,7 @@ export function TransferSuggestionsModal({
   const handleAccept = async (suggestionId: string) => {
     setProcessingId(suggestionId);
     try {
-      const response = await fetch(`/api/transfer-suggestions/${suggestionId}/accept`, {
-        method: 'POST',
-      });
+      const response = await fetch(`/api/transfer-suggestions/${suggestionId}/accept`, { credentials: 'include', method: 'POST', });
 
       if (!response.ok) {
         const error = await response.json();
@@ -123,9 +121,7 @@ export function TransferSuggestionsModal({
   const handleReject = async (suggestionId: string) => {
     setProcessingId(suggestionId);
     try {
-      const response = await fetch(`/api/transfer-suggestions/${suggestionId}/reject`, {
-        method: 'POST',
-      });
+      const response = await fetch(`/api/transfer-suggestions/${suggestionId}/reject`, { credentials: 'include', method: 'POST', });
 
       if (!response.ok) {
         const error = await response.json();

@@ -95,7 +95,7 @@ function TransactionsContent() {
         setLoading(true);
 
         // Fetch transactions
-        const txResponse = await fetch('/api/transactions?limit=100');
+        const txResponse = await fetch('/api/transactions?limit=100', { credentials: 'include' });
         if (txResponse.ok) {
           const txData = await txResponse.json();
           setTransactions(txData); // API already returns newest first
@@ -103,28 +103,28 @@ function TransactionsContent() {
         }
 
         // Fetch categories
-        const catResponse = await fetch('/api/categories');
+        const catResponse = await fetch('/api/categories', { credentials: 'include' });
         if (catResponse.ok) {
           const catData = await catResponse.json();
           setCategories(catData);
         }
 
         // Fetch accounts
-        const accResponse = await fetch('/api/accounts');
+        const accResponse = await fetch('/api/accounts', { credentials: 'include' });
         if (accResponse.ok) {
           const accData = await accResponse.json();
           setAccounts(accData);
         }
 
         // Fetch merchants
-        const merResponse = await fetch('/api/merchants?limit=1000');
+        const merResponse = await fetch('/api/merchants?limit=1000', { credentials: 'include' });
         if (merResponse.ok) {
           const merData = await merResponse.json();
           setMerchants(merData);
         }
 
         // Fetch user settings for default import template
-        const settingsResponse = await fetch('/api/user/settings');
+        const settingsResponse = await fetch('/api/user/settings', { credentials: 'include' });
         if (settingsResponse.ok) {
           const settingsData = await settingsResponse.json();
           setDefaultImportTemplateId(settingsData.defaultImportTemplateId || undefined);
@@ -161,7 +161,7 @@ function TransactionsContent() {
       params.append('limit', pageSize.toString());
       params.append('offset', offset.toString());
 
-      const response = await fetch(`/api/transactions/search?${params.toString()}`);
+      const response = await fetch(`/api/transactions/search?${params.toString()}`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setTransactions(data.transactions);
@@ -229,7 +229,7 @@ function TransactionsContent() {
           await performSearch(currentFilters, paginationOffset);
         } else {
           // Otherwise, refetch all transactions
-          const txResponse = await fetch('/api/transactions?limit=100');
+          const txResponse = await fetch('/api/transactions?limit=100', { credentials: 'include' });
           if (txResponse.ok) {
             const txData = await txResponse.json();
             setTransactions(txData); // API already returns newest first
@@ -340,7 +340,7 @@ function TransactionsContent() {
         if (currentFilters) {
           await performSearch(currentFilters, paginationOffset);
         } else {
-          const txResponse = await fetch('/api/transactions?limit=100');
+          const txResponse = await fetch('/api/transactions?limit=100', { credentials: 'include' });
           if (txResponse.ok) {
             const txData = await txResponse.json();
             setTransactions(txData);
@@ -386,7 +386,7 @@ function TransactionsContent() {
         const newCategory = await response.json();
 
         // Refresh categories
-        const catResponse = await fetch('/api/categories');
+        const catResponse = await fetch('/api/categories', { credentials: 'include' });
         if (catResponse.ok) {
           const catData = await catResponse.json();
           setCategories(catData);
@@ -438,7 +438,7 @@ function TransactionsContent() {
         const newMerchant = await response.json();
 
         // Refresh merchants
-        const merResponse = await fetch('/api/merchants?limit=1000');
+        const merResponse = await fetch('/api/merchants?limit=1000', { credentials: 'include' });
         if (merResponse.ok) {
           const merData = await merResponse.json();
           setMerchants(merData);
@@ -903,7 +903,7 @@ function TransactionsContent() {
         onSuccess={async () => {
           // Refresh transactions after successful import
           try {
-            const txResponse = await fetch('/api/transactions?limit=100');
+            const txResponse = await fetch('/api/transactions?limit=100', { credentials: 'include' });
             if (txResponse.ok) {
               const txData = await txResponse.json();
               setTransactions(txData); // API already returns newest first

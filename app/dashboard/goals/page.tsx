@@ -32,7 +32,7 @@ export default function GoalsPage() {
       setLoading(true);
       setError(null); // Clear previous errors
       const params = filter !== 'all' ? `?status=${filter}` : '';
-      const response = await fetch(`/api/savings-goals${params}`);
+      const response = await fetch(`/api/savings-goals${params}`, { credentials: 'include' });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -70,7 +70,7 @@ export default function GoalsPage() {
 
   const loadGoalDetails = async (goalId: string) => {
     try {
-      const response = await fetch(`/api/savings-goals/${goalId}`);
+      const response = await fetch(`/api/savings-goals/${goalId}`, { credentials: 'include' });
       if (!response.ok) {
         if (response.status === 404) {
           toast.error('Goal not found');
@@ -151,9 +151,7 @@ export default function GoalsPage() {
     if (!confirm('Are you sure you want to delete this goal?')) return;
 
     try {
-      const response = await fetch(`/api/savings-goals/${goalId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/savings-goals/${goalId}`, { credentials: 'include', method: 'DELETE', });
 
       if (!response.ok) {
         if (response.status === 404) {

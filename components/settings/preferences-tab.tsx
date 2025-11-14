@@ -68,7 +68,7 @@ export function PreferencesTab() {
   const fetchData = async () => {
     try {
       // Fetch settings
-      const settingsResponse = await fetch('/api/user/settings');
+      const settingsResponse = await fetch('/api/user/settings', { credentials: 'include' });
       if (settingsResponse.ok) {
         const settingsData = await settingsResponse.json();
         setPreferences({
@@ -81,7 +81,7 @@ export function PreferencesTab() {
       }
 
       // Fetch accounts
-      const accountsResponse = await fetch('/api/accounts');
+      const accountsResponse = await fetch('/api/accounts', { credentials: 'include' });
       if (accountsResponse.ok) {
         const accountsData = await accountsResponse.json();
         setAccounts(accountsData.accounts || []);

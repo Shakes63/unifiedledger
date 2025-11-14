@@ -24,7 +24,7 @@ export function TransferSuggestionsWidget() {
 
   const fetchCount = async () => {
     try {
-      const response = await fetch('/api/transfer-suggestions?status=pending&limit=1');
+      const response = await fetch('/api/transfer-suggestions?status=pending&limit=1', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch count');
 
       const data = await response.json();

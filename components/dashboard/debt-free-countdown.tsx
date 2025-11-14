@@ -41,7 +41,7 @@ export function DebtFreeCountdown() {
     try {
       setLoading(true);
       setError(false);
-      const response = await fetch('/api/debts/countdown');
+      const response = await fetch('/api/debts/countdown', { credentials: 'include' });
 
       if (!response.ok) {
         throw new Error('Failed to fetch countdown data');

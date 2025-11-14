@@ -32,7 +32,7 @@ export function BudgetSummaryWidget() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/budgets/overview');
+      const response = await fetch('/api/budgets/overview', { credentials: 'include' });
 
       if (!response.ok) {
         throw new Error('Failed to fetch budget summary');

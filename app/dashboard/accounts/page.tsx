@@ -32,7 +32,7 @@ export default function AccountsPage() {
     const fetchAccounts = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/accounts');
+        const response = await fetch('/api/accounts', { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setAccounts(data);
@@ -75,7 +75,7 @@ export default function AccountsPage() {
         }
 
         // Refresh accounts list
-        const fetchResponse = await fetch('/api/accounts');
+        const fetchResponse = await fetch('/api/accounts', { credentials: 'include' });
         if (fetchResponse.ok) {
           const data = await fetchResponse.json();
           setAccounts(data);
@@ -118,9 +118,7 @@ export default function AccountsPage() {
     }
 
     try {
-      const response = await fetch(`/api/accounts/${accountId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/accounts/${accountId}`, { credentials: 'include', method: 'DELETE', });
 
       if (response.ok) {
         toast.success('Account deleted successfully');

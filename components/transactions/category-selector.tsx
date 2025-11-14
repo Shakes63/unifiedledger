@@ -64,7 +64,7 @@ export function CategorySelector({
         setLoading(true);
 
         // Fetch categories
-        const categoriesResponse = await fetch('/api/categories');
+        const categoriesResponse = await fetch('/api/categories', { credentials: 'include' });
         if (categoriesResponse.ok) {
           const data = await categoriesResponse.json();
           // Filter categories based on transaction type
@@ -80,7 +80,7 @@ export function CategorySelector({
         // Only fetch bills and debts for expense transactions
         if (transactionType === 'expense') {
           // Fetch active bills with categories
-          const billsResponse = await fetch('/api/bills?isActive=true');
+          const billsResponse = await fetch('/api/bills?isActive=true', { credentials: 'include' });
           if (billsResponse.ok) {
             const billsData = await billsResponse.json();
             // Bills API returns { data: [...], total, limit, offset }
@@ -96,7 +96,7 @@ export function CategorySelector({
           }
 
           // Fetch active debts with categories
-          const debtsResponse = await fetch('/api/debts?status=active');
+          const debtsResponse = await fetch('/api/debts?status=active', { credentials: 'include' });
           if (debtsResponse.ok) {
             const debtsData = await debtsResponse.json();
             // Debts API returns array directly

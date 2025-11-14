@@ -37,7 +37,7 @@ export function DebtAmortizationSection({
         setError(null);
 
         // Fetch debt settings to get extra payment and method
-        const settingsResponse = await fetch('/api/debts/settings');
+        const settingsResponse = await fetch('/api/debts/settings', { credentials: 'include' });
         const settings = settingsResponse.ok ? await settingsResponse.json() : null;
 
         const extraPayment = settings?.extraMonthlyPayment || 0;
@@ -45,9 +45,7 @@ export function DebtAmortizationSection({
         const frequency = settings?.paymentFrequency || 'monthly';
 
         // Fetch payoff strategy for this debt
-        const response = await fetch(
-          `/api/debts/payoff-strategy?extraPayment=${extraPayment}&method=${method}&paymentFrequency=${frequency}`
-        );
+        const response = await fetch(`/api/debts/payoff-strategy?extraPayment=${extraPayment}&method=${method}&paymentFrequency=${frequency}`, { credentials: 'include' });
 
         if (!response.ok) {
           throw new Error('Failed to fetch payoff strategy');

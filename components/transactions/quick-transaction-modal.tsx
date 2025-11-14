@@ -44,7 +44,7 @@ export function QuickTransactionModal({
   // Fetch accounts on mount
   const fetchAccounts = async () => {
     try {
-      const response = await fetch('/api/accounts');
+      const response = await fetch('/api/accounts', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setAccounts(data);

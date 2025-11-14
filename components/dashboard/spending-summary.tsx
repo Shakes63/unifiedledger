@@ -48,9 +48,7 @@ export function SpendingSummary({ period = 'monthly' }: SpendingSummaryProps) {
     try {
       setLoading(true);
       const dateStr = currentDate.toISOString().split('T')[0];
-      const response = await fetch(
-        `/api/spending-summary?period=${displayPeriod}&date=${dateStr}`
-      );
+      const response = await fetch(`/api/spending-summary?period=${displayPeriod}&date=${dateStr}`, { credentials: 'include' });
 
       if (!response.ok) throw new Error('Failed to fetch summary');
 

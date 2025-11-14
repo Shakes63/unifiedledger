@@ -134,7 +134,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     const fetchTags = async () => {
       try {
         setTagsLoading(true);
-        const response = await fetch('/api/tags?sortBy=usage&limit=100');
+        const response = await fetch('/api/tags?sortBy=usage&limit=100', { credentials: 'include' });
         if (!response.ok) throw new Error('Failed to fetch tags');
 
         const data = await response.json();
@@ -149,7 +149,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     const fetchCustomFields = async () => {
       try {
         setCustomFieldsLoading(true);
-        const response = await fetch('/api/custom-fields?activeOnly=true&limit=100');
+        const response = await fetch('/api/custom-fields?activeOnly=true&limit=100', { credentials: 'include' });
         if (!response.ok) throw new Error('Failed to fetch custom fields');
 
         const data = await response.json();
@@ -173,7 +173,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     if (isEditMode && transactionId) {
       const loadTransaction = async () => {
         try {
-          const response = await fetch(`/api/transactions/${transactionId}`);
+          const response = await fetch(`/api/transactions/${transactionId}`, { credentials: 'include' });
           if (!response.ok) throw new Error('Failed to load transaction');
           const transaction = await response.json();
 
@@ -193,7 +193,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           if (transaction.isSplit) {
             setUseSplits(true);
             // Load splits
-            const splitsResponse = await fetch(`/api/transactions/${transactionId}/splits`);
+            const splitsResponse = await fetch(`/api/transactions/${transactionId}/splits`, { credentials: 'include' });
             if (splitsResponse.ok) {
               const splitsData = await splitsResponse.json();
               setSplits(splitsData.map((split: any) => ({
@@ -208,14 +208,14 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           }
 
           // Load transaction tags
-          const tagsResponse = await fetch(`/api/transactions/${transactionId}/tags`);
+          const tagsResponse = await fetch(`/api/transactions/${transactionId}/tags`, { credentials: 'include' });
           if (tagsResponse.ok) {
             const tagsData = await tagsResponse.json();
             setSelectedTagIds(tagsData.map((tag: any) => tag.id));
           }
 
           // Load custom field values
-          const customFieldValuesResponse = await fetch(`/api/custom-field-values?transactionId=${transactionId}`);
+          const customFieldValuesResponse = await fetch(`/api/custom-field-values?transactionId=${transactionId}`, { credentials: 'include' });
           if (customFieldValuesResponse.ok) {
             const valuesData = await customFieldValuesResponse.json();
             const valueMap: Record<string, string> = {};
@@ -247,7 +247,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     const fetchAccounts = async () => {
       try {
         setAccountsLoading(true);
-        const response = await fetch('/api/accounts');
+        const response = await fetch('/api/accounts', { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setAccounts(data);
@@ -272,7 +272,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       try {
         setBillsLoading(true);
-        const response = await fetch('/api/bills/instances?status=pending&limit=100');
+        const response = await fetch('/api/bills/instances?status=pending&limit=100', { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setPendingBills(data.data || []);
@@ -510,7 +510,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         try {
           // In edit mode, delete old tags first
           if (isEditMode) {
-            const existingTags = await fetch(`/api/transactions/${txId}/tags`);
+            const existingTags = await fetch(`/api/transactions/${txId}/tags`, { credentials: 'include' });
             if (existingTags.ok) {
               const existingTagIds = await existingTags.json();
               for (const tag of existingTagIds) {
@@ -548,13 +548,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         try {
           // In edit mode, delete old field values first
           if (isEditMode) {
-            const existingValues = await fetch(`/api/custom-field-values?transactionId=${txId}`);
+            const existingValues = await fetch(`/api/custom-field-values?transactionId=${txId}`, { credentials: 'include' });
             if (existingValues.ok) {
               const existingData = await existingValues.json();
               for (const fieldValue of existingData.data || []) {
-                await fetch(`/api/custom-field-values?valueId=${fieldValue.id}`, {
-                  method: 'DELETE',
-                });
+                await fetch(`/api/custom-field-values?valueId=${fieldValue.id}`, { credentials: 'include', method: 'DELETE', });
               }
             }
           }
@@ -583,13 +581,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       if (useSplits && splits.length > 0) {
         if (isEditMode) {
           // In edit mode, delete old splits and create new ones
-          const oldSplits = await fetch(`/api/transactions/${txId}/splits`);
+          const oldSplits = await fetch(`/api/transactions/${txId}/splits`, { credentials: 'include' });
           if (oldSplits.ok) {
             const oldSplitsData = await oldSplits.json();
             for (const oldSplit of oldSplitsData) {
-              await fetch(`/api/transactions/${txId}/splits/${oldSplit.id}`, {
-                method: 'DELETE',
-              });
+              await fetch(`/api/transactions/${txId}/splits/${oldSplit.id}`, { credentials: 'include', method: 'DELETE', });
             }
           }
         }

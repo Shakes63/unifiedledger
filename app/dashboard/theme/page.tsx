@@ -21,7 +21,7 @@ export default function ThemePage() {
   useEffect(() => {
     const fetchTheme = async () => {
       try {
-        const response = await fetch('/api/user/settings/theme');
+        const response = await fetch('/api/user/settings/theme', { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setCurrentThemeId(data.theme);

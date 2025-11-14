@@ -43,7 +43,7 @@ export default function DebtsPage() {
 
   const loadSettings = async () => {
     try {
-      const response = await fetch('/api/debts/settings');
+      const response = await fetch('/api/debts/settings', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setDebtSettings(data);
@@ -57,7 +57,7 @@ export default function DebtsPage() {
     try {
       setLoading(true);
       const params = filter !== 'all' ? `?status=${filter}` : '';
-      const response = await fetch(`/api/debts${params}`);
+      const response = await fetch(`/api/debts${params}`, { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch debts');
       const data = await response.json();
       setDebts(data);
@@ -70,7 +70,7 @@ export default function DebtsPage() {
 
   const loadStats = async () => {
     try {
-      const response = await fetch('/api/debts/stats');
+      const response = await fetch('/api/debts/stats', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch stats');
       const data = await response.json();
       setStats(data);
@@ -81,7 +81,7 @@ export default function DebtsPage() {
 
   const loadDebtDetails = async (debtId: string) => {
     try {
-      const response = await fetch(`/api/debts/${debtId}`);
+      const response = await fetch(`/api/debts/${debtId}`, { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch debt');
       return await response.json();
     } catch (error) {
@@ -142,9 +142,7 @@ export default function DebtsPage() {
     if (!confirm('Are you sure you want to delete this debt?')) return;
 
     try {
-      const response = await fetch(`/api/debts/${debtId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/debts/${debtId}`, { credentials: 'include', method: 'DELETE', });
 
       if (!response.ok) throw new Error('Failed to delete debt');
 

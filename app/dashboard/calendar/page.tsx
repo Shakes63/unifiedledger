@@ -62,9 +62,7 @@ export default function CalendarPage() {
         const monthEnd = endOfMonth(currentDate);
 
         // Fetch month summary
-        const response = await fetch(
-          `/api/calendar/month?startDate=${monthStart.toISOString()}&endDate=${monthEnd.toISOString()}`
-        );
+        const response = await fetch(`/api/calendar/month?startDate=${monthStart.toISOString()}&endDate=${monthEnd.toISOString()}`, { credentials: 'include' });
 
         if (response.ok) {
           const data = await response.json();
@@ -86,9 +84,7 @@ export default function CalendarPage() {
       setSelectedDay(date);
 
       // Fetch day details
-      const response = await fetch(
-        `/api/calendar/day?date=${date.toISOString()}`
-      );
+      const response = await fetch(`/api/calendar/day?date=${date.toISOString()}`, { credentials: 'include' });
 
       if (response.ok) {
         const data = await response.json();

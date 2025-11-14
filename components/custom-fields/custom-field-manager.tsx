@@ -62,7 +62,7 @@ export function CustomFieldManager() {
   const fetchFields = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/custom-fields?activeOnly=false&limit=100');
+      const response = await fetch('/api/custom-fields?activeOnly=false&limit=100', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch fields');
 
       const data = await response.json();
@@ -141,9 +141,7 @@ export function CustomFieldManager() {
     if (!confirm('Are you sure you want to delete this field? This cannot be undone.')) return;
 
     try {
-      const response = await fetch(`/api/custom-fields/${fieldId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/custom-fields/${fieldId}`, { credentials: 'include', method: 'DELETE', });
 
       if (!response.ok) throw new Error('Failed to delete field');
 

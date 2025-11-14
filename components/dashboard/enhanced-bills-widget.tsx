@@ -48,7 +48,8 @@ export function EnhancedBillsWidget() {
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
       const response = await fetch(
-        `/api/bills/instances?status=pending,paid,overdue&sortBy=dueDate`
+        `/api/bills/instances?status=pending,paid,overdue&sortBy=dueDate`,
+        { credentials: 'include' }
       );
 
       if (response.ok) {

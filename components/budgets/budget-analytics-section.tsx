@@ -84,7 +84,7 @@ export function BudgetAnalyticsSection() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/budgets/analyze?months=${monthsPeriod}`);
+        const response = await fetch(`/api/budgets/analyze?months=${monthsPeriod}`, { credentials: 'include' });
 
         if (!response.ok) {
           throw new Error('Failed to fetch analytics data');

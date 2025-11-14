@@ -24,7 +24,7 @@ export function DebtCountdownCard() {
   const fetchCountdownData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/debts/countdown');
+      const response = await fetch('/api/debts/countdown', { credentials: 'include' });
 
       if (!response.ok) {
         throw new Error('Failed to fetch countdown data');

@@ -27,7 +27,7 @@ export function CompactStatsBar() {
         setLoading(true);
 
         // Fetch accounts for total balance
-        const accountsResponse = await fetch('/api/accounts');
+        const accountsResponse = await fetch('/api/accounts', { credentials: 'include' });
         if (accountsResponse.ok) {
           const accountsData = await accountsResponse.json();
           const total = accountsData.reduce((sum: number, account: any) => {
@@ -41,7 +41,7 @@ export function CompactStatsBar() {
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-        const txResponse = await fetch('/api/transactions?limit=1000');
+        const txResponse = await fetch('/api/transactions?limit=1000', { credentials: 'include' });
         if (txResponse.ok) {
           const txData = await txResponse.json();
           const monthlyExpenses = txData.filter((tx: any) => {
@@ -57,7 +57,7 @@ export function CompactStatsBar() {
         }
 
         // Fetch bills for pending count
-        const billsResponse = await fetch('/api/bills/instances?status=pending&sortBy=dueDate');
+        const billsResponse = await fetch('/api/bills/instances?status=pending&sortBy=dueDate', { credentials: 'include' });
         if (billsResponse.ok) {
           const billsData = await billsResponse.json();
           const rawData = Array.isArray(billsData) ? billsData : billsData.data || [];
@@ -72,7 +72,7 @@ export function CompactStatsBar() {
 
         // Fetch budget adherence (optional - only if user has budgets)
         try {
-          const budgetResponse = await fetch('/api/budgets/overview');
+          const budgetResponse = await fetch('/api/budgets/overview', { credentials: 'include' });
           if (budgetResponse.ok) {
             const budgetData = await budgetResponse.json();
             const categoriesWithBudgets = budgetData.categories.filter(
@@ -88,7 +88,7 @@ export function CompactStatsBar() {
 
         // Fetch debt progress (optional - only if user has debts)
         try {
-          const debtsResponse = await fetch('/api/debts');
+          const debtsResponse = await fetch('/api/debts', { credentials: 'include' });
           if (debtsResponse.ok) {
             const debtsData = await debtsResponse.json();
             if (debtsData.length > 0) {
@@ -115,7 +115,7 @@ export function CompactStatsBar() {
 
         // Fetch goals progress (optional - only if user has active goals)
         try {
-          const goalsResponse = await fetch('/api/savings-goals?status=active');
+          const goalsResponse = await fetch('/api/savings-goals?status=active', { credentials: 'include' });
           if (goalsResponse.ok) {
             const goalsData = await goalsResponse.json();
             if (Array.isArray(goalsData) && goalsData.length > 0) {

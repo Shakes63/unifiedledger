@@ -58,7 +58,7 @@ export function NotificationBell() {
   // Fetch unread notifications
   const fetchNotifications = async () => {
     try {
-      const response = await fetch('/api/notifications?limit=10&unreadOnly=true');
+      const response = await fetch('/api/notifications?limit=10&unreadOnly=true', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch notifications');
 
       const data = await response.json();

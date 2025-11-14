@@ -55,7 +55,7 @@ export default function RulesPage() {
   const handleEditRule = async (rule: Rule) => {
     try {
       // Fetch full rule details including conditions and actions
-      const response = await fetch(`/api/rules?id=${rule.id}`);
+      const response = await fetch(`/api/rules?id=${rule.id}`, { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch rule details');
 
       const fullRule = await response.json();

@@ -59,7 +59,7 @@ export function DataTab() {
 
   async function fetchSettings() {
     try {
-      const response = await fetch('/api/user/settings');
+      const response = await fetch('/api/user/settings', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setDataRetentionYears(data.dataRetentionYears?.toString() || '7');
@@ -74,7 +74,7 @@ export function DataTab() {
 
   async function fetchImportTemplates() {
     try {
-      const response = await fetch('/api/import-templates');
+      const response = await fetch('/api/import-templates', { credentials: 'include' });
       if (response.ok) {
         const templates = await response.json();
         setImportTemplates(templates);

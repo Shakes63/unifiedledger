@@ -110,9 +110,7 @@ export default function NotificationsPage() {
 
   const handleDelete = async (notificationId: string) => {
     try {
-      const response = await fetch(`/api/notifications/${notificationId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/notifications/${notificationId}`, { credentials: 'include', method: 'DELETE', });
 
       if (response.ok) {
         setNotifications((prev) =>

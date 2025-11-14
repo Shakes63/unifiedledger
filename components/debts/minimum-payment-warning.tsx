@@ -54,7 +54,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/debts/minimum-warning');
+      const response = await fetch('/api/debts/minimum-warning', { credentials: 'include' });
 
       if (!response.ok) {
         if (response.status === 404) {

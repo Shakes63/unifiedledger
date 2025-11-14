@@ -204,7 +204,16 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
 **Latest (2025-11-14):**
-- Better Auth Cookie Integration (100% COMPLETE): Fixed session authentication and cookie handling
+- Better Auth Authentication Bug Fixes (100% COMPLETE): Fixed widespread authentication issues after cookie integration
+  - ✅ Added `credentials: "include"` to 185 fetch calls across 82 files using automated script
+  - ✅ Fixed session ping endpoint (`/api/session/ping`) to parse `better-auth.session_data` cookie correctly
+  - ✅ Fixed Web Vitals hook to include credentials (removed sendBeacon, added credentials to fetch)
+  - ✅ Fixed performance metrics endpoint to gracefully handle unauthenticated requests
+  - ✅ Removed `imageUpdatedAt` field from auth schema (causing Better Auth schema mismatch)
+  - ✅ Fixed PWA manifest 404 error by removing non-existent screenshot references
+  - ✅ Added inline error display on sign-in page (shows "Incorrect email or password" in form)
+  - ✅ Created automated fix script: `scripts/fix-all-fetch.mjs` for bulk credential fixes
+- Better Auth Cookie Integration (100% COMPLETE): Initial session authentication and cookie handling
   - ✅ Added `credentials: "include"` to Better Auth client configuration for cookie support
   - ✅ Updated middleware to parse `better-auth.session_data` cookie (not `session_token`)
   - ✅ Fixed TypeScript errors in email verification and user API routes

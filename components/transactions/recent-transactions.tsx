@@ -33,7 +33,7 @@ export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTran
     const fetchTransactions = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/transactions?limit=${limit}`);
+        const response = await fetch(`/api/transactions?limit=${limit}`, { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setTransactions(data.slice(0, limit)); // API already returns newest first

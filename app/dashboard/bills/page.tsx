@@ -69,14 +69,14 @@ export default function BillsDashboard() {
         setLoading(true);
 
         // Fetch active bills
-        const billsRes = await fetch('/api/bills?isActive=true&limit=100');
+        const billsRes = await fetch('/api/bills?isActive=true&limit=100', { credentials: 'include' });
         if (!billsRes.ok) {
           throw new Error(`Failed to fetch bills: ${billsRes.statusText}`);
         }
         const billsData = await billsRes.json();
 
         // Fetch all bill instances
-        const instancesRes = await fetch('/api/bills/instances?limit=1000');
+        const instancesRes = await fetch('/api/bills/instances?limit=1000', { credentials: 'include' });
         if (!instancesRes.ok) {
           throw new Error(`Failed to fetch bill instances: ${instancesRes.statusText}`);
         }

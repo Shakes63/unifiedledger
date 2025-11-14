@@ -46,7 +46,7 @@ export function QuickTransferModal({
     const loadSuggestions = async () => {
       try {
         setIsLoadingSuggestions(true);
-        const response = await fetch('/api/transfers/suggest?limit=5');
+        const response = await fetch('/api/transfers/suggest?limit=5', { credentials: 'include' });
 
         if (!response.ok) throw new Error('Failed to load suggestions');
 

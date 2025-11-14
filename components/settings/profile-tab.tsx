@@ -51,7 +51,7 @@ export function ProfileTab() {
 
   const fetchProfile = async () => {
     try {
-      const response = await fetch('/api/user/profile');
+      const response = await fetch('/api/user/profile', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch profile');
 
       const data = await response.json();
@@ -70,9 +70,7 @@ export function ProfileTab() {
   const handleResendVerification = async () => {
     setResendingVerification(true);
     try {
-      const response = await fetch('/api/user/resend-verification', {
-        method: 'POST',
-      });
+      const response = await fetch('/api/user/resend-verification', { credentials: 'include', method: 'POST', });
 
       if (!response.ok) {
         const data = await response.json();
@@ -120,9 +118,7 @@ export function ProfileTab() {
   const handleCancelEmailChange = async () => {
     setCancelingEmailChange(true);
     try {
-      const response = await fetch('/api/user/cancel-email-change', {
-        method: 'POST',
-      });
+      const response = await fetch('/api/user/cancel-email-change', { credentials: 'include', method: 'POST', });
 
       if (!response.ok) {
         const data = await response.json();

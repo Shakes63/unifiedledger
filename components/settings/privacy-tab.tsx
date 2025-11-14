@@ -78,14 +78,14 @@ export function PrivacyTab() {
   async function fetchSessions() {
     try {
       // Fetch sessions
-      const sessionsResponse = await fetch('/api/user/sessions');
+      const sessionsResponse = await fetch('/api/user/sessions', { credentials: 'include' });
       if (sessionsResponse.ok) {
         const data = await sessionsResponse.json();
         setSessions(data.sessions);
       }
 
       // Fetch user settings for session timeout
-      const settingsResponse = await fetch('/api/user/settings');
+      const settingsResponse = await fetch('/api/user/settings', { credentials: 'include' });
       if (settingsResponse.ok) {
         const settingsData = await settingsResponse.json();
         setSessionTimeout(settingsData.settings.sessionTimeout || 30);
@@ -125,9 +125,7 @@ export function PrivacyTab() {
 
   async function revokeSession(sessionId: string) {
     try {
-      const response = await fetch(`/api/user/sessions/${sessionId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/user/sessions/${sessionId}`, { credentials: 'include', method: 'DELETE', });
 
       if (response.ok) {
         toast.success('Session revoked successfully');
@@ -143,9 +141,7 @@ export function PrivacyTab() {
 
   async function revokeAllSessions() {
     try {
-      const response = await fetch('/api/user/sessions/revoke-all', {
-        method: 'POST',
-      });
+      const response = await fetch('/api/user/sessions/revoke-all', { credentials: 'include', method: 'POST', });
 
       if (response.ok) {
         toast.success('All other sessions revoked');
@@ -161,7 +157,7 @@ export function PrivacyTab() {
   async function exportAllData() {
     try {
       setExporting(true);
-      const response = await fetch('/api/user/export');
+      const response = await fetch('/api/user/export', { credentials: 'include' });
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -188,7 +184,7 @@ export function PrivacyTab() {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
-      const response = await fetch(`/api/user/export/csv?${params}`);
+      const response = await fetch(`/api/user/export/csv?${params}`, { credentials: 'include' });
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);

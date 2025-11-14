@@ -56,7 +56,7 @@ export function CalendarWeek({
       for (const day of days) {
         const dayKey = format(day, 'yyyy-MM-dd');
         try {
-          const response = await fetch(`/api/calendar/day?date=${day.toISOString()}`);
+          const response = await fetch(`/api/calendar/day?date=${day.toISOString()}`, { credentials: 'include' });
           if (response.ok) {
             const data = await response.json();
             transactions[dayKey] = data.transactions || [];

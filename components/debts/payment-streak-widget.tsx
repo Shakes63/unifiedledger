@@ -37,7 +37,7 @@ export function PaymentStreakWidget() {
   const fetchStreakData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/debts/streak');
+      const response = await fetch('/api/debts/streak', { credentials: 'include' });
 
       if (!response.ok) {
         throw new Error('Failed to fetch streak data');

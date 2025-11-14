@@ -34,7 +34,7 @@ export function PaymentAdherenceCard() {
   const fetchAdherenceData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/debts/adherence');
+      const response = await fetch('/api/debts/adherence', { credentials: 'include' });
 
       if (!response.ok) {
         throw new Error('Failed to fetch adherence data');

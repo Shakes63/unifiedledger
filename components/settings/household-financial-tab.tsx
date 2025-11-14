@@ -34,7 +34,7 @@ export function HouseholdFinancialTab() {
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch('/api/user/settings');
+      const response = await fetch('/api/user/settings', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setSettings({

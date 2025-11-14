@@ -49,7 +49,7 @@ export function NotificationPreferences() {
   const fetchPreferences = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/notification-preferences');
+      const response = await fetch('/api/notification-preferences', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch preferences');
 
       const data = await response.json();

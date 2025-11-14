@@ -22,7 +22,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const response = await fetch('/api/debts/settings');
+        const response = await fetch('/api/debts/settings', { credentials: 'include' });
         if (response.ok) {
           const settings = await response.json();
           setExtraPayment(settings.extraMonthlyPayment?.toString() || '0');
@@ -62,9 +62,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
   const fetchStrategy = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `/api/debts/payoff-strategy?compare=true&extraPayment=${parseFloat(extraPayment) || 0}`
-      );
+      const response = await fetch(`/api/debts/payoff-strategy?compare=true&extraPayment=${parseFloat(extraPayment) || 0}`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setComparison(data);

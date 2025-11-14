@@ -116,7 +116,7 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
         setLoading(true);
 
         // Fetch transaction with enriched data
-        const txResponse = await fetch(`/api/transactions/${transactionId}`);
+        const txResponse = await fetch(`/api/transactions/${transactionId}`, { credentials: 'include' });
         if (!txResponse.ok) {
           throw new Error('Failed to fetch transaction');
         }
@@ -139,9 +139,7 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
 
     try {
       setDeleting(true);
-      const response = await fetch(`/api/transactions/${transactionId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/transactions/${transactionId}`, { credentials: 'include', method: 'DELETE', });
 
       if (!response.ok) {
         throw new Error('Failed to delete transaction');
@@ -161,7 +159,7 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
   const handleConvertSuccess = () => {
     // Reload transaction data after conversion
     setLoading(true);
-    fetch(`/api/transactions/${transactionId}`)
+    fetch(`/api/transactions/${transactionId}`, { credentials: 'include' })
       .then(res => res.json())
       .then(data => {
         setTransaction(data);

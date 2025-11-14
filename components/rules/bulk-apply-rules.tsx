@@ -40,9 +40,7 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
       if (endDate) params.append('endDate', endDate);
       if (limit) params.append('limit', limit);
 
-      const response = await fetch(`/api/rules/apply-bulk?${params.toString()}`, {
-        method: 'POST',
-      });
+      const response = await fetch(`/api/rules/apply-bulk?${params.toString()}`, { credentials: 'include', method: 'POST', });
 
       if (!response.ok) {
         const errorData = await response.json();

@@ -69,10 +69,8 @@ export function AvatarUpload({
       const formData = new FormData();
       formData.append('avatar', file);
 
-      const response = await fetch('/api/profile/avatar/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      const response = await fetch('/api/profile/avatar/upload', { credentials: 'include', method: 'POST',
+        body: formData, });
 
       const data = await response.json();
 
@@ -109,9 +107,7 @@ export function AvatarUpload({
     setIsRemoving(true);
 
     try {
-      const response = await fetch('/api/profile/avatar', {
-        method: 'DELETE',
-      });
+      const response = await fetch('/api/profile/avatar', { credentials: 'include', method: 'DELETE', });
 
       const data = await response.json();
 

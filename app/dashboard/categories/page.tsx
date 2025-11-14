@@ -48,7 +48,7 @@ export default function CategoriesPage() {
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/categories');
+        const response = await fetch('/api/categories', { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setCategories(data);
@@ -111,7 +111,7 @@ export default function CategoriesPage() {
           toast.success('Category created successfully');
 
           // Refresh categories list
-          const fetchResponse = await fetch('/api/categories');
+          const fetchResponse = await fetch('/api/categories', { credentials: 'include' });
           if (fetchResponse.ok) {
             const data = await fetchResponse.json();
             setCategories(data);
@@ -140,9 +140,7 @@ export default function CategoriesPage() {
     }
 
     try {
-      const response = await fetch(`/api/categories/${categoryId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/categories/${categoryId}`, { credentials: 'include', method: 'DELETE', });
 
       if (response.ok) {
         toast.success('Category deleted successfully');

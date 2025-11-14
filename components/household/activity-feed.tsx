@@ -81,9 +81,7 @@ export function ActivityFeed({ householdId, limit = 20 }: ActivityFeedProps) {
   const loadActivities = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `/api/households/${householdId}/activity-log?limit=${limit}`
-      );
+      const response = await fetch(`/api/households/${householdId}/activity-log?limit=${limit}`, { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch activities');
       const data = await response.json();
       setActivities(data.data);

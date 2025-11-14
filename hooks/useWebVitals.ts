@@ -99,8 +99,8 @@ function handleMetric(
 }
 
 /**
- * Send metric to analytics endpoint using Navigator.sendBeacon
- * (more reliable than fetch for analytics)
+ * Send metric to analytics endpoint
+ * Uses fetch with credentials since sendBeacon doesn't support authentication
  */
 async function sendMetricToAnalytics(
   metric: CoreWebVitalsMetric,
@@ -113,24 +113,13 @@ async function sendMetricToAnalytics(
     userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
   };
 
-  // Try sendBeacon first (most reliable for analytics)
-  if (typeof navigator !== "undefined" && navigator.sendBeacon) {
-    try {
-      navigator.sendBeacon(endpoint, JSON.stringify(payload));
-      return;
-    } catch (error) {
-      // Fallback to fetch if sendBeacon fails
-    }
-  }
-
-  // Fallback to fetch
   try {
     await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-      // Don't keep-alive to avoid blocking page unload
-      keepalive: true,
+      credentials: "include", // Required for cookie-based authentication
+      keepalive: true, // Don't block page unload
     });
   } catch (error) {
     // Silently fail - don't break the page for analytics

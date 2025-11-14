@@ -68,16 +68,14 @@ export default function ReportsPage() {
   const loadPayoffStrategy = async () => {
     try {
       // Fetch debt settings first
-      const settingsResponse = await fetch('/api/debts/settings');
+      const settingsResponse = await fetch('/api/debts/settings', { credentials: 'include' });
       const settings = settingsResponse.ok ? await settingsResponse.json() : null;
 
       const extraPayment = settings?.extraMonthlyPayment || 0;
       const method = settings?.preferredMethod || 'avalanche';
       const frequency = settings?.paymentFrequency || 'monthly';
 
-      const response = await fetch(
-        `/api/debts/payoff-strategy?extraPayment=${extraPayment}&method=${method}&paymentFrequency=${frequency}`
-      );
+      const response = await fetch(`/api/debts/payoff-strategy?extraPayment=${extraPayment}&method=${method}&paymentFrequency=${frequency}`, { credentials: 'include' });
 
       if (response.ok) {
         const strategyData = await response.json();
@@ -95,12 +93,12 @@ export default function ReportsPage() {
       setError(null);
 
       const [ivE, cb, cf, nw, bva, ma] = await Promise.all([
-        fetch(`/api/reports/income-vs-expenses?period=${period}`).then((r) => r.json()),
-        fetch(`/api/reports/category-breakdown?period=${period}`).then((r) => r.json()),
-        fetch(`/api/reports/cash-flow?period=${period}`).then((r) => r.json()),
-        fetch(`/api/reports/net-worth?period=${period}`).then((r) => r.json()),
-        fetch(`/api/reports/budget-vs-actual?period=${period}`).then((r) => r.json()),
-        fetch(`/api/reports/merchant-analysis?period=${period}`).then((r) => r.json()),
+        fetch(`/api/reports/income-vs-expenses?period=${period}`, { credentials: 'include' }).then((r) => r.json()),
+        fetch(`/api/reports/category-breakdown?period=${period}`, { credentials: 'include' }).then((r) => r.json()),
+        fetch(`/api/reports/cash-flow?period=${period}`, { credentials: 'include' }).then((r) => r.json()),
+        fetch(`/api/reports/net-worth?period=${period}`, { credentials: 'include' }).then((r) => r.json()),
+        fetch(`/api/reports/budget-vs-actual?period=${period}`, { credentials: 'include' }).then((r) => r.json()),
+        fetch(`/api/reports/merchant-analysis?period=${period}`, { credentials: 'include' }).then((r) => r.json()),
       ]);
 
       // Transform data to use 'name' as x-axis key (required by chart components)

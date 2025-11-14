@@ -72,7 +72,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   const loadPreferences = async (householdId: string) => {
     try {
       setPreferencesLoading(true);
-      const response = await fetch(`/api/user/households/${householdId}/preferences`);
+      const response = await fetch(`/api/user/households/${householdId}/preferences`, { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setPreferences(data);
@@ -119,7 +119,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
   const refreshHouseholds = async () => {
     try {
-      const response = await fetch('/api/households');
+      const response = await fetch('/api/households', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setHouseholds(data);

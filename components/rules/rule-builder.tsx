@@ -304,9 +304,9 @@ export function RuleBuilder({
     const fetchData = async () => {
       try {
         const [categoriesRes, merchantsRes, accountsRes] = await Promise.all([
-          fetch('/api/categories'),
-          fetch('/api/merchants'),
-          fetch('/api/accounts?sortBy=name&sortOrder=asc')
+          fetch('/api/categories', { credentials: 'include' }),
+          fetch('/api/merchants', { credentials: 'include' }),
+          fetch('/api/accounts?sortBy=name&sortOrder=asc', { credentials: 'include' })
         ]);
 
         if (categoriesRes.ok) {

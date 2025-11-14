@@ -41,7 +41,7 @@ export function TagManager() {
   const fetchTags = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/tags?sortBy=usage&limit=100');
+      const response = await fetch('/api/tags?sortBy=usage&limit=100', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch tags');
 
       const data = await response.json();
@@ -127,9 +127,7 @@ export function TagManager() {
     if (!confirm('Are you sure you want to delete this tag?')) return;
 
     try {
-      const response = await fetch(`/api/tags/${tagId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/tags/${tagId}`, { credentials: 'include', method: 'DELETE', });
 
       if (!response.ok) throw new Error('Failed to delete tag');
 

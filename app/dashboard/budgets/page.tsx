@@ -75,7 +75,7 @@ export default function BudgetsPage() {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/budgets/overview?month=${selectedMonth}`);
+        const response = await fetch(`/api/budgets/overview?month=${selectedMonth}`, { credentials: 'include' });
 
         if (!response.ok) {
           throw new Error('Failed to fetch budget data');
@@ -118,7 +118,7 @@ export default function BudgetsPage() {
   // Refresh budget data
   const refreshBudgetData = async () => {
     try {
-      const response = await fetch(`/api/budgets/overview?month=${selectedMonth}`);
+      const response = await fetch(`/api/budgets/overview?month=${selectedMonth}`, { credentials: 'include' });
       const data = await response.json();
       setBudgetData(data);
     } catch (err) {

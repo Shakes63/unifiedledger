@@ -39,7 +39,7 @@ export function HouseholdPreferencesTab() {
 
   const fetchData = async () => {
     try {
-      const response = await fetch('/api/user/settings');
+      const response = await fetch('/api/user/settings', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setFiscalYearStart(data.settings.fiscalYearStart || 1);

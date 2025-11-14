@@ -37,7 +37,7 @@ export function AccountSelector({
     const fetchAccounts = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/accounts');
+        const response = await fetch('/api/accounts', { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setAccounts(data);

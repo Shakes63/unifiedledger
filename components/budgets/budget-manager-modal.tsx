@@ -49,7 +49,7 @@ export function BudgetManagerModal({
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/budgets');
+      const response = await fetch('/api/budgets', { credentials: 'include' });
 
       if (!response.ok) {
         throw new Error('Failed to fetch categories');

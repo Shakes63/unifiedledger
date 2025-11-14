@@ -54,28 +54,28 @@ export function RecentTransactions() {
         setLoading(true);
 
         // Fetch transactions (50 for scrollable list)
-        const txResponse = await fetch('/api/transactions?limit=50');
+        const txResponse = await fetch('/api/transactions?limit=50', { credentials: 'include' });
         if (txResponse.ok) {
           const data = await txResponse.json();
           setTransactions(data);
         }
 
         // Fetch merchants
-        const merResponse = await fetch('/api/merchants?limit=1000');
+        const merResponse = await fetch('/api/merchants?limit=1000', { credentials: 'include' });
         if (merResponse.ok) {
           const merData = await merResponse.json();
           setMerchants(merData);
         }
 
         // Fetch accounts
-        const accResponse = await fetch('/api/accounts');
+        const accResponse = await fetch('/api/accounts', { credentials: 'include' });
         if (accResponse.ok) {
           const accData = await accResponse.json();
           setAccounts(accData);
         }
 
         // Fetch categories
-        const catResponse = await fetch('/api/categories');
+        const catResponse = await fetch('/api/categories', { credentials: 'include' });
         if (catResponse.ok) {
           const catData = await catResponse.json();
           setCategories(catData);
@@ -128,7 +128,7 @@ export function RecentTransactions() {
           isSplit: false, // New transactions aren't split by default
         };
         // Refetch the transactions to get the accurate list instead of manually manipulating state
-        const refreshResponse = await fetch('/api/transactions?limit=5');
+        const refreshResponse = await fetch('/api/transactions?limit=5', { credentials: 'include' });
         if (refreshResponse.ok) {
           const refreshedData = await refreshResponse.json();
           setTransactions(refreshedData);

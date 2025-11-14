@@ -26,7 +26,7 @@ export default function EditBillPage({ params }: PageProps) {
 
       // Fetch existing bill data
       try {
-        const response = await fetch(`/api/bills/${resolvedParams.id}`);
+        const response = await fetch(`/api/bills/${resolvedParams.id}`, { credentials: 'include' });
         if (!response.ok) {
           throw new Error('Failed to fetch bill');
         }

@@ -23,7 +23,7 @@ export function VerificationRequired({
 
   const checkVerification = async () => {
     try {
-      const response = await fetch("/api/user/profile");
+      const response = await fetch("/api/user/profile", { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setIsVerified(data.emailVerified ?? false);
@@ -38,9 +38,7 @@ export function VerificationRequired({
 
   const handleResendVerification = async () => {
     try {
-      const response = await fetch("/api/user/resend-verification", {
-        method: "POST",
-      });
+      const response = await fetch("/api/user/resend-verification", { credentials: 'include', method: "POST", });
 
       if (!response.ok) {
         const data = await response.json();

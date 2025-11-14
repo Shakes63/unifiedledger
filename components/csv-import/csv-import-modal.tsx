@@ -75,7 +75,7 @@ export function CSVImportModal({
 
   const loadDefaultTemplate = async (templateId: string) => {
     try {
-      const response = await fetch(`/api/import-templates/${templateId}`);
+      const response = await fetch(`/api/import-templates/${templateId}`, { credentials: 'include' });
       if (!response.ok) {
         console.error('Failed to load default template');
         return;

@@ -19,7 +19,7 @@ export function ExperimentalFeaturesProvider({ children }: { children: ReactNode
   useEffect(() => {
     async function loadSettings() {
       try {
-        const response = await fetch('/api/user/settings');
+        const response = await fetch('/api/user/settings', { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setEnabled(data.experimentalFeatures || false);

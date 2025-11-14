@@ -44,7 +44,7 @@ export default function TransfersPage() {
         setIsLoading(true);
 
         // Load accounts
-        const accountsRes = await fetch('/api/accounts');
+        const accountsRes = await fetch('/api/accounts', { credentials: 'include' });
         if (accountsRes.ok) {
           const accountsData = await accountsRes.json();
           setAccounts(accountsData.accounts || []);
@@ -64,7 +64,7 @@ export default function TransfersPage() {
 
   const loadTransfers = async () => {
     try {
-      const response = await fetch('/api/transfers?limit=50');
+      const response = await fetch('/api/transfers?limit=50', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setTransfers(data.transfers || []);

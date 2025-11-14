@@ -37,7 +37,15 @@ const metricsStore = new Map<
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await requireAuth();
+    // Try to get auth, but don't fail if user is not logged in
+    let userId: string | null = null;
+    try {
+      const auth = await requireAuth();
+      userId = auth.userId;
+    } catch (error) {
+      // User not authenticated - silently ignore metrics from public pages
+      return NextResponse.json({ success: true, stored: false });
+    }
 
     const body = await request.json();
     const { metric, timestamp, url, userAgent } = body;

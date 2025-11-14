@@ -67,7 +67,7 @@ export function TransactionTemplatesManager({
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/transactions/templates');
+      const response = await fetch('/api/transactions/templates', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch templates');
       const data = await response.json();
       setTemplates(data);
@@ -81,9 +81,7 @@ export function TransactionTemplatesManager({
   const handleDelete = async (templateId: string) => {
     setDeletingId(templateId);
     try {
-      const response = await fetch(`/api/transactions/templates/${templateId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/transactions/templates/${templateId}`, { credentials: 'include', method: 'DELETE', });
       if (!response.ok) throw new Error('Failed to delete template');
       setTemplates(templates.filter((t) => t.id !== templateId));
     } catch (err) {

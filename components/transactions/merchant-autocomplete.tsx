@@ -50,7 +50,7 @@ export function MerchantAutocomplete({
 
       setLoading(true);
       try {
-        const response = await fetch(`/api/suggestions?q=${encodeURIComponent(value)}`);
+        const response = await fetch(`/api/suggestions?q=${encodeURIComponent(value)}`, { credentials: 'include' });
         if (response.ok) {
           const data = await response.json();
           setSuggestions(data);
@@ -86,9 +86,7 @@ export function MerchantAutocomplete({
     // For merchant suggestions, fetch category recommendation
     if (suggestion.type === 'merchant') {
       try {
-        const response = await fetch(
-          `/api/categorization/suggest?description=${encodeURIComponent(suggestion.label)}`
-        );
+        const response = await fetch(`/api/categorization/suggest?description=${encodeURIComponent(suggestion.label)}`, { credentials: 'include' });
         if (response.ok) {
           const categoryData = await response.json();
           const merchantData: MerchantSelectionData = {

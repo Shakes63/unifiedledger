@@ -19,7 +19,7 @@ export function SavingsGoalsWidget() {
   const loadGoals = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/savings-goals?status=active');
+      const response = await fetch('/api/savings-goals?status=active', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch goals');
       const data = await response.json();
       // Show top 3 active goals

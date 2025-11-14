@@ -49,7 +49,7 @@ export function SavedSearches({
   const fetchSavedSearches = async () => {
     try {
       setIsLoadingSaves(true);
-      const response = await fetch('/api/saved-searches?limit=20&sortBy=lastUsedAt');
+      const response = await fetch('/api/saved-searches?limit=20&sortBy=lastUsedAt', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setSavedSearches(data.searches);
@@ -102,9 +102,7 @@ export function SavedSearches({
   const handleLoadSearch = async (search: SavedSearch) => {
     try {
       // Increment usage count
-      await fetch(`/api/saved-searches/${search.id}`, {
-        method: 'POST',
-      });
+      await fetch(`/api/saved-searches/${search.id}`, { credentials: 'include', method: 'POST', });
 
       onLoadSearch(search.filters);
       toast.success(`Loaded "${search.name}"`);
@@ -119,9 +117,7 @@ export function SavedSearches({
     if (!confirm(`Delete "${searchName}"?`)) return;
 
     try {
-      const response = await fetch(`/api/saved-searches/${searchId}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/saved-searches/${searchId}`, { credentials: 'include', method: 'DELETE', });
 
       if (response.ok) {
         toast.success('Saved search deleted');

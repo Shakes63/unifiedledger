@@ -38,7 +38,7 @@ export function CreditUtilizationWidget() {
     async function fetchData() {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/debts/credit-utilization');
+        const response = await fetch('/api/debts/credit-utilization', { credentials: 'include' });
 
         if (!response.ok) {
           throw new Error('Failed to fetch credit utilization data');

@@ -58,7 +58,7 @@ export function DebtReductionChart({
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch('/api/debts/reduction-chart');
+        const response = await fetch('/api/debts/reduction-chart', { credentials: 'include' });
         if (!response.ok) {
           throw new Error('Failed to fetch debt reduction chart data');
         }

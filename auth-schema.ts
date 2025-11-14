@@ -10,7 +10,6 @@ export const user = sqliteTable("user", {
     .notNull(),
   pendingEmail: text("pending_email"),
   image: text("image"),
-  imageUpdatedAt: integer("image_updated_at", { mode: "timestamp_ms" }),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),

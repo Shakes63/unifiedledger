@@ -14,13 +14,26 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    // Get session from cookie
+    // Get session from cookie (Better Auth stores session data in session_data cookie)
     const cookies = request.headers.get('cookie') || '';
-    const sessionTokenMatch = cookies.match(/better-auth\.session_token=([^;]+)/);
-    const sessionToken = sessionTokenMatch?.[1];
+    const sessionDataMatch = cookies.match(/better-auth\.session_data=([^;]+)/);
+
+    if (!sessionDataMatch) {
+      return NextResponse.json({ error: 'No session found' }, { status: 401 });
+    }
+
+    // Parse the session data cookie to extract the token
+    let sessionToken: string | undefined;
+    try {
+      const sessionData = JSON.parse(atob(sessionDataMatch[1].split('.')[0]));
+      sessionToken = sessionData?.session?.session?.token;
+    } catch (e) {
+      console.error('Failed to parse session cookie:', e);
+      return NextResponse.json({ error: 'Invalid session cookie' }, { status: 401 });
+    }
 
     if (!sessionToken) {
-      return NextResponse.json({ error: 'No session found' }, { status: 401 });
+      return NextResponse.json({ error: 'No session token found' }, { status: 401 });
     }
 
     // Validate session

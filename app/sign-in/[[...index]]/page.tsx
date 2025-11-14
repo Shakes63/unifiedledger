@@ -25,24 +25,23 @@ export default function SignInPage() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null); // Clear any previous errors
 
     try {
-      console.log('[Sign In] Attempting sign-in with email:', email);
 
       const result = await betterAuthClient.signIn.email({
         email,
         password,
       });
 
-      console.log('[Sign In] Sign-in result:', result);
-
       // Check if sign-in was successful
       if (!result || result.error) {
-        throw new Error(result?.error?.message || 'Sign-in failed');
+        throw new Error('Incorrect email or password');
       }
 
       // Update rememberMe field on session if checkbox was checked
@@ -54,23 +53,19 @@ export default function SignInPage() {
             body: JSON.stringify({ rememberMe: true }),
             credentials: 'include',
           });
-        } catch (error) {
-          console.error('Failed to set remember me:', error);
+        } catch (err) {
           // Don't block sign-in if this fails
         }
       }
 
-      toast.success('Signed in successfully!');
-
       // Redirect to callback URL or dashboard
       const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-      console.log('[Sign In] Redirecting to:', callbackUrl);
 
       // Use window.location for a hard redirect to ensure middleware runs
       window.location.href = callbackUrl;
     } catch (error: any) {
-      console.error('[Sign In] Error:', error);
-      toast.error(error?.message || 'Invalid email or password');
+      const errorMessage = error?.message || 'Incorrect email or password';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -88,6 +83,13 @@ export default function SignInPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-[var(--color-error)]/10 border border-[var(--color-error)]/20">
+              <p className="text-sm text-[var(--color-error)] font-medium">
+                {error}
+              </p>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-foreground">

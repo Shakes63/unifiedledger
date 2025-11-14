@@ -100,7 +100,7 @@ export function HouseholdTab() {
       await Promise.all(
         households.map(async (household) => {
           try {
-            const response = await fetch(`/api/households/${household.id}/members`);
+            const response = await fetch(`/api/households/${household.id}/members`, { credentials: 'include' });
             if (response.ok) {
               const membersData = await response.json();
               counts[household.id] = membersData.length;
@@ -122,9 +122,9 @@ export function HouseholdTab() {
     try {
       // Fetch members, invitations, and permissions in parallel
       const [membersResponse, invitationsResponse, permissionsResponse] = await Promise.all([
-        fetch(`/api/households/${householdId}/members`),
-        fetch(`/api/households/${householdId}/invitations`),
-        fetch(`/api/households/${householdId}/permissions`),
+        fetch(`/api/households/${householdId}/members`, { credentials: 'include' }),
+        fetch(`/api/households/${householdId}/invitations`, { credentials: 'include' }),
+        fetch(`/api/households/${householdId}/permissions`, { credentials: 'include' }),
       ]);
 
       if (membersResponse.ok) {
@@ -227,9 +227,7 @@ export function HouseholdTab() {
 
     try {
       setSubmitting(true);
-      const response = await fetch(`/api/households/${activeTab}/leave`, {
-        method: 'POST',
-      });
+      const response = await fetch(`/api/households/${activeTab}/leave`, { credentials: 'include', method: 'POST', });
 
       if (response.ok) {
         toast.success('Left household successfully');
@@ -306,9 +304,7 @@ export function HouseholdTab() {
 
     try {
       setSubmitting(true);
-      const response = await fetch(`/api/households/${activeTab}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`/api/households/${activeTab}`, { credentials: 'include', method: 'DELETE', });
 
       if (response.ok) {
         toast.success('Household deleted successfully');
@@ -374,10 +370,7 @@ export function HouseholdTab() {
     if (!confirm('Are you sure you want to remove this member?')) return;
 
     try {
-      const response = await fetch(
-        `/api/households/${activeTab}/members/${memberId}`,
-        { method: 'DELETE' }
-      );
+      const response = await fetch(`/api/households/${activeTab}/members/${memberId}`, { credentials: 'include', method: 'DELETE' });
 
       if (response.ok) {
         toast.success('Member removed successfully');

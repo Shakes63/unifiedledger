@@ -36,7 +36,7 @@ export function PaymentHistoryList({
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/debts/${debtId}/payments`);
+        const response = await fetch(`/api/debts/${debtId}/payments`, { credentials: 'include' });
         if (!response.ok) {
           throw new Error('Failed to fetch payment history');
         }

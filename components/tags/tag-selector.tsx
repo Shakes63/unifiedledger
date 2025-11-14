@@ -45,7 +45,7 @@ export function TagSelector({
   const fetchTags = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/tags?sortBy=usage&limit=100');
+      const response = await fetch('/api/tags?sortBy=usage&limit=100', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch tags');
 
       const data = await response.json();
