@@ -180,11 +180,16 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
 **Latest (2025-11-14):**
-- Household Data Isolation Phase 0 (71% COMPLETE): Settings architecture foundation
+- Household Data Isolation Phase 0 (77% COMPLETE): Settings architecture foundation
   - ✅ Phase 0.1: Database & Migration - Created `user_household_preferences` and `household_settings` tables with migrations (4 migration files, data migrated)
   - ✅ Phase 0.2: API Endpoints - 6 new endpoints for managing user-per-household preferences and household settings with proper authorization
-  - ✅ Phase 0.3: UI Restructure - Redesigned settings page with 2-tier structure (User Settings / Household Settings tabs)
-  - ⏳ Phase 0.4: Theme & Notifications (pending) - Update theme system and notification preferences to use new tables
+  - ✅ Phase 0.3: UI Restructure - Redesigned settings page with 3-tier structure (User Settings / My Settings / Household Settings tabs)
+  - ⏳ Phase 0.4: Theme & Notifications (43% complete) - Theme system migrated to per-household, notifications pending
+    - ✅ Household Context Provider updated with preference loading and automatic theme switching
+    - ✅ Theme Provider simplified to use household context
+    - ✅ Theme Tab migrated to per-household API
+    - ⏳ Notifications Tab, household switcher, migration helper, testing (~5 hours remaining)
+    - See `docs/phase-0.4-implementation-plan.md` for detailed plan
   - ⏳ Phase 0.5: Testing & Polish (pending) - Comprehensive testing and bug fixes
   - See `docs/phase-0-implementation-progress.md` for detailed status
 - Household Favorite Feature (100% COMPLETE): Star/favorite households to pin them to top of sidebar
@@ -241,7 +246,7 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 
 **Recent Features:**
 - Notifications Tab: Granular per-notification-type channel selection (push/email) with auto-save, validation, and extendable architecture for future channels (SMS, Slack, Webhook). 9 notification types with independent delivery preferences.
-- Unified Settings Page: Comprehensive settings at `/dashboard/settings` with 2-tier structure (User Settings / Household Settings). User tab includes Profile, Preferences, Financial, Theme, Notifications, Privacy & Security, and Advanced. Household tab includes Preferences, Financial, Data Management, and Members. Includes session management, data export (JSON/CSV), account deletion, household management, data retention policies, developer mode, and database statistics.
+- Unified Settings Page: Comprehensive settings at `/dashboard/settings` with 3-tier structure (User Settings / My Settings / Household Settings). User Settings includes Profile, Privacy & Security, and Advanced. My Settings includes per-household Preferences, Financial, Theme, and Notifications. Household Settings includes shared Preferences, Financial, Data Management, and Members. Includes session management, data export (JSON/CSV), account deletion, household management, data retention policies, developer mode, and database statistics.
 - Transaction Save Performance: 65-75% faster via parallel queries, batch updates, database indexes
 - Income Frequency Tracking: Category-level frequency field (weekly/biweekly/monthly/variable)
 - Goals Dashboard Widget: Inline stat card showing overall progress
@@ -322,21 +327,22 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ Household collaboration with activity feed
 - ✅ Offline mode with automatic sync
 - ✅ PWA support for mobile app experience
-- ✅ Unified Settings Page (2-tier structure with User Settings and Household Settings tabs)
+- ✅ Unified Settings Page (3-tier structure with User Settings, My Settings, and Household Settings tabs)
 - ✅ Avatar Upload (100% complete - upload, display, initials fallback throughout app)
 - ✅ Reset App Data (100% complete - settings reset with password confirmation and rate limiting)
 - ✅ Household Tab Switching Fix (100% complete - fixed context not updating, removed nested Tabs)
 - ✅ Household Favorite Feature (100% complete - star/favorite households to pin to top)
-- ⏳ Household Data Isolation Phase 0 (71% complete - settings architecture foundation in place, theme/notification integration pending)
+- ⏳ Household Data Isolation Phase 0 (77% complete - theme system migrated to per-household, notifications pending)
 - ✅ Testing complete (386 tests, 99.5% of plan, 100% unit coverage, 93% integration coverage)
 - ✅ All 12 tracked bugs fixed (100%)
 
 **⚠️ CRITICAL LIMITATION:**
-- Multi-household data is NOT fully isolated yet - Phase 0 (settings architecture) is 71% complete
+- Multi-household data is NOT fully isolated yet - Phase 0 (settings architecture) is 77% complete
 - Settings architecture foundation complete (new tables, APIs, UI restructure)
+- Theme system now works per-household (users can have different themes per household)
 - All financial data (transactions, accounts, budgets, etc.) still shared across households
 - Security risk: Household data is not properly separated
-- **In Progress:** Phase 0 (Settings) - 2 more sub-phases remaining
+- **In Progress:** Phase 0.4 (Theme & Notifications) - ~5 hours remaining, then Phase 0.5 (Testing & Polish)
 - **Next:** Phases 1-4 (Data Isolation) - Add household_id filtering to all data tables
 
 ## Next Steps

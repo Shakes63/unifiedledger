@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Lock } from 'lucide-react';
+import { Check, Lock, Loader2 } from 'lucide-react';
 import { type Theme } from '@/lib/themes/theme-config';
 import { getAllThemes, getTheme, applyTheme } from '@/lib/themes/theme-utils';
 import { toast } from 'sonner';
+import { useHousehold } from '@/contexts/household-context';
 
 export function ThemeTab() {
+  const { selectedHouseholdId, selectedHousehold, preferences, refreshPreferences } = useHousehold();
   const [currentThemeId, setCurrentThemeId] = useState<string>('dark-mode');
   const [currentTheme, setCurrentTheme] = useState<Theme | null>(null);
   const [selectedThemeId, setSelectedThemeId] = useState<string>('dark-mode');
@@ -17,30 +19,19 @@ export function ThemeTab() {
 
   const allThemes = getAllThemes();
 
-  // Fetch current theme on mount
+  // Load theme from household preferences
   useEffect(() => {
-    const fetchTheme = async () => {
-      try {
-        const response = await fetch('/api/user/settings/theme');
-        if (response.ok) {
-          const data = await response.json();
-          setCurrentThemeId(data.theme);
-          setSelectedThemeId(data.theme);
-          const theme = getTheme(data.theme);
-          setCurrentTheme(theme);
-          // Apply the theme immediately on load
-          applyTheme(data.theme);
-        }
-      } catch (error) {
-        console.error('Failed to fetch theme:', error);
-        toast.error('Failed to load theme settings');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTheme();
-  }, []);
+    if (preferences?.theme) {
+      setCurrentThemeId(preferences.theme);
+      setSelectedThemeId(preferences.theme);
+      const theme = getTheme(preferences.theme);
+      setCurrentTheme(theme);
+      setLoading(false);
+    } else if (!selectedHouseholdId) {
+      // No household selected - shouldn't normally happen
+      setLoading(false);
+    }
+  }, [preferences, selectedHouseholdId]);
 
   // Update current theme when ID changes
   useEffect(() => {
@@ -63,10 +54,15 @@ export function ThemeTab() {
       return;
     }
 
+    if (!selectedHouseholdId) {
+      toast.error('No household selected');
+      return;
+    }
+
     setSaving(true);
     try {
-      const response = await fetch('/api/user/settings/theme', {
-        method: 'PUT',
+      const response = await fetch(`/api/user/households/${selectedHouseholdId}/preferences`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ theme: selectedThemeId }),
       });
@@ -76,6 +72,8 @@ export function ThemeTab() {
         toast.success('Theme updated successfully!');
         // Apply immediately after successful save
         applyTheme(selectedThemeId);
+        // Refresh preferences in context
+        await refreshPreferences();
       } else {
         const data = await response.json();
         toast.error(data.error || 'Failed to update theme');
@@ -91,7 +89,7 @@ export function ThemeTab() {
   if (loading || !currentTheme) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-sm text-muted-foreground">Loading theme settings...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-[var(--color-primary)]" />
       </div>
     );
   }
@@ -101,7 +99,10 @@ export function ThemeTab() {
       <div>
         <h2 className="text-xl font-semibold text-foreground">Theme Selection</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Customize the appearance of your finance dashboard
+          Customize the appearance for{' '}
+          <span className="font-medium text-foreground">
+            {selectedHousehold?.name || 'this household'}
+          </span>
         </p>
       </div>
 

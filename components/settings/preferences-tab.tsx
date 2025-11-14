@@ -23,7 +23,6 @@ interface PreferencesData {
   currency: string;
   dateFormat: 'MM/DD/YYYY' | 'DD/MM/YYYY' | 'YYYY-MM-DD';
   numberFormat: 'en-US' | 'en-GB' | 'de-DE' | 'fr-FR';
-  fiscalYearStart: number;
   defaultAccountId: string | null;
   firstDayOfWeek: 'sunday' | 'monday';
 }
@@ -50,21 +49,6 @@ const NUMBER_FORMATS = [
   { value: 'fr-FR', label: '1 000,00 (France)' },
 ];
 
-const MONTHS = [
-  { value: 1, label: 'January' },
-  { value: 2, label: 'February' },
-  { value: 3, label: 'March' },
-  { value: 4, label: 'April' },
-  { value: 5, label: 'May' },
-  { value: 6, label: 'June' },
-  { value: 7, label: 'July' },
-  { value: 8, label: 'August' },
-  { value: 9, label: 'September' },
-  { value: 10, label: 'October' },
-  { value: 11, label: 'November' },
-  { value: 12, label: 'December' },
-];
-
 export function PreferencesTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -73,7 +57,6 @@ export function PreferencesTab() {
     currency: 'USD',
     dateFormat: 'MM/DD/YYYY',
     numberFormat: 'en-US',
-    fiscalYearStart: 1,
     defaultAccountId: null,
     firstDayOfWeek: 'sunday',
   });
@@ -92,7 +75,6 @@ export function PreferencesTab() {
           currency: settingsData.settings.currency || 'USD',
           dateFormat: settingsData.settings.dateFormat || 'MM/DD/YYYY',
           numberFormat: settingsData.settings.numberFormat || 'en-US',
-          fiscalYearStart: settingsData.settings.fiscalYearStart || 1,
           defaultAccountId: settingsData.settings.defaultAccountId || null,
           firstDayOfWeek: settingsData.settings.firstDayOfWeek || 'sunday',
         });
@@ -146,9 +128,9 @@ export function PreferencesTab() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">App Preferences</h2>
+        <h2 className="text-xl font-semibold text-foreground">My Preferences</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Customize your application settings and display preferences
+          Your personal display preferences for this household
         </p>
       </div>
 
@@ -229,36 +211,6 @@ export function PreferencesTab() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-
-        {/* Fiscal Year Start */}
-        <div className="space-y-2">
-          <Label htmlFor="fiscalYearStart" className="text-foreground">Fiscal Year Start</Label>
-          <Select
-            value={preferences.fiscalYearStart.toString()}
-            onValueChange={(value) =>
-              setPreferences({ ...preferences, fiscalYearStart: parseInt(value) })
-            }
-          >
-            <SelectTrigger
-              id="fiscalYearStart"
-              name="fiscalYearStart"
-              aria-label="Select fiscal year start month"
-              className="bg-background border-border text-foreground"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {MONTHS.map((month) => (
-                <SelectItem key={month.value} value={month.value.toString()}>
-                  {month.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            First month of your fiscal year for reporting
-          </p>
         </div>
 
         {/* Default Account */}

@@ -10,26 +10,33 @@
 ## In Progress Features
 
 ### Household Data Isolation (CRITICAL - TOP PRIORITY)
-**Status:** 71% Complete - Phase 0 (Settings Architecture) partially implemented
-**Progress:** 3 of 5 phases complete
+**Status:** 77% Complete - Phase 0 (Settings Architecture) partially implemented
+**Progress:** 3.5 of 5 phases complete
 
 **Completed:**
 - ✅ Phase 0.1: Database & Migration - Created 2 new tables (`user_household_preferences`, `household_settings`) with migrations
 - ✅ Phase 0.2: API Endpoints - 6 new endpoints for user-per-household preferences and household settings
-- ✅ Phase 0.3: UI Restructure - Redesigned settings page with 2-tier structure (User Settings / Household Settings)
+- ✅ Phase 0.3: UI Restructure - Redesigned settings page with 3-tier structure (User Settings / My Settings / Household Settings)
+- ⏳ Phase 0.4: Theme & Notifications (43% complete) - Theme system migrated to per-household, notifications pending
+  - ✅ Household Context Provider updated with preference loading
+  - ✅ Theme Provider simplified to use household context
+  - ✅ Theme Tab migrated to per-household API
+  - ⏳ Notifications Tab migration pending (4 tasks remaining)
+  - See: `docs/phase-0.4-implementation-plan.md`
 
 **Remaining Work:**
-- ⏳ Phase 0.4: Theme & Notifications (1 day) - Update theme system and notification preferences to use new tables
+- ⏳ Phase 0.4: Finish notifications migration, household switcher, migration helper, testing (~5 hours)
 - ⏳ Phase 0.5: Testing & Polish (1 day) - Comprehensive testing and bug fixes
 - ⏳ Phases 1-4: Data Isolation (5-9 days) - Add `household_id` to 20+ tables, update 90+ API endpoints, update 50+ components
 
 **Implementation Plans:**
 - Phase 0 progress: `docs/phase-0-implementation-progress.md` (detailed status)
 - Phase 0 architecture: `docs/settings-three-tier-architecture.md`
+- Phase 0.4 plan: `docs/phase-0.4-implementation-plan.md` (theme & notifications integration)
 - Phases 1-4 plan: `docs/household-data-isolation-plan.md`
 
 **Current Issue:**
-All financial data (transactions, accounts, budgets, bills, goals, debts) is still shared across households. Settings architecture is ready, but data filtering by household is not yet implemented.
+All financial data (transactions, accounts, budgets, bills, goals, debts) is still shared across households. Settings architecture is ready and theme system works per-household, but data filtering by household is not yet implemented.
 
 ---
 
