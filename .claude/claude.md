@@ -179,6 +179,25 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
 **Latest (2025-11-14):**
+- Household Favorite Feature (INCOMPLETE - HAS BUG): Star/favorite households to pin them to top of sidebar
+  - Database: Added `isFavorite` field to `household_members` table with migration
+  - API: Created `/api/households/[householdId]/favorite` endpoint for toggling
+  - UI: Added star icon to settings page tabs (desktop & mobile) that turns yellow when favorited
+  - Sorting: Favorites appear first in sidebar dropdown, sorted by join date within groups
+  - **BUG:** Households disappeared from sidebar and settings page after implementation
+  - **Next Steps:** Debug why frontend components aren't displaying households with new field
+- Household Settings Decoupling (100% COMPLETE): Sidebar dropdown and settings tabs now operate independently
+  - Removed sync effect that forced settings tabs to follow sidebar selection
+  - Settings tabs show local `activeTab` state for viewing any household
+  - Sidebar's `selectedHouseholdId` controls active household throughout app
+  - Allows viewing/editing any household's settings without changing active context
+- Household Sort by Join Date (100% COMPLETE): Households ordered by when user joined them
+  - Added `joinedAt` field from `household_members` to API response
+  - Updated TypeScript interfaces in context and components
+  - Sort algorithm: chronological order based on user's join time (not household creation time)
+  - Applies consistently to both sidebar dropdown and settings tabs
+
+**Previous (2025-11-14):**
 - Reset App Data (100% COMPLETE): Fully functional settings reset feature in Data Management tab
   - Backend API endpoint (`/api/user/reset-app-data`) with password confirmation requirement
   - Rate limiting: Max 3 resets per 24 hours per user
@@ -186,38 +205,15 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
   - Resets: User settings, notification preferences, saved searches, import templates, cached data
   - Preserves: All financial data (transactions, accounts, budgets, bills, goals, debts, tax records)
   - Automatic logout after reset with 3-second countdown
-  - Audit logging to householdActivityLog for tracking
   - Client-side cache clearing (localStorage, sessionStorage, browser caches)
-  - Files: `lib/constants/default-settings.ts`, `lib/reset-utils.ts`, `app/api/user/reset-app-data/route.ts`
 - Household Tab Switching Fix (100% COMPLETE): Fixed household context management in settings
   - Separated viewing household settings from switching active household
   - Active household only changes from sidebar, not from settings page tabs
   - Replaced nested Tabs component with custom button-based implementation
   - Fixed React hydration mismatch error caused by nested Radix UI Tabs components
-  - Preserves user's active household context while browsing different household settings
-- Server-Only Module Fix: Added `server-only` package to prevent sharp from bundling client-side
-  - Installed `server-only@0.0.1` dependency
-  - Added `import 'server-only'` to `lib/avatar-utils.ts` to prevent client bundling errors
-  - Resolved "Module not found: Can't resolve 'child_process'" and 'fs' errors
-- Household Tab-Based UI (100% COMPLETE): Redesigned household settings from card-based selector to tab-based interface
-  - Each household has its own tab with member count badge
-  - Desktop: Horizontal tabs with overflow scroll support
-  - Mobile: Dropdown selector for easy navigation
-  - Inline "Create New" tab for quick household creation
-  - Households sorted by creation date (chronological order)
-  - Quick action buttons positioned contextually (Rename/Delete in header, Invite with Members section)
-  - Full theme integration with semantic CSS variables
-  - Responsive design across all breakpoints
 - Avatar Upload (100% COMPLETE): Full profile picture upload system with display throughout app
-  - Upload interface in Settings > Profile tab with file validation, preview, and optimization
-  - UserAvatar component with initials fallback and deterministic colors (4 size variants: sm, md, lg, xl)
-  - API endpoints: POST /api/profile/avatar/upload, GET/DELETE /api/profile/avatar
-  - Image optimization with sharp (resize to 400x400, compress to JPEG)
-  - Split utilities: `avatar-client-utils.ts` (client-safe) and `avatar-utils.ts` (server-only with sharp)
-  - Database: Avatar stored in Better Auth `user.image` field with `imageUpdatedAt` timestamp
-  - File storage in `public/uploads/avatars/` with .gitignore configuration
   - **Integrated everywhere:** UserMenu (sidebar + mobile nav), Activity Feed, Household Members list
-  - Fully themed with semantic CSS variables, responsive design, initials fallback with deterministic colors
+- Household Tab-Based UI (100% COMPLETE): Redesigned household settings from card-based selector to tab-based interface
 
 **Previous (2025-11-13):**
 - Notifications Tab (FULLY COMPLETE): Implemented granular notification channel selection system

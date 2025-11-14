@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Users, UserPlus, LogOut, Crown, Shield, Eye, Loader2, Trash2, Copy, Check, Edit, Plus } from 'lucide-react';
+import { Users, UserPlus, LogOut, Crown, Shield, Eye, Loader2, Trash2, Copy, Check, Edit, Plus, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useHousehold } from '@/contexts/household-context';
@@ -52,6 +52,8 @@ interface Household {
   name: string;
   createdBy: string;
   createdAt: string;
+  joinedAt: string;
+  isFavorite: boolean;
 }
 
 export function HouseholdTab() {
@@ -76,20 +78,13 @@ export function HouseholdTab() {
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   // Initialize active tab on mount to the currently selected household
+  // After initial mount, activeTab is independent from selectedHouseholdId
   useEffect(() => {
     if (households.length > 0 && !activeTab) {
       const initialTab = selectedHouseholdId || households[0].id;
       setActiveTab(initialTab);
     }
   }, [households, activeTab, selectedHouseholdId]);
-
-  // Sync activeTab with selectedHouseholdId when it changes from OUTSIDE this component
-  // (e.g., when user switches households from the sidebar)
-  useEffect(() => {
-    if (selectedHouseholdId && activeTab !== selectedHouseholdId && activeTab !== 'create-new') {
-      setActiveTab(selectedHouseholdId);
-    }
-  }, [selectedHouseholdId, activeTab]);
 
   // Fetch household details when active tab changes
   useEffect(() => {
@@ -179,10 +174,9 @@ export function HouseholdTab() {
         toast.success('Household created successfully');
         setCreateDialogOpen(false);
         setHouseholdName('');
-        // Refresh households and select the new one
+        // Refresh households and view the new one in settings
         await refreshHouseholds();
         setActiveTab(newHousehold.id);
-        setSelectedHouseholdId(newHousehold.id);
       } else {
         const data = await response.json();
         toast.error(data.error || 'Failed to create household');
@@ -240,15 +234,14 @@ export function HouseholdTab() {
       if (response.ok) {
         toast.success('Left household successfully');
         setLeaveDialogOpen(false);
-        // Refresh households and switch to next available
+        // Refresh households and switch settings view to next available
         const leavingHouseholdId = activeTab;
         await refreshHouseholds();
 
-        // Switch to first remaining household or create-new tab
+        // Switch settings view to first remaining household or create-new tab
         const remainingHouseholds = households.filter(h => h.id !== leavingHouseholdId);
         if (remainingHouseholds.length > 0) {
           setActiveTab(remainingHouseholds[0].id);
-          setSelectedHouseholdId(remainingHouseholds[0].id);
         } else {
           setActiveTab('create-new');
         }
@@ -321,15 +314,14 @@ export function HouseholdTab() {
         toast.success('Household deleted successfully');
         setDeleteDialogOpen(false);
         setDeleteConfirmName('');
-        // Refresh households and switch to next available
+        // Refresh households and switch settings view to next available
         const deletedHouseholdId = activeTab;
         await refreshHouseholds();
 
-        // Switch to first remaining household or create-new tab
+        // Switch settings view to first remaining household or create-new tab
         const remainingHouseholds = households.filter(h => h.id !== deletedHouseholdId);
         if (remainingHouseholds.length > 0) {
           setActiveTab(remainingHouseholds[0].id);
-          setSelectedHouseholdId(remainingHouseholds[0].id);
         } else {
           setActiveTab('create-new');
         }
@@ -405,10 +397,35 @@ export function HouseholdTab() {
   }
 
   function handleTabChange(tabId: string) {
-    // Only update the local activeTab state
-    // DO NOT change the global selectedHouseholdId here
-    // The active household should only be changed from the sidebar
+    // Only update the local activeTab state for viewing household settings
+    // DO NOT change the global selectedHouseholdId (active household)
+    // This allows viewing/editing any household's settings without changing
+    // which household is active throughout the app (controlled by sidebar)
     setActiveTab(tabId);
+  }
+
+  async function toggleFavorite(householdId: string, currentStatus: boolean, event: React.MouseEvent) {
+    // Prevent tab switch when clicking the star
+    event.stopPropagation();
+
+    try {
+      const response = await fetch(`/api/households/${householdId}/favorite`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFavorite: !currentStatus }),
+      });
+
+      if (response.ok) {
+        // Refresh households to update the favorite status
+        await refreshHouseholds();
+        toast.success(currentStatus ? 'Removed from favorites' : 'Added to favorites');
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to update favorite status');
+      }
+    } catch (error) {
+      toast.error('Failed to update favorite status');
+    }
   }
 
   function copyInviteLink(token: string) {
@@ -463,9 +480,9 @@ export function HouseholdTab() {
     ? households.find(h => h.id === activeTab)
     : null;
 
-  // Sort households by creation date (oldest first)
+  // Sort households by join date (oldest first - chronological order of when user joined)
   const sortedHouseholds = [...households].sort((a, b) =>
-    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime()
   );
 
   if (households.length === 0) {
@@ -546,12 +563,21 @@ export function HouseholdTab() {
               key={household.id}
               onClick={() => handleTabChange(household.id)}
               className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors",
+                "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors relative group",
                 activeTab === household.id
                   ? "bg-card text-[var(--color-primary)] shadow-sm"
                   : "text-foreground hover:bg-card/50"
               )}
             >
+              <Star
+                className={cn(
+                  "w-4 h-4 cursor-pointer transition-colors shrink-0",
+                  household.isFavorite
+                    ? "fill-[var(--color-warning)] text-[var(--color-warning)]"
+                    : "text-muted-foreground hover:text-[var(--color-warning)]"
+                )}
+                onClick={(e) => toggleFavorite(household.id, household.isFavorite, e)}
+              />
               <Users className="w-4 h-4" />
               <span>{household.name}</span>
               {memberCounts[household.id] !== undefined && (
@@ -589,7 +615,16 @@ export function HouseholdTab() {
             <SelectContent>
               {sortedHouseholds.map((household) => (
                 <SelectItem key={household.id} value={household.id}>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full">
+                    <Star
+                      className={cn(
+                        "w-4 h-4 cursor-pointer transition-colors shrink-0",
+                        household.isFavorite
+                          ? "fill-[var(--color-warning)] text-[var(--color-warning)]"
+                          : "text-muted-foreground hover:text-[var(--color-warning)]"
+                      )}
+                      onClick={(e) => toggleFavorite(household.id, household.isFavorite, e)}
+                    />
                     <Users className="w-4 h-4" />
                     <span>{household.name}</span>
                     {memberCounts[household.id] !== undefined && (

@@ -10,13 +10,15 @@ export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
 
-    // Get all households the user is a member of
+    // Get all households the user is a member of, including when they joined and favorite status
     const result = await db
       .select({
         id: households.id,
         name: households.name,
         createdBy: households.createdBy,
         createdAt: households.createdAt,
+        joinedAt: householdMembers.joinedAt,
+        isFavorite: householdMembers.isFavorite,
       })
       .from(households)
       .innerJoin(householdMembers, eq(households.id, householdMembers.householdId))

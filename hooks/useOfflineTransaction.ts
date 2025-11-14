@@ -79,8 +79,8 @@ export function useOfflineTransaction() {
    * Get pending offline transactions count
    */
   const getPendingCount = async (): Promise<number> => {
-    if (!userId) return 0;
-    return offlineTransactionQueue.getPendingCount(userId);
+    if (!session?.user?.id) return 0;
+    return offlineTransactionQueue.getPendingCount(session.user.id);
   };
 
   return {

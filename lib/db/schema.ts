@@ -406,6 +406,7 @@ export const householdMembers = sqliteTable(
     joinedAt: text('joined_at').default(new Date().toISOString()),
     invitedBy: text('invited_by'),
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
+    isFavorite: integer('is_favorite', { mode: 'boolean' }).default(false),
   },
   (table) => ({
     householdUserUnique: uniqueIndex('idx_household_members_unique').on(

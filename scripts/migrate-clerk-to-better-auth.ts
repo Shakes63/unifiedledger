@@ -72,8 +72,8 @@ async function migrateUserData() {
     }
 
     console.log('✓ Better Auth user verified');
-    console.log(`  Email: ${betterAuthUser.email}`);
-    console.log(`  Name: ${betterAuthUser.name}\n`);
+    console.log(`  Email: ${(betterAuthUser as any).email}`);
+    console.log(`  Name: ${(betterAuthUser as any).name}\n`);
 
     // Step 2: Count records to be migrated
     console.log('📊 Counting records to migrate...\n');

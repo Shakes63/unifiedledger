@@ -22,6 +22,15 @@ export function HouseholdSelector() {
 
   const selectedHousehold = households.find((h) => h.id === selectedHouseholdId);
 
+  // Sort households: favorites first, then by join date (oldest first)
+  const sortedHouseholds = [...households].sort((a, b) => {
+    // Favorites come first
+    if (a.isFavorite && !b.isFavorite) return -1;
+    if (!a.isFavorite && b.isFavorite) return 1;
+    // Within same favorite status, sort by join date
+    return new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime();
+  });
+
   return (
     <div className="flex items-center gap-2 min-w-0">
       <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -41,7 +50,7 @@ export function HouseholdSelector() {
           align="start"
           className="bg-card border-border w-56"
         >
-          {households.map((household) => (
+          {sortedHouseholds.map((household) => (
             <DropdownMenuItem
               key={household.id}
               onClick={() => setSelectedHouseholdId(household.id)}

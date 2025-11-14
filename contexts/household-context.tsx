@@ -7,6 +7,8 @@ interface Household {
   name: string;
   createdBy: string;
   createdAt: string;
+  joinedAt: string;
+  isFavorite: boolean;
 }
 
 interface HouseholdContextType {

@@ -89,6 +89,39 @@ The following settings exist in the UI but are not fully functional:
 
 ---
 
+## Incomplete Features
+
+### Household Favorite Feature (IN PROGRESS - HAS BUG)
+**Status:** Database and API complete, but UI has critical bug causing households to disappear from sidebar/settings
+
+**What Works:**
+- ✅ Database migration (`is_favorite` field added to `household_members` table)
+- ✅ API endpoint `/api/households/[householdId]/favorite` for toggling favorite status
+- ✅ Star icon UI in settings page tabs (desktop & mobile)
+- ✅ Favorite sorting logic (favorites should appear first in sidebar)
+
+**What's Broken:**
+- ❌ Households disappeared from sidebar dropdown after implementation
+- ❌ Households disappeared from settings page
+- ❌ Likely issue: Frontend components not handling new `isFavorite` field properly, but it broke when renaming the dynamic route from Id to householdId
+
+**Files Modified:**
+- `lib/db/schema.ts` - Added `isFavorite` field
+- `drizzle/0031_add_is_favorite_to_household_members.sql` - Migration
+- `app/api/households/route.ts` - Returns `isFavorite` in response
+- `app/api/households/[householdId]/favorite/route.ts` - Toggle endpoint
+- `contexts/household-context.tsx` - Updated interface to include `isFavorite`
+- `components/household/household-selector.tsx` - Sort by favorite + join date
+- `components/settings/household-tab.tsx` - Star icon and toggle function
+
+**Next Steps to Fix:**
+1. Check if household context is properly fetching data with new field
+2. Verify frontend components handle `isFavorite: boolean` (not null/undefined)
+3. Check browser console for JavaScript errors
+4. May need to handle migration for existing data (default to false)
+
+---
+
 ## Completed Features
 
 1. ✅ **Authentication Migration** - Complete Clerk to Better Auth migration with email/password authentication
@@ -102,3 +135,5 @@ The following settings exist in the UI but are not fully functional:
 9. ✅ **Household Tab-Based UI** - Tab-based household settings interface with member badges
 10. ✅ **Reset App Data** - Settings reset with password confirmation and rate limiting
 11. ✅ **Household Tab Switching** - Fixed household context not changing when switching tabs in settings
+12. ✅ **Household Settings Decoupling** - Sidebar dropdown and settings tabs operate independently
+13. ✅ **Household Sort by Join Date** - Households ordered chronologically by when user joined them
