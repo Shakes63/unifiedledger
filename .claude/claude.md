@@ -428,28 +428,42 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ All 12 tracked bugs fixed (100%)
 
 **⚠️ CRITICAL LIMITATION:**
-- Multi-household data is NOT fully isolated yet - Phase 0 (settings architecture) is 100% complete
-- Settings architecture foundation complete and tested (new tables, APIs, UI restructure, 60 automated tests)
-- Theme and notification systems now work per-household (users can have different themes/notifications per household)
-- All financial data (transactions, accounts, budgets, etc.) still shared across households
-- Security risk: Household data is not properly separated
-- **Next:** Phase 1 (Core Data Isolation) - Add `household_id` to transactions, accounts, categories, merchants (~2-3 days)
+- Multi-household data is NOT fully isolated yet - Phase 1 (Core Data Isolation) is 50% complete
+- Settings architecture foundation complete and tested (Phase 0 - 100%)
+- Theme and notification systems work per-household (users can have different themes/notifications per household)
+- **Phase 1 Progress:** Database schema updated, migration created, auth helpers and frontend hooks complete
+- Accounts API endpoints updated and working with household isolation
+- **In Progress:** Transactions, categories, merchants API endpoints and frontend components
+- Security risk: Partial household data separation - accounts isolated, other financial data pending
 
 ## Next Steps
 
 ### CRITICAL PRIORITY: Household Data Isolation
-**Status:** Phase 0 - 100% Complete | Phases 1-4 - Not Started
-**Estimated Remaining Effort:** 5-9 days (Phases 1-4)
+**Status:** Phase 0 - 100% Complete | Phase 1 - 50% Complete | Phases 2-4 - Not Started
+**Estimated Remaining Effort:** 1-2 days (Phase 1 remaining) + 3-6 days (Phases 2-4)
 
-The multi-household feature is being implemented in phases. Phase 0 (settings architecture) is complete with 60 automated tests passing. Financial data is still shared across households.
+The multi-household feature is being implemented in phases. Phase 0 (settings architecture) is complete. Phase 1 (core data isolation) is 50% complete with infrastructure and accounts isolation working.
 
 **Implementation Plans:**
-- `docs/phase-0-implementation-progress.md` - Detailed progress tracking (Phase 0 complete)
-- `docs/household-data-isolation-plan.md` - Phases 1-4 plan
+- `docs/phase-0-implementation-progress.md` - Phase 0 complete (60 automated tests)
+- `docs/phase-1-detailed-plan.md` - Phase 1 implementation plan
+- `docs/phase-1-progress.md` - Phase 1 progress tracking (50% complete)
+- `docs/household-data-isolation-plan.md` - Phases 1-4 overview
 
 **Phase 0: Settings Reorganization** (100% COMPLETE - 2025-11-14)
 - ✅ Phase 0.1: Database & Migration - Tables created, data migrated
 - ✅ Phase 0.2: API Endpoints - 6 new endpoints with authorization
+- ✅ Phase 0.3: UI Restructure - 3-tier settings page
+- ✅ Phase 0.4: Theme & Notifications - Per-household preferences
+- ✅ Phase 0.5: Testing & Polish - 60 automated tests (100% passing)
+
+**Phase 1: Core Financial Data Isolation** (50% COMPLETE - In Progress 2025-11-14)
+- ✅ Database schema updates (6 tables: accounts, transactions, budgetCategories, merchants, transactionSplits, usageAnalytics)
+- ✅ Migration file created (`drizzle/0042_add_household_id_to_core_tables.sql`) - NOT YET APPLIED
+- ✅ Backend auth helpers (`lib/api/household-auth.ts`) - 5 utility functions
+- ✅ Frontend fetch hook (`lib/hooks/use-household-fetch.ts`) - Household-aware HTTP methods
+- ✅ Accounts API endpoints updated (3/25 endpoints: GET, POST, PUT, DELETE)
+- ⏳ Remaining: 22 API endpoints, 20 frontend components, business logic, tests, migration application
 - ✅ Phase 0.3: UI Restructure - 3-tier settings page (User Settings / My Settings / Household Settings)
 - ✅ Phase 0.4: Theme & Notifications - Per-household preferences with automatic switching
 - ✅ Phase 0.5: Testing & Polish - 60 automated tests (100% passing)

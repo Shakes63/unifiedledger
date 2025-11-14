@@ -18,6 +18,7 @@ export const accounts = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     name: text('name').notNull(),
     type: text('type', {
       enum: ['checking', 'savings', 'credit', 'investment', 'cash'],
@@ -39,6 +40,8 @@ export const accounts = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_accounts_user').on(table.userId),
+    householdIdIdx: index('idx_accounts_household').on(table.householdId),
+    userHouseholdIdx: index('idx_accounts_user_household').on(table.userId, table.householdId),
     userUsageIdx: index('idx_accounts_user_usage').on(table.userId, table.usageCount),
     userActiveIdx: index('idx_accounts_user_active').on(table.userId, table.isActive),
   })
@@ -49,6 +52,7 @@ export const budgetCategories = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     name: text('name').notNull(),
     type: text('type', {
       enum: ['income', 'variable_expense', 'monthly_bill', 'savings', 'debt', 'non_monthly_bill'],
@@ -67,6 +71,8 @@ export const budgetCategories = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_budget_categories_user').on(table.userId),
+    householdIdIdx: index('idx_budget_categories_household').on(table.householdId),
+    userHouseholdIdx: index('idx_budget_categories_user_household').on(table.userId, table.householdId),
     userTypeIdx: index('idx_budget_categories_user_type').on(table.userId, table.type),
     userUsageIdx: index('idx_budget_categories_user_usage').on(table.userId, table.usageCount),
     userActiveIdx: index('idx_budget_categories_user_active').on(table.userId, table.isActive),
@@ -78,6 +84,7 @@ export const merchants = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     name: text('name').notNull(),
     normalizedName: text('normalized_name').notNull(),
     categoryId: text('category_id'),
@@ -89,11 +96,14 @@ export const merchants = sqliteTable(
     updatedAt: text('updated_at').default(new Date().toISOString()),
   },
   (table) => ({
-    userIdNormalizedNameUnique: uniqueIndex('idx_merchants_user_normalized').on(
+    userHouseholdNormalizedNameUnique: uniqueIndex('idx_merchants_user_household_normalized').on(
       table.userId,
+      table.householdId,
       table.normalizedName
     ),
     userIdIdx: index('idx_merchants_user').on(table.userId),
+    householdIdIdx: index('idx_merchants_household').on(table.householdId),
+    userHouseholdIdx: index('idx_merchants_user_household').on(table.userId, table.householdId),
     userUsageIdx: index('idx_merchants_user_usage').on(table.userId, table.usageCount),
     userLastUsedIdx: index('idx_merchants_user_lastused').on(table.userId, table.lastUsedAt),
   })
@@ -104,6 +114,7 @@ export const usageAnalytics = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     itemType: text('item_type', {
       enum: ['account', 'category', 'merchant', 'transfer_pair', 'bill'],
     }).notNull(),
@@ -117,11 +128,14 @@ export const usageAnalytics = sqliteTable(
   (table) => ({
     uniqueUsageAnalytics: uniqueIndex('idx_usage_analytics_unique').on(
       table.userId,
+      table.householdId,
       table.itemType,
       table.itemId,
       table.itemSecondaryId
     ),
     userIdIdx: index('idx_usage_analytics_user').on(table.userId),
+    householdIdIdx: index('idx_usage_analytics_household').on(table.householdId),
+    userHouseholdIdx: index('idx_usage_analytics_user_household').on(table.userId, table.householdId),
   })
 );
 
@@ -130,6 +144,7 @@ export const transactions = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     accountId: text('account_id').notNull(),
     categoryId: text('category_id'),
     merchantId: text('merchant_id'),
@@ -167,6 +182,9 @@ export const transactions = sqliteTable(
   (table) => ({
     accountIdIdx: index('idx_transactions_account').on(table.accountId),
     userIdIdx: index('idx_transactions_user').on(table.userId),
+    householdIdIdx: index('idx_transactions_household').on(table.householdId),
+    userHouseholdIdx: index('idx_transactions_user_household').on(table.userId, table.householdId),
+    householdDateIdx: index('idx_transactions_household_date').on(table.householdId, table.date),
     dateIdx: index('idx_transactions_date').on(table.date),
     categoryIdIdx: index('idx_transactions_category').on(table.categoryId),
     merchantIdIdx: index('idx_transactions_merchant').on(table.merchantId),
@@ -190,6 +208,7 @@ export const transactionSplits = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     transactionId: text('transaction_id').notNull(),
     categoryId: text('category_id').notNull(),
     amount: real('amount').notNull(),
@@ -204,6 +223,8 @@ export const transactionSplits = sqliteTable(
   (table) => ({
     transactionIdIdx: index('idx_transaction_splits').on(table.transactionId),
     userIdIdx: index('idx_transaction_splits_user').on(table.userId),
+    householdIdIdx: index('idx_transaction_splits_household').on(table.householdId),
+    userHouseholdIdx: index('idx_transaction_splits_user_household').on(table.userId, table.householdId),
     categoryIdIdx: index('idx_transaction_splits_category').on(table.categoryId),
     userTransactionIdx: index('idx_transaction_splits_user_tx').on(table.userId, table.transactionId),
   })

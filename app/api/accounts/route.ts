@@ -1,24 +1,37 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { accounts } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
 
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+
     const userAccounts = await db
       .select()
       .from(accounts)
-      .where(eq(accounts.userId, userId))
+      .where(
+        and(
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
+        )
+      )
       .orderBy(desc(accounts.usageCount), accounts.sortOrder);
 
     return Response.json(userAccounts);
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Account fetch error:', error);
     return Response.json(
@@ -52,6 +65,10 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
+
     const accountId = nanoid();
     const now = new Date().toISOString();
 
@@ -59,6 +76,7 @@ export async function POST(request: Request) {
       const result = await db.insert(accounts).values({
         id: accountId,
         userId,
+        householdId: householdId!,
         name,
         type,
         bankName: bankName || null,
@@ -83,6 +101,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Account creation error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';

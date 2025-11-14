@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,12 +14,23 @@ export async function PUT(
     const { userId } = await requireAuth();
 
     const { id } = await params;
+    const body = await request.json();
 
-    // Verify account belongs to user
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
+
+    // Verify account belongs to user AND household
     const existingAccount = await db
       .select()
       .from(accounts)
-      .where(and(eq(accounts.id, id), eq(accounts.userId, userId)))
+      .where(
+        and(
+          eq(accounts.id, id),
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
+        )
+      )
       .limit(1);
 
     if (!existingAccount || existingAccount.length === 0) {
@@ -28,8 +40,7 @@ export async function PUT(
       );
     }
 
-    // Get update data from request
-    const body = await request.json();
+    // Get update data from body (already parsed above)
     const {
       name,
       type,
@@ -75,6 +86,9 @@ export async function PUT(
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 403 });
+    }
     console.error('Account update error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -92,11 +106,21 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Verify account belongs to user
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+
+    // Verify account belongs to user AND household
     const account = await db
       .select()
       .from(accounts)
-      .where(and(eq(accounts.id, id), eq(accounts.userId, userId)))
+      .where(
+        and(
+          eq(accounts.id, id),
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
+        )
+      )
       .limit(1);
 
     if (!account || account.length === 0) {
@@ -116,6 +140,9 @@ export async function DELETE(
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Account deletion error:', error);
     return Response.json(
