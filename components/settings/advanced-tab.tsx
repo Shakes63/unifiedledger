@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Code, Zap, FlaskConical, Info, Database, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useDeveloperMode } from '@/contexts/developer-mode-context';
 
 interface DatabaseStats {
   transactions: number;
@@ -19,7 +20,7 @@ interface DatabaseStats {
 }
 
 export function AdvancedTab() {
-  const [developerMode, setDeveloperMode] = useState(false);
+  const { isDeveloperMode, loading: devModeLoading, toggleDeveloperMode } = useDeveloperMode();
   const [enableAnimations, setEnableAnimations] = useState(true);
   const [experimentalFeatures, setExperimentalFeatures] = useState(false);
   const [stats, setStats] = useState<DatabaseStats | null>(null);
@@ -35,7 +36,6 @@ export function AdvancedTab() {
       const response = await fetch('/api/user/settings');
       if (response.ok) {
         const data = await response.json();
-        setDeveloperMode(data.developerMode || false);
         setEnableAnimations(data.enableAnimations !== false);
         setExperimentalFeatures(data.experimentalFeatures || false);
       }
@@ -90,7 +90,6 @@ export function AdvancedTab() {
         toast.success('Setting updated');
 
         // Update local state
-        if (key === 'developerMode') setDeveloperMode(value);
         if (key === 'enableAnimations') {
           setEnableAnimations(value);
           // Apply animation preference to document
@@ -138,14 +137,15 @@ export function AdvancedTab() {
                     Developer Mode
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    Show IDs, debug information, and additional technical details
+                    Show IDs, debug information, and additional technical details throughout the app
                   </p>
                 </div>
               </div>
               <Switch
                 id="developerMode"
-                checked={developerMode}
-                onCheckedChange={(checked) => updateSetting('developerMode', checked)}
+                checked={isDeveloperMode}
+                onCheckedChange={toggleDeveloperMode}
+                disabled={devModeLoading}
               />
             </div>
 

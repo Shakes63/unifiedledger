@@ -2,6 +2,7 @@
 
 import { DashboardLayout } from '@/components/navigation/dashboard-layout';
 import { HouseholdProvider } from '@/contexts/household-context';
+import { DeveloperModeProvider } from '@/contexts/developer-mode-context';
 
 export default function DashboardLayoutWrapper({
   children,
@@ -10,7 +11,9 @@ export default function DashboardLayoutWrapper({
 }) {
   return (
     <HouseholdProvider>
-      <DashboardLayout>{children}</DashboardLayout>
+      <DeveloperModeProvider>
+        <DashboardLayout>{children}</DashboardLayout>
+      </DeveloperModeProvider>
     </HouseholdProvider>
   );
 }
