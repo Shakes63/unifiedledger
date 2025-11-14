@@ -4,8 +4,8 @@ import { user } from '@/auth-schema';
 import { eq } from 'drizzle-orm';
 import { writeFile, unlink } from 'fs/promises';
 import { join } from 'path';
+import { validateImageFile } from '@/lib/avatar-client-utils';
 import {
-  validateImageFile,
   optimizeImage,
   fileToBuffer,
   getFileExtension,
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       .update(user)
       .set({
         image: avatarPath,
-        imageUpdatedAt: new Date().getTime(),
+        imageUpdatedAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(user.id, userId));

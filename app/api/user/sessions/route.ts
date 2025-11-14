@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { session } from '@/auth-schema';
 import { eq, desc } from 'drizzle-orm';
 import { headers } from 'next/headers';
-import UAParser from 'ua-parser-js';
+import { UAParser } from 'ua-parser-js';
 
 export async function GET() {
   try {

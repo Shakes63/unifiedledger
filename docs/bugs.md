@@ -4,35 +4,22 @@
 
 ## 🆕 ADD NEW BUGS HERE
 1. ## Error Type
-Build Error
+Console Error
 
 ## Error Message
-Export validateImageFile doesn't exist in target module
+Failed to upload avatar
 
-## Build Output
-./app/api/profile/avatar/upload/route.ts:7:1
-Export validateImageFile doesn't exist in target module
-   5 | import { writeFile, unlink } from 'fs/promises';
-   6 | import { join } from 'path';
->  7 | import {
-     | ^^^^^^^^
->  8 |   validateImageFile,
-     | ^^^^^^^^^^^^^^^^^^^^
->  9 |   optimizeImage,
-     | ^^^^^^^^^^^^^^^^^^^^
-> 10 |   fileToBuffer,
-     | ^^^^^^^^^^^^^^^^^^^^
-> 11 |   getFileExtension,
-     | ^^^^^^^^^^^^^^^^^^^^
-> 12 | } from '@/lib/avatar-utils';
-     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  13 |
-  14 | export const dynamic = 'force-dynamic';
-  15 |
 
-The export validateImageFile was not found in module [project]/lib/avatar-utils.ts [app-route] (ecmascript).
-Did you mean to import optimizeImage?
-All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+    at handleUpload (components/ui/avatar-upload.tsx:80:15)
+
+## Code Frame
+  78 |
+  79 |       if (!response.ok) {
+> 80 |         throw new Error(data.error || 'Upload failed');
+     |               ^
+  81 |       }
+  82 |
+  83 |       toast.success('Avatar updated successfully!');
 
 Next.js version: 16.0.1 (Turbopack)
 

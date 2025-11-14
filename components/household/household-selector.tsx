@@ -1,25 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Plus, Users, Settings, LogOut } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Users, Settings, ChevronDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,161 +10,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { useHousehold } from '@/contexts/household-context';
 
-interface Household {
-  id: string;
-  name: string;
-  createdBy: string;
-  createdAt?: string;
-}
-
-interface HouseholdMember {
-  id: string;
-  userId: string;
-  userName?: string;
-  userEmail: string;
-  role: string;
-}
-
-interface HouseholdSelectorProps {
-  selectedHouseholdId?: string;
-  onHouseholdChange?: (id: string) => void;
-}
-
-export function HouseholdSelector({
-  selectedHouseholdId: propSelectedHouseholdId,
-  onHouseholdChange: propOnHouseholdChange,
-}: HouseholdSelectorProps) {
+export function HouseholdSelector() {
   const router = useRouter();
-  const [households, setHouseholds] = useState<Household[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedMembers, setSelectedMembers] = useState<HouseholdMember[]>([]);
-  const [loadingMembers, setLoadingMembers] = useState(false);
-  // Internal state for tracking selected household
-  const [internalSelectedId, setInternalSelectedId] = useState<string>('');
-
-  // Use prop if provided, otherwise use internal state
-  const selectedHouseholdId = propSelectedHouseholdId || internalSelectedId;
-
-  const handleHouseholdChange = (id: string) => {
-    setInternalSelectedId(id);
-    propOnHouseholdChange?.(id);
-  };
-
-  useEffect(() => {
-    const loadHouseholds = async () => {
-      await fetchHouseholds();
-    };
-    loadHouseholds();
-  }, []);
-
-  // Auto-select first household when households load
-  useEffect(() => {
-    if (households.length > 0 && !internalSelectedId && !propSelectedHouseholdId) {
-      setInternalSelectedId(households[0].id);
-    }
-  }, [households.length, internalSelectedId, propSelectedHouseholdId]);
-
-  const fetchHouseholds = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/households');
-      if (response.ok) {
-        const data = await response.json();
-        setHouseholds(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch households:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMembers = async (householdId: string) => {
-    try {
-      setLoadingMembers(true);
-      const response = await fetch(`/api/households/${householdId}/members`);
-      if (response.ok) {
-        const data = await response.json();
-        setSelectedMembers(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch members:', error);
-    } finally {
-      setLoadingMembers(false);
-    }
-  };
-
-  const handleSelectHousehold = async (id: string) => {
-    handleHouseholdChange(id);
-    await fetchMembers(id);
-  };
-
-  const handleLeaveHousehold = async (householdId: string) => {
-    if (!confirm('Are you sure you want to leave this household?')) return;
-
-    try {
-      const response = await fetch(`/api/households/${householdId}/leave`, {
-        method: 'POST',
-      });
-
-      if (response.ok) {
-        toast.success('You have left the household');
-        // Refresh households list
-        await fetchHouseholds();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to leave household');
-      }
-    } catch (error) {
-      toast.error('Failed to leave household');
-    }
-  };
-
-  const handleCreateHousehold = async () => {
-    if (!newName.trim()) {
-      setError('Household name is required');
-      return;
-    }
-
-    setCreating(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/households', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: newName }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create household');
-      }
-
-      const data = await response.json();
-      setHouseholds([...households, data]);
-      setNewName('');
-      setDialogOpen(false);
-
-      // Automatically select the newly created household
-      handleHouseholdChange(data.id);
-      await fetchMembers(data.id);
-
-      toast.success('Household created successfully');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setCreating(false);
-    }
-  };
+  const { households, selectedHouseholdId, loading, setSelectedHouseholdId } = useHousehold();
 
   if (loading) {
     return <div className="text-sm text-muted-foreground">Loading households...</div>;
@@ -193,96 +25,43 @@ export function HouseholdSelector({
   return (
     <div className="flex items-center gap-2 min-w-0">
       <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-      <Select value={selectedHouseholdId || ''} onValueChange={handleSelectHousehold}>
-        <SelectTrigger className="flex-1 min-w-0 bg-elevated border-border text-foreground">
-          <SelectValue placeholder="Select household" />
-        </SelectTrigger>
-        <SelectContent className="bg-card border-border">
-          {households.map((household) => (
-            <SelectItem key={household.id} value={household.id} className="text-foreground">
-              {household.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* Household menu */}
-      {selectedHousehold && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="border-border hover:bg-elevated hover:text-foreground flex-shrink-0">
-              <Settings className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="bg-card border-border"
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            className="flex-1 min-w-0 justify-between bg-elevated border-border text-foreground hover:bg-elevated hover:text-foreground"
           >
-            <DropdownMenuItem
-              onClick={() => router.push(`/dashboard/households/${selectedHousehold.id}`)}
-              className="text-foreground cursor-pointer"
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Manage Household
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="bg-border" />
-            <DropdownMenuItem
-              onClick={() => handleLeaveHousehold(selectedHousehold.id)}
-              className="text-[var(--color-error)] cursor-pointer"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Leave Household
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
-
-      {/* Create household button */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline" size="icon" className="border-border hover:bg-elevated hover:text-foreground flex-shrink-0">
-            <Plus className="w-4 h-4" />
+            <span className="truncate">
+              {selectedHousehold?.name || 'Select household'}
+            </span>
+            <ChevronDown className="w-4 h-4 ml-2 opacity-50 flex-shrink-0" />
           </Button>
-        </DialogTrigger>
-        <DialogContent className="bg-card border-border">
-          <DialogHeader>
-            <DialogTitle className="text-foreground">Create Household</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Create a new household to share finances with family members
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {error && (
-              <div className="p-3 bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-lg text-[var(--color-error)] text-sm">
-                {error}
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-foreground">
-                Household Name
-              </Label>
-              <Input
-                id="name"
-                placeholder="e.g., Smith Family"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="bg-elevated border-border text-foreground"
-                autoFocus
-              />
-            </div>
-
-            <Button
-              onClick={handleCreateHousehold}
-              disabled={creating || !newName.trim()}
-              className="w-full bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          className="bg-card border-border w-56"
+        >
+          {households.map((household) => (
+            <DropdownMenuItem
+              key={household.id}
+              onClick={() => setSelectedHouseholdId(household.id)}
+              className={`text-foreground cursor-pointer ${
+                household.id === selectedHouseholdId ? 'bg-elevated' : ''
+              }`}
             >
-              {creating ? 'Creating...' : 'Create Household'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+              {household.name}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator className="bg-border" />
+          <DropdownMenuItem
+            onClick={() => router.push('/dashboard/settings?tab=household')}
+            className="text-foreground cursor-pointer"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Manage Households
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

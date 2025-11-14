@@ -68,11 +68,11 @@ export async function PUT(
       );
     }
 
-    // Check permission to manage household
-    const canManage = await hasPermission(householdId, userId, 'manage_permissions');
-    if (!canManage) {
+    // Check if user is owner (only owners can rename)
+    const isOwner = await hasPermission(householdId, userId, 'delete_household');
+    if (!isOwner) {
       return Response.json(
-        { error: 'Not authorized to update household' },
+        { error: 'Only household owners can rename the household' },
         { status: 403 }
       );
     }

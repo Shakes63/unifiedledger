@@ -2,46 +2,6 @@
 
 <!-- Add new feature requests below this line -->
 
-## Consolidate Household Management into Settings
-
-**Goal:** Move all household management functionality from sidebar and separate pages into Settings > Household tab
-
-**Current State:**
-- Household selector in sidebar has settings icon and add button
-- Separate household management page at `/dashboard/households/[householdId]`
-- Household tab exists in Settings but may not have full functionality
-
-**Desired State:**
-- Remove settings icon and add button from sidebar household selector
-- Add "Manage Households" option to bottom of household dropdown menu
-- Clicking "Manage Households" opens Settings page with Household tab selected
-- All household management features available in Settings > Household tab:
-  - Create new household
-  - View current household details
-  - Invite members (email invitations with role selection)
-  - Manage existing members (change roles, remove members)
-  - View pending invitations with copy invite link functionality
-  - Leave household
-  - Delete household (owner only)
-  - Household activity feed (optional)
-
-**Benefits:**
-- ✅ Cleaner sidebar UI (less clutter)
-- ✅ Consistent settings location (all configuration in one place)
-- ✅ Better UX (users expect to find management features in settings)
-- ✅ Simplified navigation (one less page to maintain)
-
-**Implementation Notes:**
-- Update `components/household/household-selector.tsx` to remove settings/add buttons
-- Add "Manage Households" divider and menu item to dropdown
-- Enhance `components/settings/household-tab.tsx` to include all features from `/dashboard/households/[householdId]/page.tsx`
-- Update navigation to route to `/dashboard/settings?tab=household`
-- Remove or deprecate `/dashboard/households/[householdId]` route
-- Ensure all existing API endpoints remain functional
-- Maintain proper permission checks (owner/admin/member roles)
-
-**Status:** Not yet implemented - planning phase
-
 ---
 
 ## Self-Hosting Configuration (Future Feature)
@@ -138,3 +98,4 @@ The following settings exist in the UI but are not fully functional:
 5. ✅ **Unified Settings Page** - Comprehensive 9-tab settings page covering profile, preferences, financial, notifications, theme, household, privacy, data, and advanced settings
 6. ✅ **Notifications Tab** - Per-notification-type delivery channel selection (push/email) with auto-save, validation, and granular control over 9 notification types
 7. ✅ **Avatar Upload** - Complete profile picture upload system with display throughout app (navigation, activity feed, household members) and initials fallback
+8. ✅ **Household Management System** - Multi-household support with create/rename/delete/leave, member management, role-based permissions, auto-sync between sidebar and settings, and React Context for state management

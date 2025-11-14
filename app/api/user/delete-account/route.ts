@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       });
 
       // If sign-in fails, password is incorrect
-      if (!verifyResult || verifyResult.error) {
+      if (!verifyResult) {
         return NextResponse.json(
           { error: 'Invalid password' },
           { status: 401 }

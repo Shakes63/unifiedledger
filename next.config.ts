@@ -52,6 +52,9 @@ const nextConfig: NextConfig = {
     unoptimized: process.env.NODE_ENV === "development",
   },
 
+  // Exclude server-only packages from client bundle
+  serverExternalPackages: ['sharp'],
+
   // Security headers for production
   async headers() {
     return [
