@@ -141,6 +141,25 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 - 8 fields: description, amount, account_name, date, day_of_month, weekday, month, notes
 - 11 action types: set_category, set_merchant, set_description, prepend_description, append_description, set_tax_deduction, set_sales_tax, convert_to_transfer, create_split, set_account
 
+### Bill Frequencies
+**Supported Frequencies (7 types):**
+- **one-time:** Single payment on a specific date (auto-deactivates after payment)
+- **weekly:** Repeats every 7 days on the same day of week (creates 8 instances ~2 months ahead)
+- **biweekly:** Repeats every 14 days on the same day of week (creates 4 instances ~2 months ahead)
+- **monthly:** Repeats every month on the same day of month (creates 3 instances)
+- **quarterly:** Repeats every 3 months (creates 3 instances)
+- **semi-annual:** Repeats every 6 months (creates 2 instances)
+- **annual:** Repeats once per year (creates 2 instances)
+
+**Due Date Field Semantics:**
+- one-time: Uses `specificDueDate` field (ISO date string)
+- weekly/biweekly: `dueDate` is day of week (0=Sunday, 6=Saturday)
+- monthly+: `dueDate` is day of month (1-31)
+
+**Auto-Deactivation:**
+- One-time bills automatically become inactive after their instance is marked as paid
+- Other frequencies remain active and continue generating future instances
+
 ### Bill Matching
 - Multi-factor matching using Levenshtein distance
 - String similarity (40%), amount tolerance ±5% (30%), date pattern (20%), payee pattern (10%)

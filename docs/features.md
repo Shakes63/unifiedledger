@@ -1,7 +1,6 @@
 # Features to implement
 
 <!-- Add new feature requests below this line -->
-1. Add one time, weekly, and biweekly bill frequency
 
 
 
@@ -102,18 +101,19 @@ All financial data (transactions, accounts, budgets, bills, goals, debts) is sti
 
 ## Completed Features
 
-1. ✅ **Developer Mode** - Debug utility with entity ID badges, DEV indicator, and developer tools panel with export/cache clearing
-2. ✅ **Authentication Migration** - Complete Clerk to Better Auth migration with email/password
-3. ✅ **Goals Dashboard Widget** - Overall progress display across all active savings goals
-4. ✅ **Income Frequency Tracking** - Category-level frequency tracking for budget projections
-5. ✅ **Transaction Save Performance** - 65-75% faster transaction creation through optimization
-6. ✅ **Unified Settings Page** - Comprehensive settings interface with 3-tier structure (User/My Settings/Household)
-7. ✅ **Notifications Tab** - Granular per-notification-type channel selection (push/email)
-8. ✅ **Avatar Upload** - Profile picture upload with display throughout app and initials fallback
-9. ✅ **Household Management System** - Multi-household support with role-based permissions
-10. ✅ **Household Tab-Based UI** - Tab-based household settings interface with member badges
-11. ✅ **Reset App Data** - Settings reset with password confirmation and rate limiting
-12. ✅ **Household Tab Switching** - Fixed household context not updating when switching tabs
-13. ✅ **Household Settings Decoupling** - Sidebar dropdown and settings tabs operate independently
-14. ✅ **Household Sort by Join Date** - Households ordered chronologically by when user joined
-15. ✅ **Household Favorite Feature** - Star/favorite households to pin them to top of sidebar
+1. ✅ **Bill Frequency Expansion** - Added support for one-time, weekly, and biweekly bill frequencies (in addition to existing monthly, quarterly, semi-annual, and annual options)
+2. ✅ **Developer Mode** - Debug utility with entity ID badges, DEV indicator, and developer tools panel with export/cache clearing
+3. ✅ **Authentication Migration** - Complete Clerk to Better Auth migration with email/password
+4. ✅ **Goals Dashboard Widget** - Overall progress display across all active savings goals
+5. ✅ **Income Frequency Tracking** - Category-level frequency tracking for budget projections
+6. ✅ **Transaction Save Performance** - 65-75% faster transaction creation through optimization
+7. ✅ **Unified Settings Page** - Comprehensive settings interface with 3-tier structure (User/My Settings/Household)
+8. ✅ **Notifications Tab** - Granular per-notification-type channel selection (push/email)
+9. ✅ **Avatar Upload** - Profile picture upload with display throughout app and initials fallback
+10. ✅ **Household Management System** - Multi-household support with role-based permissions
+11. ✅ **Household Tab-Based UI** - Tab-based household settings interface with member badges
+12. ✅ **Reset App Data** - Settings reset with password confirmation and rate limiting
+13. ✅ **Household Tab Switching** - Fixed household context not updating when switching tabs
+14. ✅ **Household Settings Decoupling** - Sidebar dropdown and settings tabs operate independently
+15. ✅ **Household Sort by Join Date** - Households ordered chronologically by when user joined
+16. ✅ **Household Favorite Feature** - Star/favorite households to pin them to top of sidebar

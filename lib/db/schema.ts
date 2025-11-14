@@ -218,10 +218,11 @@ export const bills = sqliteTable(
     categoryId: text('category_id'),
     debtId: text('debt_id'), // Link to debt for debt payment bills
     expectedAmount: real('expected_amount').notNull(),
-    dueDate: integer('due_date').notNull(),
+    dueDate: integer('due_date').notNull(), // For one-time: ignored, weekly/biweekly: day of week (0-6), monthly+: day of month (1-31)
     frequency: text('frequency', {
-      enum: ['monthly', 'quarterly', 'semi-annual', 'annual'],
+      enum: ['one-time', 'weekly', 'biweekly', 'monthly', 'quarterly', 'semi-annual', 'annual'],
     }).default('monthly'),
+    specificDueDate: text('specific_due_date'), // For one-time bills only (ISO date string)
     isVariableAmount: integer('is_variable_amount', { mode: 'boolean' }).default(false),
     amountTolerance: real('amount_tolerance').default(5.0),
     payeePatterns: text('payee_patterns'),
@@ -233,6 +234,7 @@ export const bills = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_bills_user').on(table.userId),
+    specificDueDateIdx: index('idx_bills_specific_due_date').on(table.specificDueDate),
   })
 );
 

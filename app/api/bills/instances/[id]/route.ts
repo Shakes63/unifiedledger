@@ -1,6 +1,6 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { billInstances } from '@/lib/db/schema';
+import { billInstances, bills } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -110,6 +110,33 @@ export async function PUT(
       .update(billInstances)
       .set(updateData)
       .where(eq(billInstances.id, id));
+
+    // If marking as paid, check if this is a one-time bill and auto-deactivate
+    if (status === 'paid') {
+      const billId = existingInstance[0].billId;
+
+      // Get the bill to check if it's one-time
+      const bill = await db
+        .select()
+        .from(bills)
+        .where(
+          and(
+            eq(bills.id, billId),
+            eq(bills.userId, userId)
+          )
+        )
+        .limit(1);
+
+      // Auto-deactivate one-time bills after payment
+      if (bill.length > 0 && bill[0].frequency === 'one-time') {
+        await db
+          .update(bills)
+          .set({
+            isActive: false,
+          })
+          .where(eq(bills.id, billId));
+      }
+    }
 
     const updatedInstance = await db
       .select()

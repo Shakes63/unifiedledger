@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
+import { FREQUENCY_LABELS } from '@/lib/bills/bill-utils';
 
 interface BillInstance {
   id: string;
@@ -34,6 +35,8 @@ interface Bill {
   categoryId?: string;
   expectedAmount: number;
   dueDate: number;
+  frequency: string;
+  specificDueDate?: string;
   isVariableAmount: boolean;
   amountTolerance: number;
   payeePatterns?: string;
@@ -206,6 +209,7 @@ export default function BillsDashboard() {
     const today = new Date();
     const daysUntil = differenceInDays(dueDate, today);
     const billName = getBillName(instance.billId);
+    const bill = bills.find((b) => b.id === instance.billId);
 
     return (
       <Link href={`/dashboard/bills/${instance.billId}`}>
@@ -219,6 +223,11 @@ export default function BillsDashboard() {
             <div className="flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="font-medium text-foreground">{billName}</p>
+                {bill && bill.frequency && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
+                    {FREQUENCY_LABELS[bill.frequency] || bill.frequency}
+                  </span>
+                )}
                 <EntityIdBadge id={instance.billId} label="Bill" />
                 <EntityIdBadge id={instance.id} label="Instance" />
               </div>

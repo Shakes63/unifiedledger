@@ -14,6 +14,13 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { AlertCircle, Plus, X } from 'lucide-react';
+import {
+  FREQUENCY_LABELS,
+  DAY_OF_WEEK_OPTIONS,
+  isWeekBasedFrequency,
+  isOneTimeFrequency,
+  getDueDateLabel,
+} from '@/lib/bills/bill-utils';
 
 interface BillFormProps {
   bill?: any;
@@ -32,7 +39,8 @@ export function BillForm({
   const [formData, setFormData] = useState({
     name: bill?.name || '',
     expectedAmount: bill?.expectedAmount || '',
-    dueDate: bill?.dueDate || '1',
+    dueDate: bill?.dueDate !== undefined ? String(bill.dueDate) : '1',
+    specificDueDate: bill?.specificDueDate || '',
     frequency: bill?.frequency || 'monthly',
     isVariableAmount: bill?.isVariableAmount || false,
     amountTolerance: bill?.amountTolerance || 5.0,
@@ -196,17 +204,44 @@ export function BillForm({
       return;
     }
 
-    const dueDate = parseInt(formData.dueDate);
-    if (dueDate < 1 || dueDate > 31) {
-      toast.error('Due date must be between 1 and 31');
-      setSaveMode(null);
-      return;
+    // Frequency-specific validation
+    if (isOneTimeFrequency(formData.frequency)) {
+      if (!formData.specificDueDate) {
+        toast.error('Specific due date is required for one-time bills');
+        setSaveMode(null);
+        return;
+      }
+      // Validate date is not in the past
+      const selectedDate = new Date(formData.specificDueDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      selectedDate.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        toast.error('Due date cannot be in the past');
+        setSaveMode(null);
+        return;
+      }
+    } else if (isWeekBasedFrequency(formData.frequency)) {
+      const dayOfWeek = parseInt(formData.dueDate);
+      if (isNaN(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
+        toast.error('Day of week must be between 0 (Sunday) and 6 (Saturday)');
+        setSaveMode(null);
+        return;
+      }
+    } else {
+      const dueDate = parseInt(formData.dueDate);
+      if (isNaN(dueDate) || dueDate < 1 || dueDate > 31) {
+        toast.error('Due date must be between 1 and 31');
+        setSaveMode(null);
+        return;
+      }
     }
 
     onSubmit({
       name: formData.name,
       expectedAmount: parseFloat(String(formData.expectedAmount)),
-      dueDate,
+      dueDate: isOneTimeFrequency(formData.frequency) ? null : parseInt(formData.dueDate),
+      specificDueDate: isOneTimeFrequency(formData.frequency) ? formData.specificDueDate : null,
       frequency: formData.frequency,
       isVariableAmount: formData.isVariableAmount,
       amountTolerance: parseFloat(String(formData.amountTolerance)) || 5.0,
@@ -225,6 +260,7 @@ export function BillForm({
         name: '',
         expectedAmount: '',
         dueDate: '1',
+        specificDueDate: '',
         frequency: preservedFrequency,
         isVariableAmount: false,
         amountTolerance: 5.0,
@@ -285,26 +321,68 @@ export function BillForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-card border-border">
-              <SelectItem value="monthly" className="text-foreground">Monthly</SelectItem>
-              <SelectItem value="quarterly" className="text-foreground">Quarterly (Every 3 months)</SelectItem>
-              <SelectItem value="semi-annual" className="text-foreground">Semi-Annual (Every 6 months)</SelectItem>
-              <SelectItem value="annual" className="text-foreground">Annual (Yearly)</SelectItem>
+              <SelectItem value="one-time" className="text-foreground">{FREQUENCY_LABELS['one-time']}</SelectItem>
+              <SelectItem value="weekly" className="text-foreground">{FREQUENCY_LABELS['weekly']}</SelectItem>
+              <SelectItem value="biweekly" className="text-foreground">{FREQUENCY_LABELS['biweekly']}</SelectItem>
+              <SelectItem value="monthly" className="text-foreground">{FREQUENCY_LABELS['monthly']}</SelectItem>
+              <SelectItem value="quarterly" className="text-foreground">{FREQUENCY_LABELS['quarterly']}</SelectItem>
+              <SelectItem value="semi-annual" className="text-foreground">{FREQUENCY_LABELS['semi-annual']}</SelectItem>
+              <SelectItem value="annual" className="text-foreground">{FREQUENCY_LABELS['annual']}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Due Date (Day of Month)*</Label>
-          <Input
-            name="dueDate"
-            type="number"
-            value={formData.dueDate}
-            onChange={handleChange}
-            placeholder="1"
-            min="1"
-            max="31"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-          />
-          <p className="text-xs text-muted-foreground mt-1">Day of month (1-31)</p>
+          <Label className="text-muted-foreground text-sm mb-2 block">{getDueDateLabel(formData.frequency)}*</Label>
+
+          {isOneTimeFrequency(formData.frequency) ? (
+            // Date picker for one-time bills
+            <>
+              <Input
+                name="specificDueDate"
+                type="date"
+                value={formData.specificDueDate}
+                onChange={handleChange}
+                className="bg-elevated border-border text-foreground"
+                required
+              />
+              <p className="text-xs text-muted-foreground mt-1">Select the specific date for this bill</p>
+            </>
+          ) : isWeekBasedFrequency(formData.frequency) ? (
+            // Day of week selector for weekly/biweekly
+            <>
+              <Select
+                value={formData.dueDate}
+                onValueChange={(value) => handleSelectChange('dueDate', value)}
+              >
+                <SelectTrigger className="bg-elevated border-border text-foreground">
+                  <SelectValue placeholder="Select day of week" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  {DAY_OF_WEEK_OPTIONS.map((day) => (
+                    <SelectItem key={day.value} value={day.value.toString()} className="text-foreground">
+                      {day.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Day of week for recurring bill</p>
+            </>
+          ) : (
+            // Day of month input for monthly bills
+            <>
+              <Input
+                name="dueDate"
+                type="number"
+                value={formData.dueDate}
+                onChange={handleChange}
+                placeholder="1"
+                min="1"
+                max="31"
+                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+              />
+              <p className="text-xs text-muted-foreground mt-1">Day of month (1-31)</p>
+            </>
+          )}
         </div>
       </div>
 

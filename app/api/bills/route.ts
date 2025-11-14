@@ -3,6 +3,12 @@ import { db } from '@/lib/db';
 import { bills, billInstances, budgetCategories, accounts, debts } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import {
+  calculateNextDueDate,
+  getInstanceCount,
+  isWeekBasedFrequency,
+  isOneTimeFrequency,
+} from '@/lib/bills/bill-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -124,6 +130,7 @@ export async function POST(request: Request) {
       debtId,
       expectedAmount,
       dueDate,
+      specificDueDate,
       frequency = 'monthly',
       isVariableAmount = false,
       amountTolerance = 5.0,
@@ -134,19 +141,67 @@ export async function POST(request: Request) {
     } = body;
 
     // Validate required fields
-    if (!name || !expectedAmount || dueDate === undefined) {
+    if (!name || !expectedAmount) {
       return Response.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Validate dueDate is between 1-31
-    if (dueDate < 1 || dueDate > 31) {
-      return Response.json(
-        { error: 'Due date must be between 1 and 31' },
-        { status: 400 }
-      );
+    // Validate frequency-specific fields
+    if (isOneTimeFrequency(frequency)) {
+      // For one-time bills, specificDueDate is required
+      if (!specificDueDate) {
+        return Response.json(
+          { error: 'Specific due date required for one-time bills' },
+          { status: 400 }
+        );
+      }
+      // Validate date format
+      const parsedDate = new Date(specificDueDate);
+      if (isNaN(parsedDate.getTime())) {
+        return Response.json(
+          { error: 'Invalid specific due date format' },
+          { status: 400 }
+        );
+      }
+      // Validate date is not in the past
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      parsedDate.setHours(0, 0, 0, 0);
+      if (parsedDate < today) {
+        return Response.json(
+          { error: 'Due date cannot be in the past' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // For recurring bills, dueDate is required
+      if (dueDate === undefined || dueDate === null) {
+        return Response.json(
+          { error: 'Due date is required' },
+          { status: 400 }
+        );
+      }
+
+      // Validate dueDate based on frequency
+      if (isWeekBasedFrequency(frequency)) {
+        // For weekly/biweekly, dueDate should be 0-6 (day of week)
+        if (dueDate < 0 || dueDate > 6) {
+          return Response.json(
+            { error: 'Due date must be between 0 (Sunday) and 6 (Saturday) for weekly/biweekly bills' },
+            { status: 400 }
+          );
+        }
+      } else {
+        // For month-based, dueDate should be 1-31 (day of month)
+        if (dueDate < 1 || dueDate > 31) {
+          return Response.json(
+            { error: 'Due date must be between 1 and 31 for monthly bills' },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     // Batch validation queries in parallel for better performance
@@ -224,8 +279,9 @@ export async function POST(request: Request) {
       categoryId,
       debtId,
       expectedAmount: parsedExpectedAmount,
-      dueDate,
+      dueDate: isOneTimeFrequency(frequency) ? 1 : dueDate, // Set to 1 for one-time bills (ignored anyway)
       frequency,
+      specificDueDate: isOneTimeFrequency(frequency) ? specificDueDate : null,
       isVariableAmount,
       amountTolerance,
       payeePatterns: payeePatterns ? JSON.stringify(payeePatterns) : null,
@@ -234,45 +290,19 @@ export async function POST(request: Request) {
       notes,
     };
 
-    // Determine how many instances to create and month increment
-    let instanceCount = 3;
-    let monthIncrement = 1;
-
-    switch (frequency) {
-      case 'monthly':
-        instanceCount = 3;
-        monthIncrement = 1;
-        break;
-      case 'quarterly':
-        instanceCount = 3;
-        monthIncrement = 3;
-        break;
-      case 'semi-annual':
-        instanceCount = 2;
-        monthIncrement = 6;
-        break;
-      case 'annual':
-        instanceCount = 2;
-        monthIncrement = 12;
-        break;
-    }
-
-    // Prepare all bill instances data for batch insert
+    // Generate bill instances using helper functions
+    const instanceCount = getInstanceCount(frequency);
     const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
     const instancesData = [];
 
     for (let i = 0; i < instanceCount; i++) {
-      const monthsToAdd = i * monthIncrement;
-      let month = (currentMonth + monthsToAdd) % 12;
-      let year = currentYear + Math.floor((currentMonth + monthsToAdd) / 12);
-
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const instanceDueDate = Math.min(dueDate, daysInMonth);
-      const dueDateString = new Date(year, month, instanceDueDate)
-        .toISOString()
-        .split('T')[0];
+      const dueDateString = calculateNextDueDate(
+        frequency,
+        dueDate,
+        specificDueDate || null,
+        today,
+        i
+      );
 
       instancesData.push({
         id: nanoid(),

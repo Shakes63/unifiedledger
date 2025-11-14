@@ -8,6 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import {
+  FREQUENCY_LABELS,
+  formatDueDateDisplay,
+} from '@/lib/bills/bill-utils';
 
 interface BillInstance {
   id: string;
@@ -203,10 +207,20 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-gray-400">
+                <Clock className="w-4 h-4" />
+                <span className="text-sm font-medium">Frequency</span>
+              </div>
+              <p className="text-white">{FREQUENCY_LABELS[bill.frequency] || bill.frequency}</p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-gray-400">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm font-medium">Due Date</span>
               </div>
-              <p className="text-white">Day {bill.dueDate} of each month</p>
+              <p className="text-white">
+                {formatDueDateDisplay(bill.frequency, bill.dueDate, bill.specificDueDate)}
+              </p>
             </div>
 
             {category && (
