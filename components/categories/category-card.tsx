@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 
 interface CategoryCardProps {
   category: {
@@ -47,7 +48,10 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
     <Card className="p-2 border border-border bg-card rounded-lg hover:border-border transition-all">
       <div className="flex items-start justify-between mb-1">
         <div className="flex-1 min-w-0">
-          <h3 className="text-foreground font-semibold text-sm truncate">{category.name}</h3>
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <h3 className="text-foreground font-semibold text-sm truncate">{category.name}</h3>
+            <EntityIdBadge id={category.id} label="Cat" />
+          </div>
           <p className="text-muted-foreground text-xs mt-0">{CATEGORY_TYPE_LABELS[category.type]}</p>
         </div>
 

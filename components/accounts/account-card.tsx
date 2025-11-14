@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
+import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 
 interface AccountCardProps {
   account: {
@@ -93,7 +94,10 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             <IconComponent className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-foreground font-semibold text-lg">{account.name}</h3>
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-foreground font-semibold text-lg">{account.name}</h3>
+              <EntityIdBadge id={account.id} label="Account" />
+            </div>
             <p className="text-muted-foreground text-sm">{ACCOUNT_TYPE_LABELS[account.type]}</p>
             {account.bankName && (
               <p className="text-muted-foreground text-xs">{account.bankName}</p>

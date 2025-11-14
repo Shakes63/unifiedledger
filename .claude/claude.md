@@ -112,6 +112,7 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 8. ✅ **Testing:** 386 tests (99.5% of plan), 100% unit test coverage, 93% integration test coverage (28/30 passing)
 
 **Recent Additions:**
+- Developer Mode Feature (100% COMPLETE - entity ID badges, DEV indicator, developer tools panel)
 - Household Favorite Feature (100% COMPLETE - star/favorite households to pin to top of sidebar)
 - Household Tab-Based UI (100% COMPLETE - tab-based interface for household settings with member count badges)
 - Household Management System (100% COMPLETE - multi-household support with role-based permissions)
@@ -180,6 +181,14 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
 **Latest (2025-11-14):**
+- Developer Mode Feature (100% COMPLETE): Full debugging utility with developer tools
+  - ✅ Entity ID badges integrated into 8 pages (Transactions, Accounts, Bills, Categories, Merchants, Goals, Debts, Budgets)
+  - ✅ Copy-to-clipboard functionality with toast notifications
+  - ✅ DEV badge indicator in sidebar (visible in both expanded and collapsed states)
+  - ✅ Developer Tools Panel - Fixed bottom-right panel with user/household info, route display, debug data export, cache clearing
+  - ✅ All components use semantic theme variables for full theme integration
+  - ✅ Zero overhead when developer mode is disabled (conditional rendering)
+  - ✅ Fixed bug: Corrected `/api/goals` endpoint to `/api/savings-goals` in Advanced settings tab
 - Household Data Isolation Phase 0 (85% COMPLETE): Settings architecture nearly complete
   - ✅ Phase 0.1: Database & Migration - Created `user_household_preferences` and `household_settings` tables with migrations (4 migration files, data migrated)
   - ✅ Phase 0.2: API Endpoints - 6 new endpoints for managing user-per-household preferences and household settings with proper authorization
@@ -195,15 +204,6 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
     - See `docs/phase-0.4-implementation-plan.md`, `docs/phase-0.4-remaining-tasks-plan.md` for detailed plans
   - ⏳ Phase 0.5: Testing & Polish (pending) - Comprehensive testing and bug fixes
   - See `docs/phase-0-implementation-progress.md` for detailed status
-- Developer Mode Feature (50% COMPLETE): Foundation built, integration pending
-  - ✅ Developer Mode Context Provider (`contexts/developer-mode-context.tsx`) - Global state management, database sync
-  - ✅ Reusable Components (`components/dev/`) - EntityIdBadge, DebugPanel, ApiTimingBadge
-  - ✅ Settings Integration - Functional toggle in Advanced tab
-  - ✅ Dashboard Layout - DeveloperModeProvider integrated
-  - ⏳ EntityIdBadge not yet integrated into pages (components exist but not used)
-  - ⏳ No visual indicator in navigation that developer mode is enabled
-  - ⏳ Developer tools panel not yet created
-  - See `docs/developer-mode-implementation-plan.md` for detailed plan
 - Household Favorite Feature (100% COMPLETE): Star/favorite households to pin them to top of sidebar
 - Household Settings Decoupling (100% COMPLETE): Sidebar dropdown and settings tabs operate independently
 - Household Sort by Join Date (100% COMPLETE): Households ordered chronologically by when user joined them
@@ -340,8 +340,8 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ Reset App Data (100% complete - settings reset with password confirmation and rate limiting)
 - ✅ Household Tab Switching Fix (100% complete - fixed context not updating, removed nested Tabs)
 - ✅ Household Favorite Feature (100% complete - star/favorite households to pin to top)
+- ✅ Developer Mode Feature (100% complete - entity ID badges, DEV indicator, developer tools panel)
 - ⏳ Household Data Isolation Phase 0 (85% complete - core implementation done, testing pending)
-- ⏳ Developer Mode Feature (50% complete - foundation built, components ready, integration pending)
 - ✅ Testing complete (386 tests, 99.5% of plan, 100% unit coverage, 93% integration coverage)
 - ✅ All 12 tracked bugs fixed (100%)
 
@@ -351,7 +351,7 @@ pnpm drizzle-kit migrate    # Apply database migration
 - Theme and notification systems now work per-household (users can have different themes/notifications per household)
 - All financial data (transactions, accounts, budgets, etc.) still shared across households
 - Security risk: Household data is not properly separated
-- **In Progress:** Phase 0.4 testing (~2-3 hours), Developer Mode integration (~2.5 hours)
+- **In Progress:** Phase 0.4 testing (~2-3 hours)
 - **Next:** Phase 0.5 (Testing & Polish), then Phases 1-4 (Data Isolation) - Add household_id filtering to all data tables
 
 ## Next Steps
@@ -386,8 +386,8 @@ The multi-household feature is being implemented in phases. Phase 0 (settings ar
 2. ✅ **Settings Page** - Complete
 3. ✅ **Avatar Upload** - Complete
 4. ✅ **Household Favorite Feature** - Complete
-5. ⏳ **Household Data Isolation** - Phase 0: 85% complete, Phases 1-4: Not started
-6. ⏳ **Developer Mode Feature** - 50% complete (foundation built, integration pending ~2.5 hours)
+5. ✅ **Developer Mode Feature** - Complete
+6. ⏳ **Household Data Isolation** - Phase 0: 85% complete, Phases 1-4: Not started
 7. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
 8. Docker configuration for deployment
 9. Performance optimizations as needed

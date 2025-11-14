@@ -54,7 +54,7 @@ export function AdvancedTab() {
         fetch('/api/accounts?limit=1'),
         fetch('/api/categories?limit=1'),
         fetch('/api/bills?limit=1'),
-        fetch('/api/goals?limit=1'),
+        fetch('/api/savings-goals?limit=1'),
         fetch('/api/debts?limit=1'),
       ]);
 

@@ -1,6 +1,7 @@
 # Features to implement
 
 <!-- Add new feature requests below this line -->
+1. Add one time, weekly, and biweekly bill frequency
 
 
 
@@ -43,38 +44,6 @@ All financial data (transactions, accounts, budgets, bills, goals, debts) is sti
 
 ---
 
-### Developer Mode Feature
-**Status:** 50% Complete - Foundation built, integration pending
-**Progress:** 2 of 4 tasks complete
-
-**Completed:**
-- ✅ Developer Mode Context Provider (`contexts/developer-mode-context.tsx`) - Global state management, database sync
-- ✅ Reusable Components (`components/dev/`) - EntityIdBadge, DebugPanel, ApiTimingBadge
-- ✅ Settings Integration - Functional toggle in Advanced tab
-- ✅ Dashboard Layout - DeveloperModeProvider integrated
-
-**Remaining Work:**
-- ⏳ Integrate EntityIdBadge into pages (Transactions, Accounts, Bills, Categories, Merchants, Goals, Debts) (~1.5 hours)
-- ⏳ Add navigation indicators (DEV badge in sidebar) (~15 mins)
-- ⏳ Create developer tools panel (fixed bottom-right corner with debug info) (~30 mins)
-- ⏳ Testing and polish (~30 mins)
-
-**Implementation Plan:**
-- See: `docs/developer-mode-implementation-plan.md` (detailed step-by-step plan)
-
-**What Works Now:**
-- Toggle developer mode from Settings > Advanced
-- State persists across page reloads
-- Components ready to use (EntityIdBadge, DebugPanel, ApiTimingBadge)
-- All components conditionally render (no overhead when disabled)
-
-**What's Missing:**
-- ID badges not yet visible on any pages (components exist but not integrated)
-- No visual indicator in navigation that developer mode is enabled
-- No developer tools panel yet
-
----
-
 ## Incomplete Features
 
 ### Settings Page - Incomplete Features
@@ -92,7 +61,6 @@ All financial data (transactions, accounts, budgets, bills, goals, debts) is sti
 - ❌ GeoIP location lookup for sessions (shows null)
 
 **Advanced Tab:**
-- ⏳ Developer mode toggle works, but IDs/debug info not yet integrated into pages (50% complete - see "Developer Mode Feature" above)
 - ❌ Experimental features flag doesn't unlock anything
 
 **General Missing:**
@@ -134,17 +102,18 @@ All financial data (transactions, accounts, budgets, bills, goals, debts) is sti
 
 ## Completed Features
 
-1. ✅ **Authentication Migration** - Complete Clerk to Better Auth migration with email/password
-2. ✅ **Goals Dashboard Widget** - Overall progress display across all active savings goals
-3. ✅ **Income Frequency Tracking** - Category-level frequency tracking for budget projections
-4. ✅ **Transaction Save Performance** - 65-75% faster transaction creation through optimization
-5. ✅ **Unified Settings Page** - Comprehensive settings interface with 3-tier structure (User/My Settings/Household)
-6. ✅ **Notifications Tab** - Granular per-notification-type channel selection (push/email)
-7. ✅ **Avatar Upload** - Profile picture upload with display throughout app and initials fallback
-8. ✅ **Household Management System** - Multi-household support with role-based permissions
-9. ✅ **Household Tab-Based UI** - Tab-based household settings interface with member badges
-10. ✅ **Reset App Data** - Settings reset with password confirmation and rate limiting
-11. ✅ **Household Tab Switching** - Fixed household context not updating when switching tabs
-12. ✅ **Household Settings Decoupling** - Sidebar dropdown and settings tabs operate independently
-13. ✅ **Household Sort by Join Date** - Households ordered chronologically by when user joined
-14. ✅ **Household Favorite Feature** - Star/favorite households to pin them to top of sidebar
+1. ✅ **Developer Mode** - Debug utility with entity ID badges, DEV indicator, and developer tools panel with export/cache clearing
+2. ✅ **Authentication Migration** - Complete Clerk to Better Auth migration with email/password
+3. ✅ **Goals Dashboard Widget** - Overall progress display across all active savings goals
+4. ✅ **Income Frequency Tracking** - Category-level frequency tracking for budget projections
+5. ✅ **Transaction Save Performance** - 65-75% faster transaction creation through optimization
+6. ✅ **Unified Settings Page** - Comprehensive settings interface with 3-tier structure (User/My Settings/Household)
+7. ✅ **Notifications Tab** - Granular per-notification-type channel selection (push/email)
+8. ✅ **Avatar Upload** - Profile picture upload with display throughout app and initials fallback
+9. ✅ **Household Management System** - Multi-household support with role-based permissions
+10. ✅ **Household Tab-Based UI** - Tab-based household settings interface with member badges
+11. ✅ **Reset App Data** - Settings reset with password confirmation and rate limiting
+12. ✅ **Household Tab Switching** - Fixed household context not updating when switching tabs
+13. ✅ **Household Settings Decoupling** - Sidebar dropdown and settings tabs operate independently
+14. ✅ **Household Sort by Join Date** - Households ordered chronologically by when user joined
+15. ✅ **Household Favorite Feature** - Star/favorite households to pin them to top of sidebar

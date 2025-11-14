@@ -2,6 +2,7 @@
 
 import { Sidebar } from './sidebar';
 import { MobileNav } from './mobile-nav';
+import { DeveloperToolsPanel } from '@/components/dev/developer-tools-panel';
 import { useNavigation } from '@/context/navigation-context';
 
 interface DashboardLayoutProps {
@@ -27,6 +28,9 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Developer Tools Panel */}
+      <DeveloperToolsPanel />
     </div>
   );
 }

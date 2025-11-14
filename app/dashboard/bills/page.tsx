@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 
 interface BillInstance {
   id: string;
@@ -216,7 +217,11 @@ export default function BillsDashboard() {
               {instance.status === 'pending' && <Clock className="w-5 h-5 text-[var(--color-warning)]" />}
             </div>
             <div className="flex-1">
-              <p className="font-medium text-foreground">{billName}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-medium text-foreground">{billName}</p>
+                <EntityIdBadge id={instance.billId} label="Bill" />
+                <EntityIdBadge id={instance.id} label="Instance" />
+              </div>
               <p className="text-sm text-muted-foreground">
                 Due: {format(dueDate, 'MMM d, yyyy')}
               </p>

@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { AdvancedSearch } from '@/components/transactions/advanced-search';
 import { CSVImportModal } from '@/components/csv-import/csv-import-modal';
+import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 import {
   Select,
   SelectContent,
@@ -606,14 +607,26 @@ function TransactionsContent() {
                         <div className="flex-1 min-w-0">
                           {/* Merchant name on top (bold) */}
                           {display.merchant && (
-                            <p className="font-semibold text-foreground text-sm truncate">
-                              {display.merchant}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-foreground text-sm truncate">
+                                {display.merchant}
+                              </p>
+                              <EntityIdBadge id={transaction.id} label="TX" />
+                            </div>
                           )}
                           {/* Description below merchant (or standalone if no merchant) */}
-                          <p className={`text-xs truncate ${display.merchant ? 'text-muted-foreground' : 'font-medium text-foreground text-sm'}`}>
-                            {display.description}
-                          </p>
+                          {display.merchant ? (
+                            <p className="text-xs truncate text-muted-foreground">
+                              {display.description}
+                            </p>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-foreground text-sm truncate">
+                                {display.description}
+                              </p>
+                              <EntityIdBadge id={transaction.id} label="TX" />
+                            </div>
+                          )}
                           {/* Date, category, and split indicator */}
                           <p className="text-xs text-muted-foreground">
                             {new Date(transaction.date).toLocaleDateString('en-US', {
@@ -623,6 +636,16 @@ function TransactionsContent() {
                             {categoryName && ` • ${categoryName}`}
                             {transaction.isSplit && ' • Split'}
                           </p>
+                          {/* Developer Mode: Show related entity IDs */}
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            {!isTransfer && transaction.categoryId && (
+                              <EntityIdBadge id={transaction.categoryId} label="Cat" />
+                            )}
+                            {!isTransfer && transaction.merchantId && (
+                              <EntityIdBadge id={transaction.merchantId} label="Mer" />
+                            )}
+                            <EntityIdBadge id={transaction.accountId} label="Acc" />
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">

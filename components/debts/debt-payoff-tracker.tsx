@@ -15,6 +15,7 @@ import {
   calculatePaymentToTarget,
   getUtilizationRecommendation,
 } from '@/lib/debts/credit-utilization-utils';
+import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 
 interface Milestone {
   id: string;
@@ -127,6 +128,7 @@ export function DebtPayoffTracker({
                   style={{ backgroundColor: debt.color }}
                 />
                 <h3 className="font-semibold text-foreground">{debt.name}</h3>
+                <EntityIdBadge id={debt.id} label="Debt" />
                 {debt.status === 'paid_off' && (
                   <span className="text-xs bg-[var(--color-income)]/30 text-[var(--color-income)] px-2 py-1 rounded">
                     Paid Off

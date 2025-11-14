@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 
 interface Merchant {
   id: string;
@@ -242,7 +243,15 @@ export default function MerchantsPage() {
                   key={merchant.id}
                   className="border-b border-border hover:bg-card/50 transition-all"
                 >
-                  <td className="py-3 px-4 text-foreground">{merchant.name}</td>
+                  <td className="py-3 px-4 text-foreground">
+                    <div className="flex items-center gap-2">
+                      <span>{merchant.name}</span>
+                      <EntityIdBadge id={merchant.id} label="Mer" />
+                      {merchant.categoryId && (
+                        <EntityIdBadge id={merchant.categoryId} label="Cat" />
+                      )}
+                    </div>
+                  </td>
                   <td className="py-3 px-4 text-muted-foreground">{getCategoryName(merchant.categoryId)}</td>
                   <td className="py-3 px-4 text-muted-foreground">{merchant.usageCount}</td>
                   <td className="py-3 px-4 text-muted-foreground">

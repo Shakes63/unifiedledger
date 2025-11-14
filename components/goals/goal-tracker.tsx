@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { ChevronDown, ChevronUp, Edit2, Trash2, Check } from 'lucide-react';
+import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 
 interface Milestone {
   id: string;
@@ -96,12 +97,13 @@ export function GoalTracker({
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <div
                 className="w-4 h-4 rounded-full"
                 style={{ backgroundColor: goal.color }}
               />
               <h3 className="font-semibold text-foreground">{goal.name}</h3>
+              <EntityIdBadge id={goal.id} label="Goal" />
               {goal.status === 'completed' && (
                 <span className="text-xs bg-[var(--color-income)]/30 text-[var(--color-income)] px-2 py-1 rounded">
                   Completed

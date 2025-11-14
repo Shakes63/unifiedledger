@@ -20,12 +20,15 @@ import {
   Palette,
   Settings,
   Calculator,
+  Code,
 } from 'lucide-react';
 import Image from 'next/image';
 import { HouseholdSelector } from '@/components/household/household-selector';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { UserMenu } from '@/components/auth/user-menu';
 import { useNavigation } from '@/context/navigation-context';
+import { useDeveloperMode } from '@/contexts/developer-mode-context';
 
 interface NavItem {
   label: string;
@@ -85,6 +88,7 @@ const navSections: NavSection[] = [
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, toggleSidebar } = useNavigation();
+  const { isDeveloperMode } = useDeveloperMode();
   const [expandedSections, setExpandedSections] = useState<string[]>(['Core', 'Settings']);
 
   const toggleSection = (title: string) => {
@@ -122,13 +126,22 @@ export function Sidebar() {
                 className="object-contain"
               />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex items-center gap-2">
               <h2 className="text-lg font-bold text-foreground">Unified Ledger</h2>
+              {isDeveloperMode && (
+                <Badge
+                  variant="outline"
+                  className="bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/20 text-[10px] px-1.5 py-0.5 flex items-center gap-1"
+                >
+                  <Code className="w-3 h-3" />
+                  DEV
+                </Badge>
+              )}
             </div>
           </Link>
         )}
         {!sidebarOpen && (
-          <Link href="/dashboard" className="flex items-center justify-center w-full flex-1">
+          <Link href="/dashboard" className="flex flex-col items-center justify-center w-full flex-1 gap-1">
             <div className="relative w-8 h-8">
               <Image
                 src="/logo.png"
@@ -139,6 +152,14 @@ export function Sidebar() {
                 style={{ height: 'auto' }}
               />
             </div>
+            {isDeveloperMode && (
+              <Badge
+                variant="outline"
+                className="bg-[var(--color-warning)]/10 text-[var(--color-warning)] border-[var(--color-warning)]/20 text-[8px] px-1 py-0 flex items-center gap-0.5"
+              >
+                <Code className="w-2.5 h-2.5" />
+              </Badge>
+            )}
           </Link>
         )}
         <Button
