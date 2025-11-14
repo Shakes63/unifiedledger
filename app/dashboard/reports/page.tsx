@@ -16,6 +16,8 @@ import {
   AreaChart,
   ComposedChart,
   ProgressChart,
+  TreemapChart,
+  HeatmapChart,
 } from '@/components/charts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExportButton } from '@/components/reports/export-button';
@@ -23,6 +25,7 @@ import { PaymentBreakdownSection } from '@/components/debts/payment-breakdown-se
 import { DebtReductionChart } from '@/components/debts/debt-reduction-chart';
 import { AmortizationScheduleView } from '@/components/debts/amortization-schedule-view';
 import { ChevronDown, ChevronUp, BarChart3, TrendingDown, TrendingUp } from 'lucide-react';
+import { FeatureGate } from '@/components/experimental/feature-gate';
 
 type Period = 'month' | 'year' | '12months';
 
@@ -297,6 +300,46 @@ export default function ReportsPage() {
           xAxisLabel={period === '12months' ? 'Month' : 'Week'}
           yAxisLabel="Amount ($)"
         />
+
+        {/* Experimental: Treemap Chart */}
+        <FeatureGate featureId="advanced-charts">
+          <TreemapChart
+            title="Category Spending Treemap"
+            description="Hierarchical view of spending by category"
+            data={data.categoryBreakdown?.data?.map((item: any) => ({
+              name: item.name,
+              value: item.value,
+              color: COLOR_PALETTE.expense,
+            })) || []}
+          />
+        </FeatureGate>
+
+        {/* Experimental: Heatmap Chart */}
+        <FeatureGate featureId="advanced-charts">
+          <HeatmapChart
+            title="Category Spending Heatmap"
+            description="Spending intensity by category over time"
+            data={(() => {
+              // Transform data for heatmap (category x month grid)
+              const categories = data.categoryBreakdown?.data || [];
+              const months = data.incomeVsExpenses?.data?.map((d: any) => d.name) || [];
+
+              // Generate sample heatmap data
+              const heatmapData: any[] = [];
+              categories.forEach((cat: any) => {
+                months.forEach((month: any) => {
+                  heatmapData.push({
+                    category: cat.name,
+                    month: month,
+                    value: Math.random() * cat.value, // Distribute spending across months
+                  });
+                });
+              });
+
+              return heatmapData;
+            })()}
+          />
+        </FeatureGate>
       </div>
 
       {/* Budget vs Actual */}

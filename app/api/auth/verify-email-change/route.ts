@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { verification as verificationTable } from '@/auth-schema';
-import { betterAuthUser } from '@/lib/db/schema';
+import { verification as verificationTable, user as userTable } from '@/auth-schema';
 import { eq, and } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -42,7 +41,7 @@ export async function GET(request: NextRequest) {
     const verification = verificationRecords[0];
 
     // Check if token is expired
-    if (verification.expiresAt < Date.now()) {
+    if (new Date(verification.expiresAt).getTime() < Date.now()) {
       // Delete expired token
       await db.delete(verificationTable).where(eq(verificationTable.id, verification.id));
 
@@ -68,8 +67,8 @@ export async function GET(request: NextRequest) {
     // Get user and verify they have a pending email change
     const userRecords = await db
       .select()
-      .from(betterAuthUser)
-      .where(eq(betterAuthUser.id, userId))
+      .from(userTable)
+      .where(eq(userTable.id, userId))
       .limit(1);
 
     if (!userRecords || userRecords.length === 0 || !userRecords[0].pendingEmail) {
@@ -87,14 +86,14 @@ export async function GET(request: NextRequest) {
 
     // Complete email change
     await db
-      .update(betterAuthUser)
+      .update(userTable)
       .set({
-        email: user.pendingEmail,
+        email: user.pendingEmail!, // Non-null assertion - we already checked it exists above
         pendingEmail: null,
         emailVerified: true, // Mark new email as verified
         updatedAt: new Date(),
       })
-      .where(eq(betterAuthUser.id, userId));
+      .where(eq(userTable.id, userId));
 
     // Delete verification token (it's been used)
     await db.delete(verificationTable).where(eq(verificationTable.id, verification.id));

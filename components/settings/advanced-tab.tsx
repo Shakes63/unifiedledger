@@ -6,9 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Code, Zap, FlaskConical, Info, Database, Loader2 } from 'lucide-react';
+import { Code, Zap, FlaskConical, Info, Database, Loader2, Sparkles, Search, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDeveloperMode } from '@/contexts/developer-mode-context';
+import {
+  getExperimentalFeatures,
+  getRiskLevelColor,
+  type ExperimentalFeature,
+  type FeatureCategory,
+} from '@/lib/experimental-features';
 
 interface DatabaseStats {
   transactions: number;
@@ -25,10 +31,12 @@ export function AdvancedTab() {
   const [experimentalFeatures, setExperimentalFeatures] = useState(false);
   const [stats, setStats] = useState<DatabaseStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [features, setFeatures] = useState<ExperimentalFeature[]>([]);
 
   useEffect(() => {
     fetchSettings();
     fetchDatabaseStats();
+    setFeatures(getExperimentalFeatures());
   }, []);
 
   async function fetchSettings() {
@@ -105,6 +113,20 @@ export function AdvancedTab() {
       }
     } catch (error) {
       toast.error('Failed to update setting');
+    }
+  }
+
+  // Helper function to get category icon
+  function getCategoryIcon(category: FeatureCategory) {
+    switch (category) {
+      case 'ui':
+        return <Sparkles className="w-4 h-4 text-muted-foreground" />;
+      case 'analytics':
+        return <BarChart3 className="w-4 h-4 text-muted-foreground" />;
+      case 'data':
+        return <Database className="w-4 h-4 text-muted-foreground" />;
+      case 'performance':
+        return <Zap className="w-4 h-4 text-muted-foreground" />;
     }
   }
 
@@ -192,6 +214,54 @@ export function AdvancedTab() {
                 onCheckedChange={(checked) => updateSetting('experimentalFeatures', checked)}
               />
             </div>
+
+            {/* Show available experimental features when toggle is OFF */}
+            {!experimentalFeatures && features.length > 0 && (
+              <>
+                <Separator className="bg-border" />
+                <div>
+                  <p className="text-sm font-medium text-foreground mb-3">
+                    Available Experimental Features
+                  </p>
+                  <div className="space-y-2">
+                    {features.map((feature) => (
+                      <div
+                        key={feature.id}
+                        className="p-3 bg-card rounded-lg border border-border"
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            {getCategoryIcon(feature.category)}
+                            <span className="text-sm font-medium text-foreground">
+                              {feature.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="secondary"
+                              className="text-xs"
+                              style={{
+                                backgroundColor: `${getRiskLevelColor(feature.riskLevel)}20`,
+                                color: getRiskLevelColor(feature.riskLevel),
+                                borderColor: getRiskLevelColor(feature.riskLevel)
+                              }}
+                            >
+                              {feature.riskLevel.toUpperCase()} RISK
+                            </Badge>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {feature.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Enable experimental features above to unlock these capabilities
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         </Card>
       </div>

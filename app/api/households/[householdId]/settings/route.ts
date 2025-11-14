@@ -93,7 +93,7 @@ export async function POST(
     }
 
     // Check if user has permission to manage settings (owner or admin)
-    const canManageSettings = await hasPermission(householdId, userId, 'manage_members');
+    const canManageSettings = await hasPermission(householdId, userId, 'manage_permissions');
     if (!canManageSettings) {
       return Response.json(
         { error: 'Only household owners and admins can update household settings' },
@@ -178,7 +178,7 @@ export async function PATCH(
     }
 
     // Check if user has permission to manage settings (owner or admin)
-    const canManageSettings = await hasPermission(householdId, userId, 'manage_members');
+    const canManageSettings = await hasPermission(householdId, userId, 'manage_permissions');
     if (!canManageSettings) {
       return Response.json(
         { error: 'Only household owners and admins can reset household settings' },

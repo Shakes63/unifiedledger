@@ -7,5 +7,9 @@ export { ComposedChart } from './composed-chart';
 export { ProgressChart } from './progress-chart';
 export { ChartTooltip } from './chart-tooltip';
 
+// Experimental charts (gated behind experimental features flag)
+export { TreemapChart } from './treemap-chart';
+export { HeatmapChart } from './heatmap-chart';
+
 // Type exports
 export type { ComponentProps } from 'react';

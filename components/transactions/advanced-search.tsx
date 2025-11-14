@@ -10,7 +10,10 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Select } from '@/components/ui/select';
 import { SavedSearches } from './saved-searches';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Save } from 'lucide-react';
+import { FeatureGate } from '@/components/experimental/feature-gate';
+import { ExperimentalBadge } from '@/components/experimental/experimental-badge';
+import { toast } from 'sonner';
 
 interface SearchFilters {
   query?: string;
@@ -74,6 +77,8 @@ export function AdvancedSearch({
   );
   const [showSavedSearches, setShowSavedSearches] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [useRegex, setUseRegex] = useState(false);
+  const [savingSearch, setSavingSearch] = useState(false);
 
   // Update filters when initialFilters change
   useEffect(() => {
@@ -209,7 +214,47 @@ export function AdvancedSearch({
   };
 
   const handleSearch = () => {
+    // Validate regex if enabled
+    if (useRegex && filters.query) {
+      try {
+        new RegExp(filters.query);
+      } catch (e) {
+        toast.error('Invalid regex pattern');
+        return;
+      }
+    }
     onSearch(filters);
+  };
+
+  const handleSaveSearch = async () => {
+    if (!filters.query && activeFilterCount === 0) {
+      toast.error('Add some filters before saving');
+      return;
+    }
+
+    setSavingSearch(true);
+    try {
+      const response = await fetch('/api/saved-searches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: filters.query ? `Search: ${filters.query.substring(0, 30)}...` : 'Custom Search',
+          filters: filters,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success('Search saved successfully!');
+        setShowSavedSearches(true); // Show saved searches section
+      } else {
+        const data = await response.json();
+        toast.error(data.error || 'Failed to save search');
+      }
+    } catch (error) {
+      toast.error('Failed to save search');
+    } finally {
+      setSavingSearch(false);
+    }
   };
 
   const activeFilterCount = Object.values(filters).filter(
@@ -292,6 +337,43 @@ export function AdvancedSearch({
           }
           className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
         />
+
+        {/* Experimental: Regex Toggle and Save Search */}
+        <FeatureGate featureId="enhanced-search">
+          <div className="flex items-center justify-between gap-4 pt-2">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="use-regex"
+                  checked={useRegex}
+                  onChange={(e) => setUseRegex(e.target.checked)}
+                  className="w-4 h-4 rounded border-border bg-elevated text-[var(--color-primary)] focus:ring-[var(--color-primary)] focus:ring-offset-0"
+                />
+                <Label
+                  htmlFor="use-regex"
+                  className="text-sm text-foreground cursor-pointer"
+                >
+                  Use Regex
+                </Label>
+              </div>
+              <ExperimentalBadge className="ml-1" />
+            </div>
+
+            {(filters.query || activeFilterCount > 0) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSaveSearch}
+                disabled={savingSearch}
+                className="border-border text-foreground hover:bg-elevated"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {savingSearch ? 'Saving...' : 'Save Search'}
+              </Button>
+            )}
+          </div>
+        </FeatureGate>
       </div>
 
       {/* Categories */}

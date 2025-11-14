@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { betterAuthUser, betterAuthAccount } from '@/lib/db/schema';
+import { user as betterAuthUser, account as betterAuthAccount } from '@/auth-schema';
 import { eq, and } from 'drizzle-orm';
 import { sendEmailChangeVerification } from '@/lib/email/email-service';
 import { verification as verificationTable } from '@/auth-schema';
@@ -107,9 +107,9 @@ export async function POST(request: NextRequest) {
       id: randomBytes(16).toString('base64url'),
       identifier: `email-change:${userId}`,
       value: token,
-      expiresAt: expiresAt.getTime(),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      expiresAt: expiresAt,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     // Generate verification URL

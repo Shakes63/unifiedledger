@@ -49,8 +49,8 @@ export async function POST(request: Request) {
     await db
       .update(authSchema.session)
       .set({
-        rememberMe: rememberMe ? 1 : 0,
-        updatedAt: Date.now(),
+        rememberMe: rememberMe,
+        updatedAt: new Date(),
       })
       .where(eq(authSchema.session.id, session.id));
 

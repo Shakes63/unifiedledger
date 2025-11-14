@@ -204,29 +204,33 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
 **Latest (2025-11-14):**
+- Better Auth Cookie Integration (100% COMPLETE): Fixed session authentication and cookie handling
+  - ✅ Added `credentials: "include"` to Better Auth client configuration for cookie support
+  - ✅ Updated middleware to parse `better-auth.session_data` cookie (not `session_token`)
+  - ✅ Fixed TypeScript errors in email verification and user API routes
+  - ✅ Added missing tooltip UI component and Radix UI dependency
+  - ✅ Created user_settings record automatically for new users
+  - ✅ Fixed cookie security settings for localhost development (`useSecureCookies: false`)
+- Experimental Features System (100% COMPLETE): Complete feature gating system with 3 implemented features
+  - ✅ Quick Entry Mode: Press Q anywhere for rapid transaction entry modal with keyboard shortcuts
+  - ✅ Enhanced Search: Regex search toggle and save search button in Advanced Search
+  - ✅ Advanced Charts: Heatmap and Treemap visualizations in Reports page
+  - ✅ ExperimentalBadge component for marking experimental features
+  - ✅ FeatureGate component for conditional rendering
+  - ✅ Experimental Features Context provider with toggle in Advanced settings
 - GeoIP Location Lookup (100% COMPLETE): Session location display in Privacy & Security settings
   - ✅ Added location fields (city, region, country, countryCode) to Better Auth session table
   - ✅ Created GeoIP service module using ip-api.com (free tier, 45 req/min)
   - ✅ Special case handling: localhost → "Local Device", private IPs → "Private Network"
   - ✅ In-memory caching with 24-hour TTL for performance
-  - ✅ Better Auth hooks to populate location on sign-in/sign-up (asynchronous, non-blocking)
   - ✅ UI displays formatted location with country flag emoji and tooltip
-  - ✅ All styling uses semantic theme variables
-  - ✅ Graceful degradation if GeoIP service fails
   - Migrations: `0039_add_session_location.sql`, `0040_add_session_location_better_auth.sql`
 - Import Preferences (100% COMPLETE): Default CSV import template selection in Data Management settings
   - ✅ Database schema with `defaultImportTemplateId` in userSettings table
   - ✅ API validation ensuring template belongs to user
   - ✅ Data Management Tab UI with template selector and details display
   - ✅ CSV Import Modal auto-loads default template settings
-  - ✅ Transactions page integration
   - Migration: `0041_add_default_import_template.sql`
-- Experimental Features System (30% COMPLETE): Infrastructure for gating features behind experimental flag
-  - ✅ Experimental Features Context provider for managing enabled state
-  - ✅ Feature flag helper with 3 feature definitions (Quick Entry, Enhanced Search, Advanced Charts)
-  - ✅ FeatureGate component for conditional rendering
-  - ⏳ ExperimentalBadge component, Advanced tab updates, and feature implementations pending
-  - See `docs/experimental-features-implementation-plan.md` for remaining work
 - Email Verification Flow (100% COMPLETE): Complete email verification system implemented
   - ✅ Email service infrastructure with Resend (primary) and SMTP/Nodemailer (fallback for self-hosting)
   - ✅ Email configuration utility with automatic provider selection (`lib/email/email-config.ts`)
@@ -413,9 +417,10 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ Household Tab Switching Fix (100% complete - fixed context not updating, removed nested Tabs)
 - ✅ Household Favorite Feature (100% complete - star/favorite households to pin to top)
 - ✅ Developer Mode Feature (100% complete - entity ID badges, DEV indicator, developer tools panel)
+- ✅ Better Auth Cookie Integration (100% complete - fixed session authentication and cookie handling)
+- ✅ Experimental Features System (100% complete - Quick Entry, Enhanced Search, Advanced Charts)
 - ✅ GeoIP Location Lookup (100% complete - session location display with country flags)
 - ✅ Import Preferences (100% complete - default template selection in Data Management settings)
-- ⏳ Experimental Features System (30% complete - infrastructure ready, features pending)
 - ⏳ Household Data Isolation Phase 0 (85% complete - core implementation done, testing pending)
 - ✅ Testing complete (386 tests, 99.5% of plan, 100% unit coverage, 93% integration coverage)
 - ✅ All 12 tracked bugs fixed (100%)

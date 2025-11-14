@@ -42,15 +42,27 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
+      // Create the account
       await betterAuthClient.signUp.email({
         name,
         email,
         password,
       });
 
+      // Automatically sign in after account creation
+      const signInResult = await betterAuthClient.signIn.email({
+        email,
+        password,
+      });
+
+      if (!signInResult || signInResult.error) {
+        throw new Error('Account created but sign-in failed. Please sign in manually.');
+      }
+
       toast.success('Account created successfully!');
-      router.push('/dashboard');
-      router.refresh();
+
+      // Use window.location for a hard redirect to ensure middleware runs
+      window.location.href = '/dashboard';
     } catch (error: any) {
       console.error('Sign up error:', error);
 

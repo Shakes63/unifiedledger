@@ -16,8 +16,19 @@ const ACTIVITY_UPDATE_INTERVAL = 60 * 1000; // 1 minute
 
 export default async function middleware(request: NextRequest) {
   // Check if Better Auth session cookie exists
-  const sessionCookie = request.cookies.get("better-auth.session_token");
-  const sessionToken = sessionCookie?.value;
+  // Better Auth stores the full session data in this cookie
+  const sessionDataCookie = request.cookies.get("better-auth.session_data");
+
+  // Extract token from session data if it exists
+  let sessionToken: string | undefined;
+  if (sessionDataCookie?.value) {
+    try {
+      const sessionData = JSON.parse(atob(sessionDataCookie.value.split('.')[0]));
+      sessionToken = sessionData?.session?.session?.token;
+    } catch (e) {
+      console.error('Failed to parse session cookie:', e);
+    }
+  }
 
   // Define protected routes
   const isProtectedRoute =
@@ -57,6 +68,7 @@ export default async function middleware(request: NextRequest) {
 
       // Create response and clear session cookie
       const response = NextResponse.redirect(signInUrl);
+      response.cookies.delete("better-auth.session_data");
       response.cookies.delete("better-auth.session_token");
 
       return response;

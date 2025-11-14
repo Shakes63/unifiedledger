@@ -35,46 +35,59 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24, // Update every 24 hours
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5, // 5 minutes
+    },
   },
-  hooks: {
-    after: [
-      {
-        matcher: () => true,
-        handler: async (ctx: any) => {
-          // Hook to populate GeoIP location on session creation
-          if (ctx.path === '/sign-in/email' || ctx.path === '/sign-up/email') {
-            try {
-              const session = ctx.returned?.session;
-              const ipAddress = ctx.returned?.session?.ipAddress;
+  advanced: {
+    cookiePrefix: "better-auth",
+    useSecureCookies: false, // Set to false for localhost development
+    crossSubDomainCookies: {
+      enabled: false,
+    },
+  },
+  // TODO: Re-enable GeoIP hooks once Better Auth hook structure is fixed
+  // The current hook structure causes "hook.handler is not a function" error
+  // hooks: {
+  //   after: [
+  //     {
+  //       matcher: () => true,
+  //       handler: async (ctx: any) => {
+  //         // Hook to populate GeoIP location on session creation
+  //         if (ctx.path === '/sign-in/email' || ctx.path === '/sign-up/email') {
+  //           try {
+  //             const session = ctx.returned?.session;
+  //             const ipAddress = ctx.returned?.session?.ipAddress;
 
-              if (session?.id && ipAddress) {
-                // Lookup location asynchronously (don't block response)
-                lookupLocation(ipAddress)
-                  .then(async (location) => {
-                    await db
-                      .update(authSchema.session)
-                      .set({
-                        city: location.city,
-                        region: location.region,
-                        country: location.country,
-                        countryCode: location.countryCode,
-                      })
-                      .where(eq(authSchema.session.id, session.id));
-                  })
-                  .catch((error) => {
-                    console.warn('[GeoIP] Failed to update session location:', error);
-                    // Don't throw - location is optional
-                  });
-              }
-            } catch (error) {
-              console.warn('[GeoIP] Error in session location hook:', error);
-              // Don't throw - location is optional
-            }
-          }
-        },
-      },
-    ],
-  },
+  //             if (session?.id && ipAddress) {
+  //               // Lookup location asynchronously (don't block response)
+  //               lookupLocation(ipAddress)
+  //                 .then(async (location) => {
+  //                   await db
+  //                     .update(authSchema.session)
+  //                     .set({
+  //                       city: location.city,
+  //                       region: location.region,
+  //                       country: location.country,
+  //                       countryCode: location.countryCode,
+  //                     })
+  //                     .where(eq(authSchema.session.id, session.id));
+  //                 })
+  //                 .catch((error) => {
+  //                   console.warn('[GeoIP] Failed to update session location:', error);
+  //                   // Don't throw - location is optional
+  //                 });
+  //             }
+  //           } catch (error) {
+  //             console.warn('[GeoIP] Error in session location hook:', error);
+  //             // Don't throw - location is optional
+  //           }
+  //         }
+  //       },
+  //     },
+  //   ],
+  // },
   secret: process.env.BETTER_AUTH_SECRET || "fallback-secret-for-development-only-change-in-production",
 });
 

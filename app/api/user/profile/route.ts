@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { betterAuthUser, userSettings } from '@/lib/db/schema';
+import { user as betterAuthUser } from '@/auth-schema';
+import { userSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';

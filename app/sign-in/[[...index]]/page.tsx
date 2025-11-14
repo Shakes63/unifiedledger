@@ -31,10 +31,19 @@ export default function SignInPage() {
     setLoading(true);
 
     try {
-      await betterAuthClient.signIn.email({
+      console.log('[Sign In] Attempting sign-in with email:', email);
+
+      const result = await betterAuthClient.signIn.email({
         email,
         password,
       });
+
+      console.log('[Sign In] Sign-in result:', result);
+
+      // Check if sign-in was successful
+      if (!result || result.error) {
+        throw new Error(result?.error?.message || 'Sign-in failed');
+      }
 
       // Update rememberMe field on session if checkbox was checked
       if (rememberMe) {
@@ -55,11 +64,13 @@ export default function SignInPage() {
 
       // Redirect to callback URL or dashboard
       const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-      router.push(callbackUrl);
-      router.refresh();
-    } catch (error) {
-      console.error('Sign in error:', error);
-      toast.error('Invalid email or password');
+      console.log('[Sign In] Redirecting to:', callbackUrl);
+
+      // Use window.location for a hard redirect to ensure middleware runs
+      window.location.href = callbackUrl;
+    } catch (error: any) {
+      console.error('[Sign In] Error:', error);
+      toast.error(error?.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }

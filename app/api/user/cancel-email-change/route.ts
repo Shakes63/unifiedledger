@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { betterAuthUser } from '@/lib/db/schema';
+import { user as userTable } from '@/auth-schema';
 import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -16,12 +16,12 @@ export async function POST() {
 
     // Clear pending email
     await db
-      .update(betterAuthUser)
+      .update(userTable)
       .set({
         pendingEmail: null,
         updatedAt: new Date(),
       })
-      .where(eq(betterAuthUser.id, userId));
+      .where(eq(userTable.id, userId));
 
     return NextResponse.json({
       success: true,
