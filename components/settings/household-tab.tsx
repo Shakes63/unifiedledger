@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, UserPlus, LogOut, Crown, Shield, Eye, Loader2, Trash2, Copy, Check, Edit, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -55,8 +56,10 @@ interface Household {
 
 export function HouseholdTab() {
   const { households, selectedHouseholdId, setSelectedHouseholdId, loading, refreshHouseholds } = useHousehold();
+  const [activeTab, setActiveTab] = useState<string>('');
   const [members, setMembers] = useState<HouseholdMember[]>([]);
   const [invitations, setInvitations] = useState<HouseholdInvitation[]>([]);
+  const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [userPermissions, setUserPermissions] = useState<Record<string, boolean>>({});
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -72,11 +75,55 @@ export function HouseholdTab() {
   const [submitting, setSubmitting] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
+  // Initialize active tab on mount
   useEffect(() => {
-    if (selectedHouseholdId) {
-      fetchHouseholdDetails(selectedHouseholdId);
+    if (households.length > 0 && !activeTab) {
+      const initialTab = selectedHouseholdId || households[0].id;
+      setActiveTab(initialTab);
+      if (initialTab !== selectedHouseholdId) {
+        setSelectedHouseholdId(initialTab);
+      }
     }
-  }, [selectedHouseholdId]);
+  }, [households, activeTab, selectedHouseholdId, setSelectedHouseholdId]);
+
+  // Sync activeTab with selectedHouseholdId
+  useEffect(() => {
+    if (selectedHouseholdId && activeTab !== selectedHouseholdId && activeTab !== 'create-new') {
+      setActiveTab(selectedHouseholdId);
+    }
+  }, [selectedHouseholdId, activeTab]);
+
+  // Fetch household details when active tab changes
+  useEffect(() => {
+    if (activeTab && activeTab !== 'create-new') {
+      fetchHouseholdDetails(activeTab);
+    }
+  }, [activeTab]);
+
+  // Fetch member counts for all households
+  useEffect(() => {
+    async function fetchMemberCounts() {
+      const counts: Record<string, number> = {};
+      await Promise.all(
+        households.map(async (household) => {
+          try {
+            const response = await fetch(`/api/households/${household.id}/members`);
+            if (response.ok) {
+              const membersData = await response.json();
+              counts[household.id] = membersData.length;
+            }
+          } catch (error) {
+            // Silently fail for member counts
+          }
+        })
+      );
+      setMemberCounts(counts);
+    }
+
+    if (households.length > 0) {
+      fetchMemberCounts();
+    }
+  }, [households]);
 
   async function fetchHouseholdDetails(householdId: string) {
     try {
@@ -136,6 +183,7 @@ export function HouseholdTab() {
         setHouseholdName('');
         // Refresh households and select the new one
         await refreshHouseholds();
+        setActiveTab(newHousehold.id);
         setSelectedHouseholdId(newHousehold.id);
       } else {
         const data = await response.json();
@@ -149,14 +197,14 @@ export function HouseholdTab() {
   }
 
   async function inviteMember() {
-    if (!inviteEmail.trim() || !selectedHouseholdId) {
+    if (!inviteEmail.trim() || !activeTab || activeTab === 'create-new') {
       toast.error('Email is required');
       return;
     }
 
     try {
       setSubmitting(true);
-      const response = await fetch(`/api/households/${selectedHouseholdId}/invitations`, {
+      const response = await fetch(`/api/households/${activeTab}/invitations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -170,7 +218,7 @@ export function HouseholdTab() {
         setInviteDialogOpen(false);
         setInviteEmail('');
         setInviteRole('member');
-        fetchHouseholdDetails(selectedHouseholdId); // Refresh
+        fetchHouseholdDetails(activeTab); // Refresh
       } else {
         const data = await response.json();
         toast.error(data.error || 'Failed to send invitation');
@@ -183,19 +231,30 @@ export function HouseholdTab() {
   }
 
   async function leaveHousehold() {
-    if (!selectedHouseholdId) return;
+    if (!activeTab || activeTab === 'create-new') return;
 
     try {
       setSubmitting(true);
-      const response = await fetch(`/api/households/${selectedHouseholdId}/leave`, {
+      const response = await fetch(`/api/households/${activeTab}/leave`, {
         method: 'POST',
       });
 
       if (response.ok) {
         toast.success('Left household successfully');
         setLeaveDialogOpen(false);
-        // Refresh households and clear details
+        // Refresh households and switch to next available
+        const leavingHouseholdId = activeTab;
         await refreshHouseholds();
+
+        // Switch to first remaining household or create-new tab
+        const remainingHouseholds = households.filter(h => h.id !== leavingHouseholdId);
+        if (remainingHouseholds.length > 0) {
+          setActiveTab(remainingHouseholds[0].id);
+          setSelectedHouseholdId(remainingHouseholds[0].id);
+        } else {
+          setActiveTab('create-new');
+        }
+
         setMembers([]);
         setInvitations([]);
         setCurrentUserRole(null);
@@ -211,7 +270,7 @@ export function HouseholdTab() {
   }
 
   async function renameHousehold() {
-    if (!selectedHouseholdId) return;
+    if (!activeTab || activeTab === 'create-new') return;
 
     if (!newHouseholdName.trim()) {
       toast.error('Household name is required');
@@ -220,7 +279,7 @@ export function HouseholdTab() {
 
     try {
       setSubmitting(true);
-      const response = await fetch(`/api/households/${selectedHouseholdId}`, {
+      const response = await fetch(`/api/households/${activeTab}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newHouseholdName }),
@@ -244,9 +303,9 @@ export function HouseholdTab() {
   }
 
   async function deleteHousehold() {
-    if (!selectedHouseholdId) return;
+    if (!activeTab || activeTab === 'create-new') return;
 
-    const household = households.find(h => h.id === selectedHouseholdId);
+    const household = households.find(h => h.id === activeTab);
     if (!household) return;
 
     if (deleteConfirmName !== household.name) {
@@ -256,7 +315,7 @@ export function HouseholdTab() {
 
     try {
       setSubmitting(true);
-      const response = await fetch(`/api/households/${selectedHouseholdId}`, {
+      const response = await fetch(`/api/households/${activeTab}`, {
         method: 'DELETE',
       });
 
@@ -264,8 +323,19 @@ export function HouseholdTab() {
         toast.success('Household deleted successfully');
         setDeleteDialogOpen(false);
         setDeleteConfirmName('');
-        // Refresh households and clear details
+        // Refresh households and switch to next available
+        const deletedHouseholdId = activeTab;
         await refreshHouseholds();
+
+        // Switch to first remaining household or create-new tab
+        const remainingHouseholds = households.filter(h => h.id !== deletedHouseholdId);
+        if (remainingHouseholds.length > 0) {
+          setActiveTab(remainingHouseholds[0].id);
+          setSelectedHouseholdId(remainingHouseholds[0].id);
+        } else {
+          setActiveTab('create-new');
+        }
+
         setMembers([]);
         setInvitations([]);
         setCurrentUserRole(null);
@@ -281,11 +351,11 @@ export function HouseholdTab() {
   }
 
   async function changeMemberRole(memberId: string, newRole: string) {
-    if (!selectedHouseholdId) return;
+    if (!activeTab || activeTab === 'create-new') return;
 
     try {
       const response = await fetch(
-        `/api/households/${selectedHouseholdId}/members/${memberId}`,
+        `/api/households/${activeTab}/members/${memberId}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -310,24 +380,36 @@ export function HouseholdTab() {
   }
 
   async function removeMember(memberId: string) {
-    if (!selectedHouseholdId) return;
+    if (!activeTab || activeTab === 'create-new') return;
     if (!confirm('Are you sure you want to remove this member?')) return;
 
     try {
       const response = await fetch(
-        `/api/households/${selectedHouseholdId}/members/${memberId}`,
+        `/api/households/${activeTab}/members/${memberId}`,
         { method: 'DELETE' }
       );
 
       if (response.ok) {
         toast.success('Member removed successfully');
         setMembers(members.filter((m) => m.id !== memberId));
+        // Update member count
+        setMemberCounts(prev => ({
+          ...prev,
+          [activeTab]: (prev[activeTab] || 1) - 1,
+        }));
       } else {
         const data = await response.json();
         toast.error(data.error || 'Failed to remove member');
       }
     } catch (error) {
       toast.error('Failed to remove member');
+    }
+  }
+
+  function handleTabChange(tabId: string) {
+    setActiveTab(tabId);
+    if (tabId !== 'create-new') {
+      setSelectedHouseholdId(tabId);
     }
   }
 
@@ -379,9 +461,14 @@ export function HouseholdTab() {
     );
   }
 
-  const selectedHousehold = selectedHouseholdId
-    ? households.find(h => h.id === selectedHouseholdId)
+  const currentHousehold = activeTab && activeTab !== 'create-new'
+    ? households.find(h => h.id === activeTab)
     : null;
+
+  // Sort households by creation date (oldest first)
+  const sortedHouseholds = [...households].sort((a, b) =>
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
 
   if (households.length === 0) {
     return (
@@ -453,237 +540,296 @@ export function HouseholdTab() {
 
   return (
     <div className="space-y-6">
-      {/* Household List & Create Button */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-foreground">
-          My Households ({households.length})
-        </h3>
-        <Button
-          size="sm"
-          onClick={() => setCreateDialogOpen(true)}
-          className="bg-[var(--color-primary)] hover:opacity-90"
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Create Household
-        </Button>
-      </div>
-
-      {/* Households Grid */}
-      <div className="grid gap-3">
-        {households.map((household) => (
-          <Card
-            key={household.id}
-            className={`p-4 cursor-pointer transition-all border-2 ${
-              selectedHouseholdId === household.id
-                ? 'border-[var(--color-primary)] bg-elevated'
-                : 'border-border bg-card hover:bg-elevated'
-            }`}
-            onClick={() => setSelectedHouseholdId(household.id)}
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        {/* Desktop: Horizontal Tabs */}
+        <TabsList className="hidden lg:flex w-full justify-start bg-elevated border border-border overflow-x-auto h-auto flex-wrap gap-1 p-2">
+          {sortedHouseholds.map((household) => (
+            <TabsTrigger
+              key={household.id}
+              value={household.id}
+              className="flex items-center gap-2 data-[state=active]:bg-card data-[state=active]:text-[var(--color-primary)] px-3 py-2"
+            >
+              <Users className="w-4 h-4" />
+              <span>{household.name}</span>
+              {memberCounts[household.id] !== undefined && (
+                <Badge variant="secondary" className="ml-1 text-xs">
+                  {memberCounts[household.id]}
+                </Badge>
+              )}
+            </TabsTrigger>
+          ))}
+          <TabsTrigger
+            value="create-new"
+            className="flex items-center gap-2 text-[var(--color-primary)] data-[state=active]:bg-card px-3 py-2"
           >
-            <div className="flex items-center justify-between">
+            <Plus className="w-4 h-4" />
+            <span>Create New</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Mobile: Dropdown */}
+        <div className="lg:hidden mb-4">
+          <Select value={activeTab} onValueChange={handleTabChange}>
+            <SelectTrigger
+              id="household-tab-select"
+              name="household-tab"
+              aria-label="Select household"
+              className="w-full bg-card border-border"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {sortedHouseholds.map((household) => (
+                <SelectItem key={household.id} value={household.id}>
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    <span>{household.name}</span>
+                    {memberCounts[household.id] !== undefined && (
+                      <span className="text-muted-foreground text-xs ml-auto">
+                        ({memberCounts[household.id]} members)
+                      </span>
+                    )}
+                  </div>
+                </SelectItem>
+              ))}
+              <SelectItem value="create-new">
+                <div className="flex items-center gap-2 text-[var(--color-primary)]">
+                  <Plus className="w-4 h-4" />
+                  <span>Create New Household</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Tab Content for each household */}
+        {sortedHouseholds.map((household) => (
+          <TabsContent key={household.id} value={household.id} className="mt-0 space-y-6">
+            {/* Household Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-border">
               <div>
-                <h4 className="font-medium text-foreground">{household.name}</h4>
-                <p className="text-sm text-muted-foreground">
-                  Created {new Date(household.createdAt).toLocaleDateString()}
+                <h3 className="text-2xl font-semibold text-foreground">{household.name}</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Created {new Date(household.createdAt).toLocaleDateString()} • {members.length} members
                 </p>
               </div>
-              {selectedHouseholdId === household.id && (
-                <div className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
 
-      {/* Selected Household Details */}
-      {selectedHousehold && (
-        <>
-          {/* Household Actions */}
-          <div className="flex items-center gap-2">
-            {currentUserRole === 'owner' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setNewHouseholdName(selectedHousehold.name);
-                  setRenameDialogOpen(true);
-                }}
-                className="border-border"
-              >
-                <Edit className="w-4 h-4 mr-1" />
-                Rename
-              </Button>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* Members List */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="font-medium text-foreground">
-            Members ({members.length})
-          </h4>
-          {canInvite && (
-            <Button
-              size="sm"
-              onClick={() => setInviteDialogOpen(true)}
-            >
-              <UserPlus className="w-4 h-4 mr-1" />
-              Invite
-            </Button>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          {members.map((member) => (
-            <Card
-              key={member.id}
-              className="p-4 bg-elevated border-border"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <UserAvatar
-                    userId={member.userId}
-                    userName={member.userName || member.userEmail}
-                    avatarUrl={member.userAvatarUrl}
-                    size="md"
-                    className="shrink-0"
-                  />
-
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-foreground truncate">
-                      {member.userName || 'Unknown'}
-                    </div>
-                    <div className="text-sm text-muted-foreground truncate">
-                      {member.userEmail}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  {canManagePermissions ? (
-                    <Select
-                      value={member.role}
-                      onValueChange={(newRole) => changeMemberRole(member.id, newRole)}
-                    >
-                      <SelectTrigger className="w-32 bg-card border-border text-foreground text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border">
-                        <SelectItem value="owner">Owner</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="member">Member</SelectItem>
-                        <SelectItem value="viewer">Viewer</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Badge className={getRoleBadgeColor(member.role)}>
-                      <div className="flex items-center gap-1">
-                        {getRoleIcon(member.role)}
-                        {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-                      </div>
-                    </Badge>
-                  )}
-
-                  {canRemoveMembers && (
+              {/* Household Actions */}
+              <div className="flex items-center gap-2">
+                {currentUserRole === 'owner' && (
+                  <>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      onClick={() => removeMember(member.id)}
-                      className="text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+                      onClick={() => {
+                        setNewHouseholdName(household.name);
+                        setRenameDialogOpen(true);
+                      }}
+                      className="border-border"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Edit className="w-4 h-4 mr-1" />
+                      Rename
                     </Button>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Pending Invitations */}
-      {invitations.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="font-medium text-foreground">
-              Pending Invitations ({invitations.length})
-            </h4>
-          </div>
-
-          <div className="space-y-2">
-            {invitations.map((invitation) => (
-              <Card
-                key={invitation.id}
-                className="p-4 bg-elevated border-border border-[var(--color-warning)]/30"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-foreground truncate">
-                      {invitation.invitedEmail}
-                    </div>
-                    <div className="text-sm text-muted-foreground capitalize">
-                      Role: {invitation.role}
-                    </div>
-                  </div>
-
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDeleteDialogOpen(true)}
+                      className="border-[var(--color-error)] text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete
+                    </Button>
+                  </>
+                )}
+                {canLeave && (
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => copyInviteLink(invitation.invitationToken)}
-                    className="border-border text-muted-foreground shrink-0"
+                    onClick={() => setLeaveDialogOpen(true)}
+                    className="border-[var(--color-error)] text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
                   >
-                    {copiedToken === invitation.invitationToken ? (
-                      <>
-                        <Check className="w-4 h-4 mr-1" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4 mr-1" />
-                        Copy Link
-                      </>
-                    )}
+                    <LogOut className="w-4 h-4 mr-1" />
+                    Leave
                   </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Members List */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-medium text-foreground">
+                  Members ({members.length})
+                </h4>
+                {canInvite && (
+                  <Button
+                    size="sm"
+                    onClick={() => setInviteDialogOpen(true)}
+                    className="bg-[var(--color-primary)] hover:opacity-90"
+                  >
+                    <UserPlus className="w-4 h-4 mr-1" />
+                    Invite Member
+                  </Button>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                {members.map((member) => (
+                  <Card
+                    key={member.id}
+                    className="p-4 bg-elevated border-border"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <UserAvatar
+                          userId={member.userId}
+                          userName={member.userName || member.userEmail}
+                          avatarUrl={member.userAvatarUrl}
+                          size="md"
+                          className="shrink-0"
+                        />
+
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-foreground truncate">
+                            {member.userName || 'Unknown'}
+                          </div>
+                          <div className="text-sm text-muted-foreground truncate">
+                            {member.userEmail}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {canManagePermissions ? (
+                          <Select
+                            value={member.role}
+                            onValueChange={(newRole) => changeMemberRole(member.id, newRole)}
+                          >
+                            <SelectTrigger className="w-32 bg-card border-border text-foreground text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card border-border">
+                              <SelectItem value="owner">Owner</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="member">Member</SelectItem>
+                              <SelectItem value="viewer">Viewer</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge className={getRoleBadgeColor(member.role)}>
+                            <div className="flex items-center gap-1">
+                              {getRoleIcon(member.role)}
+                              {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                            </div>
+                          </Badge>
+                        )}
+
+                        {canRemoveMembers && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeMember(member.id)}
+                            className="text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Pending Invitations */}
+            {invitations.length > 0 && (
+              <div>
+                <h4 className="font-medium text-foreground mb-4">
+                  Pending Invitations ({invitations.length})
+                </h4>
+
+                <div className="space-y-2">
+                  {invitations.map((invitation) => (
+                    <Card
+                      key={invitation.id}
+                      className="p-4 bg-elevated border-border border-[var(--color-warning)]/30"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-foreground truncate">
+                            {invitation.invitedEmail}
+                          </div>
+                          <div className="text-sm text-muted-foreground capitalize">
+                            Role: {invitation.role}
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => copyInviteLink(invitation.invitationToken)}
+                          className="border-border text-muted-foreground shrink-0"
+                        >
+                          {copiedToken === invitation.invitationToken ? (
+                            <>
+                              <Check className="w-4 h-4 mr-1" />
+                              Copied
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-4 h-4 mr-1" />
+                              Copy Link
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
                 </div>
-              </Card>
-            ))}
+              </div>
+            )}
+          </TabsContent>
+        ))}
+
+        {/* Create New Household Tab Content */}
+        <TabsContent value="create-new" className="mt-0">
+          <div className="text-center py-12">
+            <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Create a New Household
+            </h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              Create a household to collaborate on finances with family, roommates, or teams
+            </p>
+            <div className="max-w-sm mx-auto space-y-4">
+              <Input
+                type="text"
+                value={householdName}
+                onChange={(e) => setHouseholdName(e.target.value)}
+                placeholder="Household name (e.g., The Smiths)"
+                className="bg-elevated border-border"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && householdName.trim()) {
+                    createHousehold();
+                  }
+                }}
+              />
+              <Button
+                onClick={createHousehold}
+                disabled={!householdName.trim() || submitting}
+                className="w-full bg-[var(--color-primary)] hover:opacity-90"
+              >
+                {submitting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                Create Household
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Leave Household */}
-      {canLeave && (
-        <div>
-          <Button
-            variant="outline"
-            onClick={() => setLeaveDialogOpen(true)}
-            className="border-[var(--color-error)] text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Leave Household
-          </Button>
-        </div>
-      )}
-
-      {/* Delete Household (Owner Only) */}
-      {currentUserRole === 'owner' && (
-        <div className="border-t border-border pt-6">
-          <h4 className="font-medium text-foreground mb-2">Danger Zone</h4>
-          <p className="text-sm text-muted-foreground mb-4">
-            Permanently delete this household and all associated data. This action cannot be undone.
-          </p>
-          <Button
-            variant="outline"
-            onClick={() => setDeleteDialogOpen(true)}
-            className="border-[var(--color-error)] text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Delete Household
-          </Button>
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
 
       {/* Invite Dialog */}
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
@@ -756,7 +902,7 @@ export function HouseholdTab() {
               Leave Household
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Are you sure you want to leave "{selectedHousehold?.name}"? You'll lose access to all shared data.
+              Are you sure you want to leave "{currentHousehold?.name}"? You'll lose access to all shared data.
             </DialogDescription>
           </DialogHeader>
 
@@ -855,7 +1001,7 @@ export function HouseholdTab() {
 
           <div className="py-4">
             <Label htmlFor="deleteConfirm" className="text-foreground">
-              Type the household name <span className="font-semibold">"{selectedHousehold?.name}"</span> to confirm
+              Type the household name <span className="font-semibold">"{currentHousehold?.name}"</span> to confirm
             </Label>
             <Input
               id="deleteConfirm"
@@ -863,7 +1009,7 @@ export function HouseholdTab() {
               type="text"
               value={deleteConfirmName}
               onChange={(e) => setDeleteConfirmName(e.target.value)}
-              placeholder={selectedHousehold?.name}
+              placeholder={currentHousehold?.name}
               className="mt-2 bg-elevated border-border"
             />
           </div>
@@ -882,7 +1028,7 @@ export function HouseholdTab() {
             <Button
               variant="destructive"
               onClick={deleteHousehold}
-              disabled={deleteConfirmName !== selectedHousehold?.name || submitting}
+              disabled={deleteConfirmName !== currentHousehold?.name || submitting}
               className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
             >
               {submitting ? (
