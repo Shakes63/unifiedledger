@@ -109,6 +109,7 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 8. ✅ **Testing:** 386 tests (99.5% of plan), 100% unit test coverage, 93% integration test coverage (28/30 passing)
 
 **Recent Additions:**
+- Notifications Tab (FULLY COMPLETE - granular channel selection for 9 notification types with push/email delivery options)
 - Unified Settings Page (ALL 3 phases complete - `/dashboard/settings` with 9 comprehensive tabs)
 - Transaction save performance optimization (65-75% faster)
 - Income frequency tracking (weekly/biweekly/monthly)
@@ -173,6 +174,13 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
 **Latest (2025-11-13):**
+- Notifications Tab (FULLY COMPLETE): Implemented granular notification channel selection system
+  - Per-notification-type delivery channels (push/email) with extendable architecture for future channels (SMS, Slack, Webhook)
+  - 9 notification types with independent channel preferences: Bill Reminders, Budget Warnings, Budget Exceeded, Budget Reviews, Low Balance, Savings Milestones, Debt Milestones, Weekly Summaries, Monthly Summaries
+  - Auto-save with optimistic UI updates and validation (requires at least one channel per notification)
+  - Database schema updated with JSON channel arrays stored per notification type
+  - API validation for channel arrays with extensible `VALID_CHANNELS` list
+  - Created migrations: `0028_add_budget_review_enabled.sql`, `0029_add_notification_channels.sql`
 - Settings Page (ALL 3 PHASES COMPLETE): Created comprehensive `/dashboard/settings` page with 9 tabs
   - **Phase 1:** Profile (name, email, password), Preferences (currency, date, fiscal year), Financial (budget method, display options), Theme (moved from `/dashboard/theme`), Notifications (moved from `/dashboard/notifications`)
   - **Phase 2:** Privacy & Security (session management with device detection, JSON/CSV data export, account deletion), Household (create/join households, invite members, role management)
@@ -192,6 +200,7 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 - Bugs #1-5: Savings Goals errors, Budget Summary auth, Bill Save performance, Budget Analytics chart
 
 **Recent Features:**
+- Notifications Tab: Granular per-notification-type channel selection (push/email) with auto-save, validation, and extendable architecture for future channels (SMS, Slack, Webhook). 9 notification types with independent delivery preferences.
 - Unified Settings Page (ALL 3 PHASES COMPLETE): Comprehensive settings at `/dashboard/settings` with 9 tabs (Profile, Preferences, Financial, Notifications, Theme, Household, Privacy & Security, Data Management, Advanced). Includes session management, data export (JSON/CSV), account deletion, household management, data retention policies, developer mode, and database statistics.
 - Transaction Save Performance: 65-75% faster via parallel queries, batch updates, database indexes
 - Income Frequency Tracking: Category-level frequency field (weekly/biweekly/monthly/variable)

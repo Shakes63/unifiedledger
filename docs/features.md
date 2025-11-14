@@ -2,6 +2,8 @@
 
 <!-- Add new feature requests below this line -->
 
+---
+
 ## Self-Hosting Configuration (Future Feature)
 
 **Goal:** Make the app completely self-hostable without requiring .env file editing
@@ -48,14 +50,9 @@
 
 ---
 
-## Settings Page - Not Yet Implemented
+## Settings Page - Incomplete Features
 
 The following settings exist in the UI but are not fully functional:
-
-### Notifications Tab
-- **Status:** Placeholder only - entire tab shows "Notification settings coming soon..."
-- **Missing:** All notification preference toggles (10 types: bill reminders, budget warnings, low balance, goal milestones, debt payoff, budget reviews, household activity, transfer suggestions, import completion, system updates)
-- **Notes:** NotificationPreferences table exists in schema but no UI implementation
 
 ### Profile Tab
 - **Partially Implemented:** Name and email updates work
@@ -101,3 +98,4 @@ The following settings exist in the UI but are not fully functional:
 3. ✅ **Income Frequency Tracking** - Category-level frequency tracking for accurate budget projections
 4. ✅ **Transaction Save Performance** - 65-75% faster transaction creation through query optimization
 5. ✅ **Unified Settings Page** - Comprehensive 9-tab settings page covering profile, preferences, financial, notifications, theme, household, privacy, data, and advanced settings
+6. ✅ **Notifications Tab** - Per-notification-type delivery channel selection (push/email) with auto-save, validation, and granular control over 9 notification types
