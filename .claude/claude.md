@@ -112,10 +112,11 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 8. ✅ **Testing:** 386 tests (99.5% of plan), 100% unit test coverage, 93% integration test coverage (28/30 passing)
 
 **Recent Additions:**
-- Household Tab-Based UI (FULLY COMPLETE - tab-based interface for household settings with member count badges, chronological ordering, contextual action buttons)
-- Household Management System (FULLY COMPLETE - multi-household support with create/rename/delete/leave, member management with role-based permissions, auto-sync between sidebar and settings via React Context)
-- Notifications Tab (FULLY COMPLETE - granular channel selection for 9 notification types with push/email delivery options)
-- Unified Settings Page (ALL 3 phases complete - `/dashboard/settings` with 9 comprehensive tabs)
+- Household Favorite Feature (100% COMPLETE - star/favorite households to pin to top of sidebar)
+- Household Tab-Based UI (100% COMPLETE - tab-based interface for household settings with member count badges)
+- Household Management System (100% COMPLETE - multi-household support with role-based permissions)
+- Notifications Tab (100% COMPLETE - granular channel selection for 9 notification types)
+- Unified Settings Page (100% COMPLETE - `/dashboard/settings` with 9 comprehensive tabs)
 - Transaction save performance optimization (65-75% faster)
 - Income frequency tracking (weekly/biweekly/monthly)
 - Goals dashboard widget
@@ -179,23 +180,15 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
 **Latest (2025-11-14):**
-- Household Favorite Feature (INCOMPLETE - HAS BUG): Star/favorite households to pin them to top of sidebar
+- Household Favorite Feature (100% COMPLETE): Star/favorite households to pin them to top of sidebar
   - Database: Added `isFavorite` field to `household_members` table with migration
   - API: Created `/api/households/[householdId]/favorite` endpoint for toggling
   - UI: Added star icon to settings page tabs (desktop & mobile) that turns yellow when favorited
-  - Sorting: Favorites appear first in sidebar dropdown, sorted by join date within groups
-  - **BUG:** Households disappeared from sidebar and settings page after implementation
-  - **Next Steps:** Debug why frontend components aren't displaying households with new field
-- Household Settings Decoupling (100% COMPLETE): Sidebar dropdown and settings tabs now operate independently
-  - Removed sync effect that forced settings tabs to follow sidebar selection
-  - Settings tabs show local `activeTab` state for viewing any household
-  - Sidebar's `selectedHouseholdId` controls active household throughout app
-  - Allows viewing/editing any household's settings without changing active context
-- Household Sort by Join Date (100% COMPLETE): Households ordered by when user joined them
-  - Added `joinedAt` field from `household_members` to API response
-  - Updated TypeScript interfaces in context and components
-  - Sort algorithm: chronological order based on user's join time (not household creation time)
-  - Applies consistently to both sidebar dropdown and settings tabs
+  - Sorting: Favorites appear first in sidebar dropdown, then sorted by join date
+  - Fixed bug: Migration was created but not applied; manually applied to database
+- Household Settings Decoupling (100% COMPLETE): Sidebar dropdown and settings tabs operate independently
+- Household Sort by Join Date (100% COMPLETE): Households ordered chronologically by when user joined them
+- Planning Complete: Household Data Isolation system (see Next Steps)
 
 **Previous (2025-11-14):**
 - Reset App Data (100% COMPLETE): Fully functional settings reset feature in Data Management tab
@@ -328,14 +321,49 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ Avatar Upload (100% complete - upload, display, initials fallback throughout app)
 - ✅ Reset App Data (100% complete - settings reset with password confirmation and rate limiting)
 - ✅ Household Tab Switching Fix (100% complete - fixed context not updating, removed nested Tabs)
+- ✅ Household Favorite Feature (100% complete - star/favorite households to pin to top)
 - ✅ Testing complete (386 tests, 99.5% of plan, 100% unit coverage, 93% integration coverage)
 - ✅ All 12 tracked bugs fixed (100%)
 
+**⚠️ CRITICAL LIMITATION:**
+- Multi-household data is NOT isolated - all users see same data regardless of selected household
+- All financial data (transactions, accounts, budgets, etc.) shared across households
+- Security risk: Household data is not properly separated
+- **Next priority:** Implement household data isolation (see Next Steps)
+
 ## Next Steps
-1. ✅ **Authentication Migration (100% complete)** - Clerk → Better Auth migration complete! (see `docs/BETTER-AUTH-MIGRATION-COMPLETE.md`)
-2. ✅ **Settings Page (100% complete)** - All 3 phases complete with 9 comprehensive tabs
-3. ✅ **Avatar Upload (100% complete)** - Full profile picture system integrated throughout app
-4. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
-5. Docker configuration for deployment
-6. Performance optimizations as needed
-7. User feedback and iterations
+
+### CRITICAL PRIORITY: Household Data Isolation
+**Status:** Planning complete, ready for implementation
+**Estimated Effort:** 12-16 days
+
+The multi-household feature currently has a critical limitation: all data is shared across households. When users switch households, they see the same transactions, accounts, budgets, bills, goals, and debts. This needs to be fixed before the app can be used for true multi-household collaboration.
+
+**Solution:** Implement three-tier settings architecture + household-filtered data
+- See `docs/settings-three-tier-architecture.md` for Phase 0 (Settings)
+- See `docs/household-data-isolation-plan.md` for Phases 1-4 (Data)
+
+**Phase 0: Settings Reorganization** (7 days - FOUNDATIONAL)
+- Create `user_household_preferences` table (theme, date format, notifications per household)
+- Create `household_settings` table (currency, fiscal year shared by all members)
+- Modify `user_settings` table (keep only global user settings)
+- Restructure settings UI into three tiers
+- Update theme system to use user-per-household preferences
+
+**Phases 1-4: Data Isolation** (5-9 days - CORE FUNCTIONALITY)
+- Add `household_id` to 20+ tables
+- Migrate existing data to user's first household
+- Update 90+ API endpoints to filter by household
+- Update 50+ components to pass household context
+- Add security checks to prevent cross-household access
+
+### Other Next Steps
+1. ✅ **Authentication Migration** - Complete
+2. ✅ **Settings Page** - Complete
+3. ✅ **Avatar Upload** - Complete
+4. ✅ **Household Favorite Feature** - Complete
+5. ⏳ **Household Data Isolation** - Planning complete, awaiting implementation
+6. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
+7. Docker configuration for deployment
+8. Performance optimizations as needed
+9. User feedback and iterations
