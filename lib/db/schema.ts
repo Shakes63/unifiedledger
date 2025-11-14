@@ -664,6 +664,8 @@ export const userSettings = sqliteTable(
     // Privacy & Security
     sessionTimeout: integer('session_timeout').default(30), // minutes of inactivity
     dataRetentionYears: integer('data_retention_years').default(7), // years to keep transactions
+    // Data Management
+    defaultImportTemplateId: text('default_import_template_id'), // default CSV import template
     // Advanced
     developerMode: integer('developer_mode', { mode: 'boolean' }).default(false),
     enableAnimations: integer('enable_animations', { mode: 'boolean' }).default(true),
@@ -801,6 +803,10 @@ export const userSessions = sqliteTable(
     browser: text('browser'),
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
+    city: text('city'),
+    region: text('region'),
+    country: text('country'),
+    countryCode: text('country_code'),
     isCurrent: integer('is_current', { mode: 'boolean' }).default(false),
     lastActiveAt: text('last_active_at').default(new Date().toISOString()),
     createdAt: text('created_at').default(new Date().toISOString()),

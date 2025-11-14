@@ -5,6 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -41,6 +47,10 @@ interface Session {
   deviceInfo: string;
   ipAddress: string | null;
   location: string | null;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+  countryCode: string | null;
   lastActive: string;
   createdAt: string;
   isCurrent: boolean;
@@ -256,6 +266,20 @@ export function PrivacyTab() {
     return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
   }
 
+  function getCountryFlag(countryCode: string | null): string {
+    if (!countryCode || countryCode.length !== 2) return '';
+
+    try {
+      const codePoints = countryCode
+        .toUpperCase()
+        .split('')
+        .map((char) => 127397 + char.charCodeAt(0));
+      return String.fromCodePoint(...codePoints);
+    } catch {
+      return '';
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Active Sessions Section */}
@@ -310,7 +334,21 @@ export function PrivacyTab() {
                           <div>IP: {session.ipAddress}</div>
                         )}
                         {session.location && (
-                          <div>Location: {session.location}</div>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="cursor-help">
+                                  Location: {getCountryFlag(session.countryCode)}{' '}
+                                  {session.location}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent className="bg-card border-border">
+                                <p className="text-foreground">
+                                  Location is determined by IP address
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         )}
                         <div>Last active: {formatLastActive(session.lastActive)}</div>
                       </div>

@@ -5,6 +5,7 @@ import { session } from '@/auth-schema';
 import { eq, desc } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { UAParser } from 'ua-parser-js';
+import { formatLocation } from '@/lib/geoip/geoip-service';
 
 export async function GET() {
   try {
@@ -40,11 +41,23 @@ export async function GET() {
         deviceInfo = ua.os.name;
       }
 
+      // Format location from GeoIP data
+      const location = formatLocation({
+        city: s.city,
+        region: s.region,
+        country: s.country,
+        countryCode: s.countryCode,
+      });
+
       return {
         id: s.id,
         deviceInfo,
         ipAddress: s.ipAddress,
-        location: null, // Future: GeoIP lookup
+        location,
+        city: s.city,
+        region: s.region,
+        country: s.country,
+        countryCode: s.countryCode,
         lastActive: s.updatedAt,
         createdAt: s.createdAt,
         expiresAt: s.expiresAt,

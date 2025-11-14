@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { userSettings } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { userSettings, importTemplates } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export const dynamic = 'force-dynamic';
@@ -37,6 +37,7 @@ const DEFAULT_SETTINGS = {
   autoCategorization: true,
   sessionTimeout: 30,
   dataRetentionYears: 7,
+  defaultImportTemplateId: null,
   developerMode: false,
   enableAnimations: true,
   experimentalFeatures: false,
@@ -99,6 +100,23 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: 'Session timeout must be 0 (disabled) or at least 15 minutes' },
           { status: 400 }
+        );
+      }
+    }
+
+    // Validate default import template if provided
+    if ('defaultImportTemplateId' in updateData && updateData.defaultImportTemplateId !== null) {
+      const template = await db.query.importTemplates.findFirst({
+        where: and(
+          eq(importTemplates.id, updateData.defaultImportTemplateId),
+          eq(importTemplates.userId, userId)
+        ),
+      });
+
+      if (!template) {
+        return NextResponse.json(
+          { error: 'Import template not found or does not belong to you' },
+          { status: 404 }
         );
       }
     }

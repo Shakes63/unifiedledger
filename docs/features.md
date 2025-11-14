@@ -9,6 +9,25 @@
 
 ## In Progress Features
 
+### Import Preferences (Data Management Tab)
+**Status:** 28% Complete - Backend ready, UI pending
+**Progress:** 2 of 7 phases complete
+
+**Completed:**
+- ✅ Phase 1: Database Schema - Added `defaultImportTemplateId` to userSettings table with migration
+- ✅ Phase 2: API Updates - Updated /api/user/settings to handle defaultImportTemplateId with validation
+
+**Remaining Work:**
+- ⏳ Phase 3: Data Management Tab UI - Add Import Preferences section with template selector
+- ⏳ Phase 4: CSV Import Modal Integration - Pre-select default template when modal opens
+- ⏳ Phase 5: Transactions Page Integration - Pass default template to import modal
+- ⏳ Phase 6: Testing - Verify all scenarios work correctly
+- ⏳ Phase 7: Documentation - Update docs
+
+**Implementation Plan:** `docs/import-preferences-implementation-plan.md`
+
+---
+
 ### Household Data Isolation (CRITICAL - TOP PRIORITY)
 **Status:** 85% Complete - Phase 0 (Settings Architecture) nearly complete
 **Progress:** 4.5 of 5 phases complete
@@ -51,12 +70,12 @@ All financial data (transactions, accounts, budgets, bills, goals, debts) is sti
 **Profile Tab:**
 - ✅ All features complete
 
-**Data Management Tab:**
-- ❌ Import preferences/default template selector (not in UI)
-- ❌ Auto-backup settings (not in UI)
-
 **Privacy & Security Tab:**
-- ❌ GeoIP location lookup for sessions (shows null)
+- ✅ All features complete
+
+**Data Management Tab:**
+- ⏳ Import preferences/default template selector (IN PROGRESS - see above)
+- ❌ Auto-backup settings (not in UI)
 
 **Advanced Tab:**
 - ❌ Experimental features flag doesn't unlock anything
@@ -117,4 +136,5 @@ All financial data (transactions, accounts, budgets, bills, goals, debts) is sti
 15. ✅ **Household Sort by Join Date** - Households ordered chronologically by when user joined
 16. ✅ **Household Favorite Feature** - Star/favorite households to pin them to top of sidebar
 17. ✅ **Session Timeout Enforcement** - Automatic logout after configurable inactivity period with Remember Me option
-18. ✅ **Email Verification Flow** - Complete email verification system with verification on signup, email change verification flow, pending email UI, verification guards for sensitive operations, and success page
+18. ✅ **Email Verification Flow** - Complete email verification system with verification on signup and email change flow
+19. ✅ **GeoIP Location Lookup** - Session location display with country flags using ip-api.com geolocation

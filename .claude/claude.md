@@ -204,6 +204,22 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
 **Latest (2025-11-14):**
+- GeoIP Location Lookup (100% COMPLETE): Session location display in Privacy & Security settings
+  - ✅ Added location fields (city, region, country, countryCode) to Better Auth session table
+  - ✅ Created GeoIP service module using ip-api.com (free tier, 45 req/min)
+  - ✅ Special case handling: localhost → "Local Device", private IPs → "Private Network"
+  - ✅ In-memory caching with 24-hour TTL for performance
+  - ✅ Better Auth hooks to populate location on sign-in/sign-up (asynchronous, non-blocking)
+  - ✅ UI displays formatted location with country flag emoji and tooltip
+  - ✅ All styling uses semantic theme variables
+  - ✅ Graceful degradation if GeoIP service fails
+  - Migrations: `0039_add_session_location.sql`, `0040_add_session_location_better_auth.sql`
+- Import Preferences (28% COMPLETE): Default CSV import template selection in Data Management settings
+  - ✅ Phase 1: Database Schema - Added `defaultImportTemplateId` to userSettings table
+  - ✅ Phase 2: API Updates - Updated /api/user/settings with validation
+  - ⏳ Phase 3-7: UI, CSV modal integration, transactions page, testing, documentation
+  - See `docs/import-preferences-implementation-plan.md` for remaining work
+  - Migration: `0041_add_default_import_template.sql`
 - Email Verification Flow (100% COMPLETE): Complete email verification system implemented
   - ✅ Email service infrastructure with Resend (primary) and SMTP/Nodemailer (fallback for self-hosting)
   - ✅ Email configuration utility with automatic provider selection (`lib/email/email-config.ts`)
@@ -390,6 +406,8 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ Household Tab Switching Fix (100% complete - fixed context not updating, removed nested Tabs)
 - ✅ Household Favorite Feature (100% complete - star/favorite households to pin to top)
 - ✅ Developer Mode Feature (100% complete - entity ID badges, DEV indicator, developer tools panel)
+- ✅ GeoIP Location Lookup (100% complete - session location display with country flags)
+- ⏳ Import Preferences (28% complete - backend ready, UI pending)
 - ⏳ Household Data Isolation Phase 0 (85% complete - core implementation done, testing pending)
 - ✅ Testing complete (386 tests, 99.5% of plan, 100% unit coverage, 93% integration coverage)
 - ✅ All 12 tracked bugs fixed (100%)
