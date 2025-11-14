@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { requireEmailVerification } from '@/lib/auth/verification-guard';
 import { db } from '@/lib/db';
 import {
   transactions,
@@ -23,19 +23,12 @@ import {
   customFieldValues,
 } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { headers } from 'next/headers';
 
 export async function GET() {
   try {
-    const authResult = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!authResult?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = authResult.user.id;
+    // Require email verification for data export (sensitive operation)
+    const authResult = await requireEmailVerification();
+    const userId = authResult.userId;
 
     // Fetch all user data in parallel
     const [
@@ -84,7 +77,7 @@ export async function GET() {
       exportDate: new Date().toISOString(),
       version: '1.0',
       user: {
-        id: authResult.user.id,
+        id: authResult.userId,
         email: authResult.user.email,
         name: authResult.user.name,
       },

@@ -3,12 +3,15 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { betterAuthUser, betterAuthAccount } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { sendEmailChangeVerification } from '@/lib/email/email-service';
+import { verification as verificationTable } from '@/auth-schema';
+import { randomBytes } from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/user/email
- * Update user email
+ * Request email change with verification
  * Body: { newEmail, password }
  */
 export async function POST(request: NextRequest) {
@@ -33,7 +36,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
-    // Check if email is already taken
+    // Get current user
+    const currentUser = await db
+      .select()
+      .from(betterAuthUser)
+      .where(eq(betterAuthUser.id, userId))
+      .limit(1);
+
+    if (!currentUser || currentUser.length === 0) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const user = currentUser[0];
+
+    // Check if new email is same as current
+    if (newEmail.toLowerCase() === user.email.toLowerCase()) {
+      return NextResponse.json({ error: 'New email is the same as current email' }, { status: 400 });
+    }
+
+    // Check if email is already taken by another user
     const existingUser = await db
       .select()
       .from(betterAuthUser)
@@ -41,7 +62,7 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (existingUser && existingUser.length > 0 && existingUser[0].id !== userId) {
-      return NextResponse.json({ error: 'Email is already in use' }, { status: 400 });
+      return NextResponse.json({ error: 'Email is already in use' }, { status: 409 });
     }
 
     // Verify password by checking if account exists with password
@@ -68,20 +89,62 @@ export async function POST(request: NextRequest) {
     // For now, we're assuming the user is authenticated via session, which is sufficient
     // TODO: Implement password verification using Better Auth's internal methods
 
-    // Update email
+    // Store pending email change
     await db
       .update(betterAuthUser)
       .set({
-        email: newEmail.toLowerCase(),
-        emailVerified: false, // Reset email verification status
+        pendingEmail: newEmail.toLowerCase(),
         updatedAt: new Date(),
       })
       .where(eq(betterAuthUser.id, userId));
 
+    // Generate verification token
+    const token = randomBytes(32).toString('base64url');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Store verification token
+    await db.insert(verificationTable).values({
+      id: randomBytes(16).toString('base64url'),
+      identifier: `email-change:${userId}`,
+      value: token,
+      expiresAt: expiresAt.getTime(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    // Generate verification URL
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const verificationUrl = `${baseUrl}/api/auth/verify-email-change?token=${token}`;
+
+    // Send verification email to NEW email address
+    try {
+      await sendEmailChangeVerification({
+        to: newEmail.toLowerCase(),
+        userName: user.name,
+        verificationUrl,
+        oldEmail: user.email,
+      });
+    } catch (emailError) {
+      console.error('Failed to send email change verification:', emailError);
+      // Rollback pending email change
+      await db
+        .update(betterAuthUser)
+        .set({
+          pendingEmail: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(betterAuthUser.id, userId));
+
+      return NextResponse.json(
+        { error: 'Failed to send verification email. Please try again.' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Email updated successfully. Please verify your new email address.',
-      email: newEmail.toLowerCase(),
+      message: 'Verification email sent to new address. Please check your inbox.',
+      pendingEmail: newEmail.toLowerCase(),
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

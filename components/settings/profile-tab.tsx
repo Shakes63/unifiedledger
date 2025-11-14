@@ -14,6 +14,7 @@ interface ProfileData {
   displayName: string | null;
   bio: string | null;
   emailVerified: boolean;
+  pendingEmail: string | null;
   id: string;
   image: string | null;
 }
@@ -39,6 +40,10 @@ export function ProfileTab() {
 
   // Email verification state
   const [resendingVerification, setResendingVerification] = useState(false);
+
+  // Pending email change state
+  const [resendingEmailChange, setResendingEmailChange] = useState(false);
+  const [cancelingEmailChange, setCancelingEmailChange] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -80,6 +85,58 @@ export function ProfileTab() {
       toast.error(error instanceof Error ? error.message : 'Failed to send email');
     } finally {
       setResendingVerification(false);
+    }
+  };
+
+  const handleResendEmailChange = async () => {
+    if (!profile?.pendingEmail) return;
+
+    setResendingEmailChange(true);
+    try {
+      // Resend by initiating the email change again with the pending email
+      const response = await fetch('/api/user/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          newEmail: profile.pendingEmail,
+          password: emailPassword, // User will need to re-enter password
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to resend verification email');
+      }
+
+      toast.success('Verification email resent! Check your inbox.');
+    } catch (error) {
+      console.error('Error resending email change verification:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to resend email. Please try changing your email again.');
+    } finally {
+      setResendingEmailChange(false);
+    }
+  };
+
+  const handleCancelEmailChange = async () => {
+    setCancelingEmailChange(true);
+    try {
+      const response = await fetch('/api/user/cancel-email-change', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to cancel email change');
+      }
+
+      // Refresh profile to get updated state
+      await fetchProfile();
+      toast.success('Email change canceled');
+    } catch (error) {
+      console.error('Error canceling email change:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to cancel email change');
+    } finally {
+      setCancelingEmailChange(false);
     }
   };
 
@@ -233,6 +290,36 @@ export function ProfileTab() {
                 {resendingVerification && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Resend Verification Email
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pending Email Change Banner */}
+      {profile?.pendingEmail && (
+        <div className="rounded-lg border border-[var(--color-primary)] bg-[var(--color-primary)]/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-[var(--color-primary)] mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-foreground mb-1">
+                Email Change Pending Verification
+              </h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                A verification email has been sent to <strong className="text-foreground">{profile.pendingEmail}</strong>.
+                Click the link in the email to complete the change.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleCancelEmailChange}
+                  disabled={cancelingEmailChange}
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  {cancelingEmailChange && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                  Cancel Change
+                </Button>
+              </div>
             </div>
           </div>
         </div>

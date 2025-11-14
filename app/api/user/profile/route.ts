@@ -21,6 +21,7 @@ export async function GET() {
         name: betterAuthUser.name,
         email: betterAuthUser.email,
         emailVerified: betterAuthUser.emailVerified,
+        pendingEmail: betterAuthUser.pendingEmail,
         image: betterAuthUser.image,
         createdAt: betterAuthUser.createdAt,
       })
@@ -50,6 +51,7 @@ export async function GET() {
       name: user.name,
       email: user.email,
       emailVerified: user.emailVerified,
+      pendingEmail: user.pendingEmail,
       image: user.image,
       displayName: settings[0]?.displayName || null,
       avatarUrl: settings[0]?.avatarUrl || null,

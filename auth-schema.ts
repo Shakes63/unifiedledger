@@ -8,6 +8,7 @@ export const user = sqliteTable("user", {
   emailVerified: integer("email_verified", { mode: "boolean" })
     .default(false)
     .notNull(),
+  pendingEmail: text("pending_email"),
   image: text("image"),
   imageUpdatedAt: integer("image_updated_at", { mode: "timestamp_ms" }),
   createdAt: integer("created_at", { mode: "timestamp_ms" })

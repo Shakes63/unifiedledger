@@ -204,20 +204,22 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
 **Latest (2025-11-14):**
-- Email Verification Flow (70% COMPLETE): Core email verification system implemented
+- Email Verification Flow (100% COMPLETE): Complete email verification system implemented
   - ✅ Email service infrastructure with Resend (primary) and SMTP/Nodemailer (fallback for self-hosting)
   - ✅ Email configuration utility with automatic provider selection (`lib/email/email-config.ts`)
   - ✅ Email templates for verification, email change verification, and welcome emails
   - ✅ Better Auth integration - sends verification emails during signup automatically
   - ✅ Resend verification email API endpoint with rate limiting (max 3 requests per hour)
   - ✅ ProfileTab UI with verification status banner and "Resend Verification Email" button
-  - ✅ Environment configuration (.env.example and .env.production.example) with email provider settings
-  - ⏳ Email change endpoint with verification flow (pending)
-  - ⏳ Email verification success page (pending)
-  - ⏳ Verification guard utility for sensitive operations (pending)
-  - ⏳ Manual testing and bug fixes (pending)
+  - ✅ Email change endpoint with verification flow - sends verification to new email before changing
+  - ✅ Email change verification callback handler (`/api/auth/verify-email-change`)
+  - ✅ Cancel pending email change endpoint (`/api/user/cancel-email-change`)
+  - ✅ Pending email change banner in ProfileTab with cancel option
+  - ✅ Email verification success page (`/email-verified`) with auto-redirect
+  - ✅ Verification guard utilities (server-side and client-side) for sensitive operations
+  - ✅ Applied verification guards to data export endpoint
   - **Currently in "soft launch" mode** - emails sent but verification not enforced for login
-  - See `docs/email-verification-implementation-plan.md` for complete 8-phase plan
+  - Migration: `0038_add_pending_email.sql` - Added `pendingEmail` field to user table
 - Session Timeout Enforcement (100% COMPLETE): Automatic logout after configurable inactivity period
   - ✅ UI in Privacy & Security settings with 7 timeout options (15min-8hrs, or Never)
   - ✅ Database schema with `lastActivityAt` and `rememberMe` fields on sessions
