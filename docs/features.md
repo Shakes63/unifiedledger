@@ -2,6 +2,52 @@
 
 <!-- Add new feature requests below this line -->
 
+## Self-Hosting Configuration (Future Feature)
+
+**Goal:** Make the app completely self-hostable without requiring .env file editing
+
+**Concept:** Add an "Admin" or "System" settings tab where users can configure external services through the UI:
+
+### Email/SMTP Configuration
+- **Option 1 - Self-Hosted SMTP:**
+  - SMTP Server (e.g., smtp.gmail.com, mail.yourdomain.com)
+  - SMTP Port (25, 465, 587)
+  - Username/Password (encrypted in database)
+  - Enable TLS/SSL toggle
+  - Test email button
+
+- **Option 2 - Email Service API:**
+  - Provider selector (Resend, SendGrid, Mailgun, Brevo, etc.)
+  - API Key (encrypted in database)
+  - From email/name
+  - Test email button
+
+### Benefits
+- ✅ No .env file editing required
+- ✅ True self-hosting capability
+- ✅ Users can bring their own email server
+- ✅ Configuration changes without server restart
+- ✅ Credentials stored encrypted in database
+- ✅ Multi-tenant support (different configs per household)
+
+### Implementation Notes
+- Store encrypted in new `systemSettings` or `serviceConfigurations` table
+- Use environment variables as fallback for initial setup
+- Validate and test configurations before saving
+- Runtime configuration loading (not build-time)
+- Admin-only access to system settings
+
+### Future External Service Configurations
+- OAuth providers (Google, GitHub, etc.)
+- Backup services (S3, Backblaze, local storage)
+- File storage (for avatars/attachments)
+- Notification services (push notifications, webhooks)
+- Currency exchange rate APIs
+
+**Status:** Not yet implemented - currently requires .env configuration
+
+---
+
 ## Settings Page - Not Yet Implemented
 
 The following settings exist in the UI but are not fully functional:
