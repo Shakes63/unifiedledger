@@ -19,6 +19,9 @@ A comprehensive mobile-first personal finance application built with Next.js, fe
 - `sonner@2.0.7` - Toast notifications
 - `uuid@13.0.0` - UUID generation for database records
 - `sharp@0.34.5` - Image processing and optimization for avatars
+- `resend@6.4.2` - Email delivery service (primary email provider)
+- `nodemailer@7.0.10` - SMTP email client (fallback for self-hosting)
+- `react-email@5.0.4` + `@react-email/components@1.0.1` - Email template system
 
 ## Project Structure
 ```
@@ -42,6 +45,7 @@ unifiedledger/
 │   ├── rules/                    # Rules engine
 │   ├── bills/                    # Bill matching
 │   ├── notifications/            # Notification service
+│   ├── email/                    # Email service (Resend + SMTP providers)
 │   ├── tax/                      # Tax utilities
 │   ├── sales-tax/                # Sales tax utilities
 │   ├── avatar-client-utils.ts    # Client-safe avatar utilities
@@ -200,6 +204,20 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
 **Latest (2025-11-14):**
+- Email Verification Flow (70% COMPLETE): Core email verification system implemented
+  - ✅ Email service infrastructure with Resend (primary) and SMTP/Nodemailer (fallback for self-hosting)
+  - ✅ Email configuration utility with automatic provider selection (`lib/email/email-config.ts`)
+  - ✅ Email templates for verification, email change verification, and welcome emails
+  - ✅ Better Auth integration - sends verification emails during signup automatically
+  - ✅ Resend verification email API endpoint with rate limiting (max 3 requests per hour)
+  - ✅ ProfileTab UI with verification status banner and "Resend Verification Email" button
+  - ✅ Environment configuration (.env.example and .env.production.example) with email provider settings
+  - ⏳ Email change endpoint with verification flow (pending)
+  - ⏳ Email verification success page (pending)
+  - ⏳ Verification guard utility for sensitive operations (pending)
+  - ⏳ Manual testing and bug fixes (pending)
+  - **Currently in "soft launch" mode** - emails sent but verification not enforced for login
+  - See `docs/email-verification-implementation-plan.md` for complete 8-phase plan
 - Session Timeout Enforcement (100% COMPLETE): Automatic logout after configurable inactivity period
   - ✅ UI in Privacy & Security settings with 7 timeout options (15min-8hrs, or Never)
   - ✅ Database schema with `lastActivityAt` and `rememberMe` fields on sessions

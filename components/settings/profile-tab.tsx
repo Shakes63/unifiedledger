@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AvatarUpload } from '@/components/ui/avatar-upload';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 interface ProfileData {
   name: string;
@@ -37,6 +37,9 @@ export function ProfileTab() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [updatingPassword, setUpdatingPassword] = useState(false);
 
+  // Email verification state
+  const [resendingVerification, setResendingVerification] = useState(false);
+
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -56,6 +59,27 @@ export function ProfileTab() {
       toast.error('Failed to load profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResendingVerification(true);
+    try {
+      const response = await fetch('/api/user/resend-verification', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to send verification email');
+      }
+
+      toast.success('Verification email sent! Check your inbox.');
+    } catch (error) {
+      console.error('Error resending verification:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to send email');
+    } finally {
+      setResendingVerification(false);
     }
   };
 
@@ -183,6 +207,34 @@ export function ProfileTab() {
               setProfile({ ...profile, image: newUrl });
             }}
           />
+        </div>
+      )}
+
+      {/* Email Verification Banner */}
+      {profile && !profile.emailVerified && (
+        <div className="rounded-lg border border-[var(--color-warning)] bg-[var(--color-warning)]/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-[var(--color-warning)] mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-foreground mb-1">
+                Verify your email address
+              </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Please verify your email to access all features and ensure account security.
+                Check your inbox for the verification email.
+              </p>
+              <Button
+                onClick={handleResendVerification}
+                disabled={resendingVerification}
+                size="sm"
+                variant="outline"
+                className="border-[var(--color-warning)] text-[var(--color-warning)] hover:bg-[var(--color-warning)]/10"
+              >
+                {resendingVerification && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Resend Verification Email
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 
