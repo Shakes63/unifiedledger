@@ -4,6 +4,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { validateSession, updateSessionActivity, deleteSessionByToken } from "@/lib/session-utils";
 
+// Use Node.js runtime instead of Edge runtime (required for better-sqlite3)
+export const runtime = 'nodejs';
+
 /**
  * Activity update debouncing cache
  * Prevents excessive database writes by limiting updates to once per minute per session
