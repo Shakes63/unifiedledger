@@ -179,6 +179,26 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
 **Latest (2025-11-14):**
+- Reset App Data (100% COMPLETE): Fully functional settings reset feature in Data Management tab
+  - Backend API endpoint (`/api/user/reset-app-data`) with password confirmation requirement
+  - Rate limiting: Max 3 resets per 24 hours per user
+  - Comprehensive UI with clear "what resets" vs "what stays safe" sections
+  - Resets: User settings, notification preferences, saved searches, import templates, cached data
+  - Preserves: All financial data (transactions, accounts, budgets, bills, goals, debts, tax records)
+  - Automatic logout after reset with 3-second countdown
+  - Audit logging to householdActivityLog for tracking
+  - Client-side cache clearing (localStorage, sessionStorage, browser caches)
+  - Files: `lib/constants/default-settings.ts`, `lib/reset-utils.ts`, `app/api/user/reset-app-data/route.ts`
+- Household Tab Switching Fix (100% COMPLETE): Fixed household context management in settings
+  - Separated viewing household settings from switching active household
+  - Active household only changes from sidebar, not from settings page tabs
+  - Replaced nested Tabs component with custom button-based implementation
+  - Fixed React hydration mismatch error caused by nested Radix UI Tabs components
+  - Preserves user's active household context while browsing different household settings
+- Server-Only Module Fix: Added `server-only` package to prevent sharp from bundling client-side
+  - Installed `server-only@0.0.1` dependency
+  - Added `import 'server-only'` to `lib/avatar-utils.ts` to prevent client bundling errors
+  - Resolved "Module not found: Can't resolve 'child_process'" and 'fs' errors
 - Household Tab-Based UI (100% COMPLETE): Redesigned household settings from card-based selector to tab-based interface
   - Each household has its own tab with member count badge
   - Desktop: Horizontal tabs with overflow scroll support
@@ -310,6 +330,8 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ PWA support for mobile app experience
 - ✅ Unified Settings Page (ALL 3 phases complete - 9 comprehensive tabs)
 - ✅ Avatar Upload (100% complete - upload, display, initials fallback throughout app)
+- ✅ Reset App Data (100% complete - settings reset with password confirmation and rate limiting)
+- ✅ Household Tab Switching Fix (100% complete - fixed context not updating, removed nested Tabs)
 - ✅ Testing complete (386 tests, 99.5% of plan, 100% unit coverage, 93% integration coverage)
 - ✅ All 12 tracked bugs fixed (100%)
 

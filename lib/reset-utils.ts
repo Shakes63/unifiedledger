@@ -1,0 +1,269 @@
+/**
+ * Utility functions for resetting user data and settings
+ */
+
+import { db } from '@/lib/db';
+import {
+  userSettings,
+  notificationPreferences,
+  savedSearchFilters,
+  searchHistory,
+  importStaging,
+  ruleExecutionLog,
+  dataExportRequests,
+  accountDeletionRequests,
+  importTemplates,
+  householdActivityLog,
+} from '@/lib/db/schema';
+import { eq, and, lt, sql } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
+import {
+  DEFAULT_USER_SETTINGS,
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  RULE_LOG_RETENTION_DAYS,
+} from '@/lib/constants/default-settings';
+
+/**
+ * Reset user settings to defaults
+ * @param userId - The user ID to reset settings for
+ * @returns Updated settings object
+ */
+export async function resetUserSettings(userId: string) {
+  const now = new Date().toISOString();
+
+  // Check if user settings exist
+  const existingSettings = await db
+    .select()
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1);
+
+  if (existingSettings && existingSettings.length > 0) {
+    // Update existing settings with defaults
+    await db
+      .update(userSettings)
+      .set({
+        ...DEFAULT_USER_SETTINGS,
+        updatedAt: now,
+      })
+      .where(eq(userSettings.userId, userId));
+  } else {
+    // Create new settings record with defaults
+    await db.insert(userSettings).values({
+      id: uuidv4(),
+      userId,
+      ...DEFAULT_USER_SETTINGS,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  // Fetch and return updated settings
+  const updated = await db
+    .select()
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1);
+
+  return updated[0];
+}
+
+/**
+ * Reset notification preferences to defaults
+ * @param userId - The user ID to reset preferences for
+ * @returns Updated preferences object
+ */
+export async function resetNotificationPreferences(userId: string) {
+  const now = new Date().toISOString();
+
+  // Check if notification preferences exist
+  const existingPrefs = await db
+    .select()
+    .from(notificationPreferences)
+    .where(eq(notificationPreferences.userId, userId))
+    .limit(1);
+
+  if (existingPrefs && existingPrefs.length > 0) {
+    // Update existing preferences with defaults
+    await db
+      .update(notificationPreferences)
+      .set({
+        ...DEFAULT_NOTIFICATION_PREFERENCES,
+        updatedAt: now,
+      })
+      .where(eq(notificationPreferences.userId, userId));
+  } else {
+    // Create new preferences record with defaults
+    await db.insert(notificationPreferences).values({
+      id: uuidv4(),
+      userId,
+      ...DEFAULT_NOTIFICATION_PREFERENCES,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  // Fetch and return updated preferences
+  const updated = await db
+    .select()
+    .from(notificationPreferences)
+    .where(eq(notificationPreferences.userId, userId))
+    .limit(1);
+
+  return updated[0];
+}
+
+/**
+ * Clear temporary and cached data for a user
+ * @param userId - The user ID to clear caches for
+ * @returns Object with count of cleared items per table
+ */
+export async function clearUserCaches(userId: string) {
+  const counts = {
+    savedSearchFilters: 0,
+    searchHistory: 0,
+    importStaging: 0,
+    ruleExecutionLog: 0,
+    dataExportRequests: 0,
+    accountDeletionRequests: 0,
+    importTemplates: 0,
+  };
+
+  // Clear saved search filters
+  const deletedFilters = await db
+    .delete(savedSearchFilters)
+    .where(eq(savedSearchFilters.userId, userId));
+  counts.savedSearchFilters = deletedFilters.changes || 0;
+
+  // Clear search history
+  const deletedHistory = await db
+    .delete(searchHistory)
+    .where(eq(searchHistory.userId, userId));
+  counts.searchHistory = deletedHistory.changes || 0;
+
+  // Clear import staging
+  const deletedStaging = await db
+    .delete(importStaging)
+    .where(eq(importStaging.userId, userId));
+  counts.importStaging = deletedStaging.changes || 0;
+
+  // Clear old rule execution logs (keep last 30 days)
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - RULE_LOG_RETENTION_DAYS);
+  const deletedLogs = await db
+    .delete(ruleExecutionLog)
+    .where(
+      and(
+        eq(ruleExecutionLog.userId, userId),
+        lt(ruleExecutionLog.executedAt, cutoffDate.toISOString())
+      )
+    );
+  counts.ruleExecutionLog = deletedLogs.changes || 0;
+
+  // Clear data export requests
+  const deletedExports = await db
+    .delete(dataExportRequests)
+    .where(eq(dataExportRequests.userId, userId));
+  counts.dataExportRequests = deletedExports.changes || 0;
+
+  // Clear account deletion requests
+  const deletedDeletions = await db
+    .delete(accountDeletionRequests)
+    .where(eq(accountDeletionRequests.userId, userId));
+  counts.accountDeletionRequests = deletedDeletions.changes || 0;
+
+  // Clear import templates
+  const deletedTemplates = await db
+    .delete(importTemplates)
+    .where(eq(importTemplates.userId, userId));
+  counts.importTemplates = deletedTemplates.changes || 0;
+
+  return counts;
+}
+
+/**
+ * Log the reset action to household activity log
+ * @param userId - The user ID who performed the reset
+ * @param clearedCounts - Object with counts of cleared items
+ */
+export async function logResetAction(
+  userId: string,
+  clearedCounts: Record<string, number>
+) {
+  const now = new Date().toISOString();
+
+  await db.insert(householdActivityLog).values({
+    id: uuidv4(),
+    actorId: userId,
+    householdId: null, // System-level action
+    action: 'reset_app_data',
+    entityType: 'user_settings',
+    entityId: userId,
+    entityName: 'App Data Reset',
+    changes: JSON.stringify({
+      settingsReset: true,
+      preferencesReset: true,
+      cachesCleared: Object.keys(clearedCounts).filter((key) => clearedCounts[key] > 0),
+      clearedCounts,
+      timestamp: now,
+    }),
+    createdAt: now,
+  });
+}
+
+/**
+ * Check if user has exceeded reset rate limit
+ * @param userId - The user ID to check
+ * @param maxAttempts - Maximum allowed attempts (default: 3)
+ * @returns true if rate limit exceeded, false otherwise
+ */
+export async function checkResetRateLimit(
+  userId: string,
+  maxAttempts: number = 3
+): Promise<boolean> {
+  const oneDayAgo = new Date();
+  oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+
+  // Count reset actions in the last 24 hours
+  const recentResets = await db
+    .select()
+    .from(householdActivityLog)
+    .where(
+      and(
+        eq(householdActivityLog.actorId, userId),
+        eq(householdActivityLog.action, 'reset_app_data'),
+        sql`${householdActivityLog.createdAt} > ${oneDayAgo.toISOString()}`
+      )
+    );
+
+  return recentResets.length >= maxAttempts;
+}
+
+/**
+ * Perform complete reset of user data
+ * This is the main function that orchestrates the entire reset process
+ * @param userId - The user ID to reset data for
+ * @returns Object with details of what was reset
+ */
+export async function performUserDataReset(userId: string) {
+  // Reset settings
+  const updatedSettings = await resetUserSettings(userId);
+
+  // Reset notification preferences
+  const updatedPreferences = await resetNotificationPreferences(userId);
+
+  // Clear caches
+  const clearedCounts = await clearUserCaches(userId);
+
+  // Log the action
+  await logResetAction(userId, clearedCounts);
+
+  return {
+    success: true,
+    settingsReset: true,
+    preferencesReset: true,
+    clearedCounts,
+    updatedSettings,
+    updatedPreferences,
+  };
+}

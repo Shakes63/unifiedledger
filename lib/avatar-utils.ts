@@ -1,4 +1,5 @@
 // Server-only avatar utilities (uses Node.js modules like sharp, fs)
+import 'server-only';
 import sharp from 'sharp';
 
 // Avatar sizes in pixels

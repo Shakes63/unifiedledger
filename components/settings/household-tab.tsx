@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { cn } from '@/lib/utils';
 import { Users, UserPlus, LogOut, Crown, Shield, Eye, Loader2, Trash2, Copy, Check, Edit, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserAvatar } from '@/components/ui/user-avatar';
@@ -75,18 +75,16 @@ export function HouseholdTab() {
   const [submitting, setSubmitting] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
-  // Initialize active tab on mount
+  // Initialize active tab on mount to the currently selected household
   useEffect(() => {
     if (households.length > 0 && !activeTab) {
       const initialTab = selectedHouseholdId || households[0].id;
       setActiveTab(initialTab);
-      if (initialTab !== selectedHouseholdId) {
-        setSelectedHouseholdId(initialTab);
-      }
     }
-  }, [households, activeTab, selectedHouseholdId, setSelectedHouseholdId]);
+  }, [households, activeTab, selectedHouseholdId]);
 
-  // Sync activeTab with selectedHouseholdId
+  // Sync activeTab with selectedHouseholdId when it changes from OUTSIDE this component
+  // (e.g., when user switches households from the sidebar)
   useEffect(() => {
     if (selectedHouseholdId && activeTab !== selectedHouseholdId && activeTab !== 'create-new') {
       setActiveTab(selectedHouseholdId);
@@ -407,10 +405,10 @@ export function HouseholdTab() {
   }
 
   function handleTabChange(tabId: string) {
+    // Only update the local activeTab state
+    // DO NOT change the global selectedHouseholdId here
+    // The active household should only be changed from the sidebar
     setActiveTab(tabId);
-    if (tabId !== 'create-new') {
-      setSelectedHouseholdId(tabId);
-    }
   }
 
   function copyInviteLink(token: string) {
@@ -540,14 +538,19 @@ export function HouseholdTab() {
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+      <div className="w-full">
         {/* Desktop: Horizontal Tabs */}
-        <TabsList className="hidden lg:flex w-full justify-start bg-elevated border border-border overflow-x-auto h-auto flex-wrap gap-1 p-2">
+        <div className="hidden lg:flex w-full justify-start bg-elevated border border-border overflow-x-auto h-auto flex-wrap gap-1 p-2 rounded-md">
           {sortedHouseholds.map((household) => (
-            <TabsTrigger
+            <button
               key={household.id}
-              value={household.id}
-              className="flex items-center gap-2 data-[state=active]:bg-card data-[state=active]:text-[var(--color-primary)] px-3 py-2"
+              onClick={() => handleTabChange(household.id)}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors",
+                activeTab === household.id
+                  ? "bg-card text-[var(--color-primary)] shadow-sm"
+                  : "text-foreground hover:bg-card/50"
+              )}
             >
               <Users className="w-4 h-4" />
               <span>{household.name}</span>
@@ -556,16 +559,21 @@ export function HouseholdTab() {
                   {memberCounts[household.id]}
                 </Badge>
               )}
-            </TabsTrigger>
+            </button>
           ))}
-          <TabsTrigger
-            value="create-new"
-            className="flex items-center gap-2 text-[var(--color-primary)] data-[state=active]:bg-card px-3 py-2"
+          <button
+            onClick={() => handleTabChange('create-new')}
+            className={cn(
+              "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors",
+              activeTab === 'create-new'
+                ? "bg-card text-[var(--color-primary)] shadow-sm"
+                : "text-[var(--color-primary)] hover:bg-card/50"
+            )}
           >
             <Plus className="w-4 h-4" />
             <span>Create New</span>
-          </TabsTrigger>
-        </TabsList>
+          </button>
+        </div>
 
         {/* Mobile: Dropdown */}
         <div className="lg:hidden mb-4">
@@ -604,7 +612,8 @@ export function HouseholdTab() {
 
         {/* Tab Content for each household */}
         {sortedHouseholds.map((household) => (
-          <TabsContent key={household.id} value={household.id} className="mt-0 space-y-6">
+          activeTab === household.id && (
+          <div key={household.id} className="mt-6 space-y-6">
             {/* Household Header */}
             <div className="flex items-start justify-between pb-4 border-b border-border">
               <div>
@@ -788,11 +797,13 @@ export function HouseholdTab() {
                 </div>
               </div>
             )}
-          </TabsContent>
+          </div>
+          )
         ))}
 
         {/* Create New Household Tab Content */}
-        <TabsContent value="create-new" className="mt-0">
+        {activeTab === 'create-new' && (
+        <div className="mt-6">
           <div className="text-center py-12">
             <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-semibold text-foreground mb-2">
@@ -828,8 +839,9 @@ export function HouseholdTab() {
               </Button>
             </div>
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+        )}
+      </div>
 
       {/* Invite Dialog */}
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>

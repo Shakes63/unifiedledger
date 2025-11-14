@@ -19,8 +19,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Database, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
+import { Database, Trash2, AlertTriangle, Loader2, Shield, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function DataTab() {
@@ -29,6 +31,9 @@ export function DataTab() {
   const [saving, setSaving] = useState(false);
   const [clearCacheDialogOpen, setClearCacheDialogOpen] = useState(false);
   const [resetDataDialogOpen, setResetDataDialogOpen] = useState(false);
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetConfirmed, setResetConfirmed] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -99,13 +104,61 @@ export function DataTab() {
   }
 
   async function resetAppData() {
+    if (!resetPassword) {
+      toast.error('Please enter your password to confirm');
+      return;
+    }
+
+    if (!resetConfirmed) {
+      toast.error('Please confirm that you understand this action');
+      return;
+    }
+
     try {
-      // This would typically call an API endpoint to reset user data
-      // For now, we'll show a message
-      toast.error('This feature requires backend implementation');
+      setResetting(true);
+
+      const response = await fetch('/api/user/reset-app-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          password: resetPassword,
+          confirm: true,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to reset app data');
+      }
+
+      // Clear client-side caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
+
+      // Clear localStorage and sessionStorage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Show success message with countdown
+      toast.success('App data reset successfully! Logging out in 3 seconds...');
+
+      // Close dialog
       setResetDataDialogOpen(false);
+      setResetPassword('');
+      setResetConfirmed(false);
+
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 3000);
     } catch (error) {
-      toast.error('Failed to reset app data');
+      console.error('Error resetting app data:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to reset app data');
+    } finally {
+      setResetting(false);
     }
   }
 
@@ -243,22 +296,104 @@ export function DataTab() {
       </Dialog>
 
       {/* Reset Data Dialog */}
-      <Dialog open={resetDataDialogOpen} onOpenChange={setResetDataDialogOpen}>
-        <DialogContent className="bg-card border-border">
+      <Dialog
+        open={resetDataDialogOpen}
+        onOpenChange={(open) => {
+          setResetDataDialogOpen(open);
+          if (!open) {
+            setResetPassword('');
+            setResetConfirmed(false);
+          }
+        }}
+      >
+        <DialogContent className="bg-card border-[var(--color-error)] sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-[var(--color-error)]">
+            <DialogTitle className="text-[var(--color-error)] flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
               Reset App Data
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              This will reset all app settings and cached data. Your account and financial data will remain safe. This action cannot be undone.
+              This action will reset your preferences to defaults. Your financial data will NOT be affected.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* What will be reset */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-[var(--color-error)] flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                This will reset:
+              </h4>
+              <ul className="text-sm text-muted-foreground space-y-1 ml-6">
+                <li>• All preferences and settings</li>
+                <li>• Theme selection</li>
+                <li>• Saved searches and filters</li>
+                <li>• Import templates</li>
+                <li>• Cached data</li>
+              </ul>
+            </div>
+
+            {/* What will NOT be affected */}
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-[var(--color-success)] flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                This will NOT affect:
+              </h4>
+              <ul className="text-sm text-muted-foreground space-y-1 ml-6">
+                <li>• Your transactions and accounts</li>
+                <li>• Bills and budgets</li>
+                <li>• Goals and debts</li>
+                <li>• Tax records</li>
+                <li>• Household data</li>
+              </ul>
+            </div>
+
+            <Separator className="bg-border" />
+
+            {/* Password confirmation */}
+            <div className="space-y-2">
+              <Label htmlFor="resetPassword" className="text-foreground">
+                Confirm your password
+              </Label>
+              <Input
+                id="resetPassword"
+                name="resetPassword"
+                type="password"
+                value={resetPassword}
+                onChange={(e) => setResetPassword(e.target.value)}
+                className="bg-background border-border text-foreground"
+                placeholder="Enter your password"
+                disabled={resetting}
+              />
+              <p className="text-xs text-muted-foreground">
+                Password required for security
+              </p>
+            </div>
+
+            {/* Confirmation checkbox */}
+            <div className="flex items-start space-x-2">
+              <Checkbox
+                id="resetConfirm"
+                checked={resetConfirmed}
+                onCheckedChange={(checked) => setResetConfirmed(checked === true)}
+                disabled={resetting}
+                className="mt-0.5"
+              />
+              <label
+                htmlFor="resetConfirm"
+                className="text-sm text-foreground cursor-pointer leading-tight"
+              >
+                I understand this will reset all my preferences and settings
+              </label>
+            </div>
+          </div>
 
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => setResetDataDialogOpen(false)}
               className="border-border"
+              disabled={resetting}
             >
               Cancel
             </Button>
@@ -266,9 +401,19 @@ export function DataTab() {
               variant="destructive"
               onClick={resetAppData}
               className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
+              disabled={resetting || !resetPassword || !resetConfirmed}
             >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Reset Data
+              {resetting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Reset App Data
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
