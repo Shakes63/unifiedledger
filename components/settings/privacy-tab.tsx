@@ -16,6 +16,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Monitor,
   Smartphone,
   Download,
@@ -23,6 +30,8 @@ import {
   AlertTriangle,
   LogOut,
   Loader2,
+  Clock,
+  Shield,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -41,6 +50,8 @@ export function PrivacyTab() {
   const router = useRouter();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sessionTimeout, setSessionTimeout] = useState<number>(30);
+  const [savingTimeout, setSavingTimeout] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -56,15 +67,49 @@ export function PrivacyTab() {
 
   async function fetchSessions() {
     try {
-      const response = await fetch('/api/user/sessions');
-      if (response.ok) {
-        const data = await response.json();
+      // Fetch sessions
+      const sessionsResponse = await fetch('/api/user/sessions');
+      if (sessionsResponse.ok) {
+        const data = await sessionsResponse.json();
         setSessions(data.sessions);
+      }
+
+      // Fetch user settings for session timeout
+      const settingsResponse = await fetch('/api/user/settings');
+      if (settingsResponse.ok) {
+        const settingsData = await settingsResponse.json();
+        setSessionTimeout(settingsData.settings.sessionTimeout || 30);
       }
     } catch (error) {
       toast.error('Failed to load sessions');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleTimeoutChange(value: string) {
+    const newTimeout = parseInt(value, 10);
+    setSessionTimeout(newTimeout);
+
+    try {
+      setSavingTimeout(true);
+      const response = await fetch('/api/user/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionTimeout: newTimeout }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save session timeout');
+      }
+
+      toast.success('Session timeout updated successfully');
+    } catch (error) {
+      toast.error('Failed to save session timeout');
+      // Revert on error
+      fetchSessions();
+    } finally {
+      setSavingTimeout(false);
     }
   }
 
@@ -299,6 +344,72 @@ export function PrivacyTab() {
             Revoke All Other Sessions
           </Button>
         )}
+      </div>
+
+      <Separator className="bg-border" />
+
+      {/* Session Security Section */}
+      <div>
+        <h3 className="text-lg font-semibold text-foreground mb-2">Session Security</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Automatically log out after a period of inactivity to protect your account
+        </p>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="sessionTimeout" className="text-foreground flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Session Timeout
+            </Label>
+            <Select
+              value={sessionTimeout.toString()}
+              onValueChange={handleTimeoutChange}
+              disabled={savingTimeout}
+            >
+              <SelectTrigger
+                id="sessionTimeout"
+                name="sessionTimeout"
+                aria-label="Select session timeout duration"
+                className="bg-background border-border text-foreground"
+              >
+                <SelectValue placeholder="Select timeout duration" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="15" className="text-foreground hover:bg-elevated">
+                  15 minutes
+                </SelectItem>
+                <SelectItem value="30" className="text-foreground hover:bg-elevated">
+                  30 minutes (recommended)
+                </SelectItem>
+                <SelectItem value="60" className="text-foreground hover:bg-elevated">
+                  1 hour
+                </SelectItem>
+                <SelectItem value="120" className="text-foreground hover:bg-elevated">
+                  2 hours
+                </SelectItem>
+                <SelectItem value="240" className="text-foreground hover:bg-elevated">
+                  4 hours
+                </SelectItem>
+                <SelectItem value="480" className="text-foreground hover:bg-elevated">
+                  8 hours
+                </SelectItem>
+                <SelectItem value="0" className="text-foreground hover:bg-elevated">
+                  Never (not recommended)
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {sessionTimeout === 0 ? (
+                <span className="flex items-center gap-1 text-[var(--color-warning)]">
+                  <AlertTriangle className="w-3 h-3" />
+                  Disabling session timeout reduces account security. Only use on trusted devices.
+                </span>
+              ) : (
+                `You'll be automatically logged out after ${sessionTimeout} ${sessionTimeout === 1 ? 'minute' : 'minutes'} of inactivity.`
+              )}
+            </p>
+          </div>
+        </div>
       </div>
 
       <Separator className="bg-border" />

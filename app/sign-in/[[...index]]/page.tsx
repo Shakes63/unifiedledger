@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Card,
   CardContent,
@@ -22,6 +23,7 @@ export default function SignInPage() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,6 +35,21 @@ export default function SignInPage() {
         email,
         password,
       });
+
+      // Update rememberMe field on session if checkbox was checked
+      if (rememberMe) {
+        try {
+          await fetch('/api/session/remember-me', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rememberMe: true }),
+            credentials: 'include',
+          });
+        } catch (error) {
+          console.error('Failed to set remember me:', error);
+          // Don't block sign-in if this fails
+        }
+      }
 
       toast.success('Signed in successfully!');
 
@@ -96,6 +113,24 @@ export default function SignInPage() {
                 disabled={loading}
               />
             </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="rememberMe"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked === true)}
+                disabled={loading}
+              />
+              <Label
+                htmlFor="rememberMe"
+                className="text-sm text-foreground cursor-pointer select-none"
+              >
+                Remember me on this device
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-2">
+              Skip automatic logout due to inactivity
+            </p>
 
             <Button
               type="submit"

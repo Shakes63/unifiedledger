@@ -3,6 +3,7 @@
 import { DashboardLayout } from '@/components/navigation/dashboard-layout';
 import { HouseholdProvider } from '@/contexts/household-context';
 import { DeveloperModeProvider } from '@/contexts/developer-mode-context';
+import { SessionActivityProvider } from '@/components/providers/session-activity-provider';
 
 export default function DashboardLayoutWrapper({
   children,
@@ -10,10 +11,12 @@ export default function DashboardLayoutWrapper({
   children: React.ReactNode;
 }) {
   return (
-    <HouseholdProvider>
-      <DeveloperModeProvider>
-        <DashboardLayout>{children}</DashboardLayout>
-      </DeveloperModeProvider>
-    </HouseholdProvider>
+    <SessionActivityProvider>
+      <HouseholdProvider>
+        <DeveloperModeProvider>
+          <DashboardLayout>{children}</DashboardLayout>
+        </DeveloperModeProvider>
+      </HouseholdProvider>
+    </SessionActivityProvider>
   );
 }

@@ -91,6 +91,18 @@ export async function POST(request: NextRequest) {
     // Remove fields that shouldn't be updated via this endpoint
     const { id, userId: bodyUserId, createdAt, ...updateData } = body;
 
+    // Validate session timeout if provided
+    if ('sessionTimeout' in updateData) {
+      const timeout = updateData.sessionTimeout;
+      // Must be 0 (disabled) or >= 15 minutes
+      if (typeof timeout !== 'number' || (timeout !== 0 && timeout < 15)) {
+        return NextResponse.json(
+          { error: 'Session timeout must be 0 (disabled) or at least 15 minutes' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Check if user settings exist
     const existingSettings = await db
       .select()

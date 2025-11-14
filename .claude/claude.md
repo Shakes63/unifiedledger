@@ -200,6 +200,15 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
 **Latest (2025-11-14):**
+- Session Timeout Enforcement (100% COMPLETE): Automatic logout after configurable inactivity period
+  - ✅ UI in Privacy & Security settings with 7 timeout options (15min-8hrs, or Never)
+  - ✅ Database schema with `lastActivityAt` and `rememberMe` fields on sessions
+  - ✅ Middleware validation checking absolute expiration and inactivity timeout
+  - ✅ Client-side activity tracking (mouse, keyboard, scroll, touch events)
+  - ✅ Remember Me option on sign-in page to bypass inactivity timeout
+  - ✅ Activity ping API endpoint with debounced updates (max 1/minute)
+  - ✅ Automatic redirect with reason (`?reason=timeout` or `?reason=expired`)
+  - ✅ All styling uses semantic theme variables
 - Developer Mode Feature (100% COMPLETE): Full debugging utility with developer tools
   - ✅ Entity ID badges integrated into 8 pages (Transactions, Accounts, Bills, Categories, Merchants, Goals, Debts, Budgets)
   - ✅ Copy-to-clipboard functionality with toast notifications
@@ -272,6 +281,7 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 - Bugs #1-5: Savings Goals errors, Budget Summary auth, Bill Save performance, Budget Analytics chart
 
 **Recent Features:**
+- Session Timeout Enforcement: Configurable inactivity-based automatic logout (15min-8hrs or Never). Middleware validates sessions against database on every request, checks both absolute expiration and inactivity timeout. Client-side activity tracking with debounced server pings. Remember Me option on sign-in bypasses inactivity timeout. Migration added `lastActivityAt` and `rememberMe` fields to sessions table.
 - Notifications Tab: Granular per-notification-type channel selection (push/email) with auto-save, validation, and extendable architecture for future channels (SMS, Slack, Webhook). 9 notification types with independent delivery preferences.
 - Unified Settings Page: Comprehensive settings at `/dashboard/settings` with 3-tier structure (User Settings / My Settings / Household Settings). User Settings includes Profile, Privacy & Security, and Advanced. My Settings includes per-household Preferences, Financial, Theme, and Notifications. Household Settings includes shared Preferences, Financial, Data Management, and Members. Includes session management, data export (JSON/CSV), account deletion, household management, data retention policies, developer mode, and database statistics.
 - Transaction Save Performance: 65-75% faster via parallel queries, batch updates, database indexes

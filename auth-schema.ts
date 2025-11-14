@@ -34,6 +34,12 @@ export const session = sqliteTable("session", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
+  lastActivityAt: integer("last_activity_at", { mode: "timestamp_ms" })
+    .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
+    .notNull(),
+  rememberMe: integer("remember_me", { mode: "boolean" })
+    .default(false)
+    .notNull(),
 });
 
 export const account = sqliteTable("account", {

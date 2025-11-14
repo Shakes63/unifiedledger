@@ -56,7 +56,6 @@ All financial data (transactions, accounts, budgets, bills, goals, debts) is sti
 - ❌ Auto-backup settings (not in UI)
 
 **Privacy & Security Tab:**
-- ❌ Session timeout enforcement (setting exists but not enforced)
 - ❌ GeoIP location lookup for sessions (shows null)
 
 **Advanced Tab:**
@@ -117,3 +116,4 @@ All financial data (transactions, accounts, budgets, bills, goals, debts) is sti
 14. ✅ **Household Settings Decoupling** - Sidebar dropdown and settings tabs operate independently
 15. ✅ **Household Sort by Join Date** - Households ordered chronologically by when user joined
 16. ✅ **Household Favorite Feature** - Star/favorite households to pin them to top of sidebar
+17. ✅ **Session Timeout Enforcement** - Automatic logout after configurable inactivity period with Remember Me option
