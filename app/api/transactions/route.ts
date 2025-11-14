@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances, debts, debtPayments, debtPayoffMilestones } from '@/lib/db/schema';
 import { eq, and, desc, asc } from 'drizzle-orm';
@@ -25,6 +26,11 @@ export async function POST(request: Request) {
     const { userId } = await requireAuth();
 
     const body = await request.json();
+
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
+
     const {
       accountId,
       categoryId,
@@ -69,7 +75,8 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(accounts.id, accountId),
-            eq(accounts.userId, userId)
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
           )
         )
         .limit(1),
@@ -82,7 +89,8 @@ export async function POST(request: Request) {
             .where(
               and(
                 eq(accounts.id, toAccountId),
-                eq(accounts.userId, userId)
+                eq(accounts.userId, userId),
+                eq(accounts.householdId, householdId)
               )
             )
             .limit(1)
@@ -96,7 +104,8 @@ export async function POST(request: Request) {
             .where(
               and(
                 eq(budgetCategories.id, categoryId),
-                eq(budgetCategories.userId, userId)
+                eq(budgetCategories.userId, userId),
+                eq(budgetCategories.householdId, householdId)
               )
             )
             .limit(1)
@@ -161,7 +170,13 @@ export async function POST(request: Request) {
               ? db
                   .select()
                   .from(merchants)
-                  .where(eq(merchants.id, merchantId))
+                  .where(
+                    and(
+                      eq(merchants.id, merchantId),
+                      eq(merchants.userId, userId),
+                      eq(merchants.householdId, householdId)
+                    )
+                  )
                   .limit(1)
               : Promise.resolve([]),
 
@@ -170,7 +185,13 @@ export async function POST(request: Request) {
               ? db
                   .select()
                   .from(budgetCategories)
-                  .where(eq(budgetCategories.id, categoryId))
+                  .where(
+                    and(
+                      eq(budgetCategories.id, categoryId),
+                      eq(budgetCategories.userId, userId),
+                      eq(budgetCategories.householdId, householdId)
+                    )
+                  )
                   .limit(1)
               : Promise.resolve([]),
           ]);
@@ -263,6 +284,7 @@ export async function POST(request: Request) {
         db.insert(transactions).values({
           id: transactionId,
           userId,
+          householdId: householdId!,
           accountId, // Source account
           categoryId: null, // Transfers don't have categories
           merchantId: null,
@@ -285,6 +307,7 @@ export async function POST(request: Request) {
         db.insert(transactions).values({
           id: transferInId,
           userId,
+          householdId: householdId!,
           accountId: toAccountId, // Destination account
           categoryId: null,
           merchantId: null,
@@ -332,6 +355,7 @@ export async function POST(request: Request) {
           .where(
             and(
               eq(usageAnalytics.userId, userId),
+              eq(usageAnalytics.householdId, householdId),
               eq(usageAnalytics.itemType, 'transfer_pair'),
               eq(usageAnalytics.itemId, accountId),
               eq(usageAnalytics.itemSecondaryId, toAccountId)
@@ -350,6 +374,7 @@ export async function POST(request: Request) {
             .where(
               and(
                 eq(usageAnalytics.userId, userId),
+                eq(usageAnalytics.householdId, householdId),
                 eq(usageAnalytics.itemType, 'transfer_pair'),
                 eq(usageAnalytics.itemId, accountId),
                 eq(usageAnalytics.itemSecondaryId, toAccountId)
@@ -359,6 +384,7 @@ export async function POST(request: Request) {
           await db.insert(usageAnalytics).values({
             id: nanoid(),
             userId,
+            householdId: householdId!,
             itemType: 'transfer_pair',
             itemId: accountId,
             itemSecondaryId: toAccountId,
@@ -375,6 +401,7 @@ export async function POST(request: Request) {
       await db.insert(transactions).values({
         id: transactionId,
         userId,
+        householdId: householdId!,
         accountId,
         categoryId: appliedCategoryId || null,
         merchantId: finalMerchantId || null,
@@ -493,7 +520,13 @@ export async function POST(request: Request) {
             ? db
                 .select()
                 .from(budgetCategories)
-                .where(eq(budgetCategories.id, categoryId))
+                .where(
+                  and(
+                    eq(budgetCategories.id, categoryId),
+                    eq(budgetCategories.userId, userId),
+                    eq(budgetCategories.householdId, householdId)
+                  )
+                )
                 .limit(1)
             : Promise.resolve([]),
 
@@ -505,7 +538,8 @@ export async function POST(request: Request) {
                 .where(
                   and(
                     eq(merchants.id, finalMerchantId),
-                    eq(merchants.userId, userId)
+                    eq(merchants.userId, userId),
+                    eq(merchants.householdId, householdId)
                   )
                 )
                 .limit(1)
@@ -519,6 +553,7 @@ export async function POST(request: Request) {
                 .where(
                   and(
                     eq(usageAnalytics.userId, userId),
+                    eq(usageAnalytics.householdId, householdId),
                     eq(usageAnalytics.itemType, 'category'),
                     eq(usageAnalytics.itemId, categoryId)
                   )
@@ -534,6 +569,7 @@ export async function POST(request: Request) {
                 .where(
                   and(
                     eq(usageAnalytics.userId, userId),
+                    eq(usageAnalytics.householdId, householdId),
                     eq(usageAnalytics.itemType, 'merchant'),
                     eq(usageAnalytics.itemId, finalMerchantId)
                   )
@@ -570,6 +606,7 @@ export async function POST(request: Request) {
                   .where(
                     and(
                       eq(usageAnalytics.userId, userId),
+                      eq(usageAnalytics.householdId, householdId),
                       eq(usageAnalytics.itemType, 'category'),
                       eq(usageAnalytics.itemId, categoryId)
                     )
@@ -577,6 +614,7 @@ export async function POST(request: Request) {
               : db.insert(usageAnalytics).values({
                   id: nanoid(),
                   userId,
+                  householdId: householdId!,
                   itemType: 'category',
                   itemId: categoryId,
                   usageCount: 1,
@@ -617,6 +655,7 @@ export async function POST(request: Request) {
                   .where(
                     and(
                       eq(usageAnalytics.userId, userId),
+                      eq(usageAnalytics.householdId, householdId),
                       eq(usageAnalytics.itemType, 'merchant'),
                       eq(usageAnalytics.itemId, finalMerchantId)
                     )
@@ -624,6 +663,7 @@ export async function POST(request: Request) {
               : db.insert(usageAnalytics).values({
                   id: nanoid(),
                   userId,
+                  householdId: householdId!,
                   itemType: 'merchant',
                   itemId: finalMerchantId,
                   usageCount: 1,
@@ -679,6 +719,7 @@ export async function POST(request: Request) {
           .where(
             and(
               eq(bills.userId, userId),
+              eq(bills.householdId, householdId),
               eq(bills.isActive, true),
               eq(bills.categoryId, appliedCategoryId),
               eq(billInstances.status, 'pending')
@@ -797,6 +838,7 @@ export async function POST(request: Request) {
           .where(
             and(
               eq(debts.userId, userId),
+              eq(debts.householdId, householdId),
               eq(debts.status, 'active'),
               eq(debts.categoryId, appliedCategoryId)
             )
@@ -959,6 +1001,12 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
+    }
     console.error('Transaction creation error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -971,6 +1019,10 @@ export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
 
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '50');
     const offset = parseInt(url.searchParams.get('offset') || '0');
@@ -979,7 +1031,12 @@ export async function GET(request: Request) {
     const userTransactions = await db
       .select()
       .from(transactions)
-      .where(eq(transactions.userId, userId))
+      .where(
+        and(
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
+        )
+      )
       .orderBy(desc(transactions.date))
       .limit(limit)
       .offset(offset);
@@ -1012,6 +1069,12 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Transaction fetch error:', error);
     return Response.json(

@@ -10,19 +10,20 @@
 ## In Progress Features
 
 ### Household Data Isolation Phase 1 (CRITICAL - TOP PRIORITY)
-**Status:** 50% Complete - In Progress
-**Progress:** Schema updates, migration, auth helpers, frontend hook complete. API endpoints 12% (3/25), components 0%, testing 0%
-**Plan:** `docs/phase-1-detailed-plan.md`, `docs/phase-1-progress.md`
+**Status:** 13% Complete - In Progress (2025-11-14)
+**Progress:** Schema updates, migration, auth helpers, frontend hook complete. API endpoints 13% (2/15), components 0%, testing 0%
+**Plans:** `docs/phase-1-completion-plan.md`, `docs/phase-1-detailed-plan.md`, `docs/phase-1-progress.md`
 
 **Completed:**
 - ✅ Database schema updates (6 tables with household_id + 15 indexes)
 - ✅ Migration file created (not yet applied)
 - ✅ Backend auth helpers (`lib/api/household-auth.ts`)
 - ✅ Frontend fetch hook (`lib/hooks/use-household-fetch.ts`)
-- ✅ Accounts API endpoints updated (GET, POST, PUT, DELETE)
+- ✅ Accounts API endpoints updated (4 endpoints: GET, POST, PUT, DELETE)
+- ✅ Transactions main endpoints updated (2 endpoints: `/api/transactions/route.ts` GET/POST, `/api/transactions/[id]/route.ts` GET/PUT/DELETE)
 
 **Remaining:**
-- ⏳ 22 more API endpoints (transactions, categories, merchants, dashboard)
+- ⏳ 13 more API endpoints (5 transaction endpoints, 4 categories, 4 merchants, 3 dashboard)
 - ⏳ 20 frontend components
 - ⏳ Business logic (rules engine, bill matching, usage analytics)
 - ⏳ Integration tests
@@ -30,7 +31,7 @@
 - ⏳ Apply migration
 - ⏳ Documentation
 
-**Current Issue:** Core infrastructure complete. Financial data isolation 50% implemented - accounts working, transactions/categories/merchants pending.
+**Current Work:** Transactions API isolation 40% complete (2/7 endpoints done). Categories, merchants, and dashboard endpoints pending.
 
 ---
 

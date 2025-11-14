@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, accounts, budgetCategories, transactionSplits, bills, billInstances, merchants, debts, tags, transactionTags, customFields, customFieldValues } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -15,13 +16,18 @@ export async function GET(
     const { userId } = await requireAuth();
     const { id } = await params;
 
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+
     const transaction = await db
       .select()
       .from(transactions)
       .where(
         and(
           eq(transactions.id, id),
-          eq(transactions.userId, userId)
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
         )
       )
       .limit(1);
@@ -102,6 +108,12 @@ export async function GET(
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
+    }
     console.error('Transaction fetch error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -117,6 +129,11 @@ export async function PUT(
   try {
     const { userId } = await requireAuth();
     const { id } = await params;
+    const body = await request.json();
+
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
 
     // Get existing transaction
     const existingTransaction = await db
@@ -125,7 +142,8 @@ export async function PUT(
       .where(
         and(
           eq(transactions.id, id),
-          eq(transactions.userId, userId)
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
         )
       )
       .limit(1);
@@ -138,7 +156,6 @@ export async function PUT(
     }
 
     const transaction = existingTransaction[0];
-    const body = await request.json();
 
     const {
       accountId,
@@ -177,7 +194,8 @@ export async function PUT(
         .where(
           and(
             eq(accounts.id, newAccountId),
-            eq(accounts.userId, userId)
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
           )
         )
         .limit(1);
@@ -198,7 +216,8 @@ export async function PUT(
         .where(
           and(
             eq(budgetCategories.id, newCategoryId),
-            eq(budgetCategories.userId, userId)
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId)
           )
         )
         .limit(1);
@@ -303,6 +322,7 @@ export async function PUT(
           .where(
             and(
               eq(bills.userId, userId),
+              eq(bills.householdId, householdId),
               eq(bills.isActive, true),
               eq(bills.categoryId, newCategoryId)
             )
@@ -382,6 +402,12 @@ export async function PUT(
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
+    }
     console.error('Transaction update error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -398,6 +424,10 @@ export async function DELETE(
     const { userId } = await requireAuth();
     const { id } = await params;
 
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+
     // Get transaction to verify ownership and get details
     const existingTransaction = await db
       .select()
@@ -405,7 +435,8 @@ export async function DELETE(
       .where(
         and(
           eq(transactions.id, id),
-          eq(transactions.userId, userId)
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
         )
       )
       .limit(1);
@@ -427,6 +458,7 @@ export async function DELETE(
         .where(
           and(
             eq(transactionSplits.userId, userId),
+            eq(transactionSplits.householdId, householdId),
             eq(transactionSplits.transactionId, id)
           )
         );
@@ -446,6 +478,7 @@ export async function DELETE(
           .where(
             and(
               eq(transactions.userId, userId),
+              eq(transactions.householdId, householdId),
               eq(transactions.type, 'transfer_in'),
               eq(transactions.transferId, id)
             )
@@ -484,7 +517,8 @@ export async function DELETE(
             .where(
               and(
                 eq(transactions.id, pairedTransactionId),
-                eq(transactions.userId, userId)
+                eq(transactions.userId, userId),
+                eq(transactions.householdId, householdId)
               )
             )
             .limit(1);
@@ -541,7 +575,8 @@ export async function DELETE(
           .where(
             and(
               eq(transactions.id, pairedTransactionId),
-              eq(transactions.userId, userId)
+              eq(transactions.userId, userId),
+              eq(transactions.householdId, householdId)
             )
           );
       }
@@ -552,7 +587,8 @@ export async function DELETE(
         .where(
           and(
             eq(transactions.id, id),
-            eq(transactions.userId, userId)
+            eq(transactions.userId, userId),
+            eq(transactions.householdId, householdId)
           )
         );
     } else {
@@ -588,7 +624,8 @@ export async function DELETE(
         .where(
           and(
             eq(transactions.id, id),
-            eq(transactions.userId, userId)
+            eq(transactions.userId, userId),
+            eq(transactions.householdId, householdId)
           )
         );
     }
@@ -600,6 +637,12 @@ export async function DELETE(
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Transaction delete error:', error);
     return Response.json(
