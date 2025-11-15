@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, searchHistory, transactionTags, customFieldValues } from '@/lib/db/schema';
+import { transactions, searchHistory, transactionTags, customFieldValues, accounts, budgetCategories } from '@/lib/db/schema';
 import { eq, and, or, gte, lte, like, inArray, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -28,6 +29,10 @@ export async function GET(request: Request) {
   try {
     const startTime = performance.now();
     const { userId } = await requireAuth();
+
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
 
     // Parse query parameters
     const url = new URL(request.url);
@@ -74,7 +79,10 @@ export async function GET(request: Request) {
     filters.sortOrder = sortOrder;
 
     // Build dynamic WHERE conditions
-    const conditions: any[] = [eq(transactions.userId, userId)];
+    const conditions: any[] = [
+      eq(transactions.userId, userId),
+      eq(transactions.householdId, householdId)
+    ];
 
     // Text search in description and notes
     if (filters.query) {
@@ -87,14 +95,68 @@ export async function GET(request: Request) {
       );
     }
 
-    // Category filter
+    // Category filter - verify categories belong to household
     if (filters.categoryIds && filters.categoryIds.length > 0) {
-      conditions.push(inArray(transactions.categoryId, filters.categoryIds));
+      // Verify all categories belong to household
+      const categoriesInHousehold = await db.select({ id: budgetCategories.id })
+        .from(budgetCategories)
+        .where(and(
+          eq(budgetCategories.householdId, householdId),
+          inArray(budgetCategories.id, filters.categoryIds)
+        ));
+
+      const validCategoryIds = categoriesInHousehold.map(c => c.id);
+      if (validCategoryIds.length > 0) {
+        conditions.push(inArray(transactions.categoryId, validCategoryIds));
+      } else {
+        // No valid categories found in household - return empty result
+        return Response.json({
+          transactions: [],
+          pagination: {
+            limit,
+            offset,
+            total: 0,
+            hasMore: false,
+          },
+          metadata: {
+            executionTimeMs: 0,
+            filtersApplied: true,
+            appliedFilters: filters,
+          },
+        });
+      }
     }
 
-    // Account filter
+    // Account filter - verify accounts belong to household
     if (filters.accountIds && filters.accountIds.length > 0) {
-      conditions.push(inArray(transactions.accountId, filters.accountIds));
+      // Verify all accounts belong to household
+      const accountsInHousehold = await db.select({ id: accounts.id })
+        .from(accounts)
+        .where(and(
+          eq(accounts.householdId, householdId),
+          inArray(accounts.id, filters.accountIds)
+        ));
+
+      const validAccountIds = accountsInHousehold.map(a => a.id);
+      if (validAccountIds.length > 0) {
+        conditions.push(inArray(transactions.accountId, validAccountIds));
+      } else {
+        // No valid accounts found in household - return empty result
+        return Response.json({
+          transactions: [],
+          pagination: {
+            limit,
+            offset,
+            total: 0,
+            hasMore: false,
+          },
+          metadata: {
+            executionTimeMs: 0,
+            filtersApplied: true,
+            appliedFilters: filters,
+          },
+        });
+      }
     }
 
     // Type filter
@@ -239,6 +301,12 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Transaction search error:', error);
     return Response.json(

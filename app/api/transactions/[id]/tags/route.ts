@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, transactionTags, tags } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -13,14 +14,19 @@ export async function GET(
     const { userId } = await requireAuth();
     const { id } = await params;
 
-    // Verify transaction belongs to user
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+
+    // Verify transaction belongs to user AND household
     const transaction = await db
       .select()
       .from(transactions)
       .where(
         and(
           eq(transactions.id, id),
-          eq(transactions.userId, userId)
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
         )
       )
       .limit(1);
@@ -60,6 +66,12 @@ export async function GET(
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Error fetching transaction tags:', error);
     return Response.json(

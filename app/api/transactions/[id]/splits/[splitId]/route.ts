@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, transactionSplits, budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -27,14 +28,19 @@ export async function PUT(
       sortOrder,
     } = body;
 
-    // Verify transaction belongs to user
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
+
+    // Verify transaction belongs to user AND household
     const transaction = await db
       .select()
       .from(transactions)
       .where(
         and(
           eq(transactions.id, transactionId),
-          eq(transactions.userId, userId)
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
         )
       )
       .limit(1);
@@ -46,7 +52,7 @@ export async function PUT(
       );
     }
 
-    // Verify split belongs to transaction and user
+    // Verify split belongs to transaction, user, AND household
     const split = await db
       .select()
       .from(transactionSplits)
@@ -54,7 +60,8 @@ export async function PUT(
         and(
           eq(transactionSplits.id, splitId),
           eq(transactionSplits.transactionId, transactionId),
-          eq(transactionSplits.userId, userId)
+          eq(transactionSplits.userId, userId),
+          eq(transactionSplits.householdId, householdId)
         )
       )
       .limit(1);
@@ -66,7 +73,7 @@ export async function PUT(
       );
     }
 
-    // If category is being changed, verify it exists
+    // If category is being changed, verify it exists and belongs to household
     if (categoryId) {
       const category = await db
         .select()
@@ -74,14 +81,15 @@ export async function PUT(
         .where(
           and(
             eq(budgetCategories.id, categoryId),
-            eq(budgetCategories.userId, userId)
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId)
           )
         )
         .limit(1);
 
       if (category.length === 0) {
         return Response.json(
-          { error: 'Category not found' },
+          { error: 'Category not found in household' },
           { status: 404 }
         );
       }
@@ -128,6 +136,12 @@ export async function PUT(
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
+    }
     console.error('Error updating split:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -148,14 +162,19 @@ export async function DELETE(
   try {
     const { userId } = await requireAuth();
 
-    // Verify transaction belongs to user
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+
+    // Verify transaction belongs to user AND household
     const transaction = await db
       .select()
       .from(transactions)
       .where(
         and(
           eq(transactions.id, transactionId),
-          eq(transactions.userId, userId)
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
         )
       )
       .limit(1);
@@ -167,7 +186,7 @@ export async function DELETE(
       );
     }
 
-    // Verify split belongs to transaction and user
+    // Verify split belongs to transaction, user, AND household
     const split = await db
       .select()
       .from(transactionSplits)
@@ -175,7 +194,8 @@ export async function DELETE(
         and(
           eq(transactionSplits.id, splitId),
           eq(transactionSplits.transactionId, transactionId),
-          eq(transactionSplits.userId, userId)
+          eq(transactionSplits.userId, userId),
+          eq(transactionSplits.householdId, householdId)
         )
       )
       .limit(1);
@@ -213,6 +233,12 @@ export async function DELETE(
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Error deleting split:', error);
     return Response.json(

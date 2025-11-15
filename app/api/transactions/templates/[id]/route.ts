@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactionTemplates, budgetCategories, accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -84,7 +85,11 @@ export async function PUT(
       notes,
     } = body;
 
-    // Validate account if provided
+    // Get and validate household for account/category validation
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
+
+    // Validate account if provided (must belong to household)
     if (accountId) {
       const account = await db
         .select()
@@ -92,20 +97,21 @@ export async function PUT(
         .where(
           and(
             eq(accounts.id, accountId),
-            eq(accounts.userId, userId)
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
           )
         )
         .limit(1);
 
       if (account.length === 0) {
         return Response.json(
-          { error: 'Account not found' },
+          { error: 'Account not found in household' },
           { status: 404 }
         );
       }
     }
 
-    // Validate category if provided
+    // Validate category if provided (must belong to household)
     if (categoryId) {
       const category = await db
         .select()
@@ -113,14 +119,15 @@ export async function PUT(
         .where(
           and(
             eq(budgetCategories.id, categoryId),
-            eq(budgetCategories.userId, userId)
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId)
           )
         )
         .limit(1);
 
       if (category.length === 0) {
         return Response.json(
-          { error: 'Category not found' },
+          { error: 'Category not found in household' },
           { status: 404 }
         );
       }
@@ -155,6 +162,12 @@ export async function PUT(
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Template update error:', error);
     return Response.json(

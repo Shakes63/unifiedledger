@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -18,6 +19,10 @@ export async function POST(
     const body = await request.json();
     const { targetAccountId, matchingTransactionId } = body;
 
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
+
     // Validate required fields
     if (!targetAccountId) {
       return Response.json(
@@ -26,14 +31,15 @@ export async function POST(
       );
     }
 
-    // Get the original transaction
+    // Get the original transaction (must belong to household)
     const originalTx = await db
       .select()
       .from(transactions)
       .where(
         and(
           eq(transactions.id, id),
-          eq(transactions.userId, userId)
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
         )
       )
       .limit(1);
@@ -55,21 +61,22 @@ export async function POST(
       );
     }
 
-    // Validate target account exists and belongs to user
+    // Validate target account exists and belongs to household
     const targetAccountResult = await db
       .select()
       .from(accounts)
       .where(
         and(
           eq(accounts.id, targetAccountId),
-          eq(accounts.userId, userId)
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
         )
       )
       .limit(1);
 
     if (targetAccountResult.length === 0) {
       return Response.json(
-        { error: 'Target account not found' },
+        { error: 'Target account not found in household' },
         { status: 404 }
       );
     }
@@ -109,14 +116,15 @@ export async function POST(
         .where(
           and(
             eq(transactions.id, matchingTransactionId),
-            eq(transactions.userId, userId)
+            eq(transactions.userId, userId),
+            eq(transactions.householdId, householdId)
           )
         )
         .limit(1);
 
       if (matchingTx.length === 0) {
         return Response.json(
-          { error: 'Matching transaction not found' },
+          { error: 'Matching transaction not found in household' },
           { status: 404 }
         );
       }
@@ -210,6 +218,7 @@ export async function POST(
       await db.insert(transactions).values({
         id: pairedTransactionId,
         userId,
+        householdId: householdId!, // CRITICAL: Same household as original
         accountId: targetAccountId,
         categoryId: null, // Transfers don't have categories
         merchantId: isExpense ? transaction.accountId : null, // For transfer_in, store source account ID
@@ -328,6 +337,12 @@ export async function POST(
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Convert to transfer error:', error);
     return Response.json(

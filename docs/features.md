@@ -10,20 +10,20 @@
 ## In Progress Features
 
 ### Household Data Isolation Phase 1 (CRITICAL - TOP PRIORITY)
-**Status:** 13% Complete - In Progress (2025-11-14)
-**Progress:** Schema updates, migration, auth helpers, frontend hook complete. API endpoints 13% (2/15), components 0%, testing 0%
-**Plans:** `docs/phase-1-completion-plan.md`, `docs/phase-1-detailed-plan.md`, `docs/phase-1-progress.md`
+**Status:** 48% Complete - In Progress (2025-11-14)
+**Progress:** Infrastructure 100%, API endpoints 48% (14/25), frontend components 0%, business logic 0%, testing 0%
+**Plans:** `docs/phase-1-remaining-work-plan.md`, `docs/phase-1-completion-plan.md`, `docs/phase-1-detailed-plan.md`, `docs/phase-1-progress.md`
 
 **Completed:**
 - ✅ Database schema updates (6 tables with household_id + 15 indexes)
 - ✅ Migration file created (not yet applied)
 - ✅ Backend auth helpers (`lib/api/household-auth.ts`)
 - ✅ Frontend fetch hook (`lib/hooks/use-household-fetch.ts`)
-- ✅ Accounts API endpoints updated (4 endpoints: GET, POST, PUT, DELETE)
-- ✅ Transactions main endpoints updated (2 endpoints: `/api/transactions/route.ts` GET/POST, `/api/transactions/[id]/route.ts` GET/PUT/DELETE)
+- ✅ Accounts API endpoints (4 endpoints: GET, POST, PUT, DELETE)
+- ✅ Transactions API endpoints (10 endpoints: main CRUD, search, history, templates, splits, tags, utilities)
 
 **Remaining:**
-- ⏳ 13 more API endpoints (5 transaction endpoints, 4 categories, 4 merchants, 3 dashboard)
+- ⏳ 11 more API endpoints (4 categories, 4 merchants, 3 dashboard)
 - ⏳ 20 frontend components
 - ⏳ Business logic (rules engine, bill matching, usage analytics)
 - ⏳ Integration tests
@@ -31,7 +31,7 @@
 - ⏳ Apply migration
 - ⏳ Documentation
 
-**Current Work:** Transactions API isolation 40% complete (2/7 endpoints done). Categories, merchants, and dashboard endpoints pending.
+**Current Work:** All transaction endpoints complete. Categories, merchants, and dashboard endpoints pending.
 
 ---
 

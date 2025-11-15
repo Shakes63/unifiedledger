@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import {
   transactionTemplates,
@@ -23,6 +24,10 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const { templateId, date, amount, description } = body;
+
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
 
     if (!templateId) {
       return Response.json(
@@ -52,21 +57,22 @@ export async function POST(request: Request) {
 
     const tmpl = template[0];
 
-    // Validate account still exists
+    // Validate account still exists AND belongs to household
     const account = await db
       .select()
       .from(accounts)
       .where(
         and(
           eq(accounts.id, tmpl.accountId),
-          eq(accounts.userId, userId)
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
         )
       )
       .limit(1);
 
     if (account.length === 0) {
       return Response.json(
-        { error: 'Account not found' },
+        { error: 'Account not found in household' },
         { status: 404 }
       );
     }
@@ -114,10 +120,11 @@ export async function POST(request: Request) {
       }
     }
 
-    // Insert transaction
+    // Insert transaction (with householdId)
     await db.insert(transactions).values({
       id: transactionId,
       userId,
+      householdId: householdId!, // Add household ID
       accountId: tmpl.accountId,
       categoryId: appliedCategoryId || null,
       date: transactionDate,
@@ -181,6 +188,7 @@ export async function POST(request: Request) {
           .where(
             and(
               eq(usageAnalytics.userId, userId),
+              eq(usageAnalytics.householdId, householdId),
               eq(usageAnalytics.itemType, 'category'),
               eq(usageAnalytics.itemId, appliedCategoryId)
             )
@@ -197,6 +205,7 @@ export async function POST(request: Request) {
             .where(
               and(
                 eq(usageAnalytics.userId, userId),
+                eq(usageAnalytics.householdId, householdId),
                 eq(usageAnalytics.itemType, 'category'),
                 eq(usageAnalytics.itemId, appliedCategoryId)
               )
@@ -205,6 +214,7 @@ export async function POST(request: Request) {
           await db.insert(usageAnalytics).values({
             id: analyticsId,
             userId,
+            householdId: householdId!, // Add household ID
             itemType: 'category',
             itemId: appliedCategoryId,
             usageCount: 1,
@@ -215,7 +225,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create or update merchant and track usage
+    // Create or update merchant and track usage (household-scoped)
     const normalizedDescription = transactionDescription.toLowerCase().trim();
     const existingMerchant = await db
       .select()
@@ -223,6 +233,7 @@ export async function POST(request: Request) {
       .where(
         and(
           eq(merchants.userId, userId),
+          eq(merchants.householdId, householdId),
           eq(merchants.normalizedName, normalizedDescription)
         )
       )
@@ -245,6 +256,7 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(merchants.userId, userId),
+            eq(merchants.householdId, householdId),
             eq(merchants.normalizedName, normalizedDescription)
           )
         );
@@ -253,6 +265,7 @@ export async function POST(request: Request) {
       await db.insert(merchants).values({
         id: merchantId,
         userId,
+        householdId: householdId!, // Add household ID
         name: transactionDescription,
         normalizedName: normalizedDescription,
         categoryId: appliedCategoryId || null,
@@ -294,6 +307,12 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Transaction repeat error:', error);
     return Response.json(

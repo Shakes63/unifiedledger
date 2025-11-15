@@ -1,7 +1,8 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { detectDuplicateTransactions } from '@/lib/duplicate-detection';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,10 @@ export async function POST(request: Request) {
       dateRangeInDays = 7,
     } = body;
 
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
+
     if (!description || !amount || !date) {
       return Response.json(
         { error: 'Missing required fields: description, amount, date' },
@@ -36,11 +41,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fetch user's existing transactions
+    // Fetch user's existing transactions (filter by household)
     const userTransactions = await db
       .select()
       .from(transactions)
-      .where(eq(transactions.userId, userId));
+      .where(and(
+        eq(transactions.userId, userId),
+        eq(transactions.householdId, householdId)
+      ));
 
     // Detect duplicates
     const duplicates = detectDuplicateTransactions(
@@ -72,6 +80,12 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Error checking duplicates:', error);
     return Response.json(

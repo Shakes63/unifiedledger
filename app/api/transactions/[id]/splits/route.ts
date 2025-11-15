@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, transactionSplits, budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -18,14 +19,19 @@ export async function GET(
   try {
     const { userId } = await requireAuth();
 
-    // Verify transaction exists and belongs to user
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+
+    // Verify transaction exists and belongs to user AND household
     const transaction = await db
       .select()
       .from(transactions)
       .where(
         and(
           eq(transactions.id, transactionId),
-          eq(transactions.userId, userId)
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
         )
       )
       .limit(1);
@@ -37,14 +43,15 @@ export async function GET(
       );
     }
 
-    // Get all splits
+    // Get all splits (filter by household)
     const splits = await db
       .select()
       .from(transactionSplits)
       .where(
         and(
           eq(transactionSplits.transactionId, transactionId),
-          eq(transactionSplits.userId, userId)
+          eq(transactionSplits.userId, userId),
+          eq(transactionSplits.householdId, householdId)
         )
       )
       .orderBy(transactionSplits.sortOrder);
@@ -53,6 +60,12 @@ export async function GET(
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Error fetching splits:', error);
     return Response.json(
@@ -84,6 +97,10 @@ export async function POST(
       sortOrder = 0,
     } = body;
 
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
+
     // Validate required fields
     if (!categoryId || (isPercentage && !percentage) || (!isPercentage && !amount)) {
       return Response.json(
@@ -92,14 +109,15 @@ export async function POST(
       );
     }
 
-    // Verify transaction exists and belongs to user
+    // Verify transaction exists and belongs to user AND household
     const transaction = await db
       .select()
       .from(transactions)
       .where(
         and(
           eq(transactions.id, transactionId),
-          eq(transactions.userId, userId)
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
         )
       )
       .limit(1);
@@ -111,32 +129,34 @@ export async function POST(
       );
     }
 
-    // Verify category exists
+    // Verify category exists and belongs to household
     const category = await db
       .select()
       .from(budgetCategories)
       .where(
         and(
           eq(budgetCategories.id, categoryId),
-          eq(budgetCategories.userId, userId)
+          eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId)
         )
       )
       .limit(1);
 
     if (category.length === 0) {
       return Response.json(
-        { error: 'Category not found' },
+        { error: 'Category not found in household' },
         { status: 404 }
       );
     }
 
-    // Create the split
+    // Create the split (inherit householdId from parent transaction)
     const splitId = nanoid();
     const now = new Date().toISOString();
 
     await db.insert(transactionSplits).values({
       id: splitId,
       userId,
+      householdId: householdId!, // Inherit from parent transaction
       transactionId,
       categoryId,
       amount: isPercentage ? 0 : amount,
@@ -171,6 +191,12 @@ export async function POST(
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && (
+      error.message.includes('Household') ||
+      error.message.includes('member')
+    )) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Error creating split:', error);
     return Response.json(

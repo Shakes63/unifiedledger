@@ -428,30 +428,31 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ All 12 tracked bugs fixed (100%)
 
 **⚠️ CRITICAL LIMITATION:**
-- Multi-household data is NOT fully isolated yet - Phase 1 (Core Data Isolation) is 13% complete (2025-11-14)
+- Multi-household data is NOT fully isolated yet - Phase 1 (Core Data Isolation) is 48% complete (2025-11-14)
 - Settings architecture foundation complete and tested (Phase 0 - 100%)
 - Theme and notification systems work per-household (users can have different themes/notifications per household)
 - **Phase 1 Progress:** Database schema updated, migration created, auth helpers and frontend hooks complete
 - Accounts API endpoints updated and working with household isolation (4 endpoints)
-- Transactions API endpoints 40% complete (2/7 endpoints: main list/create + individual get/update/delete)
-- **In Progress:** 5 more transaction endpoints, then categories, merchants, dashboard endpoints
+- Transactions API endpoints 100% complete (10/10 endpoints: main CRUD, search, history, templates, splits, tags, duplicate detection, repeat, convert-to-transfer)
+- **In Progress:** Categories, merchants, and dashboard API endpoints (11 remaining)
 - **Pending:** 20 frontend components, business logic updates, migration application, testing
-- Security risk: Partial household data separation - accounts and some transactions isolated, other financial data pending
+- Security risk: Partial household data separation - accounts and transactions isolated, categories/merchants/dashboard data pending
 
 ## Next Steps
 
 ### CRITICAL PRIORITY: Household Data Isolation
-**Status:** Phase 0 - 100% Complete | Phase 1 - 13% Complete | Phases 2-4 - Not Started
-**Estimated Remaining Effort:** 1-2 days (Phase 1 remaining) + 3-6 days (Phases 2-4)
+**Status:** Phase 0 - 100% Complete | Phase 1 - 48% Complete | Phases 2-4 - Not Started
+**Estimated Remaining Effort:** 1 day (Phase 1 remaining) + 3-6 days (Phases 2-4)
 **Last Updated:** 2025-11-14
 
-The multi-household feature is being implemented in phases. Phase 0 (settings architecture) is complete. Phase 1 (core data isolation) is 13% complete with infrastructure, accounts API, and 2 transaction endpoints working.
+The multi-household feature is being implemented in phases. Phase 0 (settings architecture) is complete. Phase 1 (core data isolation) is 48% complete with infrastructure, accounts API (4 endpoints), and all transaction API endpoints (10 endpoints) working.
 
 **Implementation Plans:**
 - `docs/phase-0-implementation-progress.md` - Phase 0 complete (60 automated tests)
+- `docs/phase-1-remaining-work-plan.md` - Detailed implementation guide for remaining work
 - `docs/phase-1-completion-plan.md` - Phase 1 detailed completion guide with implementation steps
 - `docs/phase-1-detailed-plan.md` - Phase 1 original implementation plan
-- `docs/phase-1-progress.md` - Phase 1 progress tracking (13% complete)
+- `docs/phase-1-progress.md` - Phase 1 progress tracking (48% complete)
 - `docs/household-data-isolation-plan.md` - Phases 1-4 overview
 
 **Phase 0: Settings Reorganization** (100% COMPLETE - 2025-11-14)
@@ -461,14 +462,14 @@ The multi-household feature is being implemented in phases. Phase 0 (settings ar
 - ✅ Phase 0.4: Theme & Notifications - Per-household preferences
 - ✅ Phase 0.5: Testing & Polish - 60 automated tests (100% passing)
 
-**Phase 1: Core Financial Data Isolation** (13% COMPLETE - In Progress 2025-11-14)
+**Phase 1: Core Financial Data Isolation** (48% COMPLETE - In Progress 2025-11-14)
 - ✅ Database schema updates (6 tables: accounts, transactions, budgetCategories, merchants, transactionSplits, usageAnalytics)
 - ✅ Migration file created (`drizzle/0042_add_household_id_to_core_tables.sql`) - NOT YET APPLIED
 - ✅ Backend auth helpers (`lib/api/household-auth.ts`) - 5 utility functions
 - ✅ Frontend fetch hook (`lib/hooks/use-household-fetch.ts`) - Household-aware HTTP methods
-- ✅ Accounts API endpoints updated (4 endpoints: GET, POST, PUT, DELETE at `/api/accounts/*`)
-- ✅ Transactions API partial (2/7 endpoints: `/api/transactions/route.ts` GET/POST, `/api/transactions/[id]/route.ts` GET/PUT/DELETE)
-- ⏳ Remaining: 13 API endpoints (5 transaction, 4 categories, 4 merchants, 3 dashboard), 20 frontend components, business logic, tests, migration application
+- ✅ Accounts API endpoints updated (4 endpoints: GET, POST, PUT, DELETE)
+- ✅ Transactions API endpoints complete (10 endpoints: main CRUD, search, history, templates, splits, tags, duplicate detection, repeat, convert-to-transfer)
+- ⏳ Remaining: 11 API endpoints (4 categories, 4 merchants, 3 dashboard), 20 frontend components, business logic, tests, migration application
 
 **Phases 1-4: Data Isolation** (5-9 days - NOT STARTED)
 - Add `household_id` to 20+ tables
