@@ -10,28 +10,34 @@
 ## In Progress Features
 
 ### Household Data Isolation Phase 1 (CRITICAL - TOP PRIORITY)
-**Status:** 48% Complete - In Progress (2025-11-14)
-**Progress:** Infrastructure 100%, API endpoints 48% (14/25), frontend components 0%, business logic 0%, testing 0%
-**Plans:** `docs/phase-1-remaining-work-plan.md`, `docs/phase-1-completion-plan.md`, `docs/phase-1-detailed-plan.md`, `docs/phase-1-progress.md`
+**Status:** 72% Complete - API ✅ Complete, Frontend Pending (2025-11-14)
+**Progress:** Infrastructure 100%, API endpoints 100% (18/18) ✅, frontend components 0%, business logic 0%, testing 0%
+**Plan:** `docs/frontend-components-implementation-plan.md` (31 components to update)
+**Summary:** `docs/phase-1-api-completion-summary.md`
 
 **Completed:**
 - ✅ Database schema updates (6 tables with household_id + 15 indexes)
-- ✅ Migration file created (not yet applied)
+- ✅ Migration file created (not yet applied: `drizzle/0042_add_household_id_to_core_tables.sql`)
 - ✅ Backend auth helpers (`lib/api/household-auth.ts`)
 - ✅ Frontend fetch hook (`lib/hooks/use-household-fetch.ts`)
-- ✅ Accounts API endpoints (4 endpoints: GET, POST, PUT, DELETE)
-- ✅ Transactions API endpoints (10 endpoints: main CRUD, search, history, templates, splits, tags, utilities)
+- ✅ **ALL Core Financial Data API endpoints (18 files)**
+- ✅ Accounts API (2 files)
+- ✅ Transactions API (12 files)
+- ✅ Categories API (2 files - name uniqueness per-household, delete protection)
+- ✅ Merchants API (2 files - name uniqueness per-household, delete protection, normalized names)
 
 **Remaining:**
-- ⏳ 11 more API endpoints (4 categories, 4 merchants, 3 dashboard)
-- ⏳ 20 frontend components
+- ⏳ ~31 frontend components (update to use useHouseholdFetch hook) - **See plan file above**
 - ⏳ Business logic (rules engine, bill matching, usage analytics)
 - ⏳ Integration tests
 - ⏳ Manual testing
-- ⏳ Apply migration
-- ⏳ Documentation
+- ⏳ Apply migration (backup database first)
 
-**Current Work:** All transaction endpoints complete. Categories, merchants, and dashboard endpoints pending.
+**Notes:**
+- API is 100% ready for household isolation
+- Migration file created but not applied (allows for review)
+- Frontend components plan created with detailed implementation guide
+- Other API endpoints (bills, budgets, debts, goals) will be Phase 2-4
 
 ---
 

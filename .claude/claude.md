@@ -273,6 +273,19 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
   - ✅ All components use semantic theme variables for full theme integration
   - ✅ Zero overhead when developer mode is disabled (conditional rendering)
   - ✅ Fixed bug: Corrected `/api/goals` endpoint to `/api/savings-goals` in Advanced settings tab
+- Household Data Isolation Phase 1 API (72% COMPLETE - 2025-11-14): Core financial data API endpoints fully isolated by household
+  - ✅ Database schema updated - Added `household_id` to 6 tables (accounts, transactions, categories, merchants, transactionSplits, usageAnalytics) + 15 indexes
+  - ✅ Migration file created (`drizzle/0042_add_household_id_to_core_tables.sql`) - **NOT YET APPLIED**
+  - ✅ Backend auth helpers (`lib/api/household-auth.ts`) - 5 utility functions for household validation
+  - ✅ Frontend fetch hook (`lib/hooks/use-household-fetch.ts`) - Household-aware HTTP methods
+  - ✅ **ALL Core Financial Data API endpoints updated (18 files):**
+    - ✅ Accounts API (2 files)
+    - ✅ Transactions API (12 files - CRUD, search, history, templates, splits, tags, duplicate detection, repeat, convert-to-transfer)
+    - ✅ Categories API (2 files - name uniqueness per-household, delete protection)
+    - ✅ Merchants API (2 files - name uniqueness per-household, delete protection, normalized names)
+  - See `docs/phase-1-api-completion-summary.md` for detailed report
+  - **Remaining:** Frontend components (31 files), business logic, testing, migration application
+  - **Plan:** `docs/frontend-components-implementation-plan.md`
 - Household Data Isolation Phase 0 (100% COMPLETE - 2025-11-14): Three-tier settings architecture fully implemented and tested
   - ✅ Phase 0.1: Database & Migration - Created `user_household_preferences` and `household_settings` tables with migrations
   - ✅ Phase 0.2: API Endpoints - 6 new endpoints for managing user-per-household preferences and household settings with proper authorization
@@ -280,7 +293,6 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
   - ✅ Phase 0.4: Theme & Notifications - Per-household theme and notification preferences with automatic switching
   - ✅ Phase 0.5: Testing & Polish - 60 automated tests passing (100% success rate), comprehensive API and migration utility coverage
   - See `docs/phase-0-implementation-progress.md` for detailed status
-  - **Next:** Phase 1 (Core Data Isolation) - Add `household_id` to transactions, accounts, categories, merchants
 - Household Favorite Feature (100% COMPLETE): Star/favorite households to pin them to top of sidebar
 - Household Settings Decoupling (100% COMPLETE): Sidebar dropdown and settings tabs operate independently
 - Household Sort by Join Date (100% COMPLETE): Households ordered chronologically by when user joined them

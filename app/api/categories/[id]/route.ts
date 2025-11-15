@@ -1,7 +1,9 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { budgetCategories } from '@/lib/db/schema';
+import { budgetCategories, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { count } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,13 +16,24 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
+
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
+
     const { name, monthlyBudget, dueDate, isTaxDeductible, incomeFrequency } = body;
 
-    // Verify category belongs to user
+    // Verify category belongs to user AND household
     const category = await db
       .select()
       .from(budgetCategories)
-      .where(and(eq(budgetCategories.id, id), eq(budgetCategories.userId, userId)))
+      .where(
+        and(
+          eq(budgetCategories.id, id),
+          eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId)
+        )
+      )
       .limit(1);
 
     if (!category || category.length === 0) {
@@ -28,6 +41,28 @@ export async function PUT(
         { error: 'Category not found' },
         { status: 404 }
       );
+    }
+
+    // If updating name, check for duplicates in household
+    if (name && name !== category[0].name) {
+      const existing = await db
+        .select()
+        .from(budgetCategories)
+        .where(
+          and(
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId),
+            eq(budgetCategories.name, name)
+          )
+        )
+        .limit(1);
+
+      if (existing && existing.length > 0) {
+        return Response.json(
+          { error: 'Category with this name already exists in household' },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate income frequency if provided
@@ -60,6 +95,9 @@ export async function PUT(
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 403 });
+    }
     console.error('Category update error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -77,17 +115,47 @@ export async function DELETE(
 
     const { id } = await params;
 
-    // Verify category belongs to user
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+
+    // Verify category belongs to user AND household
     const category = await db
       .select()
       .from(budgetCategories)
-      .where(and(eq(budgetCategories.id, id), eq(budgetCategories.userId, userId)))
+      .where(
+        and(
+          eq(budgetCategories.id, id),
+          eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId)
+        )
+      )
       .limit(1);
 
     if (!category || category.length === 0) {
       return Response.json(
         { error: 'Category not found' },
         { status: 404 }
+      );
+    }
+
+    // CRITICAL: Check if any transactions in household use this category
+    const usageCount = await db
+      .select({ count: count() })
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.categoryId, id),
+          eq(transactions.householdId, householdId)
+        )
+      );
+
+    if (usageCount[0].count > 0) {
+      return Response.json(
+        {
+          error: `Cannot delete category. It is used by ${usageCount[0].count} transaction(s) in this household.`,
+        },
+        { status: 400 }
       );
     }
 
@@ -101,6 +169,9 @@ export async function DELETE(
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Category deletion error:', error);
     return Response.json(

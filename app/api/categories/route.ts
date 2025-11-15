@@ -1,7 +1,8 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { budgetCategories } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 export const dynamic = 'force-dynamic';
 
@@ -44,16 +45,28 @@ export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
 
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+
     const userCategories = await db
       .select()
       .from(budgetCategories)
-      .where(eq(budgetCategories.userId, userId))
+      .where(
+        and(
+          eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId)
+        )
+      )
       .orderBy(desc(budgetCategories.usageCount), budgetCategories.sortOrder);
 
     return Response.json(userCategories);
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Category fetch error:', error);
     return Response.json(
@@ -68,6 +81,11 @@ export async function POST(request: Request) {
     const { userId } = await requireAuth();
 
     const body = await request.json();
+
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
+
     const { name, type, monthlyBudget = 0, dueDate, isTaxDeductible = false, incomeFrequency } = body;
 
     if (!name || !type) {
@@ -88,11 +106,32 @@ export async function POST(request: Request) {
       }
     }
 
+    // Check if category with same name exists in household
+    const existing = await db
+      .select()
+      .from(budgetCategories)
+      .where(
+        and(
+          eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId),
+          eq(budgetCategories.name, name)
+        )
+      )
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return Response.json(
+        { error: 'Category with this name already exists in household' },
+        { status: 400 }
+      );
+    }
+
     const categoryId = nanoid();
 
     await db.insert(budgetCategories).values({
       id: categoryId,
       userId,
+      householdId: householdId!,
       name,
       type,
       monthlyBudget,
@@ -110,6 +149,9 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 403 });
+    }
     console.error('Category creation error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -123,24 +165,36 @@ export async function PUT(request: Request) {
   try {
     const { userId } = await requireAuth();
 
-    // Check if user already has categories
+    const body = await request.json();
+
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
+
+    // Check if user already has categories in this household
     const existingCategories = await db
       .select()
       .from(budgetCategories)
-      .where(eq(budgetCategories.userId, userId))
+      .where(
+        and(
+          eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId)
+        )
+      )
       .limit(1);
 
     if (existingCategories.length > 0) {
       return Response.json(
-        { message: 'Categories already initialized' },
+        { message: 'Categories already initialized for this household' },
         { status: 200 }
       );
     }
 
-    // Create default categories for the user
+    // Create default categories for the user in this household
     const categoriesToInsert = DEFAULT_CATEGORIES.map((cat, index) => ({
       id: nanoid(),
       userId,
+      householdId: householdId!,
       name: cat.name,
       type: cat.type as any,
       monthlyBudget: 0,
@@ -159,6 +213,9 @@ export async function PUT(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Category initialization error:', error);
     return Response.json(
