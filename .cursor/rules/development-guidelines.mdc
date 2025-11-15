@@ -1,0 +1,81 @@
+---
+description: Development guidelines, coding standards, and best practices for Unified Ledger
+alwaysApply: true
+---
+
+# Development Guidelines
+
+## Always Use pnpm
+```bash
+pnpm install       # Install dependencies
+pnpm dev           # Start dev server
+pnpm build         # Build for production
+pnpm test          # Run tests
+```
+
+## Financial Calculations
+**CRITICAL:** Always use `decimal.js` for money calculations to avoid floating-point errors.
+```typescript
+import Decimal from 'decimal.js';
+const total = new Decimal(100.50).plus(new Decimal(25.25)); // ✓ Correct
+const wrong = 100.50 + 25.25; // ✗ Never use this
+```
+
+## Design System & Theming
+**Theming System:**
+- 7 themes: Dark (Green, Pink, Blue, Turquoise), Light (Bubblegum, Turquoise, Blue)
+- Dynamic theme switching with CSS variables
+- Themes defined in `lib/themes/theme-config.ts`, applied via `applyTheme()`
+- Preference saved to database
+
+**Always Use Semantic Color Tokens (NOT hardcoded colors):**
+- Background: `bg-background`, `bg-card`, `bg-elevated`
+- Text: `text-foreground`, `text-muted-foreground`
+- Borders: `border-border`
+- Transactions: `text-[var(--color-income)]`, `text-[var(--color-expense)]`, `text-[var(--color-transfer)]`
+- UI States: `bg-[var(--color-primary)]`, `bg-[var(--color-success)]`, `bg-[var(--color-warning)]`, `bg-[var(--color-error)]`
+
+**Key CSS Variables:**
+```
+--color-background, --color-card, --color-elevated
+--color-foreground, --color-muted-foreground
+--color-border, --color-ring
+--color-income, --color-expense, --color-transfer
+--color-primary, --color-success, --color-warning, --color-error
+```
+
+**Typography:** Inter (primary), JetBrains Mono (amounts)
+**Border Radius:** 12px (xl), 8px (lg), 6px (md)
+
+## Database
+- Drizzle ORM for type-safe queries
+- SQLite for local storage
+- Schema: `lib/db/schema.ts`
+- Migrations: `drizzle-kit generate` and `drizzle-kit migrate`
+
+## Development Commands
+```bash
+pnpm dev                    # Start development server (localhost:3000)
+pnpm build                  # Build for production
+pnpm test                   # Run tests
+pnpm test:watch             # Watch mode for tests
+pnpm test:coverage          # Generate coverage report
+pnpm drizzle-kit generate   # Generate database migration
+pnpm drizzle-kit migrate    # Apply database migration
+```
+
+## Never Do
+- ❌ Never use floating-point arithmetic for money (use Decimal.js)
+- ❌ Never commit without meaningful message
+- ❌ Never skip user authentication checks in API routes
+- ❌ Never start dev servers to leave running for user
+- ❌ Never use hardcoded colors (use CSS variables)
+- ❌ Never use emojis unless explicitly requested
+
+## Always Do
+- ✅ Always use pnpm (not npm or yarn)
+- ✅ Always verify user owns data before returning
+- ✅ Always use Decimal.js for financial calculations
+- ✅ Always include toast notifications for user actions
+- ✅ Always use semantic color tokens (CSS variables)
+- ✅ Always commit meaningful changes

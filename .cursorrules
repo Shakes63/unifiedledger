@@ -201,21 +201,9 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 
 ## Recent Updates
 
-**All 23 tracked bugs fixed (100%)** - See `docs/bugs.md`
+**All 12 tracked bugs fixed (100%)** - See `docs/bugs.md`
 
-**Latest (2025-11-15):**
-- Enhanced Error Handling & Network Infrastructure (CORE COMPLETE - 9/9 bugs fixed): Comprehensive error handling improvements
-  - ✅ Created `lib/utils/enhanced-fetch.ts` - Robust fetch utility with exponential backoff retry (3 attempts: 1s, 2s, 4s), timeout handling (10s default), request deduplication, and detailed error categorization (network, timeout, server, client, abort)
-  - ✅ Created `contexts/network-status-context.tsx` - Real-time online/offline detection, periodic server health checks (30s), connection quality monitoring (excellent/good/fair/poor), automatic toast notifications
-  - ✅ Updated `contexts/household-context.tsx` - Added initialization state (`initialized`), error state (`error`), retry function, enhanced fetch with retry logic, toast notifications with actionable retry buttons, fallback to cached preferences
-  - ✅ Updated `components/dashboard/recent-transactions.tsx` - Implemented 6-state loading system (initializing, household error, no household, data loading, data error, empty state), guard clauses prevent fetching before ready, comprehensive error states with retry buttons
-  - ✅ Updated `hooks/useWebVitals.ts` - Implemented circuit breaker pattern (stops after 3 failures for 60s), metric batching (max 1 request per 5s), offline detection, silent failure mode, development-only logging
-  - ✅ Updated `app/api/performance/metrics/route.ts` - Added batched metrics support (80-90% reduction in requests), always returns 200 (even on errors), graceful auth failures, non-blocking operation
-  - ✅ Updated `components/providers/session-activity-provider.tsx` - Added Page Visibility API integration (no pings when tab hidden), network status detection, timeout handling (5s abort signal), production-safe logging
-  - ⏳ Optional UI enhancements pending: Request queue for offline support, skeleton loading components, reusable error UI components, offline banner component, network status integration in root layout
-  - See `docs/fetch-error-handling-improvement-plan.md` for comprehensive implementation plan and remaining optional tasks
-
-**Previous (2025-11-14):**
+**Latest (2025-11-14):**
 - Better Auth Authentication Bug Fixes (100% COMPLETE): Fixed widespread authentication issues after cookie integration
   - ✅ Added `credentials: "include"` to 185 fetch calls across 82 files using automated script
   - ✅ Fixed session ping endpoint (`/api/session/ping`) to parse `better-auth.session_data` cookie correctly
@@ -459,9 +447,8 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ Import Preferences (100% complete - default template selection in Data Management settings)
 - ✅ Household Data Isolation Phase 0 (100% complete - three-tier settings architecture fully tested)
 - ✅ **Household Data Isolation Phase 1 (100% COMPLETE - 2025-11-14) - PRODUCTION READY**
-- ✅ Enhanced Error Handling & Network Infrastructure (CORE COMPLETE - 9/9 bugs fixed, optional UI enhancements pending)
 - ✅ Testing complete (446 tests total: 386 original + 60 Phase 0.5, 100% unit coverage, 93% integration coverage)
-- ✅ All 23 tracked bugs fixed (100%)
+- ✅ All 12 tracked bugs fixed (100%)
 
 **✅ Household Data Isolation Phase 1 - COMPLETE:**
 - ✅ Multi-household data is NOW fully isolated for core financial data (transactions, accounts, categories, merchants)
@@ -518,25 +505,6 @@ The multi-household feature is being implemented in phases. **Phases 0 and 1 are
 - Update 50+ components to pass household context
 - Add security checks to prevent cross-household access
 
-### Enhanced Error Handling - Optional UI Enhancements
-**Status:** Core fixes complete (9/9 bugs), optional UI pending
-**Estimated Effort:** 2-3 hours (optional polish)
-**Last Updated:** 2025-11-15
-**Plan:** `docs/fetch-error-handling-improvement-plan.md`
-
-**Core work complete:**
-- ✅ Enhanced fetch utility with retry logic
-- ✅ Network status context with health checks
-- ✅ All component error handling improved
-- ✅ Circuit breakers and batching implemented
-
-**Optional UI enhancements (not required for functionality):**
-- ⏳ Request queue for offline support (already have basic offline detection)
-- ⏳ Skeleton loading components (currently using simple loading states)
-- ⏳ Reusable error UI components (currently inline error states)
-- ⏳ Offline banner component (currently using toast notifications)
-- ⏳ Network status integration in root layout (currently per-component)
-
 ### Other Next Steps
 1. ✅ **Authentication Migration** - Complete
 2. ✅ **Settings Page** - Complete
@@ -544,9 +512,9 @@ The multi-household feature is being implemented in phases. **Phases 0 and 1 are
 4. ✅ **Household Favorite Feature** - Complete
 5. ✅ **Developer Mode Feature** - Complete
 6. ✅ **Household Data Isolation Phase 0** - Complete (60 tests, 100% passing)
-7. ✅ **Enhanced Error Handling** - Core complete (9/9 bugs fixed, optional UI pending)
-8. ⏳ **Household Data Isolation Phases 1-4** - Not started (5-9 days)
-9. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
-10. Docker configuration for deployment
-11. Performance optimizations as needed
-12. User feedback and iterations
+7. ⏳ **Household Data Isolation Phases 1-4** - Not started (5-9 days)
+8. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
+9. Docker configuration for deployment
+10. Performance optimizations as needed
+11. User feedback and iterations
+

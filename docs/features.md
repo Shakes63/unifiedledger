@@ -9,6 +9,28 @@
 
 ## Incomplete Features
 
+### Enhanced Error Handling & Network Infrastructure
+**Status:** Core fixes complete, UI enhancements pending
+**Plan:** `docs/fetch-error-handling-improvement-plan.md`
+
+**✅ Completed (9/9 bugs fixed):**
+- Enhanced fetch utility with retry logic
+- Network status context with health checks
+- HouseholdContext initialization state & error handling
+- RecentTransactions guard clauses & error states
+- WebVitals circuit breaker & metric batching
+- Performance endpoint resilience
+- SessionActivity ping improvements
+
+**⏳ Pending (Optional UI enhancements):**
+- Request queue for offline support
+- Skeleton loading components
+- Reusable error UI components
+- Offline banner component
+- Network status integration in root layout
+
+---
+
 ### Household Data Isolation Phase 2-4
 **Status:** Not started (Phases 2-4 pending)
 **Plan:** `docs/household-data-isolation-plan.md`

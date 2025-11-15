@@ -1,0 +1,57 @@
+---
+description: Current project status, recent updates, and next steps
+alwaysApply: false
+---
+
+# Project Status & Recent Updates
+
+## Current Status
+**All core features implemented and working!**
+- ✅ Transaction management with splits, search, CSV import
+- ✅ Bill tracking with auto-detection
+- ✅ Budget tracking with real-time progress, templates
+- ✅ Savings goals and debt management with milestones
+- ✅ Rules-based auto-categorization (14 operators, 11 actions)
+- ✅ Comprehensive notification system (10 types)
+- ✅ Tax and sales tax tracking with quarterly reporting
+- ✅ Financial reports (6 types, 7 chart types)
+- ✅ Household collaboration with activity feed
+- ✅ Offline mode with automatic sync
+- ✅ PWA support for mobile app experience
+- ✅ Unified Settings Page (3-tier structure with User Settings, My Settings, and Household Settings tabs)
+- ✅ Testing complete (446 tests total: 386 original + 60 Phase 0.5, 100% unit coverage, 93% integration coverage)
+- ✅ All 12 tracked bugs fixed (100%)
+
+## Household Data Isolation Status
+
+**✅ Phase 0 - COMPLETE:** Three-tier settings architecture fully implemented and tested
+**✅ Phase 1 - COMPLETE:** Core financial data isolation (transactions, accounts, categories, merchants) - PRODUCTION READY
+
+**What works:** Users can switch between households and see fully isolated transactions, accounts, categories, and merchants.
+
+**Remaining Phases:**
+- ⏳ Phase 2: Bills & Budgets API isolation
+- ⏳ Phase 3: Goals & Debts API isolation
+- ⏳ Phase 4: Business logic updates (rules engine, bill matching, usage analytics)
+
+See `docs/household-data-isolation-plan.md` for detailed implementation plans.
+
+## Recent Major Features (2025-11-14)
+- Better Auth Authentication Bug Fixes (100% COMPLETE)
+- Better Auth Cookie Integration (100% COMPLETE)
+- Experimental Features System (100% COMPLETE)
+- GeoIP Location Lookup (100% COMPLETE)
+- Import Preferences (100% COMPLETE)
+- Email Verification Flow (100% COMPLETE)
+- Session Timeout Enforcement (100% COMPLETE)
+- Developer Mode Feature (100% COMPLETE)
+- Household Data Isolation Phase 0 & 1 (100% COMPLETE)
+
+## Next Steps
+1. ⏳ Household Data Isolation Phases 2-4 (3-6 days estimated)
+2. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
+3. Docker configuration for deployment
+4. Performance optimizations as needed
+5. User feedback and iterations
+
+For detailed bug tracking, see `docs/bugs.md`.

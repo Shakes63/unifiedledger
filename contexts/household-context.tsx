@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { applyTheme } from '@/lib/themes/theme-utils';
+import { enhancedFetch, FetchError, FetchErrorType } from '@/lib/utils/enhanced-fetch';
+import { toast } from 'sonner';
 
 interface Household {
   id: string;
@@ -49,9 +51,12 @@ interface HouseholdContextType {
   preferences: UserHouseholdPreferences | null;
   loading: boolean;
   preferencesLoading: boolean;
+  initialized: boolean;
+  error: Error | null;
   setSelectedHouseholdId: (id: string) => Promise<void>;
   refreshHouseholds: () => Promise<void>;
   refreshPreferences: () => Promise<void>;
+  retry: () => Promise<void>;
 }
 
 const HouseholdContext = createContext<HouseholdContextType | undefined>(undefined);
@@ -62,6 +67,8 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   const [preferences, setPreferences] = useState<UserHouseholdPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [preferencesLoading, setPreferencesLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   // Computed value for selected household
   const selectedHousehold = selectedHouseholdId
@@ -72,7 +79,18 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   const loadPreferences = async (householdId: string) => {
     try {
       setPreferencesLoading(true);
-      const response = await fetch(`/api/user/households/${householdId}/preferences`, { credentials: 'include' });
+
+      const response = await enhancedFetch(
+        `/api/user/households/${householdId}/preferences`,
+        {
+          credentials: 'include',
+          retries: 2,
+          timeout: 8000,
+          onRetry: (attempt) => {
+            console.log(`Retrying preferences load (attempt ${attempt})...`);
+          },
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -88,9 +106,43 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
             // Ignore storage errors
           }
         }
+      } else {
+        // Handle non-ok response
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
     } catch (error) {
       console.error('Failed to load household preferences:', error);
+
+      // Show user-friendly error message
+      if (error instanceof FetchError) {
+        if (error.type === FetchErrorType.NETWORK) {
+          toast.error('Unable to load preferences', {
+            description: 'Please check your internet connection',
+          });
+        } else if (error.type === FetchErrorType.TIMEOUT) {
+          toast.error('Request timed out', {
+            description: 'Please try again',
+          });
+        } else if (error.statusCode === 401) {
+          // Don't show toast for auth errors, let middleware handle redirect
+          console.warn('Unauthorized - redirecting to sign in');
+        } else {
+          toast.error('Failed to load preferences', {
+            description: 'Using cached settings',
+          });
+        }
+      }
+
+      // Try to load cached preferences from localStorage
+      try {
+        const cachedTheme = localStorage.getItem('unified-ledger:theme');
+        if (cachedTheme) {
+          applyTheme(cachedTheme);
+        }
+      } catch {
+        // Ignore storage errors
+      }
     } finally {
       setPreferencesLoading(false);
     }
@@ -120,10 +172,23 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
   const refreshHouseholds = async () => {
     try {
-      const response = await fetch('/api/households', { credentials: 'include' });
+      setLoading(true);
+      setError(null);
+
+      const response = await enhancedFetch('/api/households', {
+        credentials: 'include',
+        retries: 3,
+        timeout: 10000,
+        onRetry: (attempt) => {
+          console.log(`Retrying households load (attempt ${attempt})...`);
+        },
+      });
+
       if (response.ok) {
         const data = await response.json();
         setHouseholds(data);
+        setInitialized(true);
+        setError(null);
 
         // Try to restore last selected household from localStorage
         let initialHouseholdId: string | null = null;
@@ -151,12 +216,58 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
           // Load preferences for currently selected household
           await loadPreferences(selectedHouseholdId);
         }
+      } else {
+        // Handle non-ok response
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
     } catch (error) {
       console.error('Failed to fetch households:', error);
+
+      // Set error state
+      const err = error instanceof Error ? error : new Error('Failed to load households');
+      setError(err);
+      setInitialized(false);
+
+      // Show user-friendly error message
+      if (error instanceof FetchError) {
+        if (error.type === FetchErrorType.NETWORK) {
+          toast.error('Unable to load households', {
+            description: 'Please check your internet connection',
+            action: {
+              label: 'Retry',
+              onClick: () => refreshHouseholds(),
+            },
+          });
+        } else if (error.type === FetchErrorType.TIMEOUT) {
+          toast.error('Request timed out', {
+            description: 'Loading households took too long',
+            action: {
+              label: 'Retry',
+              onClick: () => refreshHouseholds(),
+            },
+          });
+        } else if (error.statusCode === 401) {
+          // Don't show toast for auth errors, let middleware handle redirect
+          console.warn('Unauthorized - redirecting to sign in');
+        } else {
+          toast.error('Failed to load households', {
+            description: error.getUserMessage(),
+            action: {
+              label: 'Retry',
+              onClick: () => refreshHouseholds(),
+            },
+          });
+        }
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  // Retry function for manual retries
+  const retry = async () => {
+    await refreshHouseholds();
   };
 
   useEffect(() => {
@@ -172,9 +283,12 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         preferences,
         loading,
         preferencesLoading,
+        initialized,
+        error,
         setSelectedHouseholdId,
         refreshHouseholds,
         refreshPreferences,
+        retry,
       }}
     >
       {children}

@@ -33,58 +33,101 @@ const metricsStore = new Map<
 >();
 
 /**
- * POST: Receive and store a new metric
+ * POST: Receive and store a new metric (or batch of metrics)
+ * Supports both single metric and batched metrics
  */
 export async function POST(request: NextRequest) {
   try {
     // Try to get auth, but don't fail if user is not logged in
+    // This makes performance tracking non-blocking
     let userId: string | null = null;
     try {
       const auth = await requireAuth();
       userId = auth.userId;
     } catch (error) {
-      // User not authenticated - silently ignore metrics from public pages
+      // User not authenticated - return success but don't store
+      // This prevents errors on public pages and unauthenticated requests
       return NextResponse.json({ success: true, stored: false });
     }
 
     const body = await request.json();
-    const { metric, timestamp, url, userAgent } = body;
 
-    if (!metric || !metric.name) {
-      return NextResponse.json(
-        { error: "Invalid metric format" },
-        { status: 400 }
+    // Check if this is a batched request
+    if (body.batched && Array.isArray(body.metrics)) {
+      // Handle batched metrics
+      const metrics = body.metrics;
+
+      // Validate all metrics have required fields
+      const validMetrics = metrics.filter(
+        (item: any) => item.metric && item.metric.name
       );
+
+      if (validMetrics.length === 0) {
+        // No valid metrics, but return success (non-critical)
+        return NextResponse.json({ success: true, stored: false });
+      }
+
+      // Store all valid metrics
+      if (!metricsStore.has(userId)) {
+        metricsStore.set(userId, []);
+      }
+
+      const userMetrics = metricsStore.get(userId)!;
+      for (const item of validMetrics) {
+        userMetrics.push({
+          metric: item.metric,
+          timestamp: item.timestamp || Date.now(),
+          url: item.url || "unknown",
+          userAgent: item.userAgent || "unknown",
+        });
+      }
+
+      // Keep only last 500 metrics per user
+      if (userMetrics.length > 500) {
+        metricsStore.set(userId, userMetrics.slice(-500));
+      }
+
+      return NextResponse.json({
+        success: true,
+        stored: true,
+        count: validMetrics.length,
+      });
+    } else {
+      // Handle single metric (legacy support)
+      const { metric, timestamp, url, userAgent } = body;
+
+      if (!metric || !metric.name) {
+        // Invalid metric, but return success anyway (non-critical)
+        return NextResponse.json({ success: true, stored: false });
+      }
+
+      // Store metric in memory (in production, use database)
+      if (!metricsStore.has(userId)) {
+        metricsStore.set(userId, []);
+      }
+
+      const userMetrics = metricsStore.get(userId)!;
+      userMetrics.push({
+        metric,
+        timestamp: timestamp || Date.now(),
+        url: url || "unknown",
+        userAgent: userAgent || "unknown",
+      });
+
+      // Keep only last 500 metrics per user
+      if (userMetrics.length > 500) {
+        metricsStore.set(userId, userMetrics.slice(-500));
+      }
+
+      return NextResponse.json({ success: true, stored: true });
     }
-
-    // Store metric in memory (in production, use database)
-    if (!metricsStore.has(userId)) {
-      metricsStore.set(userId, []);
-    }
-
-    const userMetrics = metricsStore.get(userId)!;
-    userMetrics.push({
-      metric,
-      timestamp: timestamp || Date.now(),
-      url: url || "unknown",
-      userAgent: userAgent || "unknown",
-    });
-
-    // Keep only last 500 metrics per user
-    if (userMetrics.length > 500) {
-      metricsStore.set(userId, userMetrics.slice(-500));
-    }
-
-    return NextResponse.json({ success: true });
   } catch (error) {
-    if (error instanceof Error && error.message === "Unauthorized") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Even on error, return 200 to prevent client-side errors
+    // Performance tracking should never break the application
+    if (process.env.NODE_ENV === "development") {
+      console.error("[Performance] Error storing metric:", error);
     }
-    console.error("[Performance] Error storing metric:", error);
-    return NextResponse.json(
-      { error: "Failed to store metric" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true, stored: false });
   }
 }
 

@@ -1,0 +1,86 @@
+---
+description: Important architecture decisions, transaction flows, and business logic patterns
+alwaysApply: false
+---
+
+# Important Architecture Decisions
+
+## Transaction Types
+- `income` - Money coming in
+- `expense` - Money going out
+- `transfer_out` - Money leaving source account
+- `transfer_in` - Money arriving at destination account
+
+**Transfer Model:** Creates TWO linked transactions via `transferId`. Main view shows only `transfer_out` to avoid duplicates, account-filtered view shows relevant transaction.
+
+## Rules System
+- Priority-based matching (lower number = higher priority)
+- First matching rule applies
+- Only applies to uncategorized transactions
+- 14 operators: equals, not_equals, contains, not_contains, starts_with, ends_with, greater_than, less_than, between, regex, in_list, matches_day, matches_weekday, matches_month
+- 8 fields: description, amount, account_name, date, day_of_month, weekday, month, notes
+- 11 action types: set_category, set_merchant, set_description, prepend_description, append_description, set_tax_deduction, set_sales_tax, convert_to_transfer, create_split, set_account
+
+## Bill Frequencies
+**Supported Frequencies (7 types):**
+- **one-time:** Single payment on a specific date (auto-deactivates after payment)
+- **weekly:** Repeats every 7 days on the same day of week (creates 8 instances ~2 months ahead)
+- **biweekly:** Repeats every 14 days on the same day of week (creates 4 instances ~2 months ahead)
+- **monthly:** Repeats every month on the same day of month (creates 3 instances)
+- **quarterly:** Repeats every 3 months (creates 3 instances)
+- **semi-annual:** Repeats every 6 months (creates 2 instances)
+- **annual:** Repeats once per year (creates 2 instances)
+
+**Due Date Field Semantics:**
+- one-time: Uses `specificDueDate` field (ISO date string)
+- weekly/biweekly: `dueDate` is day of week (0=Sunday, 6=Saturday)
+- monthly+: `dueDate` is day of month (1-31)
+
+**Auto-Deactivation:**
+- One-time bills automatically become inactive after their instance is marked as paid
+- Other frequencies remain active and continue generating future instances
+
+## Bill Matching
+- Multi-factor matching using Levenshtein distance
+- String similarity (40%), amount tolerance ±5% (30%), date pattern (20%), payee pattern (10%)
+- Only auto-links matches ≥90% confidence
+
+## Offline Sync
+- IndexedDB queue for pending transactions
+- Auto-sync when connection restored
+- Retry logic with max 3 attempts
+- 30-second timeout per request
+
+## Transaction Creation Flow
+1. User selects account, type, amount, category, merchant
+2. Auto-apply learned category from merchant history
+3. Check categorization rules (priority order)
+4. Check budget warnings (real-time impact)
+5. Check for duplicates (Levenshtein matching)
+6. Create transaction with Decimal.js for amounts
+7. Update account balance
+8. Apply tags and custom fields
+9. Log to household activity feed
+
+## Bill Payment Auto-Detection
+1. Expense transaction created
+2. Search active bills
+3. Multi-factor matching (description, amount ±5%, date ±2 days)
+4. If confidence ≥90% → auto-link and mark paid
+5. Update bill instance status
+
+## Budget Warning System
+- Real-time calculation during transaction entry
+- Color-coded indicators (0-80% blue, 80-100% amber, 100%+ red)
+- Shows remaining budget and projected impact
+- Creates notifications when thresholds crossed
+
+## Cron Jobs
+- Bill reminders (daily 9 AM UTC)
+- Budget warnings (daily 9 AM UTC)
+- Low balance alerts (daily 8 AM UTC)
+- Budget reviews (monthly last day 8 PM UTC)
+- Data cleanup (weekly)
+- Usage decay (weekly)
+
+See `docs/CRON_JOB_SETUP.md` for setup instructions.

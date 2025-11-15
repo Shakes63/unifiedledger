@@ -99,13 +99,59 @@ function handleMetric(
 }
 
 /**
+ * Circuit breaker state for preventing repeated failures
+ */
+let failureCount = 0;
+let lastFailureTime = 0;
+const MAX_FAILURES = 3;
+const CIRCUIT_RESET_TIME = 60000; // 1 minute
+
+/**
+ * Metric queue for batching
+ */
+const metricQueue: Array<{
+  metric: CoreWebVitalsMetric;
+  timestamp: number;
+  url: string;
+  userAgent: string;
+}> = [];
+let flushTimeoutId: NodeJS.Timeout | null = null;
+const FLUSH_INTERVAL = 5000; // 5 seconds
+
+/**
+ * Check if browser is online
+ */
+function isOnline(): boolean {
+  if (typeof navigator === "undefined") return true;
+  return navigator.onLine;
+}
+
+/**
  * Send metric to analytics endpoint
  * Uses fetch with credentials since sendBeacon doesn't support authentication
+ * Includes circuit breaker pattern and batching
  */
 async function sendMetricToAnalytics(
   metric: CoreWebVitalsMetric,
   endpoint: string
 ) {
+  // Check if circuit breaker is open (too many failures)
+  if (failureCount >= MAX_FAILURES) {
+    const timeSinceLastFailure = Date.now() - lastFailureTime;
+    if (timeSinceLastFailure < CIRCUIT_RESET_TIME) {
+      // Circuit open, skip sending (silently)
+      return;
+    }
+    // Reset circuit after timeout
+    failureCount = 0;
+  }
+
+  // Check if browser is online
+  if (!isOnline()) {
+    // Don't attempt to send when offline
+    return;
+  }
+
   const payload = {
     metric,
     timestamp: Date.now(),
@@ -113,19 +159,64 @@ async function sendMetricToAnalytics(
     userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
   };
 
+  // Add to queue instead of sending immediately
+  metricQueue.push(payload);
+
+  // Schedule flush if not already scheduled
+  if (!flushTimeoutId) {
+    flushTimeoutId = setTimeout(flushMetricQueue, FLUSH_INTERVAL);
+  }
+}
+
+/**
+ * Flush all queued metrics to the server
+ * Batches multiple metrics into a single request
+ */
+async function flushMetricQueue() {
+  if (metricQueue.length === 0) {
+    flushTimeoutId = null;
+    return;
+  }
+
+  // Take all current metrics from queue
+  const metricsToSend = [...metricQueue];
+  metricQueue.length = 0; // Clear queue
+  flushTimeoutId = null;
+
   try {
+    const endpoint = "/api/performance/metrics";
+
     await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        metrics: metricsToSend,
+        batched: true,
+      }),
       credentials: "include", // Required for cookie-based authentication
       keepalive: true, // Don't block page unload
+      signal: AbortSignal.timeout(3000), // 3 second timeout
     });
-  } catch (error) {
-    // Silently fail - don't break the page for analytics
-    if (process.env.NODE_ENV === "development") {
-      console.error("[Web Vitals] Failed to send metric:", error);
+
+    // Success - reset failure count
+    if (failureCount > 0) {
+      failureCount = 0;
     }
+  } catch (error) {
+    // Increment failure count
+    failureCount++;
+    lastFailureTime = Date.now();
+
+    // Only log in development
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        `[Web Vitals] Failed to send metrics (${failureCount}/${MAX_FAILURES}):`,
+        error
+      );
+    }
+
+    // Don't retry - just drop the metrics
+    // Performance tracking is non-critical
   }
 }
 

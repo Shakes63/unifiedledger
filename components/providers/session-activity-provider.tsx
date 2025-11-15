@@ -51,11 +51,27 @@ export function SessionActivityProvider({ children }: SessionActivityProviderPro
         return;
       }
 
+      // Don't ping if page is hidden (tab not visible)
+      if (typeof document !== 'undefined' && document.hidden) {
+        return;
+      }
+
+      // Don't ping if browser is offline
+      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+        return;
+      }
+
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+
         const response = await fetch('/api/session/ping', {
           method: 'POST',
           credentials: 'include',
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           const data = await response.json().catch(() => ({}));
@@ -77,21 +93,33 @@ export function SessionActivityProvider({ children }: SessionActivityProviderPro
               router.push(`/sign-in?reason=${reason}&callbackUrl=${pathname}`);
             } else {
               // Log but don't logout for generic 401s (might be parsing issue)
-              console.warn('Session ping returned 401 without reason:', data);
+              if (process.env.NODE_ENV === 'development') {
+                console.warn('Session ping returned 401 without reason:', data);
+              }
             }
             return;
           }
 
           // Other error - log but don't logout
-          console.error('Session ping failed:', data);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Session ping failed:', data);
+          }
           return;
         }
 
         // Update last ping time
         lastPingRef.current = now;
       } catch (error) {
-        // Network error - log but don't logout (user might be temporarily offline)
-        console.error('Session ping error:', error);
+        // Network error - silently ignore (user might be temporarily offline)
+        // Only log in development mode
+        if (process.env.NODE_ENV === 'development') {
+          // Check if it's an abort error (timeout)
+          if (error instanceof Error && error.name === 'AbortError') {
+            console.warn('Session ping timed out');
+          } else {
+            console.warn('Session ping error:', error);
+          }
+        }
       }
     }
 

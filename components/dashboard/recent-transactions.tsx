@@ -6,9 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface Transaction {
   id: string;
@@ -42,23 +43,38 @@ interface Category {
 
 export function RecentTransactions() {
   const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
+  const { initialized, loading: householdLoading, error: householdError, retry: retryHousehold } = useHousehold();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState<Error | null>(null);
   const [repeatingTxId, setRepeatingTxId] = useState<string | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
 
   useEffect(() => {
+    // Don't fetch if household context isn't initialized yet
+    if (!initialized) {
+      return;
+    }
+
+    // Don't fetch if there's a household error
+    if (householdError) {
+      setDataLoading(false);
+      return;
+    }
+
+    // Don't fetch if no household is selected
     if (!selectedHouseholdId) {
-      setLoading(false);
+      setDataLoading(false);
       return;
     }
 
     const fetchData = async () => {
       try {
-        setLoading(true);
+        setDataLoading(true);
+        setDataError(null);
 
         // Fetch transactions (50 for scrollable list)
         const txResponse = await fetchWithHousehold('/api/transactions?limit=50');
@@ -89,13 +105,20 @@ export function RecentTransactions() {
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);
+        const err = error instanceof Error ? error : new Error('Failed to load transactions');
+        setDataError(err);
+
+        // Show toast notification for errors
+        toast.error('Failed to load transactions', {
+          description: 'Please try again or check your connection',
+        });
       } finally {
-        setLoading(false);
+        setDataLoading(false);
       }
     };
 
     fetchData();
-  }, [selectedAccountId, selectedHouseholdId, fetchWithHousehold]);
+  }, [selectedAccountId, selectedHouseholdId, initialized, householdError, fetchWithHousehold]);
 
   const handleRepeatTransaction = async (transaction: Transaction) => {
     try {
@@ -253,7 +276,53 @@ export function RecentTransactions() {
         return false;
       });
 
-  if (loading) {
+  // 1. Household context is still initializing
+  if (!initialized && householdLoading) {
+    return (
+      <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+        <p className="text-muted-foreground">Loading...</p>
+      </Card>
+    );
+  }
+
+  // 2. Household failed to load
+  if (householdError) {
+    return (
+      <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="p-3 rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-error) 20%, transparent)' }}>
+            <AlertCircle className="w-6 h-6" style={{ color: 'var(--color-error)' }} />
+          </div>
+          <div>
+            <p className="font-medium text-foreground mb-1">Failed to load households</p>
+            <p className="text-sm text-muted-foreground">Unable to connect to the server</p>
+          </div>
+          <Button
+            onClick={retryHousehold}
+            variant="outline"
+            size="sm"
+            style={{ borderColor: 'var(--color-border)' }}
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  // 3. No household selected or available
+  if (!selectedHouseholdId) {
+    return (
+      <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+        <p className="text-muted-foreground mb-4">No household selected</p>
+        <p className="text-sm text-muted-foreground">Create or join a household to get started</p>
+      </Card>
+    );
+  }
+
+  // 4. Data is loading
+  if (dataLoading) {
     return (
       <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <p className="text-muted-foreground">Loading transactions...</p>
@@ -261,6 +330,33 @@ export function RecentTransactions() {
     );
   }
 
+  // 5. Data failed to load
+  if (dataError) {
+    return (
+      <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="p-3 rounded-full" style={{ backgroundColor: 'color-mix(in oklch, var(--color-error) 20%, transparent)' }}>
+            <AlertCircle className="w-6 h-6" style={{ color: 'var(--color-error)' }} />
+          </div>
+          <div>
+            <p className="font-medium text-foreground mb-1">Failed to load transactions</p>
+            <p className="text-sm text-muted-foreground">{dataError.message}</p>
+          </div>
+          <Button
+            onClick={() => window.location.reload()}
+            variant="outline"
+            size="sm"
+            style={{ borderColor: 'var(--color-border)' }}
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Try Again
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  // 6. No transactions yet
   if (transactions.length === 0) {
     return (
       <Card className="p-6 border text-center py-12 rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
