@@ -26,6 +26,7 @@
 
 'use client';
 
+import { useCallback } from 'react';
 import { useHousehold } from '@/contexts/household-context';
 
 export function useHouseholdFetch() {
@@ -34,13 +35,14 @@ export function useHouseholdFetch() {
   /**
    * GET request with household context
    * Automatically adds x-household-id header
+   * Memoized to prevent infinite loops in useEffect dependencies
    *
    * @param url - The API endpoint URL
    * @param options - Optional fetch options
    * @returns Promise<Response>
    * @throws Error if no household is selected
    */
-  const fetchWithHousehold = async (
+  const fetchWithHousehold = useCallback(async (
     url: string,
     options: RequestInit = {}
   ): Promise<Response> => {
@@ -56,11 +58,12 @@ export function useHouseholdFetch() {
         'x-household-id': selectedHouseholdId,
       },
     });
-  };
+  }, [selectedHouseholdId]);
 
   /**
    * POST request with household context
    * Automatically adds household ID to both header and body
+   * Memoized to prevent infinite loops in useEffect dependencies
    *
    * @param url - The API endpoint URL
    * @param data - The data to send in the request body
@@ -68,7 +71,7 @@ export function useHouseholdFetch() {
    * @returns Promise<Response>
    * @throws Error if no household is selected
    */
-  const postWithHousehold = async (
+  const postWithHousehold = useCallback(async (
     url: string,
     data: any,
     options: RequestInit = {}
@@ -91,11 +94,12 @@ export function useHouseholdFetch() {
         householdId: selectedHouseholdId,
       }),
     });
-  };
+  }, [selectedHouseholdId]);
 
   /**
    * PUT request with household context
    * Automatically adds household ID to both header and body
+   * Memoized to prevent infinite loops in useEffect dependencies
    *
    * @param url - The API endpoint URL
    * @param data - The data to send in the request body
@@ -103,7 +107,7 @@ export function useHouseholdFetch() {
    * @returns Promise<Response>
    * @throws Error if no household is selected
    */
-  const putWithHousehold = async (
+  const putWithHousehold = useCallback(async (
     url: string,
     data: any,
     options: RequestInit = {}
@@ -126,18 +130,19 @@ export function useHouseholdFetch() {
         householdId: selectedHouseholdId,
       }),
     });
-  };
+  }, [selectedHouseholdId]);
 
   /**
    * DELETE request with household context
    * Automatically adds x-household-id header
+   * Memoized to prevent infinite loops in useEffect dependencies
    *
    * @param url - The API endpoint URL
    * @param options - Optional fetch options
    * @returns Promise<Response>
    * @throws Error if no household is selected
    */
-  const deleteWithHousehold = async (
+  const deleteWithHousehold = useCallback(async (
     url: string,
     options: RequestInit = {}
   ): Promise<Response> => {
@@ -154,11 +159,12 @@ export function useHouseholdFetch() {
         'x-household-id': selectedHouseholdId,
       },
     });
-  };
+  }, [selectedHouseholdId]);
 
   /**
    * PATCH request with household context
    * Automatically adds household ID to both header and body
+   * Memoized to prevent infinite loops in useEffect dependencies
    *
    * @param url - The API endpoint URL
    * @param data - The data to send in the request body
@@ -166,7 +172,7 @@ export function useHouseholdFetch() {
    * @returns Promise<Response>
    * @throws Error if no household is selected
    */
-  const patchWithHousehold = async (
+  const patchWithHousehold = useCallback(async (
     url: string,
     data: any,
     options: RequestInit = {}
@@ -189,7 +195,7 @@ export function useHouseholdFetch() {
         householdId: selectedHouseholdId,
       }),
     });
-  };
+  }, [selectedHouseholdId]);
 
   return {
     fetchWithHousehold,

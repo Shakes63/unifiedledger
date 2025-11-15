@@ -37,3 +37,10 @@ alwaysApply: false
 - Use appropriate HTTP status codes
 - Include helpful error messages for debugging
 - Log errors server-side for monitoring
+
+## Enhanced Fetch Utility
+- Use `lib/utils/enhanced-fetch.ts` for all fetch calls (replaces standard fetch)
+- Features: Exponential backoff retry (3 attempts: 1s, 2s, 4s), timeout handling (10s default), request deduplication, detailed error categorization
+- Error types: network, timeout, server, client, abort
+- Always returns 200 for performance metrics endpoint (non-blocking operation)
+- Graceful auth failures - don't break user experience on auth errors

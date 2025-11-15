@@ -125,7 +125,8 @@ export function CategorySelector({
     };
 
     fetchData();
-  }, [transactionType, selectedHouseholdId, fetchWithHousehold]);
+    // Note: fetchWithHousehold is memoized in useHouseholdFetch hook, so we don't need it in dependencies
+  }, [transactionType, selectedHouseholdId]);
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) {

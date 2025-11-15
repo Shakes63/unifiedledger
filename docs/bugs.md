@@ -3,21 +3,27 @@
 ---
 
 ## 🆕 ADD NEW BUGS HERE
+1. After clicking save to create a new transaction it signs me out. 
+2. page.tsx:51  GET http://localhost:3000/api/categories 403 (Forbidden)
+3. :3000/api/transactions?limit=1000:1  Failed to load resource: the server responded with a status of 403 (Forbidden)
+4. :3000/api/accounts:1  Failed to load resource: the server responded with a status of 403 (Forbidden)
+5. forward-logs-shared.ts:95 Image with src "http://localhost:3000/logo.png" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+
 
 
 ---
 
 ## 📊 Current Status
 
-**Active Bugs:** 0
+**Active Bugs:** 5
 **In Progress:** 0
-**Fixed (All Time):** 23
+**Fixed (All Time):** 24
 
 ---
 
 ## ✅ Historical Bug Summary
 
-All 23 tracked bugs have been fixed (100% complete)! 🎉
+24 bugs have been fixed. 5 active bugs remain.
 
 1. **Savings Goals GET 500 Error** - Enhanced error logging and handling in API route
 2. **Savings Goals POST 500 Error** - Added explicit type casting for financial amounts
@@ -37,6 +43,7 @@ All 23 tracked bugs have been fixed (100% complete)! 🎉
 16. **HouseholdContext loadPreferences Failed to Fetch (Bug 5)** - Implemented enhanced fetch with retry logic, circuit breaker pattern, and fallback to cached preferences
 17. **WebVitals sendMetricToAnalytics Failed to Fetch (Bugs 6-7)** - Added circuit breaker pattern, metric batching (5s intervals), and offline detection
 18. **SessionActivity pingServer Failed to Fetch (Bugs 8-9)** - Added Page Visibility API checks, network status detection, timeout handling, and production-safe logging
+19. **Recent Transactions Infinite Loop** - Memoized `useHouseholdFetch` hook functions with `useCallback` and removed function references from `useEffect` dependency arrays in 6 components.
 
 **Comprehensive Error Handling Infrastructure (2025-11-15):**
 - Created `lib/utils/enhanced-fetch.ts` - Robust fetch utility with exponential backoff retry, timeout handling, request deduplication, and detailed error categorization

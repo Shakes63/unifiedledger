@@ -20,7 +20,9 @@ alwaysApply: false
 - ✅ PWA support for mobile app experience
 - ✅ Unified Settings Page (3-tier structure with User Settings, My Settings, and Household Settings tabs)
 - ✅ Testing complete (446 tests total: 386 original + 60 Phase 0.5, 100% unit coverage, 93% integration coverage)
-- ✅ All 12 tracked bugs fixed (100%)
+- ✅ Enhanced Error Handling & Network Infrastructure (CORE COMPLETE - 9/9 bugs fixed, optional UI enhancements pending)
+- ✅ Recent Transactions Infinite Loop Fix (2025-11-15) - Memoized useHouseholdFetch functions with useCallback
+- ⏳ 5 active bugs remaining (see docs/bugs.md)
 
 ## Household Data Isolation Status
 
@@ -36,7 +38,21 @@ alwaysApply: false
 
 See `docs/household-data-isolation-plan.md` for detailed implementation plans.
 
-## Recent Major Features (2025-11-14)
+## Recent Major Features
+
+**Latest (2025-11-15):**
+- Enhanced Error Handling & Network Infrastructure (CORE COMPLETE - 9/9 bugs fixed)
+  - ✅ Created `lib/utils/enhanced-fetch.ts` - Robust fetch utility with exponential backoff retry (3 attempts: 1s, 2s, 4s), timeout handling (10s default), request deduplication, and detailed error categorization
+  - ✅ Created `contexts/network-status-context.tsx` - Real-time online/offline detection, periodic server health checks (30s), connection quality monitoring, automatic toast notifications
+  - ✅ Updated `contexts/household-context.tsx` - Added initialization state, error state, retry function, enhanced fetch with retry logic, toast notifications with actionable retry buttons
+  - ✅ Updated `components/dashboard/recent-transactions.tsx` - Implemented 6-state loading system, guard clauses, comprehensive error states with retry buttons
+  - ✅ Updated `hooks/useWebVitals.ts` - Implemented circuit breaker pattern, metric batching, offline detection, silent failure mode
+  - ✅ Updated `app/api/performance/metrics/route.ts` - Added batched metrics support (80-90% reduction in requests), always returns 200, graceful auth failures
+  - ✅ Updated `components/providers/session-activity-provider.tsx` - Added Page Visibility API integration, network status detection, timeout handling
+  - ⏳ Optional UI enhancements pending: Request queue for offline support, skeleton loading components, reusable error UI components, offline banner component, network status integration in root layout
+  - See `docs/fetch-error-handling-improvement-plan.md` for comprehensive implementation plan
+
+**Previous (2025-11-14):**
 - Better Auth Authentication Bug Fixes (100% COMPLETE)
 - Better Auth Cookie Integration (100% COMPLETE)
 - Experimental Features System (100% COMPLETE)
@@ -48,10 +64,41 @@ See `docs/household-data-isolation-plan.md` for detailed implementation plans.
 - Household Data Isolation Phase 0 & 1 (100% COMPLETE)
 
 ## Next Steps
-1. ⏳ Household Data Isolation Phases 2-4 (3-6 days estimated)
-2. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
-3. Docker configuration for deployment
-4. Performance optimizations as needed
-5. User feedback and iterations
+
+### Enhanced Error Handling - Optional UI Enhancements
+**Status:** Core fixes complete (9/9 bugs), optional UI pending
+**Estimated Effort:** 2-3 hours (optional polish)
+**Last Updated:** 2025-11-15
+**Plan:** `docs/fetch-error-handling-improvement-plan.md`
+
+**Core work complete:**
+- ✅ Enhanced fetch utility with retry logic
+- ✅ Network status context with health checks
+- ✅ All component error handling improved
+- ✅ Circuit breakers and batching implemented
+
+**Optional UI enhancements (not required for functionality):**
+- ⏳ Request queue for offline support (already have basic offline detection)
+- ⏳ Skeleton loading components (currently using simple loading states)
+- ⏳ Reusable error UI components (currently inline error states)
+- ⏳ Offline banner component (currently using toast notifications)
+- ⏳ Network status integration in root layout (currently per-component)
+
+### Household Data Isolation - Future Phases
+**Status:** Phase 0 - ✅ Complete | Phase 1 - ✅ Complete | Phases 2-4 - Not Started
+**Estimated Remaining Effort:** 3-6 days (Phases 2-4)
+
+**Remaining:**
+- ⏳ Phase 2: Bills & Budgets API isolation
+- ⏳ Phase 3: Goals & Debts API isolation
+- ⏳ Phase 4: Business logic updates (rules engine, bill matching, usage analytics)
+
+### Other Next Steps
+1. ✅ **Enhanced Error Handling** - Core complete (9/9 bugs fixed, optional UI pending)
+2. ⏳ **Household Data Isolation Phases 2-4** - Not started (3-6 days estimated)
+3. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
+4. Docker configuration for deployment
+5. Performance optimizations as needed
+6. User feedback and iterations
 
 For detailed bug tracking, see `docs/bugs.md`.

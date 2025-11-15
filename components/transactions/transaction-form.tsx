@@ -237,7 +237,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       };
       loadTransaction();
     }
-  }, [isEditMode, transactionId, selectedHouseholdId, fetchWithHousehold]);
+    // Note: fetchWithHousehold is memoized in useHouseholdFetch hook, so we don't need it in dependencies
+  }, [isEditMode, transactionId, selectedHouseholdId]);
 
   // Reset date to today when creating a new transaction
   useEffect(() => {
@@ -272,7 +273,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     };
 
     fetchAccounts();
-  }, [selectedHouseholdId, fetchWithHousehold]);
+    // Note: fetchWithHousehold is memoized in useHouseholdFetch hook, so we don't need it in dependencies
+  }, [selectedHouseholdId]);
 
   // Fetch pending bills when type is 'bill'
   useEffect(() => {

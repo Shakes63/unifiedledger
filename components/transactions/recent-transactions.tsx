@@ -53,7 +53,8 @@ export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTran
     };
 
     fetchTransactions();
-  }, [limit, selectedHouseholdId, fetchWithHousehold]);
+    // Note: fetchWithHousehold is memoized in useHouseholdFetch hook, so we don't need it in dependencies
+  }, [limit, selectedHouseholdId]);
 
   const handleRepeatTransaction = async (transaction: Transaction) => {
     try {

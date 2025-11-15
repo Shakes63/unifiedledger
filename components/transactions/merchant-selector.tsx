@@ -60,7 +60,8 @@ export function MerchantSelector({
     };
 
     fetchMerchants();
-  }, [selectedHouseholdId, fetchWithHousehold]);
+    // Note: fetchWithHousehold is memoized in useHouseholdFetch hook, so we don't need it in dependencies
+  }, [selectedHouseholdId]);
 
   const handleCreateMerchant = async () => {
     if (!newMerchantName.trim()) {

@@ -61,7 +61,8 @@ export function AccountSelector({
     };
 
     fetchAccounts();
-  }, [selectedAccountId, onAccountChange, selectedHouseholdId, fetchWithHousehold]);
+    // Note: fetchWithHousehold is memoized in useHouseholdFetch hook, so we don't need it in dependencies
+  }, [selectedAccountId, onAccountChange, selectedHouseholdId]);
 
   const selectedAccount = accounts.find((acc) => acc.id === selectedAccountId);
 
