@@ -31,6 +31,7 @@ import { Plus, X, Save, Split as SplitIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { HapticFeedbackTypes } from '@/hooks/useHapticFeedback';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 type TransactionType = 'income' | 'expense' | 'transfer' | 'bill';
 
@@ -83,6 +84,7 @@ interface TransactionFormProps {
 
 export function TransactionForm({ defaultType = 'expense', transactionId, onEditSuccess }: TransactionFormProps) {
   const router = useRouter();
+  const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -171,9 +173,14 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   // Load existing transaction data when in edit mode
   useEffect(() => {
     if (isEditMode && transactionId) {
+      if (!selectedHouseholdId) {
+        setLoading(false);
+        return;
+      }
+
       const loadTransaction = async () => {
         try {
-          const response = await fetch(`/api/transactions/${transactionId}`, { credentials: 'include' });
+          const response = await fetchWithHousehold(`/api/transactions/${transactionId}`);
           if (!response.ok) throw new Error('Failed to load transaction');
           const transaction = await response.json();
 
@@ -193,7 +200,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           if (transaction.isSplit) {
             setUseSplits(true);
             // Load splits
-            const splitsResponse = await fetch(`/api/transactions/${transactionId}/splits`, { credentials: 'include' });
+            const splitsResponse = await fetchWithHousehold(`/api/transactions/${transactionId}/splits`);
             if (splitsResponse.ok) {
               const splitsData = await splitsResponse.json();
               setSplits(splitsData.map((split: any) => ({
@@ -208,7 +215,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           }
 
           // Load transaction tags
-          const tagsResponse = await fetch(`/api/transactions/${transactionId}/tags`, { credentials: 'include' });
+          const tagsResponse = await fetchWithHousehold(`/api/transactions/${transactionId}/tags`);
           if (tagsResponse.ok) {
             const tagsData = await tagsResponse.json();
             setSelectedTagIds(tagsData.map((tag: any) => tag.id));
@@ -230,7 +237,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       };
       loadTransaction();
     }
-  }, [isEditMode, transactionId]);
+  }, [isEditMode, transactionId, selectedHouseholdId, fetchWithHousehold]);
 
   // Reset date to today when creating a new transaction
   useEffect(() => {
@@ -244,10 +251,15 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
   // Fetch accounts for transfer dropdowns
   useEffect(() => {
+    if (!selectedHouseholdId) {
+      setAccountsLoading(false);
+      return;
+    }
+
     const fetchAccounts = async () => {
       try {
         setAccountsLoading(true);
-        const response = await fetch('/api/accounts', { credentials: 'include' });
+        const response = await fetchWithHousehold('/api/accounts');
         if (response.ok) {
           const data = await response.json();
           setAccounts(data);
@@ -260,7 +272,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     };
 
     fetchAccounts();
-  }, []);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   // Fetch pending bills when type is 'bill'
   useEffect(() => {
@@ -430,18 +442,14 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
     setSavingTemplate(true);
     try {
-      const response = await fetch('/api/transactions/templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: templateName,
-          description: formData.description,
-          accountId: formData.accountId,
-          categoryId: formData.categoryId || null,
-          amount: parseFloat(formData.amount),
-          type: formData.type,
-          notes: formData.notes || null,
-        }),
+      const response = await postWithHousehold('/api/transactions/templates', {
+        name: templateName,
+        description: formData.description,
+        accountId: formData.accountId,
+        categoryId: formData.categoryId || null,
+        amount: parseFloat(formData.amount),
+        type: formData.type,
+        notes: formData.notes || null,
       });
 
       if (!response.ok) {
@@ -477,7 +485,6 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       const apiUrl = isEditMode
         ? `/api/transactions/${transactionId}`
         : '/api/transactions';
-      const method = isEditMode ? 'PUT' : 'POST';
 
       // Convert 'bill' type to 'expense' for API submission
       const submitData = {
@@ -487,13 +494,9 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         isSalesTaxable: formData.type === 'income' ? salesTaxEnabled : false,
       };
 
-      const response = await fetch(apiUrl, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(submitData),
-      });
+      const response = isEditMode
+        ? await putWithHousehold(apiUrl, submitData)
+        : await postWithHousehold(apiUrl, submitData);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -510,13 +513,14 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         try {
           // In edit mode, delete old tags first
           if (isEditMode) {
-            const existingTags = await fetch(`/api/transactions/${txId}/tags`, { credentials: 'include' });
+            const existingTags = await fetchWithHousehold(`/api/transactions/${txId}/tags`);
             if (existingTags.ok) {
               const existingTagIds = await existingTags.json();
               for (const tag of existingTagIds) {
                 await fetch('/api/transaction-tags', {
                   method: 'DELETE',
                   headers: { 'Content-Type': 'application/json' },
+                  credentials: 'include',
                   body: JSON.stringify({
                     transactionId: txId,
                     tagId: tag.id,
@@ -581,27 +585,23 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       if (useSplits && splits.length > 0) {
         if (isEditMode) {
           // In edit mode, delete old splits and create new ones
-          const oldSplits = await fetch(`/api/transactions/${txId}/splits`, { credentials: 'include' });
+          const oldSplits = await fetchWithHousehold(`/api/transactions/${txId}/splits`);
           if (oldSplits.ok) {
             const oldSplitsData = await oldSplits.json();
             for (const oldSplit of oldSplitsData) {
-              await fetch(`/api/transactions/${txId}/splits/${oldSplit.id}`, { credentials: 'include', method: 'DELETE', });
+              await deleteWithHousehold(`/api/transactions/${txId}/splits/${oldSplit.id}`);
             }
           }
         }
 
         // Create new splits
         for (const split of splits) {
-          const splitResponse = await fetch(`/api/transactions/${txId}/splits`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              categoryId: split.categoryId,
-              amount: split.amount || 0,
-              percentage: split.percentage || 0,
-              isPercentage: split.isPercentage,
-              description: split.description,
-            }),
+          const splitResponse = await postWithHousehold(`/api/transactions/${txId}/splits`, {
+            categoryId: split.categoryId,
+            amount: split.amount || 0,
+            percentage: split.percentage || 0,
+            isPercentage: split.isPercentage,
+            description: split.description,
           });
 
           if (!splitResponse.ok) {

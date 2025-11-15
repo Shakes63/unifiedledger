@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { AdvancedSearch } from '@/components/transactions/advanced-search';
 import { CSVImportModal } from '@/components/csv-import/csv-import-modal';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import {
   Select,
   SelectContent,
@@ -55,6 +56,12 @@ interface Merchant {
 function TransactionsContent() {
   const searchParams = useSearchParams();
   const accountIdFromUrl = searchParams.get('accountId');
+  const {
+    fetchWithHousehold,
+    postWithHousehold,
+    putWithHousehold,
+    selectedHouseholdId
+  } = useHouseholdFetch();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -91,11 +98,16 @@ function TransactionsContent() {
   // Fetch initial data
   useEffect(() => {
     const fetchInitialData = async () => {
+      if (!selectedHouseholdId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
 
         // Fetch transactions
-        const txResponse = await fetch('/api/transactions?limit=100', { credentials: 'include' });
+        const txResponse = await fetchWithHousehold('/api/transactions?limit=100');
         if (txResponse.ok) {
           const txData = await txResponse.json();
           setTransactions(txData); // API already returns newest first
@@ -103,21 +115,21 @@ function TransactionsContent() {
         }
 
         // Fetch categories
-        const catResponse = await fetch('/api/categories', { credentials: 'include' });
+        const catResponse = await fetchWithHousehold('/api/categories');
         if (catResponse.ok) {
           const catData = await catResponse.json();
           setCategories(catData);
         }
 
         // Fetch accounts
-        const accResponse = await fetch('/api/accounts', { credentials: 'include' });
+        const accResponse = await fetchWithHousehold('/api/accounts');
         if (accResponse.ok) {
           const accData = await accResponse.json();
           setAccounts(accData);
         }
 
         // Fetch merchants
-        const merResponse = await fetch('/api/merchants?limit=1000', { credentials: 'include' });
+        const merResponse = await fetchWithHousehold('/api/merchants?limit=1000');
         if (merResponse.ok) {
           const merData = await merResponse.json();
           setMerchants(merData);
@@ -138,7 +150,7 @@ function TransactionsContent() {
     };
 
     fetchInitialData();
-  }, []);
+  }, [selectedHouseholdId]);
 
   const performSearch = async (filters: any, offset: number = 0) => {
     try {
@@ -161,7 +173,7 @@ function TransactionsContent() {
       params.append('limit', pageSize.toString());
       params.append('offset', offset.toString());
 
-      const response = await fetch(`/api/transactions/search?${params.toString()}`, { credentials: 'include' });
+      const response = await fetchWithHousehold(`/api/transactions/search?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
         setTransactions(data.transactions);
@@ -207,18 +219,14 @@ function TransactionsContent() {
 
       const today = new Date().toISOString().split('T')[0];
 
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accountId: transaction.accountId,
-          categoryId: transaction.categoryId,
-          date: today,
-          amount: transaction.amount,
-          description: transaction.description,
-          notes: transaction.notes,
-          type: transaction.type,
-        }),
+      const response = await postWithHousehold('/api/transactions', {
+        accountId: transaction.accountId,
+        categoryId: transaction.categoryId,
+        date: today,
+        amount: transaction.amount,
+        description: transaction.description,
+        notes: transaction.notes,
+        type: transaction.type,
       });
 
       if (response.ok) {
@@ -229,7 +237,7 @@ function TransactionsContent() {
           await performSearch(currentFilters, paginationOffset);
         } else {
           // Otherwise, refetch all transactions
-          const txResponse = await fetch('/api/transactions?limit=100', { credentials: 'include' });
+          const txResponse = await fetchWithHousehold('/api/transactions?limit=100');
           if (txResponse.ok) {
             const txData = await txResponse.json();
             setTransactions(txData); // API already returns newest first
@@ -329,18 +337,14 @@ function TransactionsContent() {
     try {
       setUpdatingTxId(transactionId);
 
-      const response = await fetch(`/api/transactions/${transactionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value }),
-      });
+      const response = await putWithHousehold(`/api/transactions/${transactionId}`, { [field]: value });
 
       if (response.ok) {
         // Refresh transactions
         if (currentFilters) {
           await performSearch(currentFilters, paginationOffset);
         } else {
-          const txResponse = await fetch('/api/transactions?limit=100', { credentials: 'include' });
+          const txResponse = await fetchWithHousehold('/api/transactions?limit=100');
           if (txResponse.ok) {
             const txData = await txResponse.json();
             setTransactions(txData);
@@ -373,20 +377,16 @@ function TransactionsContent() {
       const categoryType = transaction?.type === 'income' ? 'income' : 'variable_expense';
 
       // Create category
-      const response = await fetch('/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newCategoryName.trim(),
-          type: categoryType,
-        }),
+      const response = await postWithHousehold('/api/categories', {
+        name: newCategoryName.trim(),
+        type: categoryType,
       });
 
       if (response.ok) {
         const newCategory = await response.json();
 
         // Refresh categories
-        const catResponse = await fetch('/api/categories', { credentials: 'include' });
+        const catResponse = await fetchWithHousehold('/api/categories');
         if (catResponse.ok) {
           const catData = await catResponse.json();
           setCategories(catData);
@@ -425,20 +425,16 @@ function TransactionsContent() {
       const merchantCategoryId = transaction?.categoryId || null;
 
       // Create merchant
-      const response = await fetch('/api/merchants', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newMerchantName.trim(),
-          categoryId: merchantCategoryId,
-        }),
+      const response = await postWithHousehold('/api/merchants', {
+        name: newMerchantName.trim(),
+        categoryId: merchantCategoryId,
       });
 
       if (response.ok) {
         const newMerchant = await response.json();
 
         // Refresh merchants
-        const merResponse = await fetch('/api/merchants?limit=1000', { credentials: 'include' });
+        const merResponse = await fetchWithHousehold('/api/merchants?limit=1000');
         if (merResponse.ok) {
           const merData = await merResponse.json();
           setMerchants(merData);
@@ -903,7 +899,7 @@ function TransactionsContent() {
         onSuccess={async () => {
           // Refresh transactions after successful import
           try {
-            const txResponse = await fetch('/api/transactions?limit=100', { credentials: 'include' });
+            const txResponse = await fetchWithHousehold('/api/transactions?limit=100');
             if (txResponse.ok) {
               const txData = await txResponse.json();
               setTransactions(txData); // API already returns newest first

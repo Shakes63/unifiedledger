@@ -20,6 +20,7 @@ import {
 import { Zap } from 'lucide-react';
 import { ExperimentalBadge } from '@/components/experimental/experimental-badge';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface QuickTransactionModalProps {
   open: boolean;
@@ -32,6 +33,7 @@ export function QuickTransactionModal({
   open,
   onOpenChange,
 }: QuickTransactionModalProps) {
+  const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
   const [type, setType] = useState<TransactionType>('expense');
@@ -43,8 +45,10 @@ export function QuickTransactionModal({
 
   // Fetch accounts on mount
   const fetchAccounts = async () => {
+    if (!selectedHouseholdId) return;
+
     try {
-      const response = await fetch('/api/accounts', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/accounts');
       if (response.ok) {
         const data = await response.json();
         setAccounts(data);
@@ -81,18 +85,12 @@ export function QuickTransactionModal({
         return;
       }
 
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          accountId,
-          amount: parseFloat(amount),
-          description,
-          type,
-          date: new Date().toISOString().split('T')[0],
-        }),
+      const response = await postWithHousehold('/api/transactions', {
+        accountId,
+        amount: parseFloat(amount),
+        description,
+        type,
+        date: new Date().toISOString().split('T')[0],
       });
 
       if (!response.ok) {

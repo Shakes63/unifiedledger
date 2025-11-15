@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Transaction {
   id: string;
@@ -40,6 +41,7 @@ interface Category {
 }
 
 export function RecentTransactions() {
+  const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -49,33 +51,38 @@ export function RecentTransactions() {
   const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
 
   useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setLoading(true);
 
         // Fetch transactions (50 for scrollable list)
-        const txResponse = await fetch('/api/transactions?limit=50', { credentials: 'include' });
+        const txResponse = await fetchWithHousehold('/api/transactions?limit=50');
         if (txResponse.ok) {
           const data = await txResponse.json();
           setTransactions(data);
         }
 
         // Fetch merchants
-        const merResponse = await fetch('/api/merchants?limit=1000', { credentials: 'include' });
+        const merResponse = await fetchWithHousehold('/api/merchants?limit=1000');
         if (merResponse.ok) {
           const merData = await merResponse.json();
           setMerchants(merData);
         }
 
         // Fetch accounts
-        const accResponse = await fetch('/api/accounts', { credentials: 'include' });
+        const accResponse = await fetchWithHousehold('/api/accounts');
         if (accResponse.ok) {
           const accData = await accResponse.json();
           setAccounts(accData);
         }
 
         // Fetch categories
-        const catResponse = await fetch('/api/categories', { credentials: 'include' });
+        const catResponse = await fetchWithHousehold('/api/categories');
         if (catResponse.ok) {
           const catData = await catResponse.json();
           setCategories(catData);
@@ -88,7 +95,7 @@ export function RecentTransactions() {
     };
 
     fetchData();
-  }, []);
+  }, [selectedAccountId, selectedHouseholdId, fetchWithHousehold]);
 
   const handleRepeatTransaction = async (transaction: Transaction) => {
     try {
@@ -96,19 +103,15 @@ export function RecentTransactions() {
 
       const today = new Date().toISOString().split('T')[0];
 
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accountId: transaction.accountId,
-          categoryId: transaction.categoryId,
-          merchantId: transaction.merchantId,
-          date: today,
-          amount: transaction.amount,
-          description: transaction.description,
-          notes: transaction.notes,
-          type: transaction.type,
-        }),
+      const response = await postWithHousehold('/api/transactions', {
+        accountId: transaction.accountId,
+        categoryId: transaction.categoryId,
+        merchantId: transaction.merchantId,
+        date: today,
+        amount: transaction.amount,
+        description: transaction.description,
+        notes: transaction.notes,
+        type: transaction.type,
       });
 
       if (response.ok) {
@@ -128,7 +131,7 @@ export function RecentTransactions() {
           isSplit: false, // New transactions aren't split by default
         };
         // Refetch the transactions to get the accurate list instead of manually manipulating state
-        const refreshResponse = await fetch('/api/transactions?limit=5', { credentials: 'include' });
+        const refreshResponse = await fetchWithHousehold('/api/transactions?limit=5');
         if (refreshResponse.ok) {
           const refreshedData = await refreshResponse.json();
           setTransactions(refreshedData);

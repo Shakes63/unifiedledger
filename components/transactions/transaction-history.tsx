@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Copy, Repeat2, Trash2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Transaction {
   id: string;
@@ -31,16 +32,24 @@ export function TransactionHistory({
   onRepeat,
   onCreateTemplate,
 }: TransactionHistoryProps) {
+  const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [repeatingId, setRepeatingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchHistory();
-  }, [accountId]);
+    if (selectedHouseholdId) {
+      fetchHistory();
+    }
+  }, [accountId, selectedHouseholdId]);
 
   const fetchHistory = async () => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -51,7 +60,7 @@ export function TransactionHistory({
         url.searchParams.set('accountId', accountId);
       }
 
-      const response = await fetch(url);
+      const response = await fetchWithHousehold(url.toString().replace(window.location.origin, ''));
       if (!response.ok) throw new Error('Failed to fetch history');
       const data = await response.json();
       setTransactions(data);
@@ -70,13 +79,9 @@ export function TransactionHistory({
 
     setRepeatingId(transaction.id);
     try {
-      const response = await fetch('/api/transactions/repeat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          templateId: transaction.id,
-          date: new Date().toISOString().split('T')[0],
-        }),
+      const response = await postWithHousehold('/api/transactions/repeat', {
+        templateId: transaction.id,
+        date: new Date().toISOString().split('T')[0],
       });
 
       if (!response.ok) throw new Error('Failed to repeat transaction');

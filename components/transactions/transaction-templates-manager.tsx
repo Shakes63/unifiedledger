@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Trash2, Copy, Loader2, Plus } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Template {
   id: string;
@@ -46,6 +47,7 @@ export function TransactionTemplatesManager({
   onTemplateSelected,
   showTrigger = true,
 }: TransactionTemplatesManagerProps) {
+  const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,14 +62,21 @@ export function TransactionTemplatesManager({
   });
 
   useEffect(() => {
-    fetchTemplates();
-  }, []);
+    if (selectedHouseholdId) {
+      fetchTemplates();
+    }
+  }, [selectedHouseholdId]);
 
   const fetchTemplates = async () => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/transactions/templates', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/transactions/templates');
       if (!response.ok) throw new Error('Failed to fetch templates');
       const data = await response.json();
       setTemplates(data);

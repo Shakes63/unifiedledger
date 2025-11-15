@@ -7,6 +7,7 @@ import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { AccountForm } from '@/components/accounts/account-form';
 import { AccountCard } from '@/components/accounts/account-card';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Account {
   id: string;
@@ -21,6 +22,14 @@ interface Account {
 }
 
 export default function AccountsPage() {
+  const {
+    fetchWithHousehold,
+    postWithHousehold,
+    putWithHousehold,
+    deleteWithHousehold,
+    selectedHouseholdId
+  } = useHouseholdFetch();
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -30,9 +39,14 @@ export default function AccountsPage() {
   // Fetch accounts
   useEffect(() => {
     const fetchAccounts = async () => {
+      if (!selectedHouseholdId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const response = await fetch('/api/accounts', { credentials: 'include' });
+        const response = await fetchWithHousehold('/api/accounts');
         if (response.ok) {
           const data = await response.json();
           setAccounts(data);
@@ -48,7 +62,7 @@ export default function AccountsPage() {
     };
 
     fetchAccounts();
-  }, []);
+  }, [selectedHouseholdId]);
 
   // Create or update account
   const handleSubmit = async (formData: any, saveMode: 'save' | 'saveAndAdd' = 'save') => {
@@ -56,13 +70,9 @@ export default function AccountsPage() {
       setIsSubmitting(true);
 
       const url = selectedAccount ? `/api/accounts/${selectedAccount.id}` : '/api/accounts';
-      const method = selectedAccount ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+      const response = selectedAccount
+        ? await putWithHousehold(url, formData)
+        : await postWithHousehold(url, formData);
 
       if (response.ok || response.status === 201) {
         const result = await response.json();
@@ -75,7 +85,7 @@ export default function AccountsPage() {
         }
 
         // Refresh accounts list
-        const fetchResponse = await fetch('/api/accounts', { credentials: 'include' });
+        const fetchResponse = await fetchWithHousehold('/api/accounts');
         if (fetchResponse.ok) {
           const data = await fetchResponse.json();
           setAccounts(data);
@@ -118,7 +128,7 @@ export default function AccountsPage() {
     }
 
     try {
-      const response = await fetch(`/api/accounts/${accountId}`, { credentials: 'include', method: 'DELETE', });
+      const response = await deleteWithHousehold(`/api/accounts/${accountId}`);
 
       if (response.ok) {
         toast.success('Account deleted successfully');

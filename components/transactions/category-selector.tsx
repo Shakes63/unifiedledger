@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Category {
   id: string;
@@ -45,6 +46,7 @@ export function CategorySelector({
   onCategoryChange,
   transactionType,
 }: CategorySelectorProps) {
+  const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [categories, setCategories] = useState<Category[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -59,12 +61,17 @@ export function CategorySelector({
   };
 
   useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setLoading(true);
 
         // Fetch categories
-        const categoriesResponse = await fetch('/api/categories', { credentials: 'include' });
+        const categoriesResponse = await fetchWithHousehold('/api/categories');
         if (categoriesResponse.ok) {
           const data = await categoriesResponse.json();
           // Filter categories based on transaction type
@@ -118,7 +125,7 @@ export function CategorySelector({
     };
 
     fetchData();
-  }, [transactionType]);
+  }, [transactionType, selectedHouseholdId, fetchWithHousehold]);
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) {
@@ -128,14 +135,10 @@ export function CategorySelector({
 
     setCreatingCategory(true);
     try {
-      const response = await fetch('/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newCategoryName,
-          type: getCategoryType(),
-          monthlyBudget: 0,
-        }),
+      const response = await postWithHousehold('/api/categories', {
+        name: newCategoryName,
+        type: getCategoryType(),
+        monthlyBudget: 0,
       });
 
       if (response.ok) {

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Merchant {
   id: string;
@@ -30,6 +31,7 @@ export function MerchantSelector({
   onMerchantChange,
   hideLabel = false,
 }: MerchantSelectorProps) {
+  const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -37,10 +39,15 @@ export function MerchantSelector({
   const [creatingMerchant, setCreatingMerchant] = useState(false);
 
   useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchMerchants = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/merchants', { credentials: 'include' });
+        const response = await fetchWithHousehold('/api/merchants');
         if (response.ok) {
           const data = await response.json();
           setMerchants(data);
@@ -53,7 +60,7 @@ export function MerchantSelector({
     };
 
     fetchMerchants();
-  }, []);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   const handleCreateMerchant = async () => {
     if (!newMerchantName.trim()) {
@@ -63,12 +70,8 @@ export function MerchantSelector({
 
     setCreatingMerchant(true);
     try {
-      const response = await fetch('/api/merchants', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newMerchantName,
-        }),
+      const response = await postWithHousehold('/api/merchants', {
+        name: newMerchantName,
       });
 
       if (response.ok) {

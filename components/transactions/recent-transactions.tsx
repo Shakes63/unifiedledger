@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Transaction {
   id: string;
@@ -25,15 +26,21 @@ interface RecentTransactionsProps {
 }
 
 export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTransactionsProps) {
+  const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [repeatingTxId, setRepeatingTxId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchTransactions = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/transactions?limit=${limit}`, { credentials: 'include' });
+        const response = await fetchWithHousehold(`/api/transactions?limit=${limit}`);
         if (response.ok) {
           const data = await response.json();
           setTransactions(data.slice(0, limit)); // API already returns newest first
@@ -46,7 +53,7 @@ export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTran
     };
 
     fetchTransactions();
-  }, [limit]);
+  }, [limit, selectedHouseholdId, fetchWithHousehold]);
 
   const handleRepeatTransaction = async (transaction: Transaction) => {
     try {
@@ -54,18 +61,14 @@ export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTran
 
       const today = new Date().toISOString().split('T')[0];
 
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          accountId: transaction.accountId,
-          categoryId: transaction.categoryId,
-          date: today,
-          amount: transaction.amount,
-          description: transaction.description,
-          notes: transaction.notes,
-          type: transaction.type,
-        }),
+      const response = await postWithHousehold('/api/transactions', {
+        accountId: transaction.accountId,
+        categoryId: transaction.categoryId,
+        date: today,
+        amount: transaction.amount,
+        description: transaction.description,
+        notes: transaction.notes,
+        type: transaction.type,
       });
 
       if (response.ok) {

@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { DollarSign } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Account {
   id: string;
@@ -30,14 +31,20 @@ export function AccountSelector({
   label = 'Account',
   hideLabel = false,
 }: AccountSelectorProps) {
+  const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchAccounts = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/accounts', { credentials: 'include' });
+        const response = await fetchWithHousehold('/api/accounts');
         if (response.ok) {
           const data = await response.json();
           setAccounts(data);
@@ -54,7 +61,7 @@ export function AccountSelector({
     };
 
     fetchAccounts();
-  }, [selectedAccountId, onAccountChange]);
+  }, [selectedAccountId, onAccountChange, selectedHouseholdId, fetchWithHousehold]);
 
   const selectedAccount = accounts.find((acc) => acc.id === selectedAccountId);
 

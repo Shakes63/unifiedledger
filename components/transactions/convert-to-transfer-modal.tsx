@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowRightLeft, DollarSign, AlertCircle, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import Decimal from 'decimal.js';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Transaction {
   id: string;
@@ -53,6 +54,7 @@ export function ConvertToTransferModal({
   transaction,
   onSuccess,
 }: ConvertToTransferModalProps) {
+  const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [targetAccountId, setTargetAccountId] = useState<string>('');
   const [matchingTransactions, setMatchingTransactions] = useState<Transaction[]>([]);
@@ -63,10 +65,10 @@ export function ConvertToTransferModal({
 
   // Fetch accounts
   useEffect(() => {
-    if (open && transaction) {
+    if (open && transaction && selectedHouseholdId) {
       const fetchAccounts = async () => {
         try {
-          const response = await fetch('/api/accounts', { credentials: 'include' });
+          const response = await fetchWithHousehold('/api/accounts');
           if (response.ok) {
             const data = await response.json();
             // Filter out the current transaction's account

@@ -21,6 +21,7 @@ import {
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Merchant {
   id: string;
@@ -39,6 +40,14 @@ interface Category {
 }
 
 export default function MerchantsPage() {
+  const {
+    fetchWithHousehold,
+    postWithHousehold,
+    putWithHousehold,
+    deleteWithHousehold,
+    selectedHouseholdId
+  } = useHouseholdFetch();
+
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,11 +59,16 @@ export default function MerchantsPage() {
   // Fetch merchants and categories
   useEffect(() => {
     const fetchData = async () => {
+      if (!selectedHouseholdId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
 
         // Fetch merchants
-        const merchantsResponse = await fetch('/api/merchants?limit=1000', { credentials: 'include' });
+        const merchantsResponse = await fetchWithHousehold('/api/merchants?limit=1000');
         if (merchantsResponse.ok) {
           const merchantsData = await merchantsResponse.json();
           setMerchants(merchantsData);
@@ -63,7 +77,7 @@ export default function MerchantsPage() {
         }
 
         // Fetch categories
-        const categoriesResponse = await fetch('/api/categories', { credentials: 'include' });
+        const categoriesResponse = await fetchWithHousehold('/api/categories');
         if (categoriesResponse.ok) {
           const categoriesData = await categoriesResponse.json();
           setCategories(categoriesData);
@@ -77,7 +91,7 @@ export default function MerchantsPage() {
     };
 
     fetchData();
-  }, []);
+  }, [selectedHouseholdId]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,13 +106,9 @@ export default function MerchantsPage() {
 
       if (selectedMerchant) {
         // Update merchant
-        const response = await fetch(`/api/merchants/${selectedMerchant.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: formData.name,
-            categoryId: formData.categoryId || null,
-          }),
+        const response = await putWithHousehold(`/api/merchants/${selectedMerchant.id}`, {
+          name: formData.name,
+          categoryId: formData.categoryId || null,
         });
 
         if (response.ok) {
@@ -120,13 +130,9 @@ export default function MerchantsPage() {
         }
       } else {
         // Create merchant
-        const response = await fetch('/api/merchants', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: formData.name,
-            categoryId: formData.categoryId || null,
-          }),
+        const response = await postWithHousehold('/api/merchants', {
+          name: formData.name,
+          categoryId: formData.categoryId || null,
         });
 
         if (response.ok) {
@@ -155,7 +161,7 @@ export default function MerchantsPage() {
     }
 
     try {
-      const response = await fetch(`/api/merchants/${merchantId}`, { credentials: 'include', method: 'DELETE', });
+      const response = await deleteWithHousehold(`/api/merchants/${merchantId}`);
 
       if (response.ok) {
         toast.success('Merchant deleted successfully');
