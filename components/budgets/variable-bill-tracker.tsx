@@ -5,6 +5,8 @@ import { VariableBillCard } from './variable-bill-card';
 import { toast } from 'sonner';
 import Decimal from 'decimal.js';
 import { FileText, BarChart3, Lightbulb } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface VariableBillData {
   id: string;
@@ -55,6 +57,8 @@ interface VariableBillSummary {
 type FilterType = 'all' | 'under' | 'over' | 'pending';
 
 export function VariableBillTracker() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold, putWithHousehold } = useHouseholdFetch();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bills, setBills] = useState<VariableBillData[]>([]);
@@ -72,14 +76,17 @@ export function VariableBillTracker() {
 
   // Fetch variable bill data
   useEffect(() => {
-    if (!month) return;
+    if (!month || !selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
 
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/budgets/bills/variable?month=${month}`, { credentials: 'include' });
+        const response = await fetchWithHousehold(`/api/budgets/bills/variable?month=${month}`);
 
         if (!response.ok) {
           throw new Error('Failed to fetch variable bill data');
@@ -90,6 +97,10 @@ export function VariableBillTracker() {
         setSummary(data.summary || null);
       } catch (err) {
         console.error('Error fetching variable bills:', err);
+        if (err instanceof Error && err.message === 'No household selected') {
+          setLoading(false);
+          return;
+        }
         setError(err instanceof Error ? err.message : 'An error occurred');
         toast.error('Failed to load variable bills');
       } finally {
@@ -98,7 +109,7 @@ export function VariableBillTracker() {
     };
 
     fetchData();
-  }, [month]);
+  }, [month, selectedHouseholdId, fetchWithHousehold]);
 
   // Load expanded state from localStorage
   useEffect(() => {
@@ -157,10 +168,8 @@ export function VariableBillTracker() {
   // Update expected amount
   const handleUpdateExpectedAmount = async (billId: string, newAmount: number) => {
     try {
-      const response = await fetch(`/api/bills/${billId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expectedAmount: newAmount }),
+      const response = await putWithHousehold(`/api/bills/${billId}`, {
+        expectedAmount: newAmount,
       });
 
       if (!response.ok) {
@@ -170,7 +179,7 @@ export function VariableBillTracker() {
       toast.success('Budget updated successfully');
 
       // Refresh data
-      const dataResponse = await fetch(`/api/budgets/bills/variable?month=${month}`, { credentials: 'include' });
+      const dataResponse = await fetchWithHousehold(`/api/budgets/bills/variable?month=${month}`);
       const data = await dataResponse.json();
       setBills(data.bills || []);
       setSummary(data.summary || null);

@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, bills, billInstances } from '@/lib/db/schema';
 import { eq, and, desc, gte, lte } from 'drizzle-orm';
@@ -13,8 +14,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+
     const {
       transactionIds = null, // If provided, only match these transactions
       dateStart = null, // If provided, match transactions in date range
@@ -24,13 +26,14 @@ export async function POST(request: Request) {
       maxTransactions = 100, // Limit to prevent long processing
     } = body;
 
-    // Get user's bills
+    // Get user's bills for this household
     const userBills = await db
       .select()
       .from(bills)
       .where(
         and(
           eq(bills.userId, userId),
+          eq(bills.householdId, householdId),
           eq(bills.isActive, true)
         )
       );
@@ -44,9 +47,10 @@ export async function POST(request: Request) {
       });
     }
 
-    // Build query for transactions to match
+    // Build query for transactions to match (filtered by household)
     const conditions = [
       eq(transactions.userId, userId),
+      eq(transactions.householdId, householdId),
       eq(transactions.type, 'expense'),
     ];
 
@@ -122,7 +126,7 @@ export async function POST(request: Request) {
             continue;
           }
 
-          // Find a pending bill instance for this match
+          // Find a pending bill instance for this match (filtered by household)
           const txDate = new Date(result.transaction.date);
           const currentMonth = txDate.getMonth();
           const currentYear = txDate.getFullYear();
@@ -136,22 +140,28 @@ export async function POST(request: Request) {
             .where(
               and(
                 eq(billInstances.billId, bestMatch.billId),
+                eq(billInstances.householdId, householdId),
                 eq(billInstances.status, 'pending')
               )
             )
             .limit(1);
 
           if (instance.length > 0) {
-            // Update transaction to link to bill
+            // Update transaction to link to bill (filtered by household)
             await db
               .update(transactions)
               .set({
                 billId: bestMatch.billId,
                 updatedAt: new Date().toISOString(),
               })
-              .where(eq(transactions.id, result.transactionId));
+              .where(
+                and(
+                  eq(transactions.id, result.transactionId),
+                  eq(transactions.householdId, householdId)
+                )
+              );
 
-            // Update bill instance to mark as paid
+            // Update bill instance to mark as paid (filtered by household)
             await db
               .update(billInstances)
               .set({
@@ -161,7 +171,12 @@ export async function POST(request: Request) {
                 transactionId: result.transactionId,
                 updatedAt: new Date().toISOString(),
               })
-              .where(eq(billInstances.id, instance[0].id));
+              .where(
+                and(
+                  eq(billInstances.id, instance[0].id),
+                  eq(billInstances.householdId, householdId)
+                )
+              );
 
             linkedCount++;
           }
@@ -186,6 +201,9 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
     console.error('Error matching bills:', error);
     return Response.json(
       { error: 'Failed to match bills' },
@@ -200,6 +218,7 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '20');
@@ -213,13 +232,14 @@ export async function GET(request: Request) {
     const startDateStr = startDate.toISOString().split('T')[0];
     const endDateStr = endDate.toISOString().split('T')[0];
 
-    // Get unmatched expense transactions
+    // Get unmatched expense transactions (filtered by household)
     const unmatchedTransactions = await db
       .select()
       .from(transactions)
       .where(
         and(
           eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId),
           eq(transactions.type, 'expense')
           // billId is null - unmatched
         )
@@ -240,6 +260,9 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error fetching unmatched transactions:', error);
     return Response.json(

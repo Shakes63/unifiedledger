@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -15,6 +16,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const url = new URL(request.url);
     const month = url.searchParams.get('month');
@@ -34,6 +36,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId),
           eq(budgetCategories.isActive, true)
         )
       )
@@ -46,6 +49,9 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Fetch budgets error:', error);
     return Response.json(
@@ -70,8 +76,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
     const { month, budgets } = body;
 
     // Validate request
@@ -125,7 +131,7 @@ export async function POST(request: Request) {
     const updatedCategories = [];
 
     for (const budget of budgets) {
-      // Verify user owns this category
+      // Verify user owns this category and it belongs to household
       const existingCategory = await db
         .select()
         .from(budgetCategories)
@@ -133,6 +139,7 @@ export async function POST(request: Request) {
           and(
             eq(budgetCategories.id, budget.categoryId),
             eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId),
             eq(budgetCategories.isActive, true)
           )
         )
@@ -141,7 +148,7 @@ export async function POST(request: Request) {
       if (existingCategory.length === 0) {
         return Response.json(
           {
-            error: `Category ${budget.categoryId} not found or does not belong to user`,
+            error: `Category ${budget.categoryId} not found or does not belong to household`,
           },
           { status: 404 }
         );
@@ -175,6 +182,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Update budgets error:', error);
     return Response.json(

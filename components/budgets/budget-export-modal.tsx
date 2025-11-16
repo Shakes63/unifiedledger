@@ -14,6 +14,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface BudgetExportModalProps {
   isOpen: boolean;
@@ -26,6 +28,8 @@ export function BudgetExportModal({
   onClose,
   currentMonth,
 }: BudgetExportModalProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [startMonth, setStartMonth] = useState(currentMonth);
   const [endMonth, setEndMonth] = useState(currentMonth);
   const [includeSummary, setIncludeSummary] = useState(true);
@@ -121,7 +125,7 @@ export function BudgetExportModal({
 
       // Trigger download
       const url = `/api/budgets/export?${params.toString()}`;
-      const response = await fetch(url);
+      const response = await fetchWithHousehold(url);
 
       if (!response.ok) {
         const error = await response.json();

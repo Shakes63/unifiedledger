@@ -9,6 +9,8 @@ import { VariableBillTracker } from '@/components/budgets/variable-bill-tracker'
 import { BudgetAnalyticsSection } from '@/components/budgets/budget-analytics-section';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface BudgetOverview {
   month: string;
@@ -49,6 +51,8 @@ interface BudgetOverview {
 }
 
 export default function BudgetsPage() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold, postWithHousehold } = useHouseholdFetch();
   const [budgetData, setBudgetData] = useState<BudgetOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,14 +72,17 @@ export default function BudgetsPage() {
 
   // Fetch budget data when month changes
   useEffect(() => {
-    if (!selectedMonth) return;
+    if (!selectedMonth || !selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
 
     const fetchBudgetData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/budgets/overview?month=${selectedMonth}`, { credentials: 'include' });
+        const response = await fetchWithHousehold(`/api/budgets/overview?month=${selectedMonth}`);
 
         if (!response.ok) {
           throw new Error('Failed to fetch budget data');
@@ -85,6 +92,10 @@ export default function BudgetsPage() {
         setBudgetData(data);
       } catch (err) {
         console.error('Error fetching budget data:', err);
+        if (err instanceof Error && err.message === 'No household selected') {
+          setLoading(false);
+          return;
+        }
         setError('Failed to load budget data. Please try again.');
         toast.error('Failed to load budget data');
       } finally {
@@ -93,7 +104,7 @@ export default function BudgetsPage() {
     };
 
     fetchBudgetData();
-  }, [selectedMonth]);
+  }, [selectedMonth, selectedHouseholdId, fetchWithHousehold]);
 
   // Navigate to previous month
   const handlePreviousMonth = () => {
@@ -118,11 +129,14 @@ export default function BudgetsPage() {
   // Refresh budget data
   const refreshBudgetData = async () => {
     try {
-      const response = await fetch(`/api/budgets/overview?month=${selectedMonth}`, { credentials: 'include' });
+      const response = await fetchWithHousehold(`/api/budgets/overview?month=${selectedMonth}`);
       const data = await response.json();
       setBudgetData(data);
     } catch (err) {
       console.error('Error refreshing budget data:', err);
+      if (err instanceof Error && err.message === 'No household selected') {
+        return;
+      }
       toast.error('Failed to refresh budget data');
     }
   };
@@ -130,13 +144,9 @@ export default function BudgetsPage() {
   // Handle budget edit
   const handleEditBudget = async (categoryId: string, newBudget: number) => {
     try {
-      const response = await fetch('/api/budgets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          month: selectedMonth,
-          budgets: [{ categoryId, monthlyBudget: newBudget }],
-        }),
+      const response = await postWithHousehold('/api/budgets', {
+        month: selectedMonth,
+        budgets: [{ categoryId, monthlyBudget: newBudget }],
       });
 
       if (!response.ok) {
@@ -161,10 +171,9 @@ export default function BudgetsPage() {
         lastMonthDate.getMonth() + 1
       ).padStart(2, '0')}`;
 
-      const response = await fetch('/api/budgets/copy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromMonth: lastMonth, toMonth: selectedMonth }),
+      const response = await postWithHousehold('/api/budgets/copy', {
+        fromMonth: lastMonth,
+        toMonth: selectedMonth,
       });
 
       if (!response.ok) {

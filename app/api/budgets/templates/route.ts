@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -63,14 +64,19 @@ const TEMPLATES: BudgetTemplate[] = [
  * GET /api/budgets/templates
  * Get available budget templates
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    // Note: Templates are static, but we verify auth for consistency
+    await getAndVerifyHousehold(request, userId);
 
     return Response.json({ templates: TEMPLATES });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Fetch templates error:', error);
     return Response.json(
@@ -92,8 +98,8 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
     const { templateId, monthlyIncome } = body;
 
     // Validate request
@@ -118,13 +124,14 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Invalid templateId' }, { status: 400 });
     }
 
-    // Fetch user's categories
+    // Fetch user's categories for this household
     const categories = await db
       .select()
       .from(budgetCategories)
       .where(
         and(
           eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId),
           eq(budgetCategories.isActive, true)
         )
       );
@@ -351,6 +358,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Apply template error:', error);
     return Response.json(

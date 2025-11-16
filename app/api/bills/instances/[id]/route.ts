@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { billInstances, bills } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -12,6 +13,7 @@ export async function GET(
 ) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const { id } = await params;
 
@@ -21,7 +23,8 @@ export async function GET(
       .where(
         and(
           eq(billInstances.id, id),
-          eq(billInstances.userId, userId)
+          eq(billInstances.userId, userId),
+          eq(billInstances.householdId, householdId)
         )
       )
       .limit(1);
@@ -38,6 +41,9 @@ export async function GET(
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
     console.error('Error fetching bill instance:', error);
     return Response.json(
       { error: 'Failed to fetch bill instance' },
@@ -53,9 +59,10 @@ export async function PUT(
 ) {
   try {
     const { userId } = await requireAuth();
+    const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
 
     const { id } = await params;
-    const body = await request.json();
     const {
       status, // pending, paid, overdue, skipped
       actualAmount,
@@ -67,14 +74,15 @@ export async function PUT(
       notes,
     } = body;
 
-    // Verify instance exists and belongs to user
+    // Verify instance exists and belongs to user and household
     const existingInstance = await db
       .select()
       .from(billInstances)
       .where(
         and(
           eq(billInstances.id, id),
-          eq(billInstances.userId, userId)
+          eq(billInstances.userId, userId),
+          eq(billInstances.householdId, householdId)
         )
       )
       .limit(1);
@@ -109,7 +117,12 @@ export async function PUT(
     await db
       .update(billInstances)
       .set(updateData)
-      .where(eq(billInstances.id, id));
+      .where(
+        and(
+          eq(billInstances.id, id),
+          eq(billInstances.householdId, householdId)
+        )
+      );
 
     // If marking as paid, check if this is a one-time bill and auto-deactivate
     if (status === 'paid') {
@@ -122,7 +135,8 @@ export async function PUT(
         .where(
           and(
             eq(bills.id, billId),
-            eq(bills.userId, userId)
+            eq(bills.userId, userId),
+            eq(bills.householdId, householdId)
           )
         )
         .limit(1);
@@ -134,20 +148,33 @@ export async function PUT(
           .set({
             isActive: false,
           })
-          .where(eq(bills.id, billId));
+          .where(
+            and(
+              eq(bills.id, billId),
+              eq(bills.householdId, householdId)
+            )
+          );
       }
     }
 
     const updatedInstance = await db
       .select()
       .from(billInstances)
-      .where(eq(billInstances.id, id))
+      .where(
+        and(
+          eq(billInstances.id, id),
+          eq(billInstances.householdId, householdId)
+        )
+      )
       .limit(1);
 
     return Response.json(updatedInstance[0]);
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error updating bill instance:', error);
     return Response.json(
@@ -164,17 +191,19 @@ export async function DELETE(
 ) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const { id } = await params;
 
-    // Verify instance exists and belongs to user
+    // Verify instance exists and belongs to user and household
     const instance = await db
       .select()
       .from(billInstances)
       .where(
         and(
           eq(billInstances.id, id),
-          eq(billInstances.userId, userId)
+          eq(billInstances.userId, userId),
+          eq(billInstances.householdId, householdId)
         )
       )
       .limit(1);
@@ -188,12 +217,20 @@ export async function DELETE(
 
     await db
       .delete(billInstances)
-      .where(eq(billInstances.id, id));
+      .where(
+        and(
+          eq(billInstances.id, id),
+          eq(billInstances.householdId, householdId)
+        )
+      );
 
     return Response.json({ success: true });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error deleting bill instance:', error);
     return Response.json(

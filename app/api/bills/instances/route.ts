@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { billInstances, bills } from '@/lib/db/schema';
 import { eq, and, desc, inArray, lt } from 'drizzle-orm';
@@ -10,8 +11,9 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // First, update any pending bills that are now overdue
+    // First, update any pending bills that are now overdue (filtered by household)
     const today = format(new Date(), 'yyyy-MM-dd');
     await db
       .update(billInstances)
@@ -19,6 +21,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(billInstances.userId, userId),
+          eq(billInstances.householdId, householdId),
           eq(billInstances.status, 'pending'),
           lt(billInstances.dueDate, today)
         )
@@ -32,7 +35,10 @@ export async function GET(request: Request) {
     const dueDateStart = url.searchParams.get('dueDateStart');
     const dueDateEnd = url.searchParams.get('dueDateEnd');
 
-    const conditions = [eq(billInstances.userId, userId)];
+    const conditions = [
+      eq(billInstances.userId, userId),
+      eq(billInstances.householdId, householdId)
+    ];
 
     if (status) {
       // Handle comma-separated status values (e.g., "pending,paid")
@@ -63,7 +69,12 @@ export async function GET(request: Request) {
     const countResult = await db
       .select()
       .from(billInstances)
-      .where(eq(billInstances.userId, userId));
+      .where(
+        and(
+          eq(billInstances.userId, userId),
+          eq(billInstances.householdId, householdId)
+        )
+      );
 
     return Response.json({
       data: result,
@@ -74,6 +85,9 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error fetching bill instances:', error);
     return Response.json(
@@ -87,8 +101,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+
     const {
       billId,
       dueDate,
@@ -105,14 +120,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify bill exists and belongs to user
+    // Verify bill exists and belongs to user and household
     const bill = await db
       .select()
       .from(bills)
       .where(
         and(
           eq(bills.id, billId),
-          eq(bills.userId, userId)
+          eq(bills.userId, userId),
+          eq(bills.householdId, householdId)
         )
       )
       .limit(1);
@@ -131,6 +147,7 @@ export async function POST(request: Request) {
       .where(
         and(
           eq(billInstances.billId, billId),
+          eq(billInstances.householdId, householdId),
           eq(billInstances.dueDate, dueDate)
         )
       )
@@ -151,6 +168,7 @@ export async function POST(request: Request) {
       .values({
         id: instanceId,
         userId,
+        householdId,
         billId,
         dueDate,
         expectedAmount: parseFloat(expectedAmount),
@@ -168,6 +186,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error creating bill instance:', error);
     return Response.json(

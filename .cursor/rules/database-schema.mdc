@@ -25,8 +25,8 @@ alwaysApply: false
 - **household_settings** - Shared household settings
 
 ## Bills Tables
-- **bills** - Recurring bill definitions (household-scoped - Phase 2)
-- **billInstances** - Individual bill payment instances (household-scoped - Phase 2)
+- **bills** - Recurring bill definitions (household-scoped - Phase 2 ✅ COMPLETE)
+- **billInstances** - Individual bill payment instances (household-scoped - Phase 2 ✅ COMPLETE)
 
 ## Rules Tables
 - **categorizationRules** - Auto-categorization rules
@@ -70,9 +70,15 @@ alwaysApply: false
 **Phase 1 Complete:** Core financial data is household-scoped:
 - `accounts`, `transactions`, `budgetCategories`, `merchants`, `transactionSplits`, `usageAnalytics` all have `household_id`
 
-**Phase 2 In Progress:** Bills data is household-scoped:
-- `bills`, `billInstances` have `household_id` (schema updated, API endpoints updated)
-- Budgets API endpoints still need household filtering (budget categories already have `household_id`)
+**Phase 2 Complete (Steps 1-5):** Bills & Budgets data is household-scoped:
+- `bills`, `billInstances` have `household_id` (schema updated, migration applied, API endpoints updated)
+- `budgetCategories` already had `household_id` (Phase 1)
+- All Bills API endpoints (6 files) filter by `household_id`
+- All Budgets API endpoints (11 files) filter by `household_id`
+- All frontend components (13 components) use `useHouseholdFetch` hook
+- Testing complete - household isolation verified
+
+**Remaining:** Phase 2 Step 6 (Documentation & cleanup)
 
 - All queries must filter by `household_id` for household-scoped tables
 - Use `lib/api/household-auth.ts` helpers for validation

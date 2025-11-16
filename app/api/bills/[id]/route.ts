@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { bills, billInstances, budgetCategories, accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -12,6 +13,7 @@ export async function GET(
 ) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const { id } = await params;
 
@@ -21,7 +23,8 @@ export async function GET(
       .where(
         and(
           eq(bills.id, id),
-          eq(bills.userId, userId)
+          eq(bills.userId, userId),
+          eq(bills.householdId, householdId)
         )
       )
       .limit(1);
@@ -36,14 +39,24 @@ export async function GET(
     const instances = await db
       .select()
       .from(billInstances)
-      .where(eq(billInstances.billId, id))
+      .where(
+        and(
+          eq(billInstances.billId, id),
+          eq(billInstances.householdId, householdId)
+        )
+      )
       .orderBy(billInstances.dueDate);
 
     const category = bill[0].categoryId
       ? await db
           .select()
           .from(budgetCategories)
-          .where(eq(budgetCategories.id, bill[0].categoryId))
+          .where(
+            and(
+              eq(budgetCategories.id, bill[0].categoryId),
+              eq(budgetCategories.householdId, householdId)
+            )
+          )
           .limit(1)
       : null;
 
@@ -51,7 +64,12 @@ export async function GET(
       ? await db
           .select()
           .from(accounts)
-          .where(eq(accounts.id, bill[0].accountId))
+          .where(
+            and(
+              eq(accounts.id, bill[0].accountId),
+              eq(accounts.householdId, householdId)
+            )
+          )
           .limit(1)
       : null;
 
@@ -64,6 +82,9 @@ export async function GET(
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error fetching bill:', error);
     return Response.json(
@@ -80,9 +101,10 @@ export async function PUT(
 ) {
   try {
     const { userId } = await requireAuth();
+    const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
 
     const { id } = await params;
-    const body = await request.json();
     const {
       name,
       categoryId,
@@ -97,14 +119,15 @@ export async function PUT(
       isActive,
     } = body;
 
-    // Verify bill exists and belongs to user
+    // Verify bill exists and belongs to user and household
     const existingBill = await db
       .select()
       .from(bills)
       .where(
         and(
           eq(bills.id, id),
-          eq(bills.userId, userId)
+          eq(bills.userId, userId),
+          eq(bills.householdId, householdId)
         )
       )
       .limit(1);
@@ -124,7 +147,8 @@ export async function PUT(
         .where(
           and(
             eq(budgetCategories.id, categoryId),
-            eq(budgetCategories.userId, userId)
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId)
           )
         )
         .limit(1);
@@ -145,7 +169,8 @@ export async function PUT(
         .where(
           and(
             eq(accounts.id, accountId),
-            eq(accounts.userId, userId)
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
           )
         )
         .limit(1);
@@ -183,18 +208,31 @@ export async function PUT(
     await db
       .update(bills)
       .set(updateData)
-      .where(eq(bills.id, id));
+      .where(
+        and(
+          eq(bills.id, id),
+          eq(bills.householdId, householdId)
+        )
+      );
 
     const updatedBill = await db
       .select()
       .from(bills)
-      .where(eq(bills.id, id))
+      .where(
+        and(
+          eq(bills.id, id),
+          eq(bills.householdId, householdId)
+        )
+      )
       .limit(1);
 
     return Response.json(updatedBill[0]);
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error updating bill:', error);
     return Response.json(
@@ -211,17 +249,19 @@ export async function DELETE(
 ) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const { id } = await params;
 
-    // Verify bill exists and belongs to user
+    // Verify bill exists and belongs to user and household
     const bill = await db
       .select()
       .from(bills)
       .where(
         and(
           eq(bills.id, id),
-          eq(bills.userId, userId)
+          eq(bills.userId, userId),
+          eq(bills.householdId, householdId)
         )
       )
       .limit(1);
@@ -233,20 +273,33 @@ export async function DELETE(
       );
     }
 
-    // Delete all bill instances
+    // Delete all bill instances for this household
     await db
       .delete(billInstances)
-      .where(eq(billInstances.billId, id));
+      .where(
+        and(
+          eq(billInstances.billId, id),
+          eq(billInstances.householdId, householdId)
+        )
+      );
 
     // Delete the bill
     await db
       .delete(bills)
-      .where(eq(bills.id, id));
+      .where(
+        and(
+          eq(bills.id, id),
+          eq(bills.householdId, householdId)
+        )
+      );
 
     return Response.json({ success: true });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error deleting bill:', error);
     return Response.json(

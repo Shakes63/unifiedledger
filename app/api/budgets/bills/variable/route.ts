@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { bills, billInstances } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
@@ -161,6 +162,7 @@ function calculateRecommendedBudget(
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     // Get query parameters
     const url = new URL(request.url);
@@ -187,13 +189,14 @@ export async function GET(request: Request) {
     const monthStart = `${monthStr}-01`;
     const monthEnd = new Date(year, month, 0).toISOString().split('T')[0];
 
-    // Query variable bills for this user
+    // Query variable bills for this user and household
     const billsQuery = db
       .select()
       .from(bills)
       .where(
         and(
           eq(bills.userId, userId),
+          eq(bills.householdId, householdId),
           eq(bills.isVariableAmount, true),
           eq(bills.isActive, true)
         )
@@ -387,6 +390,9 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Variable bill tracking error:', error);
     return Response.json(

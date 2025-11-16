@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { ChevronRight } from 'lucide-react';
 import Decimal from 'decimal.js';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface BudgetSummary {
   adherenceScore: number;
@@ -19,20 +21,26 @@ interface BudgetSummary {
 }
 
 export function BudgetSummaryWidget() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<BudgetSummary | null>(null);
 
   useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
     fetchBudgetSummary();
-  }, []);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   const fetchBudgetSummary = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/budgets/overview', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/budgets/overview');
 
       if (!response.ok) {
         throw new Error('Failed to fetch budget summary');
@@ -70,6 +78,10 @@ export function BudgetSummaryWidget() {
       setSummary(summaryData);
     } catch (err) {
       console.error('Error fetching budget summary:', err);
+      if (err instanceof Error && err.message === 'No household selected') {
+        setLoading(false);
+        return;
+      }
       setError('Failed to load budget summary');
     } finally {
       setLoading(false);

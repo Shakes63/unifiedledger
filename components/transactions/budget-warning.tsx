@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, TrendingUp } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface BudgetStatus {
   categoryId: string;
@@ -26,12 +28,14 @@ export function BudgetWarning({
   transactionAmount = 0,
   onBudgetCheck,
 }: BudgetWarningProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [budgetStatus, setBudgetStatus] = useState<BudgetStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [projectedPercentage, setProjectedPercentage] = useState(0);
 
   useEffect(() => {
-    if (!categoryId) {
+    if (!categoryId || !selectedHouseholdId) {
       setBudgetStatus(null);
       onBudgetCheck?.(null);
       return;
@@ -40,7 +44,7 @@ export function BudgetWarning({
     const checkBudget = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/budgets/check?categoryId=${categoryId}`, { credentials: 'include' });
+        const response = await fetchWithHousehold(`/api/budgets/check?categoryId=${categoryId}`);
 
         if (!response.ok) {
           console.error('Failed to check budget');
@@ -60,13 +64,17 @@ export function BudgetWarning({
         onBudgetCheck?.(data);
       } catch (error) {
         console.error('Error checking budget:', error);
+        if (error instanceof Error && error.message === 'No household selected') {
+          setBudgetStatus(null);
+          onBudgetCheck?.(null);
+        }
       } finally {
         setLoading(false);
       }
     };
 
     checkBudget();
-  }, [categoryId, transactionAmount, onBudgetCheck]);
+  }, [categoryId, transactionAmount, selectedHouseholdId, fetchWithHousehold, onBudgetCheck]);
 
   if (!budgetStatus || budgetStatus.monthlyBudget === 0) {
     return null;

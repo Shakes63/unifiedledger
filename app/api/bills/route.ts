@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { bills, billInstances, budgetCategories, accounts, debts } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -16,6 +17,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '50');
@@ -34,7 +36,13 @@ export async function GET(request: Request) {
         .from(bills)
         .leftJoin(budgetCategories, eq(bills.categoryId, budgetCategories.id))
         .leftJoin(accounts, eq(bills.accountId, accounts.id))
-        .where(and(eq(bills.userId, userId), eq(bills.isActive, true)))
+        .where(
+          and(
+            eq(bills.userId, userId),
+            eq(bills.householdId, householdId),
+            eq(bills.isActive, true)
+          )
+        )
         .orderBy(desc(bills.createdAt))
         .limit(limit)
         .offset(offset);
@@ -48,7 +56,13 @@ export async function GET(request: Request) {
         .from(bills)
         .leftJoin(budgetCategories, eq(bills.categoryId, budgetCategories.id))
         .leftJoin(accounts, eq(bills.accountId, accounts.id))
-        .where(and(eq(bills.userId, userId), eq(bills.isActive, false)))
+        .where(
+          and(
+            eq(bills.userId, userId),
+            eq(bills.householdId, householdId),
+            eq(bills.isActive, false)
+          )
+        )
         .orderBy(desc(bills.createdAt))
         .limit(limit)
         .offset(offset);
@@ -62,7 +76,12 @@ export async function GET(request: Request) {
         .from(bills)
         .leftJoin(budgetCategories, eq(bills.categoryId, budgetCategories.id))
         .leftJoin(accounts, eq(bills.accountId, accounts.id))
-        .where(eq(bills.userId, userId))
+        .where(
+          and(
+            eq(bills.userId, userId),
+            eq(bills.householdId, householdId)
+          )
+        )
         .orderBy(desc(bills.createdAt))
         .limit(limit)
         .offset(offset);
@@ -80,6 +99,7 @@ export async function GET(request: Request) {
             .where(
               and(
                 eq(billInstances.billId, row.bill.id),
+                eq(billInstances.householdId, householdId),
                 eq(billInstances.status, 'pending')
               )
             )
@@ -98,7 +118,12 @@ export async function GET(request: Request) {
     const countResult = await db
       .select()
       .from(bills)
-      .where(eq(bills.userId, userId));
+      .where(
+        and(
+          eq(bills.userId, userId),
+          eq(bills.householdId, householdId)
+        )
+      );
 
     return Response.json({
       data: billsWithInstances,
@@ -109,6 +134,9 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error fetching bills:', error);
     return Response.json(
@@ -122,8 +150,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+
     const {
       name,
       categoryId,
@@ -205,6 +234,7 @@ export async function POST(request: Request) {
     }
 
     // Batch validation queries in parallel for better performance
+    // Verify all related entities belong to the same household
     const validationPromises = [];
 
     if (categoryId) {
@@ -215,7 +245,8 @@ export async function POST(request: Request) {
           .where(
             and(
               eq(budgetCategories.id, categoryId),
-              eq(budgetCategories.userId, userId)
+              eq(budgetCategories.userId, userId),
+              eq(budgetCategories.householdId, householdId)
             )
           )
           .limit(1)
@@ -231,7 +262,8 @@ export async function POST(request: Request) {
           .where(
             and(
               eq(accounts.id, accountId),
-              eq(accounts.userId, userId)
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId)
             )
           )
           .limit(1)
@@ -240,6 +272,7 @@ export async function POST(request: Request) {
     }
 
     if (debtId) {
+      // Note: Debts don't have householdId yet (Phase 3), so we only check userId for now
       validationPromises.push(
         db
           .select()
@@ -275,6 +308,7 @@ export async function POST(request: Request) {
     const billData = {
       id: billId,
       userId,
+      householdId,
       name,
       categoryId,
       debtId,
@@ -307,6 +341,7 @@ export async function POST(request: Request) {
       instancesData.push({
         id: nanoid(),
         userId,
+        householdId,
         billId,
         dueDate: dueDateString,
         expectedAmount: parsedExpectedAmount,
@@ -328,6 +363,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error creating bill:', error);
     return Response.json(

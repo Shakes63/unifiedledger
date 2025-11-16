@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories } from '@/lib/db/schema';
 import { eq, and, gte, lte, sum } from 'drizzle-orm';
@@ -61,6 +62,7 @@ function calculateIncomeProjection(
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     // Get month parameter from query string (default to current month)
     const url = new URL(request.url);
@@ -109,13 +111,14 @@ export async function GET(request: Request) {
       daysRemaining = daysInMonth;
     }
 
-    // Fetch all active budget categories for user
+    // Fetch all active budget categories for user and household
     const categories = await db
       .select()
       .from(budgetCategories)
       .where(
         and(
           eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId),
           eq(budgetCategories.isActive, true)
         )
       );
@@ -133,6 +136,7 @@ export async function GET(request: Request) {
         .where(
           and(
             eq(transactions.userId, userId),
+            eq(transactions.householdId, householdId),
             eq(transactions.categoryId, category.id),
             eq(transactions.type, category.type === 'income' ? 'income' : 'expense'),
             gte(transactions.date, monthStart),
@@ -366,6 +370,9 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Budget overview error:', error);
     return Response.json(

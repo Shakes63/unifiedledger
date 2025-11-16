@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -7,15 +8,17 @@ import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     // 1. Fetch budget summary
     const summaryResponse = await fetch(
       `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/budgets/summary`,
       {
         headers: {
+          'x-household-id': householdId,
           Cookie: `__session=${userId}`, // Pass auth
         },
       }
@@ -41,6 +44,7 @@ export async function GET() {
     }
 
     // 3. Get active debts for calculation
+    // TODO: Add householdId filter when debts table is updated in Phase 3
     const activeDebts = await db
       .select()
       .from(debts)
@@ -146,6 +150,9 @@ export async function GET() {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Surplus suggestion error:', error);
     return Response.json(

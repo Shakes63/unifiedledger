@@ -10,17 +10,19 @@
 ## Incomplete Features
 
 ### Household Data Isolation Phase 2-4
-**Status:** Phase 2 partially complete (Steps 1-2 done, Steps 3-6 remaining)
+**Status:** Phase 2 partially complete (Steps 1-5 done, Step 6 remaining)
 **Plan:** `docs/phase-2-bills-budgets-isolation-plan.md`
 
 **Phase 1 (Core Data): ✅ COMPLETE**
 **Phase 2 (Bills & Budgets):** 
 - ✅ Step 1: Database schema updated (bills, bill_instances tables)
 - ✅ Step 2: Bills API endpoints updated (6 files)
-- ⏳ Step 3: Budgets API endpoints (11 files remaining)
-- ⏳ Step 4: Frontend components updates
-- ⏳ Step 5: Testing & validation
+- ✅ Step 3: Budgets API endpoints (11 files) - COMPLETE
+- ✅ Step 4: Frontend components updates (13 components) - COMPLETE
+- ✅ Step 5: Testing & validation - COMPLETE (9 API endpoints tested, 2 frontend pages tested, household isolation verified)
 - ⏳ Step 6: Documentation & cleanup
+
+**Testing Results:** See `docs/phase-2-step-5-test-results.md` for detailed test results. All critical functionality verified. Minor issue: Invalid household ID returns 500 instead of 403/400.
 
 **Remaining:**
 - ⏳ Phase 3: Goals & Debts API isolation
@@ -56,26 +58,27 @@
 1. ✅ **Enhanced Error Handling & Network Infrastructure** - Complete error handling system with reusable UI components, offline request queue, network status banner, and automatic retry
 2. ✅ **Household Data Isolation Phase 1** - Complete household isolation for transactions, accounts, categories, and merchants with database migration applied
 3. ✅ **Household Data Isolation Phase 0** - Three-tier settings architecture with per-household themes and notifications
-4. ✅ **Better Auth Authentication Bug Fixes** - Fixed 185 fetch calls missing credentials and session handling
-5. ✅ **Better Auth Cookie Integration** - Session cookie handling with proper authentication
-6. ✅ **Experimental Features System** - Feature gating with Quick Entry Mode, Enhanced Search, and Advanced Charts
-7. ✅ **Import Preferences** - Default CSV import template selection with auto-load
-8. ✅ **GeoIP Location Lookup** - Session location display with country flags
-9. ✅ **Email Verification Flow** - Email verification system with email change flow
-10. ✅ **Session Timeout Enforcement** - Automatic logout after configurable inactivity period
-11. ✅ **Household Favorite Feature** - Star/favorite households to pin to top of sidebar
-12. ✅ **Household Settings Decoupling** - Sidebar dropdown and settings tabs operate independently
-13. ✅ **Household Sort by Join Date** - Households ordered chronologically by when user joined
-14. ✅ **Household Tab Switching Fix** - Fixed household context not updating when switching tabs
-15. ✅ **Reset App Data** - Settings reset with password confirmation and rate limiting
-16. ✅ **Household Tab-Based UI** - Tab-based household settings interface with member badges
-17. ✅ **Household Management System** - Multi-household support with role-based permissions
-18. ✅ **Avatar Upload** - Profile picture upload with display throughout app
-19. ✅ **Notifications Tab** - Granular per-notification-type channel selection (push/email)
-20. ✅ **Unified Settings Page** - Comprehensive settings interface with 3-tier structure
-21. ✅ **Transaction Save Performance** - 65-75% faster transaction creation through optimization
-22. ✅ **Income Frequency Tracking** - Category-level frequency tracking for budget projections
-23. ✅ **Goals Dashboard Widget** - Overall progress display across all active savings goals
-24. ✅ **Developer Mode** - Debug utility with entity ID badges, DEV indicator, and developer tools panel
-25. ✅ **Bill Frequency Expansion** - Support for one-time, weekly, and biweekly bill frequencies
-26. ✅ **Authentication Migration** - Complete Clerk to Better Auth migration with email/password
+4. ✅ **Household Data Isolation Phase 2 Steps 1-5** - Bills & Budgets API isolation with database migration, API endpoints, frontend components, and testing complete
+5. ✅ **Better Auth Authentication Bug Fixes** - Fixed 185 fetch calls missing credentials and session handling
+6. ✅ **Better Auth Cookie Integration** - Session cookie handling with proper authentication
+7. ✅ **Experimental Features System** - Feature gating with Quick Entry Mode, Enhanced Search, and Advanced Charts
+8. ✅ **Import Preferences** - Default CSV import template selection with auto-load
+9. ✅ **GeoIP Location Lookup** - Session location display with country flags
+10. ✅ **Email Verification Flow** - Email verification system with email change flow
+11. ✅ **Session Timeout Enforcement** - Automatic logout after configurable inactivity period
+12. ✅ **Household Favorite Feature** - Star/favorite households to pin to top of sidebar
+13. ✅ **Household Settings Decoupling** - Sidebar dropdown and settings tabs operate independently
+14. ✅ **Household Sort by Join Date** - Households ordered chronologically by when user joined
+15. ✅ **Household Tab Switching Fix** - Fixed household context not updating when switching tabs
+16. ✅ **Reset App Data** - Settings reset with password confirmation and rate limiting
+17. ✅ **Household Tab-Based UI** - Tab-based household settings interface with member badges
+18. ✅ **Household Management System** - Multi-household support with role-based permissions
+19. ✅ **Avatar Upload** - Profile picture upload with display throughout app
+20. ✅ **Notifications Tab** - Granular per-notification-type channel selection (push/email)
+21. ✅ **Unified Settings Page** - Comprehensive settings interface with 3-tier structure
+22. ✅ **Transaction Save Performance** - 65-75% faster transaction creation through optimization
+23. ✅ **Income Frequency Tracking** - Category-level frequency tracking for budget projections
+24. ✅ **Goals Dashboard Widget** - Overall progress display across all active savings goals
+25. ✅ **Developer Mode** - Debug utility with entity ID badges, DEV indicator, and developer tools panel
+26. ✅ **Bill Frequency Expansion** - Support for one-time, weekly, and biweekly bill frequencies
+27. ✅ **Authentication Migration** - Complete Clerk to Better Auth migration with email/password

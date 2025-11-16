@@ -30,15 +30,17 @@ alwaysApply: false
 
 **✅ Phase 0 - COMPLETE:** Three-tier settings architecture fully implemented and tested
 **✅ Phase 1 - COMPLETE:** Core financial data isolation (transactions, accounts, categories, merchants) - PRODUCTION READY
-**🔄 Phase 2 - IN PROGRESS:** Bills & Budgets API isolation (Steps 1-2 complete, Steps 3-6 remaining)
-  - ✅ Database schema updated (bills, bill_instances tables with householdId)
+**🔄 Phase 2 - IN PROGRESS:** Bills & Budgets API isolation (Steps 1-5 complete, Step 6 remaining)
+  - ✅ Database schema updated (bills, bill_instances tables with householdId) - Migration applied
   - ✅ Bills API endpoints updated (6 files: route.ts, [id]/route.ts, instances/route.ts, instances/[id]/route.ts, match/route.ts, detect/route.ts)
-  - ⏳ Budgets API endpoints (11 files remaining)
-  - ⏳ Frontend components updates
-  - ⏳ Testing & validation
-  - ⏳ Documentation & cleanup
+  - ✅ Budgets API endpoints updated (11 files) - All endpoints use household filtering
+  - ✅ Frontend components updated (13 components) - All use useHouseholdFetch hook
+  - ✅ Testing & validation complete - 9 API endpoints tested, household isolation verified
+  - ⏳ Documentation & cleanup (Step 6)
 
-**What works:** Users can switch between households and see fully isolated transactions, accounts, categories, merchants, and bills.
+**What works:** Users can switch between households and see fully isolated transactions, accounts, categories, merchants, bills, and budgets.
+
+**Testing:** See `docs/phase-2-step-5-test-results.md` for detailed test results. All critical functionality verified. Minor issue: Invalid household ID returns 500 instead of 403/400.
 
 **Remaining Phases:**
 - ⏳ Phase 3: Goals & Debts API isolation
@@ -87,15 +89,16 @@ See `docs/household-data-isolation-plan.md` for Phase 0-1 overview and `docs/pha
 
 
 ### Household Data Isolation - Future Phases
-**Status:** Phase 0 - ✅ Complete | Phase 1 - ✅ Complete | Phase 2 - 🔄 In Progress (Steps 1-2/6 complete) | Phases 3-4 - Not Started
-**Estimated Remaining Effort:** 1-2 days (Phase 2 remaining steps) + 2-4 days (Phases 3-4)
+**Status:** Phase 0 - ✅ Complete | Phase 1 - ✅ Complete | Phase 2 - 🔄 In Progress (Steps 1-5/6 complete) | Phases 3-4 - Not Started
+**Estimated Remaining Effort:** <1 day (Phase 2 Step 6) + 2-4 days (Phases 3-4)
 
 **Phase 2 Progress:**
-- ✅ Database schema updated (bills, bill_instances tables)
+- ✅ Database schema updated (bills, bill_instances tables) - Migration applied
 - ✅ Bills API endpoints updated (6 files)
-- ⏳ Budgets API endpoints (11 files)
-- ⏳ Frontend components updates
-- ⏳ Testing & validation
+- ✅ Budgets API endpoints updated (11 files)
+- ✅ Frontend components updated (13 components)
+- ✅ Testing & validation complete (9 endpoints tested, household isolation verified)
+- ⏳ Documentation & cleanup (Step 6)
 
 **Remaining:**
 - ⏳ Phase 3: Goals & Debts API isolation

@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { TrendingDown, Clock, DollarSign, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface SuggestionData {
   hasSuggestion: boolean;
@@ -54,21 +56,25 @@ export function ApplySurplusModal({
   suggestedAmount,
   onSuccess,
 }: ApplySurplusModalProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold, postWithHousehold } = useHouseholdFetch();
   const [amount, setAmount] = useState(suggestedAmount);
   const [suggestion, setSuggestion] = useState<SuggestionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && selectedHouseholdId) {
       fetchSuggestion();
+    } else if (isOpen && !selectedHouseholdId) {
+      setLoading(false);
     }
-  }, [isOpen]);
+  }, [isOpen, selectedHouseholdId, fetchWithHousehold]);
 
   const fetchSuggestion = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/budgets/surplus-suggestion', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/budgets/surplus-suggestion');
 
       if (!response.ok) {
         throw new Error('Failed to fetch suggestion');
@@ -78,6 +84,10 @@ export function ApplySurplusModal({
       setSuggestion(data);
     } catch (err) {
       console.error('Error fetching suggestion:', err);
+      if (err instanceof Error && err.message === 'No household selected') {
+        setLoading(false);
+        return;
+      }
       toast.error('Failed to load debt impact preview');
     } finally {
       setLoading(false);
@@ -88,10 +98,8 @@ export function ApplySurplusModal({
     try {
       setApplying(true);
 
-      const response = await fetch('/api/budgets/apply-surplus', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount }),
+      const response = await postWithHousehold('/api/budgets/apply-surplus', {
+        amount,
       });
 
       if (!response.ok) {

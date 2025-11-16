@@ -235,6 +235,7 @@ export const bills = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     name: text('name').notNull(),
     categoryId: text('category_id'),
     debtId: text('debt_id'), // Link to debt for debt payment bills
@@ -255,6 +256,8 @@ export const bills = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_bills_user').on(table.userId),
+    householdIdIdx: index('idx_bills_household').on(table.householdId),
+    userHouseholdIdx: index('idx_bills_user_household').on(table.userId, table.householdId),
     specificDueDateIdx: index('idx_bills_specific_due_date').on(table.specificDueDate),
   })
 );
@@ -264,6 +267,7 @@ export const billInstances = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     billId: text('bill_id').notNull(),
     dueDate: text('due_date').notNull(),
     expectedAmount: real('expected_amount').notNull(),
@@ -283,6 +287,8 @@ export const billInstances = sqliteTable(
   (table) => ({
     billIdDueDateUnique: uniqueIndex('idx_bill_instances_unique').on(table.billId, table.dueDate),
     userIdIdx: index('idx_bill_instances_user').on(table.userId),
+    householdIdIdx: index('idx_bill_instances_household').on(table.householdId),
+    userHouseholdIdx: index('idx_bill_instances_user_household').on(table.userId, table.householdId),
   })
 );
 

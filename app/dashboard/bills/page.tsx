@@ -9,6 +9,8 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 import { FREQUENCY_LABELS } from '@/lib/bills/bill-utils';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface BillInstance {
   id: string;
@@ -52,6 +54,8 @@ interface BillWithInstance extends Bill {
 }
 
 export default function BillsDashboard() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [bills, setBills] = useState<BillWithInstance[]>([]);
   const [billInstances, setBillInstances] = useState<BillInstance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,19 +68,24 @@ export default function BillsDashboard() {
   });
 
   useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setLoading(true);
 
         // Fetch active bills
-        const billsRes = await fetch('/api/bills?isActive=true&limit=100', { credentials: 'include' });
+        const billsRes = await fetchWithHousehold('/api/bills?isActive=true&limit=100');
         if (!billsRes.ok) {
           throw new Error(`Failed to fetch bills: ${billsRes.statusText}`);
         }
         const billsData = await billsRes.json();
 
         // Fetch all bill instances
-        const instancesRes = await fetch('/api/bills/instances?limit=1000', { credentials: 'include' });
+        const instancesRes = await fetchWithHousehold('/api/bills/instances?limit=1000');
         if (!instancesRes.ok) {
           throw new Error(`Failed to fetch bill instances: ${instancesRes.statusText}`);
         }
@@ -112,7 +121,7 @@ export default function BillsDashboard() {
     };
 
     fetchData();
-  }, []);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   const calculateStats = (instances: BillInstance[]) => {
     const today = new Date();

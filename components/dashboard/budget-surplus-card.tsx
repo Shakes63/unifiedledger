@@ -7,6 +7,8 @@ import { DebtToIncomeIndicator } from '@/components/budgets/debt-to-income-indic
 import { ApplySurplusModal } from '@/components/budgets/apply-surplus-modal';
 import { DollarSign, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
 import { betterAuthClient } from '@/lib/better-auth-client';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface BudgetSummary {
   monthlyIncome: number;
@@ -30,6 +32,8 @@ export function BudgetSurplusCard() {
   const { data: session, isPending } = betterAuthClient.useSession();
   const isLoaded = !isPending;
   const isSignedIn = !!session;
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [data, setData] = useState<BudgetSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -37,20 +41,22 @@ export function BudgetSurplusCard() {
   const [authError, setAuthError] = useState(false);
 
   useEffect(() => {
-    // Only fetch when auth is fully loaded and user is signed in
-    if (isLoaded && isSignedIn) {
+    // Only fetch when auth is fully loaded, user is signed in, and household is selected
+    if (isLoaded && isSignedIn && selectedHouseholdId) {
       fetchBudgetSummary();
     } else if (isLoaded && !isSignedIn) {
       setAuthError(true);
       setLoading(false);
+    } else if (isLoaded && isSignedIn && !selectedHouseholdId) {
+      setLoading(false);
     }
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, selectedHouseholdId, fetchWithHousehold]);
 
   const fetchBudgetSummary = async () => {
     try {
       setLoading(true);
       setAuthError(false);
-      const response = await fetch('/api/budgets/summary', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/budgets/summary');
 
       if (response.status === 401) {
         console.error('Budget summary: Unauthorized');
@@ -67,6 +73,10 @@ export function BudgetSurplusCard() {
       setData(result);
     } catch (err) {
       console.error('Error fetching budget summary:', err);
+      if (err instanceof Error && err.message === 'No household selected') {
+        setLoading(false);
+        return;
+      }
     } finally {
       setLoading(false);
     }

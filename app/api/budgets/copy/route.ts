@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -23,8 +24,8 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
     const { fromMonth, toMonth } = body;
 
     // Validate request
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
       .where(
         and(
           eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId),
           eq(budgetCategories.isActive, true)
         )
       );
@@ -93,6 +95,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Copy budgets error:', error);
     return Response.json(

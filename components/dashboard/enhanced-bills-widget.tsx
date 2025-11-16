@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, Clock, AlertCircle, ArrowRight, Calendar as CalendarIcon } from 'lucide-react';
 import Link from 'next/link';
 import Decimal from 'decimal.js';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface BillInstance {
   id: string;
@@ -23,14 +25,20 @@ interface BillInstance {
 type SortOption = 'date' | 'amount';
 
 export function EnhancedBillsWidget() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [bills, setBills] = useState<BillInstance[]>([]);
   const [allBills, setAllBills] = useState<BillInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>('date');
 
   useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
     fetchBills();
-  }, []);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   useEffect(() => {
     // Re-sort when sortBy changes
@@ -47,9 +55,8 @@ export function EnhancedBillsWidget() {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-      const response = await fetch(
-        `/api/bills/instances?status=pending,paid,overdue&sortBy=dueDate`,
-        { credentials: 'include' }
+      const response = await fetchWithHousehold(
+        `/api/bills/instances?status=pending,paid,overdue&sortBy=dueDate`
       );
 
       if (response.ok) {
@@ -76,6 +83,10 @@ export function EnhancedBillsWidget() {
       }
     } catch (error) {
       console.error('Error fetching bills:', error);
+      if (error instanceof Error && error.message === 'No household selected') {
+        setLoading(false);
+        return;
+      }
     } finally {
       setLoading(false);
     }

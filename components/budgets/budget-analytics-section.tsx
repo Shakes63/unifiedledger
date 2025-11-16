@@ -5,6 +5,8 @@ import { BudgetAnalyticsChart } from './budget-analytics-chart';
 import { CategoryTrendChart } from './category-trend-chart';
 import { toast } from 'sonner';
 import { BarChart3, Settings, AlertTriangle, DollarSign, Lightbulb } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface AnalyticsData {
   period: {
@@ -70,6 +72,8 @@ interface AnalyticsData {
 }
 
 export function BudgetAnalyticsSection() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,12 +83,17 @@ export function BudgetAnalyticsSection() {
 
   // Fetch analytics data
   useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/budgets/analyze?months=${monthsPeriod}`, { credentials: 'include' });
+        const response = await fetchWithHousehold(`/api/budgets/analyze?months=${monthsPeriod}`);
 
         if (!response.ok) {
           throw new Error('Failed to fetch analytics data');
@@ -94,6 +103,10 @@ export function BudgetAnalyticsSection() {
         setAnalyticsData(data);
       } catch (err) {
         console.error('Error fetching analytics:', err);
+        if (err instanceof Error && err.message === 'No household selected') {
+          setLoading(false);
+          return;
+        }
         setError(err instanceof Error ? err.message : 'An error occurred');
         toast.error('Failed to load analytics data');
       } finally {
@@ -102,7 +115,7 @@ export function BudgetAnalyticsSection() {
     };
 
     fetchAnalytics();
-  }, [monthsPeriod]);
+  }, [monthsPeriod, selectedHouseholdId, fetchWithHousehold]);
 
   // Toggle category expansion
   const toggleCategory = (categoryId: string) => {

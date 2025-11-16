@@ -43,6 +43,7 @@ interface CategoryBudgetData {
  */
 async function getBudgetDataForMonth(
   userId: string,
+  householdId: string,
   year: number,
   month: number,
   categoryTypes?: Array<string>
@@ -61,13 +62,14 @@ async function getBudgetDataForMonth(
   const isCurrentMonth = year === currentYear && month === currentMonth;
   const daysElapsed = isCurrentMonth ? currentDay : daysInMonth;
 
-  // Get all budget categories for this user
+  // Get all budget categories for this user and household
   let query = db
     .select()
     .from(budgetCategories)
     .where(
       and(
         eq(budgetCategories.userId, userId),
+        eq(budgetCategories.householdId, householdId),
         eq(budgetCategories.isActive, true)
       )
     );
@@ -94,6 +96,7 @@ async function getBudgetDataForMonth(
       .where(
         and(
           eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId),
           eq(transactions.categoryId, category.id),
           eq(transactions.type, transactionType),
           gte(transactions.date, monthStart),
@@ -306,6 +309,7 @@ export function generateBudgetCSV(
  */
 export async function exportBudgetToCSV(
   userId: string,
+  householdId: string,
   options: BudgetExportOptions
 ): Promise<string> {
   try {
@@ -341,6 +345,7 @@ export async function exportBudgetToCSV(
 
       const categories = await getBudgetDataForMonth(
         userId,
+        householdId,
         year,
         month,
         options.categoryTypes

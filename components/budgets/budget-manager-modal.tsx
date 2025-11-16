@@ -10,6 +10,8 @@ import {
 } from '@/components/ui/dialog';
 import Decimal from 'decimal.js';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface Category {
   id: string;
@@ -33,6 +35,8 @@ export function BudgetManagerModal({
   onSave,
   month,
 }: BudgetManagerModalProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold, postWithHousehold } = useHouseholdFetch();
   const [categories, setCategories] = useState<Category[]>([]);
   const [budgetValues, setBudgetValues] = useState<Record<string, string>>({});
   const [frequencies, setFrequencies] = useState<Record<string, string>>({});
@@ -41,15 +45,17 @@ export function BudgetManagerModal({
 
   // Fetch categories when modal opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && selectedHouseholdId) {
       fetchCategories();
+    } else if (isOpen && !selectedHouseholdId) {
+      setLoading(false);
     }
-  }, [isOpen]);
+  }, [isOpen, selectedHouseholdId, fetchWithHousehold]);
 
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/budgets', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/budgets');
 
       if (!response.ok) {
         throw new Error('Failed to fetch categories');
@@ -71,6 +77,10 @@ export function BudgetManagerModal({
       setFrequencies(initialFrequencies);
     } catch (error) {
       console.error('Error fetching categories:', error);
+      if (error instanceof Error && error.message === 'No household selected') {
+        setLoading(false);
+        return;
+      }
       toast.error('Failed to load categories');
     } finally {
       setLoading(false);
@@ -101,10 +111,9 @@ export function BudgetManagerModal({
         })
         .filter(b => !isNaN(b.monthlyBudget) && b.monthlyBudget >= 0);
 
-      const response = await fetch('/api/budgets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ month, budgets }),
+      const response = await postWithHousehold('/api/budgets', {
+        month,
+        budgets,
       });
 
       if (!response.ok) {
@@ -131,10 +140,9 @@ export function BudgetManagerModal({
         lastMonthDate.getMonth() + 1
       ).padStart(2, '0')}`;
 
-      const response = await fetch('/api/budgets/copy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromMonth: lastMonth, toMonth: month }),
+      const response = await postWithHousehold('/api/budgets/copy', {
+        fromMonth: lastMonth,
+        toMonth: month,
       });
 
       if (!response.ok) {

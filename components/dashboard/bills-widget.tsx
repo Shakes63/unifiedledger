@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, Clock, AlertCircle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface BillInstance {
   id: string;
@@ -21,10 +23,17 @@ interface BillInstance {
 }
 
 export function BillsWidget() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [bills, setBills] = useState<BillInstance[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchBills = async () => {
       try {
         setLoading(true);
@@ -33,7 +42,7 @@ export function BillsWidget() {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-        const response = await fetch(`/api/bills/instances?status=pending,paid&sortBy=dueDate`, { credentials: 'include' });
+        const response = await fetchWithHousehold(`/api/bills/instances?status=pending,paid&sortBy=dueDate`);
 
         if (response.ok) {
           const response_data = await response.json();
@@ -56,13 +65,17 @@ export function BillsWidget() {
         }
       } catch (error) {
         console.error('Error fetching bills:', error);
+        if (error instanceof Error && error.message === 'No household selected') {
+          setLoading(false);
+          return;
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchBills();
-  }, []);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   const paidCount = bills.filter((b) => b.status === 'paid').length;
   const pendingCount = bills.filter((b) => b.status === 'pending').length;

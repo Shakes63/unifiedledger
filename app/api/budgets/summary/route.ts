@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories, debts, debtSettings } from '@/lib/db/schema';
 import { eq, and, gte, lte, sum } from 'drizzle-orm';
@@ -6,9 +7,10 @@ import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     // Get current month date range
     const now = new Date();
@@ -26,6 +28,7 @@ export async function GET() {
       .where(
         and(
           eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId),
           eq(transactions.type, 'income'),
           gte(transactions.date, monthStart),
           lte(transactions.date, monthEnd)
@@ -43,6 +46,7 @@ export async function GET() {
       .where(
         and(
           eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId),
           eq(budgetCategories.isActive, true)
         )
       );
@@ -62,6 +66,7 @@ export async function GET() {
       .where(
         and(
           eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId),
           eq(transactions.type, 'expense'),
           gte(transactions.date, monthStart),
           lte(transactions.date, monthEnd)
@@ -73,6 +78,7 @@ export async function GET() {
       : 0;
 
     // 4. Calculate total minimum debt payments from active debts
+    // TODO: Add householdId filter when debts table is updated in Phase 3
     const activeDebts = await db
       .select()
       .from(debts)
@@ -158,6 +164,9 @@ export async function GET() {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Budget summary error:', error);
     return Response.json(

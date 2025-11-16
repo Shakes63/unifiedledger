@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories } from '@/lib/db/schema';
 import { eq, and, gte, lte, sum } from 'drizzle-orm';
@@ -8,6 +9,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const url = new URL(request.url);
     const categoryId = url.searchParams.get('categoryId');
@@ -26,7 +28,8 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(budgetCategories.id, categoryId),
-          eq(budgetCategories.userId, userId)
+          eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId)
         )
       )
       .limit(1);
@@ -58,6 +61,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId),
           eq(transactions.categoryId, categoryId),
           eq(transactions.type, 'expense'),
           gte(transactions.date, monthStart),
@@ -91,6 +95,9 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Budget check error:', error);
     return Response.json(

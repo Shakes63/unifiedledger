@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, merchants, bills, billInstances } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -13,8 +14,9 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+
     const {
       minAmount = 10,
       maxAmount = 10000,
@@ -23,7 +25,7 @@ export async function POST(request: Request) {
       lookbackMonths = 12,
     } = body;
 
-    // Get transactions from the past X months
+    // Get transactions from the past X months (filtered by household)
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - lookbackMonths);
     const startDateStr = startDate.toISOString().split('T')[0];
@@ -41,6 +43,7 @@ export async function POST(request: Request) {
       .where(
         and(
           eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId),
           eq(transactions.type, 'expense')
         )
       )
@@ -135,11 +138,16 @@ export async function POST(request: Request) {
       })
       .sort((a, b) => b.confidence - a.confidence);
 
-    // Check which bills already exist
+    // Check which bills already exist (filtered by household)
     const existingBillNames = await db
       .select({ name: bills.name })
       .from(bills)
-      .where(eq(bills.userId, userId));
+      .where(
+        and(
+          eq(bills.userId, userId),
+          eq(bills.householdId, householdId)
+        )
+      );
 
     const existingNames = new Set(
       existingBillNames.map((b) => b.name.toLowerCase())
@@ -158,6 +166,9 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
     console.error('Error detecting bills:', error);
     return Response.json(
       { error: 'Failed to detect bills' },
@@ -172,8 +183,9 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+
     const { bills: billsToCreate } = body;
 
     if (!Array.isArray(billsToCreate) || billsToCreate.length === 0) {
@@ -198,6 +210,7 @@ export async function PUT(request: Request) {
         await db.insert(bills).values({
           id: billId,
           userId,
+          householdId,
           name,
           categoryId: categoryId || null,
           expectedAmount: parseFloat(expectedAmount),
@@ -225,6 +238,7 @@ export async function PUT(request: Request) {
           await db.insert(billInstances).values({
             id: nanoid(),
             userId,
+            householdId,
             billId,
             dueDate: dueDateString,
             expectedAmount: parseFloat(expectedAmount),
@@ -246,6 +260,9 @@ export async function PUT(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error creating bills:', error);
     return Response.json(
