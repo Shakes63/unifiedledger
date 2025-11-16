@@ -11,11 +11,11 @@
 ## Incomplete Features
 
 ### Settings Page - Advanced Features
-**Status:** Not yet implemented
+**Status:** Partially implemented (2FA complete, OAuth and Permissions pending)
+**Plan:** `docs/advanced-security-features-plan.md` (Phase 1 complete, Phases 2-3 pending)
 **Missing:**
-- ❌ Two-factor authentication (2FA)
-- ❌ OAuth provider management
-- ❌ Advanced permission system (beyond basic roles)
+- ❌ OAuth provider management (Google, GitHub) - See Phase 2 in plan
+- ❌ Advanced permission system (beyond basic roles) - See Phase 3 in plan
 
 ---
 
@@ -62,3 +62,4 @@
 29. ✅ **Authentication Migration** - Complete Clerk to Better Auth migration with email/password
 30. ✅ **Auto-Backup Settings** - Automatic backup system with scheduler, settings UI, manual backups, backup history, and cron endpoint
 31. ✅ **Backup Household Isolation** - Complete household isolation for backups with per-household settings, history, and file storage
+32. ✅ **Two-Factor Authentication (2FA)** - Complete TOTP-based 2FA system with QR code setup, backup codes, login integration, and settings UI

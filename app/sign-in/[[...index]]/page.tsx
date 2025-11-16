@@ -15,7 +15,7 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Shield } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SignInPage() {
@@ -26,6 +26,11 @@ export default function SignInPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // 2FA state
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [verifyingTwoFactor, setVerifyingTwoFactor] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +38,13 @@ export default function SignInPage() {
     setError(null); // Clear any previous errors
 
     try {
+      // If we're in 2FA verification step, verify the code
+      if (requiresTwoFactor) {
+        await handleTwoFactorVerification();
+        return;
+      }
 
+      // First, verify password (this will create a session if password is correct)
       const result = await betterAuthClient.signIn.email({
         email,
         password,
@@ -44,31 +55,112 @@ export default function SignInPage() {
         throw new Error('Incorrect email or password');
       }
 
-      // Update rememberMe field on session if checkbox was checked
-      if (rememberMe) {
-        try {
-          await fetch('/api/session/remember-me', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ rememberMe: true }),
-            credentials: 'include',
-          });
-        } catch (err) {
-          // Don't block sign-in if this fails
+      // Check if user has 2FA enabled
+      const twoFactorCheck = await fetch(
+        `/api/user/two-factor/check-required?email=${encodeURIComponent(email)}`,
+        { credentials: 'include' }
+      );
+
+      if (twoFactorCheck.ok) {
+        const twoFactorData = await twoFactorCheck.json();
+        if (twoFactorData.required) {
+          // User has 2FA enabled - require verification before completing login
+          // Sign out to invalidate the session that was just created
+          await betterAuthClient.signOut();
+          setRequiresTwoFactor(true);
+          setLoading(false);
+          return;
         }
       }
 
-      // Redirect to callback URL or dashboard
-      const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-
-      // Use window.location for a hard redirect to ensure middleware runs
-      window.location.href = callbackUrl;
+      // No 2FA required - complete login
+      await completeLogin();
     } catch (error: any) {
       const errorMessage = error?.message || 'Incorrect email or password';
       setError(errorMessage);
-    } finally {
       setLoading(false);
     }
+  };
+
+  const handleTwoFactorVerification = async () => {
+    if (!twoFactorCode || twoFactorCode.length !== 6) {
+      setError('Please enter a 6-digit verification code');
+      setVerifyingTwoFactor(false);
+      return;
+    }
+
+    setVerifyingTwoFactor(true);
+    setError(null);
+
+    try {
+      // Verify 2FA code
+      const verifyResponse = await fetch('/api/user/two-factor/verify-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          email,
+          token: twoFactorCode,
+        }),
+      });
+
+      if (!verifyResponse.ok) {
+        const data = await verifyResponse.json();
+        throw new Error(data.error || 'Invalid verification code');
+      }
+
+      // 2FA verified - now complete the login by signing in again
+      // Better Auth will create the session since password was already verified
+      try {
+        const result = await betterAuthClient.signIn.email({
+          email,
+          password,
+        });
+
+        if (!result) {
+          throw new Error('Failed to complete sign-in');
+        }
+      } catch (signInError: any) {
+        throw new Error('Failed to complete sign-in');
+      }
+
+      // Complete login
+      await completeLogin();
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Invalid verification code';
+      setError(errorMessage);
+      setTwoFactorCode('');
+    } finally {
+      setVerifyingTwoFactor(false);
+    }
+  };
+
+  const completeLogin = async () => {
+    // Update rememberMe field on session if checkbox was checked
+    if (rememberMe) {
+      try {
+        await fetch('/api/session/remember-me', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rememberMe: true }),
+          credentials: 'include',
+        });
+      } catch (err) {
+        // Don't block sign-in if this fails
+      }
+    }
+
+    // Redirect to callback URL or dashboard
+    const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+
+    // Use window.location for a hard redirect to ensure middleware runs
+    window.location.href = callbackUrl;
+  };
+
+  const handleBackToPassword = () => {
+    setRequiresTwoFactor(false);
+    setTwoFactorCode('');
+    setError(null);
   };
 
   return (
@@ -91,74 +183,143 @@ export default function SignInPage() {
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">
-                Email
-              </Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
-                disabled={loading}
-              />
-            </div>
+            {!requiresTwoFactor ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-foreground">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+                    disabled={loading}
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">
-                Password
-              </Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                className="bg-background border-border text-foreground placeholder:text-muted-foreground"
-                disabled={loading}
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-foreground">
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground"
+                    disabled={loading}
+                  />
+                </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="rememberMe"
-                checked={rememberMe}
-                onCheckedChange={(checked) => setRememberMe(checked === true)}
-                disabled={loading}
-              />
-              <Label
-                htmlFor="rememberMe"
-                className="text-sm text-foreground cursor-pointer select-none"
-              >
-                Remember me on this device
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground -mt-2">
-              Skip automatic logout due to inactivity
-            </p>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="rememberMe"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked === true)}
+                    disabled={loading}
+                  />
+                  <Label
+                    htmlFor="rememberMe"
+                    className="text-sm text-foreground cursor-pointer select-none"
+                  >
+                    Remember me on this device
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground -mt-2">
+                  Skip automatic logout due to inactivity
+                </p>
 
-            <Button
-              type="submit"
-              className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-background font-medium"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                'Sign In'
-              )}
-            </Button>
+                <Button
+                  type="submit"
+                  className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-background font-medium"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center justify-center mb-4">
+                  <div className="p-3 rounded-full bg-[var(--color-primary)]/10">
+                    <Shield className="w-6 h-6 text-[var(--color-primary)]" />
+                  </div>
+                </div>
+                <div className="text-center mb-4">
+                  <h3 className="text-lg font-semibold text-foreground mb-1">
+                    Two-Factor Authentication
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Enter the 6-digit code from your authenticator app
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="twoFactorCode" className="text-foreground">
+                    Verification Code
+                  </Label>
+                  <Input
+                    id="twoFactorCode"
+                    name="twoFactorCode"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="000000"
+                    value={twoFactorCode}
+                    onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    required
+                    autoComplete="one-time-code"
+                    className="bg-background border-border text-foreground placeholder:text-muted-foreground text-center text-2xl font-mono tracking-widest"
+                    disabled={verifyingTwoFactor}
+                    autoFocus
+                  />
+                  <p className="text-xs text-muted-foreground text-center">
+                    You can also use a backup code if you've lost access to your authenticator app
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleBackToPassword}
+                    className="flex-1 border-border"
+                    disabled={verifyingTwoFactor}
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-background font-medium"
+                    disabled={verifyingTwoFactor || twoFactorCode.length !== 6}
+                  >
+                    {verifyingTwoFactor ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      'Verify'
+                    )}
+                  </Button>
+                </div>
+              </>
+            )}
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">

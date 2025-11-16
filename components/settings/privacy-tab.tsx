@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { TwoFactorSection } from '@/components/settings/two-factor-section';
 
 interface Session {
   id: string;
@@ -445,6 +446,11 @@ export function PrivacyTab() {
           </div>
         </div>
       </div>
+
+      <Separator className="bg-border" />
+
+      {/* Two-Factor Authentication Section */}
+      <TwoFactorSection />
 
       <Separator className="bg-border" />
 

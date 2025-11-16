@@ -11,6 +11,12 @@ export const user = sqliteTable("user", {
   pendingEmail: text("pending_email"),
   image: text("image"),
   imageUpdatedAt: integer("image_updated_at", { mode: "timestamp_ms" }),
+  twoFactorEnabled: integer("two_factor_enabled", { mode: "boolean" })
+    .default(false)
+    .notNull(),
+  twoFactorSecret: text("two_factor_secret"),
+  twoFactorBackupCodes: text("two_factor_backup_codes"), // JSON array of hashed codes
+  twoFactorVerifiedAt: integer("two_factor_verified_at", { mode: "timestamp_ms" }),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),

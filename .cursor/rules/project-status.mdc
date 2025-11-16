@@ -43,6 +43,13 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 ## Recent Major Features
 
 **Latest (2025-01-XX):**
+- Two-Factor Authentication (2FA) (100% COMPLETE - Phase 1 of Advanced Security Features)
+  - ✅ TOTP-based 2FA with QR code setup and backup codes
+  - ✅ Login flow integration requiring 2FA verification
+  - ✅ Settings UI in Privacy & Security tab
+  - ✅ Database migration applied with 2FA fields
+  - ✅ All API endpoints implemented and tested
+  - See `docs/advanced-security-features-plan.md` for Phase 1 details and `docs/2fa-testing-guide.md` for testing instructions
 - 403 Forbidden Errors & Sign-Out Fix (100% COMPLETE - 5/5 bugs fixed)
   - ✅ Fixed transaction creation sign-out bug by adding household context readiness guards
   - ✅ Fixed categories API 403 error by updating to household-aware fetch hooks
