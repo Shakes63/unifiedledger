@@ -7,7 +7,7 @@
 
 ## Incomplete Features
 
-1. a toggle in settings to toggle on and off the combined transfer view for transactions
+1. ⚠️ **Combined Transfer View Toggle** - Toggle implemented but has a bug: when set to OFF (separate view), only `transfer_in` transactions are shown; `transfer_out` transactions are missing. Database preference is saved correctly, but API endpoint is not respecting it. See `docs/bugs.md` bug #1 and `docs/combined-transfer-view-toggle-plan.md` for implementation details.
 
 ---
 

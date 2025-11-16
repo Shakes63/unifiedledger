@@ -2,6 +2,12 @@
 
 ## 🆕 ADD NEW BUGS HERE
 
+1. **Combined Transfer View Toggle Not Working** - When toggle is set to OFF (separate view), only `transfer_in` transactions are shown, but `transfer_out` transactions are missing. Expected: Both `transfer_out` and `transfer_in` should be displayed when toggle is OFF. Database shows preference is saved correctly (`combined_transfer_view = 0`), but API endpoint is not respecting it.
+
+2. **Password Field Not Contained in Form** - Multiple password fields in settings page are not contained within a `<form>` element, causing DOM warnings. This is a minor accessibility/HTML validation issue.
+
+3. **Image Aspect Ratio Warning** - Logo image has width or height modified but not both, causing Next.js Image optimization warning. Should include `width: "auto"` or `height: "auto"` in styles.
+
 ---
 
 ## 🐛 Active Bugs
