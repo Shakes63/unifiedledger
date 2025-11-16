@@ -9,23 +9,21 @@
 
 ## Incomplete Features
 
-### Household Data Isolation Phase 2-4
-**Status:** Phase 2 partially complete (Steps 1-5 done, Step 6 remaining)
-**Plan:** `docs/phase-2-bills-budgets-isolation-plan.md`
+### Household Data Isolation Phase 3-4
+**Status:** Phase 3 IN PROGRESS (Steps 1-2 complete, Steps 3-6 remaining)
+**Plan:** `docs/phase-3-goals-debts-isolation-plan.md`
 
 **Phase 1 (Core Data): ✅ COMPLETE**
-**Phase 2 (Bills & Budgets):** 
-- ✅ Step 1: Database schema updated (bills, bill_instances tables)
-- ✅ Step 2: Bills API endpoints updated (6 files)
-- ✅ Step 3: Budgets API endpoints (11 files) - COMPLETE
-- ✅ Step 4: Frontend components updates (13 components) - COMPLETE
-- ✅ Step 5: Testing & validation - COMPLETE (9 API endpoints tested, 2 frontend pages tested, household isolation verified)
-- ⏳ Step 6: Documentation & cleanup
-
-**Testing Results:** See `docs/phase-2-step-5-test-results.md` for detailed test results. All critical functionality verified. Minor issue: Invalid household ID returns 500 instead of 403/400.
+**Phase 2 (Bills & Budgets): ✅ COMPLETE**
+**Phase 3 (Goals & Debts): IN PROGRESS**
+- ✅ Step 1: Database schema updated (6 tables: savings_goals, savings_milestones, debts, debt_payments, debt_payoff_milestones, debt_settings)
+- ✅ Step 2: Savings Goals API endpoints updated (3 endpoints)
+- ⏳ Step 3: Debts API endpoints (13 endpoints) - IN PROGRESS
+- ⏳ Step 4: Frontend components updates - PENDING
+- ⏳ Step 5: Testing & validation - PENDING
+- ⏳ Step 6: Documentation & cleanup - PENDING
 
 **Remaining:**
-- ⏳ Phase 3: Goals & Debts API isolation
 - ⏳ Phase 4: Business logic (rules engine, bill matching, usage analytics)
 
 ---
@@ -58,7 +56,7 @@
 1. ✅ **Enhanced Error Handling & Network Infrastructure** - Complete error handling system with reusable UI components, offline request queue, network status banner, and automatic retry
 2. ✅ **Household Data Isolation Phase 1** - Complete household isolation for transactions, accounts, categories, and merchants with database migration applied
 3. ✅ **Household Data Isolation Phase 0** - Three-tier settings architecture with per-household themes and notifications
-4. ✅ **Household Data Isolation Phase 2 Steps 1-5** - Bills & Budgets API isolation with database migration, API endpoints, frontend components, and testing complete
+4. ✅ **Household Data Isolation Phase 2** - Complete Bills & Budgets API isolation: 23 API endpoints, 13 frontend components, database migration with 0 NULL values
 5. ✅ **Better Auth Authentication Bug Fixes** - Fixed 185 fetch calls missing credentials and session handling
 6. ✅ **Better Auth Cookie Integration** - Session cookie handling with proper authentication
 7. ✅ **Experimental Features System** - Feature gating with Quick Entry Mode, Enhanced Search, and Advanced Charts

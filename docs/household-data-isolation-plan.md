@@ -44,30 +44,31 @@
 2. ✅ **budget_categories** - Budget categories are household-specific
 3. ✅ **transactions** - All transactions belong to household
 4. ✅ **merchants** - Merchant history is household-specific
-5. ✅ **bills** - Already has household_id ✓
-6. ✅ **debts** - Debt tracking per household
-7. ✅ **savings_goals** - Goals are household-specific
+5. ✅ **bills** - Added household_id in Phase 2 (2025-01-27) ✓
+6. ✅ **bill_instances** - Added household_id in Phase 2 (2025-01-27) ✓
+7. ✅ **debts** - Debt tracking per household (Phase 3)
+8. ✅ **savings_goals** - Goals are household-specific (Phase 3)
 
-### Secondary Tables (Phase 2)
-8. ✅ **tags** - Tags are household-specific
-9. ✅ **custom_fields** - Custom fields per household
-10. ✅ **custom_field_values** - Values belong to household transactions
-11. ✅ **transaction_tags** - Tag assignments
-12. ✅ **categorization_rules** - Auto-categorization rules per household
-13. ✅ **budget_templates** - Already has household_id (nullable) - make NOT NULL
-14. ✅ **saved_search_filters** - Already has household_id (nullable) - make NOT NULL
+### Secondary Tables (Phase 3)
+9. ✅ **tags** - Tags are household-specific
+10. ✅ **custom_fields** - Custom fields per household
+11. ✅ **custom_field_values** - Values belong to household transactions
+12. ✅ **transaction_tags** - Tag assignments
+13. ✅ **categorization_rules** - Auto-categorization rules per household
+14. ✅ **budget_templates** - Already has household_id (nullable) - make NOT NULL
+15. ✅ **saved_search_filters** - Already has household_id (nullable) - make NOT NULL
 
 ### Supporting Tables (Phase 3)
-15. ✅ **import_templates** - Already has household_id (nullable) - make NOT NULL
-16. ✅ **import_history** - Already has household_id (nullable) - make NOT NULL
-17. ✅ **import_staging** - Needs household_id for data isolation
-18. ✅ **usage_analytics** - Track usage per household
-19. ✅ **search_history** - Search history per household
+16. ✅ **import_templates** - Already has household_id (nullable) - make NOT NULL
+17. ✅ **import_history** - Already has household_id (nullable) - make NOT NULL
+18. ✅ **import_staging** - Needs household_id for data isolation
+19. ✅ **usage_analytics** - Track usage per household
+20. ✅ **search_history** - Search history per household
 
 ### Tax & Reporting Tables (Phase 4)
-20. ✅ **transaction_tax_classifications** - Tax data per household
-21. ✅ **sales_tax_transactions** - Sales tax tracking per household
-22. ✅ **quarterly_filing_records** - Tax filing records per household
+21. ✅ **transaction_tax_classifications** - Tax data per household
+22. ✅ **sales_tax_transactions** - Sales tax tracking per household
+23. ✅ **quarterly_filing_records** - Tax filing records per household
 
 ### Notification & Activity Tables (Already Have)
 - ✅ **notifications** - Already has household_id ✓
@@ -204,10 +205,13 @@ const { householdId } = body;
 - `PUT /api/accounts/[id]` - Update account
 - `DELETE /api/accounts/[id]` - Delete account
 
-**Phase 2 - Core Features**
-- `/api/categories/*` - Budget categories
-- `/api/merchants/*` - Merchants
-- `/api/bills/*` - Bills (already filtered?)
+**Phase 2 - Bills & Budgets ✅ COMPLETE (2025-01-27)**
+- ✅ `/api/bills/*` - Bills API (12 endpoints isolated)
+- ✅ `/api/budgets/*` - Budgets API (11 endpoints isolated)
+
+**Phase 3 - Goals, Debts & Supporting Features**
+- `/api/categories/*` - Budget categories (already isolated in Phase 1)
+- `/api/merchants/*` - Merchants (already isolated in Phase 1)
 - `/api/goals/*` - Savings goals
 - `/api/debts/*` - Debt tracking
 
@@ -314,17 +318,32 @@ See full plan: `docs/settings-three-tier-architecture.md`
 
 **Estimated Impact:** ~40 API endpoints, ~20 components
 
-### Phase 2: Bills, Goals, Debts
-**Goal:** Complete household isolation for all financial tracking features
+### Phase 2: Bills & Budgets API Isolation ✅ COMPLETE (2025-01-27)
+**Goal:** Complete household isolation for bills and budgets features
 
-**Tasks:**
-1. Update schema for: debts, savings_goals, tags, custom_fields
-2. Apply migrations
-3. Update API endpoints
-4. Update frontend components
-5. Test complete isolation
+**Status:** ✅ COMPLETE
+**Completion Date:** 2025-01-27
 
-**Estimated Impact:** ~25 API endpoints, ~15 components
+**Tasks Completed:**
+1. ✅ Updated database schema for: bills, bill_instances (budget_categories already had household_id from Phase 1)
+2. ✅ Applied migration `0043_add_household_id_to_bills.sql` with data backfill (0 NULL values)
+3. ✅ Updated 12 bills API endpoints to filter by household
+4. ✅ Updated 11 budgets API endpoints to filter by household
+5. ✅ Updated 13 frontend components to use `useHouseholdFetch` hook
+6. ✅ Comprehensive testing completed (see `docs/phase-2-step-5-test-results.md`)
+
+**Actual Impact:** 23 API endpoints, 13 frontend components, 2 database tables migrated, 4 indexes created
+
+**Key Achievements:**
+- All bills and bill instances now isolated by household
+- All budget operations filtered by household
+- Complete frontend integration with household context
+- Zero data leakage between households verified
+- Performance maintained with optimized indexes
+
+**Remaining for Phase 2 Scope:**
+- ⏳ Goals & Debts API isolation (moved to Phase 3)
+- ⏳ Tags & Custom Fields isolation (moved to Phase 3)
 
 ### Phase 3: Supporting Features
 **Goal:** Household-specific categorization rules, templates, search

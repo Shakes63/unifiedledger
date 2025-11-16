@@ -1413,6 +1413,7 @@ export const savingsGoals = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     name: text('name').notNull(),
     description: text('description'),
     targetAmount: real('target_amount').notNull(),
@@ -1435,6 +1436,8 @@ export const savingsGoals = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_savings_goals_user').on(table.userId),
+    householdIdIdx: index('idx_savings_goals_household').on(table.householdId),
+    userHouseholdIdx: index('idx_savings_goals_user_household').on(table.userId, table.householdId),
     statusIdx: index('idx_savings_goals_status').on(table.status),
   })
 );
@@ -1445,6 +1448,7 @@ export const savingsMilestones = sqliteTable(
     id: text('id').primaryKey(),
     goalId: text('goal_id').notNull(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     percentage: integer('percentage').notNull(), // 25, 50, 75, 100
     milestoneAmount: real('milestone_amount').notNull(),
     achievedAt: text('achieved_at'),
@@ -1454,6 +1458,8 @@ export const savingsMilestones = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_savings_milestones_user').on(table.userId),
+    householdIdIdx: index('idx_savings_milestones_household').on(table.householdId),
+    userHouseholdIdx: index('idx_savings_milestones_user_household').on(table.userId, table.householdId),
     goalIdIdx: index('idx_savings_milestones_goal').on(table.goalId),
   })
 );
@@ -1478,6 +1484,7 @@ export const debts = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     name: text('name').notNull(),
     description: text('description'),
     creditorName: text('creditor_name').notNull(),
@@ -1522,6 +1529,8 @@ export const debts = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_debts_user').on(table.userId),
+    householdIdIdx: index('idx_debts_household').on(table.householdId),
+    userHouseholdIdx: index('idx_debts_user_household').on(table.userId, table.householdId),
     statusIdx: index('idx_debts_status').on(table.status),
     categoryIdx: index('idx_debts_category').on(table.categoryId),
   })
@@ -1533,6 +1542,7 @@ export const debtPayments = sqliteTable(
     id: text('id').primaryKey(),
     debtId: text('debt_id').notNull(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     amount: real('amount').notNull(),
     principalAmount: real('principal_amount').default(0),
     interestAmount: real('interest_amount').default(0),
@@ -1543,6 +1553,8 @@ export const debtPayments = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_debt_payments_user').on(table.userId),
+    householdIdIdx: index('idx_debt_payments_household').on(table.householdId),
+    userHouseholdIdx: index('idx_debt_payments_user_household').on(table.userId, table.householdId),
     debtIdIdx: index('idx_debt_payments_debt').on(table.debtId),
   })
 );
@@ -1553,6 +1565,7 @@ export const debtPayoffMilestones = sqliteTable(
     id: text('id').primaryKey(),
     debtId: text('debt_id').notNull(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     percentage: integer('percentage').notNull(), // 25, 50, 75, 100
     milestoneBalance: real('milestone_balance').notNull(), // Balance at which milestone is hit
     achievedAt: text('achieved_at'),
@@ -1562,6 +1575,8 @@ export const debtPayoffMilestones = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_debt_payoff_milestones_user').on(table.userId),
+    householdIdIdx: index('idx_debt_payoff_milestones_household').on(table.householdId),
+    userHouseholdIdx: index('idx_debt_payoff_milestones_user_household').on(table.userId, table.householdId),
     debtIdIdx: index('idx_debt_payoff_milestones_debt').on(table.debtId),
   })
 );
@@ -1571,6 +1586,7 @@ export const debtSettings = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     extraMonthlyPayment: real('extra_monthly_payment').default(0),
     preferredMethod: text('preferred_method', {
       enum: ['snowball', 'avalanche'],
@@ -1583,6 +1599,8 @@ export const debtSettings = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_debt_settings_user').on(table.userId),
+    householdIdIdx: index('idx_debt_settings_household').on(table.householdId),
+    userHouseholdIdx: index('idx_debt_settings_user_household').on(table.userId, table.householdId),
   })
 );
 

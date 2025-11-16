@@ -1,17 +1,22 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { savingsGoals, savingsMilestones } from '@/lib/db/schema';
+import { savingsGoals, savingsMilestones, accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const url = new URL(request.url);
     const status = url.searchParams.get('status');
 
-    const conditions = [eq(savingsGoals.userId, userId)];
+    const conditions = [
+      eq(savingsGoals.userId, userId),
+      eq(savingsGoals.householdId, householdId)
+    ];
     if (status) {
       conditions.push(eq(savingsGoals.status, status as any));
     }
@@ -27,6 +32,9 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     // Log detailed error information for debugging
     console.error('[Savings Goals GET] Database error occurred:');
@@ -48,8 +56,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
 
     const {
       name,
@@ -74,6 +82,29 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate account belongs to household if provided
+    if (accountId) {
+      const account = await db
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, accountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        )
+        .limit(1)
+        .then(result => result[0]);
+
+      if (!account) {
+        return Response.json(
+          { error: 'Account not found or does not belong to this household' },
+          { status: 400 }
+        );
+      }
+    }
+
     const goalId = nanoid();
     const now = new Date().toISOString();
 
@@ -81,6 +112,7 @@ export async function POST(request: Request) {
     await db.insert(savingsGoals).values({
       id: goalId,
       userId,
+      householdId,
       name,
       description,
       targetAmount: parseFloat(String(targetAmount)),
@@ -112,6 +144,7 @@ export async function POST(request: Request) {
         id: nanoid(),
         goalId,
         userId,
+        householdId,
         percentage: milestone.percentage,
         milestoneAmount: milestone.milestoneAmount,
         createdAt: now,
@@ -132,6 +165,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('[Savings Goals POST] Database error:', error);
     return new Response(

@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { savingsGoals, savingsMilestones } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -9,11 +10,19 @@ export async function GET(
 ) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
     const { id } = await params;
+    
     const goal = await db
       .select()
       .from(savingsGoals)
-      .where(and(eq(savingsGoals.id, id), eq(savingsGoals.userId, userId)))
+      .where(
+        and(
+          eq(savingsGoals.id, id),
+          eq(savingsGoals.userId, userId),
+          eq(savingsGoals.householdId, householdId)
+        )
+      )
       .then((res) => res[0]);
 
     if (!goal) {
@@ -23,13 +32,21 @@ export async function GET(
     const milestones = await db
       .select()
       .from(savingsMilestones)
-      .where(eq(savingsMilestones.goalId, id))
+      .where(
+        and(
+          eq(savingsMilestones.goalId, id),
+          eq(savingsMilestones.householdId, householdId)
+        )
+      )
       .orderBy(savingsMilestones.percentage);
 
     return new Response(JSON.stringify({ ...goal, milestones }), { status: 200 });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error fetching savings goal:', error);
     return new Response(JSON.stringify({ error: 'Failed to fetch savings goal' }), { status: 500 });
@@ -42,14 +59,21 @@ export async function PUT(
 ) {
   try {
     const { userId } = await requireAuth();
-    const { id } = await params;
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+    const { id } = await params;
 
-    // Verify user owns this goal
+    // Verify user owns this goal and it belongs to household
     const goal = await db
       .select()
       .from(savingsGoals)
-      .where(and(eq(savingsGoals.id, id), eq(savingsGoals.userId, userId)))
+      .where(
+        and(
+          eq(savingsGoals.id, id),
+          eq(savingsGoals.userId, userId),
+          eq(savingsGoals.householdId, householdId)
+        )
+      )
       .then((res) => res[0]);
 
     if (!goal) {
@@ -78,6 +102,7 @@ export async function PUT(
           .where(
             and(
               eq(savingsMilestones.goalId, id),
+              eq(savingsMilestones.householdId, householdId),
               eq(savingsMilestones.percentage, milestone.percentage)
             )
           )
@@ -108,6 +133,9 @@ export async function PUT(
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
     console.error('Error updating savings goal:', error);
     return new Response(JSON.stringify({ error: 'Failed to update savings goal' }), { status: 500 });
   }
@@ -119,21 +147,35 @@ export async function DELETE(
 ) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
     const { id } = await params;
 
-    // Verify user owns this goal
+    // Verify user owns this goal and it belongs to household
     const goal = await db
       .select()
       .from(savingsGoals)
-      .where(and(eq(savingsGoals.id, id), eq(savingsGoals.userId, userId)))
+      .where(
+        and(
+          eq(savingsGoals.id, id),
+          eq(savingsGoals.userId, userId),
+          eq(savingsGoals.householdId, householdId)
+        )
+      )
       .then((res) => res[0]);
 
     if (!goal) {
       return new Response(JSON.stringify({ error: 'Goal not found' }), { status: 404 });
     }
 
-    // Delete milestones first
-    await db.delete(savingsMilestones).where(eq(savingsMilestones.goalId, id));
+    // Delete milestones first (filtered by household)
+    await db
+      .delete(savingsMilestones)
+      .where(
+        and(
+          eq(savingsMilestones.goalId, id),
+          eq(savingsMilestones.householdId, householdId)
+        )
+      );
 
     // Delete goal
     await db.delete(savingsGoals).where(eq(savingsGoals.id, id));
@@ -142,6 +184,9 @@ export async function DELETE(
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error deleting savings goal:', error);
     return new Response(JSON.stringify({ error: 'Failed to delete savings goal' }), { status: 500 });
