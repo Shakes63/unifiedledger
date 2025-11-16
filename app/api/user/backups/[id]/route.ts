@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { backupHistory } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic';
 /**
  * DELETE /api/user/backups/[id]
  * Delete a backup file and history record
+ * Verifies user has access to the household the backup belongs to
  */
 export async function DELETE(
   request: NextRequest,
@@ -32,9 +34,19 @@ export async function DELETE(
 
     const backupRecord = backup[0];
 
-    // Delete file from disk
+    // Verify user has access to this household
     try {
-      await deleteBackupFile(userId, backupRecord.filename);
+      await getAndVerifyHousehold(request, userId, { householdId: backupRecord.householdId });
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Not a member of this household' },
+        { status: 403 }
+      );
+    }
+
+    // Delete file from disk (household-specific path)
+    try {
+      await deleteBackupFile(userId, backupRecord.householdId, backupRecord.filename);
     } catch (error) {
       console.error('Failed to delete backup file:', error);
       // Continue with database deletion even if file deletion fails

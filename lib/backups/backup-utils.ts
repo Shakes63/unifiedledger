@@ -5,19 +5,19 @@ import { existsSync } from 'fs';
 const BACKUP_DIR = join(process.cwd(), 'backups');
 
 /**
- * Get backup directory path for a user
+ * Get backup directory path for a user's household
  */
-export function getUserBackupDir(userId: string): string {
-  return join(BACKUP_DIR, userId);
+export function getHouseholdBackupDir(userId: string, householdId: string): string {
+  return join(BACKUP_DIR, userId, householdId);
 }
 
 /**
- * Ensure backup directory exists for a user
+ * Ensure backup directory exists for a user's household
  */
-export async function ensureBackupDir(userId: string): Promise<void> {
-  const userDir = getUserBackupDir(userId);
-  if (!existsSync(userDir)) {
-    await mkdir(userDir, { recursive: true });
+export async function ensureBackupDir(userId: string, householdId: string): Promise<void> {
+  const householdDir = getHouseholdBackupDir(userId, householdId);
+  if (!existsSync(householdDir)) {
+    await mkdir(householdDir, { recursive: true });
   }
 }
 
@@ -34,8 +34,8 @@ export function generateBackupFilename(format: 'json' | 'csv' = 'json'): string 
 /**
  * Get full file path for a backup
  */
-export function getBackupFilePath(userId: string, filename: string): string {
-  return join(getUserBackupDir(userId), filename);
+export function getBackupFilePath(userId: string, householdId: string, filename: string): string {
+  return join(getHouseholdBackupDir(userId, householdId), filename);
 }
 
 /**
@@ -43,11 +43,12 @@ export function getBackupFilePath(userId: string, filename: string): string {
  */
 export async function saveBackupFile(
   userId: string,
+  householdId: string,
   filename: string,
   content: string
 ): Promise<{ filePath: string; fileSize: number }> {
-  await ensureBackupDir(userId);
-  const filePath = getBackupFilePath(userId, filename);
+  await ensureBackupDir(userId, householdId);
+  const filePath = getBackupFilePath(userId, householdId, filename);
   await writeFile(filePath, content, 'utf-8');
   const stats = await stat(filePath);
   return { filePath, fileSize: stats.size };
@@ -56,16 +57,16 @@ export async function saveBackupFile(
 /**
  * Read backup file from disk
  */
-export async function readBackupFile(userId: string, filename: string): Promise<string> {
-  const filePath = getBackupFilePath(userId, filename);
+export async function readBackupFile(userId: string, householdId: string, filename: string): Promise<string> {
+  const filePath = getBackupFilePath(userId, householdId, filename);
   return await readFile(filePath, 'utf-8');
 }
 
 /**
  * Delete backup file from disk
  */
-export async function deleteBackupFile(userId: string, filename: string): Promise<void> {
-  const filePath = getBackupFilePath(userId, filename);
+export async function deleteBackupFile(userId: string, householdId: string, filename: string): Promise<void> {
+  const filePath = getBackupFilePath(userId, householdId, filename);
   if (existsSync(filePath)) {
     await unlink(filePath);
   }
@@ -74,8 +75,8 @@ export async function deleteBackupFile(userId: string, filename: string): Promis
 /**
  * Check if backup file exists
  */
-export async function backupFileExists(userId: string, filename: string): Promise<boolean> {
-  const filePath = getBackupFilePath(userId, filename);
+export async function backupFileExists(userId: string, householdId: string, filename: string): Promise<boolean> {
+  const filePath = getBackupFilePath(userId, householdId, filename);
   return existsSync(filePath);
 }
 

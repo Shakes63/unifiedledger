@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { backupHistory } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic';
 /**
  * GET /api/user/backups/[id]/download
  * Download a specific backup file
+ * Verifies user has access to the household the backup belongs to
  */
 export async function GET(
   request: NextRequest,
@@ -32,6 +34,16 @@ export async function GET(
 
     const backupRecord = backup[0];
 
+    // Verify user has access to this household
+    try {
+      await getAndVerifyHousehold(request, userId, { householdId: backupRecord.householdId });
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'Unauthorized: Not a member of this household' },
+        { status: 403 }
+      );
+    }
+
     // Verify backup is completed
     if (backupRecord.status !== 'completed') {
       return NextResponse.json(
@@ -40,9 +52,9 @@ export async function GET(
       );
     }
 
-    // Read backup file
+    // Read backup file (household-specific path)
     try {
-      const fileContent = await readBackupFile(userId, backupRecord.filename);
+      const fileContent = await readBackupFile(userId, backupRecord.householdId, backupRecord.filename);
       const contentType =
         backupRecord.format === 'json' ? 'application/json' : 'text/csv';
 

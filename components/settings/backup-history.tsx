@@ -14,6 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Download, Trash2, FileText, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHousehold } from '@/contexts/household-context';
 
 interface Backup {
   id: string;
@@ -26,6 +27,7 @@ interface Backup {
 }
 
 export function BackupHistory() {
+  const { selectedHouseholdId } = useHousehold();
   const [loading, setLoading] = useState(true);
   const [backups, setBackups] = useState<Backup[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -33,13 +35,23 @@ export function BackupHistory() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetchBackups();
-  }, []);
+    if (selectedHouseholdId) {
+      fetchBackups();
+    }
+  }, [selectedHouseholdId]);
 
   async function fetchBackups() {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await fetch('/api/user/backups?limit=50', {
+        headers: {
+          'x-household-id': selectedHouseholdId,
+        },
         credentials: 'include',
       });
 
@@ -47,7 +59,12 @@ export function BackupHistory() {
         const data = await response.json();
         setBackups(data.backups);
       } else {
-        toast.error('Failed to load backup history');
+        const errorData = await response.json();
+        if (errorData.error?.includes('Household')) {
+          toast.error('Please select a household');
+        } else {
+          toast.error('Failed to load backup history');
+        }
       }
     } catch (error) {
       console.error('Failed to fetch backups:', error);
@@ -158,6 +175,14 @@ export function BackupHistory() {
           <Badge className="bg-[var(--color-error)] text-white">Failed</Badge>
         );
     }
+  }
+
+  if (!selectedHouseholdId) {
+    return (
+      <div className="flex items-center justify-center py-8 text-muted-foreground">
+        <p>Please select a household to view backup history</p>
+      </div>
+    );
   }
 
   if (loading) {

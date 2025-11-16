@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { backupSettings } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 
 export const dynamic = 'force-dynamic';
@@ -50,17 +51,24 @@ function calculateNextBackupAt(frequency: 'daily' | 'weekly' | 'monthly'): strin
 
 /**
  * GET /api/user/backup-settings
- * Get user's backup settings (creates defaults if not exists)
+ * Get user's backup settings for a household (creates defaults if not exists)
+ * Requires householdId in query parameter or x-household-id header
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // Fetch backup settings
+    // Fetch backup settings for this household
     const settings = await db
       .select()
       .from(backupSettings)
-      .where(eq(backupSettings.userId, userId))
+      .where(
+        and(
+          eq(backupSettings.userId, userId),
+          eq(backupSettings.householdId, householdId)
+        )
+      )
       .limit(1);
 
     // If backup settings don't exist, return defaults
@@ -79,6 +87,9 @@ export async function GET() {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error('Failed to fetch backup settings:', error);
     return NextResponse.json({ error: 'Failed to fetch backup settings' }, { status: 500 });
   }
@@ -86,16 +97,17 @@ export async function GET() {
 
 /**
  * POST /api/user/backup-settings
- * Update user's backup settings (partial updates allowed)
+ * Update user's backup settings for a household (partial updates allowed)
+ * Requires householdId in request body
  */
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
 
     // Remove fields that shouldn't be updated via this endpoint
-    const { id, userId: bodyUserId, createdAt, ...updateData } = body;
+    const { id, userId: bodyUserId, householdId: bodyHouseholdId, createdAt, ...updateData } = body;
 
     // Validate frequency if provided
     if ('frequency' in updateData) {
@@ -134,7 +146,12 @@ export async function POST(request: NextRequest) {
     const currentSettings = await db
       .select()
       .from(backupSettings)
-      .where(eq(backupSettings.userId, userId))
+      .where(
+        and(
+          eq(backupSettings.userId, userId),
+          eq(backupSettings.householdId, householdId)
+        )
+      )
       .limit(1);
 
     const frequency = updateData.frequency || currentSettings[0]?.frequency || 'weekly';
@@ -148,11 +165,16 @@ export async function POST(request: NextRequest) {
       updateData.nextBackupAt = null;
     }
 
-    // Check if backup settings exist
+    // Check if backup settings exist for this household
     const existingSettings = await db
       .select()
       .from(backupSettings)
-      .where(eq(backupSettings.userId, userId))
+      .where(
+        and(
+          eq(backupSettings.userId, userId),
+          eq(backupSettings.householdId, householdId)
+        )
+      )
       .limit(1);
 
     if (existingSettings && existingSettings.length > 0) {
@@ -163,13 +185,19 @@ export async function POST(request: NextRequest) {
           ...updateData,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(backupSettings.userId, userId));
+        .where(
+          and(
+            eq(backupSettings.userId, userId),
+            eq(backupSettings.householdId, householdId)
+          )
+        );
     } else {
       // Create new settings record with provided data merged with defaults
       const nextBackupAt = enabled ? calculateNextBackupAt(frequency) : null;
       await db.insert(backupSettings).values({
         id: uuidv4(),
         userId,
+        householdId,
         ...DEFAULT_BACKUP_SETTINGS,
         ...updateData,
         nextBackupAt,
@@ -182,7 +210,12 @@ export async function POST(request: NextRequest) {
     const updatedSettings = await db
       .select()
       .from(backupSettings)
-      .where(eq(backupSettings.userId, userId))
+      .where(
+        and(
+          eq(backupSettings.userId, userId),
+          eq(backupSettings.householdId, householdId)
+        )
+      )
       .limit(1);
 
     return NextResponse.json({
@@ -192,6 +225,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     console.error('Failed to update backup settings:', error);
     return NextResponse.json({ error: 'Failed to update backup settings' }, { status: 500 });

@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Save, Calendar, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHousehold } from '@/contexts/household-context';
 
 interface BackupSettings {
   id?: string;
@@ -28,6 +29,7 @@ interface BackupSettings {
 }
 
 export function BackupSettingsForm() {
+  const { selectedHouseholdId } = useHousehold();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [creatingBackup, setCreatingBackup] = useState(false);
@@ -42,13 +44,23 @@ export function BackupSettingsForm() {
   });
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    if (selectedHouseholdId) {
+      fetchSettings();
+    }
+  }, [selectedHouseholdId]);
 
   async function fetchSettings() {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await fetch('/api/user/backup-settings', {
+        headers: {
+          'x-household-id': selectedHouseholdId,
+        },
         credentials: 'include',
       });
 
@@ -56,7 +68,12 @@ export function BackupSettingsForm() {
         const data = await response.json();
         setSettings(data.settings);
       } else {
-        toast.error('Failed to load backup settings');
+        const errorData = await response.json();
+        if (errorData.error?.includes('Household')) {
+          toast.error('Please select a household');
+        } else {
+          toast.error('Failed to load backup settings');
+        }
       }
     } catch (error) {
       console.error('Failed to fetch backup settings:', error);
@@ -67,14 +84,25 @@ export function BackupSettingsForm() {
   }
 
   async function saveSettings(updates: Partial<BackupSettings>) {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return;
+    }
+
     try {
       setSaving(true);
       const updatedSettings = { ...settings, ...updates };
       const response = await fetch('/api/user/backup-settings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-household-id': selectedHouseholdId,
+        },
         credentials: 'include',
-        body: JSON.stringify(updates),
+        body: JSON.stringify({
+          ...updates,
+          householdId: selectedHouseholdId,
+        }),
       });
 
       if (response.ok) {
@@ -94,11 +122,23 @@ export function BackupSettingsForm() {
   }
 
   async function createManualBackup() {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return;
+    }
+
     try {
       setCreatingBackup(true);
       const response = await fetch('/api/user/backups/create', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-household-id': selectedHouseholdId,
+        },
         credentials: 'include',
+        body: JSON.stringify({
+          householdId: selectedHouseholdId,
+        }),
       });
 
       if (response.ok) {
@@ -132,6 +172,14 @@ export function BackupSettingsForm() {
     } catch {
       return 'Invalid date';
     }
+  }
+
+  if (!selectedHouseholdId) {
+    return (
+      <div className="flex items-center justify-center py-8 text-muted-foreground">
+        <p>Please select a household to configure backup settings</p>
+      </div>
+    );
   }
 
   if (loading) {

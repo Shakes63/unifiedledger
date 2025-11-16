@@ -66,6 +66,10 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
   - ✅ Integrated NetworkStatusProvider and OfflineBanner into root layout
   - ✅ All components use semantic color variables and follow existing patterns
 
+**Previous (2025-11-16):**
+- Backup Household Isolation (100% COMPLETE) - Complete household isolation for backups with per-household settings, history, file storage, and verified isolation testing
+- Auto-Backup Settings (100% COMPLETE) - Automatic backup system with scheduler, settings UI, manual backups, backup history, and cron endpoint
+
 **Previous (2025-11-14):**
 - Better Auth Authentication Bug Fixes (100% COMPLETE)
 - Better Auth Cookie Integration (100% COMPLETE)
@@ -91,10 +95,9 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 **What works:** Complete household data isolation across all financial data types. Users can switch between households and see fully isolated data. All API endpoints, frontend components, and business logic properly filter by household.
 
 ### Other Next Steps
-1. ⏳ **Auto-Backup Scheduler (Step 4)** - Implement automatic scheduled backups via cron job (Steps 1-3, 5-7 complete, see `docs/auto-backup-settings-implementation-plan.md`)
-2. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
-3. Docker configuration for deployment
-4. Performance optimizations as needed
-5. User feedback and iterations
+1. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
+2. Docker configuration for deployment
+3. Performance optimizations as needed
+4. User feedback and iterations
 
 For detailed bug tracking, see `docs/bugs.md`.

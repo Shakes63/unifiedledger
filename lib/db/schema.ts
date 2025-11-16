@@ -887,7 +887,8 @@ export const backupSettings = sqliteTable(
   'backup_settings',
   {
     id: text('id').primaryKey(),
-    userId: text('user_id').notNull().unique(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     enabled: integer('enabled', { mode: 'boolean' }).default(false),
     frequency: text('frequency', {
       enum: ['daily', 'weekly', 'monthly'],
@@ -904,6 +905,11 @@ export const backupSettings = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_backup_settings_user').on(table.userId),
+    householdIdx: index('idx_backup_settings_household').on(table.userId, table.householdId),
+    userHouseholdUnique: uniqueIndex('idx_backup_settings_user_household_unique').on(
+      table.userId,
+      table.householdId
+    ),
   })
 );
 
@@ -912,6 +918,7 @@ export const backupHistory = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     backupSettingsId: text('backup_settings_id').notNull(),
     filename: text('filename').notNull(),
     fileSize: integer('file_size').notNull(),
@@ -926,9 +933,15 @@ export const backupHistory = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_backup_history_user').on(table.userId),
+    householdIdx: index('idx_backup_history_household').on(table.userId, table.householdId),
     createdAtIdx: index('idx_backup_history_created').on(table.createdAt),
     statusIdx: index('idx_backup_history_status').on(table.status),
     userCreatedIdx: index('idx_backup_history_user_created').on(table.userId, table.createdAt),
+    userHouseholdCreatedIdx: index('idx_backup_history_user_household_created').on(
+      table.userId,
+      table.householdId,
+      table.createdAt
+    ),
   })
 );
 

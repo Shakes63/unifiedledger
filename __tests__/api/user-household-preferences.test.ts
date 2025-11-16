@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GET, POST, PATCH } from '@/app/api/user/households/[householdId]/preferences/route';
 import { db } from '@/lib/db';
 import { userHouseholdPreferences } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
 
 /**
  * Comprehensive tests for User-Per-Household Preferences API

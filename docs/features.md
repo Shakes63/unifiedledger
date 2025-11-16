@@ -10,11 +10,6 @@
 
 ## Incomplete Features
 
-### Auto-Backup Settings
-**Status:** Partially implemented - Steps 1-3, 5-7 complete, Step 4 pending
-**Plan:** See `docs/auto-backup-settings-implementation-plan.md`
-**Missing:** Backup scheduler (Step 4) - Automatic scheduled backups via cron job
-
 ### Settings Page - Advanced Features
 **Status:** Not yet implemented
 **Missing:**
@@ -65,4 +60,5 @@
 27. ✅ **Developer Mode** - Debug utility with entity ID badges, DEV indicator, and developer tools panel
 28. ✅ **Bill Frequency Expansion** - Support for one-time, weekly, and biweekly bill frequencies
 29. ✅ **Authentication Migration** - Complete Clerk to Better Auth migration with email/password
-30. ✅ **Auto-Backup Settings (Partial)** - Backup settings UI, manual backups, backup history (Step 4 scheduler pending)
+30. ✅ **Auto-Backup Settings** - Automatic backup system with scheduler, settings UI, manual backups, backup history, and cron endpoint
+31. ✅ **Backup Household Isolation** - Complete household isolation for backups with per-household settings, history, and file storage
