@@ -42,7 +42,7 @@ alwaysApply: false
 **What works:** Users can switch between households and see fully isolated transactions, accounts, categories, merchants, bills, budgets, savings goals, and debts.
 
 **Remaining Phases:**
-- ⏳ Phase 3: Goals & Debts API isolation (Steps 3-6 remaining) - See `docs/phase-3-goals-debts-isolation-plan.md`
+- ⏳ Phase 3: Goals & Debts API isolation (Steps 4-6 remaining) - See `docs/phase-3-goals-debts-isolation-plan.md`
 - ⏳ Phase 4: Business logic updates (rules engine, bill matching, usage analytics)
 
 See `docs/household-data-isolation-plan.md` for Phase 0-2 overview and `docs/phase-3-goals-debts-isolation-plan.md` for Phase 3 detailed plan.
@@ -88,8 +88,8 @@ See `docs/household-data-isolation-plan.md` for Phase 0-2 overview and `docs/pha
 
 
 ### Household Data Isolation - Future Phases
-**Status:** Phase 0 - ✅ Complete | Phase 1 - ✅ Complete | Phase 2 - ✅ Complete | Phase 3 - 🔄 In Progress (Steps 1-2/6 complete) | Phase 4 - Not Started
-**Estimated Remaining Effort:** 1-2 days (Phase 3 Steps 3-6) + 1-2 days (Phase 4)
+**Status:** Phase 0 - ✅ Complete | Phase 1 - ✅ Complete | Phase 2 - ✅ Complete | Phase 3 - 🔄 In Progress (Steps 1-3/6 complete) | Phase 4 - Not Started
+**Estimated Remaining Effort:** 1-2 days (Phase 3 Steps 4-6) + 1-2 days (Phase 4)
 
 **Phase 3 Progress:**
 - ✅ Database schema updated (6 tables) - Migration file created
@@ -100,7 +100,7 @@ See `docs/household-data-isolation-plan.md` for Phase 0-2 overview and `docs/pha
 - ⏳ Documentation & cleanup - PENDING
 
 **Remaining:**
-- ⏳ Phase 3: Goals & Debts API isolation (Steps 3-6 remaining) - See `docs/phase-3-goals-debts-isolation-plan.md`
+- ⏳ Phase 3: Goals & Debts API isolation (Steps 4-6 remaining) - See `docs/phase-3-goals-debts-isolation-plan.md`
 - ⏳ Phase 4: Business logic updates (rules engine, bill matching, usage analytics)
 
 ### Other Next Steps
