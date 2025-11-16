@@ -45,6 +45,15 @@ alwaysApply: false
 - String similarity (40%), amount tolerance ±5% (30%), date pattern (20%), payee pattern (10%)
 - Only auto-links matches ≥90% confidence
 
+## Permission System
+- Role-based permissions: owner, admin, member, viewer
+- 13 permissions across 4 roles (invite_members, remove_members, manage_permissions, create_accounts, edit_accounts, delete_accounts, create_transactions, edit_all_transactions, view_all_data, manage_budget, delete_household, leave_household)
+- Custom permission overrides: Admins/owners can set custom permission overrides per member (beyond role defaults)
+- Permission resolution: Custom permissions override role defaults, deny takes precedence over allow
+- Owners always have all permissions and cannot have custom permissions modified
+- Last admin protection: Cannot remove manage_permissions from last admin
+- See `lib/household/permissions.ts` for permission logic and `docs/advanced-permission-system-plan.md` for implementation details
+
 ## Offline Sync
 - IndexedDB queue for pending transactions
 - Auto-sync when connection restored

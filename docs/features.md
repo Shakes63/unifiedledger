@@ -9,13 +9,19 @@
 
 ## Incomplete Features
 
-### Settings Page - Advanced Features
-**Status:** Partially implemented (2FA complete, Permissions pending)
-**Plan:** `docs/advanced-security-features-plan.md` (Phase 1 complete, Phase 3 pending)
-**Missing:**
-- ❌ Advanced permission system (beyond basic roles) - See Phase 3 in plan
-
-**Note:** OAuth provider management (Phase 2) has been completed - see Completed Features below.
+### Advanced Permission System
+**Status:** Core implementation complete (testing and documentation pending)
+**Plan:** `docs/advanced-permission-system-plan.md`
+**Completed:**
+- ✅ Database schema with customPermissions field
+- ✅ Permission resolution logic with custom overrides
+- ✅ Backend API endpoints (GET, PUT, DELETE)
+- ✅ Frontend Permission Manager component
+- ✅ Integration with Household Tab
+- ✅ Permission enforcement (automatic via updated hasPermission())
+**Remaining:**
+- ⏳ Unit tests and integration tests
+- ⏳ Documentation polish and JSDoc comments
 
 ---
 

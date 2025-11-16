@@ -43,6 +43,16 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 ## Recent Major Features
 
 **Latest (2025-01-XX):**
+- Advanced Permission System (Core implementation complete - testing/docs pending)
+  - ✅ Database schema with customPermissions JSON field
+  - ✅ Permission resolution logic with custom overrides (deny takes precedence)
+  - ✅ Backend API endpoints (GET, PUT, DELETE for permission management)
+  - ✅ Frontend Permission Manager component with grouped permissions UI
+  - ✅ Integration with Household Tab (Manage Permissions button)
+  - ✅ Permission enforcement via updated hasPermission() function
+  - ⏳ Unit tests and integration tests pending
+  - ⏳ Documentation polish pending
+  - See `docs/advanced-permission-system-plan.md` for implementation details
 - OAuth Provider Management (100% COMPLETE)
   - ✅ Google and GitHub OAuth provider configuration
   - ✅ Provider linking/unlinking with last login method protection

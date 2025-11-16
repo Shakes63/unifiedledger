@@ -268,34 +268,23 @@ ALTER TABLE user ADD COLUMN two_factor_verified_at INTEGER;
 
 ---
 
-## 3. Advanced Permission System
+## 3. Advanced Permission System ✅ **IMPLEMENTED**
 
-### 3.1 Feature Overview
+**Status:** Core implementation complete (see `docs/advanced-permission-system-plan.md` for detailed implementation)
 
-**Objective:** Extend the existing role-based permission system with granular, customizable permissions per household member
+**Implementation Summary:**
+- ✅ Database schema with `customPermissions` JSON field
+- ✅ Permission resolution logic with custom overrides (deny takes precedence)
+- ✅ Backend API endpoints (GET, PUT, DELETE)
+- ✅ Frontend Permission Manager component with grouped permissions
+- ✅ Integration with Household Tab
+- ✅ Permission enforcement via updated `hasPermission()` function
 
-**Current System:**
-- 4 roles: owner, admin, member, viewer
-- 13 permissions defined in `lib/household/permissions.ts`
-- Permissions are role-based (not customizable)
+**Remaining:**
+- ⏳ Unit tests and integration tests
+- ⏳ Documentation polish
 
-**Enhanced System:**
-- Keep role-based defaults
-- Allow custom permission overrides per member
-- Permission inheritance from roles
-- Permission conflict resolution (deny takes precedence)
-
-**User Flow:**
-1. Admin/Owner navigates to Household Settings → Members
-2. Clicks "Manage Permissions" on a member
-3. Sees role-based permissions with overrides
-4. Can enable/disable specific permissions
-5. Changes saved immediately
-
-**Benefits:**
-- Fine-grained access control
-- Flexible household management
-- Better security for sensitive data
+**Note:** See `docs/advanced-permission-system-plan.md` for the complete implementation plan and details.
 
 ### 3.2 Technical Architecture
 

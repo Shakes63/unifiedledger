@@ -436,6 +436,13 @@ export const householdMembers = sqliteTable(
     invitedBy: text('invited_by'),
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
     isFavorite: integer('is_favorite', { mode: 'boolean' }).default(false),
+    /**
+     * Custom permission overrides stored as JSON object.
+     * Format: { "permission_name": true/false }
+     * Example: { "create_accounts": false, "edit_accounts": true }
+     * Null means no custom overrides (use role defaults).
+     */
+    customPermissions: text('custom_permissions'),
   },
   (table) => ({
     householdUserUnique: uniqueIndex('idx_household_members_unique').on(

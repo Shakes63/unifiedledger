@@ -22,10 +22,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Users, UserPlus, LogOut, Crown, Shield, Eye, Loader2, Trash2, Copy, Check, Edit, Plus, Star } from 'lucide-react';
+import { Users, UserPlus, LogOut, Crown, Shield, Eye, Loader2, Trash2, Copy, Check, Edit, Plus, Star, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useHousehold } from '@/contexts/household-context';
+import { PermissionManager } from './permission-manager';
 
 interface HouseholdMember {
   id: string;
@@ -76,6 +77,12 @@ export function HouseholdTab() {
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [permissionManagerOpen, setPermissionManagerOpen] = useState(false);
+  const [selectedMemberForPermissions, setSelectedMemberForPermissions] = useState<{
+    id: string;
+    name: string;
+    role: 'owner' | 'admin' | 'member' | 'viewer';
+  } | null>(null);
 
   // Initialize active tab on mount to the currently selected household
   // After initial mount, activeTab is independent from selectedHouseholdId
@@ -761,6 +768,25 @@ export function HouseholdTab() {
                           </Badge>
                         )}
 
+                        {canManagePermissions && member.role !== 'owner' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedMemberForPermissions({
+                                id: member.id,
+                                name: member.userName || member.userEmail,
+                                role: member.role,
+                              });
+                              setPermissionManagerOpen(true);
+                            }}
+                            className="text-foreground hover:bg-elevated"
+                            title="Manage Permissions"
+                          >
+                            <Settings className="w-4 h-4" />
+                          </Button>
+                        )}
+
                         {canRemoveMembers && (
                           <Button
                             variant="ghost"
@@ -1130,6 +1156,29 @@ export function HouseholdTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Permission Manager Dialog */}
+      {selectedMemberForPermissions && activeTab && activeTab !== 'create-new' && (
+        <PermissionManager
+          open={permissionManagerOpen}
+          onOpenChange={(open) => {
+            setPermissionManagerOpen(open);
+            if (!open) {
+              setSelectedMemberForPermissions(null);
+            }
+          }}
+          householdId={activeTab}
+          memberId={selectedMemberForPermissions.id}
+          memberName={selectedMemberForPermissions.name}
+          memberRole={selectedMemberForPermissions.role}
+          onSave={() => {
+            // Refresh member list after saving permissions
+            if (activeTab) {
+              fetchHouseholdDetails(activeTab);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
