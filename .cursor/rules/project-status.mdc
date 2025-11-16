@@ -23,7 +23,8 @@ alwaysApply: false
 - ✅ Enhanced Error Handling & Network Infrastructure (CORE COMPLETE - 9/9 bugs fixed, optional UI enhancements pending)
 - ✅ Recent Transactions Infinite Loop Fix (2025-11-15) - Memoized useHouseholdFetch functions with useCallback
 - ✅ 403 Forbidden Errors & Sign-Out Fix (2025-01-XX) - Fixed 5 bugs: transaction sign-out, categories/transactions/accounts/CompactStatsBar 403 errors
-- ⏳ 1 active bug remaining (see docs/bugs.md)
+- ✅ Logo Image Aspect Ratio Warning Fix (2025-01-27) - Removed CSS dimension modification from sidebar logo Image component
+- ✅ All bugs fixed - 0 active bugs remaining
 
 ## Household Data Isolation Status
 

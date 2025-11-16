@@ -149,7 +149,6 @@ export function Sidebar() {
                 width={32}
                 height={32}
                 className="object-contain"
-                style={{ height: 'auto' }}
               />
             </div>
             {isDeveloperMode && (
