@@ -10,12 +10,19 @@
 ## Incomplete Features
 
 ### Household Data Isolation Phase 2-4
-**Status:** Not started (Phases 2-4 pending)
-**Plan:** `docs/household-data-isolation-plan.md`
+**Status:** Phase 2 partially complete (Steps 1-2 done, Steps 3-6 remaining)
+**Plan:** `docs/phase-2-bills-budgets-isolation-plan.md`
 
 **Phase 1 (Core Data): ✅ COMPLETE**
+**Phase 2 (Bills & Budgets):** 
+- ✅ Step 1: Database schema updated (bills, bill_instances tables)
+- ✅ Step 2: Bills API endpoints updated (6 files)
+- ⏳ Step 3: Budgets API endpoints (11 files remaining)
+- ⏳ Step 4: Frontend components updates
+- ⏳ Step 5: Testing & validation
+- ⏳ Step 6: Documentation & cleanup
+
 **Remaining:**
-- ⏳ Phase 2: Bills & Budgets API isolation
 - ⏳ Phase 3: Goals & Debts API isolation
 - ⏳ Phase 4: Business logic (rules engine, bill matching, usage analytics)
 
