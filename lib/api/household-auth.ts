@@ -65,6 +65,7 @@ export async function requireHouseholdAuth(
   householdId: string | null
 ) {
   if (!householdId) {
+    console.error('[HouseholdAuth] Missing household ID', { userId });
     throw new Error('Household ID is required');
   }
 
@@ -81,6 +82,7 @@ export async function requireHouseholdAuth(
     .get();
 
   if (!membership) {
+    console.error('[HouseholdAuth] User not a member of household', { userId, householdId });
     throw new Error('Unauthorized: Not a member of this household');
   }
 

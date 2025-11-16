@@ -32,6 +32,8 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { HapticFeedbackTypes } from '@/hooks/useHapticFeedback';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
+import { Loader2 } from 'lucide-react';
 
 type TransactionType = 'income' | 'expense' | 'transfer' | 'bill';
 
@@ -84,6 +86,7 @@ interface TransactionFormProps {
 
 export function TransactionForm({ defaultType = 'expense', transactionId, onEditSuccess }: TransactionFormProps) {
   const router = useRouter();
+  const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
   const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
@@ -478,6 +481,19 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     setSuccess(false);
 
     try {
+      // Guard: Check if household context is ready
+      if (!initialized || householdLoading) {
+        setError('Please wait while household data loads...');
+        setLoading(false);
+        return;
+      }
+
+      if (!selectedHouseholdId || !householdId) {
+        setError('Please select a household to continue.');
+        setLoading(false);
+        return;
+      }
+
       if (!formData.accountId || !formData.amount || !formData.description) {
         setError('Please fill in all required fields');
         setLoading(false);
@@ -502,9 +518,25 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          errorData.error || `Failed to ${isEditMode ? 'update' : 'create'} transaction`
-        );
+        const errorMessage = errorData.error || `Failed to ${isEditMode ? 'update' : 'create'} transaction`;
+        
+        // Distinguish between auth errors (401) and household auth errors (403)
+        if (response.status === 401) {
+          // Authentication failure - session expired, let middleware handle redirect
+          toast.error('Your session has expired. Please sign in again.');
+          // Don't throw error, let middleware redirect
+          setLoading(false);
+          return;
+        }
+        
+        if (response.status === 403) {
+          // Household authorization failure - show error but don't sign out
+          toast.error(errorMessage);
+          throw new Error(errorMessage);
+        }
+        
+        // Other errors
+        throw new Error(errorMessage);
       }
 
       const transactionData = await response.json();
@@ -694,6 +726,34 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       setLoading(false);
     }
   };
+
+  // Show loading state while household context initializes
+  if (!initialized || householdLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--color-primary)]" />
+          <p className="text-muted-foreground">Loading household data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if no household is selected
+  if (!selectedHouseholdId || !householdId) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="max-w-md">
+          <div className="p-6 text-center">
+            <p className="text-foreground mb-4">No household selected</p>
+            <p className="text-muted-foreground text-sm mb-4">
+              Please select a household to create transactions.
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 md:max-w-2xl md:mx-auto">

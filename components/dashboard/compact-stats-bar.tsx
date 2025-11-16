@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Wallet, TrendingUp, Calendar, Target, TrendingDown } from 'lucide-react';
 import Decimal from 'decimal.js';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface StatCardData {
   label: string;
@@ -13,6 +15,8 @@ interface StatCardData {
 }
 
 export function CompactStatsBar() {
+  const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
+  const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [totalBalance, setTotalBalance] = useState<number>(0);
   const [monthlySpending, setMonthlySpending] = useState<number>(0);
   const [billsDueCount, setBillsDueCount] = useState<number>(0);
@@ -22,12 +26,23 @@ export function CompactStatsBar() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Don't fetch if household context isn't initialized yet
+    if (!initialized || householdLoading) {
+      return;
+    }
+
+    // Don't fetch if no household is selected
+    if (!selectedHouseholdId || !householdId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchStats = async () => {
       try {
         setLoading(true);
 
         // Fetch accounts for total balance
-        const accountsResponse = await fetch('/api/accounts', { credentials: 'include' });
+        const accountsResponse = await fetchWithHousehold('/api/accounts');
         if (accountsResponse.ok) {
           const accountsData = await accountsResponse.json();
           const total = accountsData.reduce((sum: number, account: any) => {
@@ -41,7 +56,7 @@ export function CompactStatsBar() {
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-        const txResponse = await fetch('/api/transactions?limit=1000', { credentials: 'include' });
+        const txResponse = await fetchWithHousehold('/api/transactions?limit=1000');
         if (txResponse.ok) {
           const txData = await txResponse.json();
           const monthlyExpenses = txData.filter((tx: any) => {
@@ -57,7 +72,7 @@ export function CompactStatsBar() {
         }
 
         // Fetch bills for pending count
-        const billsResponse = await fetch('/api/bills/instances?status=pending&sortBy=dueDate', { credentials: 'include' });
+        const billsResponse = await fetchWithHousehold('/api/bills/instances?status=pending&sortBy=dueDate');
         if (billsResponse.ok) {
           const billsData = await billsResponse.json();
           const rawData = Array.isArray(billsData) ? billsData : billsData.data || [];
@@ -72,7 +87,7 @@ export function CompactStatsBar() {
 
         // Fetch budget adherence (optional - only if user has budgets)
         try {
-          const budgetResponse = await fetch('/api/budgets/overview', { credentials: 'include' });
+          const budgetResponse = await fetchWithHousehold('/api/budgets/overview');
           if (budgetResponse.ok) {
             const budgetData = await budgetResponse.json();
             const categoriesWithBudgets = budgetData.categories.filter(
@@ -88,7 +103,7 @@ export function CompactStatsBar() {
 
         // Fetch debt progress (optional - only if user has debts)
         try {
-          const debtsResponse = await fetch('/api/debts', { credentials: 'include' });
+          const debtsResponse = await fetchWithHousehold('/api/debts');
           if (debtsResponse.ok) {
             const debtsData = await debtsResponse.json();
             if (debtsData.length > 0) {
@@ -115,7 +130,7 @@ export function CompactStatsBar() {
 
         // Fetch goals progress (optional - only if user has active goals)
         try {
-          const goalsResponse = await fetch('/api/savings-goals?status=active', { credentials: 'include' });
+          const goalsResponse = await fetchWithHousehold('/api/savings-goals?status=active');
           if (goalsResponse.ok) {
             const goalsData = await goalsResponse.json();
             if (Array.isArray(goalsData) && goalsData.length > 0) {
@@ -145,7 +160,7 @@ export function CompactStatsBar() {
     };
 
     fetchStats();
-  }, []);
+  }, [initialized, householdLoading, selectedHouseholdId, householdId, fetchWithHousehold]);
 
   const stats: StatCardData[] = [
     {

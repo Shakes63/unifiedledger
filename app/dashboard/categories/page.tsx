@@ -7,6 +7,10 @@ import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { CategoryForm } from '@/components/categories/category-form';
 import { CategoryCard } from '@/components/categories/category-card';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
+import { HouseholdLoadingState } from '@/components/household/household-loading-state';
+import { NoHouseholdError } from '@/components/household/no-household-error';
 
 interface Category {
   id: string;
@@ -36,6 +40,8 @@ const CATEGORY_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function CategoriesPage() {
+  const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
+  const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -45,15 +51,33 @@ export default function CategoriesPage() {
 
   // Fetch categories
   useEffect(() => {
+    // Don't fetch if household context isn't initialized yet
+    if (!initialized || householdLoading) {
+      return;
+    }
+
+    // Don't fetch if no household is selected
+    if (!selectedHouseholdId || !householdId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchCategories = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/categories', { credentials: 'include' });
+        const response = await fetchWithHousehold('/api/categories');
         if (response.ok) {
           const data = await response.json();
           setCategories(data);
         } else {
-          toast.error('Failed to load categories');
+          const errorData = await response.json().catch(() => ({ error: 'Failed to load categories' }));
+          
+          // Handle 403 errors gracefully
+          if (response.status === 403) {
+            toast.error(errorData.error || 'You do not have access to this household.');
+          } else {
+            toast.error(errorData.error || 'Failed to load categories');
+          }
         }
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -64,7 +88,7 @@ export default function CategoriesPage() {
     };
 
     fetchCategories();
-  }, []);
+  }, [initialized, householdLoading, selectedHouseholdId, householdId, fetchWithHousehold]);
 
   // Create or update category
   const handleSubmit = async (formData: any) => {
@@ -73,11 +97,7 @@ export default function CategoriesPage() {
 
       if (selectedCategory) {
         // Update category
-        const response = await fetch(`/api/categories/${selectedCategory.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-        });
+        const response = await putWithHousehold(`/api/categories/${selectedCategory.id}`, formData);
 
         if (response.ok) {
           toast.success('Category updated successfully');
@@ -100,18 +120,14 @@ export default function CategoriesPage() {
         }
       } else {
         // Create category
-        const response = await fetch('/api/categories', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-        });
+        const response = await postWithHousehold('/api/categories', formData);
 
         if (response.ok) {
           const result = await response.json();
           toast.success('Category created successfully');
 
           // Refresh categories list
-          const fetchResponse = await fetch('/api/categories', { credentials: 'include' });
+          const fetchResponse = await fetchWithHousehold('/api/categories');
           if (fetchResponse.ok) {
             const data = await fetchResponse.json();
             setCategories(data);
@@ -140,7 +156,7 @@ export default function CategoriesPage() {
     }
 
     try {
-      const response = await fetch(`/api/categories/${categoryId}`, { credentials: 'include', method: 'DELETE', });
+      const response = await deleteWithHousehold(`/api/categories/${categoryId}`);
 
       if (response.ok) {
         toast.success('Category deleted successfully');
@@ -177,6 +193,16 @@ export default function CategoriesPage() {
     filterType === 'all'
       ? categories
       : categories.filter((cat) => cat.type === filterType);
+
+  // Show loading state while household context initializes
+  if (!initialized || householdLoading) {
+    return <HouseholdLoadingState />;
+  }
+
+  // Show error state if no household is selected
+  if (!selectedHouseholdId || !householdId) {
+    return <NoHouseholdError />;
+  }
 
   if (loading) {
     return (

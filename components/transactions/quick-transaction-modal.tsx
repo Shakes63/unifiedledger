@@ -17,10 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Zap } from 'lucide-react';
+import { Zap, Loader2 } from 'lucide-react';
 import { ExperimentalBadge } from '@/components/experimental/experimental-badge';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface QuickTransactionModalProps {
   open: boolean;
@@ -33,6 +34,7 @@ export function QuickTransactionModal({
   open,
   onOpenChange,
 }: QuickTransactionModalProps) {
+  const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
   const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
@@ -80,8 +82,22 @@ export function QuickTransactionModal({
     setError(null);
 
     try {
+      // Guard: Check if household context is ready
+      if (!initialized || householdLoading) {
+        setError('Please wait while household data loads...');
+        setLoading(false);
+        return;
+      }
+
+      if (!selectedHouseholdId || !householdId) {
+        setError('Please select a household to continue.');
+        setLoading(false);
+        return;
+      }
+
       if (!amount || !description || !accountId) {
         setError('Please fill in all required fields');
+        setLoading(false);
         return;
       }
 
@@ -95,7 +111,25 @@ export function QuickTransactionModal({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create transaction');
+        const errorMessage = errorData.error || 'Failed to create transaction';
+        
+        // Distinguish between auth errors (401) and household auth errors (403)
+        if (response.status === 401) {
+          // Authentication failure - session expired
+          toast.error('Your session has expired. Please sign in again.');
+          setLoading(false);
+          onOpenChange(false);
+          return;
+        }
+        
+        if (response.status === 403) {
+          // Household authorization failure - show error but don't sign out
+          toast.error(errorMessage);
+          throw new Error(errorMessage);
+        }
+        
+        // Other errors
+        throw new Error(errorMessage);
       }
 
       // Success - show toast and close
@@ -145,8 +179,23 @@ export function QuickTransactionModal({
         </DialogHeader>
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+          {(!initialized || householdLoading) && (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[var(--color-primary)]" />
+                <p className="text-muted-foreground text-sm">Loading household data...</p>
+              </div>
+            </div>
+          )}
+          
+          {initialized && !householdLoading && (!selectedHouseholdId || !householdId) && (
+            <div className="p-3 bg-[var(--color-warning)]/20 border border-[var(--color-warning)]/40 rounded-lg text-[var(--color-warning)] text-sm">
+              Please select a household to create transactions.
+            </div>
+          )}
+
           {error && (
-            <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm">
+            <div className="p-3 bg-[var(--color-error)]/20 border border-[var(--color-error)]/40 rounded-lg text-[var(--color-error)] text-sm">
               {error}
             </div>
           )}
@@ -216,7 +265,7 @@ export function QuickTransactionModal({
           <div className="flex gap-2 pt-4">
             <Button
               type="submit"
-              disabled={loading}
+              disabled={loading || !initialized || householdLoading || !selectedHouseholdId || !householdId}
               className="flex-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90"
             >
               {loading ? 'Creating...' : 'Add Transaction'}

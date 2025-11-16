@@ -14,6 +14,9 @@ import { AdvancedSearch } from '@/components/transactions/advanced-search';
 import { CSVImportModal } from '@/components/csv-import/csv-import-modal';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
+import { HouseholdLoadingState } from '@/components/household/household-loading-state';
+import { NoHouseholdError } from '@/components/household/no-household-error';
 import {
   Select,
   SelectContent,
@@ -56,6 +59,7 @@ interface Merchant {
 function TransactionsContent() {
   const searchParams = useSearchParams();
   const accountIdFromUrl = searchParams.get('accountId');
+  const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
   const {
     fetchWithHousehold,
     postWithHousehold,
@@ -97,11 +101,18 @@ function TransactionsContent() {
 
   // Fetch initial data
   useEffect(() => {
+    // Don't fetch if household context isn't initialized yet
+    if (!initialized || householdLoading) {
+      return;
+    }
+
+    // Don't fetch if no household is selected
+    if (!selectedHouseholdId || !householdId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchInitialData = async () => {
-      if (!selectedHouseholdId) {
-        setLoading(false);
-        return;
-      }
 
       try {
         setLoading(true);
@@ -150,7 +161,7 @@ function TransactionsContent() {
     };
 
     fetchInitialData();
-  }, [selectedHouseholdId]);
+  }, [initialized, householdLoading, selectedHouseholdId, householdId, fetchWithHousehold]);
 
   const performSearch = async (filters: any, offset: number = 0) => {
     try {
@@ -494,6 +505,16 @@ function TransactionsContent() {
       description: transaction.description,
     };
   };
+
+  // Show loading state while household context initializes
+  if (!initialized || householdLoading) {
+    return <HouseholdLoadingState />;
+  }
+
+  // Show error state if no household is selected
+  if (!selectedHouseholdId || !householdId) {
+    return <NoHouseholdError />;
+  }
 
   return (
     <div className="min-h-screen bg-background">

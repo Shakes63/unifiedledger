@@ -998,15 +998,30 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
+    // Handle authentication errors (401)
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error instanceof Error && (
-      error.message.includes('Household') ||
-      error.message.includes('member')
-    )) {
-      return Response.json({ error: error.message }, { status: 403 });
+    
+    // Handle household authorization errors (403)
+    if (error instanceof Error) {
+      if (error.message.includes('Household ID is required')) {
+        return Response.json(
+          { error: 'Household ID is required. Please select a household.' },
+          { status: 400 }
+        );
+      }
+      if (error.message.includes('Not a member') || error.message.includes('Unauthorized: Not a member')) {
+        return Response.json(
+          { error: 'You are not a member of this household.' },
+          { status: 403 }
+        );
+      }
+      if (error.message.includes('Household') || error.message.includes('member')) {
+        return Response.json({ error: error.message }, { status: 403 });
+      }
     }
+    
     console.error('Transaction creation error:', error);
     return Response.json(
       { error: 'Internal server error' },
@@ -1067,15 +1082,30 @@ export async function GET(request: Request) {
 
     return Response.json(processedTransactions);
   } catch (error) {
+    // Handle authentication errors (401)
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error instanceof Error && (
-      error.message.includes('Household') ||
-      error.message.includes('member')
-    )) {
-      return Response.json({ error: error.message }, { status: 403 });
+    
+    // Handle household authorization errors (403)
+    if (error instanceof Error) {
+      if (error.message.includes('Household ID is required')) {
+        return Response.json(
+          { error: 'Household ID is required. Please select a household.' },
+          { status: 400 }
+        );
+      }
+      if (error.message.includes('Not a member') || error.message.includes('Unauthorized: Not a member')) {
+        return Response.json(
+          { error: 'You are not a member of this household.' },
+          { status: 403 }
+        );
+      }
+      if (error.message.includes('Household') || error.message.includes('member')) {
+        return Response.json({ error: error.message }, { status: 403 });
+      }
     }
+    
     console.error('Transaction fetch error:', error);
     return Response.json(
       { error: 'Internal server error' },

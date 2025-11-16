@@ -8,6 +8,9 @@ import { toast } from 'sonner';
 import { AccountForm } from '@/components/accounts/account-form';
 import { AccountCard } from '@/components/accounts/account-card';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
+import { HouseholdLoadingState } from '@/components/household/household-loading-state';
+import { NoHouseholdError } from '@/components/household/no-household-error';
 
 interface Account {
   id: string;
@@ -22,6 +25,7 @@ interface Account {
 }
 
 export default function AccountsPage() {
+  const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
   const {
     fetchWithHousehold,
     postWithHousehold,
@@ -38,11 +42,18 @@ export default function AccountsPage() {
 
   // Fetch accounts
   useEffect(() => {
+    // Don't fetch if household context isn't initialized yet
+    if (!initialized || householdLoading) {
+      return;
+    }
+
+    // Don't fetch if no household is selected
+    if (!selectedHouseholdId || !householdId) {
+      setLoading(false);
+      return;
+    }
+
     const fetchAccounts = async () => {
-      if (!selectedHouseholdId) {
-        setLoading(false);
-        return;
-      }
 
       try {
         setLoading(true);
@@ -62,7 +73,7 @@ export default function AccountsPage() {
     };
 
     fetchAccounts();
-  }, [selectedHouseholdId]);
+  }, [initialized, householdLoading, selectedHouseholdId, householdId, fetchWithHousehold]);
 
   // Create or update account
   const handleSubmit = async (formData: any, saveMode: 'save' | 'saveAndAdd' = 'save') => {
@@ -164,6 +175,16 @@ export default function AccountsPage() {
   const totalBalance = accounts.reduce((sum, acc) => sum + acc.currentBalance, 0);
   const savingsAccounts = accounts.filter((acc) => acc.type === 'savings');
   const savingsTotal = savingsAccounts.reduce((sum, acc) => sum + acc.currentBalance, 0);
+
+  // Show loading state while household context initializes
+  if (!initialized || householdLoading) {
+    return <HouseholdLoadingState />;
+  }
+
+  // Show error state if no household is selected
+  if (!selectedHouseholdId || !householdId) {
+    return <NoHouseholdError />;
+  }
 
   if (loading) {
     return (

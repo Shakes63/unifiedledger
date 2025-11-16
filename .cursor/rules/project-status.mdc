@@ -22,7 +22,8 @@ alwaysApply: false
 - ✅ Testing complete (446 tests total: 386 original + 60 Phase 0.5, 100% unit coverage, 93% integration coverage)
 - ✅ Enhanced Error Handling & Network Infrastructure (CORE COMPLETE - 9/9 bugs fixed, optional UI enhancements pending)
 - ✅ Recent Transactions Infinite Loop Fix (2025-11-15) - Memoized useHouseholdFetch functions with useCallback
-- ⏳ 5 active bugs remaining (see docs/bugs.md)
+- ✅ 403 Forbidden Errors & Sign-Out Fix (2025-01-XX) - Fixed 5 bugs: transaction sign-out, categories/transactions/accounts/CompactStatsBar 403 errors
+- ⏳ 1 active bug remaining (see docs/bugs.md)
 
 ## Household Data Isolation Status
 
@@ -40,7 +41,18 @@ See `docs/household-data-isolation-plan.md` for detailed implementation plans.
 
 ## Recent Major Features
 
-**Latest (2025-11-15):**
+**Latest (2025-01-XX):**
+- 403 Forbidden Errors & Sign-Out Fix (100% COMPLETE - 5/5 bugs fixed)
+  - ✅ Fixed transaction creation sign-out bug by adding household context readiness guards
+  - ✅ Fixed categories API 403 error by updating to household-aware fetch hooks
+  - ✅ Fixed transactions API 403 error by adding household context guards
+  - ✅ Fixed accounts API 403 error by adding household context guards
+  - ✅ Fixed CompactStatsBar 403 error by updating all API calls to use household-aware fetch hooks
+  - ✅ Created reusable loading and error components (`HouseholdLoadingState`, `NoHouseholdError`)
+  - ✅ Improved error handling to distinguish between 401 (auth) and 403 (household auth) errors
+  - ✅ Enhanced API error messages for better debugging
+
+**Previous (2025-11-15):**
 - Enhanced Error Handling & Network Infrastructure (CORE COMPLETE - 9/9 bugs fixed)
   - ✅ Created `lib/utils/enhanced-fetch.ts` - Robust fetch utility with exponential backoff retry (3 attempts: 1s, 2s, 4s), timeout handling (10s default), request deduplication, and detailed error categorization
   - ✅ Created `contexts/network-status-context.tsx` - Real-time online/offline detection, periodic server health checks (30s), connection quality monitoring, automatic toast notifications
