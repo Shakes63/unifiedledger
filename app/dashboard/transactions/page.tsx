@@ -316,6 +316,142 @@ function TransactionsContent() {
     return category?.name || null;
   };
 
+  const getTransferDisplayProps = (transaction: Transaction): {
+    color: string;
+    sign: string;
+    effectiveType: 'income' | 'expense' | 'transfer';
+  } => {
+    // Get filtered account IDs (can be from URL or advanced search filters)
+    const filteredAccountIds = accountIdFromUrl 
+      ? [accountIdFromUrl]
+      : currentFilters?.accountIds || [];
+    
+    // If no filter, show as transfer (blue, no sign)
+    if (filteredAccountIds.length === 0) {
+      return {
+        color: 'var(--color-transfer)',
+        sign: '',
+        effectiveType: 'transfer',
+      };
+    }
+    
+    // Ensure we're comparing strings
+    const filteredIds = filteredAccountIds.map(id => String(id));
+    const txAccountId = String(transaction.accountId);
+    const txType = String(transaction.type).trim();
+    
+    // Helper to check if account ID is in filter
+    const isAccountInFilter = (accountId: string | undefined) => {
+      if (!accountId) return false;
+      return filteredIds.includes(String(accountId));
+    };
+    
+    // Handle transfer_out: accountId is source, transferId is destination account ID
+    if (txType === 'transfer_out') {
+      const sourceAccountId = txAccountId;
+      const destinationAccountId = transaction.transferId ? String(transaction.transferId) : null;
+      
+      const sourceInFilter = isAccountInFilter(sourceAccountId);
+      const destinationInFilter = destinationAccountId ? isAccountInFilter(destinationAccountId) : false;
+      
+      // If both accounts are in filter, show as combined transfer (blue, no sign)
+      if (sourceInFilter && destinationInFilter) {
+        return {
+          color: 'var(--color-transfer)',
+          sign: '',
+          effectiveType: 'transfer',
+        };
+      }
+      
+      // If only source account is in filter, money is leaving (red, negative)
+      if (sourceInFilter) {
+        return {
+          color: 'var(--color-expense)',
+          sign: '-',
+          effectiveType: 'expense',
+        };
+      }
+      
+      // If only destination account is in filter, money is arriving (green, positive)
+      if (destinationInFilter) {
+        return {
+          color: 'var(--color-income)',
+          sign: '+',
+          effectiveType: 'income',
+        };
+      }
+      
+      // If neither account is in filter, return fallback
+      return {
+        color: 'var(--color-transfer)',
+        sign: '',
+        effectiveType: 'transfer',
+      };
+    }
+    
+    // Handle transfer_in: accountId is destination, merchantId or paired tx accountId is source
+    if (txType === 'transfer_in') {
+      const destinationAccountId = txAccountId;
+      
+      // Find source account ID (check merchantId first for converted transactions, then paired tx)
+      let sourceAccountId: string | null = null;
+      if (transaction.merchantId) {
+        // For converted transactions, merchantId stores source account ID
+        sourceAccountId = String(transaction.merchantId);
+      } else if (transaction.transferId) {
+        // For regular transfers, find paired transfer_out transaction
+        const pairedTx = transactions.find(t => t.id === transaction.transferId);
+        if (pairedTx) {
+          sourceAccountId = String(pairedTx.accountId);
+        }
+      }
+      
+      const sourceInFilter = sourceAccountId ? isAccountInFilter(sourceAccountId) : false;
+      const destinationInFilter = isAccountInFilter(destinationAccountId);
+      
+      // If both accounts are in filter, show as combined transfer (blue, no sign)
+      if (sourceInFilter && destinationInFilter) {
+        return {
+          color: 'var(--color-transfer)',
+          sign: '',
+          effectiveType: 'transfer',
+        };
+      }
+      
+      // If only destination account is in filter, money is arriving (green, positive)
+      if (destinationInFilter) {
+        return {
+          color: 'var(--color-income)',
+          sign: '+',
+          effectiveType: 'income',
+        };
+      }
+      
+      // If only source account is in filter, money is leaving (red, negative)
+      if (sourceInFilter) {
+        return {
+          color: 'var(--color-expense)',
+          sign: '-',
+          effectiveType: 'expense',
+        };
+      }
+      
+      // If neither account is in filter, return fallback
+      return {
+        color: 'var(--color-transfer)',
+        sign: '',
+        effectiveType: 'transfer',
+      };
+    }
+    
+    // Fallback: show as transfer (shouldn't happen if filter is correct)
+    return {
+      color: 'var(--color-transfer)',
+      sign: '',
+      effectiveType: 'transfer',
+    };
+  };
+
   const getFilteredCategories = (transactionType: string) => {
     if (transactionType === 'income') {
       return categories.filter(c => c.type === 'income');
@@ -468,6 +604,109 @@ function TransactionsContent() {
     }
   };
 
+  // Filter out duplicate transfer transactions - combine transfer_out and transfer_in into single transaction
+  const getFilteredTransactions = (txs: Transaction[]): Transaction[] => {
+    // Get filtered account IDs
+    const filteredAccountIds = accountIdFromUrl 
+      ? [accountIdFromUrl]
+      : currentFilters?.accountIds || [];
+    
+    const filteredIds = filteredAccountIds.length > 0 ? filteredAccountIds.map(id => String(id)) : [];
+    const seenTransferPairs = new Set<string>();
+    const filtered: Transaction[] = [];
+    
+    // Process all transactions
+    for (const tx of txs) {
+      const txType = String(tx.type).trim();
+      
+      // Non-transfer transactions: always include
+      if (txType !== 'transfer_out' && txType !== 'transfer_in') {
+        filtered.push(tx);
+        continue;
+      }
+      
+      // For transfer_out: accountId is source, transferId is destination account ID
+      if (txType === 'transfer_out') {
+        const sourceId = String(tx.accountId);
+        const destId = tx.transferId ? String(tx.transferId) : null;
+        
+        if (!destId) {
+          // No destination account ID, include as-is
+          filtered.push(tx);
+          continue;
+        }
+        
+        // Create a unique key for this transfer pair (sorted for consistency)
+        const pairKey = [sourceId, destId].sort().join('|');
+        
+        // Check if both accounts are in filter (or no filter = show combined)
+        const bothAccountsInFilter = filteredIds.length === 0 || 
+          (filteredIds.includes(sourceId) && filteredIds.includes(destId));
+        
+        if (bothAccountsInFilter) {
+          // Show as combined transfer - only add transfer_out, skip transfer_in
+          if (!seenTransferPairs.has(pairKey)) {
+            seenTransferPairs.add(pairKey);
+            filtered.push(tx);
+          }
+          // Skip - we'll skip the corresponding transfer_in in its check
+        } else {
+          // Not both accounts in filter (or only one account), include transaction
+          filtered.push(tx);
+        }
+        continue;
+      }
+      
+      // transfer_in: accountId is destination, need to find source
+      if (txType === 'transfer_in') {
+        const destId = String(tx.accountId);
+        let sourceId: string | null = null;
+        
+        // Find source account ID
+        if (tx.merchantId) {
+          // For converted transactions, merchantId stores source account ID
+          sourceId = String(tx.merchantId);
+        } else if (tx.transferId) {
+          // For regular transfers, transferId points to paired transfer_out transaction
+          const pairedTx = txs.find(t => t.id === tx.transferId);
+          if (pairedTx) {
+            sourceId = String(pairedTx.accountId);
+          }
+        }
+        
+        if (!sourceId) {
+          // Can't find source account, include as-is
+          filtered.push(tx);
+          continue;
+        }
+        
+        // Create a unique key for this transfer pair
+        const pairKey = [sourceId, destId].sort().join('|');
+        
+        // Check if both accounts are in filter (or no filter = show combined)
+        const bothAccountsInFilter = filteredIds.length === 0 || 
+          (filteredIds.includes(sourceId) && filteredIds.includes(destId));
+        
+        if (bothAccountsInFilter) {
+          // Skip transfer_in if we've already added the transfer_out for this pair
+          if (seenTransferPairs.has(pairKey)) {
+            continue; // Skip this transfer_in - we already have the transfer_out
+          }
+          
+          // If we haven't seen the pair yet, add transfer_in and mark pair as seen
+          // (This handles edge case where transfer_out might not be in the list)
+          seenTransferPairs.add(pairKey);
+          filtered.push(tx);
+        } else {
+          // Not both accounts in filter (or only one account), include transaction
+          filtered.push(tx);
+        }
+      }
+    }
+    
+    return filtered;
+  };
+
   const getTransactionDisplay = (transaction: Transaction): { merchant: string | null; description: string } => {
     if (transaction.type === 'transfer_out') {
       // transfer_out: accountId is source, transferId is destination account
@@ -607,7 +846,7 @@ function TransactionsContent() {
           </Card>
         ) : (
           <div className="space-y-2">
-            {transactions.map((transaction) => {
+            {getFilteredTransactions(transactions).map((transaction) => {
               const display = getTransactionDisplay(transaction);
               const accountName = getAccountName(transaction.accountId);
               const categoryName = getCategoryName(transaction.categoryId);
@@ -676,27 +915,27 @@ function TransactionsContent() {
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <div className="text-right">
                           {/* Amount */}
-                          <p
-                            className="font-semibold text-sm"
-                            style={{
-                              color: transaction.type === 'income'
-                                ? 'var(--color-income)'
-                                : transaction.type === 'transfer' || transaction.type === 'transfer_in' || transaction.type === 'transfer_out'
-                                ? 'var(--color-transfer)'
-                                : 'var(--color-expense)'
-                            }}
-                          >
-                            {transaction.type === 'transfer' && accountIdFromUrl
-                              ? transaction.accountId === accountIdFromUrl
-                                ? '-' // Money leaving this account
-                                : transaction.transferId === accountIdFromUrl
-                                ? '+' // Money coming to this account
-                                : '' // Not related to this account (shouldn't happen)
-                              : transaction.type === 'transfer'
-                              ? '' // General view, no sign for transfers
-                              : transaction.type === 'income' ? '+' : '-'}$
-                            {transaction.amount.toFixed(2)}
-                          </p>
+                          {(() => {
+                            const isTransfer = transaction.type === 'transfer_out' || transaction.type === 'transfer_in';
+                            const displayProps = isTransfer 
+                              ? getTransferDisplayProps(transaction)
+                              : {
+                                  color: transaction.type === 'income'
+                                    ? 'var(--color-income)'
+                                    : 'var(--color-expense)',
+                                  sign: transaction.type === 'income' ? '+' : '-',
+                                  effectiveType: transaction.type as 'income' | 'expense',
+                                };
+                            
+                            return (
+                              <p
+                                className="font-semibold text-sm"
+                                style={{ color: displayProps.color }}
+                              >
+                                {displayProps.sign}${transaction.amount.toFixed(2)}
+                              </p>
+                            );
+                          })()}
                           {/* Account name below amount */}
                           <p className="text-xs text-muted-foreground truncate max-w-[100px]">
                             {accountName}

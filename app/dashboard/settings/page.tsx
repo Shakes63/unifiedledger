@@ -162,6 +162,37 @@ function SettingsPageContent() {
     router.push(`/dashboard/settings?section=households&household=${newHouseholdId}&tab=members`);
   };
 
+  // Keyboard navigation handler for custom tabs
+  const handleTabKeyDown = (
+    e: React.KeyboardEvent,
+    currentTab: string,
+    allTabs: Array<{ id: string; label: string; icon: React.ComponentType<{ className?: string }> }>
+  ) => {
+    const tabIds = allTabs.map((t) => t.id);
+    const currentIndex = tabIds.indexOf(currentTab);
+    let nextIndex = currentIndex;
+
+    switch (e.key) {
+      case 'ArrowRight':
+        nextIndex = (currentIndex + 1) % tabIds.length;
+        break;
+      case 'ArrowLeft':
+        nextIndex = (currentIndex - 1 + tabIds.length) % tabIds.length;
+        break;
+      case 'Home':
+        nextIndex = 0;
+        break;
+      case 'End':
+        nextIndex = tabIds.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    e.preventDefault();
+    handleTabChange(tabIds[nextIndex]);
+  };
+
   async function createHousehold() {
     if (!householdName.trim()) {
       return;
@@ -253,20 +284,35 @@ function SettingsPageContent() {
               </p>
             </div>
 
-            <Tabs value={tab} onValueChange={handleTabChange} className="w-full">
-              {/* Desktop: Horizontal Tabs */}
-              <TabsList className="hidden lg:flex w-full justify-start bg-elevated border border-border overflow-x-auto h-auto flex-wrap gap-1 p-2">
+            <div className="w-full">
+              {/* Desktop: Horizontal Custom Tabs */}
+              <div
+                role="tablist"
+                aria-label="Account settings tabs"
+                className="hidden lg:flex w-full justify-start bg-elevated border border-border overflow-x-auto h-auto flex-wrap gap-1 p-2 rounded-md"
+              >
                 {accountTabs.map((t) => (
-                  <TabsTrigger
+                  <button
                     key={t.id}
-                    value={t.id}
-                    className="flex items-center gap-2 data-[state=active]:bg-card data-[state=active]:text-[var(--color-primary)] px-3 py-2"
+                    role="tab"
+                    aria-selected={tab === t.id}
+                    aria-controls={`account-tab-content-${t.id}`}
+                    id={`account-tab-${t.id}`}
+                    tabIndex={tab === t.id ? 0 : -1}
+                    onClick={() => handleTabChange(t.id)}
+                    onKeyDown={(e) => handleTabKeyDown(e, tab, accountTabs)}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      tab === t.id
+                        ? "bg-card text-[var(--color-primary)] shadow-sm"
+                        : "text-foreground hover:bg-card/50"
+                    )}
                   >
                     <t.icon className="w-4 h-4" />
                     <span className="hidden xl:inline">{t.label}</span>
-                  </TabsTrigger>
+                  </button>
                 ))}
-              </TabsList>
+              </div>
 
               {/* Mobile: Dropdown */}
               <div className="lg:hidden mb-4">
@@ -294,28 +340,68 @@ function SettingsPageContent() {
 
               {/* Account Settings Tab Content */}
               <Card className="border-border bg-card p-4 sm:p-6">
-                <TabsContent value="profile" className="mt-0">
-                  <ProfileTab />
-                </TabsContent>
-                <TabsContent value="preferences" className="mt-0">
-                  <PreferencesTab />
-                </TabsContent>
-                <TabsContent value="privacy" className="mt-0">
-                  <PrivacyTab />
-                </TabsContent>
-                <TabsContent value="data" className="mt-0">
-                  <DataTab />
-                </TabsContent>
-                <TabsContent value="advanced" className="mt-0">
-                  <AdvancedTab />
-                </TabsContent>
-                {isOwner === true && (
-                  <TabsContent value="admin" className="mt-0">
+                {tab === 'profile' && (
+                  <div
+                    role="tabpanel"
+                    id="account-tab-content-profile"
+                    aria-labelledby="account-tab-profile"
+                    className="mt-0"
+                  >
+                    <ProfileTab />
+                  </div>
+                )}
+                {tab === 'preferences' && (
+                  <div
+                    role="tabpanel"
+                    id="account-tab-content-preferences"
+                    aria-labelledby="account-tab-preferences"
+                    className="mt-0"
+                  >
+                    <PreferencesTab />
+                  </div>
+                )}
+                {tab === 'privacy' && (
+                  <div
+                    role="tabpanel"
+                    id="account-tab-content-privacy"
+                    aria-labelledby="account-tab-privacy"
+                    className="mt-0"
+                  >
+                    <PrivacyTab />
+                  </div>
+                )}
+                {tab === 'data' && (
+                  <div
+                    role="tabpanel"
+                    id="account-tab-content-data"
+                    aria-labelledby="account-tab-data"
+                    className="mt-0"
+                  >
+                    <DataTab />
+                  </div>
+                )}
+                {tab === 'advanced' && (
+                  <div
+                    role="tabpanel"
+                    id="account-tab-content-advanced"
+                    aria-labelledby="account-tab-advanced"
+                    className="mt-0"
+                  >
+                    <AdvancedTab />
+                  </div>
+                )}
+                {isOwner === true && tab === 'admin' && (
+                  <div
+                    role="tabpanel"
+                    id="account-tab-content-admin"
+                    aria-labelledby="account-tab-admin"
+                    className="mt-0"
+                  >
                     <AdminTab />
-                  </TabsContent>
+                  </div>
                 )}
               </Card>
-            </Tabs>
+            </div>
           </TabsContent>
 
           {/* Households Section */}
@@ -449,20 +535,35 @@ function SettingsPageContent() {
 
                 {/* Household Settings Tabs - Second Level */}
                 {householdId && (
-                  <Tabs value={tab} onValueChange={handleTabChange} className="w-full">
-                    {/* Desktop: Horizontal Tabs */}
-                    <TabsList className="hidden lg:flex w-full justify-start bg-elevated border border-border h-auto p-2">
+                  <div className="w-full">
+                    {/* Desktop: Horizontal Custom Tabs */}
+                    <div
+                      role="tablist"
+                      aria-label="Household settings tabs"
+                      className="hidden lg:flex w-full justify-start bg-elevated border border-border h-auto p-2 rounded-md"
+                    >
                       {HOUSEHOLD_TABS.map((t) => (
-                        <TabsTrigger
+                        <button
                           key={t.id}
-                          value={t.id}
-                          className="flex items-center gap-2 data-[state=active]:bg-card data-[state=active]:text-[var(--color-primary)] px-4 py-2"
+                          role="tab"
+                          aria-selected={tab === t.id}
+                          aria-controls={`household-tab-content-${t.id}`}
+                          id={`household-tab-${t.id}`}
+                          tabIndex={tab === t.id ? 0 : -1}
+                          onClick={() => handleTabChange(t.id)}
+                          onKeyDown={(e) => handleTabKeyDown(e, tab, HOUSEHOLD_TABS)}
+                          className={cn(
+                            "flex items-center gap-2 px-4 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                            tab === t.id
+                              ? "bg-card text-[var(--color-primary)] shadow-sm"
+                              : "text-foreground hover:bg-card/50"
+                          )}
                         >
                           <t.icon className="w-4 h-4" />
                           <span>{t.label}</span>
-                        </TabsTrigger>
+                        </button>
                       ))}
-                    </TabsList>
+                    </div>
 
                     {/* Mobile: Dropdown */}
                     <div className="lg:hidden mb-4">
@@ -490,20 +591,48 @@ function SettingsPageContent() {
 
                     {/* Household Settings Tab Content */}
                     <Card className="border-border bg-card p-4 sm:p-6">
-                      <TabsContent value="members" className="mt-0">
-                        <HouseholdMembersTab householdId={householdId} />
-                      </TabsContent>
-                      <TabsContent value="household-preferences" className="mt-0">
-                        <HouseholdPreferencesTab />
-                      </TabsContent>
-                      <TabsContent value="household-financial" className="mt-0">
-                        <HouseholdFinancialTab />
-                      </TabsContent>
-                      <TabsContent value="personal" className="mt-0">
-                        <HouseholdPersonalTab householdId={householdId} />
-                      </TabsContent>
+                      {tab === 'members' && (
+                        <div
+                          role="tabpanel"
+                          id="household-tab-content-members"
+                          aria-labelledby="household-tab-members"
+                          className="mt-0"
+                        >
+                          <HouseholdMembersTab householdId={householdId} />
+                        </div>
+                      )}
+                      {tab === 'household-preferences' && (
+                        <div
+                          role="tabpanel"
+                          id="household-tab-content-household-preferences"
+                          aria-labelledby="household-tab-household-preferences"
+                          className="mt-0"
+                        >
+                          <HouseholdPreferencesTab />
+                        </div>
+                      )}
+                      {tab === 'household-financial' && (
+                        <div
+                          role="tabpanel"
+                          id="household-tab-content-household-financial"
+                          aria-labelledby="household-tab-household-financial"
+                          className="mt-0"
+                        >
+                          <HouseholdFinancialTab />
+                        </div>
+                      )}
+                      {tab === 'personal' && (
+                        <div
+                          role="tabpanel"
+                          id="household-tab-content-personal"
+                          aria-labelledby="household-tab-personal"
+                          className="mt-0"
+                        >
+                          <HouseholdPersonalTab householdId={householdId} />
+                        </div>
+                      )}
                     </Card>
-                  </Tabs>
+                  </div>
                 )}
               </>
             )}

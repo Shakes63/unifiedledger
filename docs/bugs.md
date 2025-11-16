@@ -14,7 +14,7 @@ _No active bugs at this time._
 
 **Active Bugs:** 0
 **In Progress:** 0
-**Fixed (All Time):** 27
+**Fixed (All Time):** 30
 
 ---
 
@@ -46,7 +46,10 @@ _No active bugs at this time._
 24. **CompactStatsBar 403 Forbidden** - Updated CompactStatsBar component to use household-aware fetch hooks for all API calls
 25. **Logo Image Aspect Ratio Warning** - Removed `style={{ height: 'auto' }}` from collapsed sidebar logo Image component. Next.js Image best practice: when using explicit width/height props, don't modify dimensions via CSS.
 26. **Quick Entry Mode Account Loading** - Fixed race condition where accounts were fetched before household context was ready, causing 400 Bad Request errors. Added proper loading states, error handling, and useEffect hook that waits for household initialization before fetching accounts.
-27. **React Hydration Mismatch Error** - Fixed hydration mismatch on sign-in page caused by OfflineBanner component rendering differently on server vs client. Implemented client-only rendering pattern using `mounted` state to ensure consistent SSR/client rendering during hydration. Component now returns `null` during SSR and initial client render, then renders after mount. Moved localStorage checks and DOM manipulation to run only after component mounts.
+27. **React Hydration Mismatch Error (Sign-In Page)** - Fixed hydration mismatch on sign-in page caused by OfflineBanner component rendering differently on server vs client. Implemented client-only rendering pattern using `mounted` state to ensure consistent SSR/client rendering during hydration. Component now returns `null` during SSR and initial client render, then renders after mount. Moved localStorage checks and DOM manipulation to run only after component mounts.
+28. **React Hydration Mismatch Error (Settings Page)** - Replaced nested Radix UI Tabs with custom button-based tab implementation to fix hydration mismatch from random ID generation
+29. **Quick Transaction Form Required Fields** - Added required field indicators (red asterisks) to Account and Type fields, plus notice explaining required fields
+30. **Transfer Display Logic with Account Filter** - Fixed transfer display to show blue (no sign) when no filter or both accounts filtered, red (-) when filtered by source, green (+) when filtered by destination. Added deduplication to combine transfer pairs into single transaction.
 
 ---
 

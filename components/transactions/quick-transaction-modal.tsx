@@ -412,6 +412,9 @@ export function QuickTransactionModal({
           <DialogDescription className="text-muted-foreground">
             Rapid transaction entry. Tab to navigate, Ctrl+Enter to save, ESC to close. Press 1-4 for transaction type, T/Y for date, N for notes.
           </DialogDescription>
+          <p className="text-xs text-muted-foreground mt-2">
+            Fields marked with <span className="text-[var(--color-error)]">*</span> are required
+          </p>
         </DialogHeader>
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
@@ -438,7 +441,9 @@ export function QuickTransactionModal({
 
           {/* Type */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Type</label>
+            <label className="text-sm font-medium text-foreground">
+              Type <span className="text-[var(--color-error)]">*</span>
+            </label>
             <Select value={type} onValueChange={(value) => setType(value as TransactionType)}>
               <SelectTrigger>
                 <SelectValue />
@@ -456,6 +461,7 @@ export function QuickTransactionModal({
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
               {type === 'transfer_out' || type === 'transfer_in' ? 'From Account' : 'Account'}
+              <span className="text-[var(--color-error)]">*</span>
             </label>
             {accountsError && (
               <div className="p-2 bg-[var(--color-error)]/20 border border-[var(--color-error)]/40 rounded-lg text-[var(--color-error)] text-xs mb-2">

@@ -11,7 +11,7 @@ alwaysApply: false
 - `transfer_out` - Money leaving source account
 - `transfer_in` - Money arriving at destination account
 
-**Transfer Model:** Creates TWO linked transactions via `transferId`. Main view shows only `transfer_out` to avoid duplicates, account-filtered view shows relevant transaction.
+**Transfer Model:** Creates TWO linked transactions via `transferId`. Transactions page combines transfers into single transaction when no filter or both accounts filtered (shows `transfer_out` only). When filtered by single account, shows individual transactions with appropriate colors: red (-) for source account, green (+) for destination account.
 
 ## Rules System
 - Priority-based matching (lower number = higher priority)

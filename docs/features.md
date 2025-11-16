@@ -7,7 +7,7 @@
 
 ## Incomplete Features
 
-_No incomplete features at this time._
+1. a toggle in settings to toggle on and off the combined transfer view for transactions
 
 ---
 
