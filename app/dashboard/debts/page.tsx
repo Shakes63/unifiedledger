@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { DebtPayoffTracker } from '@/components/debts/debt-payoff-tracker';
 import { DebtForm } from '@/components/debts/debt-form';
@@ -19,8 +19,12 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Plus, ChevronDown, ChevronUp, Target, BarChart3, Lightbulb, AlertTriangle } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 export default function DebtsPage() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold } = useHouseholdFetch();
   const [debts, setDebts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -34,16 +38,10 @@ export default function DebtsPage() {
   const [debtSettings, setDebtSettings] = useState<any>(null);
   const [allExpanded, setAllExpanded] = useState<boolean | null>(null);
 
-  // Fetch debts and settings
-  useEffect(() => {
-    loadDebts();
-    loadStats();
-    loadSettings();
-  }, [filter]);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
+    if (!selectedHouseholdId) return;
     try {
-      const response = await fetch('/api/debts/settings', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/debts/settings');
       if (response.ok) {
         const data = await response.json();
         setDebtSettings(data);
@@ -51,13 +49,14 @@ export default function DebtsPage() {
     } catch (error) {
       console.error('Error loading debt settings:', error);
     }
-  };
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
-  const loadDebts = async () => {
+  const loadDebts = useCallback(async () => {
+    if (!selectedHouseholdId) return;
     try {
       setLoading(true);
       const params = filter !== 'all' ? `?status=${filter}` : '';
-      const response = await fetch(`/api/debts${params}`, { credentials: 'include' });
+      const response = await fetchWithHousehold(`/api/debts${params}`);
       if (!response.ok) throw new Error('Failed to fetch debts');
       const data = await response.json();
       setDebts(data);
@@ -66,22 +65,35 @@ export default function DebtsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter, selectedHouseholdId, fetchWithHousehold]);
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
+    if (!selectedHouseholdId) return;
     try {
-      const response = await fetch('/api/debts/stats', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/debts/stats');
       if (!response.ok) throw new Error('Failed to fetch stats');
       const data = await response.json();
       setStats(data);
     } catch (error) {
       console.error('Error loading stats:', error);
     }
-  };
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
+  // Fetch debts and settings
+  useEffect(() => {
+    if (!selectedHouseholdId) return;
+    loadDebts();
+    loadStats();
+    loadSettings();
+  }, [filter, selectedHouseholdId, loadDebts, loadStats, loadSettings]);
 
   const loadDebtDetails = async (debtId: string) => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return null;
+    }
     try {
-      const response = await fetch(`/api/debts/${debtId}`, { credentials: 'include' });
+      const response = await fetchWithHousehold(`/api/debts/${debtId}`);
       if (!response.ok) throw new Error('Failed to fetch debt');
       return await response.json();
     } catch (error) {
@@ -91,12 +103,12 @@ export default function DebtsPage() {
   };
 
   const handleCreateDebt = async (data: any, saveMode: 'save' | 'saveAndAdd' = 'save') => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return;
+    }
     try {
-      const response = await fetch('/api/debts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      const response = await postWithHousehold('/api/debts', data);
 
       if (!response.ok) throw new Error('Failed to create debt');
 
@@ -118,13 +130,13 @@ export default function DebtsPage() {
 
   const handleUpdateDebt = async (data: any) => {
     if (!selectedDebt) return;
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return;
+    }
 
     try {
-      const response = await fetch(`/api/debts/${selectedDebt.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      const response = await putWithHousehold(`/api/debts/${selectedDebt.id}`, data);
 
       if (!response.ok) throw new Error('Failed to update debt');
 
@@ -140,9 +152,13 @@ export default function DebtsPage() {
 
   const handleDeleteDebt = async (debtId: string) => {
     if (!confirm('Are you sure you want to delete this debt?')) return;
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return;
+    }
 
     try {
-      const response = await fetch(`/api/debts/${debtId}`, { credentials: 'include', method: 'DELETE', });
+      const response = await deleteWithHousehold(`/api/debts/${debtId}`);
 
       if (!response.ok) throw new Error('Failed to delete debt');
 

@@ -7,6 +7,8 @@ import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { ChevronDown, ChevronUp, Edit2, Trash2, Check } from 'lucide-react';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface Milestone {
   id: string;
@@ -40,6 +42,8 @@ export function GoalTracker({
   onDelete,
   onContribute,
 }: GoalTrackerProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { putWithHousehold } = useHouseholdFetch();
   const [showMilestones, setShowMilestones] = useState(false);
   const [showContribute, setShowContribute] = useState(false);
   const [contributeAmount, setContributeAmount] = useState('');
@@ -53,6 +57,11 @@ export function GoalTracker({
     : null;
 
   const handleContribute = async () => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return;
+    }
+
     const amount = parseFloat(contributeAmount);
     if (!amount || amount <= 0) {
       toast.error('Please enter a valid amount');
@@ -60,10 +69,8 @@ export function GoalTracker({
     }
 
     try {
-      const response = await fetch(`/api/savings-goals/${goal.id}/progress`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ increment: amount }),
+      const response = await putWithHousehold(`/api/savings-goals/${goal.id}/progress`, {
+        increment: amount,
       });
 
       if (!response.ok) throw new Error('Failed to contribute');

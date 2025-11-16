@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Flame, Trophy, Loader2, Star, Gem, PartyPopper, Zap, Target } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface StreakData {
   hasDebts: boolean;
@@ -27,17 +29,16 @@ interface StreakData {
 }
 
 export function PaymentStreakWidget() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [data, setData] = useState<StreakData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchStreakData();
-  }, []);
-
-  const fetchStreakData = async () => {
+  const fetchStreakData = useCallback(async () => {
+    if (!selectedHouseholdId) return;
     try {
       setLoading(true);
-      const response = await fetch('/api/debts/streak', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/debts/streak');
 
       if (!response.ok) {
         throw new Error('Failed to fetch streak data');
@@ -50,7 +51,12 @@ export function PaymentStreakWidget() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
+  useEffect(() => {
+    if (!selectedHouseholdId) return;
+    fetchStreakData();
+  }, [selectedHouseholdId, fetchStreakData]);
 
   const getStreakColor = (streak: number) => {
     if (streak >= 24) return 'from-purple-500 to-pink-500'; // 2+ years

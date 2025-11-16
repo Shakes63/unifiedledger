@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -51,6 +53,8 @@ const COLOR_PALETTE = {
  * Comprehensive financial reporting with multiple visualization types
  */
 export default function ReportsPage() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [period, setPeriod] = useState<Period>('12months');
   const [data, setData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -60,22 +64,18 @@ export default function ReportsPage() {
   const [showAmortization, setShowAmortization] = useState(false);
   const [payoffStrategy, setPayoffStrategy] = useState<any>(null);
 
-  useEffect(() => {
-    fetchReports();
-    loadPayoffStrategy();
-  }, [period]);
-
-  const loadPayoffStrategy = async () => {
+  const loadPayoffStrategy = useCallback(async () => {
+    if (!selectedHouseholdId) return;
     try {
       // Fetch debt settings first
-      const settingsResponse = await fetch('/api/debts/settings', { credentials: 'include' });
+      const settingsResponse = await fetchWithHousehold('/api/debts/settings');
       const settings = settingsResponse.ok ? await settingsResponse.json() : null;
 
       const extraPayment = settings?.extraMonthlyPayment || 0;
       const method = settings?.preferredMethod || 'avalanche';
       const frequency = settings?.paymentFrequency || 'monthly';
 
-      const response = await fetch(`/api/debts/payoff-strategy?extraPayment=${extraPayment}&method=${method}&paymentFrequency=${frequency}`, { credentials: 'include' });
+      const response = await fetchWithHousehold(`/api/debts/payoff-strategy?extraPayment=${extraPayment}&method=${method}&paymentFrequency=${frequency}`);
 
       if (response.ok) {
         const strategyData = await response.json();
@@ -85,7 +85,14 @@ export default function ReportsPage() {
       console.error('Error loading payoff strategy:', error);
       setPayoffStrategy(null);
     }
-  };
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
+  useEffect(() => {
+    fetchReports();
+    if (selectedHouseholdId) {
+      loadPayoffStrategy();
+    }
+  }, [period, selectedHouseholdId, loadPayoffStrategy]);
 
   const fetchReports = async () => {
     try {

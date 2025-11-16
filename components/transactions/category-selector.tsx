@@ -103,7 +103,7 @@ export function CategorySelector({
           }
 
           // Fetch active debts with categories
-          const debtsResponse = await fetch('/api/debts?status=active', { credentials: 'include' });
+          const debtsResponse = await fetchWithHousehold('/api/debts?status=active');
           if (debtsResponse.ok) {
             const debtsData = await debtsResponse.json();
             // Debts API returns array directly

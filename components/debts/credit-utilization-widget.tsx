@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CreditCard, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
 import { getUtilizationEmoji } from '@/lib/debts/credit-utilization-utils';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface CreditUtilizationData {
   cards: Array<{
@@ -30,15 +32,22 @@ interface CreditUtilizationData {
 }
 
 export function CreditUtilizationWidget() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [data, setData] = useState<CreditUtilizationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
+      if (!selectedHouseholdId) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
-        const response = await fetch('/api/debts/credit-utilization', { credentials: 'include' });
+        const response = await fetchWithHousehold('/api/debts/credit-utilization');
 
         if (!response.ok) {
           throw new Error('Failed to fetch credit utilization data');
@@ -55,7 +64,7 @@ export function CreditUtilizationWidget() {
     }
 
     fetchData();
-  }, []);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   // Don't show widget if no credit cards with limits
   if (!isLoading && (!data || data.cards.length === 0)) {

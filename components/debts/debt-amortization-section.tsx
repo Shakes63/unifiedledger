@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import type { PayoffStrategyResult } from '@/lib/debts/payoff-calculator';
 import { AmortizationScheduleView } from './amortization-schedule-view';
 import { Loader2 } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface Debt {
   id: string;
@@ -26,18 +28,25 @@ export function DebtAmortizationSection({
   debt,
   className = '',
 }: DebtAmortizationSectionProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [strategy, setStrategy] = useState<PayoffStrategyResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStrategy = async () => {
+      if (!selectedHouseholdId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
         // Fetch debt settings to get extra payment and method
-        const settingsResponse = await fetch('/api/debts/settings', { credentials: 'include' });
+        const settingsResponse = await fetchWithHousehold('/api/debts/settings');
         const settings = settingsResponse.ok ? await settingsResponse.json() : null;
 
         const extraPayment = settings?.extraMonthlyPayment || 0;
@@ -45,7 +54,7 @@ export function DebtAmortizationSection({
         const frequency = settings?.paymentFrequency || 'monthly';
 
         // Fetch payoff strategy for this debt
-        const response = await fetch(`/api/debts/payoff-strategy?extraPayment=${extraPayment}&method=${method}&paymentFrequency=${frequency}`, { credentials: 'include' });
+        const response = await fetchWithHousehold(`/api/debts/payoff-strategy?extraPayment=${extraPayment}&method=${method}&paymentFrequency=${frequency}`);
 
         if (!response.ok) {
           throw new Error('Failed to fetch payoff strategy');
@@ -96,7 +105,7 @@ export function DebtAmortizationSection({
     } else {
       setLoading(false);
     }
-  }, [debt.id, debt.interestRate, debt.name, debt.remainingBalance, debt.minimumPayment]);
+  }, [debt.id, debt.interestRate, debt.name, debt.remainingBalance, debt.minimumPayment, selectedHouseholdId, fetchWithHousehold]);
 
   // No interest rate - don't show amortization
   if (debt.interestRate === 0) {

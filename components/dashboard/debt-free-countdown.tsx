@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { PartyPopper, Target, Flame, Medal, Award, Zap } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface Milestone {
   percentage: number;
@@ -29,19 +31,26 @@ interface CountdownData {
 }
 
 export function DebtFreeCountdown() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [data, setData] = useState<CountdownData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     fetchCountdownData();
-  }, []);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   const fetchCountdownData = async () => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(false);
-      const response = await fetch('/api/debts/countdown', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/debts/countdown');
 
       if (!response.ok) {
         throw new Error('Failed to fetch countdown data');

@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { AlertTriangle, Zap, Target, Clock, Banknote, PartyPopper, Turtle } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface MinimumOnlyScenario {
   totalMonths: number;
@@ -42,19 +44,18 @@ interface MinimumPaymentWarningProps {
 }
 
 export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [data, setData] = useState<WarningData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchWarningData();
-  }, []);
-
-  const fetchWarningData = async () => {
+  const fetchWarningData = useCallback(async () => {
+    if (!selectedHouseholdId) return;
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('/api/debts/minimum-warning', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/debts/minimum-warning');
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -73,7 +74,12 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
+  useEffect(() => {
+    if (!selectedHouseholdId) return;
+    fetchWarningData();
+  }, [selectedHouseholdId, fetchWarningData]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

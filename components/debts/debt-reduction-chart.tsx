@@ -5,6 +5,8 @@ import { TotalDebtChart } from './total-debt-chart';
 import { IndividualDebtsChart } from './individual-debts-chart';
 import { DebtReductionSummary } from './debt-reduction-summary';
 import { ChevronDown } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface ChartDataPoint {
   month: string;
@@ -46,6 +48,8 @@ interface DebtReductionChartProps {
 export function DebtReductionChart({
   defaultViewMode = 'combined',
 }: DebtReductionChartProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [data, setData] = useState<ChartResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,11 +58,16 @@ export function DebtReductionChart({
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!selectedHouseholdId) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError(null);
 
-        const response = await fetch('/api/debts/reduction-chart', { credentials: 'include' });
+        const response = await fetchWithHousehold('/api/debts/reduction-chart');
         if (!response.ok) {
           throw new Error('Failed to fetch debt reduction chart data');
         }
@@ -78,7 +87,7 @@ export function DebtReductionChart({
     };
 
     fetchData();
-  }, []);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   // Empty state - no debts
   if (!isLoading && (!data || data.debtDetails.length === 0)) {

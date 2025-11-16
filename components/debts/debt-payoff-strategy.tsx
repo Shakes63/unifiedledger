@@ -1,16 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin, BarChart3, DollarSign, Lightbulb } from 'lucide-react';
 import type { ComparisonResult, PayoffMethod, PaymentFrequency } from '@/lib/debts/payoff-calculator';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface DebtPayoffStrategyProps {
   className?: string;
 }
 
 export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold, putWithHousehold } = useHouseholdFetch();
   const [method, setMethod] = useState<PayoffMethod>('avalanche');
   const [paymentFrequency, setPaymentFrequency] = useState<PaymentFrequency>('monthly');
   const [extraPayment, setExtraPayment] = useState<string>('0');
@@ -19,50 +23,33 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   // Load saved settings on mount
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const response = await fetch('/api/debts/settings', { credentials: 'include' });
-        if (response.ok) {
-          const settings = await response.json();
-          setExtraPayment(settings.extraMonthlyPayment?.toString() || '0');
-          setMethod(settings.preferredMethod || 'avalanche');
-          setPaymentFrequency(settings.paymentFrequency || 'monthly');
-          setSettingsLoaded(true);
-        }
-      } catch (error) {
-        console.error('Error loading debt settings:', error);
+  const loadSettings = useCallback(async () => {
+    if (!selectedHouseholdId) return;
+    try {
+      const response = await fetchWithHousehold('/api/debts/settings');
+      if (response.ok) {
+        const settings = await response.json();
+        setExtraPayment(settings.extraMonthlyPayment?.toString() || '0');
+        setMethod(settings.preferredMethod || 'avalanche');
+        setPaymentFrequency(settings.paymentFrequency || 'monthly');
         setSettingsLoaded(true);
       }
-    };
+    } catch (error) {
+      console.error('Error loading debt settings:', error);
+      setSettingsLoaded(true);
+    }
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
+  useEffect(() => {
+    if (!selectedHouseholdId) return;
     loadSettings();
-  }, []);
+  }, [selectedHouseholdId, loadSettings]);
 
-  // Fetch strategy whenever settings change (debounced for extra payment)
-  useEffect(() => {
-    if (!settingsLoaded) return; // Don't fetch until settings are loaded
-
-    // Debounce the fetch to avoid refreshing on every keystroke
-    const timer = setTimeout(() => {
-      fetchStrategy();
-      saveSettings();
-    }, 500); // Wait 500ms after user stops typing
-
-    return () => clearTimeout(timer);
-  }, [extraPayment, settingsLoaded]);
-
-  // Fetch strategy and save settings when method or frequency changes (no debounce needed)
-  useEffect(() => {
-    if (!settingsLoaded) return;
-    fetchStrategy();
-    saveSettings();
-  }, [method, paymentFrequency]);
-
-  const fetchStrategy = async () => {
+  const fetchStrategy = useCallback(async () => {
+    if (!selectedHouseholdId || !settingsLoaded) return;
     try {
       setLoading(true);
-      const response = await fetch(`/api/debts/payoff-strategy?compare=true&extraPayment=${parseFloat(extraPayment) || 0}`, { credentials: 'include' });
+      const response = await fetchWithHousehold(`/api/debts/payoff-strategy?compare=true&extraPayment=${parseFloat(extraPayment) || 0}`);
       if (response.ok) {
         const data = await response.json();
         setComparison(data);
@@ -72,23 +59,40 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedHouseholdId, settingsLoaded, extraPayment, fetchWithHousehold]);
 
-  const saveSettings = async () => {
+  const saveSettings = useCallback(async () => {
+    if (!selectedHouseholdId) return;
     try {
-      await fetch('/api/debts/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          extraMonthlyPayment: parseFloat(extraPayment) || 0,
-          preferredMethod: method,
-          paymentFrequency,
-        }),
+      await putWithHousehold('/api/debts/settings', {
+        extraMonthlyPayment: parseFloat(extraPayment) || 0,
+        preferredMethod: method,
+        paymentFrequency,
       });
     } catch (error) {
       console.error('Error saving debt settings:', error);
     }
-  };
+  }, [selectedHouseholdId, extraPayment, method, paymentFrequency, putWithHousehold]);
+
+  // Fetch strategy whenever settings change (debounced for extra payment)
+  useEffect(() => {
+    if (!settingsLoaded || !selectedHouseholdId) return; // Don't fetch until settings are loaded
+
+    // Debounce the fetch to avoid refreshing on every keystroke
+    const timer = setTimeout(() => {
+      fetchStrategy();
+      saveSettings();
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timer);
+  }, [extraPayment, settingsLoaded, selectedHouseholdId, fetchStrategy, saveSettings]);
+
+  // Fetch strategy and save settings when method or frequency changes (no debounce needed)
+  useEffect(() => {
+    if (!settingsLoaded || !selectedHouseholdId) return;
+    fetchStrategy();
+    saveSettings();
+  }, [method, paymentFrequency, settingsLoaded, selectedHouseholdId, fetchStrategy, saveSettings]);
 
   if (loading) {
     return (

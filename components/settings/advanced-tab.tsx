@@ -15,6 +15,8 @@ import {
   type ExperimentalFeature,
   type FeatureCategory,
 } from '@/lib/experimental-features';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface DatabaseStats {
   transactions: number;
@@ -27,6 +29,8 @@ interface DatabaseStats {
 
 export function AdvancedTab() {
   const { isDeveloperMode, loading: devModeLoading, toggleDeveloperMode } = useDeveloperMode();
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [enableAnimations, setEnableAnimations] = useState(true);
   const [experimentalFeatures, setExperimentalFeatures] = useState(false);
   const [stats, setStats] = useState<DatabaseStats | null>(null);
@@ -37,7 +41,7 @@ export function AdvancedTab() {
     fetchSettings();
     fetchDatabaseStats();
     setFeatures(getExperimentalFeatures());
-  }, []);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   async function fetchSettings() {
     try {
@@ -55,6 +59,8 @@ export function AdvancedTab() {
   }
 
   async function fetchDatabaseStats() {
+    if (!selectedHouseholdId) return;
+
     try {
       // Fetch statistics from various endpoints
       const [txnRes, accountsRes, categoriesRes, billsRes, goalsRes, debtsRes] = await Promise.all([
@@ -62,8 +68,8 @@ export function AdvancedTab() {
         fetch('/api/accounts?limit=1', { credentials: 'include' }),
         fetch('/api/categories?limit=1', { credentials: 'include' }),
         fetch('/api/bills?limit=1', { credentials: 'include' }),
-        fetch('/api/savings-goals?limit=1', { credentials: 'include' }),
-        fetch('/api/debts?limit=1', { credentials: 'include' }),
+        fetchWithHousehold('/api/savings-goals?limit=1'),
+        fetchWithHousehold('/api/debts?limit=1'),
       ]);
 
       const txnData = await txnRes.json();

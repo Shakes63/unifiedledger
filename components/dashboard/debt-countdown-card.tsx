@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import Link from 'next/link';
 import { ArrowRight, PartyPopper } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface CountdownData {
   hasDebts: boolean;
@@ -14,17 +16,24 @@ interface CountdownData {
 }
 
 export function DebtCountdownCard() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [data, setData] = useState<CountdownData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchCountdownData();
-  }, []);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   const fetchCountdownData = async () => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await fetch('/api/debts/countdown', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/debts/countdown');
 
       if (!response.ok) {
         throw new Error('Failed to fetch countdown data');

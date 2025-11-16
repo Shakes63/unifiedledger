@@ -16,6 +16,8 @@ import {
   getUtilizationRecommendation,
 } from '@/lib/debts/credit-utilization-utils';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface Milestone {
   id: string;
@@ -59,6 +61,8 @@ export function DebtPayoffTracker({
   onPayment,
   defaultExpanded = false,
 }: DebtTrackerProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { postWithHousehold } = useHouseholdFetch();
   const { isExpanded, toggle: toggleExpanded } = useDebtExpansion(debt.id, defaultExpanded);
   const [showMilestones, setShowMilestones] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -85,6 +89,11 @@ export function DebtPayoffTracker({
   const isOverTarget = utilization > 30;
 
   const handlePayment = async () => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return;
+    }
+
     const amount = parseFloat(paymentAmount);
     if (!amount || amount <= 0) {
       toast.error('Please enter a valid amount');
@@ -92,13 +101,9 @@ export function DebtPayoffTracker({
     }
 
     try {
-      const response = await fetch(`/api/debts/${debt.id}/payments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount,
-          paymentDate: new Date().toISOString(),
-        }),
+      const response = await postWithHousehold(`/api/debts/${debt.id}/payments`, {
+        amount,
+        paymentDate: new Date().toISOString(),
       });
 
       if (!response.ok) throw new Error('Failed to record payment');

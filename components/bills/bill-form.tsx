@@ -21,6 +21,8 @@ import {
   isOneTimeFrequency,
   getDueDateLabel,
 } from '@/lib/bills/bill-utils';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface BillFormProps {
   bill?: any;
@@ -59,15 +61,19 @@ export function BillForm({
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [creatingCategory, setCreatingCategory] = useState(false);
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
 
   // Fetch categories, accounts, and debts on mount
   useEffect(() => {
     const fetchData = async () => {
+      if (!selectedHouseholdId) return;
+
       try {
         const [categoriesRes, accountsRes, debtsRes] = await Promise.all([
-          fetch('/api/categories', { credentials: 'include' }),
-          fetch('/api/accounts', { credentials: 'include' }),
-          fetch('/api/debts?status=active', { credentials: 'include' }),
+          fetchWithHousehold('/api/categories'),
+          fetchWithHousehold('/api/accounts'),
+          fetchWithHousehold('/api/debts?status=active'),
         ]);
 
         if (categoriesRes.ok) {
@@ -92,7 +98,7 @@ export function BillForm({
     };
 
     fetchData();
-  }, []);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

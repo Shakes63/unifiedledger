@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Calendar, DollarSign, TrendingDown } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface Payment {
   id: string;
@@ -25,6 +27,8 @@ export function PaymentHistoryList({
   className = '',
   initialLimit = 5,
 }: PaymentHistoryListProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +36,16 @@ export function PaymentHistoryList({
 
   useEffect(() => {
     const fetchPayments = async () => {
+      if (!selectedHouseholdId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/debts/${debtId}/payments`, { credentials: 'include' });
+        const response = await fetchWithHousehold(`/api/debts/${debtId}/payments`);
         if (!response.ok) {
           throw new Error('Failed to fetch payment history');
         }
@@ -56,7 +65,7 @@ export function PaymentHistoryList({
     };
 
     fetchPayments();
-  }, [debtId]);
+  }, [debtId, selectedHouseholdId, fetchWithHousehold]);
 
   // Calculate running balance (working backwards from newest to oldest)
   const paymentsWithBalance = payments.map((payment, index, arr) => {

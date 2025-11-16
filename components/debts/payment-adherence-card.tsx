@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, Minus, AlertCircle, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface AdherenceData {
   hasDebts: boolean;
@@ -23,18 +25,17 @@ interface AdherenceData {
 }
 
 export function PaymentAdherenceCard() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [data, setData] = useState<AdherenceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => {
-    fetchAdherenceData();
-  }, []);
-
-  const fetchAdherenceData = async () => {
+  const fetchAdherenceData = useCallback(async () => {
+    if (!selectedHouseholdId) return;
     try {
       setLoading(true);
-      const response = await fetch('/api/debts/adherence', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/debts/adherence');
 
       if (!response.ok) {
         throw new Error('Failed to fetch adherence data');
@@ -47,7 +48,12 @@ export function PaymentAdherenceCard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
+  useEffect(() => {
+    if (!selectedHouseholdId) return;
+    fetchAdherenceData();
+  }, [selectedHouseholdId, fetchAdherenceData]);
 
   const getStatusColor = (status?: string) => {
     switch (status) {

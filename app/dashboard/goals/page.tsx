@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { GoalTracker } from '@/components/goals/goal-tracker';
 import { GoalForm } from '@/components/goals/goal-form';
@@ -13,8 +13,12 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 export default function GoalsPage() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold } = useHouseholdFetch();
   const [goals, setGoals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,17 +26,13 @@ export default function GoalsPage() {
   const [selectedGoal, setSelectedGoal] = useState<any>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
 
-  // Fetch goals
-  useEffect(() => {
-    loadGoals();
-  }, [filter]);
-
-  const loadGoals = async () => {
+  const loadGoals = useCallback(async () => {
+    if (!selectedHouseholdId) return; // Safety check
     try {
       setLoading(true);
       setError(null); // Clear previous errors
       const params = filter !== 'all' ? `?status=${filter}` : '';
-      const response = await fetch(`/api/savings-goals${params}`, { credentials: 'include' });
+      const response = await fetchWithHousehold(`/api/savings-goals${params}`);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -66,11 +66,21 @@ export default function GoalsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter, selectedHouseholdId, fetchWithHousehold]);
+
+  // Fetch goals
+  useEffect(() => {
+    if (!selectedHouseholdId) return; // Early return if no household
+    loadGoals();
+  }, [loadGoals, selectedHouseholdId]);
 
   const loadGoalDetails = async (goalId: string) => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return null;
+    }
     try {
-      const response = await fetch(`/api/savings-goals/${goalId}`, { credentials: 'include' });
+      const response = await fetchWithHousehold(`/api/savings-goals/${goalId}`);
       if (!response.ok) {
         if (response.status === 404) {
           toast.error('Goal not found');
@@ -88,12 +98,12 @@ export default function GoalsPage() {
   };
 
   const handleCreateGoal = async (data: any) => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return;
+    }
     try {
-      const response = await fetch('/api/savings-goals', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      const response = await postWithHousehold('/api/savings-goals', data);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -117,13 +127,13 @@ export default function GoalsPage() {
 
   const handleUpdateGoal = async (data: any) => {
     if (!selectedGoal) return;
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return;
+    }
 
     try {
-      const response = await fetch(`/api/savings-goals/${selectedGoal.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      const response = await putWithHousehold(`/api/savings-goals/${selectedGoal.id}`, data);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -149,9 +159,13 @@ export default function GoalsPage() {
 
   const handleDeleteGoal = async (goalId: string) => {
     if (!confirm('Are you sure you want to delete this goal?')) return;
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return;
+    }
 
     try {
-      const response = await fetch(`/api/savings-goals/${goalId}`, { credentials: 'include', method: 'DELETE', });
+      const response = await deleteWithHousehold(`/api/savings-goals/${goalId}`);
 
       if (!response.ok) {
         if (response.status === 404) {

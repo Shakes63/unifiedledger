@@ -7,6 +7,8 @@ import { ScenarioComparisonCard } from './scenario-comparison-card';
 import { Plus, RefreshCw, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ScenarioComparisonResult } from '@/lib/debts/payoff-calculator';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface WhatIfCalculatorProps {
   currentExtraPayment: number;
@@ -19,6 +21,8 @@ export function WhatIfCalculator({
   currentMethod,
   currentFrequency = 'monthly',
 }: WhatIfCalculatorProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { postWithHousehold } = useHouseholdFetch();
   const [scenarios, setScenarios] = useState<Scenario[]>([
     {
       id: '1',
@@ -34,22 +38,27 @@ export function WhatIfCalculator({
 
   // Auto-calculate when scenarios change (debounced)
   useEffect(() => {
+    if (!selectedHouseholdId) return;
+    
     const timer = setTimeout(() => {
       calculateScenarios();
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [scenarios]);
+  }, [scenarios, selectedHouseholdId]);
 
   const calculateScenarios = async () => {
-    if (scenarios.length === 0) return;
+    if (scenarios.length === 0 || !selectedHouseholdId) return;
 
     try {
       setLoading(true);
-      const response = await fetch('/api/debts/scenarios', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenarios }),
+      const response = await postWithHousehold('/api/debts/scenarios', {
+        scenarios: scenarios.map(s => ({
+          extraMonthlyPayment: s.extraMonthlyPayment,
+          lumpSumPayments: s.lumpSumPayments,
+          method: s.method,
+          paymentFrequency: s.paymentFrequency,
+        })),
       });
 
       if (!response.ok) {
