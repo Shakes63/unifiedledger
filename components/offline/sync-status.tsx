@@ -41,14 +41,6 @@ export function SyncStatus() {
     loadStatus();
   }, [userId]);
 
-  // Trigger sync when coming online
-  const handleAutoSync = useCallback(async () => {
-    if (!userId || !isOnline) return;
-
-    console.log('Auto-syncing pending transactions');
-    await performSync();
-  }, [userId, isOnline]);
-
   // Manual sync trigger
   const performSync = useCallback(async () => {
     if (!userId || isSyncing) return;
@@ -76,6 +68,14 @@ export function SyncStatus() {
       setIsSyncing(false);
     }
   }, [userId, isSyncing]);
+
+  // Trigger sync when coming online
+  const handleAutoSync = useCallback(async () => {
+    if (!userId || !isOnline) return;
+
+    console.log('Auto-syncing pending transactions');
+    await performSync();
+  }, [userId, isOnline, performSync]);
 
   // Don't show if no pending transactions and online
   if (syncStatus.pending === 0 && isOnline) {

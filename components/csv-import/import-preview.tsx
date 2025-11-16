@@ -179,7 +179,7 @@ export function ImportPreview({
                         {record.validationErrors && record.validationErrors.length > 0 && (
                           <div className="text-xs text-[var(--color-error)] mt-2 space-y-1">
                             {record.validationErrors.map((error, i) => (
-                              <div key={i}>{error}</div>
+                              <div key={`error-${record.rowNumber}-${i}`}>{error}</div>
                             ))}
                           </div>
                         )}

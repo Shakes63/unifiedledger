@@ -17,6 +17,7 @@ import {
 } from '@/lib/experimental-features';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { useExperimentalFeatures } from '@/contexts/experimental-features-context';
 
 interface DatabaseStats {
   transactions: number;
@@ -31,6 +32,7 @@ export function AdvancedTab() {
   const { isDeveloperMode, loading: devModeLoading, toggleDeveloperMode } = useDeveloperMode();
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
+  const { refresh: refreshExperimentalFeatures } = useExperimentalFeatures();
   const [enableAnimations, setEnableAnimations] = useState(true);
   const [experimentalFeatures, setExperimentalFeatures] = useState(false);
   const [stats, setStats] = useState<DatabaseStats | null>(null);
@@ -48,8 +50,9 @@ export function AdvancedTab() {
       const response = await fetch('/api/user/settings', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
-        setEnableAnimations(data.enableAnimations !== false);
-        setExperimentalFeatures(data.experimentalFeatures || false);
+        // API returns { settings: {...} }
+        setEnableAnimations(data.settings?.enableAnimations !== false);
+        setExperimentalFeatures(data.settings?.experimentalFeatures || false);
       }
     } catch (error) {
       toast.error('Failed to load settings');
@@ -113,7 +116,13 @@ export function AdvancedTab() {
             document.documentElement.classList.add('reduce-motion');
           }
         }
-        if (key === 'experimentalFeatures') setExperimentalFeatures(value);
+        if (key === 'experimentalFeatures') {
+          setExperimentalFeatures(value);
+          // Refresh the experimental features context
+          await refreshExperimentalFeatures();
+          // Trigger storage event for other tabs
+          window.localStorage.setItem('experimental-features-updated', Date.now().toString());
+        }
       } else {
         toast.error('Failed to update setting');
       }

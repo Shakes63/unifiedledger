@@ -70,7 +70,7 @@ export function CalendarDay({
             <div className="space-y-0.5">
               {summary.bills.map((bill, idx) => (
                 <div
-                  key={idx}
+                  key={`${bill.name}-${bill.amount}-${idx}`}
                   className={`text-[10px] px-1.5 py-0.5 rounded truncate flex items-center gap-0.5 ${
                     bill.status === 'overdue'
                       ? 'bg-[var(--color-error)]/20 text-[var(--color-error)] font-semibold'

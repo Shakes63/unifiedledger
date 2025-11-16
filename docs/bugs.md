@@ -1,10 +1,12 @@
 # Bugs Status (Updated 2025-01-27)
 
+## 🆕 ADD NEW BUGS HERE
+
 ---
 
-## 🆕 ADD NEW BUGS HERE
-1. **Quick Entry Mode Account Loading** - Account dropdown in Quick Entry modal opens but appears empty (no accounts loading). Console shows 400 Bad Request errors when fetching accounts. The modal opens successfully and other fields work, but account selection is non-functional. This prevents users from creating transactions via Quick Entry Mode.
-2. react-dom-client.development.js:5528 Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+## 🐛 Active Bugs
+
+1. **React Hydration Mismatch Error** - Hydration failed because the server rendered HTML didn't match the client. Error occurs on sign-in page with OfflineBanner component. This can happen if a SSR-ed Client Component used:
 
 - A server/client branch `if (typeof window !== 'undefined')`.
 - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
@@ -99,7 +101,7 @@ https://react.dev/link/hydration-mismatch
 
 **Active Bugs:** 1
 **In Progress:** 0
-**Fixed (All Time):** 25
+**Fixed (All Time):** 26
 
 ---
 
@@ -130,6 +132,7 @@ https://react.dev/link/hydration-mismatch
 23. **Accounts API 403 Forbidden** - Added household context readiness guards to accounts page
 24. **CompactStatsBar 403 Forbidden** - Updated CompactStatsBar component to use household-aware fetch hooks for all API calls
 25. **Logo Image Aspect Ratio Warning** - Removed `style={{ height: 'auto' }}` from collapsed sidebar logo Image component. Next.js Image best practice: when using explicit width/height props, don't modify dimensions via CSS.
+26. **Quick Entry Mode Account Loading** - Fixed race condition where accounts were fetched before household context was ready, causing 400 Bad Request errors. Added proper loading states, error handling, and useEffect hook that waits for household initialization before fetching accounts.
 
 ---
 
