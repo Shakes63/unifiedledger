@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { betterAuthClient } from '@/lib/better-auth-client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +19,9 @@ import Link from 'next/link';
 
 export default function SignUpPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isFirstSetup = searchParams.get('firstSetup') === 'true';
+  
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -59,7 +62,30 @@ export default function SignUpPage() {
         throw new Error('Account created but sign-in failed. Please sign in manually.');
       }
 
-      toast.success('Account created successfully!');
+      // If this is first setup, mark user as owner
+      if (isFirstSetup) {
+        try {
+          const markOwnerResponse = await fetch('/api/auth/mark-owner', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+          });
+
+          if (markOwnerResponse.ok) {
+            const data = await markOwnerResponse.json();
+            if (data.isOwner) {
+              toast.success('Account created successfully! You are now the application owner.');
+            } else {
+              toast.success('Account created successfully!');
+            }
+          }
+        } catch (error) {
+          console.error('Failed to mark owner:', error);
+          toast.success('Account created successfully!');
+        }
+      } else {
+        toast.success('Account created successfully!');
+      }
 
       // Use window.location for a hard redirect to ensure middleware runs
       window.location.href = '/dashboard';
@@ -82,10 +108,12 @@ export default function SignUpPage() {
       <Card className="w-full max-w-md border-border shadow-lg">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center text-foreground">
-            Create Account
+            {isFirstSetup ? 'Create Owner Account' : 'Create Account'}
           </CardTitle>
           <CardDescription className="text-center text-muted-foreground">
-            Get started with Unified Ledger
+            {isFirstSetup
+              ? "You're creating the first account. You'll be the application owner with access to admin settings."
+              : 'Get started with Unified Ledger'}
           </CardDescription>
         </CardHeader>
         <CardContent>

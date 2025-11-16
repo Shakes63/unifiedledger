@@ -691,6 +691,7 @@ export const userSettings = sqliteTable(
     // Privacy & Security
     sessionTimeout: integer('session_timeout').default(30), // minutes of inactivity
     dataRetentionYears: integer('data_retention_years').default(7), // years to keep transactions
+    primaryLoginMethod: text('primary_login_method').default('email'), // 'email', 'google', 'github'
     // Data Management
     defaultImportTemplateId: text('default_import_template_id'), // default CSV import template
     // Advanced
@@ -2002,3 +2003,23 @@ export const betterAuthVerification = sqliteTable("verification", {
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).$defaultFn(() => new Date()),
 });
+
+// ============================================================================
+// ADMIN & SYSTEM TABLES
+// ============================================================================
+
+export const oauthSettings = sqliteTable(
+  'oauth_settings',
+  {
+    id: text('id').primaryKey(),
+    providerId: text('provider_id').notNull().unique(), // 'google', 'github'
+    clientId: text('client_id').notNull(),
+    clientSecret: text('client_secret').notNull(), // Encrypted
+    enabled: integer('enabled', { mode: 'boolean' }).default(true),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    providerIdIdx: index('idx_oauth_settings_provider').on(table.providerId),
+  })
+);

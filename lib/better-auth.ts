@@ -5,6 +5,7 @@ import * as authSchema from "@/auth-schema";
 import { sendVerificationEmail } from "@/lib/email/email-service";
 import { lookupLocation } from "@/lib/geoip/geoip-service";
 import { eq } from "drizzle-orm";
+import { genericOAuth } from "better-auth/plugins/generic-oauth";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -89,6 +90,42 @@ export const auth = betterAuth({
   //   ],
   // },
   secret: process.env.BETTER_AUTH_SECRET || "fallback-secret-for-development-only-change-in-production",
+  plugins: [
+    genericOAuth({
+      config: [
+        // Google OAuth
+        ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+          ? [
+              {
+                providerId: "google",
+                clientId: process.env.GOOGLE_CLIENT_ID,
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+                authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+                tokenUrl: "https://oauth2.googleapis.com/token",
+                userInfoUrl: "https://www.googleapis.com/oauth2/v2/userinfo",
+                scopes: ["openid", "profile", "email"],
+                pkce: true,
+              },
+            ]
+          : []),
+        // GitHub OAuth
+        ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
+          ? [
+              {
+                providerId: "github",
+                clientId: process.env.GITHUB_CLIENT_ID,
+                clientSecret: process.env.GITHUB_CLIENT_SECRET,
+                authorizationUrl: "https://github.com/login/oauth/authorize",
+                tokenUrl: "https://github.com/login/oauth/access_token",
+                userInfoUrl: "https://api.github.com/user",
+                scopes: ["read:user", "user:email"],
+                authentication: "post" as const,
+              },
+            ]
+          : []),
+      ],
+    }),
+  ],
 });
 
 export type Session = typeof auth.$Infer.Session;

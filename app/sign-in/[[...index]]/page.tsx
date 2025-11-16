@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { betterAuthClient } from '@/lib/better-auth-client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -15,12 +15,26 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Loader2, Shield } from 'lucide-react';
+import { Loader2, Shield, Globe } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SignInPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  
+  // Fetch available OAuth providers on mount
+  useEffect(() => {
+    fetch('/api/user/oauth/available', { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.providers) {
+          setAvailableProviders(data.providers.filter((p: any) => p.enabled));
+        }
+      })
+      .catch(() => {
+        // Silently fail - OAuth is optional
+      });
+  }, []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -31,6 +45,10 @@ export default function SignInPage() {
   const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [verifyingTwoFactor, setVerifyingTwoFactor] = useState(false);
+  
+  // OAuth state
+  const [availableProviders, setAvailableProviders] = useState<Array<{ id: string; name: string; enabled: boolean }>>([]);
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,6 +180,35 @@ export default function SignInPage() {
     setTwoFactorCode('');
     setError(null);
   };
+
+  const handleOAuthSignIn = async (providerId: string) => {
+    try {
+      setOauthLoading(providerId);
+      setError(null);
+
+      const callbackURL = searchParams.get('callbackUrl') || '/dashboard';
+      const result = await betterAuthClient.signIn.oauth2({
+        providerId,
+        callbackURL,
+      });
+
+      if (result.url) {
+        // Redirect to OAuth provider
+        window.location.href = result.url;
+      } else {
+        throw new Error('Failed to get OAuth authorization URL');
+      }
+    } catch (error: any) {
+      const errorMessage = error?.message || `Failed to sign in with ${providerId}`;
+      setError(errorMessage);
+      setOauthLoading(null);
+    }
+  };
+
+  function getProviderName(providerId: string) {
+    const provider = availableProviders.find((p) => p.id === providerId);
+    return provider?.name || providerId.charAt(0).toUpperCase() + providerId.slice(1);
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background px-4">
@@ -321,6 +368,47 @@ export default function SignInPage() {
               </>
             )}
           </form>
+
+          {/* OAuth Sign-In Buttons */}
+          {availableProviders.length > 0 && (
+            <>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {availableProviders.map((provider) => (
+                  <Button
+                    key={provider.id}
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleOAuthSignIn(provider.id)}
+                    disabled={loading || oauthLoading === provider.id || verifyingTwoFactor}
+                    className="w-full border-border hover:bg-elevated"
+                  >
+                    {oauthLoading === provider.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Signing in...
+                      </>
+                    ) : (
+                      <>
+                        <Globe className="w-4 h-4 mr-2" />
+                        Sign in with {getProviderName(provider.id)}
+                      </>
+                    )}
+                  </Button>
+                ))}
+              </div>
+            </>
+          )}
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
             Don't have an account?{' '}

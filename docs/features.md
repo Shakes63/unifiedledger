@@ -10,22 +10,31 @@
 
 ## Incomplete Features
 
-### Settings Page - Advanced Features
-**Status:** Partially implemented (2FA complete, OAuth and Permissions pending)
-**Plan:** `docs/advanced-security-features-plan.md` (Phase 1 complete, Phases 2-3 pending)
-**Missing:**
-- ❌ OAuth provider management (Google, GitHub) - See Phase 2 in plan
-- ❌ Advanced permission system (beyond basic roles) - See Phase 3 in plan
+### Admin Backend Section
+**Status:** Partially implemented (Steps 1-3 complete, Steps 4-10 pending)
+**Plan:** `docs/admin-backend-section-plan.md`
+**Completed:**
+- ✅ Database schema updates (isApplicationOwner field, oauthSettings table)
+- ✅ Owner detection & helper functions
+- ✅ First startup detection and sign-up flow
+**Remaining:**
+- ⏳ OAuth settings encryption
+- ⏳ Admin API endpoints
+- ⏳ Admin tab component with OAuth settings UI
+- ⏳ Integration into settings page
+- ⏳ Better Auth OAuth configuration updates
+- ⏳ Access control & security
+- ⏳ Testing & polish
 
 ---
 
-### Self-Hosting Configuration
-**Status:** Not yet implemented - future feature
-**Plan:** None
+### Settings Page - Advanced Features
+**Status:** Partially implemented (2FA complete, Permissions pending)
+**Plan:** `docs/advanced-security-features-plan.md` (Phase 1 complete, Phase 3 pending)
+**Missing:**
+- ❌ Advanced permission system (beyond basic roles) - See Phase 3 in plan
 
-**Goal:** Make app completely self-hostable without .env file editing
-
-**Concept:** Admin/System settings tab for configuring external services through UI
+**Note:** OAuth provider management (Phase 2) has been completed - see Completed Features below.
 
 ---
 
@@ -63,3 +72,4 @@
 30. ✅ **Auto-Backup Settings** - Automatic backup system with scheduler, settings UI, manual backups, backup history, and cron endpoint
 31. ✅ **Backup Household Isolation** - Complete household isolation for backups with per-household settings, history, and file storage
 32. ✅ **Two-Factor Authentication (2FA)** - Complete TOTP-based 2FA system with QR code setup, backup codes, login integration, and settings UI
+33. ✅ **OAuth Provider Management** - Complete OAuth provider management system with Google and GitHub support, provider linking/unlinking, primary login method selection, and sign-in page integration

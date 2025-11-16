@@ -3,6 +3,7 @@ import { auth } from '@/lib/better-auth';
 import { headers } from 'next/headers';
 import Image from 'next/image';
 import { DollarSign, BarChart3, Target } from 'lucide-react';
+import { isFirstUser } from '@/lib/auth/owner-helpers';
 
 export default async function Home() {
   const session = await auth.api.getSession({
@@ -12,6 +13,13 @@ export default async function Home() {
   // Redirect authenticated users to dashboard
   if (session) {
     redirect('/dashboard');
+  }
+
+  // Check if this is first startup (no users exist)
+  // If so, redirect to sign-up with firstSetup flag
+  const firstUser = await isFirstUser();
+  if (firstUser) {
+    redirect('/sign-up?firstSetup=true');
   }
 
   // Landing page for unauthenticated users

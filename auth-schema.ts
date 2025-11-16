@@ -17,6 +17,9 @@ export const user = sqliteTable("user", {
   twoFactorSecret: text("two_factor_secret"),
   twoFactorBackupCodes: text("two_factor_backup_codes"), // JSON array of hashed codes
   twoFactorVerifiedAt: integer("two_factor_verified_at", { mode: "timestamp_ms" }),
+  isApplicationOwner: integer("is_application_owner", { mode: "boolean" })
+    .default(false)
+    .notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),

@@ -42,6 +42,7 @@ import {
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { TwoFactorSection } from '@/components/settings/two-factor-section';
+import { OAuthProvidersSection } from '@/components/settings/oauth-providers-section';
 
 interface Session {
   id: string;
@@ -451,6 +452,11 @@ export function PrivacyTab() {
 
       {/* Two-Factor Authentication Section */}
       <TwoFactorSection />
+
+      <Separator className="bg-border" />
+
+      {/* OAuth Providers Section */}
+      <OAuthProvidersSection />
 
       <Separator className="bg-border" />
 
