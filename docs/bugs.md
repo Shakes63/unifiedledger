@@ -3,7 +3,8 @@
 ---
 
 ## 🆕 ADD NEW BUGS HERE
-1. react-dom-client.development.js:5528 Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+1. **Quick Entry Mode Account Loading** - Account dropdown in Quick Entry modal opens but appears empty (no accounts loading). Console shows 400 Bad Request errors when fetching accounts. The modal opens successfully and other fields work, but account selection is non-functional. This prevents users from creating transactions via Quick Entry Mode.
+2. react-dom-client.development.js:5528 Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
 
 - A server/client branch `if (typeof window !== 'undefined')`.
 - Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
@@ -96,7 +97,7 @@ https://react.dev/link/hydration-mismatch
 
 ## 📊 Current Status
 
-**Active Bugs:** 0
+**Active Bugs:** 1
 **In Progress:** 0
 **Fixed (All Time):** 25
 

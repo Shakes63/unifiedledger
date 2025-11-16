@@ -43,6 +43,14 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 ## Recent Major Features
 
 **Latest (2025-01-XX):**
+- Quick Entry Mode Enhancement (100% COMPLETE)
+  - ✅ Enhanced keyboard-focused rapid transaction entry modal
+  - ✅ Category and merchant selection with smart defaults
+  - ✅ Transfer support with destination account selection
+  - ✅ Comprehensive keyboard shortcuts (Q to open, 1-4 for type, T/Y for date, N for notes, Ctrl+Enter to save)
+  - ✅ Smart defaults saved to localStorage per household and transaction type
+  - ✅ Experimental feature gating system integration
+  - ⚠️ Known issue: Account dropdown loading bug (see bugs.md #1)
 - Advanced Permission System (100% COMPLETE)
   - ✅ Database schema with customPermissions JSON field
   - ✅ Permission resolution logic with custom overrides (deny takes precedence)
