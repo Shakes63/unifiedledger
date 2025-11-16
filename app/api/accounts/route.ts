@@ -14,6 +14,14 @@ export async function GET(request: Request) {
     const householdId = getHouseholdIdFromRequest(request);
     await requireHouseholdAuth(userId, householdId);
 
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+      );
+    }
+
     const userAccounts = await db
       .select()
       .from(accounts)
@@ -69,6 +77,14 @@ export async function POST(request: Request) {
     const householdId = getHouseholdIdFromRequest(request, body);
     await requireHouseholdAuth(userId, householdId);
 
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+      );
+    }
+
     const accountId = nanoid();
     const now = new Date().toISOString();
 
@@ -76,7 +92,7 @@ export async function POST(request: Request) {
       const result = await db.insert(accounts).values({
         id: accountId,
         userId,
-        householdId: householdId!,
+        householdId,
         name,
         type,
         bankName: bankName || null,

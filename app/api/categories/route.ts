@@ -49,6 +49,14 @@ export async function GET(request: Request) {
     const householdId = getHouseholdIdFromRequest(request);
     await requireHouseholdAuth(userId, householdId);
 
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+      );
+    }
+
     const userCategories = await db
       .select()
       .from(budgetCategories)
@@ -85,6 +93,14 @@ export async function POST(request: Request) {
     // Get and validate household
     const householdId = getHouseholdIdFromRequest(request, body);
     await requireHouseholdAuth(userId, householdId);
+
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+      );
+    }
 
     const { name, type, monthlyBudget = 0, dueDate, isTaxDeductible = false, incomeFrequency } = body;
 
@@ -131,7 +147,7 @@ export async function POST(request: Request) {
     await db.insert(budgetCategories).values({
       id: categoryId,
       userId,
-      householdId: householdId!,
+      householdId,
       name,
       type,
       monthlyBudget,
@@ -171,6 +187,14 @@ export async function PUT(request: Request) {
     const householdId = getHouseholdIdFromRequest(request, body);
     await requireHouseholdAuth(userId, householdId);
 
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+      );
+    }
+
     // Check if user already has categories in this household
     const existingCategories = await db
       .select()
@@ -194,7 +218,7 @@ export async function PUT(request: Request) {
     const categoriesToInsert = DEFAULT_CATEGORIES.map((cat, index) => ({
       id: nanoid(),
       userId,
-      householdId: householdId!,
+      householdId,
       name: cat.name,
       type: cat.type as any,
       monthlyBudget: 0,

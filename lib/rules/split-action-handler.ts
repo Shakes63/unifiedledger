@@ -97,6 +97,7 @@ export async function handleSplitCreation(
       return {
         id: nanoid(),
         userId: userId,
+        householdId: transaction.householdId,
         transactionId: transactionId,
         categoryId: split.categoryId,
         amount: amount,

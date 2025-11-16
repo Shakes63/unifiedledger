@@ -136,7 +136,7 @@ export async function requireHouseholdRole(
 ) {
   const membership = await requireHouseholdAuth(userId, householdId);
 
-  if (!hasPermission(membership, requiredRole)) {
+  if (!membership.role || !hasPermission({ role: membership.role }, requiredRole)) {
     throw new Error(`Unauthorized: Requires ${requiredRole} role or higher`);
   }
 

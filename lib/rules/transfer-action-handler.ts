@@ -278,6 +278,7 @@ export async function handleTransferConversion(
       await db.insert(transactions).values({
         id: newTxId,
         userId: userId,
+        householdId: transaction.householdId,
         accountId: config.targetAccountId,
         date: transaction.date,
         amount: transaction.amount,

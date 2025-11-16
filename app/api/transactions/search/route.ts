@@ -33,6 +33,13 @@ export async function GET(request: Request) {
     // Get and validate household
     const householdId = getHouseholdIdFromRequest(request);
     await requireHouseholdAuth(userId, householdId);
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+  );
+}
 
     // Parse query parameters
     const url = new URL(request.url);
@@ -298,7 +305,7 @@ export async function GET(request: Request) {
         appliedFilters: filters,
       },
     });
-  } catch (error) {
+    } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -313,5 +320,5 @@ export async function GET(request: Request) {
       { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
-  }
+    }
 }

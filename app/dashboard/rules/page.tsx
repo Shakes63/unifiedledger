@@ -7,8 +7,10 @@ import { BulkApplyRules } from '@/components/rules/bulk-apply-rules';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 import type { ConditionGroup, Condition } from '@/lib/rules/condition-evaluator';
 import type { RuleAction } from '@/lib/rules/types';
 
@@ -22,6 +24,8 @@ interface Rule {
 }
 
 export default function RulesPage() {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold, postWithHousehold, putWithHousehold } = useHouseholdFetch();
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [formData, setFormData] = useState({
@@ -53,9 +57,14 @@ export default function RulesPage() {
   };
 
   const handleEditRule = async (rule: Rule) => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household to edit rules');
+      return;
+    }
+
     try {
       // Fetch full rule details including conditions and actions
-      const response = await fetch(`/api/rules?id=${rule.id}`, { credentials: 'include' });
+      const response = await fetchWithHousehold(`/api/rules?id=${rule.id}`);
       if (!response.ok) throw new Error('Failed to fetch rule details');
 
       const fullRule = await response.json();
@@ -173,10 +182,14 @@ export default function RulesPage() {
       }
     }
 
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household to save rules');
+      return;
+    }
+
     try {
       setSaving(true);
 
-      const method = editingRule ? 'PUT' : 'POST';
       const body = editingRule
         ? {
             id: editingRule.id,
@@ -194,11 +207,9 @@ export default function RulesPage() {
             actions,
           };
 
-      const response = await fetch('/api/rules', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      const response = editingRule
+        ? await putWithHousehold('/api/rules', body)
+        : await postWithHousehold('/api/rules', body);
 
       if (!response.ok) throw new Error('Failed to save rule');
 
@@ -211,6 +222,21 @@ export default function RulesPage() {
       setSaving(false);
     }
   };
+
+  // Show warning if no household selected
+  if (!selectedHouseholdId) {
+    return (
+      <div className="p-6">
+        <div className="bg-[var(--color-warning)]/20 border border-[var(--color-warning)]/40 rounded-lg p-4 text-[var(--color-warning)] flex gap-2">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-medium">No household selected</p>
+            <p className="text-sm mt-1">Please select a household from the sidebar to manage rules.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">

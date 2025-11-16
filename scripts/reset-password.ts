@@ -30,12 +30,12 @@ async function resetPassword(email: string, newPassword: string) {
       .update(account)
       .set({
         password: hashedPassword,
-        updated_at: Date.now(),
+        updatedAt: new Date(),
       })
       .where(
         and(
-          eq(account.account_id, email), // account_id is the email for credential provider
-          eq(account.provider_id, 'credential')
+          eq(account.accountId, email), // accountId is the email for credential provider
+          eq(account.providerId, 'credential')
         )
       )
       .returning();

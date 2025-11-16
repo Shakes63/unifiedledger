@@ -29,6 +29,14 @@ export async function POST(request: Request) {
     const householdId = getHouseholdIdFromRequest(request, body);
     await requireHouseholdAuth(userId, householdId);
 
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+      );
+    }
+
     if (!templateId) {
       return Response.json(
         { error: 'Template ID is required' },
@@ -124,7 +132,7 @@ export async function POST(request: Request) {
     await db.insert(transactions).values({
       id: transactionId,
       userId,
-      householdId: householdId!, // Add household ID
+      householdId,
       accountId: tmpl.accountId,
       categoryId: appliedCategoryId || null,
       date: transactionDate,
@@ -214,7 +222,7 @@ export async function POST(request: Request) {
           await db.insert(usageAnalytics).values({
             id: analyticsId,
             userId,
-            householdId: householdId!, // Add household ID
+            householdId,
             itemType: 'category',
             itemId: appliedCategoryId,
             usageCount: 1,
@@ -265,7 +273,7 @@ export async function POST(request: Request) {
       await db.insert(merchants).values({
         id: merchantId,
         userId,
-        householdId: householdId!, // Add household ID
+        householdId,
         name: transactionDescription,
         normalizedName: normalizedDescription,
         categoryId: appliedCategoryId || null,
@@ -284,6 +292,7 @@ export async function POST(request: Request) {
         await db.insert(ruleExecutionLog).values({
           id: nanoid(),
           userId,
+          householdId,
           ruleId: appliedRuleId,
           transactionId,
           appliedCategoryId,
@@ -304,7 +313,7 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
-  } catch (error) {
+    } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -319,5 +328,5 @@ export async function POST(request: Request) {
       { error: 'Internal server error' },
       { status: 500 }
     );
-  }
+    }
 }

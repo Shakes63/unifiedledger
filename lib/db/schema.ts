@@ -880,6 +880,59 @@ export const accountDeletionRequests = sqliteTable(
 );
 
 // ============================================================================
+// BACKUP SETTINGS & HISTORY
+// ============================================================================
+
+export const backupSettings = sqliteTable(
+  'backup_settings',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().unique(),
+    enabled: integer('enabled', { mode: 'boolean' }).default(false),
+    frequency: text('frequency', {
+      enum: ['daily', 'weekly', 'monthly'],
+    }).default('weekly'),
+    format: text('format', {
+      enum: ['json', 'csv'],
+    }).default('json'),
+    retentionCount: integer('retention_count').default(10),
+    emailBackups: integer('email_backups', { mode: 'boolean' }).default(false),
+    lastBackupAt: text('last_backup_at'),
+    nextBackupAt: text('next_backup_at'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_backup_settings_user').on(table.userId),
+  })
+);
+
+export const backupHistory = sqliteTable(
+  'backup_history',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    backupSettingsId: text('backup_settings_id').notNull(),
+    filename: text('filename').notNull(),
+    fileSize: integer('file_size').notNull(),
+    format: text('format', {
+      enum: ['json', 'csv'],
+    }).default('json'),
+    status: text('status', {
+      enum: ['pending', 'completed', 'failed'],
+    }).default('pending'),
+    errorMessage: text('error_message'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_backup_history_user').on(table.userId),
+    createdAtIdx: index('idx_backup_history_created').on(table.createdAt),
+    statusIdx: index('idx_backup_history_status').on(table.status),
+    userCreatedIdx: index('idx_backup_history_user_created').on(table.userId, table.createdAt),
+  })
+);
+
+// ============================================================================
 // TRANSACTION TEMPLATES
 // ============================================================================
 

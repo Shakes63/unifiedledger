@@ -23,8 +23,10 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Database, Trash2, AlertTriangle, Loader2, Shield, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import { Database, Trash2, AlertTriangle, Loader2, Shield, CheckCircle2, FileSpreadsheet, HardDrive, History } from 'lucide-react';
 import { toast } from 'sonner';
+import { BackupSettingsForm } from './backup-settings-form';
+import { BackupHistory } from './backup-history';
 
 interface ImportTemplate {
   id: string;
@@ -51,6 +53,9 @@ export function DataTab() {
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [defaultImportTemplateId, setDefaultImportTemplateId] = useState<string | null>(null);
   const [savingTemplate, setSavingTemplate] = useState(false);
+
+  // Backup history state
+  const [backupHistoryDialogOpen, setBackupHistoryDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchSettings();
@@ -395,6 +400,31 @@ export function DataTab() {
 
       <Separator className="bg-border" />
 
+      {/* Automatic Backups Section */}
+      <div>
+        <h3 className="text-lg font-semibold text-foreground mb-2">Automatic Backups</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Configure automatic backups of your financial data
+        </p>
+
+        <Card className="p-4 bg-elevated border-border">
+          <BackupSettingsForm />
+        </Card>
+
+        <div className="mt-4">
+          <Button
+            variant="outline"
+            onClick={() => setBackupHistoryDialogOpen(true)}
+            className="border-border"
+          >
+            <History className="w-4 h-4 mr-2" />
+            View Backup History
+          </Button>
+        </div>
+      </div>
+
+      <Separator className="bg-border" />
+
       {/* Cache Management Section */}
       <div>
         <h3 className="text-lg font-semibold text-foreground mb-2">Cache Management</h3>
@@ -593,6 +623,32 @@ export function DataTab() {
                   Reset App Data
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Backup History Dialog */}
+      <Dialog open={backupHistoryDialogOpen} onOpenChange={setBackupHistoryDialogOpen}>
+        <DialogContent className="bg-card border-border max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Backup History</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              View and manage your backup files
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <BackupHistory />
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBackupHistoryDialogOpen(false)}
+              className="border-border"
+            >
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

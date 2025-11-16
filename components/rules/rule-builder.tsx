@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -17,6 +17,8 @@ import { Plus, X, ChevronDown, AlertCircle, Zap, Tag, Store, FileEdit, FileText,
 import { Condition, ConditionGroup, ComparisonOperator, ConditionField } from '@/lib/rules/condition-evaluator';
 import { RuleAction } from '@/lib/rules/types';
 import { nanoid } from 'nanoid';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 const FIELDS: { value: ConditionField; label: string }[] = [
   { value: 'description', label: 'Description' },
@@ -294,44 +296,51 @@ export function RuleBuilder({
   );
 
   const [actions, setActions] = useState<RuleAction[]>(initialActions);
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [categories, setCategories] = useState<Category[]>([]);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   // Fetch categories, merchants, and accounts
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [categoriesRes, merchantsRes, accountsRes] = await Promise.all([
-          fetch('/api/categories', { credentials: 'include' }),
-          fetch('/api/merchants', { credentials: 'include' }),
-          fetch('/api/accounts?sortBy=name&sortOrder=asc', { credentials: 'include' })
-        ]);
+  const fetchData = useCallback(async () => {
+    if (!selectedHouseholdId) {
+      setLoadingData(false);
+      return;
+    }
 
-        if (categoriesRes.ok) {
-          const categoriesData = await categoriesRes.json();
-          setCategories(categoriesData);
-        }
+    try {
+      const [categoriesRes, merchantsRes, accountsRes] = await Promise.all([
+        fetchWithHousehold('/api/categories'),
+        fetchWithHousehold('/api/merchants'),
+        fetchWithHousehold('/api/accounts?sortBy=name&sortOrder=asc')
+      ]);
 
-        if (merchantsRes.ok) {
-          const merchantsData = await merchantsRes.json();
-          setMerchants(merchantsData);
-        }
-
-        if (accountsRes.ok) {
-          const accountsData = await accountsRes.json();
-          setAccounts(accountsData.data || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch data:', error);
-      } finally {
-        setLoadingData(false);
+      if (categoriesRes.ok) {
+        const categoriesData = await categoriesRes.json();
+        setCategories(categoriesData);
       }
-    };
 
+      if (merchantsRes.ok) {
+        const merchantsData = await merchantsRes.json();
+        setMerchants(merchantsData);
+      }
+
+      if (accountsRes.ok) {
+        const accountsData = await accountsRes.json();
+        setAccounts(accountsData.data || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+    } finally {
+      setLoadingData(false);
+    }
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleUpdate = (updated: ConditionGroup | Condition) => {
     setConditions(updated);

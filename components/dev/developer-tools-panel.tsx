@@ -8,10 +8,13 @@ import { useDeveloperMode } from '@/contexts/developer-mode-context';
 import { useHousehold } from '@/contexts/household-context';
 import { usePathname } from 'next/navigation';
 import { toast } from 'sonner';
+import { betterAuthClient } from '@/lib/better-auth-client';
 
 export function DeveloperToolsPanel() {
   const { isDeveloperMode } = useDeveloperMode();
-  const { currentHousehold, user } = useHousehold();
+  const { selectedHousehold } = useHousehold();
+  const { data: session } = betterAuthClient.useSession();
+  const user = session?.user;
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -26,9 +29,8 @@ export function DeveloperToolsPanel() {
         name: user?.name,
       },
       household: {
-        id: currentHousehold?.id,
-        name: currentHousehold?.name,
-        role: currentHousehold?.role,
+        id: selectedHousehold?.id,
+        name: selectedHousehold?.name,
       },
       route: pathname,
       timestamp: new Date().toISOString(),
@@ -104,19 +106,15 @@ export function DeveloperToolsPanel() {
               <div className="space-y-1 text-xs font-mono">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">ID:</span>
-                  <span className="text-foreground truncate max-w-[200px]" title={currentHousehold?.id}>
-                    {currentHousehold?.id ? `${currentHousehold.id.slice(0, 8)}...${currentHousehold.id.slice(-4)}` : 'N/A'}
+                  <span className="text-foreground truncate max-w-[200px]" title={selectedHousehold?.id}>
+                    {selectedHousehold?.id ? `${selectedHousehold.id.slice(0, 8)}...${selectedHousehold.id.slice(-4)}` : 'N/A'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Name:</span>
-                  <span className="text-foreground truncate max-w-[200px]" title={currentHousehold?.name}>
-                    {currentHousehold?.name || 'N/A'}
+                  <span className="text-foreground truncate max-w-[200px]" title={selectedHousehold?.name}>
+                    {selectedHousehold?.name || 'N/A'}
                   </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Role:</span>
-                  <span className="text-foreground">{currentHousehold?.role || 'N/A'}</span>
                 </div>
               </div>
             </div>

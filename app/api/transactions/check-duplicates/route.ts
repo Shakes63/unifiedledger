@@ -14,6 +14,7 @@ interface CheckDuplicatesRequest {
   descriptionThreshold?: number;
   amountThreshold?: number;
   dateRangeInDays?: number;
+  householdId?: string;
 }
 
 export async function POST(request: Request) {
@@ -33,6 +34,14 @@ export async function POST(request: Request) {
     // Get and validate household
     const householdId = getHouseholdIdFromRequest(request, body);
     await requireHouseholdAuth(userId, householdId);
+
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+      );
+    }
 
     if (!description || !amount || !date) {
       return Response.json(
@@ -77,7 +86,7 @@ export async function POST(request: Request) {
       potentialMatches: duplicates,
       riskLevel: calculateRiskLevel(duplicates),
     });
-  } catch (error) {
+    } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -92,7 +101,7 @@ export async function POST(request: Request) {
       { error: 'Internal server error' },
       { status: 500 }
     );
-  }
+    }
 }
 
 function calculateRiskLevel(
@@ -100,14 +109,14 @@ function calculateRiskLevel(
 ): 'low' | 'medium' | 'high' {
   if (duplicates.length === 0) {
     return 'low';
-  }
+    }
 
   const maxSimilarity = Math.max(...duplicates.map((d) => d.similarity));
 
   if (maxSimilarity >= 90) {
     return 'high';
-  } else if (maxSimilarity >= 75) {
+    } else if (maxSimilarity >= 75) {
     return 'medium';
-  }
+    }
   return 'low';
 }

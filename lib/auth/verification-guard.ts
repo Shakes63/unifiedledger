@@ -1,4 +1,7 @@
 import { requireAuth } from "@/lib/auth-helpers";
+import { db } from "@/lib/db";
+import { user as betterAuthUser } from "@/auth-schema";
+import { eq } from "drizzle-orm";
 
 /**
  * Requires both authentication AND email verification
@@ -10,7 +13,14 @@ import { requireAuth } from "@/lib/auth-helpers";
 export async function requireEmailVerification() {
   const authResult = await requireAuth();
 
-  if (!authResult.user.emailVerified) {
+  // Fetch user from database to check email verification status
+  const userRecord = await db
+    .select()
+    .from(betterAuthUser)
+    .where(eq(betterAuthUser.id, authResult.userId))
+    .limit(1);
+
+  if (!userRecord || userRecord.length === 0 || !userRecord[0].emailVerified) {
     throw new Error("Email verification required for this operation");
   }
 
@@ -25,7 +35,15 @@ export async function requireEmailVerification() {
 export async function isEmailVerified(): Promise<boolean> {
   try {
     const authResult = await requireAuth();
-    return authResult.user.emailVerified ?? false;
+    
+    // Fetch user from database to check email verification status
+    const userRecord = await db
+      .select()
+      .from(betterAuthUser)
+      .where(eq(betterAuthUser.id, authResult.userId))
+      .limit(1);
+
+    return userRecord?.[0]?.emailVerified ?? false;
   } catch {
     return false;
   }

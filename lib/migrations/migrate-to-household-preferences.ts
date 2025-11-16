@@ -24,13 +24,17 @@ export async function hasHouseholdPreferences(
   householdId: string
 ): Promise<boolean> {
   try {
-    const result = await db.query.userHouseholdPreferences.findFirst({
-      where: and(
-        eq(userHouseholdPreferences.userId, userId),
-        eq(userHouseholdPreferences.householdId, householdId)
-      ),
-    });
-    return !!result;
+    const result = await db
+      .select()
+      .from(userHouseholdPreferences)
+      .where(
+        and(
+          eq(userHouseholdPreferences.userId, userId),
+          eq(userHouseholdPreferences.householdId, householdId)
+        )
+      )
+      .limit(1);
+    return result.length > 0;
   } catch (error) {
     console.error('Error checking household preferences:', error);
     return false;
@@ -60,72 +64,78 @@ export async function migrateUserPreferences(
     }
 
     // Fetch old user settings (for theme and display preferences)
-    const oldSettings = await db.query.userSettings.findFirst({
-      where: eq(userSettings.userId, userId),
-    });
+    const oldSettings = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .limit(1);
 
     // Fetch old notification preferences
-    const oldNotifications = await db.query.notificationPreferences.findFirst({
-      where: eq(notificationPreferences.userId, userId),
-    });
+    const oldNotifications = await db
+      .select()
+      .from(notificationPreferences)
+      .where(eq(notificationPreferences.userId, userId))
+      .limit(1);
 
     // Create new household preferences with migrated data
+    const oldSettingsData = oldSettings[0];
+    const oldNotificationsData = oldNotifications[0];
     const newPreferences = {
       id: uuidv4(),
       userId,
       householdId,
 
       // Preferences (from user_settings)
-      dateFormat: oldSettings?.dateFormat || 'MM/DD/YYYY',
-      numberFormat: oldSettings?.numberFormat || 'en-US',
-      defaultAccountId: oldSettings?.defaultAccountId || null,
-      firstDayOfWeek: oldSettings?.firstDayOfWeek || 'sunday',
+      dateFormat: oldSettingsData?.dateFormat || 'MM/DD/YYYY',
+      numberFormat: oldSettingsData?.numberFormat || 'en-US',
+      defaultAccountId: oldSettingsData?.defaultAccountId || null,
+      firstDayOfWeek: oldSettingsData?.firstDayOfWeek || 'sunday',
 
       // Financial Display (from user_settings)
-      showCents: oldSettings?.showCents ?? true,
-      negativeNumberFormat: oldSettings?.negativeNumberFormat || '-$100',
-      defaultTransactionType: oldSettings?.defaultTransactionType || 'expense',
+      showCents: oldSettingsData?.showCents ?? true,
+      negativeNumberFormat: oldSettingsData?.negativeNumberFormat || '-$100',
+      defaultTransactionType: oldSettingsData?.defaultTransactionType || 'expense',
 
       // Theme (from user_settings)
-      theme: oldSettings?.theme || 'dark-mode',
+      theme: oldSettingsData?.theme || 'dark-mode',
 
       // Notifications - Bill Reminders (from notification_preferences)
       // Note: Old field was billReminderEnabled, new is billRemindersEnabled
-      billRemindersEnabled: oldNotifications?.billReminderEnabled ?? true,
-      billRemindersChannels: oldNotifications?.billReminderChannels || '["push"]',
+      billRemindersEnabled: oldNotificationsData?.billReminderEnabled ?? true,
+      billRemindersChannels: oldNotificationsData?.billReminderChannels || '["push"]',
 
       // Notifications - Budget Warnings
-      budgetWarningsEnabled: oldNotifications?.budgetWarningEnabled ?? true,
-      budgetWarningsChannels: oldNotifications?.budgetWarningChannels || '["push"]',
+      budgetWarningsEnabled: oldNotificationsData?.budgetWarningEnabled ?? true,
+      budgetWarningsChannels: oldNotificationsData?.budgetWarningChannels || '["push"]',
 
       // Notifications - Budget Exceeded
-      budgetExceededEnabled: oldNotifications?.budgetExceededAlert ?? true,
-      budgetExceededChannels: oldNotifications?.budgetExceededChannels || '["push"]',
+      budgetExceededEnabled: oldNotificationsData?.budgetExceededAlert ?? true,
+      budgetExceededChannels: oldNotificationsData?.budgetExceededChannels || '["push"]',
 
       // Notifications - Budget Reviews
-      budgetReviewEnabled: oldNotifications?.budgetReviewEnabled ?? true,
-      budgetReviewChannels: oldNotifications?.budgetReviewChannels || '["push"]',
+      budgetReviewEnabled: oldNotificationsData?.budgetReviewEnabled ?? true,
+      budgetReviewChannels: oldNotificationsData?.budgetReviewChannels || '["push"]',
 
       // Notifications - Low Balance
-      lowBalanceEnabled: oldNotifications?.lowBalanceAlertEnabled ?? true,
-      lowBalanceChannels: oldNotifications?.lowBalanceChannels || '["push"]',
+      lowBalanceEnabled: oldNotificationsData?.lowBalanceAlertEnabled ?? true,
+      lowBalanceChannels: oldNotificationsData?.lowBalanceChannels || '["push"]',
 
       // Notifications - Savings Milestones
       // Note: Old field was savingsMilestoneEnabled, new is savingsMilestonesEnabled
-      savingsMilestonesEnabled: oldNotifications?.savingsMilestoneEnabled ?? true,
-      savingsMilestonesChannels: oldNotifications?.savingsMilestoneChannels || '["push"]',
+      savingsMilestonesEnabled: oldNotificationsData?.savingsMilestoneEnabled ?? true,
+      savingsMilestonesChannels: oldNotificationsData?.savingsMilestoneChannels || '["push"]',
 
       // Notifications - Debt Milestones
-      debtMilestonesEnabled: oldNotifications?.debtMilestoneEnabled ?? true,
-      debtMilestonesChannels: oldNotifications?.debtMilestoneChannels || '["push"]',
+      debtMilestonesEnabled: oldNotificationsData?.debtMilestoneEnabled ?? true,
+      debtMilestonesChannels: oldNotificationsData?.debtMilestoneChannels || '["push"]',
 
       // Notifications - Weekly Summaries
-      weeklySummariesEnabled: oldNotifications?.weeklySummaryEnabled ?? false,
-      weeklySummariesChannels: oldNotifications?.weeklySummaryChannels || '["email"]',
+      weeklySummariesEnabled: oldNotificationsData?.weeklySummaryEnabled ?? false,
+      weeklySummariesChannels: oldNotificationsData?.weeklySummaryChannels || '["email"]',
 
       // Notifications - Monthly Summaries
-      monthlySummariesEnabled: oldNotifications?.monthlySummaryEnabled ?? true,
-      monthlySummariesChannels: oldNotifications?.monthlySummaryChannels || '["email"]',
+      monthlySummariesEnabled: oldNotificationsData?.monthlySummaryEnabled ?? true,
+      monthlySummariesChannels: oldNotificationsData?.monthlySummaryChannels || '["email"]',
 
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -156,31 +166,39 @@ export async function getOrMigratePreferences(
 ): Promise<any> {
   try {
     // Try to get existing preferences
-    let prefs = await db.query.userHouseholdPreferences.findFirst({
-      where: and(
-        eq(userHouseholdPreferences.userId, userId),
-        eq(userHouseholdPreferences.householdId, householdId)
-      ),
-    });
+    let prefs = await db
+      .select()
+      .from(userHouseholdPreferences)
+      .where(
+        and(
+          eq(userHouseholdPreferences.userId, userId),
+          eq(userHouseholdPreferences.householdId, householdId)
+        )
+      )
+      .limit(1);
 
     // If not found, migrate and try again
     if (!prefs) {
       console.log(`No preferences found for user ${userId} in household ${householdId}, migrating...`);
       await migrateUserPreferences(userId, householdId);
 
-      prefs = await db.query.userHouseholdPreferences.findFirst({
-        where: and(
-          eq(userHouseholdPreferences.userId, userId),
-          eq(userHouseholdPreferences.householdId, householdId)
-        ),
-      });
+      prefs = await db
+        .select()
+        .from(userHouseholdPreferences)
+        .where(
+          and(
+            eq(userHouseholdPreferences.userId, userId),
+            eq(userHouseholdPreferences.householdId, householdId)
+          )
+        )
+        .limit(1);
     }
 
-    if (!prefs) {
+    if (!prefs || prefs.length === 0) {
       throw new Error('Failed to create or retrieve household preferences');
     }
 
-    return prefs;
+    return prefs[0];
   } catch (error) {
     console.error('Error getting/migrating preferences:', error);
     throw error;

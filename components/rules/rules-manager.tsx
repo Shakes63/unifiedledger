@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus, Zap, Tag, Store, FileText, ArrowRightLeft, Scissors, Banknote, Receipt, CheckCircle2, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 import type { RuleAction } from '@/lib/rules/types';
 
 interface Rule {
@@ -265,19 +267,18 @@ export function RulesManager({
   onToggleRule,
   onChangePriority,
 }: RulesManagerProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold } = useHouseholdFetch();
   const [rules, setRules] = useState<Rule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch rules on mount
-  useEffect(() => {
-    fetchRules();
-  }, []);
+  const fetchRules = useCallback(async () => {
+    if (!selectedHouseholdId) return;
 
-  const fetchRules = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/rules', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/rules');
       if (!response.ok) throw new Error('Failed to fetch rules');
       const data = await response.json();
 
@@ -285,7 +286,7 @@ export function RulesManager({
       const rulesWithCategories = await Promise.all(
         data.map(async (rule: any) => {
           try {
-            const catResponse = await fetch(`/api/categories`, { credentials: 'include' });
+            const catResponse = await fetchWithHousehold('/api/categories');
             if (catResponse.ok) {
               const categories = await catResponse.json();
               const category = categories.find((c: any) => c.id === rule.categoryId);
@@ -306,43 +307,68 @@ export function RulesManager({
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
+  // Fetch rules on mount and when household changes
+  useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      setError('Please select a household to view rules');
+      return;
+    }
+    fetchRules();
+  }, [selectedHouseholdId, fetchRules]);
 
   const handleDelete = async (ruleId: string) => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household to delete rules');
+      return;
+    }
+
     if (!confirm('Are you sure you want to delete this rule?')) return;
 
     try {
-      const response = await fetch(`/api/rules?id=${ruleId}`, { credentials: 'include', method: 'DELETE', });
+      const response = await deleteWithHousehold(`/api/rules?id=${ruleId}`);
 
       if (!response.ok) throw new Error('Failed to delete rule');
 
       setRules(rules.filter(r => r.id !== ruleId));
       onDeleteRule?.(ruleId);
+      toast.success('Rule deleted successfully');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to delete rule');
+      toast.error('Failed to delete rule');
     }
   };
 
   const handleToggle = async (ruleId: string, isActive: boolean) => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household to update rules');
+      return;
+    }
+
     try {
-      const response = await fetch('/api/rules', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: ruleId, isActive }),
-      });
+      const response = await putWithHousehold('/api/rules', { id: ruleId, isActive });
 
       if (!response.ok) throw new Error('Failed to update rule');
 
       setRules(rules.map(r => r.id === ruleId ? { ...r, isActive } : r));
       onToggleRule?.(ruleId, isActive);
+      toast.success(`Rule ${isActive ? 'activated' : 'deactivated'} successfully`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update rule');
+      toast.error('Failed to update rule');
     }
   };
 
   const handleApplyRule = async (ruleId: string) => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household to apply rules');
+      return;
+    }
+
     try {
-      const response = await fetch(`/api/rules/apply-bulk?ruleId=${ruleId}&limit=100`, { credentials: 'include', method: 'POST', });
+      const response = await postWithHousehold(`/api/rules/apply-bulk?ruleId=${ruleId}&limit=100`, {});
 
       if (!response.ok) throw new Error('Failed to apply rule');
 
@@ -381,23 +407,23 @@ export function RulesManager({
     setRules(newRules);
 
     // Update both rules
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household to update rule priorities');
+      fetchRules(); // Revert on error
+      return;
+    }
+
     try {
       await Promise.all([
-        fetch('/api/rules', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: ruleId, priority: newPriority }),
-        }),
-        fetch('/api/rules', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: otherRule.id, priority: rule.priority }),
-        }),
+        putWithHousehold('/api/rules', { id: ruleId, priority: newPriority }),
+        putWithHousehold('/api/rules', { id: otherRule.id, priority: rule.priority }),
       ]);
 
       onChangePriority?.(ruleId, newPriority);
+      toast.success('Rule priorities updated successfully');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update priorities');
+      toast.error('Failed to update rule priorities');
       // Revert on error
       fetchRules();
     }

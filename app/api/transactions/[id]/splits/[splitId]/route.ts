@@ -32,6 +32,14 @@ export async function PUT(
     const householdId = getHouseholdIdFromRequest(request, body);
     await requireHouseholdAuth(userId, householdId);
 
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+      );
+    }
+
     // Verify transaction belongs to user AND household
     const transaction = await db
       .select()
@@ -165,6 +173,14 @@ export async function DELETE(
     // Get and validate household
     const householdId = getHouseholdIdFromRequest(request);
     await requireHouseholdAuth(userId, householdId);
+
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+      );
+    }
 
     // Verify transaction belongs to user AND household
     const transaction = await db

@@ -78,8 +78,8 @@ export async function GET() {
       version: '1.0',
       user: {
         id: authResult.userId,
-        email: authResult.user.email,
-        name: authResult.user.name,
+        email: authResult.email,
+        name: authResult.name,
       },
       data: {
         transactions: userTransactions,

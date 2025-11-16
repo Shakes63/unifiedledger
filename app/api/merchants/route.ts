@@ -18,6 +18,14 @@ export async function GET(request: Request) {
     const householdId = getHouseholdIdFromRequest(request);
     await requireHouseholdAuth(userId, householdId);
 
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+      );
+    }
+
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '100');
 
@@ -60,6 +68,14 @@ export async function POST(request: Request) {
     const householdId = getHouseholdIdFromRequest(request, body);
     await requireHouseholdAuth(userId, householdId);
 
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+      );
+    }
+
     const { name, categoryId } = body;
 
     if (!name || name.trim() === '') {
@@ -99,7 +115,7 @@ export async function POST(request: Request) {
       .values({
         id: merchantId,
         userId,
-        householdId: householdId!,
+        householdId,
         name: name.trim(),
         normalizedName,
         categoryId: categoryId || null,

@@ -106,14 +106,18 @@ export async function POST(request: NextRequest) {
 
     // Validate default import template if provided
     if ('defaultImportTemplateId' in updateData && updateData.defaultImportTemplateId !== null) {
-      const template = await db.query.importTemplates.findFirst({
-        where: and(
-          eq(importTemplates.id, updateData.defaultImportTemplateId),
-          eq(importTemplates.userId, userId)
-        ),
-      });
+      const template = await db
+        .select()
+        .from(importTemplates)
+        .where(
+          and(
+            eq(importTemplates.id, updateData.defaultImportTemplateId),
+            eq(importTemplates.userId, userId)
+          )
+        )
+        .limit(1);
 
-      if (!template) {
+      if (!template || template.length === 0) {
         return NextResponse.json(
           { error: 'Import template not found or does not belong to you' },
           { status: 404 }

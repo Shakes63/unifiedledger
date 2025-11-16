@@ -38,6 +38,8 @@ interface Bill {
   categoryId?: string;
   expectedAmount: number;
   dueDate: number;
+  frequency: string;
+  specificDueDate?: string;
   isVariableAmount: boolean;
   amountTolerance: number;
   payeePatterns?: string;
@@ -217,7 +219,7 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
                 <span className="text-sm font-medium">Due Date</span>
               </div>
               <p className="text-white">
-                {formatDueDateDisplay(bill.frequency, bill.dueDate, bill.specificDueDate)}
+                {formatDueDateDisplay(bill.frequency, bill.dueDate, bill.specificDueDate || null)}
               </p>
             </div>
 

@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const settings = await db
       .select()
       .from(debtSettings)
-      .where(eq(debtSettings.userId, userId))
+      .where(and(eq(debtSettings.userId, userId), eq(debtSettings.householdId, householdId)))
       .limit(1);
 
     const currentExtraPayment = settings[0]?.extraMonthlyPayment || 0;
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
       await db.insert(debtSettings).values({
         id: nanoid(),
         userId,
+        householdId,
         extraMonthlyPayment: newExtraPayment,
         preferredMethod,
         paymentFrequency,
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
           extraMonthlyPayment: newExtraPayment,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(debtSettings.userId, userId));
+        .where(and(eq(debtSettings.userId, userId), eq(debtSettings.householdId, householdId)));
     }
 
     // 5. Get active debts to calculate new projections

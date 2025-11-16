@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { accounts, budgetCategories } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { accounts, budgetCategories, householdMembers } from '@/lib/db/schema';
+import { eq, and, asc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 export const dynamic = 'force-dynamic';
 
@@ -57,11 +57,28 @@ export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
 
-    // Check if user already has accounts
+    // Get user's first household (for initialization)
+    const userHousehold = await db
+      .select()
+      .from(householdMembers)
+      .where(and(eq(householdMembers.userId, userId), eq(householdMembers.isActive, true)))
+      .orderBy(asc(householdMembers.joinedAt))
+      .limit(1);
+
+    if (!userHousehold || userHousehold.length === 0) {
+      return Response.json(
+        { error: 'User must belong to at least one household' },
+        { status: 400 }
+      );
+    }
+
+    const householdId = userHousehold[0].householdId;
+
+    // Check if user already has accounts in this household
     const existingAccounts = await db
       .select()
       .from(accounts)
-      .where(eq(accounts.userId, userId))
+      .where(and(eq(accounts.userId, userId), eq(accounts.householdId, householdId)))
       .limit(1);
 
     if (existingAccounts.length > 0) {
@@ -75,6 +92,7 @@ export async function POST(request: Request) {
     const accountsToInsert = DEFAULT_ACCOUNTS.map((acc, index) => ({
       id: nanoid(),
       userId,
+      householdId,
       name: acc.name,
       type: acc.type as any,
       icon: acc.icon,
@@ -91,6 +109,7 @@ export async function POST(request: Request) {
     const categoriesToInsert = DEFAULT_CATEGORIES.map((cat, index) => ({
       id: nanoid(),
       userId,
+      householdId,
       name: cat.name,
       type: cat.type as any,
       dueDate: (cat as any).dueDate || null,

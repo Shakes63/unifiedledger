@@ -53,7 +53,8 @@ export async function validateSession(sessionToken: string): Promise<ValidationR
     const now = Date.now();
 
     // Check if session has expired (absolute expiration)
-    if (session.expiresAt <= now) {
+    const expiresAtMs = session.expiresAt instanceof Date ? session.expiresAt.getTime() : session.expiresAt;
+    if (expiresAtMs <= now) {
       return { valid: false, reason: 'expired', session, userId: session.userId };
     }
 
@@ -71,9 +72,11 @@ export async function validateSession(sessionToken: string): Promise<ValidationR
     }
 
     // Check if session is inactive
-    const lastActivity = session.lastActivityAt || session.createdAt;
+    const lastActivityMs = session.lastActivityAt instanceof Date 
+      ? session.lastActivityAt.getTime() 
+      : (session.lastActivityAt || (session.createdAt instanceof Date ? session.createdAt.getTime() : session.createdAt));
     const inactivityMs = userTimeout * 60 * 1000; // Convert minutes to milliseconds
-    const inactiveSince = now - lastActivity;
+    const inactiveSince = now - lastActivityMs;
 
     if (inactiveSince > inactivityMs) {
       return { valid: false, reason: 'inactive', session, userId: session.userId };

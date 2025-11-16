@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface ChartContainerProps {
-  title: string;
+  title: string | React.ReactNode;
   description?: string;
   children: React.ReactNode;
   isLoading?: boolean;

@@ -10,15 +10,16 @@
 
 ## Incomplete Features
 
-### Settings Page - Advanced Features
-**Status:** Partially implemented - Core features complete
-**Plan:** None - future enhancements
+### Auto-Backup Settings
+**Status:** Partially implemented - Steps 1-3, 5-7 complete, Step 4 pending
+**Plan:** See `docs/auto-backup-settings-implementation-plan.md`
+**Missing:** Backup scheduler (Step 4) - Automatic scheduled backups via cron job
 
+### Settings Page - Advanced Features
+**Status:** Not yet implemented
 **Missing:**
-- ❌ Auto-backup settings (not in UI)
 - ❌ Two-factor authentication (2FA)
 - ❌ OAuth provider management
-- ❌ Scheduled data backups
 - ❌ Advanced permission system (beyond basic roles)
 
 ---
@@ -64,3 +65,4 @@
 27. ✅ **Developer Mode** - Debug utility with entity ID badges, DEV indicator, and developer tools panel
 28. ✅ **Bill Frequency Expansion** - Support for one-time, weekly, and biweekly bill frequencies
 29. ✅ **Authentication Migration** - Complete Clerk to Better Auth migration with email/password
+30. ✅ **Auto-Backup Settings (Partial)** - Backup settings UI, manual backups, backup history (Step 4 scheduler pending)

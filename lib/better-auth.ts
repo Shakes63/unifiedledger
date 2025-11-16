@@ -18,11 +18,11 @@ export const auth = betterAuth({
     // Email verification - Soft launch: emails are sent but not required for login
     // Set to true once ready for full enforcement
     requireEmailVerification: false,
-    sendVerificationEmail: async ({ user, url, token }) => {
+    sendVerificationEmail: async ({ user, url, token }: { user: { email: string; name: string | null }; url: string; token: string }) => {
       try {
         await sendVerificationEmail({
           to: user.email,
-          userName: user.name,
+          userName: user.name || user.email,
           verificationUrl: url,
         });
       } catch (error) {

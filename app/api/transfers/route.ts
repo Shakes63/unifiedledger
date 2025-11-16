@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import {
   transfers,
@@ -115,6 +116,18 @@ export async function POST(request: Request) {
       notes,
     } = body;
 
+    // Get and validate household
+    const householdId = getHouseholdIdFromRequest(request, body);
+    await requireHouseholdAuth(userId, householdId);
+
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+      );
+    }
+
     // Validate required fields
     if (!fromAccountId || !toAccountId || !amount || !date) {
       return Response.json(
@@ -179,6 +192,7 @@ export async function POST(request: Request) {
       await tx.insert(transactions).values({
         id: fromTransactionId,
         userId,
+        householdId,
         accountId: fromAccountId,
         amount: parseFloat(totalDebit.negated().toString()), // Negative for withdrawal
         description: `Transfer to ${toAccount[0].name}`,
@@ -193,6 +207,7 @@ export async function POST(request: Request) {
       await tx.insert(transactions).values({
         id: toTransactionId,
         userId,
+        householdId,
         accountId: toAccountId,
         amount: parseFloat(transferAmount.toString()), // Positive for deposit
         description: `Transfer from ${fromAccount[0].name}`,
@@ -269,10 +284,11 @@ export async function POST(request: Request) {
           })
           .where(eq(usageAnalytics.id, existingAnalytics[0].id));
       } else {
-        await tx.insert(usageAnalytics).values({
-          id: nanoid(),
-          userId,
-          itemType: 'transfer_pair',
+          await tx.insert(usageAnalytics).values({
+            id: nanoid(),
+            userId,
+            householdId,
+            itemType: 'transfer_pair',
           itemId: fromAccountId,
           itemSecondaryId: toAccountId,
           usageCount: 1,

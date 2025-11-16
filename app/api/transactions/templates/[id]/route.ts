@@ -88,6 +88,13 @@ export async function PUT(
     // Get and validate household for account/category validation
     const householdId = getHouseholdIdFromRequest(request, body);
     await requireHouseholdAuth(userId, householdId);
+// TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+if (!householdId) {
+  return Response.json(
+    { error: 'Household ID is required' },
+    { status: 400 }
+  );
+}
 
     // Validate account if provided (must belong to household)
     if (accountId) {

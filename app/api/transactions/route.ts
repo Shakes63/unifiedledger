@@ -30,6 +30,13 @@ export async function POST(request: Request) {
     // Get and validate household
     const householdId = getHouseholdIdFromRequest(request, body);
     await requireHouseholdAuth(userId, householdId);
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+  );
+}
 
     const {
       accountId,
@@ -284,7 +291,7 @@ export async function POST(request: Request) {
         db.insert(transactions).values({
           id: transactionId,
           userId,
-          householdId: householdId!,
+          householdId,
           accountId, // Source account
           categoryId: null, // Transfers don't have categories
           merchantId: null,
@@ -307,7 +314,7 @@ export async function POST(request: Request) {
         db.insert(transactions).values({
           id: transferInId,
           userId,
-          householdId: householdId!,
+          householdId,
           accountId: toAccountId, // Destination account
           categoryId: null,
           merchantId: null,
@@ -384,7 +391,7 @@ export async function POST(request: Request) {
           await db.insert(usageAnalytics).values({
             id: nanoid(),
             userId,
-            householdId: householdId!,
+            householdId,
             itemType: 'transfer_pair',
             itemId: accountId,
             itemSecondaryId: toAccountId,
@@ -401,7 +408,7 @@ export async function POST(request: Request) {
       await db.insert(transactions).values({
         id: transactionId,
         userId,
-        householdId: householdId!,
+        householdId,
         accountId,
         categoryId: appliedCategoryId || null,
         merchantId: finalMerchantId || null,
@@ -614,7 +621,7 @@ export async function POST(request: Request) {
               : db.insert(usageAnalytics).values({
                   id: nanoid(),
                   userId,
-                  householdId: householdId!,
+                  householdId,
                   itemType: 'category',
                   itemId: categoryId,
                   usageCount: 1,
@@ -663,7 +670,7 @@ export async function POST(request: Request) {
               : db.insert(usageAnalytics).values({
                   id: nanoid(),
                   userId,
-                  householdId: householdId!,
+                  householdId,
                   itemType: 'merchant',
                   itemId: finalMerchantId,
                   usageCount: 1,
@@ -689,6 +696,7 @@ export async function POST(request: Request) {
         await db.insert(ruleExecutionLog).values({
           id: nanoid(),
           userId,
+          householdId,
           ruleId: appliedRuleId,
           transactionId,
           appliedCategoryId: appliedCategoryId || null,
@@ -790,6 +798,7 @@ export async function POST(request: Request) {
                     id: nanoid(),
                     debtId: match.bill.debtId,
                     userId,
+                    householdId,
                     amount: paymentAmount,
                     principalAmount: breakdown.principalAmount,
                     interestAmount: breakdown.interestAmount,
@@ -881,6 +890,7 @@ export async function POST(request: Request) {
               id: nanoid(),
               debtId: linkedDebtId,
               userId,
+              householdId,
               amount: paymentAmount,
               principalAmount: breakdown.principalAmount,
               interestAmount: breakdown.interestAmount,
@@ -944,6 +954,7 @@ export async function POST(request: Request) {
               id: nanoid(),
               debtId: debtId,
               userId,
+              householdId,
               amount: paymentAmount,
               principalAmount: breakdown.principalAmount,
               interestAmount: breakdown.interestAmount,
@@ -997,7 +1008,7 @@ export async function POST(request: Request) {
       },
       { status: 201 }
     );
-  } catch (error) {
+    } catch (error) {
     // Handle authentication errors (401)
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -1027,7 +1038,7 @@ export async function POST(request: Request) {
       { error: 'Internal server error' },
       { status: 500 }
     );
-  }
+    }
 }
 
 export async function GET(request: Request) {
@@ -1037,6 +1048,13 @@ export async function GET(request: Request) {
     // Get and validate household
     const householdId = getHouseholdIdFromRequest(request);
     await requireHouseholdAuth(userId, householdId);
+    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+  );
+}
 
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '50');
@@ -1081,7 +1099,7 @@ export async function GET(request: Request) {
     }
 
     return Response.json(processedTransactions);
-  } catch (error) {
+    } catch (error) {
     // Handle authentication errors (401)
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -1111,5 +1129,5 @@ export async function GET(request: Request) {
       { error: 'Internal server error' },
       { status: 500 }
     );
-  }
+    }
 }

@@ -96,9 +96,7 @@ export async function POST() {
       id: nanoid(),
       identifier: user.email,
       value: token,
-      expiresAt: expiresAt.getTime(),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      expiresAt: expiresAt,
     });
 
     // Build verification URL

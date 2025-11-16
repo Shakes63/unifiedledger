@@ -133,6 +133,7 @@ export async function POST(
         await db.insert(transactions).values({
           id: txId,
           userId,
+          householdId,
           accountId: mappedData.accountId,
           categoryId,
           date: mappedData.date,

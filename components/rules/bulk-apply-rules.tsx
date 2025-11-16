@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { AlertCircle, CheckCircle, Zap, Loader } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 interface BulkApplyRulesProps {
   onComplete?: (result: BulkApplyResult) => void;
@@ -18,6 +20,8 @@ interface BulkApplyResult {
 }
 
 export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { postWithHousehold } = useHouseholdFetch();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<BulkApplyResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +30,11 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
   const [limit, setLimit] = useState('100');
 
   const handleApply = async () => {
+    if (!selectedHouseholdId) {
+      setError('Please select a household to apply rules');
+      return;
+    }
+
     if (!startDate && !endDate) {
       setError('Please specify at least a start or end date, or leave empty to apply to all uncategorized transactions');
     }
@@ -40,7 +49,7 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
       if (endDate) params.append('endDate', endDate);
       if (limit) params.append('limit', limit);
 
-      const response = await fetch(`/api/rules/apply-bulk?${params.toString()}`, { credentials: 'include', method: 'POST', });
+      const response = await postWithHousehold(`/api/rules/apply-bulk?${params.toString()}`, {});
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -179,7 +188,7 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
       <div className="flex gap-2">
         <Button
           onClick={handleApply}
-          disabled={loading || !!result}
+          disabled={loading || !!result || !selectedHouseholdId}
           className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium flex-1"
         >
           {loading ? (
