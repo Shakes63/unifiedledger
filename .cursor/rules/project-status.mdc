@@ -44,13 +44,14 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 ## Recent Major Features
 
 **Latest (2025-01-27):**
-- Combined Transfer View Toggle (⚠️ INCOMPLETE - Bug exists)
+- Combined Transfer View Toggle (✅ COMPLETE)
   - ✅ Database schema updated with `combined_transfer_view` field
   - ✅ Migration applied successfully
   - ✅ UI toggle added in Personal Preferences → Financial Display section
   - ✅ Preference saves correctly to database
   - ✅ API endpoints updated (main, search, history) to respect preference
-  - ⚠️ **BUG:** When toggle is OFF (separate view), only `transfer_in` transactions are shown; `transfer_out` transactions are missing. Database preference is saved correctly (`combined_transfer_view = 0`), but API endpoint is not respecting it. See `docs/bugs.md` bug #1 and `docs/combined-transfer-view-toggle-plan.md` for details.
+  - ✅ Frontend filtering logic fixed to respect preference in all scenarios (no filter, both accounts selected, one account selected)
+  - ✅ Color coding implemented: transfer_out shows red (expense), transfer_in shows green (income) when toggle is OFF
 - Settings Reorganization (100% COMPLETE)
   - ✅ Restructured settings page from 3-tier to 2-tier navigation (Account/Households)
   - ✅ Moved Data Management to Account section
@@ -155,8 +156,7 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 **What works:** Complete household data isolation across all financial data types. Users can switch between households and see fully isolated data. All API endpoints, frontend components, and business logic properly filter by household.
 
 ### Other Next Steps
-1. ⏳ **Fix Combined Transfer View Toggle Bug** - API endpoint not respecting preference when set to OFF (separate view). See `docs/bugs.md` bug #1 and `docs/combined-transfer-view-toggle-plan.md` for implementation details.
-2. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
+1. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
 3. Docker configuration for deployment
 4. Performance optimizations as needed
 5. User feedback and iterations

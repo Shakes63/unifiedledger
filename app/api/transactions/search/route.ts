@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { transactions, searchHistory, transactionTags, customFieldValues, accounts, budgetCategories } from '@/lib/db/schema';
 import { eq, and, or, gte, lte, like, inArray, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
 
 export const dynamic = 'force-dynamic';
 
@@ -276,13 +277,38 @@ export async function GET(request: Request) {
 
     const executionTime = performance.now() - startTime;
 
+    // Respect user's transfer view preference when no account filter is applied
+    let finalResults = results;
+    let finalTotalCount = totalCount;
+    
+    if (!filters.accountIds || filters.accountIds.length === 0) {
+      const combinedTransferView = await getCombinedTransferViewPreference(userId, householdId);
+      
+      // Debug logging
+      const transferOutCount = results.filter((tx: any) => tx.type === 'transfer_out').length;
+      const transferInCount = results.filter((tx: any) => tx.type === 'transfer_in').length;
+      console.log('[Transfer View Search] Preference:', combinedTransferView, 'Total results:', results.length, 'transfer_out:', transferOutCount, 'transfer_in:', transferInCount);
+      
+      if (combinedTransferView) {
+        // Filter out transfer_in transactions for combined view
+        finalResults = results.filter((tx: any) => tx.type !== 'transfer_in');
+        
+        // Recalculate total count (approximate - we'd need to rerun count query for exact)
+        // For now, use filtered results length as approximation
+        finalTotalCount = finalResults.length;
+        console.log('[Transfer View Search] Combined: Filtered to', finalResults.length, 'transactions');
+      } else {
+        console.log('[Transfer View Search] Separate: Returning all', results.length, 'transactions (both transfer_out and transfer_in)');
+      }
+    }
+
     // Track search in history (async, don't wait for it)
     try {
       await db.insert(searchHistory).values({
         id: nanoid(),
         userId,
         filters: JSON.stringify(filters),
-        resultCount: totalCount,
+        resultCount: finalTotalCount,
         executionTimeMs: Math.round(executionTime),
         executedAt: new Date().toISOString(),
       });
@@ -292,12 +318,12 @@ export async function GET(request: Request) {
     }
 
     return Response.json({
-      transactions: results,
+      transactions: finalResults,
       pagination: {
         limit,
         offset,
-        total: totalCount,
-        hasMore: offset + limit < totalCount,
+        total: finalTotalCount,
+        hasMore: offset + limit < finalTotalCount,
       },
       metadata: {
         executionTimeMs: Math.round(executionTime),

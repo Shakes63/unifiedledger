@@ -16,6 +16,7 @@ const DEFAULT_PREFERENCES = {
   showCents: true,
   negativeNumberFormat: '-$100',
   defaultTransactionType: 'expense',
+  combinedTransferView: true,
   theme: 'dark-mode',
   billRemindersEnabled: true,
   billRemindersChannels: '["push","email"]',

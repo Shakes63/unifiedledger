@@ -3,6 +3,7 @@ import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/house
 import { db } from '@/lib/db';
 import { transactions, budgetCategories, accounts } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
+import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,6 +69,27 @@ export async function GET(request: Request) {
       .orderBy(desc(transactions.date))
       .limit(limit)
       .offset(offset);
+
+    // Respect user's transfer view preference when no account filter is applied
+    if (!accountId) {
+      const combinedTransferView = await getCombinedTransferViewPreference(userId, householdId);
+      
+      // Debug logging
+      const transferOutCount = userTransactions.filter(tx => tx.type === 'transfer_out').length;
+      const transferInCount = userTransactions.filter(tx => tx.type === 'transfer_in').length;
+      console.log('[Transfer View History] Preference:', combinedTransferView, 'Total transactions:', userTransactions.length, 'transfer_out:', transferOutCount, 'transfer_in:', transferInCount);
+      
+      if (combinedTransferView) {
+        // Filter out transfer_in transactions for combined view
+        const filteredTransactions = userTransactions.filter(
+          (tx) => tx.type !== 'transfer_in'
+        );
+        console.log('[Transfer View History] Combined: Filtered to', filteredTransactions.length, 'transactions');
+        return Response.json(filteredTransactions);
+      }
+      
+      console.log('[Transfer View History] Separate: Returning all', userTransactions.length, 'transactions (both transfer_out and transfer_in)');
+    }
 
     return Response.json(userTransactions);
     } catch (error) {

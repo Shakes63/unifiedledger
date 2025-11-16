@@ -87,6 +87,7 @@ function TransactionsContent() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newMerchantName, setNewMerchantName] = useState('');
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
+  const [combinedTransferView, setCombinedTransferView] = useState<boolean>(true); // Default to combined view
 
   // Auto-filter by account if accountId is in URL
   useEffect(() => {
@@ -152,6 +153,15 @@ function TransactionsContent() {
           const settingsData = await settingsResponse.json();
           setDefaultImportTemplateId(settingsData.defaultImportTemplateId || undefined);
         }
+
+        // Fetch household preferences for transfer view setting
+        if (selectedHouseholdId) {
+          const prefsResponse = await fetchWithHousehold(`/api/user/households/${selectedHouseholdId}/preferences`);
+          if (prefsResponse.ok) {
+            const prefsData = await prefsResponse.json();
+            setCombinedTransferView(prefsData.combinedTransferView !== false); // Default to true if not set
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch initial data:', error);
         toast.error('Failed to load data');
@@ -162,6 +172,25 @@ function TransactionsContent() {
 
     fetchInitialData();
   }, [initialized, householdLoading, selectedHouseholdId, householdId, fetchWithHousehold]);
+
+  // Refresh transfer view preference when household changes
+  useEffect(() => {
+    if (!selectedHouseholdId) return;
+    
+    const fetchPreference = async () => {
+      try {
+        const prefsResponse = await fetchWithHousehold(`/api/user/households/${selectedHouseholdId}/preferences`);
+        if (prefsResponse.ok) {
+          const prefsData = await prefsResponse.json();
+          setCombinedTransferView(prefsData.combinedTransferView !== false); // Default to true if not set
+        }
+      } catch (error) {
+        console.error('Failed to fetch transfer view preference:', error);
+      }
+    };
+    
+    fetchPreference();
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   const performSearch = async (filters: any, offset: number = 0) => {
     try {
@@ -326,8 +355,40 @@ function TransactionsContent() {
       ? [accountIdFromUrl]
       : currentFilters?.accountIds || [];
     
-    // If no filter, show as transfer (blue, no sign)
+    const txType = String(transaction.type).trim();
+    
+    // If no filter, check combinedTransferView preference
     if (filteredAccountIds.length === 0) {
+      // If combined view is enabled, show as transfer (blue, no sign)
+      // Note: In combined view, only transfer_out should be shown (filtered by getFilteredTransactions)
+      if (combinedTransferView) {
+        return {
+          color: 'var(--color-transfer)',
+          sign: '',
+          effectiveType: 'transfer',
+        };
+      }
+      
+      // If separate view is enabled, show colors based on transaction type
+      // transfer_out = money leaving account (red, expense)
+      // transfer_in = money entering account (green, income)
+      if (txType === 'transfer_out') {
+        return {
+          color: 'var(--color-expense)',
+          sign: '-',
+          effectiveType: 'expense',
+        };
+      }
+      
+      if (txType === 'transfer_in') {
+        return {
+          color: 'var(--color-income)',
+          sign: '+',
+          effectiveType: 'income',
+        };
+      }
+      
+      // Fallback for any other transfer type
       return {
         color: 'var(--color-transfer)',
         sign: '',
@@ -338,7 +399,6 @@ function TransactionsContent() {
     // Ensure we're comparing strings
     const filteredIds = filteredAccountIds.map(id => String(id));
     const txAccountId = String(transaction.accountId);
-    const txType = String(transaction.type).trim();
     
     // Helper to check if account ID is in filter
     const isAccountInFilter = (accountId: string | undefined) => {
@@ -354,12 +414,21 @@ function TransactionsContent() {
       const sourceInFilter = isAccountInFilter(sourceAccountId);
       const destinationInFilter = destinationAccountId ? isAccountInFilter(destinationAccountId) : false;
       
-      // If both accounts are in filter, show as combined transfer (blue, no sign)
+      // If both accounts are in filter, check combinedTransferView preference
       if (sourceInFilter && destinationInFilter) {
+        // If combined view is enabled, show as transfer (blue, no sign)
+        if (combinedTransferView) {
+          return {
+            color: 'var(--color-transfer)',
+            sign: '',
+            effectiveType: 'transfer',
+          };
+        }
+        // If separate view is enabled, show as expense (red, negative) for transfer_out
         return {
-          color: 'var(--color-transfer)',
-          sign: '',
-          effectiveType: 'transfer',
+          color: 'var(--color-expense)',
+          sign: '-',
+          effectiveType: 'expense',
         };
       }
       
@@ -409,12 +478,21 @@ function TransactionsContent() {
       const sourceInFilter = sourceAccountId ? isAccountInFilter(sourceAccountId) : false;
       const destinationInFilter = isAccountInFilter(destinationAccountId);
       
-      // If both accounts are in filter, show as combined transfer (blue, no sign)
+      // If both accounts are in filter, check combinedTransferView preference
       if (sourceInFilter && destinationInFilter) {
+        // If combined view is enabled, show as transfer (blue, no sign)
+        if (combinedTransferView) {
+          return {
+            color: 'var(--color-transfer)',
+            sign: '',
+            effectiveType: 'transfer',
+          };
+        }
+        // If separate view is enabled, show as income (green, positive) for transfer_in
         return {
-          color: 'var(--color-transfer)',
-          sign: '',
-          effectiveType: 'transfer',
+          color: 'var(--color-income)',
+          sign: '+',
+          effectiveType: 'income',
         };
       }
       
@@ -605,6 +683,7 @@ function TransactionsContent() {
   };
 
   // Filter out duplicate transfer transactions - combine transfer_out and transfer_in into single transaction
+  // Only deduplicates when combinedTransferView preference is true OR when account filter is applied
   const getFilteredTransactions = (txs: Transaction[]): Transaction[] => {
     // Get filtered account IDs
     const filteredAccountIds = accountIdFromUrl 
@@ -614,6 +693,19 @@ function TransactionsContent() {
     const filteredIds = filteredAccountIds.length > 0 ? filteredAccountIds.map(id => String(id)) : [];
     const seenTransferPairs = new Set<string>();
     const filtered: Transaction[] = [];
+    
+    // Helper function to check if both accounts of a transfer are in the filter
+    const areBothAccountsInFilter = (sourceId: string, destId: string): boolean => {
+      if (filteredIds.length === 0) return false;
+      return filteredIds.includes(sourceId) && filteredIds.includes(destId);
+    };
+    
+    // Determine if we should deduplicate transfers:
+    // - If only one account is in filter: always show both sides (don't deduplicate)
+    // - If both accounts are in filter OR no filter: respect combinedTransferView preference
+    //   - If combinedTransferView is true: deduplicate (show as combined)
+    //   - If combinedTransferView is false: don't deduplicate (show both sides)
+    // Note: We'll check this per-transfer since different transfers may have different account combinations
     
     // Process all transactions
     for (const tx of txs) {
@@ -639,11 +731,17 @@ function TransactionsContent() {
         // Create a unique key for this transfer pair (sorted for consistency)
         const pairKey = [sourceId, destId].sort().join('|');
         
-        // Check if both accounts are in filter (or no filter = show combined)
-        const bothAccountsInFilter = filteredIds.length === 0 || 
-          (filteredIds.includes(sourceId) && filteredIds.includes(destId));
+        // Check if both accounts are in filter
+        const bothAccountsInFilter = areBothAccountsInFilter(sourceId, destId);
         
-        if (bothAccountsInFilter) {
+        // Determine if we should deduplicate this specific transfer:
+        // - If only one account is in filter: always show both sides (don't deduplicate)
+        // - If both accounts are in filter OR no filter: respect combinedTransferView preference
+        const shouldDeduplicateThisTransfer = bothAccountsInFilter || filteredIds.length === 0
+          ? combinedTransferView // Respect preference when both accounts in filter or no filter
+          : false; // Always show both sides when only one account is in filter
+        
+        if (shouldDeduplicateThisTransfer) {
           // Show as combined transfer - only add transfer_out, skip transfer_in
           if (!seenTransferPairs.has(pairKey)) {
             seenTransferPairs.add(pairKey);
@@ -651,7 +749,7 @@ function TransactionsContent() {
           }
           // Skip - we'll skip the corresponding transfer_in in its check
         } else {
-          // Not both accounts in filter (or only one account), include transaction
+          // Separate view: include transaction (will show both transfer_out and transfer_in)
           filtered.push(tx);
         }
         continue;
@@ -683,11 +781,17 @@ function TransactionsContent() {
         // Create a unique key for this transfer pair
         const pairKey = [sourceId, destId].sort().join('|');
         
-        // Check if both accounts are in filter (or no filter = show combined)
-        const bothAccountsInFilter = filteredIds.length === 0 || 
-          (filteredIds.includes(sourceId) && filteredIds.includes(destId));
+        // Check if both accounts are in filter
+        const bothAccountsInFilter = areBothAccountsInFilter(sourceId, destId);
         
-        if (bothAccountsInFilter) {
+        // Determine if we should deduplicate this specific transfer:
+        // - If only one account is in filter: always show both sides (don't deduplicate)
+        // - If both accounts are in filter OR no filter: respect combinedTransferView preference
+        const shouldDeduplicateThisTransfer = bothAccountsInFilter || filteredIds.length === 0
+          ? combinedTransferView // Respect preference when both accounts in filter or no filter
+          : false; // Always show both sides when only one account is in filter
+        
+        if (shouldDeduplicateThisTransfer) {
           // Skip transfer_in if we've already added the transfer_out for this pair
           if (seenTransferPairs.has(pairKey)) {
             continue; // Skip this transfer_in - we already have the transfer_out
@@ -698,7 +802,7 @@ function TransactionsContent() {
           seenTransferPairs.add(pairKey);
           filtered.push(tx);
         } else {
-          // Not both accounts in filter (or only one account), include transaction
+          // Separate view: include transaction (will show both transfer_out and transfer_in)
           filtered.push(tx);
         }
       }

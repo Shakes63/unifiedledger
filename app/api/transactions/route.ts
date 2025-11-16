@@ -14,6 +14,7 @@ import { handleAccountChange } from '@/lib/rules/account-action-handler';
 import { findMatchingBills } from '@/lib/bills/bill-matcher';
 import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
 import { batchUpdateMilestones } from '@/lib/debts/milestone-utils';
+import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
 // Sales tax now handled as boolean flag on transaction, no separate records needed
 
 export const dynamic = 'force-dynamic';
@@ -1079,26 +1080,48 @@ export async function GET(request: Request) {
       return Response.json(userTransactions);
     }
 
-    // Main view (no account filter): Combine transfer pairs into single entries
-    // We want to show only transfer_out transactions and hide transfer_in to avoid duplicates
-    const processedTransactions = [];
-    const transferInIds = new Set();
+    // Main view (no account filter): Respect user's transfer view preference
+    const combinedTransferView = await getCombinedTransferViewPreference(userId, householdId);
+    
+    // Debug logging to trace filtering logic
+    const transferOutCount = userTransactions.filter(tx => tx.type === 'transfer_out').length;
+    const transferInCount = userTransactions.filter(tx => tx.type === 'transfer_in').length;
+    const otherCount = userTransactions.filter(tx => tx.type !== 'transfer_out' && tx.type !== 'transfer_in').length;
+    
+    console.log('[Transfer View] Preference:', combinedTransferView, 'Total transactions:', userTransactions.length);
+    console.log('[Transfer View] Breakdown - transfer_out:', transferOutCount, 'transfer_in:', transferInCount, 'other:', otherCount);
 
-    // First pass: collect all transfer_in IDs to skip them
-    for (const tx of userTransactions) {
-      if (tx.type === 'transfer_in') {
-        transferInIds.add(tx.id);
+    // If combined view is enabled, filter out transfer_in transactions
+    if (combinedTransferView) {
+      const processedTransactions = [];
+      const transferInIds = new Set();
+
+      // First pass: collect all transfer_in IDs to skip them
+      for (const tx of userTransactions) {
+        if (tx.type === 'transfer_in') {
+          transferInIds.add(tx.id);
+        }
       }
+
+      // Second pass: add all non-transfer_in transactions
+      for (const tx of userTransactions) {
+        if (!transferInIds.has(tx.id)) {
+          processedTransactions.push(tx);
+        }
+      }
+
+      const filteredTransferOutCount = processedTransactions.filter(tx => tx.type === 'transfer_out').length;
+      const filteredTransferInCount = processedTransactions.filter(tx => tx.type === 'transfer_in').length;
+      const filteredOtherCount = processedTransactions.filter(tx => tx.type !== 'transfer_out' && tx.type !== 'transfer_in').length;
+      
+      console.log('[Transfer View] Combined: Filtered to', processedTransactions.length, 'transactions');
+      console.log('[Transfer View] Filtered breakdown - transfer_out:', filteredTransferOutCount, 'transfer_in:', filteredTransferInCount, 'other:', filteredOtherCount);
+      return Response.json(processedTransactions);
     }
 
-    // Second pass: add all non-transfer_in transactions
-    for (const tx of userTransactions) {
-      if (!transferInIds.has(tx.id)) {
-        processedTransactions.push(tx);
-      }
-    }
-
-    return Response.json(processedTransactions);
+    // Separate view: return all transactions including both transfer sides
+    console.log('[Transfer View] Separate: Returning all', userTransactions.length, 'transactions (both transfer_out and transfer_in)');
+    return Response.json(userTransactions);
     } catch (error) {
     // Handle authentication errors (401)
     if (error instanceof Error && error.message === 'Unauthorized') {

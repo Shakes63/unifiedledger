@@ -52,6 +52,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
     showCents: true,
     negativeNumberFormat: '-$100',
     defaultTransactionType: 'expense',
+    combinedTransferView: true,
   });
   
   // Notifications state
@@ -89,6 +90,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
           showCents: data.showCents !== false,
           negativeNumberFormat: data.negativeNumberFormat || '-$100',
           defaultTransactionType: data.defaultTransactionType || 'expense',
+          combinedTransferView: data.combinedTransferView !== false,
         });
       }
     } catch (error) {
@@ -157,6 +159,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
       if (response.ok) {
         toast.success('Financial settings saved successfully');
         await refreshPreferences();
+        // Note: Transaction lists will reflect the new preference on next page refresh or fetch
       } else {
         const data = await response.json();
         toast.error(data.error || 'Failed to save financial settings');
@@ -461,6 +464,27 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
                   <SelectItem value="transfer">Transfer</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Combined Transfer View */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="combinedTransferView" className="text-foreground">
+                    Combined Transfer View
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Show transfers as single entries or display both transfer sides separately
+                  </p>
+                </div>
+                <Switch
+                  id="combinedTransferView"
+                  checked={financialSettings.combinedTransferView}
+                  onCheckedChange={(checked) =>
+                    setFinancialSettings({ ...financialSettings, combinedTransferView: checked })
+                  }
+                />
+              </div>
             </div>
 
             {/* Save Button */}

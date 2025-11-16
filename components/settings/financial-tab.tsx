@@ -10,37 +10,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { useHousehold } from '@/contexts/household-context';
 
 interface FinancialSettings {
   showCents: boolean;
   negativeNumberFormat: string;
   defaultTransactionType: string;
+  combinedTransferView: boolean;
 }
 
 export function FinancialTab() {
+  const { selectedHouseholdId } = useHousehold();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<FinancialSettings>({
     showCents: true,
     negativeNumberFormat: '-$100',
     defaultTransactionType: 'expense',
+    combinedTransferView: true,
   });
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
   const fetchSettings = async () => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch('/api/user/settings', { credentials: 'include' });
+      const response = await fetch(
+        `/api/user/households/${selectedHouseholdId}/preferences`,
+        { credentials: 'include' }
+      );
       if (response.ok) {
         const data = await response.json();
         setSettings({
-          showCents: data.settings.showCents !== false,
-          negativeNumberFormat: data.settings.negativeNumberFormat || '-$100',
-          defaultTransactionType: data.settings.defaultTransactionType || 'expense',
+          showCents: data.showCents !== false,
+          negativeNumberFormat: data.negativeNumberFormat || '-$100',
+          defaultTransactionType: data.defaultTransactionType || 'expense',
+          combinedTransferView: data.combinedTransferView !== false,
         });
       }
     } catch (error) {
@@ -51,14 +61,35 @@ export function FinancialTab() {
     }
   };
 
+  useEffect(() => {
+    if (selectedHouseholdId) {
+      fetchSettings();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedHouseholdId]);
+
   const handleSave = async () => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return;
+    }
+
     setSaving(true);
     try {
-      const response = await fetch('/api/user/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
-      });
+      const response = await fetch(
+        `/api/user/households/${selectedHouseholdId}/preferences`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            showCents: settings.showCents,
+            negativeNumberFormat: settings.negativeNumberFormat,
+            defaultTransactionType: settings.defaultTransactionType,
+            combinedTransferView: settings.combinedTransferView,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
@@ -166,6 +197,27 @@ export function FinancialTab() {
           <p className="text-xs text-muted-foreground">
             Pre-selected type when creating new transactions
           </p>
+        </div>
+
+        {/* Combined Transfer View */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="combinedTransferView" className="text-foreground">
+                Combined Transfer View
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Show transfers as single entries or display both transfer sides separately
+              </p>
+            </div>
+            <Switch
+              id="combinedTransferView"
+              checked={settings.combinedTransferView}
+              onCheckedChange={(checked) =>
+                setSettings({ ...settings, combinedTransferView: checked })
+              }
+            />
+          </div>
         </div>
 
         {/* Save Button */}

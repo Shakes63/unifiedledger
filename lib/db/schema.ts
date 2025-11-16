@@ -737,6 +737,7 @@ export const userHouseholdPreferences = sqliteTable(
     showCents: integer('show_cents', { mode: 'boolean' }).default(true),
     negativeNumberFormat: text('negative_number_format').default('-$100'),
     defaultTransactionType: text('default_transaction_type').default('expense'),
+    combinedTransferView: integer('combined_transfer_view', { mode: 'boolean' }).default(true),
 
     // Theme
     theme: text('theme').default('dark-mode'),
