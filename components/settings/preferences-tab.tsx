@@ -128,9 +128,9 @@ export function PreferencesTab() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">My Preferences</h2>
+        <h2 className="text-xl font-semibold text-foreground">Preferences</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Your personal display preferences for this household
+          Your global display preferences that apply across all households
         </p>
       </div>
 

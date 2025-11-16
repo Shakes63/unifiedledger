@@ -6,102 +6,15 @@
 
 ## 🐛 Active Bugs
 
-1. **React Hydration Mismatch Error** - Hydration failed because the server rendered HTML didn't match the client. Error occurs on sign-in page with OfflineBanner component. This can happen if a SSR-ed Client Component used:
-
-- A server/client branch `if (typeof window !== 'undefined')`.
-- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
-- Date formatting in a user's locale which doesn't match the server.
-- External changing data without sending a snapshot of it along with the HTML.
-- Invalid HTML tag nesting.
-
-It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
-
-https://react.dev/link/hydration-mismatch
-
-  ...
-    <HTTPAccessFallbackErrorBoundary pathname="/sign-in" notFound={<NotAllowedRootHTTPFallbackError>} ...>
-      <RedirectBoundary>
-        <RedirectErrorBoundary router={{...}}>
-          <Head>
-          <__next_root_layout_boundary__>
-            <SegmentViewNode type="layout" pagePath="layout.tsx">
-              <SegmentTrieNode>
-              <link>
-              <script>
-              <script>
-              <script>
-              <RootLayout>
-                <NavigationProvider>
-                  <PerformanceProvider>
-                    <html lang="en" className="dark overf..." suppressHydrationWarning={true} ...>
-                      <head>
-                      <body className="inter_786c..." style={{maxWidth:"...", ...}}>
-                        <ThemeProvider>
-                          <NetworkStatusProvider>
-                            <RequestQueueProvider>
-                              <OfflineBanner>
-                              <div
-+                               className="w-full max-w-full overflow-x-hidden"
--                               className="fixed top-0 left-0 right-0 z-50 px-4 py-3 border-b flex items-center justif..."
--                               style={{background-color:"var(--colo...",border-top-color:"",border-right-color:"", ...}}
--                               role="alert"
--                               aria-live="polite"
-                              >
-                                ...
-                                  <SegmentViewNode type="page" pagePath="sign-in/[[...">
-                                    <SegmentTrieNode>
-                                    <ClientPageRoot Component={function SignInPage} serverProvidedParams={{...}}>
-                                      <SignInPage params={Promise} searchParams={Promise}>
-                                        <div
-+                                         className="flex items-center justify-center min-h-screen bg-background px-4"
--                                         className="flex items-center gap-3 flex-1 min-w-0"
-                                        >
-                                          <Card className="w-full max...">
-                                            <div
-+                                             data-slot="card"
--                                             data-slot={null}
-+                                             className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl b..."
--                                             className="flex-shrink-0"
-                                            >
-                                              <CardHeader className="space-y-1">
-+                                               <div
-+                                                 data-slot="card-header"
-+                                                 className="@container/card-header grid auto-rows-min grid-rows-[auto..."
-+                                               >
--                                               <svg
--                                                 xmlns="http://www.w3.org/2000/svg"
--                                                 width="24"
--                                                 height="24"
--                                                 viewBox="0 0 24 24"
--                                                 fill="none"
--                                                 stroke="currentColor"
--                                                 stroke-width="2"
--                                                 stroke-linecap="round"
--                                                 stroke-linejoin="round"
--                                                 className="lucide lucide-wifi-off w-4 h-4"
--                                                 aria-hidden="true"
--                                               >
-                                              ...
-          ...
-
-    at throwOnHydrationMismatch (react-dom-client.development.js:5528:11)
-    at beginWork (react-dom-client.development.js:12341:17)
-    at runWithFiberInDEV (react-dom-client.development.js:984:30)
-    at performUnitOfWork (react-dom-client.development.js:18901:22)
-    at workLoopConcurrentByScheduler (react-dom-client.development.js:18895:9)
-    at renderRootConcurrent (react-dom-client.development.js:18877:15)
-    at performWorkOnRoot (react-dom-client.development.js:17739:11)
-    at performWorkOnRootViaSchedulerTask (react-dom-client.development.js:20288:7)
-    at MessagePort.performWorkUntilDeadline (scheduler.development.js:45:48)
-
+_No active bugs at this time._
 
 ---
 
 ## 📊 Current Status
 
-**Active Bugs:** 1
+**Active Bugs:** 0
 **In Progress:** 0
-**Fixed (All Time):** 26
+**Fixed (All Time):** 27
 
 ---
 
@@ -133,6 +46,7 @@ https://react.dev/link/hydration-mismatch
 24. **CompactStatsBar 403 Forbidden** - Updated CompactStatsBar component to use household-aware fetch hooks for all API calls
 25. **Logo Image Aspect Ratio Warning** - Removed `style={{ height: 'auto' }}` from collapsed sidebar logo Image component. Next.js Image best practice: when using explicit width/height props, don't modify dimensions via CSS.
 26. **Quick Entry Mode Account Loading** - Fixed race condition where accounts were fetched before household context was ready, causing 400 Bad Request errors. Added proper loading states, error handling, and useEffect hook that waits for household initialization before fetching accounts.
+27. **React Hydration Mismatch Error** - Fixed hydration mismatch on sign-in page caused by OfflineBanner component rendering differently on server vs client. Implemented client-only rendering pattern using `mounted` state to ensure consistent SSR/client rendering during hydration. Component now returns `null` during SSR and initial client render, then renders after mount. Moved localStorage checks and DOM manipulation to run only after component mounts.
 
 ---
 

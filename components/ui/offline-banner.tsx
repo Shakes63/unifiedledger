@@ -33,6 +33,8 @@ export function OfflineBanner({
   className,
   onRetry,
 }: OfflineBannerProps) {
+  // Track if component has mounted on client (prevents hydration mismatch)
+  const [mounted, setMounted] = React.useState(false);
   const { isOnline, isServerAvailable, isConnected, checkServerHealth } = useNetworkStatus();
   const { data: session } = betterAuthClient.useSession();
   const userId = session?.user?.id;
@@ -41,8 +43,15 @@ export function OfflineBanner({
   const [queueCount, setQueueCount] = React.useState(0);
   const [isSyncing, setIsSyncing] = React.useState(false);
 
-  // Update queue count periodically
+  // Set mounted to true after component mounts on client
   React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Update queue count periodically (only after mount)
+  React.useEffect(() => {
+    if (!mounted || !userId) return;
+
     const updateQueueCount = async () => {
       try {
         const count = await requestQueue.getPendingCount(userId);
@@ -59,10 +68,12 @@ export function OfflineBanner({
     const interval = setInterval(updateQueueCount, 5000);
 
     return () => clearInterval(interval);
-  }, [userId]);
+  }, [mounted, userId]);
 
-  // Check if banner was dismissed
+  // Check if banner was dismissed (only after mount, when localStorage is available)
   React.useEffect(() => {
+    if (!mounted) return;
+
     const dismissedData = localStorage.getItem(DISMISS_STORAGE_KEY);
     if (dismissedData) {
       const dismissedAt = parseInt(dismissedData, 10);
@@ -77,7 +88,7 @@ export function OfflineBanner({
         localStorage.removeItem(DISMISS_STORAGE_KEY);
       }
     }
-  }, []);
+  }, [mounted]);
 
   // Auto-show banner when going offline (even if dismissed)
   React.useEffect(() => {
@@ -86,8 +97,10 @@ export function OfflineBanner({
     }
   }, [isOnline, isServerAvailable]);
 
-  // Add padding to body when banner is visible
+  // Add padding to body when banner is visible (only after mount)
   React.useEffect(() => {
+    if (!mounted) return;
+
     const shouldShow = !(isConnected && queueCount === 0 && !isSyncing) && 
                       !(dismissed && isOnline && isServerAvailable);
     
@@ -102,7 +115,13 @@ export function OfflineBanner({
         document.body.style.paddingTop = '';
       }
     };
-  }, [isConnected, queueCount, isSyncing, dismissed, isOnline, isServerAvailable]);
+  }, [mounted, isConnected, queueCount, isSyncing, dismissed, isOnline, isServerAvailable]);
+
+  // Don't render anything during SSR or initial client render (prevents hydration mismatch)
+  // IMPORTANT: This must come AFTER all hooks to follow Rules of Hooks
+  if (!mounted) {
+    return null;
+  }
 
   const handleDismiss = () => {
     setDismissed(true);

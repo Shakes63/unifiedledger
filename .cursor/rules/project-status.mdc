@@ -18,7 +18,7 @@ alwaysApply: false
 - ✅ Household collaboration with activity feed
 - ✅ Offline mode with automatic sync
 - ✅ PWA support for mobile app experience
-- ✅ Unified Settings Page (3-tier structure with User Settings, My Settings, and Household Settings tabs)
+- ✅ Unified Settings Page (restructured to 2-tier: Account/Households with improved organization)
 - ✅ Testing complete (446 tests total: 386 original + 60 Phase 0.5, 100% unit coverage, 93% integration coverage)
 - ✅ Enhanced Error Handling & Network Infrastructure (100% COMPLETE - Core fixes + UI enhancements)
 - ✅ Recent Transactions Infinite Loop Fix (2025-11-15) - Memoized useHouseholdFetch functions with useCallback
@@ -43,7 +43,17 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 
 ## Recent Major Features
 
-**Latest (2025-01-XX):**
+**Latest (2025-01-27):**
+- Settings Reorganization (100% COMPLETE)
+  - ✅ Restructured settings page from 3-tier to 2-tier navigation (Account/Households)
+  - ✅ Moved Data Management to Account section
+  - ✅ Created dedicated Households section with two-tier navigation (household selector → household tabs)
+  - ✅ Reorganized Personal Preferences tab combining Theme, Notifications, and Financial Display
+  - ✅ All components use semantic theme variables
+  - ✅ URL structure updated to support new navigation (`?section=account&tab=...` and `?section=households&household=<id>&tab=...`)
+  - ✅ All functionality tested and verified working
+
+**Previous (2025-01-XX):**
 - Quick Entry Mode Enhancement (100% COMPLETE)
   - ✅ Enhanced keyboard-focused rapid transaction entry modal
   - ✅ Category and merchant selection with smart defaults
