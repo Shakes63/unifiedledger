@@ -93,16 +93,18 @@ function evaluateRule(
  */
 export async function findMatchingRule(
   userId: string,
+  householdId: string,
   transaction: TransactionData
 ): Promise<RuleEvaluationResult> {
   try {
-    // Get all active rules for this user, sorted by priority (lower = higher priority)
+    // Get all active rules for this user and household, sorted by priority (lower = higher priority)
     const rules = await db
       .select()
       .from(categorizationRules)
       .where(
         and(
           eq(categorizationRules.userId, userId),
+          eq(categorizationRules.householdId, householdId),
           eq(categorizationRules.isActive, true)
         )
       )

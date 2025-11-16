@@ -46,6 +46,15 @@ export async function POST(
     }
 
     const importData = importRecord[0];
+    
+    // Get householdId from import history (required for rule matching)
+    if (!importData.householdId) {
+      return Response.json(
+        { error: 'Import history missing household ID' },
+        { status: 400 }
+      );
+    }
+    const householdId = importData.householdId;
 
     // Get staging records to import
     const stagingRecords = await db
@@ -89,9 +98,10 @@ export async function POST(
 
         let categoryId: string | null = null;
 
-        // Try to match categorization rules
+        // Try to match categorization rules (filtered by household)
         const ruleMatch = await findMatchingRule(
           userId,
+          householdId,
           {
             description: mappedData.description,
             amount: typeof mappedData.amount === 'number'

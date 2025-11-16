@@ -105,7 +105,7 @@ export async function POST(request: Request) {
           notes: tmpl.notes || undefined,
         };
 
-        const ruleMatch = await findMatchingRule(userId, transactionData);
+        const ruleMatch = await findMatchingRule(userId, householdId, transactionData);
 
         if (ruleMatch.matched && ruleMatch.rule) {
           // Extract categoryId from actions (find first set_category action)

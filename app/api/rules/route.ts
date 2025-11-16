@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { categorizationRules, budgetCategories, merchants } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -31,6 +32,7 @@ function migrateSalesTaxActions(actions: RuleAction[]): RuleAction[] {
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const url = new URL(request.url);
     const ruleId = url.searchParams.get('id');
@@ -43,7 +45,8 @@ export async function GET(request: Request) {
         .where(
           and(
             eq(categorizationRules.id, ruleId),
-            eq(categorizationRules.userId, userId)
+            eq(categorizationRules.userId, userId),
+            eq(categorizationRules.householdId, householdId)
           )
         )
         .limit(1);
@@ -100,7 +103,12 @@ export async function GET(request: Request) {
     let query = db
       .select()
       .from(categorizationRules)
-      .where(eq(categorizationRules.userId, userId));
+      .where(
+        and(
+          eq(categorizationRules.userId, userId),
+          eq(categorizationRules.householdId, householdId)
+        )
+      );
 
     if (activeOnly) {
       query = db
@@ -109,6 +117,7 @@ export async function GET(request: Request) {
         .where(
           and(
             eq(categorizationRules.userId, userId),
+            eq(categorizationRules.householdId, householdId),
             eq(categorizationRules.isActive, true)
           )
         );
@@ -168,8 +177,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+
     const {
       name,
       categoryId,
@@ -210,14 +220,15 @@ export async function POST(request: Request) {
             .where(
               and(
                 eq(budgetCategories.id, action.value),
-                eq(budgetCategories.userId, userId)
+                eq(budgetCategories.userId, userId),
+                eq(budgetCategories.householdId, householdId)
               )
             )
             .limit(1);
 
           if (category.length === 0) {
             return Response.json(
-              { error: `Category ${action.value} not found` },
+              { error: `Category ${action.value} not found or does not belong to this household` },
               { status: 404 }
             );
           }
@@ -230,14 +241,15 @@ export async function POST(request: Request) {
             .where(
               and(
                 eq(merchants.id, action.value),
-                eq(merchants.userId, userId)
+                eq(merchants.userId, userId),
+                eq(merchants.householdId, householdId)
               )
             )
             .limit(1);
 
           if (merchant.length === 0) {
             return Response.json(
-              { error: `Merchant ${action.value} not found` },
+              { error: `Merchant ${action.value} not found or does not belong to this household` },
               { status: 404 }
             );
           }
@@ -251,7 +263,8 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(budgetCategories.id, categoryId),
-            eq(budgetCategories.userId, userId)
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId)
           )
         )
         .limit(1);
@@ -304,6 +317,7 @@ export async function POST(request: Request) {
     await db.insert(categorizationRules).values({
       id: ruleId,
       userId,
+      householdId,
       name,
       categoryId: setCategoryAction?.value || categoryId || null,
       actions: actionsStr,
@@ -338,8 +352,9 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+
     const {
       id,
       name,
@@ -358,14 +373,15 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Verify rule belongs to user
+    // Verify rule belongs to user and household
     const existingRule = await db
       .select()
       .from(categorizationRules)
       .where(
         and(
           eq(categorizationRules.id, id),
-          eq(categorizationRules.userId, userId)
+          eq(categorizationRules.userId, userId),
+          eq(categorizationRules.householdId, householdId)
         )
       )
       .limit(1);
@@ -401,14 +417,15 @@ export async function PUT(request: Request) {
             .where(
               and(
                 eq(budgetCategories.id, action.value),
-                eq(budgetCategories.userId, userId)
+                eq(budgetCategories.userId, userId),
+                eq(budgetCategories.householdId, householdId)
               )
             )
             .limit(1);
 
           if (category.length === 0) {
             return Response.json(
-              { error: `Category ${action.value} not found` },
+              { error: `Category ${action.value} not found or does not belong to this household` },
               { status: 404 }
             );
           }
@@ -421,14 +438,15 @@ export async function PUT(request: Request) {
             .where(
               and(
                 eq(merchants.id, action.value),
-                eq(merchants.userId, userId)
+                eq(merchants.userId, userId),
+                eq(merchants.householdId, householdId)
               )
             )
             .limit(1);
 
           if (merchant.length === 0) {
             return Response.json(
-              { error: `Merchant ${action.value} not found` },
+              { error: `Merchant ${action.value} not found or does not belong to this household` },
               { status: 404 }
             );
           }
@@ -442,7 +460,8 @@ export async function PUT(request: Request) {
         .where(
           and(
             eq(budgetCategories.id, categoryId),
-            eq(budgetCategories.userId, userId)
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId)
           )
         )
         .limit(1);
@@ -538,6 +557,7 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const url = new URL(request.url);
     const ruleId = url.searchParams.get('id');
@@ -549,14 +569,15 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Verify rule belongs to user
+    // Verify rule belongs to user and household
     const rule = await db
       .select()
       .from(categorizationRules)
       .where(
         and(
           eq(categorizationRules.id, ruleId),
-          eq(categorizationRules.userId, userId)
+          eq(categorizationRules.userId, userId),
+          eq(categorizationRules.householdId, householdId)
         )
       )
       .limit(1);

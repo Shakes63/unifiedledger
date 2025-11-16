@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories, merchants, ruleExecutionLog } from '@/lib/db/schema';
 import { eq, and, isNull, ne, gte, lte } from 'drizzle-orm';
@@ -37,6 +38,8 @@ interface BulkApplyResult {
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const body = await request.json().catch(() => ({}));
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
 
     const url = new URL(request.url);
     const ruleId = url.searchParams.get('ruleId');
@@ -44,13 +47,14 @@ export async function POST(request: Request) {
     const endDate = url.searchParams.get('endDate');
     const limit = parseInt(url.searchParams.get('limit') || '100', 10);
 
-    // Get transactions without categories (or filter by criteria)
+    // Get transactions without categories (or filter by criteria) - filtered by household
     let query = db
       .select()
       .from(transactions)
       .where(
         and(
           eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId),
           isNull(transactions.categoryId),
           ne(transactions.type, 'transfer_in'),
           ne(transactions.type, 'transfer_out')
@@ -65,6 +69,7 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(transactions.userId, userId),
+            eq(transactions.householdId, householdId),
             isNull(transactions.categoryId),
             ne(transactions.type, 'transfer_in'),
             ne(transactions.type, 'transfer_out'),
@@ -80,6 +85,7 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(transactions.userId, userId),
+            eq(transactions.householdId, householdId),
             isNull(transactions.categoryId),
             ne(transactions.type, 'transfer_in'),
             ne(transactions.type, 'transfer_out'),
@@ -95,6 +101,7 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(transactions.userId, userId),
+            eq(transactions.householdId, householdId),
             isNull(transactions.categoryId),
             ne(transactions.type, 'transfer_in'),
             ne(transactions.type, 'transfer_out'),
@@ -115,9 +122,17 @@ export async function POST(request: Request) {
       } as BulkApplyResult);
     }
 
-    // Get all accounts for name lookup
+    // Get all accounts for name lookup (filtered by household)
     const { accounts } = await import('@/lib/db/schema');
-    const accountList = await db.select().from(accounts).where(eq(accounts.userId, userId));
+    const accountList = await db
+      .select()
+      .from(accounts)
+      .where(
+        and(
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
+        )
+      );
     const accountMap = new Map(accountList.map(a => [a.id, a.name]));
 
     const result: BulkApplyResult = {
@@ -141,8 +156,8 @@ export async function POST(request: Request) {
           notes: txn.notes || undefined,
         };
 
-        // Find matching rule
-        const ruleMatch = await findMatchingRule(userId, transactionData);
+        // Find matching rule (filtered by household)
+        const ruleMatch = await findMatchingRule(userId, householdId, transactionData);
 
         if (ruleMatch.matched && ruleMatch.rule) {
           // Skip if ruleId filter is specified and doesn't match
@@ -277,6 +292,7 @@ export async function POST(request: Request) {
           await db.insert(ruleExecutionLog).values({
             id: nanoid(),
             userId,
+            householdId,
             ruleId: ruleMatch.rule.ruleId,
             transactionId: txn.id,
             appliedCategoryId: executionResult.mutations.categoryId || null,

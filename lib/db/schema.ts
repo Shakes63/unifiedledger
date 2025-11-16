@@ -916,6 +916,7 @@ export const categorizationRules = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     name: text('name').notNull(),
     categoryId: text('category_id'), // Nullable for backward compatibility, use actions instead
     description: text('description'),
@@ -931,6 +932,8 @@ export const categorizationRules = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_categorization_rules_user').on(table.userId),
+    householdIdIdx: index('idx_categorization_rules_household').on(table.householdId),
+    userHouseholdIdx: index('idx_categorization_rules_user_household').on(table.userId, table.householdId),
     priorityIdx: index('idx_categorization_rules_priority').on(table.priority),
   })
 );
@@ -940,6 +943,7 @@ export const ruleExecutionLog = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     ruleId: text('rule_id').notNull(),
     transactionId: text('transaction_id').notNull(),
     appliedCategoryId: text('applied_category_id'), // Nullable - may not set category
@@ -949,6 +953,8 @@ export const ruleExecutionLog = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_rule_execution_user').on(table.userId),
+    householdIdIdx: index('idx_rule_execution_log_household').on(table.householdId),
+    userHouseholdIdx: index('idx_rule_execution_log_user_household').on(table.userId, table.householdId),
     ruleIdIdx: index('idx_rule_execution_rule').on(table.ruleId),
     transactionIdIdx: index('idx_rule_execution_transaction').on(table.transactionId),
   })

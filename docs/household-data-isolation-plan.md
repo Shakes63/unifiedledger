@@ -342,10 +342,49 @@ See full plan: `docs/settings-three-tier-architecture.md`
 - Performance maintained with optimized indexes
 
 **Remaining for Phase 2 Scope:**
-- ⏳ Goals & Debts API isolation (moved to Phase 3)
-- ⏳ Tags & Custom Fields isolation (moved to Phase 3)
+- ✅ Goals & Debts API isolation (completed in Phase 3)
 
-### Phase 3: Supporting Features
+### Phase 3: Goals & Debts API Isolation ✅ COMPLETE (2025-01-27)
+**Goal:** Complete household isolation for Goals (Savings Goals) and Debts features
+
+**Status:** ✅ COMPLETE
+**Completion Date:** 2025-01-27
+**Migration Applied:** `drizzle/0044_add_household_id_to_goals_debts.sql`
+
+**Tasks Completed:**
+1. ✅ Updated database schema for: savings_goals, savings_milestones, debts, debt_payments, debt_payoff_milestones, debt_settings (6 tables)
+2. ✅ Applied migration `0044_add_household_id_to_goals_debts.sql` with data backfill (0 NULL values)
+3. ✅ Updated 6 Savings Goals API endpoints to filter by household
+4. ✅ Updated 13 Debts API endpoints to filter by household
+5. ✅ Updated 20 frontend components to use `useHouseholdFetch` hook
+6. ✅ Comprehensive testing completed (see `docs/phase-3-step-5-test-results.md`)
+
+**Actual Impact:** 19 API endpoints (6 Goals + 13 Debts), 20 frontend components, 6 database tables migrated, 12 indexes created
+
+**Key Achievements:**
+- All savings goals and milestones now isolated by household
+- All debts, payments, and payoff milestones now isolated by household
+- Debt settings are per-household (user can have different strategies per household)
+- Complete frontend integration with household context
+- Zero data leakage between households verified
+- Performance maintained with optimized indexes
+
+**Files Modified:**
+- Database schema: `lib/db/schema.ts`
+- API endpoints: 19 files in `app/api/savings-goals/` and `app/api/debts/`
+- Frontend components: 20 files (goals page, debts page, widgets, charts, etc.)
+- Migration: `drizzle/0044_add_household_id_to_goals_debts.sql`
+
+**Testing Results:**
+- ✅ Database migration verification: 100% complete
+- ✅ API endpoint testing: 100% complete (19/19 endpoints tested)
+- ✅ Frontend component testing: 100% complete (20/20 components tested)
+- ✅ Integration testing: 100% complete
+- ✅ Edge case testing: 100% complete
+
+See `docs/phase-3-step-6-completion-summary.md` for detailed completion report.
+
+### Phase 4: Supporting Features (Future)
 **Goal:** Household-specific categorization rules, templates, search
 
 **Tasks:**
@@ -357,7 +396,7 @@ See full plan: `docs/settings-three-tier-architecture.md`
 
 **Estimated Impact:** ~15 API endpoints, ~10 components
 
-### Phase 4: Tax & Reporting
+### Phase 5: Tax & Reporting (Future)
 **Goal:** Household-specific tax tracking and reports
 
 **Tasks:**
@@ -468,12 +507,14 @@ export async function GET(request: Request) {
 ## Estimated Effort
 
 ### Development Time
-- **Phase 1:** 2-3 days (schema, migrations, core APIs, frontend)
-- **Phase 2:** 1-2 days (bills, goals, debts)
-- **Phase 3:** 1 day (supporting features)
-- **Phase 4:** 1 day (tax & reporting)
-- **Testing & QA:** 1-2 days
-- **Total:** 6-9 days
+- **Phase 0:** ✅ COMPLETE (Settings reorganization)
+- **Phase 1:** ✅ COMPLETE (Core financial data: transactions, accounts, categories, merchants)
+- **Phase 2:** ✅ COMPLETE (Bills & Budgets API isolation)
+- **Phase 3:** ✅ COMPLETE (Goals & Debts API isolation - 2025-01-27)
+- **Phase 4:** ⏳ PENDING (Supporting features: categorization rules, templates, search)
+- **Phase 5:** ⏳ PENDING (Tax & Reporting)
+- **Testing & QA:** Ongoing per phase
+- **Total Completed:** Phases 0-3 complete (Core financial data, Bills, Budgets, Goals, Debts)
 
 ### Files to Modify
 - **Database Schema:** 1 file (`lib/db/schema.ts`)
