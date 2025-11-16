@@ -14,7 +14,34 @@ export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/households/[householdId]/members/[memberId]/permissions
- * Get member permissions (role-based, custom, and effective)
+ * 
+ * Get member permissions including role-based, custom overrides, and effective permissions.
+ * 
+ * **Authorization:**
+ * - User must be authenticated
+ * - User must be a member of the household (any role can view)
+ * 
+ * **Response:**
+ * - 200: Returns permissions object with role, rolePermissions, customPermissions, and effectivePermissions
+ * - 401: Unauthorized (not authenticated)
+ * - 403: Forbidden (not a member of household)
+ * - 404: Member not found
+ * - 400: Bad request (member belongs to different household)
+ * 
+ * @param request - The HTTP request object
+ * @param params - Route parameters containing householdId and memberId
+ * @returns JSON response with permissions or error message
+ * 
+ * @example
+ * ```typescript
+ * // Response (200 OK):
+ * {
+ *   role: 'admin',
+ *   rolePermissions: { create_accounts: true, ... },
+ *   customPermissions: { create_accounts: false } | null,
+ *   effectivePermissions: { create_accounts: false, ... }
+ * }
+ * ```
  */
 export async function GET(
   request: Request,
@@ -72,7 +99,61 @@ export async function GET(
 
 /**
  * PUT /api/households/[householdId]/members/[memberId]/permissions
- * Update custom permissions for a member
+ * 
+ * Update custom permissions for a household member.
+ * 
+ * **Authorization:**
+ * - User must be authenticated
+ * - User must have `manage_permissions` permission
+ * 
+ * **Request Body:**
+ * ```typescript
+ * {
+ *   permissions: {
+ *     "permission_name": true | false
+ *   }
+ * }
+ * ```
+ * 
+ * **Validation:**
+ * - Cannot modify permissions for owners
+ * - Cannot remove `manage_permissions` from the last admin
+ * - Permission names must be valid
+ * - Empty object resets to role defaults (sets customPermissions to null)
+ * 
+ * **Response:**
+ * - 200: Returns updated permissions object
+ * - 401: Unauthorized (not authenticated)
+ * - 403: Forbidden (lacks manage_permissions)
+ * - 404: Member not found
+ * - 400: Bad request (validation error, invalid body, etc.)
+ * 
+ * @param request - The HTTP request object with JSON body containing permissions
+ * @param params - Route parameters containing householdId and memberId
+ * @returns JSON response with updated permissions or error message
+ * 
+ * @example
+ * ```typescript
+ * // Request body:
+ * {
+ *   permissions: {
+ *     create_accounts: false,
+ *     edit_accounts: true
+ *   }
+ * }
+ * 
+ * // Response (200 OK):
+ * {
+ *   role: 'admin',
+ *   rolePermissions: { create_accounts: true, ... },
+ *   customPermissions: { create_accounts: false, edit_accounts: true },
+ *   effectivePermissions: { create_accounts: false, edit_accounts: true, ... }
+ * }
+ * ```
+ * 
+ * @remarks
+ * Custom permissions override role defaults. Deny takes precedence over allow.
+ * If a permission is set to `false`, it denies access even if the role allows it.
  */
 export async function PUT(
   request: Request,
@@ -169,7 +250,41 @@ export async function PUT(
 
 /**
  * DELETE /api/households/[householdId]/members/[memberId]/permissions
- * Reset custom permissions to role defaults
+ * 
+ * Reset custom permissions to role defaults (removes all custom overrides).
+ * 
+ * **Authorization:**
+ * - User must be authenticated
+ * - User must have `manage_permissions` permission
+ * 
+ * **Validation:**
+ * - Cannot reset permissions for owners
+ * 
+ * **Response:**
+ * - 200: Returns updated permissions object (now matching role defaults)
+ * - 401: Unauthorized (not authenticated)
+ * - 403: Forbidden (lacks manage_permissions)
+ * - 404: Member not found
+ * - 400: Bad request (cannot reset owner permissions, etc.)
+ * 
+ * @param request - The HTTP request object
+ * @param params - Route parameters containing householdId and memberId
+ * @returns JSON response with updated permissions (role defaults) or error message
+ * 
+ * @example
+ * ```typescript
+ * // Response (200 OK):
+ * {
+ *   role: 'admin',
+ *   rolePermissions: { create_accounts: true, ... },
+ *   customPermissions: null, // Reset to null
+ *   effectivePermissions: { create_accounts: true, ... } // Now matches role defaults
+ * }
+ * ```
+ * 
+ * @remarks
+ * This endpoint sets `customPermissions` to `null` in the database, effectively
+ * removing all custom overrides and reverting to role-based permissions only.
  */
 export async function DELETE(
   request: Request,

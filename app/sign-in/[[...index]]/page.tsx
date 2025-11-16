@@ -187,14 +187,22 @@ export default function SignInPage() {
       setError(null);
 
       const callbackURL = searchParams.get('callbackUrl') || '/dashboard';
-      const result = await betterAuthClient.signIn.oauth2({
-        providerId,
+      const result = await betterAuthClient.signIn.social({
+        provider: providerId,
         callbackURL,
       });
 
-      if (result.url) {
+      // Better Auth's social sign-in returns a redirect URL
+      // Handle both Data wrapper and direct result types
+      const url = ('data' in result && result.data && typeof result.data === 'object' && 'url' in result.data)
+        ? (result.data as { url: string }).url
+        : ('url' in result && typeof result.url === 'string')
+        ? result.url
+        : null;
+
+      if (url) {
         // Redirect to OAuth provider
-        window.location.href = result.url;
+        window.location.href = url;
       } else {
         throw new Error('Failed to get OAuth authorization URL');
       }

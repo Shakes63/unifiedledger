@@ -9,20 +9,6 @@
 
 ## Incomplete Features
 
-### Advanced Permission System
-**Status:** Core implementation complete (testing and documentation pending)
-**Plan:** `docs/advanced-permission-system-plan.md`
-**Completed:**
-- ✅ Database schema with customPermissions field
-- ✅ Permission resolution logic with custom overrides
-- ✅ Backend API endpoints (GET, PUT, DELETE)
-- ✅ Frontend Permission Manager component
-- ✅ Integration with Household Tab
-- ✅ Permission enforcement (automatic via updated hasPermission())
-**Remaining:**
-- ⏳ Unit tests and integration tests
-- ⏳ Documentation polish and JSDoc comments
-
 ---
 
 ## Completed Features
@@ -61,3 +47,4 @@
 32. ✅ **Two-Factor Authentication (2FA)** - Complete TOTP-based 2FA system with QR code setup, backup codes, login integration, and settings UI
 33. ✅ **OAuth Provider Management** - Complete OAuth provider management system with Google and GitHub support, provider linking/unlinking, primary login method selection, and sign-in page integration
 34. ✅ **Admin Backend Section** - Complete admin section for application owner with OAuth settings management (encrypted secrets), system information display, and owner-only access control
+35. ✅ **Advanced Permission System** - Granular permission management with custom overrides, 29 unit tests, 21 integration tests, and comprehensive JSDoc documentation

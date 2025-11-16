@@ -109,14 +109,22 @@ export function OAuthProvidersSection() {
 
       // Use Better Auth client to initiate OAuth flow
       const callbackURL = `${window.location.origin}/dashboard/settings`;
-      const result = await betterAuthClient.oauth2.link({
-        providerId,
+      const result = await betterAuthClient.signIn.social({
+        provider: providerId,
         callbackURL,
       });
 
-      if (result.url) {
+      // Better Auth's social sign-in returns a redirect URL
+      // Handle both Data wrapper and direct result types
+      const url = ('data' in result && result.data && typeof result.data === 'object' && 'url' in result.data)
+        ? (result.data as { url: string }).url
+        : ('url' in result && typeof result.url === 'string')
+        ? result.url
+        : null;
+
+      if (url) {
         // Redirect to OAuth provider
-        window.location.href = result.url;
+        window.location.href = url;
       } else {
         throw new Error('Failed to get OAuth authorization URL');
       }

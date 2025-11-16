@@ -85,7 +85,19 @@ export const PERMISSIONS: Record<HouseholdRole, Record<HouseholdPermission, bool
 };
 
 /**
- * Get a user's role in a household
+ * Get a user's role in a household.
+ * 
+ * @param householdId - The ID of the household
+ * @param userId - The ID of the user
+ * @returns The user's role ('owner', 'admin', 'member', or 'viewer'), or null if not a member
+ * 
+ * @example
+ * ```typescript
+ * const role = await getUserHouseholdRole('household-123', 'user-456');
+ * if (role === 'owner') {
+ *   // User is the owner
+ * }
+ * ```
  */
 export async function getUserHouseholdRole(
   householdId: string,
@@ -107,7 +119,18 @@ export async function getUserHouseholdRole(
 
 /**
  * Get custom permission overrides for a user in a household.
- * Returns null if no custom permissions are set.
+ * 
+ * This is an internal helper function that retrieves and parses custom permission
+ * overrides from the database. Returns null if no custom permissions are set or
+ * if the JSON is invalid.
+ * 
+ * @param householdId - The ID of the household
+ * @param userId - The ID of the user
+ * @returns Custom permission overrides object, or null if none exist or JSON is invalid
+ * 
+ * @remarks
+ * - Invalid JSON in the database is handled gracefully (returns null)
+ * - Only permissions that differ from role defaults are stored
  */
 async function getCustomPermissions(
   householdId: string,
@@ -139,11 +162,32 @@ async function getCustomPermissions(
 /**
  * Check if a user has a specific permission in a household.
  * 
- * Resolution order:
- * 1. Check custom permissions (if set, deny takes precedence)
+ * Permission resolution follows this order:
+ * 1. Check custom permissions (if set, deny takes precedence over allow)
  * 2. Fall back to role-based permissions
  * 
- * Owners always have all permissions and cannot have custom permissions.
+ * **Important Security Rules:**
+ * - Owners always have all permissions and cannot have custom permissions
+ * - Deny takes precedence: if a custom permission is set to `false`, it denies
+ *   access even if the role allows it
+ * - Returns `false` if user is not a member of the household
+ * 
+ * @param householdId - The ID of the household
+ * @param userId - The ID of the user
+ * @param permission - The permission to check
+ * @returns `true` if user has the permission, `false` otherwise
+ * 
+ * @example
+ * ```typescript
+ * const canCreate = await hasPermission('household-123', 'user-456', 'create_accounts');
+ * if (canCreate) {
+ *   // User can create accounts
+ * }
+ * ```
+ * 
+ * @remarks
+ * This function is used throughout the application to enforce permission checks.
+ * Always use this function instead of checking roles directly.
  */
 export async function hasPermission(
   householdId: string,
@@ -171,9 +215,33 @@ export async function hasPermission(
 
 /**
  * Get effective permissions for a user in a household.
- * Combines role-based permissions with custom overrides.
  * 
- * @returns Object with rolePermissions, customPermissions, and effectivePermissions
+ * Combines role-based permissions with custom overrides to calculate the final
+ * effective permissions. This is useful for displaying permissions in the UI
+ * or for debugging permission issues.
+ * 
+ * **Permission Resolution:**
+ * - Starts with role-based permissions as the base
+ * - Applies custom overrides (deny takes precedence)
+ * - Returns null values if user is not a member
+ * 
+ * @param householdId - The ID of the household
+ * @param userId - The ID of the user
+ * @returns Object containing:
+ *   - `role`: The user's role, or null if not a member
+ *   - `rolePermissions`: All permissions from the role defaults
+ *   - `customPermissions`: Custom permission overrides, or null if none
+ *   - `effectivePermissions`: Final calculated permissions (role + custom overrides)
+ * 
+ * @example
+ * ```typescript
+ * const perms = await getEffectivePermissions('household-123', 'user-456');
+ * console.log(perms.effectivePermissions.create_accounts); // true or false
+ * ```
+ * 
+ * @remarks
+ * This function is used by the API endpoints to return complete permission
+ * information to the frontend.
  */
 export async function getEffectivePermissions(
   householdId: string,
@@ -221,7 +289,25 @@ export async function getEffectivePermissions(
 
 /**
  * Get all permissions a user has in a household.
- * Returns effective permissions (role + custom overrides).
+ * 
+ * Returns the effective permissions (role-based + custom overrides) as a simple
+ * object mapping permission names to boolean values.
+ * 
+ * @param householdId - The ID of the household
+ * @param userId - The ID of the user
+ * @returns Object mapping permission names to boolean values, or null if not a member
+ * 
+ * @example
+ * ```typescript
+ * const perms = await getUserPermissions('household-123', 'user-456');
+ * if (perms?.create_accounts) {
+ *   // User can create accounts
+ * }
+ * ```
+ * 
+ * @remarks
+ * This is a convenience function that wraps `getEffectivePermissions()` and
+ * returns only the effective permissions object.
  */
 export async function getUserPermissions(
   householdId: string,
@@ -232,7 +318,23 @@ export async function getUserPermissions(
 }
 
 /**
- * Check if a user is a member of a household
+ * Check if a user is a member of a household.
+ * 
+ * @param householdId - The ID of the household
+ * @param userId - The ID of the user
+ * @returns `true` if user is a member, `false` otherwise
+ * 
+ * @example
+ * ```typescript
+ * const isMember = await isMemberOfHousehold('household-123', 'user-456');
+ * if (!isMember) {
+ *   return Response.json({ error: 'Not a member' }, { status: 403 });
+ * }
+ * ```
+ * 
+ * @remarks
+ * This function is used for basic membership checks before performing
+ * household-scoped operations.
  */
 export async function isMemberOfHousehold(
   householdId: string,
@@ -255,7 +357,41 @@ export async function isMemberOfHousehold(
 /**
  * Validate permission changes before applying them.
  * 
- * @returns Object with isValid boolean and error message if invalid
+ * Performs security checks to ensure permission changes are safe:
+ * - **Owner Protection:** Cannot modify permissions for owners
+ * - **Last Admin Protection:** Cannot remove `manage_permissions` from the last admin
+ * - **Permission Name Validation:** Only valid permission names are allowed
+ * 
+ * @param householdId - The ID of the household
+ * @param targetUserId - The ID of the user whose permissions are being changed
+ * @param newCustomPermissions - The new custom permissions to validate
+ * @returns Object with:
+ *   - `isValid`: `true` if changes are valid, `false` otherwise
+ *   - `error`: Error message if validation fails (optional)
+ * 
+ * @example
+ * ```typescript
+ * const validation = await validatePermissionChange(
+ *   'household-123',
+ *   'user-456',
+ *   { create_accounts: false }
+ * );
+ * if (!validation.isValid) {
+ *   return Response.json({ error: validation.error }, { status: 400 });
+ * }
+ * ```
+ * 
+ * @remarks
+ * **Security Considerations:**
+ * - Always call this function before updating permissions in the database
+ * - Owner protection prevents accidental lockout
+ * - Last admin protection ensures at least one admin can manage permissions
+ * - Invalid permission names are rejected to prevent security issues
+ * 
+ * **Last Admin Protection Logic:**
+ * - Checks if removing `manage_permissions` from an admin
+ * - Verifies at least one other admin or owner has `manage_permissions`
+ * - Considers custom permission overrides when checking other admins
  */
 export async function validatePermissionChange(
   householdId: string,

@@ -28,7 +28,8 @@ export async function POST(request: NextRequest) {
       headers: request.headers,
     });
 
-    if (!result || result.error) {
+    // If sign-in fails, password is incorrect
+    if (!result) {
       return NextResponse.json(
         { error: 'Incorrect email or password' },
         { status: 401 }
