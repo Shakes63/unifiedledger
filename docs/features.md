@@ -5,28 +5,9 @@
 
 
 
-
 ---
 
 ## Incomplete Features
-
-### Admin Backend Section
-**Status:** Partially implemented (Steps 1-3 complete, Steps 4-10 pending)
-**Plan:** `docs/admin-backend-section-plan.md`
-**Completed:**
-- ✅ Database schema updates (isApplicationOwner field, oauthSettings table)
-- ✅ Owner detection & helper functions
-- ✅ First startup detection and sign-up flow
-**Remaining:**
-- ⏳ OAuth settings encryption
-- ⏳ Admin API endpoints
-- ⏳ Admin tab component with OAuth settings UI
-- ⏳ Integration into settings page
-- ⏳ Better Auth OAuth configuration updates
-- ⏳ Access control & security
-- ⏳ Testing & polish
-
----
 
 ### Settings Page - Advanced Features
 **Status:** Partially implemented (2FA complete, Permissions pending)
@@ -73,3 +54,4 @@
 31. ✅ **Backup Household Isolation** - Complete household isolation for backups with per-household settings, history, and file storage
 32. ✅ **Two-Factor Authentication (2FA)** - Complete TOTP-based 2FA system with QR code setup, backup codes, login integration, and settings UI
 33. ✅ **OAuth Provider Management** - Complete OAuth provider management system with Google and GitHub support, provider linking/unlinking, primary login method selection, and sign-in page integration
+34. ✅ **Admin Backend Section** - Complete admin section for application owner with OAuth settings management (encrypted secrets), system information display, and owner-only access control

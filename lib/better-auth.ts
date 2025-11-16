@@ -6,6 +6,7 @@ import { sendVerificationEmail } from "@/lib/email/email-service";
 import { lookupLocation } from "@/lib/geoip/geoip-service";
 import { eq } from "drizzle-orm";
 import { genericOAuth } from "better-auth/plugins/generic-oauth";
+import { loadOAuthSettingsFromDatabase } from "@/lib/auth/load-oauth-settings";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -93,7 +94,9 @@ export const auth = betterAuth({
   plugins: [
     genericOAuth({
       config: [
-        // Google OAuth
+        // Google OAuth - Use environment variables
+        // Note: Database OAuth settings require server restart to take effect
+        // See lib/auth/load-oauth-settings.ts for database loading logic
         ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
           ? [
               {
@@ -108,7 +111,7 @@ export const auth = betterAuth({
               },
             ]
           : []),
-        // GitHub OAuth
+        // GitHub OAuth - Use environment variables
         ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
           ? [
               {

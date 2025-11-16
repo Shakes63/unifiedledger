@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { headers } from 'next/headers';
-import { isFirstUser, markAsOwner } from '@/lib/auth/owner-helpers';
+import { markAsOwner } from '@/lib/auth/owner-helpers';
+import { db } from '@/lib/db';
+import { user as betterAuthUser } from '@/auth-schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,25 +24,30 @@ export async function POST() {
 
     const userId = authResult.user.id;
 
-    // Check if this is the first user
-    const firstUser = await isFirstUser();
+    // Check if this user is the only user (first user scenario)
+    // After sign-up, there will be 1 user, so we check if count = 1
     
-    if (!firstUser) {
-      // Not the first user - return success but don't mark as owner
+    const allUsers = await db
+      .select({ id: betterAuthUser.id })
+      .from(betterAuthUser);
+    
+    // If there's only one user and it's the current user, mark as owner
+    if (allUsers.length === 1 && allUsers[0].id === userId) {
+      // Mark as owner
+      await markAsOwner(userId);
+      
       return NextResponse.json({
         success: true,
-        isOwner: false,
-        message: 'User account created successfully',
+        isOwner: true,
+        message: 'Account created successfully. You are now the application owner.',
       });
     }
-
-    // Mark as owner
-    await markAsOwner(userId);
-
+    
+    // Not the first/only user - return success but don't mark as owner
     return NextResponse.json({
       success: true,
-      isOwner: true,
-      message: 'Account created successfully. You are now the application owner.',
+      isOwner: false,
+      message: 'User account created successfully',
     });
   } catch (error) {
     console.error('Error marking owner:', error);

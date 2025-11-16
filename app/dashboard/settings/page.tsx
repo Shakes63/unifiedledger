@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useHousehold } from '@/contexts/household-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,6 +24,7 @@ import {
   Code,
   Home,
   UserCog,
+  Shield,
 } from 'lucide-react';
 
 // Import existing tab components
@@ -38,9 +39,11 @@ import { HouseholdFinancialTab } from '@/components/settings/household-financial
 import { PrivacyTab } from '@/components/settings/privacy-tab';
 import { DataTab } from '@/components/settings/data-tab';
 import { AdvancedTab } from '@/components/settings/advanced-tab';
+import { AdminTab } from '@/components/settings/admin-tab';
 
 // User Settings tabs (user-only - global across all households)
-const USER_SETTINGS_TABS = [
+// Admin tab is conditionally added if user is owner
+const BASE_USER_SETTINGS_TABS = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'privacy', label: 'Privacy & Security', icon: Lock },
   { id: 'advanced', label: 'Advanced', icon: Code },
@@ -66,6 +69,37 @@ function SettingsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { selectedHousehold } = useHousehold();
+  const [isOwner, setIsOwner] = useState<boolean | null>(null);
+  const [checkingOwner, setCheckingOwner] = useState(true);
+
+  // Check owner status on mount
+  useEffect(() => {
+    async function checkOwnerStatus() {
+      try {
+        const response = await fetch('/api/admin/check-owner', {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setIsOwner(data.isOwner === true);
+        } else {
+          setIsOwner(false);
+        }
+      } catch (error) {
+        console.error('Error checking owner status:', error);
+        setIsOwner(false);
+      } finally {
+        setCheckingOwner(false);
+      }
+    }
+    checkOwnerStatus();
+  }, []);
+
+  // Build USER_SETTINGS_TABS with conditional Admin tab
+  const USER_SETTINGS_TABS = [
+    ...BASE_USER_SETTINGS_TABS,
+    ...(isOwner === true ? [{ id: 'admin', label: 'Admin', icon: Shield }] : []),
+  ];
 
   // Get top-level section (user, my-household, or household)
   const section = searchParams.get('section') || 'user';
@@ -184,6 +218,11 @@ function SettingsPageContent() {
                 <TabsContent value="advanced" className="mt-0">
                   <AdvancedTab />
                 </TabsContent>
+                {isOwner === true && (
+                  <TabsContent value="admin" className="mt-0">
+                    <AdminTab />
+                  </TabsContent>
+                )}
               </Card>
             </Tabs>
           </TabsContent>
