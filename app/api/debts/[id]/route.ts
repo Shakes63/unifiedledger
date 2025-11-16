@@ -10,7 +10,17 @@ export async function GET(
 ) {
   try {
     const { userId } = await requireAuth();
-    const { householdId } = await getAndVerifyHousehold(request, userId);
+    let householdId: string;
+    try {
+      const result = await getAndVerifyHousehold(request, userId);
+      householdId = result.householdId;
+    } catch (error) {
+      // If household verification fails, return 404 to prevent enumeration
+      if (error instanceof Error && (error.message.includes('Household ID') || error.message.includes('Not a member'))) {
+        return new Response(JSON.stringify({ error: 'Debt not found' }), { status: 404 });
+      }
+      throw error;
+    }
     const { id } = await params;
     const debt = await db
       .select()
@@ -70,7 +80,17 @@ export async function PUT(
   try {
     const { userId } = await requireAuth();
     const body = await request.json();
-    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+    let householdId: string;
+    try {
+      const result = await getAndVerifyHousehold(request, userId, body);
+      householdId = result.householdId;
+    } catch (error) {
+      // If household verification fails, return 404 to prevent enumeration
+      if (error instanceof Error && (error.message.includes('Household ID') || error.message.includes('Not a member'))) {
+        return new Response(JSON.stringify({ error: 'Debt not found' }), { status: 404 });
+      }
+      throw error;
+    }
     const { id } = await params;
 
     // Verify user owns this debt and it belongs to household
