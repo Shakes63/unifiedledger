@@ -1,16 +1,21 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { debts, debtPayoffMilestones, budgetCategories } from '@/lib/db/schema';
+import { debts, debtPayoffMilestones, budgetCategories, accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
     const url = new URL(request.url);
     const status = url.searchParams.get('status');
 
-    const conditions = [eq(debts.userId, userId)];
+    const conditions = [
+      eq(debts.userId, userId),
+      eq(debts.householdId, householdId)
+    ];
     if (status) {
       conditions.push(eq(debts.status, status as any));
     }
@@ -26,6 +31,9 @@ export async function GET(request: Request) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
     console.error('Error fetching debts:', error);
     return new Response(JSON.stringify({ error: 'Failed to fetch debts' }), { status: 500 });
   }
@@ -35,6 +43,7 @@ export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
     const {
       name,
       description,
@@ -63,6 +72,29 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate account belongs to household if provided
+    if (accountId) {
+      const account = await db
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, accountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        )
+        .limit(1)
+        .then(result => result[0]);
+
+      if (!account) {
+        return Response.json(
+          { error: 'Account not found or does not belong to this household' },
+          { status: 400 }
+        );
+      }
+    }
+
     const debtId = nanoid();
     const now = new Date().toISOString();
     let categoryId = null;
@@ -75,6 +107,7 @@ export async function POST(request: Request) {
       await db.insert(budgetCategories).values({
         id: categoryId,
         userId,
+        householdId,
         name: `Debt: ${name}`,
         type: 'debt',
         isActive: true,
@@ -86,6 +119,7 @@ export async function POST(request: Request) {
     await db.insert(debts).values({
       id: debtId,
       userId,
+      householdId,
       name,
       description,
       creditorName,
@@ -122,6 +156,7 @@ export async function POST(request: Request) {
         id: nanoid(),
         debtId,
         userId,
+        householdId,
         percentage: milestone.percentage,
         milestoneBalance: milestone.milestoneBalance,
         createdAt: now,
@@ -141,6 +176,9 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error creating debt:', error);
     return new Response(JSON.stringify({ error: 'Failed to create debt' }), { status: 500 });

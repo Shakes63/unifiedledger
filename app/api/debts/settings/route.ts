@@ -1,23 +1,30 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debtSettings } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const settings = await db
       .select()
       .from(debtSettings)
-      .where(eq(debtSettings.userId, userId))
+      .where(
+        and(
+          eq(debtSettings.userId, userId),
+          eq(debtSettings.householdId, householdId)
+        )
+      )
       .limit(1);
 
     if (settings.length === 0) {
-      // Return default settings if none exist
+      // Return default settings if none exist for this household
       return Response.json({
         extraMonthlyPayment: 0,
         preferredMethod: 'avalanche',
@@ -34,6 +41,9 @@ export async function GET() {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
+    }
     console.error('Error fetching debt settings:', error);
     return Response.json({ error: 'Failed to fetch settings' }, { status: 500 });
   }
@@ -42,8 +52,9 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+
     const { extraMonthlyPayment, preferredMethod, paymentFrequency } = body;
 
     // Validate payment frequency
@@ -51,18 +62,24 @@ export async function PUT(request: Request) {
       return Response.json({ error: 'Invalid payment frequency. Must be "weekly", "biweekly", "monthly", or "quarterly"' }, { status: 400 });
     }
 
-    // Check if settings exist
+    // Check if settings exist for this household
     const existingSettings = await db
       .select()
       .from(debtSettings)
-      .where(eq(debtSettings.userId, userId))
+      .where(
+        and(
+          eq(debtSettings.userId, userId),
+          eq(debtSettings.householdId, householdId)
+        )
+      )
       .limit(1);
 
     if (existingSettings.length === 0) {
-      // Create new settings
+      // Create new settings for this household
       await db.insert(debtSettings).values({
         id: nanoid(),
         userId,
+        householdId,
         extraMonthlyPayment: extraMonthlyPayment || 0,
         preferredMethod: preferredMethod || 'avalanche',
         paymentFrequency: paymentFrequency || 'monthly',
@@ -70,7 +87,7 @@ export async function PUT(request: Request) {
         updatedAt: new Date().toISOString(),
       });
     } else {
-      // Update existing settings
+      // Update existing settings for this household
       await db
         .update(debtSettings)
         .set({
@@ -79,13 +96,21 @@ export async function PUT(request: Request) {
           paymentFrequency: paymentFrequency || existingSettings[0].paymentFrequency,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(debtSettings.userId, userId));
+        .where(
+          and(
+            eq(debtSettings.userId, userId),
+            eq(debtSettings.householdId, householdId)
+          )
+        );
     }
 
     return Response.json({ success: true });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error saving debt settings:', error);
     return Response.json({ error: 'Failed to save settings' }, { status: 500 });

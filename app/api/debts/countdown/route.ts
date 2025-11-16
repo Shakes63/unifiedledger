@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtSettings, debtPayments } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
@@ -14,15 +15,22 @@ interface Milestone {
   achievedDate?: string;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // Fetch user's active debts
+    // Fetch user's active debts for this household
     const activeDebts = await db
       .select()
       .from(debts)
-      .where(and(eq(debts.userId, userId), eq(debts.status, 'active')));
+      .where(
+        and(
+          eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
+          eq(debts.status, 'active')
+        )
+      );
 
     // If no active debts, user is debt-free!
     if (activeDebts.length === 0) {
@@ -38,11 +46,16 @@ export async function GET() {
       });
     }
 
-    // Fetch user's debt settings
+    // Fetch user's debt settings for this household
     const settings = await db
       .select()
       .from(debtSettings)
-      .where(eq(debtSettings.userId, userId))
+      .where(
+        and(
+          eq(debtSettings.userId, userId),
+          eq(debtSettings.householdId, householdId)
+        )
+      )
       .limit(1);
 
     const extraPayment = settings.length > 0 ? (settings[0].extraMonthlyPayment || 0) : 0;
@@ -87,7 +100,12 @@ export async function GET() {
     const paymentHistory = await db
       .select()
       .from(debtPayments)
-      .where(eq(debtPayments.userId, userId))
+      .where(
+        and(
+          eq(debtPayments.userId, userId),
+          eq(debtPayments.householdId, householdId)
+        )
+      )
       .orderBy(debtPayments.paymentDate);
 
     // Calculate months elapsed based on payment history or debt start dates
@@ -167,6 +185,9 @@ export async function GET() {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error calculating debt countdown:', error);
     return Response.json({ error: 'Failed to calculate countdown' }, { status: 500 });

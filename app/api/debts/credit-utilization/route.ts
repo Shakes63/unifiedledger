@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
@@ -17,13 +18,15 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
-    // Get all active credit card debts with credit limits set
+    const { householdId } = await getAndVerifyHousehold(request, userId);
+    // Get all active credit card debts with credit limits set for this household
     const creditCards = await db
       .select()
       .from(debts)
       .where(
         and(
           eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
           eq(debts.status, 'active'),
           eq(debts.type, 'credit_card'),
           isNotNull(debts.creditLimit)
@@ -120,6 +123,9 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return new Response(JSON.stringify({ error: error.message }), { status: 400 });
     }
     console.error('Error fetching credit utilization:', error);
     return new Response(JSON.stringify({ error: 'Failed to fetch credit utilization data' }), {

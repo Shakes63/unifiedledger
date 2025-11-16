@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtSettings, debtPayments } from '@/lib/db/schema';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
@@ -19,28 +20,35 @@ interface MonthlyAdherenceData {
   difference: number; // actual - expected
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // 1. Get user's debt settings
+    // 1. Get user's debt settings for this household
     const settings = await db
       .select()
       .from(debtSettings)
-      .where(eq(debtSettings.userId, userId))
+      .where(
+        and(
+          eq(debtSettings.userId, userId),
+          eq(debtSettings.householdId, householdId)
+        )
+      )
       .limit(1);
 
     const preferredMethod = (settings[0]?.preferredMethod || 'avalanche') as PayoffMethod;
     const paymentFrequency = (settings[0]?.paymentFrequency || 'monthly') as PaymentFrequency;
     const extraMonthlyPayment = settings[0]?.extraMonthlyPayment || 0;
 
-    // 2. Get all active debts
+    // 2. Get all active debts for this household
     const activeDebts = await db
       .select()
       .from(debts)
       .where(
         and(
           eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
           eq(debts.status, 'active')
         )
       );
@@ -79,13 +87,14 @@ export async function GET() {
         .toISOString()
         .split('T')[0];
 
-      // Fetch actual payments for this month
+      // Fetch actual payments for this month (filtered by household)
       const payments = await db
         .select()
         .from(debtPayments)
         .where(
           and(
             eq(debtPayments.userId, userId),
+            eq(debtPayments.householdId, householdId),
             gte(debtPayments.paymentDate, monthStart),
             lte(debtPayments.paymentDate, monthEnd)
           )
@@ -281,6 +290,9 @@ export async function GET() {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Payment adherence error:', error);
     return Response.json(

@@ -31,15 +31,15 @@ alwaysApply: false
 **✅ Phase 0 - COMPLETE:** Three-tier settings architecture fully implemented and tested
 **✅ Phase 1 - COMPLETE:** Core financial data isolation (transactions, accounts, categories, merchants) - PRODUCTION READY
 **✅ Phase 2 - COMPLETE:** Bills & Budgets API isolation - All 23 endpoints isolated, 13 frontend components updated, migration applied
-**🔄 Phase 3 - IN PROGRESS:** Goals & Debts API isolation (Steps 1-2 complete, Steps 3-6 remaining)
+**🔄 Phase 3 - IN PROGRESS:** Goals & Debts API isolation (Steps 1-3 complete, Steps 4-6 remaining)
   - ✅ Database schema updated (6 tables: savings_goals, savings_milestones, debts, debt_payments, debt_payoff_milestones, debt_settings)
   - ✅ Savings Goals API endpoints updated (3 endpoints) - All use household filtering
-  - ⏳ Debts API endpoints (13 endpoints) - IN PROGRESS
+  - ✅ Debts API endpoints updated (13 endpoints) - All use household filtering with proper validation
   - ⏳ Frontend components updates - PENDING
   - ⏳ Testing & validation - PENDING
   - ⏳ Documentation & cleanup - PENDING
 
-**What works:** Users can switch between households and see fully isolated transactions, accounts, categories, merchants, bills, budgets, and savings goals.
+**What works:** Users can switch between households and see fully isolated transactions, accounts, categories, merchants, bills, budgets, savings goals, and debts.
 
 **Remaining Phases:**
 - ⏳ Phase 3: Goals & Debts API isolation (Steps 3-6 remaining) - See `docs/phase-3-goals-debts-isolation-plan.md`
@@ -94,7 +94,7 @@ See `docs/household-data-isolation-plan.md` for Phase 0-2 overview and `docs/pha
 **Phase 3 Progress:**
 - ✅ Database schema updated (6 tables) - Migration file created
 - ✅ Savings Goals API endpoints updated (3 endpoints)
-- ⏳ Debts API endpoints (13 endpoints) - IN PROGRESS
+- ✅ Debts API endpoints updated (13 endpoints) - All use household filtering
 - ⏳ Frontend components updates - PENDING
 - ⏳ Testing & validation - PENDING
 - ⏳ Documentation & cleanup - PENDING

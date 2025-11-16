@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtPayments } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -20,17 +21,19 @@ const MILESTONES: StreakMilestone[] = [
   { months: 36, label: '3 Year Streak', icon: 'Gem' },
 ];
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // 1. Get all active debts to calculate total minimum payment
+    // 1. Get all active debts to calculate total minimum payment for this household
     const activeDebts = await db
       .select()
       .from(debts)
       .where(
         and(
           eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
           eq(debts.status, 'active')
         )
       );
@@ -47,11 +50,16 @@ export async function GET() {
       0
     );
 
-    // 2. Fetch all debt payments for this user
+    // 2. Fetch all debt payments for this user and household
     const allPayments = await db
       .select()
       .from(debtPayments)
-      .where(eq(debtPayments.userId, userId))
+      .where(
+        and(
+          eq(debtPayments.userId, userId),
+          eq(debtPayments.householdId, householdId)
+        )
+      )
       .orderBy(debtPayments.paymentDate);
 
     if (allPayments.length === 0) {
@@ -214,6 +222,9 @@ export async function GET() {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Payment streak error:', error);
     return Response.json(

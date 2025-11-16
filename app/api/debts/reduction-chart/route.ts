@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtPayments } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -18,14 +19,16 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // Get all active debts for the user
+    // Get all active debts for the user and household
     const userDebts = await db
       .select()
       .from(debts)
       .where(
         and(
           eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
           eq(debts.status, 'active')
         )
       );
@@ -48,11 +51,16 @@ export async function GET(request: Request) {
       );
     }
 
-    // Get all payment history for the user (we'll filter by debt ID below)
+    // Get all payment history for the user and household (we'll filter by debt ID below)
     const allPayments = await db
       .select()
       .from(debtPayments)
-      .where(eq(debtPayments.userId, userId));
+      .where(
+        and(
+          eq(debtPayments.userId, userId),
+          eq(debtPayments.householdId, householdId)
+        )
+      );
 
     // Filter payments to only those for active debts
     const debtIds = new Set(userDebts.map(d => d.id));
@@ -109,12 +117,17 @@ export async function GET(request: Request) {
       historyEndDate
     );
 
-    // Get debt settings for extra payment and strategy
+    // Get debt settings for extra payment and strategy for this household
     const { debtSettings } = await import('@/lib/db/schema');
     const settings = await db
       .select()
       .from(debtSettings)
-      .where(eq(debtSettings.userId, userId))
+      .where(
+        and(
+          eq(debtSettings.userId, userId),
+          eq(debtSettings.householdId, householdId)
+        )
+      )
       .limit(1);
 
     const extraPayment = settings[0]?.extraMonthlyPayment || 0;
@@ -191,6 +204,12 @@ export async function GET(request: Request) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401 }
+      );
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return new Response(
+        JSON.stringify({ error: error.message }),
+        { status: 400 }
       );
     }
     console.error('Error fetching debt reduction chart:', error);

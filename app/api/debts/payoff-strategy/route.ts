@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -16,6 +17,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const { searchParams } = new URL(request.url);
 
@@ -23,22 +25,28 @@ export async function GET(request: NextRequest) {
     const extraPayment = parseFloat(searchParams.get('extraPayment') || '0');
     const compare = searchParams.get('compare') === 'true';
 
-    // Fetch payment frequency from settings
+    // Fetch payment frequency from settings for this household
     const settings = await db
       .select()
       .from(debtSettings)
-      .where(eq(debtSettings.userId, userId))
+      .where(
+        and(
+          eq(debtSettings.userId, userId),
+          eq(debtSettings.householdId, householdId)
+        )
+      )
       .limit(1);
 
     const paymentFrequency: PaymentFrequency = (settings[0]?.paymentFrequency as PaymentFrequency) || 'monthly';
 
-    // Fetch all active debts
+    // Fetch all active debts for this household
     const activeDebts = await db
       .select()
       .from(debts)
       .where(
         and(
           eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
           eq(debts.status, 'active')
         )
       )
@@ -79,6 +87,9 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     console.error('Error calculating payoff strategy:', error);
     return NextResponse.json(

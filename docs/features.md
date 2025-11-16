@@ -10,7 +10,7 @@
 ## Incomplete Features
 
 ### Household Data Isolation Phase 3-4
-**Status:** Phase 3 IN PROGRESS (Steps 1-2 complete, Steps 3-6 remaining)
+**Status:** Phase 3 IN PROGRESS (Steps 1-3 complete, Steps 4-6 remaining)
 **Plan:** `docs/phase-3-goals-debts-isolation-plan.md`
 
 **Phase 1 (Core Data): ✅ COMPLETE**
@@ -18,7 +18,7 @@
 **Phase 3 (Goals & Debts): IN PROGRESS**
 - ✅ Step 1: Database schema updated (6 tables: savings_goals, savings_milestones, debts, debt_payments, debt_payoff_milestones, debt_settings)
 - ✅ Step 2: Savings Goals API endpoints updated (3 endpoints)
-- ⏳ Step 3: Debts API endpoints (13 endpoints) - IN PROGRESS
+- ✅ Step 3: Debts API endpoints updated (13 endpoints) - All endpoints now filter by household with proper validation
 - ⏳ Step 4: Frontend components updates - PENDING
 - ⏳ Step 5: Testing & validation - PENDING
 - ⏳ Step 6: Documentation & cleanup - PENDING
@@ -80,3 +80,4 @@
 25. ✅ **Developer Mode** - Debug utility with entity ID badges, DEV indicator, and developer tools panel
 26. ✅ **Bill Frequency Expansion** - Support for one-time, weekly, and biweekly bill frequencies
 27. ✅ **Authentication Migration** - Complete Clerk to Better Auth migration with email/password
+28. ✅ **Household Data Isolation Phase 3 Step 3** - Debts API endpoints updated with household isolation (13 endpoints)

@@ -1,20 +1,27 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtSettings } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { calculatePayoffStrategy, type DebtInput, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // Fetch user's active debts
+    // Fetch user's active debts for this household
     const activeDebts = await db
       .select()
       .from(debts)
-      .where(eq(debts.userId, userId))
+      .where(
+        and(
+          eq(debts.userId, userId),
+          eq(debts.householdId, householdId)
+        )
+      )
       .orderBy(debts.priority);
 
     // Filter to only active debts
@@ -24,11 +31,16 @@ export async function GET() {
       return Response.json({ error: 'No active debts found' }, { status: 404 });
     }
 
-    // Fetch user's debt settings
+    // Fetch user's debt settings for this household
     const settings = await db
       .select()
       .from(debtSettings)
-      .where(eq(debtSettings.userId, userId))
+      .where(
+        and(
+          eq(debtSettings.userId, userId),
+          eq(debtSettings.householdId, householdId)
+        )
+      )
       .limit(1);
 
     const extraPayment = settings.length > 0 ? (settings[0].extraMonthlyPayment || 0) : 0;
@@ -101,6 +113,9 @@ export async function GET() {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error calculating minimum payment warning:', error);
     return Response.json({ error: 'Failed to calculate minimum payment warning' }, { status: 500 });

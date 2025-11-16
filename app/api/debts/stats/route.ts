@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtPayments } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -8,8 +9,17 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
-    // Get all debts for user
-    const allDebts = await db.select().from(debts).where(eq(debts.userId, userId));
+    const { householdId } = await getAndVerifyHousehold(request, userId);
+    // Get all debts for user and household
+    const allDebts = await db
+      .select()
+      .from(debts)
+      .where(
+        and(
+          eq(debts.userId, userId),
+          eq(debts.householdId, householdId)
+        )
+      );
 
     // Calculate totals
     const totalOriginalAmount = allDebts.reduce((sum, d) => sum + (d.originalAmount || 0), 0);
@@ -32,6 +42,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(debtPayments.userId, userId),
+          eq(debtPayments.householdId, householdId)
           // Simple string comparison works for ISO dates
           // In production, consider using actual date comparison
         )
@@ -95,6 +106,9 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Error fetching debt stats:', error);
     return new Response(JSON.stringify({ error: 'Failed to fetch debt statistics' }), {

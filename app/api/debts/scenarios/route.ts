@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -37,8 +38,8 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
     const { scenarios } = body;
 
     // Validate scenarios array
@@ -105,11 +106,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Fetch all active debts for the user
+    // Fetch all active debts for the user and household
     const activeDebts = await db
       .select()
       .from(debts)
-      .where(and(eq(debts.userId, userId), eq(debts.status, 'active')));
+      .where(
+        and(
+          eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
+          eq(debts.status, 'active')
+        )
+      );
 
     if (activeDebts.length === 0) {
       return NextResponse.json(
@@ -140,6 +147,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     console.error('Error calculating scenarios:', error);
     return NextResponse.json(
