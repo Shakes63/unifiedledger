@@ -3,6 +3,9 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import { NavigationProvider } from "@/context/navigation-context";
 import { PerformanceProvider } from "@/components/providers/performance-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { NetworkStatusProvider } from "@/contexts/network-status-context";
+import { RequestQueueProvider } from "@/components/providers/request-queue-provider";
+import { OfflineBanner } from "@/components/ui/offline-banner";
 import { DEFAULT_THEME_ID } from "@/lib/themes/theme-config";
 import "./globals.css";
 
@@ -65,9 +68,14 @@ export default function RootLayout({
             style={{ maxWidth: '100vw', position: 'relative' }}
           >
             <ThemeProvider>
-              <div className="w-full max-w-full overflow-x-hidden">
-                {children}
-              </div>
+              <NetworkStatusProvider>
+                <RequestQueueProvider>
+                  <OfflineBanner />
+                  <div className="w-full max-w-full overflow-x-hidden">
+                    {children}
+                  </div>
+                </RequestQueueProvider>
+              </NetworkStatusProvider>
             </ThemeProvider>
           </body>
         </html>

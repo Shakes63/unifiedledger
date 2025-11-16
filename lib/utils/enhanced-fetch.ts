@@ -8,6 +8,7 @@
  * - Detailed error categorization
  * - Request deduplication
  * - Abort controller support
+ * - Automatic request queueing for offline requests
  *
  * Usage:
  * ```typescript
@@ -23,7 +24,7 @@
  * } catch (error) {
  *   if (error instanceof FetchError) {
  *     if (error.type === FetchErrorType.NETWORK) {
- *       // Handle offline
+ *       // Handle offline - request automatically queued
  *     } else if (error.type === FetchErrorType.TIMEOUT) {
  *       // Handle timeout
  *     }
@@ -160,6 +161,12 @@ export interface EnhancedFetchOptions extends RequestInit {
   deduplicate?: boolean;
   /** Custom abort signal (overrides internal timeout signal) */
   signal?: AbortSignal;
+  /** Queue request if offline (default: true) */
+  queueOnOffline?: boolean;
+  /** Request priority for queue (default: 'normal') */
+  queuePriority?: 'critical' | 'normal' | 'low';
+  /** User ID for queue filtering (optional) */
+  userId?: string;
 }
 
 /**
@@ -291,7 +298,7 @@ export async function enhancedFetch(
   /**
    * Internal function to perform single fetch attempt
    */
-  async function attemptFetch(attemptNumber: number): Promise<Response> {
+  async function attemptFetch(attemptNumber: number, fetchOptions: EnhancedFetchOptions): Promise<Response> {
     let timeoutId: NodeJS.Timeout | null = null;
     let abortController: AbortController | null = null;
     let isTimeout = false;
@@ -312,7 +319,7 @@ export async function enhancedFetch(
       const response = await fetch(url, {
         ...fetchOptions,
         signal: customSignal || abortController?.signal,
-      });
+      } as RequestInit);
 
       // Clear timeout
       if (timeoutId) {
@@ -351,7 +358,7 @@ export async function enhancedFetch(
           await sleep(delay);
 
           // Retry
-          return attemptFetch(attemptNumber + 1);
+          return attemptFetch(attemptNumber + 1, fetchOptions);
         }
 
         // No more retries, throw error
@@ -396,16 +403,46 @@ export async function enhancedFetch(
         await sleep(delay);
 
         // Retry
-        return attemptFetch(attemptNumber + 1);
+        return attemptFetch(attemptNumber + 1, fetchOptions);
       }
 
-      // No more retries, throw error
+      // No more retries
+      // If network error and queueOnOffline is enabled, queue the request
+      if (
+        fetchError.type === FetchErrorType.NETWORK &&
+        fetchOptions.queueOnOffline !== false &&
+        !isOnline()
+      ) {
+        try {
+          // Dynamically import request queue to avoid circular dependencies
+          const { requestQueue } = await import('./request-queue');
+          
+          await requestQueue.queue({
+            url,
+            method: fetchOptions.method || 'GET',
+            body: typeof fetchOptions.body === 'string' 
+              ? fetchOptions.body 
+              : fetchOptions.body ? JSON.stringify(fetchOptions.body) : null,
+            headers: fetchOptions.headers as Record<string, string> | undefined,
+            priority: fetchOptions.queuePriority || 'normal',
+            userId: fetchOptions.userId,
+            maxRetries: retries,
+          });
+
+          console.log(`Request queued for offline retry: ${url}`);
+        } catch (queueError) {
+          console.error('Failed to queue request:', queueError);
+          // Continue to throw original error even if queueing fails
+        }
+      }
+
+      // Throw error
       throw fetchError;
     }
   }
 
   // Create promise for this request
-  const requestPromise = attemptFetch(0);
+  const requestPromise = attemptFetch(0, options);
 
   // Store in-flight request for deduplication
   if (deduplicate) {
