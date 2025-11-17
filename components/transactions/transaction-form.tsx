@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -108,7 +109,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [customFieldsLoading, setCustomFieldsLoading] = useState(true);
   const [accounts, setAccounts] = useState<Array<{ id: string; name: string; currentBalance: number }>>([]);
   const [accountsLoading, setAccountsLoading] = useState(false);
-  const [pendingBills, setPendingBills] = useState<Array<any>>([]);
+  const [unpaidBills, setUnpaidBills] = useState<Array<any>>([]);
   const [billsLoading, setBillsLoading] = useState(false);
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
   const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
@@ -279,39 +280,39 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     // Note: fetchWithHousehold is memoized in useHouseholdFetch hook, so we don't need it in dependencies
   }, [selectedHouseholdId]);
 
-  // Fetch pending bills when type is 'bill'
+  // Fetch unpaid bills (pending and overdue) when type is 'bill'
   useEffect(() => {
-    const fetchPendingBills = async () => {
+    const fetchUnpaidBills = async () => {
       if (formData.type !== 'bill') {
-        setPendingBills([]);
+        setUnpaidBills([]);
         return;
       }
 
       if (!selectedHouseholdId) {
-        setPendingBills([]);
+        setUnpaidBills([]);
         setBillsLoading(false);
         return;
       }
 
       try {
         setBillsLoading(true);
-        const response = await fetchWithHousehold('/api/bills/instances?status=pending&limit=100');
+        const response = await fetchWithHousehold('/api/bills/instances?status=pending,overdue&limit=100');
         if (response.ok) {
           const data = await response.json();
-          setPendingBills(data.data || []);
+          setUnpaidBills(data.data || []);
         } else {
-          console.error('Failed to fetch pending bills:', response.status);
-          setPendingBills([]);
+          console.error('Failed to fetch unpaid bills:', response.status);
+          setUnpaidBills([]);
         }
       } catch (error) {
-        console.error('Failed to fetch pending bills:', error);
-        setPendingBills([]);
+        console.error('Failed to fetch unpaid bills:', error);
+        setUnpaidBills([]);
       } finally {
         setBillsLoading(false);
       }
     };
 
-    fetchPendingBills();
+    fetchUnpaidBills();
   }, [formData.type, selectedHouseholdId, fetchWithHousehold]);
 
   const handleInputChange = (
@@ -368,7 +369,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     }
 
     // Find the selected bill instance
-    const billInstance = pendingBills.find((b: any) => b.instance.id === billInstanceId);
+    const billInstance = unpaidBills.find((b: any) => b.instance.id === billInstanceId);
     if (billInstance) {
       // Pre-populate form with bill data
       setFormData((prev) => ({
@@ -377,7 +378,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         description: billInstance.bill.name || '',
         categoryId: billInstance.bill.categoryId || '',
         merchantId: billInstance.bill.merchantId || '',
-        notes: `Payment for ${billInstance.bill.name} (Due: ${new Date(billInstance.instance.dueDate).toLocaleDateString()})`,
+        notes: `Payment for ${billInstance.bill.name} (Due: ${format(parseISO(billInstance.instance.dueDate), 'MMM d, yyyy')})`,
       }));
     }
   };
@@ -660,6 +661,30 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       // Haptic feedback on successful transaction creation
       HapticFeedbackTypes.transactionCreated();
 
+      // Refresh bills if transaction type was 'bill' or 'expense' (could affect bills)
+      if (formData.type === 'bill' || formData.type === 'expense') {
+        // Refresh unpaid bills in this component if type is 'bill'
+        if (formData.type === 'bill') {
+          const refreshBills = async () => {
+            try {
+              const response = await fetchWithHousehold('/api/bills/instances?status=pending,overdue&limit=100');
+              if (response.ok) {
+                const data = await response.json();
+                setUnpaidBills(data.data || []);
+              }
+            } catch (error) {
+              console.error('Failed to refresh bills:', error);
+            }
+          };
+          refreshBills();
+        }
+        
+        // Emit event for other components (bills page, widgets) to refresh
+        window.dispatchEvent(new CustomEvent('bills-refresh', {
+          detail: { transactionType: formData.type }
+        }));
+      }
+
       if (isEditMode) {
         // For edit mode, call the callback or go back to details
         setTimeout(() => {
@@ -806,18 +831,23 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           </Label>
           <Select value={selectedBillInstanceId || 'none'} onValueChange={handleBillSelect}>
             <SelectTrigger>
-              <SelectValue placeholder="Select a pending bill" />
+              <SelectValue placeholder="Select a bill to pay" />
             </SelectTrigger>
             <SelectContent className="bg-card border-border">
               <SelectItem value="none">Select a bill</SelectItem>
               {billsLoading ? (
                 <SelectItem value="loading" disabled>Loading bills...</SelectItem>
-              ) : pendingBills.length === 0 ? (
-                <SelectItem value="empty" disabled>No pending bills</SelectItem>
+              ) : unpaidBills.length === 0 ? (
+                <SelectItem value="empty" disabled>No unpaid bills</SelectItem>
               ) : (
-                pendingBills.map((item: any) => (
+                unpaidBills.map((item: any) => (
                   <SelectItem key={item.instance.id} value={item.instance.id}>
-                    {item.bill.name} - ${item.instance.expectedAmount?.toFixed(2)} (Due: {new Date(item.instance.dueDate).toLocaleDateString()})
+                    <div className={item.instance.status === 'overdue' ? 'text-[var(--color-error)]' : 'text-foreground'}>
+                      {item.instance.status === 'overdue' && (
+                        <span className="font-semibold">OVERDUE - </span>
+                      )}
+                      {item.bill.name} - ${item.instance.expectedAmount?.toFixed(2)} (Due: {format(parseISO(item.instance.dueDate), 'MMM d, yyyy')})
+                    </div>
                   </SelectItem>
                 ))
               )}

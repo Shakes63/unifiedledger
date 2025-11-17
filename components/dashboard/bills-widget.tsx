@@ -77,6 +77,51 @@ export function BillsWidget() {
     fetchBills();
   }, [selectedHouseholdId, fetchWithHousehold]);
 
+  // Listen for bill refresh events (when transactions are created/updated)
+  useEffect(() => {
+    if (!selectedHouseholdId) return;
+    
+    const fetchBillsForRefresh = async () => {
+      try {
+        setLoading(true);
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+        const response = await fetchWithHousehold(`/api/bills/instances?status=pending,paid&sortBy=dueDate`);
+
+        if (response.ok) {
+          const response_data = await response.json();
+          const rawData = Array.isArray(response_data) ? response_data : response_data.data || [];
+
+          const billInstances = rawData.map((row: any) => ({
+            ...row.instance,
+            bill: row.bill,
+          }));
+
+          const thisMonthBills = billInstances.filter((bill: BillInstance) => {
+            const dueDate = new Date(bill.dueDate);
+            return dueDate >= startOfMonth && dueDate <= endOfMonth;
+          });
+          setBills(thisMonthBills.slice(0, 5));
+        }
+      } catch (error) {
+        console.error('Error refreshing bills:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    const handleBillsRefresh = () => {
+      if (selectedHouseholdId) {
+        fetchBillsForRefresh();
+      }
+    };
+
+    window.addEventListener('bills-refresh', handleBillsRefresh);
+    return () => window.removeEventListener('bills-refresh', handleBillsRefresh);
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
   const paidCount = bills.filter((b) => b.status === 'paid').length;
   const pendingCount = bills.filter((b) => b.status === 'pending').length;
   const totalAmount = bills.reduce((sum, b) => sum + (b.actualAmount || b.expectedAmount), 0);

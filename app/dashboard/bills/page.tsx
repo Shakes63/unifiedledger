@@ -123,6 +123,57 @@ export default function BillsDashboard() {
     fetchData();
   }, [selectedHouseholdId, fetchWithHousehold]);
 
+  // Listen for bill refresh events (when transactions are created/updated)
+  useEffect(() => {
+    const handleBillsRefresh = () => {
+      if (!selectedHouseholdId) return;
+      
+      const fetchData = async () => {
+        try {
+          setLoading(true);
+
+          // Fetch active bills
+          const billsRes = await fetchWithHousehold('/api/bills?isActive=true&limit=100');
+          if (!billsRes.ok) {
+            throw new Error(`Failed to fetch bills: ${billsRes.statusText}`);
+          }
+          const billsData = await billsRes.json();
+
+          // Fetch all bill instances
+          const instancesRes = await fetchWithHousehold('/api/bills/instances?limit=1000');
+          if (!instancesRes.ok) {
+            throw new Error(`Failed to fetch bill instances: ${instancesRes.statusText}`);
+          }
+          const instancesData = await instancesRes.json();
+
+          // Handle empty data safely
+          const billsList = Array.isArray(billsData?.data)
+            ? billsData.data.map((row: any) => row.bill)
+            : [];
+
+          const rawInstances = Array.isArray(instancesData?.data) ? instancesData.data : [];
+          const instancesList = rawInstances.map((row: any) => ({
+            ...row.instance,
+            bill: row.bill,
+          }));
+
+          setBills(billsList);
+          setBillInstances(instancesList);
+          calculateStats(instancesList);
+        } catch (error) {
+          console.error('Error refreshing bills:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchData();
+    };
+
+    window.addEventListener('bills-refresh', handleBillsRefresh);
+    return () => window.removeEventListener('bills-refresh', handleBillsRefresh);
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
   const calculateStats = (instances: BillInstance[]) => {
     const today = new Date();
     const thirtyDaysFromNow = addDays(today, 30);

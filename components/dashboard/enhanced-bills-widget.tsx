@@ -40,6 +40,18 @@ export function EnhancedBillsWidget() {
     fetchBills();
   }, [selectedHouseholdId, fetchWithHousehold]);
 
+  // Listen for bill refresh events (when transactions are created/updated)
+  useEffect(() => {
+    const handleBillsRefresh = () => {
+      if (selectedHouseholdId) {
+        fetchBills();
+      }
+    };
+
+    window.addEventListener('bills-refresh', handleBillsRefresh);
+    return () => window.removeEventListener('bills-refresh', handleBillsRefresh);
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
   useEffect(() => {
     // Re-sort when sortBy changes
     if (allBills.length > 0) {

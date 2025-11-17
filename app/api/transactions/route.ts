@@ -713,12 +713,15 @@ export async function POST(request: Request) {
 
     // OPTIMIZATION: Auto-match bills by category (Task 3)
     // Uses JOIN instead of loop, batches all updates in parallel
+    // NOTE: Matching is based on categoryId only - merchantId is NOT required for matching
+    // Bills without merchants will match transactions with matching category
     let linkedBillId: string | null = null;
     try {
       if (type === 'expense' && appliedCategoryId) {
         // Single query with JOIN to get oldest instance (prioritize overdue, then pending)
         // Replaces: fetch bills → loop → fetch instances → sort
         // FIX: Include both 'pending' and 'overdue' statuses, prioritize overdue bills
+        // Matching works regardless of merchantId (null or set) - only categoryId matters
         const billMatches = await db
           .select({
             bill: bills,

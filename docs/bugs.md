@@ -6,16 +6,15 @@
 
 ## 🐛 Active Bugs
 
-_No active bugs_
-
+1. **Bill Matching Not Working for Bills Without Merchants** - Bills with no merchant set are not matching transactions even when category matches. User wants to bypass category-only matching and use direct bill matching (description/amount/date) instead. See `docs/bill-matching-and-refresh-plan.md` for investigation details. **Status:** Refresh mechanism implemented, but matching logic needs enhancement to support description/amount/date matching instead of category-only.
 
 ---
 
 ## 📊 Current Status
 
-**Active Bugs:** 0
+**Active Bugs:** 1
 **In Progress:** 0
-**Fixed (All Time):** 37
+**Fixed (All Time):** 44
 
 ---
 
@@ -59,6 +58,18 @@ _No active bugs_
 36. **Overdue Bill Payment Not Removing from List** - Fixed auto-matching logic to include both 'pending' and 'overdue' bill instances when matching transactions to bills. Updated transaction creation endpoint, transaction update endpoint, and bill matching endpoint to prioritize overdue bills first, then pending bills (oldest first). Overdue bills are now automatically matched and marked as paid when transactions are created/updated, causing them to disappear from the overdue bills list.
 
 37. **Pending Bill Instances with Past Due Dates** - Fixed issue where pending bill instances with past due dates weren't automatically marked as overdue. Updated GET endpoint to auto-update pending bills with past dates to overdue status, POST endpoint to set overdue status when creating instances with past dates, and bill creation endpoint to check dates. Also added data consistency fix to revert overdue bills with future dates back to pending.
+
+38. **Bills Dropdown Missing Overdue Bills and Incorrect Sorting** - Fixed transaction form bills dropdown to show both pending and overdue bills, sorted oldest first. Updated API endpoint to sort by ascending due date. Added visual indicators for overdue bills using theme error color.
+
+39. **Date Formatting Inconsistency Between Bills Dropdown and Bills Page** - Fixed date formatting mismatch where transaction form dropdown used `toLocaleDateString()` (browser-dependent format) while bills page used `format(parseISO(dueDate), 'MMM d, yyyy')` from date-fns. Updated transaction form to use the same consistent date format (`MMM d, yyyy`) as the bills page, ensuring dates display consistently across the application (e.g., "Jan 15, 2024").
+
+41. **Quick Entry Form Scrolling Issue** - Fixed quick entry modal being taller than viewport without scrolling. Added `max-h-[90vh] overflow-y-auto` to DialogContent to enable scrolling when form exceeds viewport height.
+
+42. **Quick Entry Form Missing Bill Payment Type** - Added bill payment type to quick entry form with bill selector dropdown, inline merchant creation, and automatic form pre-filling. Bills refresh after bill payment transactions are created.
+
+43. **Bill Form Missing Inline Merchant Creation** - Replaced plain merchant Select dropdown with MerchantSelector component in bill creation and update forms, enabling inline merchant creation matching transaction forms.
+
+44. **Bills Not Refreshing After Transaction Creation** - Implemented conditional bill refresh mechanism using custom events. Bills refresh automatically when 'bill' or 'expense' transactions are created. All bill-displaying components (bills page, widgets, dropdowns) listen for refresh events and update accordingly.
 
 ---
 

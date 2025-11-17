@@ -23,6 +23,7 @@ import {
 } from '@/lib/bills/bill-utils';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { MerchantSelector } from '@/components/transactions/merchant-selector';
 
 interface BillFormProps {
   bill?: any;
@@ -56,7 +57,6 @@ export function BillForm({
   });
 
   const [categories, setCategories] = useState<any[]>([]);
-  const [merchants, setMerchants] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
   const [newPayeePattern, setNewPayeePattern] = useState('');
@@ -72,9 +72,9 @@ export function BillForm({
       if (!selectedHouseholdId) return;
 
       try {
-        const [categoriesRes, merchantsRes, accountsRes, debtsRes] = await Promise.all([
+        // MerchantSelector handles its own fetching, so we don't need to fetch merchants here
+        const [categoriesRes, accountsRes, debtsRes] = await Promise.all([
           fetchWithHousehold('/api/categories'),
-          fetchWithHousehold('/api/merchants'),
           fetchWithHousehold('/api/accounts'),
           fetchWithHousehold('/api/debts?status=active'),
         ]);
@@ -83,12 +83,6 @@ export function BillForm({
           const categoriesData = await categoriesRes.json();
           // API returns array directly, not wrapped in { data: [] }
           setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-        }
-
-        if (merchantsRes.ok) {
-          const merchantsData = await merchantsRes.json();
-          // API returns array directly, not wrapped in { data: [] }
-          setMerchants(Array.isArray(merchantsData) ? merchantsData : []);
         }
 
         if (accountsRes.ok) {
@@ -482,20 +476,10 @@ export function BillForm({
           )}
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Merchant (Optional)</Label>
-          <Select value={formData.merchantId || 'none'} onValueChange={(value) => handleSelectChange('merchantId', value === 'none' ? '' : value)}>
-            <SelectTrigger className="bg-elevated border-border text-foreground">
-              <SelectValue placeholder="Select merchant" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">None</SelectItem>
-              {merchants.map((merchant) => (
-                <SelectItem key={merchant.id} value={merchant.id}>
-                  {merchant.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <MerchantSelector
+            selectedMerchant={formData.merchantId || null}
+            onMerchantChange={(merchantId) => handleSelectChange('merchantId', merchantId || '')}
+          />
         </div>
         <div>
           <Label className="text-muted-foreground text-sm mb-2 block">Account (Optional)</Label>

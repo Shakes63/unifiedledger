@@ -154,6 +154,8 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 
 ## Next Steps
 
+### Active Bugs
+1. **Bill Matching Not Working for Bills Without Merchants** - Bills with no merchant set are not matching transactions. Need to enhance matching logic to use description/amount/date matching instead of category-only matching. See `docs/bill-matching-and-refresh-plan.md` for details. **Status:** Refresh mechanism implemented ✅, matching logic enhancement needed ⏳.
 
 ### Household Data Isolation
 **Status:** ✅ **100% COMPLETE** - All phases (0-4) complete and production-ready
@@ -167,6 +169,7 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 
 ### Other Next Steps
 1. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
+2. ⏳ Enhance bill matching logic to support description/amount/date matching (see `docs/bill-matching-and-refresh-plan.md`)
 3. Docker configuration for deployment
 4. Performance optimizations as needed
 5. User feedback and iterations

@@ -41,9 +41,11 @@ alwaysApply: false
 - Other frequencies remain active and continue generating future instances
 
 ## Bill Matching
-- Multi-factor matching using Levenshtein distance
-- String similarity (40%), amount tolerance ±5% (30%), date pattern (20%), payee pattern (10%)
-- Only auto-links matches ≥90% confidence
+- **Current Implementation:** Category-based matching only - matches bills to transactions by `categoryId` when transaction is created
+- **Matching Logic:** Bills match transactions with matching category, regardless of merchantId (null or set)
+- **Auto-Matching:** Happens automatically when expense transactions are created with matching category
+- **Future Enhancement:** Need to implement description/amount/date matching as alternative to category-only matching (see `docs/bill-matching-and-refresh-plan.md`)
+- **Legacy Multi-Factor Matching:** Available via `/api/bills/match` endpoint using Levenshtein distance (string similarity 40%, amount tolerance ±5% 30%, date pattern 20%, payee pattern 10%, requires ≥90% confidence)
 
 ## Permission System
 - Role-based permissions: owner, admin, member, viewer

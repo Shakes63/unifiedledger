@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { billInstances, bills } from '@/lib/db/schema';
-import { eq, and, desc, inArray, lt, gte } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray, lt, gte } from 'drizzle-orm';
 import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
       .from(billInstances)
       .leftJoin(bills, eq(billInstances.billId, bills.id))
       .where(conditions.length === 1 ? conditions[0] : and(...(conditions as any)))
-      .orderBy(desc(billInstances.dueDate))
+      .orderBy(asc(billInstances.dueDate))
       .limit(limit)
       .offset(offset);
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { format, parseISO } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -34,7 +35,7 @@ interface QuickTransactionModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type TransactionType = 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+type TransactionType = 'income' | 'expense' | 'transfer_in' | 'transfer_out' | 'bill';
 
 export function QuickTransactionModal({
   open,
@@ -58,6 +59,9 @@ export function QuickTransactionModal({
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [accountsError, setAccountsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [unpaidBills, setUnpaidBills] = useState<Array<any>>([]);
+  const [billsLoading, setBillsLoading] = useState(false);
+  const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
 
   // Fetch accounts and load smart defaults
   const fetchAccounts = async () => {
@@ -147,9 +151,78 @@ export function QuickTransactionModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialized, householdLoading, selectedHouseholdId, householdId]);
 
+  // Fetch unpaid bills when type is 'bill'
+  useEffect(() => {
+    const fetchUnpaidBills = async () => {
+      if (type !== 'bill') {
+        setUnpaidBills([]);
+        setSelectedBillInstanceId('');
+        return;
+      }
+
+      if (!selectedHouseholdId || !householdId) {
+        setUnpaidBills([]);
+        setBillsLoading(false);
+        return;
+      }
+
+      try {
+        setBillsLoading(true);
+        const response = await fetchWithHousehold('/api/bills/instances?status=pending,overdue&limit=100');
+        if (response.ok) {
+          const data = await response.json();
+          setUnpaidBills(data.data || []);
+        } else {
+          console.error('Failed to fetch unpaid bills:', response.status);
+          setUnpaidBills([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch unpaid bills:', error);
+        setUnpaidBills([]);
+      } finally {
+        setBillsLoading(false);
+      }
+    };
+
+    if (open && type === 'bill') {
+      fetchUnpaidBills();
+    }
+  }, [type, selectedHouseholdId, householdId, open, fetchWithHousehold]);
+
+  // Handle bill selection
+  const handleBillSelect = (billInstanceId: string) => {
+    setSelectedBillInstanceId(billInstanceId);
+    
+    if (billInstanceId === 'none') {
+      // Reset form when "none" is selected
+      setAmount('');
+      setDescription('');
+      setCategoryId(null);
+      setMerchantId(null);
+      setNotes('');
+      return;
+    }
+
+    // Find the selected bill instance
+    const billInstance = unpaidBills.find((b: any) => b.instance.id === billInstanceId);
+    if (billInstance) {
+      // Pre-populate form with bill data
+      setAmount(billInstance.instance.expectedAmount?.toString() || '');
+      setDescription(billInstance.bill.name || '');
+      setCategoryId(billInstance.bill.categoryId || null);
+      setMerchantId(billInstance.bill.merchantId || null);
+      setNotes(`Payment for ${billInstance.bill.name} (Due: ${format(parseISO(billInstance.instance.dueDate), 'MMM d, yyyy')})`);
+    }
+  };
+
   // Load defaults when transaction type changes
   useEffect(() => {
     if (!selectedHouseholdId || !open) return;
+    
+    // Don't apply defaults if a bill is selected (bill data takes precedence)
+    if (type === 'bill' && selectedBillInstanceId && selectedBillInstanceId !== 'none') {
+      return;
+    }
     
     const defaults = loadQuickEntryDefaults(selectedHouseholdId, type);
     
@@ -172,7 +245,7 @@ export function QuickTransactionModal({
     if (defaults.toAccountId && accounts.some((acc: any) => acc.id === defaults.toAccountId)) {
       setToAccountId(defaults.toAccountId);
     }
-  }, [type, selectedHouseholdId, open, accounts]);
+  }, [type, selectedHouseholdId, open, accounts, selectedBillInstanceId]);
 
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
@@ -192,6 +265,8 @@ export function QuickTransactionModal({
       setShowNotes(false);
       setError(null);
       setAccountsError(null);
+      setSelectedBillInstanceId('');
+      setUnpaidBills([]);
     }
     onOpenChange(newOpen);
   };
@@ -236,7 +311,8 @@ export function QuickTransactionModal({
       }
 
       // Determine API transaction type (API uses 'transfer' not 'transfer_out'/'transfer_in')
-      const apiType = type === 'transfer_out' || type === 'transfer_in' ? 'transfer' : type;
+      // Bill payments are submitted as 'expense' (API auto-matches to bill)
+      const apiType = type === 'transfer_out' || type === 'transfer_in' ? 'transfer' : type === 'bill' ? 'expense' : type;
 
       const transactionData: any = {
         accountId,
@@ -252,6 +328,7 @@ export function QuickTransactionModal({
       }
 
       // Add optional fields if provided (not for transfers)
+      // Bills can have category and merchant (they're submitted as expenses)
       if (apiType !== 'transfer') {
         if (categoryId) {
           transactionData.categoryId = categoryId;
@@ -308,6 +385,31 @@ export function QuickTransactionModal({
 
       // Success - show toast and close
       toast.success('Transaction created successfully!');
+      
+      // Refresh bills if transaction type was 'bill' or 'expense' (could affect bills)
+      if (type === 'bill' || type === 'expense') {
+        // Refresh unpaid bills in this component if type is 'bill'
+        if (type === 'bill') {
+          const refreshBills = async () => {
+            try {
+              const response = await fetchWithHousehold('/api/bills/instances?status=pending,overdue&limit=100');
+              if (response.ok) {
+                const data = await response.json();
+                setUnpaidBills(data.data || []);
+              }
+            } catch (error) {
+              console.error('Failed to refresh bills:', error);
+            }
+          };
+          refreshBills();
+        }
+        
+        // Emit event for other components (bills page, widgets) to refresh
+        window.dispatchEvent(new CustomEvent('bills-refresh', {
+          detail: { transactionType: type }
+        }));
+      }
+      
       setAmount('');
       setDescription('');
       setType('expense');
@@ -317,6 +419,8 @@ export function QuickTransactionModal({
       setDate(new Date().toISOString().split('T')[0]);
       setNotes('');
       setShowNotes(false);
+      setSelectedBillInstanceId('');
+      setUnpaidBills([]);
       setTimeout(() => {
         onOpenChange(false);
       }, 300);
@@ -355,7 +459,7 @@ export function QuickTransactionModal({
         return;
       }
       
-      // 1-4: Quick select transaction type
+      // 1-5: Quick select transaction type
       if (e.key === '1') {
         e.preventDefault();
         setType('expense');
@@ -374,6 +478,11 @@ export function QuickTransactionModal({
       if (e.key === '4') {
         e.preventDefault();
         setType('transfer_in');
+        return;
+      }
+      if (e.key === '5') {
+        e.preventDefault();
+        setType('bill');
         return;
       }
       
@@ -400,7 +509,7 @@ export function QuickTransactionModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-elevated border-border">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto bg-elevated border-border">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -410,7 +519,7 @@ export function QuickTransactionModal({
             <ExperimentalBadge />
           </div>
           <DialogDescription className="text-muted-foreground">
-            Rapid transaction entry. Tab to navigate, Ctrl+Enter to save, ESC to close. Press 1-4 for transaction type, T/Y for date, N for notes.
+            Rapid transaction entry. Tab to navigate, Ctrl+Enter to save, ESC to close. Press 1-5 for transaction type, T/Y for date, N for notes.
           </DialogDescription>
           <p className="text-xs text-muted-foreground mt-2">
             Fields marked with <span className="text-[var(--color-error)]">*</span> are required
@@ -453,9 +562,46 @@ export function QuickTransactionModal({
                 <SelectItem value="income">Income</SelectItem>
                 <SelectItem value="transfer_out">Transfer Out</SelectItem>
                 <SelectItem value="transfer_in">Transfer In</SelectItem>
+                <SelectItem value="bill">Bill Payment</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {/* Bill Selector (for bill payments) */}
+          {type === 'bill' && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Select Bill to Pay <span className="text-[var(--color-error)]">*</span>
+              </label>
+              <Select value={selectedBillInstanceId || 'none'} onValueChange={handleBillSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a bill to pay" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="none">Select a bill</SelectItem>
+                  {billsLoading ? (
+                    <SelectItem value="loading" disabled>Loading bills...</SelectItem>
+                  ) : unpaidBills.length === 0 ? (
+                    <SelectItem value="empty" disabled>No unpaid bills</SelectItem>
+                  ) : (
+                    unpaidBills.map((item: any) => (
+                      <SelectItem key={item.instance.id} value={item.instance.id}>
+                        <div className={item.instance.status === 'overdue' ? 'text-[var(--color-error)]' : 'text-foreground'}>
+                          {item.instance.status === 'overdue' && (
+                            <span className="font-semibold">OVERDUE - </span>
+                          )}
+                          {item.bill.name} - ${item.instance.expectedAmount?.toFixed(2)} (Due: {format(parseISO(item.instance.dueDate), 'MMM d, yyyy')})
+                        </div>
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Selecting a bill will pre-fill the form. You can still edit any field before submitting.
+              </p>
+            </div>
+          )}
 
           {/* Account */}
           <div className="space-y-2">
@@ -588,7 +734,7 @@ export function QuickTransactionModal({
             <CategorySelector
               selectedCategory={categoryId}
               onCategoryChange={setCategoryId}
-              transactionType={type}
+              transactionType={type === 'bill' ? 'expense' : type}
             />
           )}
 

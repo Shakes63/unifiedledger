@@ -12,7 +12,7 @@ interface QuickEntryDefaults {
   toAccountId?: string; // For transfers
   categoryId?: string | null;
   merchantId?: string | null;
-  transactionType?: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+  transactionType?: 'income' | 'expense' | 'transfer_in' | 'transfer_out' | 'bill';
 }
 
 /**
@@ -27,7 +27,7 @@ function getStorageKey(householdId: string, transactionType: string): string {
  */
 export function loadQuickEntryDefaults(
   householdId: string | null,
-  transactionType: 'income' | 'expense' | 'transfer_in' | 'transfer_out'
+  transactionType: 'income' | 'expense' | 'transfer_in' | 'transfer_out' | 'bill'
 ): QuickEntryDefaults {
   if (!householdId || typeof window === 'undefined') {
     return {};
@@ -51,7 +51,7 @@ export function loadQuickEntryDefaults(
  */
 export function saveQuickEntryDefaults(
   householdId: string | null,
-  transactionType: 'income' | 'expense' | 'transfer_in' | 'transfer_out',
+  transactionType: 'income' | 'expense' | 'transfer_in' | 'transfer_out' | 'bill',
   defaults: QuickEntryDefaults
 ): void {
   if (!householdId || typeof window === 'undefined') {
@@ -75,11 +75,12 @@ export function clearQuickEntryDefaults(householdId: string | null): void {
   }
 
   try {
-    const transactionTypes: Array<'income' | 'expense' | 'transfer_in' | 'transfer_out'> = [
+    const transactionTypes: Array<'income' | 'expense' | 'transfer_in' | 'transfer_out' | 'bill'> = [
       'income',
       'expense',
       'transfer_in',
       'transfer_out',
+      'bill',
     ];
 
     transactionTypes.forEach((type) => {
