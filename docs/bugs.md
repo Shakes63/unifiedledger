@@ -14,7 +14,7 @@
 
 **Active Bugs:** 1
 **In Progress:** 0
-**Fixed (All Time):** 44
+**Fixed (All Time):** 43
 
 ---
 
@@ -63,13 +63,13 @@
 
 39. **Date Formatting Inconsistency Between Bills Dropdown and Bills Page** - Fixed date formatting mismatch where transaction form dropdown used `toLocaleDateString()` (browser-dependent format) while bills page used `format(parseISO(dueDate), 'MMM d, yyyy')` from date-fns. Updated transaction form to use the same consistent date format (`MMM d, yyyy`) as the bills page, ensuring dates display consistently across the application (e.g., "Jan 15, 2024").
 
-41. **Quick Entry Form Scrolling Issue** - Fixed quick entry modal being taller than viewport without scrolling. Added `max-h-[90vh] overflow-y-auto` to DialogContent to enable scrolling when form exceeds viewport height.
+40. **Quick Entry Form Scrolling Issue** - Fixed quick entry modal being taller than viewport without scrolling. Added `max-h-[90vh] overflow-y-auto` to DialogContent to enable scrolling when form exceeds viewport height.
 
-42. **Quick Entry Form Missing Bill Payment Type** - Added bill payment type to quick entry form with bill selector dropdown, inline merchant creation, and automatic form pre-filling. Bills refresh after bill payment transactions are created.
+41. **Quick Entry Form Missing Bill Payment Type** - Added bill payment type to quick entry form with bill selector dropdown, inline merchant creation, and automatic form pre-filling. Bills refresh after bill payment transactions are created.
 
-43. **Bill Form Missing Inline Merchant Creation** - Replaced plain merchant Select dropdown with MerchantSelector component in bill creation and update forms, enabling inline merchant creation matching transaction forms.
+42. **Bill Form Missing Inline Merchant Creation** - Replaced plain merchant Select dropdown with MerchantSelector component in bill creation and update forms, enabling inline merchant creation matching transaction forms.
 
-44. **Bills Not Refreshing After Transaction Creation** - Implemented conditional bill refresh mechanism using custom events. Bills refresh automatically when 'bill' or 'expense' transactions are created. All bill-displaying components (bills page, widgets, dropdowns) listen for refresh events and update accordingly.
+43. **Bills Not Refreshing After Transaction Creation** - Implemented conditional bill refresh mechanism using custom events. Bills refresh automatically when 'bill' or 'expense' transactions are created. All bill-displaying components (bills page, widgets, dropdowns) listen for refresh events and update accordingly.
 
 ---
 
