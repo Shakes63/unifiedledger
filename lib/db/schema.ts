@@ -706,6 +706,8 @@ export const userSettings = sqliteTable(
     developerMode: integer('developer_mode', { mode: 'boolean' }).default(false),
     enableAnimations: integer('enable_animations', { mode: 'boolean' }).default(true),
     experimentalFeatures: integer('experimental_features', { mode: 'boolean' }).default(false),
+    // Onboarding
+    onboardingCompleted: integer('onboarding_completed', { mode: 'boolean' }).default(false),
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   }

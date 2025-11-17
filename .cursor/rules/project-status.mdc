@@ -46,7 +46,20 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 
 ## Recent Major Features
 
-**Latest (2025-01-27):**
+**Latest (2025-11-17):**
+- Onboarding Flow (✅ COMPLETE)
+  - ✅ Database migration applied (onboarding_completed field)
+  - ✅ 8-step wizard with progress tracking (Welcome, Household, Account, Bill, Goal, Debt, Transaction, Complete)
+  - ✅ All form components integrated (AccountForm, BillForm, GoalForm, DebtForm, TransactionForm)
+  - ✅ Skip functionality for optional steps
+  - ✅ Completion tracking with API endpoints
+  - ✅ Modal persistence logic (doesn't reappear after completion)
+  - ✅ Accessibility improvements (DialogTitle, DialogDescription)
+  - ✅ Fixed TransactionForm redirect issue to support onboarding callback
+  - ✅ All steps tested and verified working
+  - See `docs/onboarding-test-results.md` for complete test results
+
+**Previous (2025-01-27):**
 - Bill Merchant Field (✅ COMPLETE)
   - ✅ Database schema updated with `merchant_id` field on bills table
   - ✅ Migration applied successfully (0054_add_merchant_id_to_bills.sql)

@@ -751,7 +751,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           }
 
           setTimeout(() => {
-            router.push('/dashboard');
+            if (onEditSuccess) {
+              onEditSuccess();
+            } else {
+              router.push('/dashboard');
+            }
           }, 1500);
         }
       }

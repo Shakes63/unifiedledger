@@ -6,15 +6,29 @@ import { HouseholdProvider } from '@/contexts/household-context';
 import { DeveloperModeProvider } from '@/contexts/developer-mode-context';
 import { SessionActivityProvider } from '@/components/providers/session-activity-provider';
 import { ExperimentalFeaturesProvider } from '@/contexts/experimental-features-context';
+import { OnboardingProvider, useOnboarding } from '@/contexts/onboarding-context';
 import { FeatureGate } from '@/components/experimental/feature-gate';
 import { QuickTransactionModal } from '@/components/transactions/quick-transaction-modal';
+import { OnboardingModal } from '@/components/onboarding/onboarding-modal';
+import { useHousehold } from '@/contexts/household-context';
 
-export default function DashboardLayoutWrapper({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function DashboardContent({ children }: { children: React.ReactNode }) {
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
+  const { isOnboardingActive } = useOnboarding();
+  const { households: householdList, initialized } = useHousehold();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Show onboarding if:
+  // 1. Onboarding is active (not completed)
+  // 2. User has no households (new user)
+  // 3. Household context is initialized
+  useEffect(() => {
+    if (isOnboardingActive && initialized && householdList.length === 0) {
+      setShowOnboarding(true);
+    } else if (!isOnboardingActive) {
+      setShowOnboarding(false);
+    }
+  }, [isOnboardingActive, initialized, householdList.length]);
 
   // Global keyboard listener for Quick Entry (Q key)
   useEffect(() => {
@@ -34,21 +48,41 @@ export default function DashboardLayoutWrapper({
   }, []);
 
   return (
+    <>
+      <DashboardLayout>{children}</DashboardLayout>
+
+      {/* Onboarding Modal */}
+      <OnboardingModal
+        open={showOnboarding}
+        onOpenChange={setShowOnboarding}
+      />
+
+      {/* Experimental: Quick Entry Mode (Q key shortcut) */}
+      <FeatureGate featureId="quick-entry">
+        <QuickTransactionModal
+          open={quickEntryOpen}
+          onOpenChange={setQuickEntryOpen}
+        />
+      </FeatureGate>
+    </>
+  );
+}
+
+export default function DashboardLayoutWrapper({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
     <SessionActivityProvider>
       <HouseholdProvider>
-        <ExperimentalFeaturesProvider>
-          <DeveloperModeProvider>
-            <DashboardLayout>{children}</DashboardLayout>
-
-            {/* Experimental: Quick Entry Mode (Q key shortcut) */}
-            <FeatureGate featureId="quick-entry">
-              <QuickTransactionModal
-                open={quickEntryOpen}
-                onOpenChange={setQuickEntryOpen}
-              />
-            </FeatureGate>
-          </DeveloperModeProvider>
-        </ExperimentalFeaturesProvider>
+        <OnboardingProvider>
+          <ExperimentalFeaturesProvider>
+            <DeveloperModeProvider>
+              <DashboardContent>{children}</DashboardContent>
+            </DeveloperModeProvider>
+          </ExperimentalFeaturesProvider>
+        </OnboardingProvider>
       </HouseholdProvider>
     </SessionActivityProvider>
   );
