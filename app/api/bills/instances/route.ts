@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { billInstances, bills } from '@/lib/db/schema';
-import { eq, and, desc, inArray, lt } from 'drizzle-orm';
+import { eq, and, desc, inArray, lt, gte } from 'drizzle-orm';
 import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
@@ -13,8 +13,12 @@ export async function GET(request: Request) {
     const { userId } = await requireAuth();
     const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // First, update any pending bills that are now overdue (filtered by household)
+    // First, update bill instance statuses based on due dates (filtered by household)
+    // FIX: Update pending bills with past due dates to overdue
+    // Also fix overdue bills with future due dates back to pending
     const today = format(new Date(), 'yyyy-MM-dd');
+    
+    // Update pending bills with past due dates to overdue
     await db
       .update(billInstances)
       .set({ status: 'overdue' })
@@ -24,6 +28,19 @@ export async function GET(request: Request) {
           eq(billInstances.householdId, householdId),
           eq(billInstances.status, 'pending'),
           lt(billInstances.dueDate, today)
+        )
+      );
+    
+    // Update overdue bills with future due dates back to pending (data consistency fix)
+    await db
+      .update(billInstances)
+      .set({ status: 'pending' })
+      .where(
+        and(
+          eq(billInstances.userId, userId),
+          eq(billInstances.householdId, householdId),
+          eq(billInstances.status, 'overdue'),
+          gte(billInstances.dueDate, today)
         )
       );
 
@@ -163,6 +180,11 @@ export async function POST(request: Request) {
     const { nanoid } = await import('nanoid');
     const instanceId = nanoid();
 
+    // FIX: Automatically set status to 'overdue' if due date is in the past
+    // This prevents creating pending instances with past due dates
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const finalStatus = (status === 'pending' && dueDate < today) ? 'overdue' : status;
+
     const newInstance = await db
       .insert(billInstances)
       .values({
@@ -172,7 +194,7 @@ export async function POST(request: Request) {
         billId,
         dueDate,
         expectedAmount: parseFloat(expectedAmount),
-        status,
+        status: finalStatus,
         notes,
       });
 

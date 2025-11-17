@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances, debts, debtPayments, debtPayoffMilestones } from '@/lib/db/schema';
-import { eq, and, desc, asc } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
@@ -716,8 +716,9 @@ export async function POST(request: Request) {
     let linkedBillId: string | null = null;
     try {
       if (type === 'expense' && appliedCategoryId) {
-        // Single query with JOIN to get oldest pending instance
+        // Single query with JOIN to get oldest instance (prioritize overdue, then pending)
         // Replaces: fetch bills → loop → fetch instances → sort
+        // FIX: Include both 'pending' and 'overdue' statuses, prioritize overdue bills
         const billMatches = await db
           .select({
             bill: bills,
@@ -731,10 +732,14 @@ export async function POST(request: Request) {
               eq(bills.householdId, householdId),
               eq(bills.isActive, true),
               eq(bills.categoryId, appliedCategoryId),
-              eq(billInstances.status, 'pending')
+              inArray(billInstances.status, ['pending', 'overdue'])
             )
           )
-          .orderBy(asc(billInstances.dueDate))
+          .orderBy(
+            // Prioritize overdue bills first (0), then pending (1), then by due date (oldest first)
+            sql`CASE WHEN ${billInstances.status} = 'overdue' THEN 0 ELSE 1 END`,
+            asc(billInstances.dueDate)
+          )
           .limit(1);
 
         if (billMatches.length > 0) {
@@ -1154,3 +1159,4 @@ export async function GET(request: Request) {
     );
     }
 }
+

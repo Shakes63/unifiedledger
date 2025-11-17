@@ -6,7 +6,8 @@
 
 ## 🐛 Active Bugs
 
-_No active bugs at this time._
+_No active bugs_
+
 
 ---
 
@@ -14,7 +15,7 @@ _No active bugs at this time._
 
 **Active Bugs:** 0
 **In Progress:** 0
-**Fixed (All Time):** 35
+**Fixed (All Time):** 37
 
 ---
 
@@ -55,6 +56,9 @@ _No active bugs at this time._
 33. **Image Aspect Ratio Warning** - Updated all logo Image components (sidebar collapsed/expanded, mobile nav, landing page, transactions page) to use `fill` prop instead of explicit width/height props, eliminating Next.js Image optimization warnings while maintaining aspect ratios.
 34. **Bills Not Showing in Transaction Form Dropdown** - Fixed transaction form to use `fetchWithHousehold` instead of regular `fetch` for pending bills API call. Added household ID check and proper dependencies to useEffect hook.
 35. **Bill Details Page Failed to Fetch** - Fixed BillDetails component and Edit Bill page to use `fetchWithHousehold` for all API calls (GET, PUT, DELETE). Added household ID checks and proper error handling. Also fixed category-selector bills fetch to use `fetchWithHousehold`.
+36. **Overdue Bill Payment Not Removing from List** - Fixed auto-matching logic to include both 'pending' and 'overdue' bill instances when matching transactions to bills. Updated transaction creation endpoint, transaction update endpoint, and bill matching endpoint to prioritize overdue bills first, then pending bills (oldest first). Overdue bills are now automatically matched and marked as paid when transactions are created/updated, causing them to disappear from the overdue bills list.
+
+37. **Pending Bill Instances with Past Due Dates** - Fixed issue where pending bill instances with past due dates weren't automatically marked as overdue. Updated GET endpoint to auto-update pending bills with past dates to overdue status, POST endpoint to set overdue status when creating instances with past dates, and bill creation endpoint to check dates. Also added data consistency fix to revert overdue bills with future dates back to pending.
 
 ---
 

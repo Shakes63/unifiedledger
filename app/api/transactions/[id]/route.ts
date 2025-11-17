@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, accounts, budgetCategories, transactionSplits, bills, billInstances, merchants, debts, tags, transactionTags, customFields, customFieldValues } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { deleteSalesTaxRecord } from '@/lib/sales-tax/transaction-sales-tax';
 
@@ -345,7 +345,8 @@ export async function PUT(
           );
 
         if (matchingBills.length > 0) {
-          // Collect all pending instances from all matching bills
+          // Collect all pending and overdue instances from all matching bills
+          // FIX: Include both 'pending' and 'overdue' statuses, prioritize overdue bills
           const allPendingInstances: any[] = [];
 
           for (const bill of matchingBills) {
@@ -355,7 +356,7 @@ export async function PUT(
               .where(
                 and(
                   eq(billInstances.billId, bill.id),
-                  eq(billInstances.status, 'pending')
+                  inArray(billInstances.status, ['pending', 'overdue'])
                 )
               );
 
@@ -368,14 +369,21 @@ export async function PUT(
           }
 
           if (allPendingInstances.length > 0) {
-            // Sort by due date ascending (oldest first)
+            // Sort: prioritize overdue bills first, then by due date (oldest first)
             allPendingInstances.sort((a, b) => {
+              // Prioritize overdue (0) over pending (1)
+              const statusA = a.instance.status === 'overdue' ? 0 : 1;
+              const statusB = b.instance.status === 'overdue' ? 0 : 1;
+              if (statusA !== statusB) {
+                return statusA - statusB;
+              }
+              // If same status, sort by due date (oldest first)
               const dateA = new Date(a.instance.dueDate).getTime();
               const dateB = new Date(b.instance.dueDate).getTime();
               return dateA - dateB;
             });
 
-            // Match to the oldest pending instance
+            // Match to the oldest overdue instance (or oldest pending if no overdue)
             const match = allPendingInstances[0];
             const linkedBillId = match.bill.id;
 

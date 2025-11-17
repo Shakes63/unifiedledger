@@ -1,13 +1,12 @@
 # Features to Implement
 
 **Add new feature requests below this line:**
-
+1. bills need a merchant field and then they should use that merchant to autofill the merchant field in the transaction creation form when a bill is selected.
 
 ---
 
 ## Incomplete Features
 
-1. ⚠️ **Combined Transfer View Toggle** - Toggle implemented but has a bug: when set to OFF (separate view), only `transfer_in` transactions are shown; `transfer_out` transactions are missing. Database preference is saved correctly, but API endpoint is not respecting it. See `docs/bugs.md` bug #1 and `docs/combined-transfer-view-toggle-plan.md` for implementation details.
 
 ---
 

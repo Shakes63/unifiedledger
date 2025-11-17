@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, bills, billInstances } from '@/lib/db/schema';
-import { eq, and, desc, gte, lte } from 'drizzle-orm';
+import { eq, and, desc, gte, lte, inArray, asc, sql } from 'drizzle-orm';
 import { findMatchingBills, BillMatch } from '@/lib/bills/bill-matcher';
 
 export const dynamic = 'force-dynamic';
@@ -131,7 +131,8 @@ export async function POST(request: Request) {
           const currentMonth = txDate.getMonth();
           const currentYear = txDate.getFullYear();
 
-          // Look for pending instance in current or previous month
+          // Look for pending or overdue instance (prioritize overdue)
+          // FIX: Include both 'pending' and 'overdue' statuses, prioritize overdue bills
           const monthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
 
           const instance = await db
@@ -141,8 +142,13 @@ export async function POST(request: Request) {
               and(
                 eq(billInstances.billId, bestMatch.billId),
                 eq(billInstances.householdId, householdId),
-                eq(billInstances.status, 'pending')
+                inArray(billInstances.status, ['pending', 'overdue'])
               )
+            )
+            .orderBy(
+              // Prioritize overdue bills first (0), then pending (1), then by due date (oldest first)
+              sql`CASE WHEN ${billInstances.status} = 'overdue' THEN 0 ELSE 1 END`,
+              asc(billInstances.dueDate)
             )
             .limit(1);
 

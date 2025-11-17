@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { bills, billInstances, budgetCategories, accounts, debts } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { format } from 'date-fns';
 import {
   calculateNextDueDate,
   getInstanceCount,
@@ -327,6 +328,7 @@ export async function POST(request: Request) {
     // Generate bill instances using helper functions
     const instanceCount = getInstanceCount(frequency);
     const today = new Date();
+    const todayString = format(today, 'yyyy-MM-dd');
     const instancesData = [];
 
     for (let i = 0; i < instanceCount; i++) {
@@ -338,6 +340,10 @@ export async function POST(request: Request) {
         i
       );
 
+      // FIX: Automatically set status to 'overdue' if due date is in the past
+      // This prevents creating pending instances with past due dates
+      const instanceStatus = dueDateString < todayString ? 'overdue' : 'pending';
+
       instancesData.push({
         id: nanoid(),
         userId,
@@ -345,7 +351,7 @@ export async function POST(request: Request) {
         billId,
         dueDate: dueDateString,
         expectedAmount: parsedExpectedAmount,
-        status: 'pending' as const,
+        status: instanceStatus as const,
       });
     }
 

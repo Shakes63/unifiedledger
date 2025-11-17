@@ -75,11 +75,26 @@ export async function validateSession(sessionToken: string): Promise<ValidationR
     const lastActivityMs = session.lastActivityAt instanceof Date 
       ? session.lastActivityAt.getTime() 
       : (session.lastActivityAt || (session.createdAt instanceof Date ? session.createdAt.getTime() : session.createdAt));
+    
     const inactivityMs = userTimeout * 60 * 1000; // Convert minutes to milliseconds
     const inactiveSince = now - lastActivityMs;
 
+    // If lastActivityAt is null/0 or very old (> 5 minutes), update it immediately
+    // This ensures sessions stay active when users are actively accessing the app
+    // But we still check against the timeout first
+    const needsActivityUpdate = !session.lastActivityAt || 
+      (lastActivityMs && (now - lastActivityMs) > 5 * 60 * 1000);
+    
+    // Check timeout first
     if (inactiveSince > inactivityMs) {
       return { valid: false, reason: 'inactive', session, userId: session.userId };
+    }
+    
+    // If session is valid and needs activity update, update it asynchronously
+    if (needsActivityUpdate) {
+      updateSessionActivity(session.id).catch(err =>
+        console.error('Failed to update stale session activity:', err)
+      );
     }
 
     return { valid: true, session, userId: session.userId };

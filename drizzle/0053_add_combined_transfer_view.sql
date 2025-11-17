@@ -7,3 +7,4 @@ UPDATE user_household_preferences
 SET combined_transfer_view = 1 
 WHERE combined_transfer_view IS NULL;
 
+

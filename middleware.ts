@@ -75,12 +75,19 @@ export default async function middleware(request: NextRequest) {
     }
 
     // Session is valid - update activity (debounced)
+    // Always update if lastActivityAt is null or very old (> 2 minutes) to ensure it's initialized
     if (validation.session) {
       const sessionId = validation.session.id;
       const now = Date.now();
       const lastUpdate = activityUpdateCache.get(sessionId) || 0;
+      
+      // Check if lastActivityAt needs immediate update (null or very old)
+      const lastActivityMs = validation.session.lastActivityAt instanceof Date 
+        ? validation.session.lastActivityAt.getTime() 
+        : (validation.session.lastActivityAt || 0);
+      const needsImmediateUpdate = !lastActivityMs || (now - lastActivityMs) > 2 * 60 * 1000; // 2 minutes
 
-      if (now - lastUpdate > ACTIVITY_UPDATE_INTERVAL) {
+      if (needsImmediateUpdate || (now - lastUpdate > ACTIVITY_UPDATE_INTERVAL)) {
         // Update activity asynchronously (don't block request)
         updateSessionActivity(sessionId).catch(err =>
           console.error('Failed to update session activity:', err)
