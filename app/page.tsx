@@ -33,8 +33,7 @@ export default async function Home() {
               <Image
                 src="/logo.png"
                 alt="UnifiedLedger Logo"
-                width={40}
-                height={40}
+                fill
                 className="object-contain"
               />
             </div>

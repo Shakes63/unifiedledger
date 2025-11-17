@@ -2,10 +2,6 @@
 
 ## 🆕 ADD NEW BUGS HERE
 
-1. **Password Field Not Contained in Form** - Multiple password fields in settings page are not contained within a `<form>` element, causing DOM warnings. This is a minor accessibility/HTML validation issue.
-
-2. **Image Aspect Ratio Warning** - Logo image has width or height modified but not both, causing Next.js Image optimization warning. Should include `width: "auto"` or `height: "auto"` in styles.
-
 ---
 
 ## 🐛 Active Bugs
@@ -18,7 +14,7 @@ _No active bugs at this time._
 
 **Active Bugs:** 0
 **In Progress:** 0
-**Fixed (All Time):** 31
+**Fixed (All Time):** 35
 
 ---
 
@@ -55,6 +51,10 @@ _No active bugs at this time._
 29. **Quick Transaction Form Required Fields** - Added required field indicators (red asterisks) to Account and Type fields, plus notice explaining required fields
 30. **Transfer Display Logic with Account Filter** - Fixed transfer display to show blue (no sign) when no filter or both accounts filtered, red (-) when filtered by source, green (+) when filtered by destination. Added deduplication to combine transfer pairs into single transaction.
 31. **Combined Transfer View Toggle Not Working** - Fixed frontend filtering logic in `getFilteredTransactions` function to respect `combinedTransferView` preference. When toggle is OFF (separate view), both `transfer_out` and `transfer_in` transactions are displayed with proper color coding (red for transfer_out, green for transfer_in). Updated `getTransferDisplayProps` to show correct colors even when both accounts are selected in filter. Added preference fetching and state management in transactions page component.
+32. **Password Field Not Contained in Form** - Wrapped all password fields in settings page (ProfileTab, DataTab, PrivacyTab) within `<form>` elements with proper `onSubmit` handlers. Changed buttons from `onClick` to `type="submit"` for proper HTML form behavior and accessibility.
+33. **Image Aspect Ratio Warning** - Updated all logo Image components (sidebar collapsed/expanded, mobile nav, landing page, transactions page) to use `fill` prop instead of explicit width/height props, eliminating Next.js Image optimization warnings while maintaining aspect ratios.
+34. **Bills Not Showing in Transaction Form Dropdown** - Fixed transaction form to use `fetchWithHousehold` instead of regular `fetch` for pending bills API call. Added household ID check and proper dependencies to useEffect hook.
+35. **Bill Details Page Failed to Fetch** - Fixed BillDetails component and Edit Bill page to use `fetchWithHousehold` for all API calls (GET, PUT, DELETE). Added household ID checks and proper error handling. Also fixed category-selector bills fetch to use `fetchWithHousehold`.
 
 ---
 

@@ -87,7 +87,7 @@ export function CategorySelector({
         // Only fetch bills and debts for expense transactions
         if (transactionType === 'expense') {
           // Fetch active bills with categories
-          const billsResponse = await fetch('/api/bills?isActive=true', { credentials: 'include' });
+          const billsResponse = await fetchWithHousehold('/api/bills?isActive=true');
           if (billsResponse.ok) {
             const billsData = await billsResponse.json();
             // Bills API returns { data: [...], total, limit, offset }

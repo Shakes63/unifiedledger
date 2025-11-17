@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { useHousehold } from '@/contexts/household-context';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import {
   FREQUENCY_LABELS,
   formatDueDateDisplay,
@@ -67,6 +69,8 @@ interface BillDetailsProps {
 
 export function BillDetails({ billId, onDelete }: BillDetailsProps) {
   const router = useRouter();
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [bill, setBill] = useState<Bill | null>(null);
   const [instances, setInstances] = useState<BillInstance[]>([]);
   const [category, setCategory] = useState<Category | null>(null);
@@ -77,9 +81,14 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
 
   useEffect(() => {
     const fetchBill = async () => {
+      if (!selectedHouseholdId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const response = await fetch(`/api/bills/${billId}`, { credentials: 'include' });
+        const response = await fetchWithHousehold(`/api/bills/${billId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch bill');
         }
@@ -96,7 +105,7 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
     };
 
     fetchBill();
-  }, [billId]);
+  }, [billId, selectedHouseholdId, fetchWithHousehold]);
 
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this bill? This will delete all bill instances and cannot be undone.')) {
@@ -105,7 +114,7 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
 
     try {
       setDeleting(true);
-      const response = await fetch(`/api/bills/${billId}`, { credentials: 'include', method: 'DELETE', });
+      const response = await fetchWithHousehold(`/api/bills/${billId}`, { method: 'DELETE' });
 
       if (!response.ok) {
         throw new Error('Failed to delete bill');

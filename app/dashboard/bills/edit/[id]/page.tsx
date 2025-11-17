@@ -7,6 +7,8 @@ import { BillForm } from '@/components/bills/bill-form';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useHousehold } from '@/contexts/household-context';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -14,6 +16,8 @@ interface PageProps {
 
 export default function EditBillPage({ params }: PageProps) {
   const router = useRouter();
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [isLoading, setIsLoading] = useState(false);
   const [billData, setBillData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -24,9 +28,14 @@ export default function EditBillPage({ params }: PageProps) {
       const resolvedParams = await params;
       setBillId(resolvedParams.id);
 
+      if (!selectedHouseholdId) {
+        setLoading(false);
+        return;
+      }
+
       // Fetch existing bill data
       try {
-        const response = await fetch(`/api/bills/${resolvedParams.id}`, { credentials: 'include' });
+        const response = await fetchWithHousehold(`/api/bills/${resolvedParams.id}`);
         if (!response.ok) {
           throw new Error('Failed to fetch bill');
         }
@@ -42,13 +51,13 @@ export default function EditBillPage({ params }: PageProps) {
     };
 
     initPage();
-  }, [params, router]);
+  }, [params, router, selectedHouseholdId, fetchWithHousehold]);
 
   const handleSubmit = async (data: any) => {
     try {
       setIsLoading(true);
 
-      const response = await fetch(`/api/bills/${billId}`, {
+      const response = await fetchWithHousehold(`/api/bills/${billId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

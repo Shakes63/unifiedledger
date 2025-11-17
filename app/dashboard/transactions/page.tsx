@@ -874,8 +874,7 @@ function TransactionsContent() {
               <Image
                 src="/logo.png"
                 alt="UnifiedLedger Logo"
-                width={24}
-                height={24}
+                fill
                 className="object-contain"
               />
             </div>

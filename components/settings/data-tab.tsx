@@ -526,105 +526,116 @@ export function DataTab() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            {/* What will be reset */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-[var(--color-error)] flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" />
-                This will reset:
-              </h4>
-              <ul className="text-sm text-muted-foreground space-y-1 ml-6">
-                <li>• All preferences and settings</li>
-                <li>• Theme selection</li>
-                <li>• Saved searches and filters</li>
-                <li>• Import templates</li>
-                <li>• Cached data</li>
-              </ul>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              resetAppData();
+            }}
+          >
+            <div className="space-y-4 py-4">
+              {/* What will be reset */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-[var(--color-error)] flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  This will reset:
+                </h4>
+                <ul className="text-sm text-muted-foreground space-y-1 ml-6">
+                  <li>• All preferences and settings</li>
+                  <li>• Theme selection</li>
+                  <li>• Saved searches and filters</li>
+                  <li>• Import templates</li>
+                  <li>• Cached data</li>
+                </ul>
+              </div>
+
+              {/* What will NOT be affected */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold text-[var(--color-success)] flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  This will NOT affect:
+                </h4>
+                <ul className="text-sm text-muted-foreground space-y-1 ml-6">
+                  <li>• Your transactions and accounts</li>
+                  <li>• Bills and budgets</li>
+                  <li>• Goals and debts</li>
+                  <li>• Tax records</li>
+                  <li>• Household data</li>
+                </ul>
+              </div>
+
+              <Separator className="bg-border" />
+
+              {/* Password confirmation */}
+              <div className="space-y-2">
+                <Label htmlFor="resetPassword" className="text-foreground">
+                  Confirm your password
+                </Label>
+                <Input
+                  id="resetPassword"
+                  name="resetPassword"
+                  type="password"
+                  value={resetPassword}
+                  onChange={(e) => setResetPassword(e.target.value)}
+                  className="bg-background border-border text-foreground"
+                  placeholder="Enter your password"
+                  disabled={resetting}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Password required for security
+                </p>
+              </div>
+
+              {/* Confirmation checkbox */}
+              <div className="flex items-start space-x-2">
+                <Checkbox
+                  id="resetConfirm"
+                  name="resetConfirm"
+                  checked={resetConfirmed}
+                  onCheckedChange={(checked) => setResetConfirmed(checked === true)}
+                  disabled={resetting}
+                  className="mt-0.5"
+                  required
+                />
+                <label
+                  htmlFor="resetConfirm"
+                  className="text-sm text-foreground cursor-pointer leading-tight"
+                >
+                  I understand this will reset all my preferences and settings
+                </label>
+              </div>
             </div>
 
-            {/* What will NOT be affected */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold text-[var(--color-success)] flex items-center gap-2">
-                <Shield className="w-4 h-4" />
-                This will NOT affect:
-              </h4>
-              <ul className="text-sm text-muted-foreground space-y-1 ml-6">
-                <li>• Your transactions and accounts</li>
-                <li>• Bills and budgets</li>
-                <li>• Goals and debts</li>
-                <li>• Tax records</li>
-                <li>• Household data</li>
-              </ul>
-            </div>
-
-            <Separator className="bg-border" />
-
-            {/* Password confirmation */}
-            <div className="space-y-2">
-              <Label htmlFor="resetPassword" className="text-foreground">
-                Confirm your password
-              </Label>
-              <Input
-                id="resetPassword"
-                name="resetPassword"
-                type="password"
-                value={resetPassword}
-                onChange={(e) => setResetPassword(e.target.value)}
-                className="bg-background border-border text-foreground"
-                placeholder="Enter your password"
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setResetDataDialogOpen(false)}
+                className="border-border"
                 disabled={resetting}
-              />
-              <p className="text-xs text-muted-foreground">
-                Password required for security
-              </p>
-            </div>
-
-            {/* Confirmation checkbox */}
-            <div className="flex items-start space-x-2">
-              <Checkbox
-                id="resetConfirm"
-                checked={resetConfirmed}
-                onCheckedChange={(checked) => setResetConfirmed(checked === true)}
-                disabled={resetting}
-                className="mt-0.5"
-              />
-              <label
-                htmlFor="resetConfirm"
-                className="text-sm text-foreground cursor-pointer leading-tight"
               >
-                I understand this will reset all my preferences and settings
-              </label>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setResetDataDialogOpen(false)}
-              className="border-border"
-              disabled={resetting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={resetAppData}
-              className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
-              disabled={resetting || !resetPassword || !resetConfirmed}
-            >
-              {resetting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Resetting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Reset App Data
-                </>
-              )}
-            </Button>
-          </DialogFooter>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="destructive"
+                className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
+                disabled={resetting || !resetPassword || !resetConfirmed}
+              >
+                {resetting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Resetting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Reset App Data
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 

@@ -146,8 +146,7 @@ export function Sidebar() {
               <Image
                 src="/logo.png"
                 alt="UnifiedLedger"
-                width={32}
-                height={32}
+                fill
                 className="object-contain"
               />
             </div>

@@ -393,7 +393,13 @@ export function ProfileTab() {
           </p>
         </div>
 
-        <div className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleUpdateEmail();
+          }}
+          className="space-y-4"
+        >
           <div>
             <Label htmlFor="newEmail" className="text-foreground">New Email</Label>
             <Input
@@ -404,6 +410,7 @@ export function ProfileTab() {
               onChange={(e) => setNewEmail(e.target.value)}
               className="bg-background border-border text-foreground"
               placeholder="Enter new email address"
+              required
             />
           </div>
 
@@ -417,6 +424,7 @@ export function ProfileTab() {
               onChange={(e) => setEmailPassword(e.target.value)}
               className="bg-background border-border text-foreground"
               placeholder="Confirm with your password"
+              required
             />
             <p className="text-xs text-muted-foreground mt-1">
               Password required to change email for security
@@ -424,7 +432,7 @@ export function ProfileTab() {
           </div>
 
           <Button
-            onClick={handleUpdateEmail}
+            type="submit"
             disabled={updatingEmail || !newEmail || !emailPassword}
             variant="outline"
             className="border-border"
@@ -432,7 +440,7 @@ export function ProfileTab() {
             {updatingEmail && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Update Email
           </Button>
-        </div>
+        </form>
       </div>
 
       {/* Password Section */}
@@ -444,7 +452,13 @@ export function ProfileTab() {
           </p>
         </div>
 
-        <div className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleChangePassword();
+          }}
+          className="space-y-4"
+        >
           <div>
             <Label htmlFor="currentPassword" className="text-foreground">Current Password</Label>
             <Input
@@ -455,6 +469,7 @@ export function ProfileTab() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               className="bg-background border-border text-foreground"
               placeholder="Enter current password"
+              required
             />
           </div>
 
@@ -468,6 +483,7 @@ export function ProfileTab() {
               onChange={(e) => setNewPassword(e.target.value)}
               className="bg-background border-border text-foreground"
               placeholder="Enter new password (min 8 characters)"
+              required
             />
           </div>
 
@@ -481,11 +497,12 @@ export function ProfileTab() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="bg-background border-border text-foreground"
               placeholder="Confirm new password"
+              required
             />
           </div>
 
           <Button
-            onClick={handleChangePassword}
+            type="submit"
             disabled={updatingPassword || !currentPassword || !newPassword || !confirmPassword}
             variant="outline"
             className="border-border"
@@ -493,7 +510,7 @@ export function ProfileTab() {
             {updatingPassword && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Change Password
           </Button>
-        </div>
+        </form>
       </div>
     </div>
   );

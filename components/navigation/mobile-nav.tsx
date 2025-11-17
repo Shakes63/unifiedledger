@@ -110,8 +110,7 @@ export function MobileNav() {
               <Image
                 src="/logo.png"
                 alt="UnifiedLedger"
-                width={24}
-                height={24}
+                fill
                 className="object-contain"
               />
             </div>

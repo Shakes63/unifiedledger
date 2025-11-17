@@ -23,8 +23,10 @@ alwaysApply: false
 - ✅ Enhanced Error Handling & Network Infrastructure (100% COMPLETE - Core fixes + UI enhancements)
 - ✅ Recent Transactions Infinite Loop Fix (2025-11-15) - Memoized useHouseholdFetch functions with useCallback
 - ✅ 403 Forbidden Errors & Sign-Out Fix (2025-01-XX) - Fixed 5 bugs: transaction sign-out, categories/transactions/accounts/CompactStatsBar 403 errors
-- ✅ Logo Image Aspect Ratio Warning Fix (2025-01-27) - Removed CSS dimension modification from sidebar logo Image component
+- ✅ Logo Image Aspect Ratio Warning Fix (2025-01-27) - Updated all logo Image components to use `fill` prop instead of explicit dimensions
 - ✅ Quick Entry Mode Account Loading Fix (2025-01-27) - Fixed race condition where accounts were fetched before household context was ready, causing 400 Bad Request errors. Added proper loading states, error handling, and useEffect hook that waits for household initialization before fetching accounts.
+- ✅ Password Field Form Fix (2025-01-27) - Wrapped all password fields in settings page within proper `<form>` elements for accessibility and HTML validation
+- ✅ Bills API Household Auth Fixes (2025-01-27) - Fixed bills dropdown in transaction form, bill details page, edit bill page, and category-selector to use `fetchWithHousehold` for proper household authentication
 - ✅ All bugs fixed (see bugs.md for complete list)
 
 ## Household Data Isolation Status

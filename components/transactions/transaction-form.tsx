@@ -287,22 +287,32 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         return;
       }
 
+      if (!selectedHouseholdId) {
+        setPendingBills([]);
+        setBillsLoading(false);
+        return;
+      }
+
       try {
         setBillsLoading(true);
-        const response = await fetch('/api/bills/instances?status=pending&limit=100', { credentials: 'include' });
+        const response = await fetchWithHousehold('/api/bills/instances?status=pending&limit=100');
         if (response.ok) {
           const data = await response.json();
           setPendingBills(data.data || []);
+        } else {
+          console.error('Failed to fetch pending bills:', response.status);
+          setPendingBills([]);
         }
       } catch (error) {
         console.error('Failed to fetch pending bills:', error);
+        setPendingBills([]);
       } finally {
         setBillsLoading(false);
       }
     };
 
     fetchPendingBills();
-  }, [formData.type]);
+  }, [formData.type, selectedHouseholdId, fetchWithHousehold]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

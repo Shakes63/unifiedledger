@@ -593,64 +593,74 @@ export function PrivacyTab() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="deletePassword" className="text-foreground">Password</Label>
-              <Input
-                id="deletePassword"
-                name="deletePassword"
-                type="password"
-                value={deletePassword}
-                onChange={(e) => setDeletePassword(e.target.value)}
-                placeholder="Enter your password"
-                className="mt-1 bg-elevated border-border"
-              />
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              deleteAccount();
+            }}
+          >
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="deletePassword" className="text-foreground">Password</Label>
+                <Input
+                  id="deletePassword"
+                  name="deletePassword"
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="mt-1 bg-elevated border-border"
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="deleteConfirm" className="text-foreground">
+                  Type "DELETE MY ACCOUNT" to confirm
+                </Label>
+                <Input
+                  id="deleteConfirm"
+                  name="deleteConfirm"
+                  type="text"
+                  value={deleteConfirmation}
+                  onChange={(e) => setDeleteConfirmation(e.target.value)}
+                  placeholder="DELETE MY ACCOUNT"
+                  className="mt-1 bg-elevated border-border"
+                  required
+                />
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="deleteConfirm" className="text-foreground">
-                Type "DELETE MY ACCOUNT" to confirm
-              </Label>
-              <Input
-                id="deleteConfirm"
-                name="deleteConfirm"
-                type="text"
-                value={deleteConfirmation}
-                onChange={(e) => setDeleteConfirmation(e.target.value)}
-                placeholder="DELETE MY ACCOUNT"
-                className="mt-1 bg-elevated border-border"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDeleteDialogOpen(false);
-                setDeletePassword('');
-                setDeleteConfirmation('');
-              }}
-              className="border-border"
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={deleteAccount}
-              disabled={
-                deleteConfirmation !== 'DELETE MY ACCOUNT' || !deletePassword || deleting
-              }
-              className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
-            >
-              {deleting ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Trash2 className="w-4 h-4 mr-2" />
-              )}
-              Delete Account
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setDeleteDialogOpen(false);
+                  setDeletePassword('');
+                  setDeleteConfirmation('');
+                }}
+                className="border-border"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="destructive"
+                disabled={
+                  deleteConfirmation !== 'DELETE MY ACCOUNT' || !deletePassword || deleting
+                }
+                className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
+              >
+                {deleting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4 mr-2" />
+                )}
+                Delete Account
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>
