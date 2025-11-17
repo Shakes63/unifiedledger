@@ -238,6 +238,7 @@ export const bills = sqliteTable(
     householdId: text('household_id').notNull(),
     name: text('name').notNull(),
     categoryId: text('category_id'),
+    merchantId: text('merchant_id'), // Optional merchant for bill payments
     debtId: text('debt_id'), // Link to debt for debt payment bills
     expectedAmount: real('expected_amount').notNull(),
     dueDate: integer('due_date').notNull(), // For one-time: ignored, weekly/biweekly: day of week (0-6), monthly+: day of month (1-31)
@@ -1325,6 +1326,10 @@ export const billsRelations = relations(bills, ({ one, many }) => ({
   category: one(budgetCategories, {
     fields: [bills.categoryId],
     references: [budgetCategories.id],
+  }),
+  merchant: one(merchants, {
+    fields: [bills.merchantId],
+    references: [merchants.id],
   }),
   debt: one(debts, {
     fields: [bills.debtId],

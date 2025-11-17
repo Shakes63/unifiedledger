@@ -376,6 +376,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         amount: billInstance.instance.expectedAmount?.toString() || '',
         description: billInstance.bill.name || '',
         categoryId: billInstance.bill.categoryId || '',
+        merchantId: billInstance.bill.merchantId || '',
         notes: `Payment for ${billInstance.bill.name} (Due: ${new Date(billInstance.instance.dueDate).toLocaleDateString()})`,
       }));
     }

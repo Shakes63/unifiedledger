@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { bills, billInstances, budgetCategories, accounts, debts } from '@/lib/db/schema';
+import { bills, billInstances, budgetCategories, accounts, debts, merchants } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { format } from 'date-fns';
@@ -32,10 +32,12 @@ export async function GET(request: Request) {
         .select({
           bill: bills,
           category: budgetCategories,
+          merchant: merchants,
           account: accounts,
         })
         .from(bills)
         .leftJoin(budgetCategories, eq(bills.categoryId, budgetCategories.id))
+        .leftJoin(merchants, eq(bills.merchantId, merchants.id))
         .leftJoin(accounts, eq(bills.accountId, accounts.id))
         .where(
           and(
@@ -52,10 +54,12 @@ export async function GET(request: Request) {
         .select({
           bill: bills,
           category: budgetCategories,
+          merchant: merchants,
           account: accounts,
         })
         .from(bills)
         .leftJoin(budgetCategories, eq(bills.categoryId, budgetCategories.id))
+        .leftJoin(merchants, eq(bills.merchantId, merchants.id))
         .leftJoin(accounts, eq(bills.accountId, accounts.id))
         .where(
           and(
@@ -72,10 +76,12 @@ export async function GET(request: Request) {
         .select({
           bill: bills,
           category: budgetCategories,
+          merchant: merchants,
           account: accounts,
         })
         .from(bills)
         .leftJoin(budgetCategories, eq(bills.categoryId, budgetCategories.id))
+        .leftJoin(merchants, eq(bills.merchantId, merchants.id))
         .leftJoin(accounts, eq(bills.accountId, accounts.id))
         .where(
           and(
@@ -157,6 +163,7 @@ export async function POST(request: Request) {
     const {
       name,
       categoryId,
+      merchantId,
       debtId,
       expectedAmount,
       dueDate,
@@ -272,6 +279,23 @@ export async function POST(request: Request) {
       );
     }
 
+    if (merchantId) {
+      validationPromises.push(
+        db
+          .select()
+          .from(merchants)
+          .where(
+            and(
+              eq(merchants.id, merchantId),
+              eq(merchants.userId, userId),
+              eq(merchants.householdId, householdId)
+            )
+          )
+          .limit(1)
+          .then(result => ({ type: 'merchant', found: result.length > 0 }))
+      );
+    }
+
     if (debtId) {
       // Note: Debts don't have householdId yet (Phase 3), so we only check userId for now
       validationPromises.push(
@@ -312,6 +336,7 @@ export async function POST(request: Request) {
       householdId,
       name,
       categoryId,
+      merchantId: merchantId || null,
       debtId,
       expectedAmount: parsedExpectedAmount,
       dueDate: isOneTimeFrequency(frequency) ? 1 : dueDate, // Set to 1 for one-time bills (ignored anyway)

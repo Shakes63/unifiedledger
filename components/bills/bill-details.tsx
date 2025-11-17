@@ -38,6 +38,7 @@ interface Bill {
   userId: string;
   name: string;
   categoryId?: string;
+  merchantId?: string;
   expectedAmount: number;
   dueDate: number;
   frequency: string;
@@ -53,6 +54,11 @@ interface Bill {
 }
 
 interface Category {
+  id: string;
+  name: string;
+}
+
+interface Merchant {
   id: string;
   name: string;
 }
@@ -74,6 +80,7 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
   const [bill, setBill] = useState<Bill | null>(null);
   const [instances, setInstances] = useState<BillInstance[]>([]);
   const [category, setCategory] = useState<Category | null>(null);
+  const [merchant, setMerchant] = useState<Merchant | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +103,7 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
         setBill(data.bill);
         setInstances(data.instances || []);
         setCategory(data.category || null);
+        setMerchant(data.merchant || null);
         setAccount(data.account || null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
@@ -239,6 +247,16 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
                   <span className="text-sm font-medium">Category</span>
                 </div>
                 <p className="text-white">{category.name}</p>
+              </div>
+            )}
+
+            {merchant && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-gray-400">
+                  <User className="w-4 h-4" />
+                  <span className="text-sm font-medium">Merchant</span>
+                </div>
+                <p className="text-white">{merchant.name}</p>
               </div>
             )}
 

@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { bills, billInstances, budgetCategories, accounts } from '@/lib/db/schema';
+import { bills, billInstances, budgetCategories, accounts, merchants } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -73,10 +73,24 @@ export async function GET(
           .limit(1)
       : null;
 
+    const merchant = bill[0].merchantId
+      ? await db
+          .select()
+          .from(merchants)
+          .where(
+            and(
+              eq(merchants.id, bill[0].merchantId),
+              eq(merchants.householdId, householdId)
+            )
+          )
+          .limit(1)
+      : null;
+
     return Response.json({
       bill: bill[0],
       instances,
       category: category?.[0] || null,
+      merchant: merchant?.[0] || null,
       account: account?.[0] || null,
     });
   } catch (error) {
@@ -108,6 +122,7 @@ export async function PUT(
     const {
       name,
       categoryId,
+      merchantId,
       expectedAmount,
       dueDate,
       isVariableAmount,
@@ -161,6 +176,30 @@ export async function PUT(
       }
     }
 
+    // Validate merchant if provided and changed
+    if (merchantId !== undefined && merchantId !== existingBill[0].merchantId) {
+      if (merchantId) {
+        const merchant = await db
+          .select()
+          .from(merchants)
+          .where(
+            and(
+              eq(merchants.id, merchantId),
+              eq(merchants.userId, userId),
+              eq(merchants.householdId, householdId)
+            )
+          )
+          .limit(1);
+
+        if (merchant.length === 0) {
+          return Response.json(
+            { error: 'Merchant not found' },
+            { status: 404 }
+          );
+        }
+      }
+    }
+
     // Validate account if provided and changed
     if (accountId && accountId !== existingBill[0].accountId) {
       const account = await db
@@ -187,6 +226,7 @@ export async function PUT(
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
     if (categoryId !== undefined) updateData.categoryId = categoryId;
+    if (merchantId !== undefined) updateData.merchantId = merchantId || null;
     if (expectedAmount !== undefined) updateData.expectedAmount = parseFloat(expectedAmount);
     if (dueDate !== undefined) {
       if (dueDate < 1 || dueDate > 31) {

@@ -47,6 +47,7 @@ export function BillForm({
     isVariableAmount: bill?.isVariableAmount || false,
     amountTolerance: bill?.amountTolerance || 5.0,
     categoryId: bill?.categoryId || '',
+    merchantId: bill?.merchantId || '',
     debtId: bill?.debtId || '',
     accountId: bill?.accountId || '',
     autoMarkPaid: bill?.autoMarkPaid !== undefined ? bill.autoMarkPaid : true,
@@ -55,6 +56,7 @@ export function BillForm({
   });
 
   const [categories, setCategories] = useState<any[]>([]);
+  const [merchants, setMerchants] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
   const [newPayeePattern, setNewPayeePattern] = useState('');
@@ -70,8 +72,9 @@ export function BillForm({
       if (!selectedHouseholdId) return;
 
       try {
-        const [categoriesRes, accountsRes, debtsRes] = await Promise.all([
+        const [categoriesRes, merchantsRes, accountsRes, debtsRes] = await Promise.all([
           fetchWithHousehold('/api/categories'),
+          fetchWithHousehold('/api/merchants'),
           fetchWithHousehold('/api/accounts'),
           fetchWithHousehold('/api/debts?status=active'),
         ]);
@@ -80,6 +83,12 @@ export function BillForm({
           const categoriesData = await categoriesRes.json();
           // API returns array directly, not wrapped in { data: [] }
           setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+        }
+
+        if (merchantsRes.ok) {
+          const merchantsData = await merchantsRes.json();
+          // API returns array directly, not wrapped in { data: [] }
+          setMerchants(Array.isArray(merchantsData) ? merchantsData : []);
         }
 
         if (accountsRes.ok) {
@@ -252,6 +261,7 @@ export function BillForm({
       isVariableAmount: formData.isVariableAmount,
       amountTolerance: parseFloat(String(formData.amountTolerance)) || 5.0,
       categoryId: formData.categoryId || null,
+      merchantId: formData.merchantId || null,
       debtId: formData.debtId || null,
       accountId: formData.accountId || null,
       autoMarkPaid: formData.autoMarkPaid,
@@ -271,6 +281,7 @@ export function BillForm({
         isVariableAmount: false,
         amountTolerance: 5.0,
         categoryId: '',
+        merchantId: '',
         debtId: '',
         accountId: '',
         autoMarkPaid: true,
@@ -407,8 +418,8 @@ export function BillForm({
         <p className="text-xs text-muted-foreground mt-1">For auto-matching (default 5%)</p>
       </div>
 
-      {/* Category and Account */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Category, Merchant, and Account */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label className="text-muted-foreground text-sm mb-2 block">Category (Optional)</Label>
           {!isCreatingCategory ? (
@@ -469,6 +480,22 @@ export function BillForm({
               </Button>
             </div>
           )}
+        </div>
+        <div>
+          <Label className="text-muted-foreground text-sm mb-2 block">Merchant (Optional)</Label>
+          <Select value={formData.merchantId || 'none'} onValueChange={(value) => handleSelectChange('merchantId', value === 'none' ? '' : value)}>
+            <SelectTrigger className="bg-elevated border-border text-foreground">
+              <SelectValue placeholder="Select merchant" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              {merchants.map((merchant) => (
+                <SelectItem key={merchant.id} value={merchant.id}>
+                  {merchant.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <Label className="text-muted-foreground text-sm mb-2 block">Account (Optional)</Label>

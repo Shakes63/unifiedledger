@@ -47,6 +47,13 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 ## Recent Major Features
 
 **Latest (2025-01-27):**
+- Bill Merchant Field (✅ COMPLETE)
+  - ✅ Database schema updated with `merchant_id` field on bills table
+  - ✅ Migration applied successfully (0054_add_merchant_id_to_bills.sql)
+  - ✅ Merchant selector added to bill form component
+  - ✅ Merchant display added to bill details component
+  - ✅ Transaction form auto-fills merchant when bill is selected
+  - ✅ All API endpoints updated to handle merchantId (GET, POST, PUT)
 - Combined Transfer View Toggle (✅ COMPLETE)
   - ✅ Database schema updated with `combined_transfer_view` field
   - ✅ Migration applied successfully

@@ -26,6 +26,7 @@ alwaysApply: false
 
 ## Bills Tables
 - **bills** - Recurring bill definitions (household-scoped - Phase 2 ✅ COMPLETE)
+  - Fields: `id`, `userId`, `householdId`, `name`, `categoryId`, `merchantId` (optional), `debtId`, `expectedAmount`, `dueDate`, `frequency`, `specificDueDate`, `isVariableAmount`, `amountTolerance`, `payeePatterns`, `accountId`, `isActive`, `autoMarkPaid`, `notes`, `createdAt`
 - **billInstances** - Individual bill payment instances (household-scoped - Phase 2 ✅ COMPLETE)
 
 ## Rules Tables

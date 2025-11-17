@@ -1,7 +1,6 @@
 # Features to Implement
 
 **Add new feature requests below this line:**
-1. bills need a merchant field and then they should use that merchant to autofill the merchant field in the transaction creation form when a bill is selected.
 
 ---
 
@@ -49,3 +48,4 @@
 35. ✅ **Advanced Permission System** - Granular permission management with custom overrides, comprehensive testing, and documentation
 36. ✅ **Quick Entry Mode Enhancement** - Enhanced keyboard-focused rapid transaction entry with category/merchant selection, smart defaults, transfer support, and comprehensive keyboard shortcuts
 37. ✅ **Settings Reorganization** - Restructured settings page from 3-tier to 2-tier navigation (Account/Households) with improved organization, Data Management moved to Account section, and Personal Preferences combining Theme, Notifications, and Financial Display
+38. ✅ **Bill Merchant Field** - Optional merchant field for bills with auto-fill in transaction form
