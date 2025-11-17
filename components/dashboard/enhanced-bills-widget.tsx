@@ -56,7 +56,7 @@ export function EnhancedBillsWidget() {
     // Re-sort when sortBy changes
     if (allBills.length > 0) {
       const sorted = sortBills([...allBills], sortBy);
-      setBills(sorted.slice(0, 10));
+      setBills(sorted);
     }
   }, [sortBy, allBills]);
 
@@ -67,32 +67,55 @@ export function EnhancedBillsWidget() {
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-      const response = await fetchWithHousehold(
-        `/api/bills/instances?status=pending,paid,overdue&sortBy=dueDate`
+      // Fetch overdue bills separately with high limit to ensure we get all of them
+      const overdueResponse = await fetchWithHousehold(
+        `/api/bills/instances?status=overdue&limit=10000`
+      );
+      
+      // Fetch pending and paid bills for current month
+      const currentMonthResponse = await fetchWithHousehold(
+        `/api/bills/instances?status=pending,paid&limit=1000`
       );
 
-      if (response.ok) {
-        const response_data = await response.json();
-        const rawData = Array.isArray(response_data) ? response_data : response_data.data || [];
+      let allBillInstances: BillInstance[] = [];
 
-        // Transform the data structure
-        const billInstances = rawData.map((row: any) => ({
+      // Process overdue bills - include all regardless of date
+      if (overdueResponse.ok) {
+        const overdueData = await overdueResponse.json();
+        const overdueRawData = Array.isArray(overdueData) ? overdueData : overdueData.data || [];
+        const overdueBills = overdueRawData.map((row: any) => ({
+          ...row.instance,
+          bill: row.bill,
+        }));
+        allBillInstances.push(...overdueBills);
+      }
+
+      // Process pending and paid bills
+      if (currentMonthResponse.ok) {
+        const currentMonthData = await currentMonthResponse.json();
+        const currentMonthRawData = Array.isArray(currentMonthData) ? currentMonthData : currentMonthData.data || [];
+        const currentMonthBills = currentMonthRawData.map((row: any) => ({
           ...row.instance,
           bill: row.bill,
         }));
 
-        // Filter for this month only
-        const thisMonthBills = billInstances.filter((bill: BillInstance) => {
+        // Filter pending and paid bills by current month
+        const filteredCurrentMonthBills = currentMonthBills.filter((bill: BillInstance) => {
           const dueDate = new Date(bill.dueDate);
           return dueDate >= startOfMonth && dueDate <= endOfMonth;
         });
-
-        const sorted = sortBills(thisMonthBills, sortBy);
-        setAllBills(sorted);
-        setBills(sorted.slice(0, 10)); // Show top 10
-      } else {
-        console.error('Failed to load bills');
+        
+        allBillInstances.push(...filteredCurrentMonthBills);
       }
+
+      // Remove duplicates (in case a bill appears in both responses)
+      const uniqueBills = allBillInstances.filter((bill, index, self) =>
+        index === self.findIndex((b) => b.id === bill.id)
+      );
+
+      const sorted = sortBills(uniqueBills, sortBy);
+      setAllBills(sorted);
+      setBills(sorted); // Show all bills
     } catch (error) {
       console.error('Error fetching bills:', error);
       if (error instanceof Error && error.message === 'No household selected') {
@@ -105,16 +128,31 @@ export function EnhancedBillsWidget() {
   };
 
   const sortBills = (billsToSort: BillInstance[], option: SortOption): BillInstance[] => {
-    return [...billsToSort].sort((a, b) => {
-      if (option === 'date') {
-        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-      } else {
-        // Sort by amount (descending)
-        const amountA = a.actualAmount || a.expectedAmount;
-        const amountB = b.actualAmount || b.expectedAmount;
-        return amountB - amountA;
-      }
-    });
+    // Group bills by status with priority: overdue > pending > paid
+    const overdueBills = billsToSort.filter(b => b.status === 'overdue');
+    const pendingBills = billsToSort.filter(b => b.status === 'pending');
+    const paidBills = billsToSort.filter(b => b.status === 'paid');
+    
+    // Sort each group by date (oldest first) or amount
+    const sortGroup = (group: BillInstance[]) => {
+      return [...group].sort((a, b) => {
+        if (option === 'date') {
+          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        } else {
+          // Sort by amount (descending)
+          const amountA = a.actualAmount || a.expectedAmount;
+          const amountB = b.actualAmount || b.expectedAmount;
+          return amountB - amountA;
+        }
+      });
+    };
+    
+    // Combine groups in order: overdue → pending → paid
+    return [
+      ...sortGroup(overdueBills),
+      ...sortGroup(pendingBills),
+      ...sortGroup(paidBills)
+    ];
   };
 
   const paidCount = allBills.filter((b) => b.status === 'paid').length;

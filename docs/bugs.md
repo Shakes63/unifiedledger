@@ -14,7 +14,7 @@ _No active bugs_
 
 **Active Bugs:** 0
 **In Progress:** 0
-**Fixed (All Time):** 44
+**Fixed (All Time):** 47
 
 ---
 
@@ -72,6 +72,12 @@ _No active bugs_
 43. **Bills Not Refreshing After Transaction Creation** - Implemented conditional bill refresh mechanism using custom events. Bills refresh automatically when 'bill' or 'expense' transactions are created. All bill-displaying components (bills page, widgets, dropdowns) listen for refresh events and update accordingly.
 
 44. **Bill Matching Not Working for Bills Without Merchants** - Implemented three-tier bill matching system: direct bill instance ID matching for explicit payments, bill-matcher utility for description/amount/date matching, and category-only fallback. Bills without merchants now match correctly.
+
+45. **Overdue Bills Sorting** - Fixed overdue bills section to sort by oldest first (changed from newest first) in bills page.
+
+46. **Pending Bills Month Navigation** - Replaced 30-day view with month-based navigation. Added forward/backward buttons to navigate between months. Back button hidden when viewing current month. Bills page now shows pending bills filtered by selected month.
+
+47. **Paid Bills Month Navigation** - Added month-based navigation to paid bills section matching pending bills functionality. Both navigation buttons always enabled (unlike pending) since paid bills exist in past months. Also fixed dashboard bills widget to show all bills and fetch overdue bills separately to ensure all overdue bills (including older ones) are displayed.
 
 ---
 

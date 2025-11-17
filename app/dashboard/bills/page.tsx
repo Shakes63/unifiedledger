@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { format, parseISO, differenceInDays, addDays, startOfMonth, endOfMonth } from 'date-fns';
-import { AlertCircle, CheckCircle2, Clock, DollarSign, Plus } from 'lucide-react';
+import { format, parseISO, differenceInDays, addDays, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
+import { AlertCircle, CheckCircle2, Clock, DollarSign, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -59,6 +59,8 @@ export default function BillsDashboard() {
   const [bills, setBills] = useState<BillWithInstance[]>([]);
   const [billInstances, setBillInstances] = useState<BillInstance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingMonth, setPendingMonth] = useState<Date>(new Date());
+  const [paidMonth, setPaidMonth] = useState<Date>(new Date());
   const [stats, setStats] = useState({
     totalUpcoming: 0,
     totalOverdue: 0,
@@ -221,16 +223,16 @@ export default function BillsDashboard() {
   };
 
   const getUpcomingBills = () => {
-    const today = new Date();
-    const thirtyDaysFromNow = addDays(today, 30);
+    const monthStart = startOfMonth(pendingMonth);
+    const monthEnd = endOfMonth(pendingMonth);
 
     return billInstances
       .filter((instance) => {
         const dueDate = parseISO(instance.dueDate);
         return (
           instance.status === 'pending' &&
-          dueDate >= today &&
-          dueDate <= thirtyDaysFromNow
+          dueDate >= monthStart &&
+          dueDate <= monthEnd
         );
       })
       .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime());
@@ -239,13 +241,12 @@ export default function BillsDashboard() {
   const getOverdueBills = () => {
     return billInstances
       .filter((instance) => instance.status === 'overdue')
-      .sort((a, b) => parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime());
+      .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime());
   };
 
-  const getPaidThisMonth = () => {
-    const today = new Date();
-    const monthStart = startOfMonth(today);
-    const monthEnd = endOfMonth(today);
+  const getPaidBills = () => {
+    const monthStart = startOfMonth(paidMonth);
+    const monthEnd = endOfMonth(paidMonth);
 
     return billInstances
       .filter((instance) => {
@@ -256,7 +257,7 @@ export default function BillsDashboard() {
           dueDate <= monthEnd
         );
       })
-      .sort((a, b) => parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime());
+      .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime());
   };
 
   const getBillName = (billId: string) => {
@@ -334,7 +335,7 @@ export default function BillsDashboard() {
 
   const upcomingBills = getUpcomingBills();
   const overdueBills = getOverdueBills();
-  const paidBills = getPaidThisMonth();
+  const paidBills = getPaidBills();
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">
@@ -441,14 +442,37 @@ export default function BillsDashboard() {
       {/* Upcoming Bills Section */}
       <Card className="bg-background border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-[var(--color-warning)]" />
-            Upcoming Bills (Next 30 Days)
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-[var(--color-warning)]" />
+              Pending Bills ({format(pendingMonth, 'MMMM yyyy')})
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPendingMonth(subMonths(pendingMonth, 1))}
+                disabled={isSameMonth(pendingMonth, new Date())}
+                className="text-muted-foreground hover:text-foreground hover:bg-elevated disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Previous month"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPendingMonth(addMonths(pendingMonth, 1))}
+                className="text-muted-foreground hover:text-foreground hover:bg-elevated"
+                aria-label="Next month"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
           <CardDescription className="text-muted-foreground">
             {upcomingBills.length > 0
-              ? `${upcomingBills.length} bill${upcomingBills.length !== 1 ? 's' : ''} coming up`
-              : 'No upcoming bills in the next 30 days'}
+              ? `${upcomingBills.length} bill${upcomingBills.length !== 1 ? 's' : ''} pending`
+              : `No pending bills in ${format(pendingMonth, 'MMMM yyyy')}`}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -458,31 +482,59 @@ export default function BillsDashboard() {
             ))
           ) : (
             <p className="text-center text-muted-foreground py-8">
-              Great! No bills due in the next 30 days.
+              No pending bills in {format(pendingMonth, 'MMMM yyyy')}.
             </p>
           )}
         </CardContent>
       </Card>
 
-      {/* Paid This Month Section */}
-      {paidBills.length > 0 && (
-        <Card className="bg-background border-border">
-          <CardHeader>
+      {/* Paid Bills Section */}
+      <Card className="bg-background border-border">
+        <CardHeader>
+          <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-[var(--color-income)]" />
-              Paid This Month
+              Paid Bills ({format(paidMonth, 'MMMM yyyy')})
             </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              {paidBills.length} bill{paidBills.length !== 1 ? 's' : ''} paid
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {paidBills.map((instance) => (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPaidMonth(subMonths(paidMonth, 1))}
+                className="text-muted-foreground hover:text-foreground hover:bg-elevated"
+                aria-label="Previous month"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setPaidMonth(addMonths(paidMonth, 1))}
+                className="text-muted-foreground hover:text-foreground hover:bg-elevated"
+                aria-label="Next month"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          <CardDescription className="text-muted-foreground">
+            {paidBills.length > 0
+              ? `${paidBills.length} bill${paidBills.length !== 1 ? 's' : ''} paid`
+              : `No paid bills in ${format(paidMonth, 'MMMM yyyy')}`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {paidBills.length > 0 ? (
+            paidBills.map((instance) => (
               <BillItem key={instance.id} instance={instance} showDaysUntil={false} />
-            ))}
-          </CardContent>
-        </Card>
-      )}
+            ))
+          ) : (
+            <p className="text-center text-muted-foreground py-8">
+              No bills were paid in {format(paidMonth, 'MMMM yyyy')}.
+            </p>
+          )}
+        </CardContent>
+      </Card>
       </div>
     </div>
   );
