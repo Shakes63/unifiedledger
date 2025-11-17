@@ -397,7 +397,7 @@ function TransactionsContent() {
     }
     
     // Ensure we're comparing strings
-    const filteredIds = filteredAccountIds.map(id => String(id));
+    const filteredIds = filteredAccountIds.map((id: string) => String(id));
     const txAccountId = String(transaction.accountId);
     
     // Helper to check if account ID is in filter
@@ -690,7 +690,7 @@ function TransactionsContent() {
       ? [accountIdFromUrl]
       : currentFilters?.accountIds || [];
     
-    const filteredIds = filteredAccountIds.length > 0 ? filteredAccountIds.map(id => String(id)) : [];
+    const filteredIds = filteredAccountIds.length > 0 ? filteredAccountIds.map((id: string) => String(id)) : [];
     const seenTransferPairs = new Set<string>();
     const filtered: Transaction[] = [];
     

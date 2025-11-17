@@ -327,6 +327,11 @@ export function QuickTransactionModal({
         transactionData.toAccountId = toAccountId;
       }
 
+      // Add bill instance ID for direct bill payment matching
+      if (type === 'bill' && selectedBillInstanceId && selectedBillInstanceId !== 'none') {
+        transactionData.billInstanceId = selectedBillInstanceId;
+      }
+
       // Add optional fields if provided (not for transfers)
       // Bills can have category and merchant (they're submitted as expenses)
       if (apiType !== 'transfer') {

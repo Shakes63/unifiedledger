@@ -367,7 +367,7 @@ export async function POST(request: Request) {
 
       // FIX: Automatically set status to 'overdue' if due date is in the past
       // This prevents creating pending instances with past due dates
-      const instanceStatus = dueDateString < todayString ? 'overdue' : 'pending';
+      const instanceStatus: 'pending' | 'overdue' = dueDateString < todayString ? 'overdue' : 'pending';
 
       instancesData.push({
         id: nanoid(),
@@ -376,7 +376,7 @@ export async function POST(request: Request) {
         billId,
         dueDate: dueDateString,
         expectedAmount: parsedExpectedAmount,
-        status: instanceStatus as const,
+        status: instanceStatus,
       });
     }
 

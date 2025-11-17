@@ -41,10 +41,10 @@ alwaysApply: false
 - Other frequencies remain active and continue generating future instances
 
 ## Bill Matching
-- **Current Implementation:** Category-based matching only - matches bills to transactions by `categoryId` when transaction is created
-- **Matching Logic:** Bills match transactions with matching category, regardless of merchantId (null or set)
-- **Auto-Matching:** Happens automatically when expense transactions are created with matching category
-- **Future Enhancement:** Need to implement description/amount/date matching as alternative to category-only matching (see `docs/bill-matching-and-refresh-plan.md`)
+- **Three-Tier Matching System:** (1) Direct bill instance ID matching for explicit bill payments (bypasses all matching logic), (2) Bill-matcher utility for description/amount/date matching (40% similarity, 30% amount, 20% date, 10% payee patterns, 70% confidence threshold), (3) Category-only matching as fallback
+- **Matching Logic:** Bills match transactions with matching category, regardless of merchantId (null or set). Bills without merchants match correctly using description/amount/date matching.
+- **Direct Bill Payments:** When `billInstanceId` is provided, directly links to that bill instance regardless of category/date/description/merchant
+- **Auto-Matching:** Happens automatically when expense transactions are created. Uses bill-matcher first, falls back to category-only matching if no match found.
 - **Legacy Multi-Factor Matching:** Available via `/api/bills/match` endpoint using Levenshtein distance (string similarity 40%, amount tolerance ±5% 30%, date pattern 20%, payee pattern 10%, requires ≥90% confidence)
 
 ## Permission System

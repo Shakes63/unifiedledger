@@ -48,7 +48,7 @@ export async function getCombinedTransferViewPreference(
     // This handles both boolean (false) and integer (0) cases
     // Note: In SQLite, false is stored as 0, true as 1
     // Drizzle with { mode: 'boolean' } converts these automatically, but we'll be explicit
-    if (value === false || value === 0 || value === '0') {
+    if (value === false || (typeof value === 'number' && value === 0) || (typeof value === 'string' && value === '0')) {
       console.log('[Transfer View Preference] Value is false/0/"0", returning FALSE (separate view - show both transfer_out and transfer_in)');
       return false; // Separate view - show both transfer_out and transfer_in
     }

@@ -520,6 +520,8 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       const submitData = {
         ...formData,
         type: formData.type === 'bill' ? 'expense' : formData.type,
+        // Include bill instance ID for direct bill payment matching
+        billInstanceId: formData.type === 'bill' && selectedBillInstanceId && selectedBillInstanceId !== 'none' ? selectedBillInstanceId : undefined,
         // Include sales tax boolean for income transactions
         isSalesTaxable: formData.type === 'income' ? salesTaxEnabled : false,
       };

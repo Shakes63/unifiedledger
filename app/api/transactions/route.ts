@@ -12,6 +12,7 @@ import { handleTransferConversion } from '@/lib/rules/transfer-action-handler';
 import { handleSplitCreation } from '@/lib/rules/split-action-handler';
 import { handleAccountChange } from '@/lib/rules/account-action-handler';
 import { findMatchingBills } from '@/lib/bills/bill-matcher';
+import { findMatchingBillInstance } from '@/lib/bills/bill-matching-helpers';
 import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
 import { batchUpdateMilestones } from '@/lib/debts/milestone-utils';
 import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
       categoryId,
       merchantId,
       debtId, // For direct debt payments
+      billInstanceId, // For direct bill payment matching
       date,
       amount,
       description,
@@ -711,131 +713,368 @@ export async function POST(request: Request) {
       }
     }
 
-    // OPTIMIZATION: Auto-match bills by category (Task 3)
-    // Uses JOIN instead of loop, batches all updates in parallel
-    // NOTE: Matching is based on categoryId only - merchantId is NOT required for matching
-    // Bills without merchants will match transactions with matching category
+    // OPTIMIZATION: Auto-match bills
+    // Priority 1: Direct bill instance ID matching (for explicit bill payments)
+    // Priority 2: Bill-matcher (description/amount/date matching)
+    // Priority 3: Category-only matching (fallback)
     let linkedBillId: string | null = null;
+    let linkedInstanceId: string | null = null;
     try {
-      if (type === 'expense' && appliedCategoryId) {
-        // Single query with JOIN to get oldest instance (prioritize overdue, then pending)
-        // Replaces: fetch bills → loop → fetch instances → sort
-        // FIX: Include both 'pending' and 'overdue' statuses, prioritize overdue bills
-        // Matching works regardless of merchantId (null or set) - only categoryId matters
-        const billMatches = await db
-          .select({
-            bill: bills,
-            instance: billInstances,
-          })
-          .from(bills)
-          .innerJoin(billInstances, eq(billInstances.billId, bills.id))
-          .where(
-            and(
-              eq(bills.userId, userId),
-              eq(bills.householdId, householdId),
-              eq(bills.isActive, true),
-              eq(bills.categoryId, appliedCategoryId),
-              inArray(billInstances.status, ['pending', 'overdue'])
+      if (type === 'expense') {
+        // Priority 1: Direct bill instance ID matching (bypasses all matching logic)
+        if (billInstanceId) {
+          // Validate bill instance belongs to user/household
+          const [instance] = await db
+            .select({
+              instance: billInstances,
+              bill: bills,
+            })
+            .from(billInstances)
+            .innerJoin(bills, eq(bills.id, billInstances.billId))
+            .where(
+              and(
+                eq(billInstances.id, billInstanceId),
+                eq(billInstances.userId, userId),
+                eq(billInstances.householdId, householdId),
+                inArray(billInstances.status, ['pending', 'overdue'])
+              )
             )
-          )
-          .orderBy(
-            // Prioritize overdue bills first (0), then pending (1), then by due date (oldest first)
-            sql`CASE WHEN ${billInstances.status} = 'overdue' THEN 0 ELSE 1 END`,
-            asc(billInstances.dueDate)
-          )
-          .limit(1);
+            .limit(1);
 
-        if (billMatches.length > 0) {
-          const match = billMatches[0];
-          linkedBillId = match.bill.id;
+          if (instance) {
+            linkedBillId = instance.bill.id;
+            linkedInstanceId = instance.instance.id;
 
-          // Batch all bill-related updates (Task 3: ~60-80% faster)
-          // Execute transaction and bill instance updates in parallel
-          await Promise.all([
-            // Update transaction with bill link
-            db
-              .update(transactions)
-              .set({
-                billId: linkedBillId,
-                updatedAt: new Date().toISOString(),
-              })
-              .where(eq(transactions.id, transactionId)),
+            // Get the bill to check for debt linkage
+            const [bill] = await db
+              .select()
+              .from(bills)
+              .where(eq(bills.id, linkedBillId))
+              .limit(1);
 
-            // Update bill instance
-            db
-              .update(billInstances)
-              .set({
-                status: 'paid',
-                paidDate: date,
-                actualAmount: parseFloat(amount),
-                transactionId,
-                updatedAt: new Date().toISOString(),
-              })
-              .where(eq(billInstances.id, match.instance.id)),
-          ]);
+            if (bill) {
+              // Batch all bill-related updates (parallel execution)
+              await Promise.all([
+                // Update transaction with bill link
+                db
+                  .update(transactions)
+                  .set({
+                    billId: linkedBillId,
+                    updatedAt: new Date().toISOString(),
+                  })
+                  .where(eq(transactions.id, transactionId)),
 
-          // If bill is linked to a debt, process debt updates
-          if (match.bill.debtId) {
-            try {
-              const paymentAmount = parseFloat(amount);
-
-              // Get current debt to calculate interest/principal split
-              const [currentDebt] = await db
-                .select()
-                .from(debts)
-                .where(eq(debts.id, match.bill.debtId));
-
-              if (currentDebt) {
-                // Calculate payment breakdown
-                const breakdown = calculatePaymentBreakdown(
-                  paymentAmount,
-                  currentDebt.remainingBalance,
-                  currentDebt.interestRate || 0,
-                  currentDebt.interestType || 'none',
-                  currentDebt.loanType || 'revolving',
-                  currentDebt.compoundingFrequency || 'monthly',
-                  currentDebt.billingCycleDays || 30
-                );
-
-                // Calculate new balance
-                const newBalance = Math.max(0, currentDebt.remainingBalance - breakdown.principalAmount);
-
-                // Batch all debt-related operations
-                await Promise.all([
-                  // Create debt payment record
-                  db.insert(debtPayments).values({
-                    id: nanoid(),
-                    debtId: match.bill.debtId,
-                    userId,
-                    householdId,
-                    amount: paymentAmount,
-                    principalAmount: breakdown.principalAmount,
-                    interestAmount: breakdown.interestAmount,
-                    paymentDate: date,
+                // Update bill instance
+                db
+                  .update(billInstances)
+                  .set({
+                    status: 'paid',
+                    paidDate: date,
+                    actualAmount: parseFloat(amount),
                     transactionId,
-                    notes: `Automatic payment from bill: ${match.bill.name}`,
-                    createdAt: new Date().toISOString(),
-                  }),
+                    updatedAt: new Date().toISOString(),
+                  })
+                  .where(eq(billInstances.id, linkedInstanceId)),
+              ]);
 
-                  // Update debt balance
-                  db
-                    .update(debts)
-                    .set({
-                      remainingBalance: newBalance,
-                      status: newBalance === 0 ? 'paid_off' : 'active',
-                      updatedAt: new Date().toISOString(),
-                    })
-                    .where(eq(debts.id, match.bill.debtId)),
+              // If bill is linked to a debt, process debt updates
+              if (bill.debtId) {
+                try {
+                  const paymentAmount = parseFloat(amount);
 
-                  // Batch update milestones (replaces loop)
-                  batchUpdateMilestones(match.bill.debtId, newBalance),
-                ]);
+                  // Get current debt to calculate interest/principal split
+                  const [currentDebt] = await db
+                    .select()
+                    .from(debts)
+                    .where(eq(debts.id, bill.debtId));
+
+                  if (currentDebt) {
+                    // Calculate payment breakdown
+                    const breakdown = calculatePaymentBreakdown(
+                      paymentAmount,
+                      currentDebt.remainingBalance,
+                      currentDebt.interestRate || 0,
+                      currentDebt.interestType || 'none',
+                      currentDebt.loanType || 'revolving',
+                      currentDebt.compoundingFrequency || 'monthly',
+                      currentDebt.billingCycleDays || 30
+                    );
+
+                    // Calculate new balance
+                    const newBalance = Math.max(0, currentDebt.remainingBalance - breakdown.principalAmount);
+
+                    // Batch all debt-related operations
+                    await Promise.all([
+                      // Create debt payment record
+                      db.insert(debtPayments).values({
+                        id: nanoid(),
+                        debtId: bill.debtId,
+                        userId,
+                        householdId,
+                        amount: paymentAmount,
+                        principalAmount: breakdown.principalAmount,
+                        interestAmount: breakdown.interestAmount,
+                        paymentDate: date,
+                        transactionId,
+                        notes: `Automatic payment from bill: ${bill.name}`,
+                        createdAt: new Date().toISOString(),
+                      }),
+
+                      // Update debt balance
+                      db
+                        .update(debts)
+                        .set({
+                          remainingBalance: newBalance,
+                          status: newBalance === 0 ? 'paid_off' : 'active',
+                          updatedAt: new Date().toISOString(),
+                        })
+                        .where(eq(debts.id, bill.debtId)),
+
+                      // Batch update milestones (replaces loop)
+                      batchUpdateMilestones(bill.debtId, newBalance),
+                    ]);
+                  }
+                } catch (debtError) {
+                  console.error('Error updating debt payment:', debtError);
+                  // Don't fail the whole transaction if debt update fails
+                }
               }
-            } catch (debtError) {
-              console.error('Error updating debt payment:', debtError);
-              // Don't fail the whole transaction if debt update fails
             }
           }
+        } else {
+          // Priority 2: Try bill-matcher matching (more accurate, works for bills without merchants)
+          const billMatch = await findMatchingBillInstance(
+          {
+            id: transactionId,
+            description,
+            amount: parseFloat(amount),
+            date,
+            type,
+            categoryId: appliedCategoryId,
+          },
+          userId,
+          householdId,
+          70 // min confidence threshold
+        );
+
+        if (billMatch) {
+          linkedBillId = billMatch.billId;
+          linkedInstanceId = billMatch.instanceId;
+
+          // Get the bill to check for debt linkage
+          const [bill] = await db
+            .select()
+            .from(bills)
+            .where(eq(bills.id, linkedBillId))
+            .limit(1);
+
+          if (bill) {
+            // Batch all bill-related updates (parallel execution)
+            await Promise.all([
+              // Update transaction with bill link
+              db
+                .update(transactions)
+                .set({
+                  billId: linkedBillId,
+                  updatedAt: new Date().toISOString(),
+                })
+                .where(eq(transactions.id, transactionId)),
+
+              // Update bill instance
+              db
+                .update(billInstances)
+                .set({
+                  status: 'paid',
+                  paidDate: date,
+                  actualAmount: parseFloat(amount),
+                  transactionId,
+                  updatedAt: new Date().toISOString(),
+                })
+                .where(eq(billInstances.id, linkedInstanceId)),
+            ]);
+
+            // If bill is linked to a debt, process debt updates
+            if (bill.debtId) {
+              try {
+                const paymentAmount = parseFloat(amount);
+
+                // Get current debt to calculate interest/principal split
+                const [currentDebt] = await db
+                  .select()
+                  .from(debts)
+                  .where(eq(debts.id, bill.debtId));
+
+                if (currentDebt) {
+                  // Calculate payment breakdown
+                  const breakdown = calculatePaymentBreakdown(
+                    paymentAmount,
+                    currentDebt.remainingBalance,
+                    currentDebt.interestRate || 0,
+                    currentDebt.interestType || 'none',
+                    currentDebt.loanType || 'revolving',
+                    currentDebt.compoundingFrequency || 'monthly',
+                    currentDebt.billingCycleDays || 30
+                  );
+
+                  // Calculate new balance
+                  const newBalance = Math.max(0, currentDebt.remainingBalance - breakdown.principalAmount);
+
+                  // Batch all debt-related operations
+                  await Promise.all([
+                    // Create debt payment record
+                    db.insert(debtPayments).values({
+                      id: nanoid(),
+                      debtId: bill.debtId,
+                      userId,
+                      householdId,
+                      amount: paymentAmount,
+                      principalAmount: breakdown.principalAmount,
+                      interestAmount: breakdown.interestAmount,
+                      paymentDate: date,
+                      transactionId,
+                      notes: `Automatic payment from bill: ${bill.name}`,
+                      createdAt: new Date().toISOString(),
+                    }),
+
+                    // Update debt balance
+                    db
+                      .update(debts)
+                      .set({
+                        remainingBalance: newBalance,
+                        status: newBalance === 0 ? 'paid_off' : 'active',
+                        updatedAt: new Date().toISOString(),
+                      })
+                      .where(eq(debts.id, bill.debtId)),
+
+                    // Batch update milestones (replaces loop)
+                    batchUpdateMilestones(bill.debtId, newBalance),
+                  ]);
+                }
+              } catch (debtError) {
+                console.error('Error updating debt payment:', debtError);
+                // Don't fail the whole transaction if debt update fails
+              }
+            }
+          }
+        } else if (appliedCategoryId) {
+          // Fallback: Category-only matching (backwards compatibility)
+          // Single query with JOIN to get oldest instance (prioritize overdue, then pending)
+          const billMatches = await db
+            .select({
+              bill: bills,
+              instance: billInstances,
+            })
+            .from(bills)
+            .innerJoin(billInstances, eq(billInstances.billId, bills.id))
+            .where(
+              and(
+                eq(bills.userId, userId),
+                eq(bills.householdId, householdId),
+                eq(bills.isActive, true),
+                eq(bills.categoryId, appliedCategoryId),
+                inArray(billInstances.status, ['pending', 'overdue'])
+              )
+            )
+            .orderBy(
+              // Prioritize overdue bills first (0), then pending (1), then by due date (oldest first)
+              sql`CASE WHEN ${billInstances.status} = 'overdue' THEN 0 ELSE 1 END`,
+              asc(billInstances.dueDate)
+            )
+            .limit(1);
+
+          if (billMatches.length > 0) {
+            const match = billMatches[0];
+            linkedBillId = match.bill.id;
+
+            // Batch all bill-related updates (Task 3: ~60-80% faster)
+            // Execute transaction and bill instance updates in parallel
+            await Promise.all([
+              // Update transaction with bill link
+              db
+                .update(transactions)
+                .set({
+                  billId: linkedBillId,
+                  updatedAt: new Date().toISOString(),
+                })
+                .where(eq(transactions.id, transactionId)),
+
+              // Update bill instance
+              db
+                .update(billInstances)
+                .set({
+                  status: 'paid',
+                  paidDate: date,
+                  actualAmount: parseFloat(amount),
+                  transactionId,
+                  updatedAt: new Date().toISOString(),
+                })
+                .where(eq(billInstances.id, match.instance.id)),
+            ]);
+
+            // If bill is linked to a debt, process debt updates
+            if (match.bill.debtId) {
+              try {
+                const paymentAmount = parseFloat(amount);
+
+                // Get current debt to calculate interest/principal split
+                const [currentDebt] = await db
+                  .select()
+                  .from(debts)
+                  .where(eq(debts.id, match.bill.debtId));
+
+                if (currentDebt) {
+                  // Calculate payment breakdown
+                  const breakdown = calculatePaymentBreakdown(
+                    paymentAmount,
+                    currentDebt.remainingBalance,
+                    currentDebt.interestRate || 0,
+                    currentDebt.interestType || 'none',
+                    currentDebt.loanType || 'revolving',
+                    currentDebt.compoundingFrequency || 'monthly',
+                    currentDebt.billingCycleDays || 30
+                  );
+
+                  // Calculate new balance
+                  const newBalance = Math.max(0, currentDebt.remainingBalance - breakdown.principalAmount);
+
+                  // Batch all debt-related operations
+                  await Promise.all([
+                    // Create debt payment record
+                    db.insert(debtPayments).values({
+                      id: nanoid(),
+                      debtId: match.bill.debtId,
+                      userId,
+                      householdId,
+                      amount: paymentAmount,
+                      principalAmount: breakdown.principalAmount,
+                      interestAmount: breakdown.interestAmount,
+                      paymentDate: date,
+                      transactionId,
+                      notes: `Automatic payment from bill: ${match.bill.name}`,
+                      createdAt: new Date().toISOString(),
+                    }),
+
+                    // Update debt balance
+                    db
+                      .update(debts)
+                      .set({
+                        remainingBalance: newBalance,
+                        status: newBalance === 0 ? 'paid_off' : 'active',
+                        updatedAt: new Date().toISOString(),
+                      })
+                      .where(eq(debts.id, match.bill.debtId)),
+
+                    // Batch update milestones (replaces loop)
+                    batchUpdateMilestones(match.bill.debtId, newBalance),
+                  ]);
+                }
+              } catch (debtError) {
+                console.error('Error updating debt payment:', debtError);
+                // Don't fail the whole transaction if debt update fails
+              }
+            }
+          }
+        }
         }
       }
     } catch (error) {

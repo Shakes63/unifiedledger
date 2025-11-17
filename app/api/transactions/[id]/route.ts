@@ -5,6 +5,7 @@ import { transactions, accounts, budgetCategories, transactionSplits, bills, bil
 import { eq, and, inArray } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { deleteSalesTaxRecord } from '@/lib/sales-tax/transaction-sales-tax';
+import { findMatchingBillInstance } from '@/lib/bills/bill-matching-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -177,6 +178,7 @@ export async function PUT(
       accountId,
       categoryId,
       merchantId,
+      billInstanceId, // For direct bill payment matching
       date,
       amount,
       description,
@@ -306,108 +308,263 @@ export async function PUT(
       })
       .where(eq(transactions.id, id));
 
-    // Auto-match bills by category (if category changed and is expense)
+    // Auto-match bills
+    // Priority 1: Direct bill instance ID matching (for explicit bill payments)
+    // Priority 2: Bill-matcher (description/amount/date matching)
+    // Priority 3: Category-only matching (fallback)
     try {
-      if (transaction.type === 'expense' && newCategoryId && newCategoryId !== transaction.categoryId) {
-        // First, unlink from old bill instance if it exists
-        if (transaction.billId) {
-          const oldInstance = await db
-            .select()
-            .from(billInstances)
-            .where(eq(billInstances.transactionId, id))
-            .limit(1);
-
-          if (oldInstance.length > 0) {
-            await db
-              .update(billInstances)
-              .set({
-                status: 'pending',
-                paidDate: null,
-                actualAmount: null,
-                transactionId: null,
-                updatedAt: new Date().toISOString(),
-              })
-              .where(eq(billInstances.id, oldInstance[0].id));
-          }
-        }
-
-        // Now find bills with the new category
-        const matchingBills = await db
-          .select()
-          .from(bills)
-          .where(
-            and(
-              eq(bills.userId, userId),
-              eq(bills.householdId, householdId),
-              eq(bills.isActive, true),
-              eq(bills.categoryId, newCategoryId)
-            )
-          );
-
-        if (matchingBills.length > 0) {
-          // Collect all pending and overdue instances from all matching bills
-          // FIX: Include both 'pending' and 'overdue' statuses, prioritize overdue bills
-          const allPendingInstances: any[] = [];
-
-          for (const bill of matchingBills) {
-            const instances = await db
+      if (transaction.type === 'expense') {
+        // Priority 1: Direct bill instance ID matching (bypasses all matching logic)
+        if (billInstanceId) {
+          // First, unlink from old bill instance if it exists
+          if (transaction.billId) {
+            const oldInstance = await db
               .select()
               .from(billInstances)
+              .where(eq(billInstances.transactionId, id))
+              .limit(1);
+
+            if (oldInstance.length > 0) {
+              await db
+                .update(billInstances)
+                .set({
+                  status: 'pending',
+                  paidDate: null,
+                  actualAmount: null,
+                  transactionId: null,
+                  updatedAt: new Date().toISOString(),
+                })
+                .where(eq(billInstances.id, oldInstance[0].id));
+            }
+          }
+
+          // Validate new bill instance belongs to user/household
+          const [instance] = await db
+            .select({
+              instance: billInstances,
+              bill: bills,
+            })
+            .from(billInstances)
+            .innerJoin(bills, eq(bills.id, billInstances.billId))
+            .where(
+              and(
+                eq(billInstances.id, billInstanceId),
+                eq(billInstances.userId, userId),
+                eq(billInstances.householdId, householdId),
+                inArray(billInstances.status, ['pending', 'overdue'])
+              )
+            )
+            .limit(1);
+
+          if (instance) {
+            const linkedBillId = instance.bill.id;
+            const linkedInstanceId = instance.instance.id;
+
+            // Get the bill to verify it exists
+            const [bill] = await db
+              .select()
+              .from(bills)
+              .where(eq(bills.id, linkedBillId))
+              .limit(1);
+
+            if (bill) {
+              // Batch all bill-related updates (parallel execution)
+              await Promise.all([
+                // Update transaction with bill link
+                db
+                  .update(transactions)
+                  .set({
+                    billId: linkedBillId,
+                    updatedAt: new Date().toISOString(),
+                  })
+                  .where(eq(transactions.id, id)),
+
+                // Update bill instance
+                db
+                  .update(billInstances)
+                  .set({
+                    status: 'paid',
+                    paidDate: newDate,
+                    actualAmount: newAmount.toNumber(),
+                    transactionId: id,
+                    updatedAt: new Date().toISOString(),
+                  })
+                  .where(eq(billInstances.id, linkedInstanceId)),
+              ]);
+            }
+          }
+        } else {
+          // Priority 2: Bill-matcher matching (only if no direct billInstanceId provided)
+          // Check if any relevant field changed
+          const categoryChanged = newCategoryId !== transaction.categoryId;
+          const descriptionChanged = newDescription !== transaction.description;
+          const amountChanged = amount !== undefined && newAmount.toNumber() !== transaction.amount;
+          const dateChanged = newDate !== transaction.date;
+          const shouldRematch = categoryChanged || descriptionChanged || amountChanged || dateChanged;
+
+          if (shouldRematch) {
+            // First, unlink from old bill instance if it exists
+            if (transaction.billId) {
+              const oldInstance = await db
+                .select()
+                .from(billInstances)
+                .where(eq(billInstances.transactionId, id))
+                .limit(1);
+
+              if (oldInstance.length > 0) {
+                await db
+                  .update(billInstances)
+                  .set({
+                    status: 'pending',
+                    paidDate: null,
+                    actualAmount: null,
+                    transactionId: null,
+                    updatedAt: new Date().toISOString(),
+                  })
+                  .where(eq(billInstances.id, oldInstance[0].id));
+              }
+
+              // Unlink transaction from old bill
+              await db
+                .update(transactions)
+                .set({
+                  billId: null,
+                  updatedAt: new Date().toISOString(),
+                })
+                .where(eq(transactions.id, id));
+            }
+
+            // Try bill-matcher matching with updated transaction data
+            const billMatch = await findMatchingBillInstance(
+            {
+              id,
+              description: newDescription,
+              amount: newAmount.toNumber(),
+              date: newDate,
+              type: transaction.type,
+              categoryId: newCategoryId,
+            },
+            userId,
+            householdId,
+            70 // min confidence threshold
+          );
+
+          if (billMatch) {
+            // Get the bill to verify it exists
+            const [bill] = await db
+              .select()
+              .from(bills)
+              .where(eq(bills.id, billMatch.billId))
+              .limit(1);
+
+            if (bill) {
+              // Batch all bill-related updates (parallel execution)
+              await Promise.all([
+                // Update transaction with bill link
+                db
+                  .update(transactions)
+                  .set({
+                    billId: billMatch.billId,
+                    updatedAt: new Date().toISOString(),
+                  })
+                  .where(eq(transactions.id, id)),
+
+                // Update bill instance
+                db
+                  .update(billInstances)
+                  .set({
+                    status: 'paid',
+                    paidDate: newDate,
+                    actualAmount: newAmount.toNumber(),
+                    transactionId: id,
+                    updatedAt: new Date().toISOString(),
+                  })
+                  .where(eq(billInstances.id, billMatch.instanceId)),
+              ]);
+            }
+          } else if (newCategoryId && categoryChanged) {
+            // Fallback: Category-only matching (backwards compatibility)
+            const matchingBills = await db
+              .select()
+              .from(bills)
               .where(
                 and(
-                  eq(billInstances.billId, bill.id),
-                  inArray(billInstances.status, ['pending', 'overdue'])
+                  eq(bills.userId, userId),
+                  eq(bills.householdId, householdId),
+                  eq(bills.isActive, true),
+                  eq(bills.categoryId, newCategoryId)
                 )
               );
 
-            instances.forEach(instance => {
-              allPendingInstances.push({
-                instance,
-                bill,
-              });
-            });
-          }
+            if (matchingBills.length > 0) {
+              // Collect all pending and overdue instances from all matching bills
+              const allPendingInstances: any[] = [];
 
-          if (allPendingInstances.length > 0) {
-            // Sort: prioritize overdue bills first, then by due date (oldest first)
-            allPendingInstances.sort((a, b) => {
-              // Prioritize overdue (0) over pending (1)
-              const statusA = a.instance.status === 'overdue' ? 0 : 1;
-              const statusB = b.instance.status === 'overdue' ? 0 : 1;
-              if (statusA !== statusB) {
-                return statusA - statusB;
+              for (const bill of matchingBills) {
+                const instances = await db
+                  .select()
+                  .from(billInstances)
+                  .where(
+                    and(
+                      eq(billInstances.billId, bill.id),
+                      inArray(billInstances.status, ['pending', 'overdue'])
+                    )
+                  );
+
+                instances.forEach(instance => {
+                  allPendingInstances.push({
+                    instance,
+                    bill,
+                  });
+                });
               }
-              // If same status, sort by due date (oldest first)
-              const dateA = new Date(a.instance.dueDate).getTime();
-              const dateB = new Date(b.instance.dueDate).getTime();
-              return dateA - dateB;
-            });
 
-            // Match to the oldest overdue instance (or oldest pending if no overdue)
-            const match = allPendingInstances[0];
-            const linkedBillId = match.bill.id;
+              if (allPendingInstances.length > 0) {
+                // Sort: prioritize overdue bills first, then by due date (oldest first)
+                allPendingInstances.sort((a, b) => {
+                  // Prioritize overdue (0) over pending (1)
+                  const statusA = a.instance.status === 'overdue' ? 0 : 1;
+                  const statusB = b.instance.status === 'overdue' ? 0 : 1;
+                  if (statusA !== statusB) {
+                    return statusA - statusB;
+                  }
+                  // If same status, sort by due date (oldest first)
+                  const dateA = new Date(a.instance.dueDate).getTime();
+                  const dateB = new Date(b.instance.dueDate).getTime();
+                  return dateA - dateB;
+                });
 
-            // Update transaction with bill link
-            await db
-              .update(transactions)
-              .set({
-                billId: linkedBillId,
-                updatedAt: new Date().toISOString(),
-              })
-              .where(eq(transactions.id, id));
+                // Match to the oldest overdue instance (or oldest pending if no overdue)
+                const match = allPendingInstances[0];
+                const linkedBillId = match.bill.id;
 
-            // Update bill instance
-            await db
-              .update(billInstances)
-              .set({
-                status: 'paid',
-                paidDate: newDate,
-                actualAmount: newAmount.toNumber(),
-                transactionId: id,
-                updatedAt: new Date().toISOString(),
-              })
-              .where(eq(billInstances.id, match.instance.id));
+                // Batch all bill-related updates (parallel execution)
+                await Promise.all([
+                  // Update transaction with bill link
+                  db
+                    .update(transactions)
+                    .set({
+                      billId: linkedBillId,
+                      updatedAt: new Date().toISOString(),
+                    })
+                    .where(eq(transactions.id, id)),
+
+                  // Update bill instance
+                  db
+                    .update(billInstances)
+                    .set({
+                      status: 'paid',
+                      paidDate: newDate,
+                      actualAmount: newAmount.toNumber(),
+                      transactionId: id,
+                      updatedAt: new Date().toISOString(),
+                    })
+                    .where(eq(billInstances.id, match.instance.id)),
+                ]);
+              }
+            }
           }
+        }
         }
       }
     } catch (error) {

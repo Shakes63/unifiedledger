@@ -50,3 +50,4 @@ sqlite.db
 # uploaded files
 /public/uploads/*
 !/public/uploads/**/.gitkeep
+sqlite.db.backup-20251116-192156

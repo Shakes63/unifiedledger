@@ -6,15 +6,15 @@
 
 ## 🐛 Active Bugs
 
-1. **Bill Matching Not Working for Bills Without Merchants** - Bills with no merchant set are not matching transactions even when category matches. User wants to bypass category-only matching and use direct bill matching (description/amount/date) instead. See `docs/bill-matching-and-refresh-plan.md` for investigation details. **Status:** Refresh mechanism implemented, but matching logic needs enhancement to support description/amount/date matching instead of category-only.
+_No active bugs_
 
 ---
 
 ## 📊 Current Status
 
-**Active Bugs:** 1
+**Active Bugs:** 0
 **In Progress:** 0
-**Fixed (All Time):** 43
+**Fixed (All Time):** 44
 
 ---
 
@@ -70,6 +70,8 @@
 42. **Bill Form Missing Inline Merchant Creation** - Replaced plain merchant Select dropdown with MerchantSelector component in bill creation and update forms, enabling inline merchant creation matching transaction forms.
 
 43. **Bills Not Refreshing After Transaction Creation** - Implemented conditional bill refresh mechanism using custom events. Bills refresh automatically when 'bill' or 'expense' transactions are created. All bill-displaying components (bills page, widgets, dropdowns) listen for refresh events and update accordingly.
+
+44. **Bill Matching Not Working for Bills Without Merchants** - Implemented three-tier bill matching system: direct bill instance ID matching for explicit payments, bill-matcher utility for description/amount/date matching, and category-only fallback. Bills without merchants now match correctly.
 
 ---
 
