@@ -1,8 +1,9 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { householdInvitations, householdMembers } from '@/lib/db/schema';
+import { householdInvitations, householdMembers, households, betterAuthUser } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { sendInvitationEmail } from '@/lib/email/email-service';
 export const dynamic = 'force-dynamic';
 
 const INVITATION_EXPIRY_DAYS = 30;
@@ -115,6 +116,40 @@ export async function POST(
       expiresAt: expiresAt.toISOString(),
       createdAt: new Date().toISOString(),
     });
+
+    // Send invitation email (non-blocking - don't fail if email fails)
+    try {
+      // Fetch household name
+      const household = await db
+        .select({ name: households.name })
+        .from(households)
+        .where(eq(households.id, householdId))
+        .limit(1);
+
+      // Fetch inviter's name
+      const inviter = await db
+        .select({ name: betterAuthUser.name })
+        .from(betterAuthUser)
+        .where(eq(betterAuthUser.id, userId))
+        .limit(1);
+
+      if (household.length > 0 && inviter.length > 0) {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const invitationUrl = `${baseUrl}/invite/${invitationToken}`;
+
+        await sendInvitationEmail({
+          to: invitedEmail,
+          invitedBy: inviter[0].name,
+          householdName: household[0].name,
+          invitationUrl,
+          role,
+        });
+      }
+    } catch (emailError) {
+      // Log error but don't fail the invitation creation
+      console.error('[Invitation API] Failed to send invitation email:', emailError);
+      // Continue - invitation was created successfully even if email failed
+    }
 
     return Response.json(
       {

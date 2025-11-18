@@ -84,3 +84,4 @@ This ensures mathematical accuracy and consistency.
 - All dates are relative to the current date (6 months ago for H1, 3 months ago for H2)
 
 
+

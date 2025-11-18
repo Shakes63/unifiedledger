@@ -6,14 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { betterAuthClient } from '@/lib/better-auth-client';
 import { Loader2, CheckCircle2, XCircle, LogIn } from 'lucide-react';
-import Link from 'next/link';
 
 interface InvitationData {
+  id: string;
   householdId: string;
+  householdName: string | null;
   invitedEmail: string;
+  invitedBy: string;
+  invitedByName: string | null;
   role: string;
   expiresAt: string;
   status: string;
+  createdAt: string;
 }
 
 export default function InvitationPage() {
@@ -31,14 +35,35 @@ export default function InvitationPage() {
 
   useEffect(() => {
     const fetchInvitation = async () => {
-      if (!token) return;
+      if (!token) {
+        setError('Invalid invitation link');
+        setLoading(false);
+        return;
+      }
 
       try {
-        // Try to get invitation details (optional endpoint for validation)
-        // For now, we'll just validate by trying to accept
-        setLoading(false);
+        const response = await fetch(`/api/invitations/${token}`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to load invitation');
+        }
+
+        const data = await response.json();
+        setInvitation(data);
+
+        // Check if already accepted or expired
+        if (data.status === 'accepted') {
+          setError('This invitation has already been accepted');
+        } else if (data.status === 'expired' || data.status === 'declined') {
+          setError(`This invitation has been ${data.status}`);
+        }
       } catch (err) {
         console.error('Error fetching invitation:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load invitation');
+      } finally {
         setLoading(false);
       }
     };
@@ -69,8 +94,8 @@ export default function InvitationPage() {
       }
 
       const data = await response.json();
-      // Redirect to the household
-      router.push(`/dashboard/households/${data.householdId}`);
+      // Redirect to dashboard (household will be automatically selected)
+      router.push('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       setAccepting(false);
@@ -105,12 +130,12 @@ export default function InvitationPage() {
 
   if (declined) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-[#1a1a1a] border-[#2a2a2a] p-8">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-card border-border p-8">
           <div className="text-center space-y-4">
-            <XCircle className="w-16 h-16 text-[#f87171] mx-auto" />
-            <h1 className="text-2xl font-bold text-white">Invitation Declined</h1>
-            <p className="text-[#9ca3af]">
+            <XCircle className="w-16 h-16 text-[var(--color-error)] mx-auto" />
+            <h1 className="text-2xl font-bold text-foreground">Invitation Declined</h1>
+            <p className="text-muted-foreground">
               You've declined the household invitation. Redirecting...
             </p>
           </div>
@@ -119,28 +144,30 @@ export default function InvitationPage() {
     );
   }
 
+  const isInvalid = invitation && (invitation.status === 'accepted' || invitation.status === 'expired' || invitation.status === 'declined');
+
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-[#1a1a1a] border-[#2a2a2a] p-8">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-card border-border p-8">
         <div className="space-y-6">
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-[#10b981] rounded-full flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-[var(--color-primary)]/20 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6 text-[var(--color-primary)]" />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-white">
+            <h1 className="text-2xl font-bold text-foreground">
               You've Been Invited!
             </h1>
-            <p className="text-[#9ca3af]">
+            <p className="text-muted-foreground">
               Join a household to share finances with family or friends
             </p>
           </div>
 
           {/* Error message */}
           {error && (
-            <div className="p-3 bg-[#f87171]/10 border border-[#f87171]/30 rounded-lg text-[#f87171] text-sm">
+            <div className="p-3 bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-lg text-[var(--color-error)] text-sm">
               {error}
             </div>
           )}
@@ -148,26 +175,46 @@ export default function InvitationPage() {
           {/* Loading state */}
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 text-[#60a5fa] animate-spin" />
+              <Loader2 className="w-6 h-6 text-[var(--color-primary)] animate-spin" />
             </div>
-          ) : (
+          ) : invitation ? (
             <>
               {/* Invitation details */}
-              <div className="space-y-3 bg-[#242424] rounded-lg p-4">
+              <div className="space-y-3 bg-elevated rounded-lg p-4 border border-border">
+                {invitation.householdName && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                      Household
+                    </p>
+                    <p className="text-foreground font-semibold text-lg">
+                      {invitation.householdName}
+                    </p>
+                  </div>
+                )}
+                {invitation.invitedByName && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                      Invited By
+                    </p>
+                    <p className="text-foreground font-medium">
+                      {invitation.invitedByName}
+                    </p>
+                  </div>
+                )}
                 <div>
-                  <p className="text-xs text-[#6b7280] uppercase tracking-wide mb-1">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                     Role in Household
                   </p>
-                  <p className="text-white font-medium capitalize">
-                    {invitation?.role || 'Member'}
+                  <p className="text-foreground font-medium capitalize">
+                    {invitation.role || 'Member'}
                   </p>
                 </div>
-                {invitation?.expiresAt && (
+                {invitation.expiresAt && (
                   <div>
-                    <p className="text-xs text-[#6b7280] uppercase tracking-wide mb-1">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
                       Expires
                     </p>
-                    <p className="text-white">
+                    <p className="text-foreground">
                       {new Date(invitation.expiresAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -175,60 +222,68 @@ export default function InvitationPage() {
               </div>
 
               {/* Actions */}
-              <div className="space-y-3">
-                {!isSignedIn ? (
-                  <Button
-                    onClick={handleAccept}
-                    disabled={accepting}
-                    className="w-full bg-[#10b981] hover:bg-[#059669] text-white font-medium py-6 text-base"
-                  >
-                    {accepting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Signing in...
-                      </>
-                    ) : (
-                      <>
-                        <LogIn className="w-4 h-4 mr-2" />
-                        Sign in and Accept
-                      </>
-                    )}
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleAccept}
-                    disabled={accepting}
-                    className="w-full bg-[#10b981] hover:bg-[#059669] text-white font-medium py-6 text-base"
-                  >
-                    {accepting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Accepting...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                        Accept Invitation
-                      </>
-                    )}
-                  </Button>
-                )}
+              {!isInvalid && (
+                <div className="space-y-3">
+                  {!isSignedIn ? (
+                    <Button
+                      onClick={handleAccept}
+                      disabled={accepting}
+                      className="w-full bg-[var(--color-primary)] hover:opacity-90 text-background font-medium py-6 text-base"
+                    >
+                      {accepting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="w-4 h-4 mr-2" />
+                          Sign in and Accept
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleAccept}
+                      disabled={accepting}
+                      className="w-full bg-[var(--color-primary)] hover:opacity-90 text-background font-medium py-6 text-base"
+                    >
+                      {accepting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Accepting...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                          Accept Invitation
+                        </>
+                      )}
+                    </Button>
+                  )}
 
-                <Button
-                  onClick={handleDecline}
-                  disabled={accepting}
-                  variant="outline"
-                  className="w-full border-[#2a2a2a] text-[#9ca3af] hover:text-white hover:bg-[#242424] py-6 text-base"
-                >
-                  {accepting ? 'Processing...' : 'Decline'}
-                </Button>
-              </div>
+                  <Button
+                    onClick={handleDecline}
+                    disabled={accepting}
+                    variant="outline"
+                    className="w-full border-border text-muted-foreground hover:text-foreground hover:bg-elevated py-6 text-base"
+                  >
+                    {accepting ? 'Processing...' : 'Decline'}
+                  </Button>
+                </div>
+              )}
 
               {/* Footer */}
-              <p className="text-center text-sm text-[#6b7280]">
-                This invitation link is personal and expires in 30 days.
-              </p>
+              {!isInvalid && (
+                <p className="text-center text-sm text-muted-foreground">
+                  This invitation link is personal and expires in 30 days.
+                </p>
+              )}
             </>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Unable to load invitation details.</p>
+            </div>
           )}
         </div>
       </Card>
