@@ -46,7 +46,27 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 
 ## Recent Major Features
 
-**Latest (2025-11-17):**
+**Latest (2025-01-16):**
+- Household Invite Flow with Email (✅ COMPLETE)
+  - ✅ Invitation email template created with HTML and plain text versions
+  - ✅ Email sending integrated into invitation API endpoint
+  - ✅ Invitation details API endpoint created for public invitation page access
+  - ✅ Invitation page updated with better UX, household/inviter name display, semantic theme variables
+  - ✅ All invitation emails sent automatically when users are invited to households
+  - ✅ Supports both existing and new users
+- Admin User Creation (🟡 PARTIAL - API Complete, UI Pending)
+  - ✅ Admin user creation API endpoint (POST /api/admin/users)
+  - ✅ Admin user list API endpoint with search and pagination (GET /api/admin/users)
+  - ✅ Admin user update API endpoint (PUT /api/admin/users/[userId])
+  - ✅ Admin user delete API endpoint (DELETE /api/admin/users/[userId])
+  - ✅ Owner-only access control with proper validation
+  - ✅ Email format and password strength validation
+  - ✅ Optional household assignment during user creation
+  - ⏳ Admin user management UI component pending (Step 2.3)
+  - ⏳ Integration into Admin Tab pending (Step 2.4)
+  - Plan: `docs/household-invite-and-admin-features-plan.md` (Feature 2)
+
+**Previous (2025-11-17):**
 - Onboarding Flow (✅ COMPLETE)
   - ✅ Database migration applied (onboarding_completed field)
   - ✅ 8-step wizard with progress tracking (Welcome, Household, Account, Bill, Goal, Debt, Transaction, Complete)
@@ -181,9 +201,11 @@ _No active bugs_
 **What works:** Complete household data isolation across all financial data types. Users can switch between households and see fully isolated data. All API endpoints, frontend components, and business logic properly filter by household.
 
 ### Other Next Steps
-1. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
-2. Docker configuration for deployment
-3. Performance optimizations as needed
-4. User feedback and iterations
+1. ⏳ Admin User Creation UI - Complete admin user management UI component and integrate into Admin Tab
+2. ⏳ Invited User Onboarding - Implement special onboarding flow for invited users with demo data generation
+3. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
+4. Docker configuration for deployment
+5. Performance optimizations as needed
+6. User feedback and iterations
 
 For detailed bug tracking, see `docs/bugs.md`.
