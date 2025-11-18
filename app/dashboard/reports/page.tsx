@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { useReportFilters } from '@/lib/hooks/use-report-filters';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -23,6 +24,8 @@ import {
 } from '@/components/charts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExportButton } from '@/components/reports/export-button';
+import { DateRangePicker } from '@/components/reports/date-range-picker';
+import { ReportFilters } from '@/components/reports/report-filters';
 import { PaymentBreakdownSection } from '@/components/debts/payment-breakdown-section';
 import { DebtReductionChart } from '@/components/debts/debt-reduction-chart';
 import { AmortizationScheduleView } from '@/components/debts/amortization-schedule-view';
@@ -55,7 +58,25 @@ const COLOR_PALETTE = {
 export default function ReportsPage() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
-  const [period, setPeriod] = useState<Period>('12months');
+  
+  // Filter state management
+  const {
+    startDate,
+    endDate,
+    period,
+    setDateRange,
+    setPeriod,
+    selectedAccountIds,
+    selectedCategoryIds,
+    selectedMerchantIds,
+    setAccountIds,
+    setCategoryIds,
+    setMerchantIds,
+    hasActiveFilters,
+    clearAllFilters,
+    getFilterParams,
+  } = useReportFilters();
+  
   const [data, setData] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +84,12 @@ export default function ReportsPage() {
   const [showDebtReduction, setShowDebtReduction] = useState(false);
   const [showAmortization, setShowAmortization] = useState(false);
   const [payoffStrategy, setPayoffStrategy] = useState<any>(null);
+  
+  // Filter data
+  const [accounts, setAccounts] = useState<Array<{ id: string; name: string }>>([]);
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; type: string }>>([]);
+  const [merchants, setMerchants] = useState<Array<{ id: string; name: string }>>([]);
+  const [isLoadingFilters, setIsLoadingFilters] = useState(false);
 
   const loadPayoffStrategy = useCallback(async () => {
     if (!selectedHouseholdId) return;
@@ -87,59 +114,185 @@ export default function ReportsPage() {
     }
   }, [selectedHouseholdId, fetchWithHousehold]);
 
+  // Fetch filter data on mount
   useEffect(() => {
-    fetchReports();
+    const fetchFilterData = async () => {
+      if (!selectedHouseholdId) return;
+      
+      setIsLoadingFilters(true);
+      try {
+        const [accountsRes, categoriesRes, merchantsRes] = await Promise.all([
+          fetchWithHousehold('/api/accounts'),
+          fetchWithHousehold('/api/categories'),
+          fetchWithHousehold('/api/merchants'),
+        ]);
+        
+        // Handle accounts
+        if (accountsRes.ok) {
+          const accountsData = await accountsRes.json();
+          setAccounts(accountsData.data || []);
+        } else {
+          console.warn('Failed to fetch accounts for filters');
+          setAccounts([]);
+        }
+        
+        // Handle categories
+        if (categoriesRes.ok) {
+          const categoriesData = await categoriesRes.json();
+          setCategories(categoriesData.data || []);
+        } else {
+          console.warn('Failed to fetch categories for filters');
+          setCategories([]);
+        }
+        
+        // Handle merchants
+        if (merchantsRes.ok) {
+          const merchantsData = await merchantsRes.json();
+          setMerchants(merchantsData.data || []);
+        } else {
+          console.warn('Failed to fetch merchants for filters');
+          setMerchants([]);
+        }
+      } catch (error) {
+        console.error('Error fetching filter data:', error);
+        // Set empty arrays on error to prevent UI issues
+        setAccounts([]);
+        setCategories([]);
+        setMerchants([]);
+      } finally {
+        setIsLoadingFilters(false);
+      }
+    };
+    
     if (selectedHouseholdId) {
-      loadPayoffStrategy();
+      fetchFilterData();
     }
-  }, [period, selectedHouseholdId, loadPayoffStrategy]);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
+    // Guard: Don't fetch if no household is selected
+    if (!selectedHouseholdId) {
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
 
-      const [ivE, cb, cf, nw, bva, ma] = await Promise.all([
-        fetch(`/api/reports/income-vs-expenses?period=${period}`, { credentials: 'include' }).then((r) => r.json()),
-        fetch(`/api/reports/category-breakdown?period=${period}`, { credentials: 'include' }).then((r) => r.json()),
-        fetch(`/api/reports/cash-flow?period=${period}`, { credentials: 'include' }).then((r) => r.json()),
-        fetch(`/api/reports/net-worth?period=${period}`, { credentials: 'include' }).then((r) => r.json()),
-        fetch(`/api/reports/budget-vs-actual?period=${period}`, { credentials: 'include' }).then((r) => r.json()),
-        fetch(`/api/reports/merchant-analysis?period=${period}`, { credentials: 'include' }).then((r) => r.json()),
+      // Build query string with filter parameters
+      const filterParams = getFilterParams();
+      const queryString = filterParams.toString();
+
+      // Validate date range if custom dates are set
+      if (startDate && endDate) {
+        const startDateObj = new Date(startDate);
+        const endDateObj = new Date(endDate);
+        
+        if (startDateObj > endDateObj) {
+          setError('Start date must be before end date');
+          setIsLoading(false);
+          return;
+        }
+        
+        const daysDiff = Math.ceil(
+          (endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        
+        if (daysDiff > 1825) {
+          setError('Date range cannot exceed 5 years');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      const responses = await Promise.all([
+        fetchWithHousehold(`/api/reports/income-vs-expenses?${queryString}`),
+        fetchWithHousehold(`/api/reports/category-breakdown?${queryString}`),
+        fetchWithHousehold(`/api/reports/cash-flow?${queryString}`),
+        fetchWithHousehold(`/api/reports/net-worth?${queryString}`),
+        fetchWithHousehold(`/api/reports/budget-vs-actual?${queryString}`),
+        fetchWithHousehold(`/api/reports/merchant-analysis?${queryString}`),
       ]);
 
+      // Check for API errors
+      const errors: string[] = [];
+      for (let i = 0; i < responses.length; i++) {
+        if (!responses[i].ok) {
+          try {
+            const errorData = await responses[i].json();
+            errors.push(errorData.error || `Report ${i + 1} failed`);
+          } catch {
+            errors.push(`Report ${i + 1} failed`);
+          }
+        }
+      }
+
+      if (errors.length > 0) {
+        setError(errors.length === 1 ? errors[0] : `Some reports failed to load: ${errors.join(', ')}`);
+        setIsLoading(false);
+        return;
+      }
+
+      const [ivE, cb, cf, nw, bva, ma] = await Promise.all(
+        responses.map((r) => r.json())
+      );
+
       // Transform data to use 'name' as x-axis key (required by chart components)
-      const transformData = (data: any[], period: Period) => {
+      const transformData = (data: any[], currentPeriod: Period | null) => {
         if (!data) return [];
-        const xKey = period === 'month' ? 'week' : 'month';
+        const xKey = currentPeriod === 'month' ? 'week' : 'month';
         return data.map(item => ({
           name: item[xKey] || item.name || '',
           ...item
         }));
       };
 
+      const currentPeriod = period || '12months';
+
       setData({
-        incomeVsExpenses: { ...ivE, data: transformData(ivE?.data, period) },
+        incomeVsExpenses: { ...ivE, data: transformData(ivE?.data, currentPeriod) },
         categoryBreakdown: cb,
-        cashFlow: { ...cf, data: transformData(cf?.data, period) },
-        netWorth: { ...nw, history: transformData(nw?.history, period) },
+        cashFlow: { ...cf, data: transformData(cf?.data, currentPeriod) },
+        netWorth: { ...nw, history: transformData(nw?.history, currentPeriod) },
         budgetVsActual: bva,
         merchantAnalysis: ma,
       });
     } catch (err) {
-      setError('Failed to load reports. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load reports';
+      setError(`${errorMessage}. Please try again.`);
       console.error('Error fetching reports:', err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [
+    selectedHouseholdId,
+    period,
+    startDate,
+    endDate,
+    selectedAccountIds,
+    selectedCategoryIds,
+    selectedMerchantIds,
+    getFilterParams,
+    fetchWithHousehold,
+  ]);
+
+  // Fetch reports when filters or household change
+  useEffect(() => {
+    // Don't fetch if no household is selected
+    if (!selectedHouseholdId) {
+      return;
+    }
+    
+    fetchReports();
+    loadPayoffStrategy();
+  }, [selectedHouseholdId, fetchReports, loadPayoffStrategy]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-400 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading reports...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--color-primary)] mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading reports...</p>
         </div>
       </div>
     );
@@ -149,8 +302,8 @@ export default function ReportsPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="text-red-400 font-medium mb-2">Error Loading Reports</p>
-          <p className="text-gray-400 mb-4">{error || 'Unknown error'}</p>
+          <p className="text-[var(--color-error)] font-medium mb-2">Error Loading Reports</p>
+          <p className="text-muted-foreground mb-4">{error || 'Unknown error'}</p>
           <Button onClick={fetchReports}>Try Again</Button>
         </div>
       </div>
@@ -163,41 +316,73 @@ export default function ReportsPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Financial Reports</h1>
-          <p className="text-gray-400 mt-1">Comprehensive analysis of your finances</p>
+            <h1 className="text-3xl font-bold text-foreground">Financial Reports</h1>
+            <p className="text-muted-foreground mt-1">Comprehensive analysis of your finances</p>
+          </div>
+          <div className="flex gap-2 flex-col md:flex-row">
+            {data && (
+              <ExportButton
+                data={data}
+                reportName="Financial_Report"
+                summary={{
+                  period: period || 'custom',
+                  generated: new Date().toLocaleDateString(),
+                }}
+              />
+            )}
+          </div>
         </div>
-        <div className="flex gap-2 flex-col md:flex-row">
-          <Select value={period} onValueChange={(value) => setPeriod(value as Period)}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Select period" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
-              <SelectItem value="12months">Last 12 Months</SelectItem>
-            </SelectContent>
-          </Select>
-          {data && (
-            <ExportButton
-              data={data}
-              reportName="Financial_Report"
-              summary={{
-                period,
-                generated: new Date().toLocaleDateString(),
-              }}
-            />
-          )}
-        </div>
-      </div>
 
-      {/* Summary Cards */}
+        {/* Date Range Picker */}
+        <DateRangePicker
+          startDate={startDate}
+          endDate={endDate}
+          onDateChange={setDateRange}
+        />
+
+        {/* Period Selector and Report Filters */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <Select
+              value={period || '12months'}
+              onValueChange={(value) => setPeriod(value as Period)}
+            >
+              <SelectTrigger className="w-full md:w-40 bg-elevated border-border text-foreground">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="month" className="text-foreground">This Month</SelectItem>
+                <SelectItem value="year" className="text-foreground">This Year</SelectItem>
+                <SelectItem value="12months" className="text-foreground">Last 12 Months</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Report Filters */}
+        {!isLoadingFilters && (
+          <ReportFilters
+            accounts={accounts}
+            categories={categories}
+            merchants={merchants}
+            selectedAccountIds={selectedAccountIds}
+            selectedCategoryIds={selectedCategoryIds}
+            selectedMerchantIds={selectedMerchantIds}
+            onAccountChange={setAccountIds}
+            onCategoryChange={setCategoryIds}
+            onMerchantChange={setMerchantIds}
+            onClearFilters={clearAllFilters}
+          />
+        )}
+
+        {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-400">Total Income</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Total Income</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-emerald-400">
+            <p className="text-2xl font-bold text-[var(--color-income)]">
               ${data.incomeVsExpenses?.data
                 ?.reduce((sum: number, item: any) => sum + item.income, 0)
                 .toFixed(2)}
@@ -207,10 +392,10 @@ export default function ReportsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-400">Total Expenses</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Total Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-red-400">
+            <p className="text-2xl font-bold text-[var(--color-expense)]">
               ${data.incomeVsExpenses?.data
                 ?.reduce((sum: number, item: any) => sum + item.expenses, 0)
                 .toFixed(2)}
@@ -220,10 +405,10 @@ export default function ReportsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-400">Net Cash Flow</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Net Cash Flow</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-400">
+            <p className="text-2xl font-bold text-[var(--color-primary)]">
               ${data.incomeVsExpenses?.data
                 ?.reduce((sum: number, item: any) => sum + item.net, 0)
                 .toFixed(2)}
@@ -233,10 +418,10 @@ export default function ReportsPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-400">Net Worth</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Net Worth</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className={`text-2xl font-bold ${data.netWorth?.currentNetWorth >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            <p className={`text-2xl font-bold ${data.netWorth?.currentNetWorth >= 0 ? 'text-[var(--color-income)]' : 'text-[var(--color-expense)]'}`}>
               ${data.netWorth?.currentNetWorth.toFixed(2)}
             </p>
           </CardContent>
@@ -374,14 +559,14 @@ export default function ReportsPage() {
                   <div className="flex items-center gap-3">
                     <div
                       className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: account.color || COLOR_PALETTE.primary }}
+                      style={{ backgroundColor: account.color || 'var(--color-primary)' }}
                     />
                     <div>
-                      <p className="text-white font-medium">{account.name}</p>
-                      <p className="text-xs text-gray-500">{account.type}</p>
+                      <p className="text-foreground font-medium">{account.name}</p>
+                      <p className="text-xs text-muted-foreground">{account.type}</p>
                     </div>
                   </div>
-                  <p className="text-white font-medium">${account.balance.toFixed(2)}</p>
+                  <p className="text-foreground font-medium">${account.balance.toFixed(2)}</p>
                 </div>
               ))}
             </div>
@@ -399,12 +584,12 @@ export default function ReportsPage() {
               {data.merchantAnalysis?.data?.slice(0, 5).map((merchant: any, idx: number) => (
                 <div key={idx} className="flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="text-white font-medium text-sm truncate">{merchant.name}</p>
-                    <p className="text-xs text-gray-500">{merchant.count} transactions</p>
+                    <p className="text-foreground font-medium text-sm truncate">{merchant.name}</p>
+                    <p className="text-xs text-muted-foreground">{merchant.count} transactions</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-white font-medium">${merchant.amount.toFixed(2)}</p>
-                    <p className="text-xs text-gray-500">{merchant.percentageOfTotal.toFixed(0)}%</p>
+                    <p className="text-foreground font-medium">${merchant.amount.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">{merchant.percentageOfTotal.toFixed(0)}%</p>
                   </div>
                 </div>
               ))}

@@ -38,9 +38,9 @@ export function OnboardingStep({
   hideFooter = false,
 }: OnboardingStepProps) {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 border-b border-border">
+      <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-foreground mb-2">{title}</h2>
@@ -62,11 +62,11 @@ export function OnboardingStep({
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">{children}</div>
+      <div className="flex-1 overflow-y-auto px-6 py-6 pb-8 min-h-0">{children}</div>
 
       {/* Footer Actions */}
       {!hideFooter && (
-        <div className="px-6 py-4 border-t border-border bg-elevated/50 flex items-center justify-between gap-4">
+        <div className="px-6 py-4 border-t border-border bg-elevated/50 flex items-center justify-between gap-4 flex-shrink-0">
           <Button
             variant="outline"
             onClick={onPrevious}

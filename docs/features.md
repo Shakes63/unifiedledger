@@ -6,7 +6,7 @@
 
 ## Incomplete Features
 
-1. ⏳ **Reports Advanced Filtering & Custom Date Range** - Enhanced reports dashboard with custom date range picker and advanced filtering by account, category, and merchant. **Status:** Phase 1 (Backend API) complete - All 6 report endpoints updated with household isolation, custom date ranges, and filtering support. Phases 2-4 (Frontend components and integration) pending. See `docs/reports-advanced-filtering-plan.md` for detailed implementation plan.
+_No incomplete features_
 
 ---
 
@@ -54,3 +54,4 @@
 40. ✅ **Household Invite Flow with Email** - Complete invitation system with email notifications when users are invited to households, supporting both existing and new users
 41. ✅ **Admin User Creation** - Complete admin user management UI allowing application owner to create, list, update, and delete users with household assignment
 42. ✅ **Invited User Onboarding** - Special onboarding flow for invited users that creates demo data instead of real data, preventing interference with existing household finances. Implementation complete, manual testing pending. See `docs/invited-user-onboarding-implementation-plan.md` and `docs/invited-user-onboarding-test-plan.md` for details.
+43. ✅ **Reports Advanced Filtering & Custom Date Range** - Enhanced reports dashboard with custom date range picker, advanced filtering by account/category/merchant, and filter persistence per household

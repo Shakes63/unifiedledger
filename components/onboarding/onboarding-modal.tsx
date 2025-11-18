@@ -168,7 +168,7 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
         )}
 
         {/* Step Content */}
-        <div className="flex-1 overflow-hidden">{renderStep()}</div>
+        <div className="flex-1 overflow-y-auto min-h-0">{renderStep()}</div>
       </DialogContent>
     </Dialog>
   );
