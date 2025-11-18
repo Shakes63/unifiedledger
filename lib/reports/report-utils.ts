@@ -1,4 +1,4 @@
-import { and, eq, gte, lte, desc } from 'drizzle-orm';
+import { and, eq, gte, lte, desc, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories, merchants } from '@/lib/db/schema';
 import Decimal from 'decimal.js';
@@ -26,23 +26,44 @@ export interface TransactionData {
 }
 
 /**
- * Get transactions within a date range for a user
+ * Get transactions within a date range for a user and household
+ * Supports optional filtering by account, category, and merchant
  */
 export async function getTransactionsByDateRange(
   userId: string,
+  householdId: string,
   startDate: string,
-  endDate: string
+  endDate: string,
+  filters?: {
+    accountIds?: string[];
+    categoryIds?: string[];
+    merchantIds?: string[];
+  }
 ): Promise<TransactionData[]> {
+  const conditions: any[] = [
+    eq(transactions.userId, userId),
+    eq(transactions.householdId, householdId),
+    gte(transactions.date, startDate),
+    lte(transactions.date, endDate),
+  ];
+
+  // Apply filters if provided
+  if (filters?.accountIds && filters.accountIds.length > 0) {
+    conditions.push(inArray(transactions.accountId, filters.accountIds));
+  }
+
+  if (filters?.categoryIds && filters.categoryIds.length > 0) {
+    conditions.push(inArray(transactions.categoryId, filters.categoryIds));
+  }
+
+  if (filters?.merchantIds && filters.merchantIds.length > 0) {
+    conditions.push(inArray(transactions.merchantId, filters.merchantIds));
+  }
+
   const result = await db
     .select()
     .from(transactions)
-    .where(
-      and(
-        eq(transactions.userId, userId),
-        gte(transactions.date, startDate),
-        lte(transactions.date, endDate)
-      )
-    )
+    .where(and(...conditions))
     .orderBy(desc(transactions.date));
 
   return result as TransactionData[];
@@ -86,6 +107,48 @@ export function getLast12MonthsRanges(): DateRange[] {
   }
 
   return ranges;
+}
+
+/**
+ * Calculate date range from period or custom dates
+ * Returns startDate and endDate as ISO date strings
+ */
+export function calculateDateRange(
+  period?: string | null,
+  startDateParam?: string | null,
+  endDateParam?: string | null
+): { startDate: string; endDate: string } {
+  // If custom dates provided, use them
+  if (startDateParam && endDateParam) {
+    return {
+      startDate: startDateParam,
+      endDate: endDateParam,
+    };
+  }
+
+  // Otherwise, calculate from period
+  const now = new Date();
+  let startDate: Date;
+  let endDate: Date;
+
+  if (period === 'month') {
+    // Current month
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  } else if (period === 'year') {
+    // Current year
+    startDate = new Date(now.getFullYear(), 0, 1);
+    endDate = new Date(now.getFullYear(), 11, 31);
+  } else {
+    // Default: last 12 months
+    endDate = new Date();
+    startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 11, 1);
+  }
+
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0],
+  };
 }
 
 /**
@@ -172,13 +235,18 @@ export function formatMonthLabel(startDate: string): string {
 }
 
 /**
- * Get user's budget categories with usage
+ * Get user's budget categories with usage for a household
  */
-export async function getUserCategories(userId: string) {
+export async function getUserCategories(userId: string, householdId: string) {
   const categories = await db
     .select()
     .from(budgetCategories)
-    .where(eq(budgetCategories.userId, userId))
+    .where(
+      and(
+        eq(budgetCategories.userId, userId),
+        eq(budgetCategories.householdId, householdId)
+      )
+    )
     .orderBy(desc(budgetCategories.usageCount));
 
   return categories;
@@ -206,15 +274,21 @@ export function getTopMerchants(txns: TransactionData[], limit: number = 10): Ar
 }
 
 /**
- * Calculate net worth from account balances
+ * Calculate net worth from account balances for a household
  */
-export async function calculateNetWorth(userId: string): Promise<number> {
+export async function calculateNetWorth(userId: string, householdId: string): Promise<number> {
   const { accounts } = require('@/lib/db/schema');
 
   const result = await db
     .select()
     .from(accounts)
-    .where(and(eq(accounts.userId, userId), eq(accounts.isActive, true)));
+    .where(
+      and(
+        eq(accounts.userId, userId),
+        eq(accounts.householdId, householdId),
+        eq(accounts.isActive, true)
+      )
+    );
 
   let total = new Decimal(0);
 

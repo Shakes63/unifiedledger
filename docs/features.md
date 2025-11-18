@@ -6,6 +6,7 @@
 
 ## Incomplete Features
 
+1. ⏳ **Reports Advanced Filtering & Custom Date Range** - Enhanced reports dashboard with custom date range picker and advanced filtering by account, category, and merchant. **Status:** Phase 1 (Backend API) complete - All 6 report endpoints updated with household isolation, custom date ranges, and filtering support. Phases 2-4 (Frontend components and integration) pending. See `docs/reports-advanced-filtering-plan.md` for detailed implementation plan.
 
 ---
 

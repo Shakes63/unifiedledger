@@ -46,7 +46,22 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 
 ## Recent Major Features
 
-**Latest (2025-01-16):**
+**Latest (2025-01-27):**
+- Reports Advanced Filtering & Custom Date Range (⏳ IN PROGRESS - Phase 1 Complete)
+  - ✅ Phase 1: Backend API updates complete
+    - ✅ Updated `lib/reports/report-utils.ts` with household isolation and filtering support
+    - ✅ Updated all 6 report API endpoints (income-vs-expenses, category-breakdown, cash-flow, net-worth, budget-vs-actual, merchant-analysis)
+    - ✅ Added custom date range support (`startDate`, `endDate` parameters)
+    - ✅ Added filtering support (accountIds, categoryIds, merchantIds)
+    - ✅ Maintained backward compatibility with `period` parameter
+    - ✅ Added date range validation (max 5 years, start < end)
+    - ✅ All endpoints respect household isolation
+  - ⏳ Phase 2: Frontend components pending (DateRangePicker, ReportFilters, useReportFilters hook)
+  - ⏳ Phase 3: Reports page integration pending
+  - ⏳ Phase 4: Styling and accessibility pending
+  - Implementation plan: `docs/reports-advanced-filtering-plan.md`
+
+**Previous (2025-01-16):**
 - Admin User Creation (✅ COMPLETE)
   - ✅ Admin user creation API endpoint (POST /api/admin/users)
   - ✅ Admin user list API endpoint with search and pagination (GET /api/admin/users)
@@ -213,10 +228,11 @@ _No active bugs_
 **What works:** Complete household data isolation across all financial data types. Users can switch between households and see fully isolated data. All API endpoints, frontend components, and business logic properly filter by household.
 
 ### Other Next Steps
-1. ⏳ Invited User Onboarding - Manual testing pending (implementation complete, see `docs/invited-user-onboarding-test-plan.md`)
-2. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
-3. Docker configuration for deployment
-4. Performance optimizations as needed
-5. User feedback and iterations
+1. ⏳ **Reports Advanced Filtering & Custom Date Range** - Phase 1 (Backend API) complete. All 6 report endpoints updated with household isolation, custom date ranges, and filtering support. Phases 2-4 (Frontend components: DateRangePicker, ReportFilters, useReportFilters hook, and reports page integration) pending. See `docs/reports-advanced-filtering-plan.md` for plan.
+2. ⏳ Invited User Onboarding - Manual testing pending (implementation complete, see `docs/invited-user-onboarding-test-plan.md`)
+3. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
+4. Docker configuration for deployment
+5. Performance optimizations as needed
+6. User feedback and iterations
 
 For detailed bug tracking, see `docs/bugs.md`.
