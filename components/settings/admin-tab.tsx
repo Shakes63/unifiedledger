@@ -20,6 +20,7 @@ import {
   Home,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { AdminUsersTab } from './admin-users-tab';
 
 interface OAuthProvider {
   id: string;
@@ -461,6 +462,22 @@ export function AdminTab() {
               <p>Unable to load system information</p>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* User Management */}
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-foreground" />
+            <CardTitle className="text-foreground">User Management</CardTitle>
+          </div>
+          <CardDescription className="text-muted-foreground">
+            Create, manage, and delete user accounts. Assign users to households with specific roles.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AdminUsersTab />
         </CardContent>
       </Card>
     </div>

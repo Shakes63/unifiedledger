@@ -47,6 +47,26 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 ## Recent Major Features
 
 **Latest (2025-01-16):**
+- Admin User Creation (✅ COMPLETE)
+  - ✅ Admin user creation API endpoint (POST /api/admin/users)
+  - ✅ Admin user list API endpoint with search and pagination (GET /api/admin/users)
+  - ✅ Admin user update API endpoint (PUT /api/admin/users/[userId])
+  - ✅ Admin user delete API endpoint (DELETE /api/admin/users/[userId])
+  - ✅ Admin households API endpoint (GET /api/admin/households) for household selection
+  - ✅ Complete admin user management UI component with user list table, create/edit/delete dialogs
+  - ✅ Search functionality with debouncing
+  - ✅ Pagination controls
+  - ✅ Form validation (email format, password strength, role selection)
+  - ✅ Integrated into Admin Tab with User Management section
+  - ✅ All components use semantic theme variables
+- Invited User Onboarding (🟡 PARTIAL - Steps 1-3 Complete)
+  - ✅ Invitation context added to onboarding system (isInvitedUser, isDemoMode, invitationHouseholdId)
+  - ✅ Demo data generation utility created (accounts, categories, merchants, bills, goals, debts, transactions)
+  - ✅ Demo data API endpoint created (POST /api/onboarding/generate-demo-data)
+  - ⏳ Sign-up page invitation detection pending (Step 4)
+  - ⏳ Invitation acceptance page updates pending (Step 5)
+  - ⏳ Onboarding step updates pending (Steps 6-10)
+  - Plan: `docs/invited-user-onboarding-plan.md`
 - Household Invite Flow with Email (✅ COMPLETE)
   - ✅ Invitation email template created with HTML and plain text versions
   - ✅ Email sending integrated into invitation API endpoint
@@ -54,17 +74,6 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
   - ✅ Invitation page updated with better UX, household/inviter name display, semantic theme variables
   - ✅ All invitation emails sent automatically when users are invited to households
   - ✅ Supports both existing and new users
-- Admin User Creation (🟡 PARTIAL - API Complete, UI Pending)
-  - ✅ Admin user creation API endpoint (POST /api/admin/users)
-  - ✅ Admin user list API endpoint with search and pagination (GET /api/admin/users)
-  - ✅ Admin user update API endpoint (PUT /api/admin/users/[userId])
-  - ✅ Admin user delete API endpoint (DELETE /api/admin/users/[userId])
-  - ✅ Owner-only access control with proper validation
-  - ✅ Email format and password strength validation
-  - ✅ Optional household assignment during user creation
-  - ⏳ Admin user management UI component pending (Step 2.3)
-  - ⏳ Integration into Admin Tab pending (Step 2.4)
-  - Plan: `docs/household-invite-and-admin-features-plan.md` (Feature 2)
 
 **Previous (2025-11-17):**
 - Onboarding Flow (✅ COMPLETE)
@@ -201,11 +210,10 @@ _No active bugs_
 **What works:** Complete household data isolation across all financial data types. Users can switch between households and see fully isolated data. All API endpoints, frontend components, and business logic properly filter by household.
 
 ### Other Next Steps
-1. ⏳ Admin User Creation UI - Complete admin user management UI component and integrate into Admin Tab
-2. ⏳ Invited User Onboarding - Implement special onboarding flow for invited users with demo data generation
-3. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
-4. Docker configuration for deployment
-5. Performance optimizations as needed
-6. User feedback and iterations
+1. ⏳ Invited User Onboarding - Complete remaining steps (4-10): sign-up detection, invitation page updates, onboarding step updates for demo mode
+2. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
+3. Docker configuration for deployment
+4. Performance optimizations as needed
+5. User feedback and iterations
 
 For detailed bug tracking, see `docs/bugs.md`.

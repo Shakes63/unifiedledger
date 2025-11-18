@@ -6,9 +6,7 @@
 
 ## Incomplete Features
 
-1. **Admin User Creation** - Application owner can create users with email/password and assign them to households with specific permission levels. **Status:** API endpoints complete (create, list, update, delete), UI component pending. Plan: `docs/household-invite-and-admin-features-plan.md` (Feature 2)
-
-2. **Invited User Onboarding** - Special onboarding flow for invited users that creates demo data instead of real data, preventing interference with existing household finances. **Status:** Not started. Plan: `docs/household-invite-and-admin-features-plan.md` (Feature 3)
+1. **Invited User Onboarding** - Special onboarding flow for invited users that creates demo data instead of real data, preventing interference with existing household finances. **Status:** Partially complete (Steps 1-3 done: invitation context, demo data generator, API endpoint). Steps 4-10 pending: sign-up detection, invitation page updates, onboarding step updates. Plan: `docs/invited-user-onboarding-plan.md`
 
 
 ---
@@ -55,3 +53,4 @@
 38. ✅ **Bill Merchant Field** - Optional merchant field for bills with auto-fill in transaction form
 39. ✅ **Onboarding Flow** - Step-by-step wizard guiding new users through creating their first household, account, bill, goal, debt, and transaction with progress tracking
 40. ✅ **Household Invite Flow with Email** - Complete invitation system with email notifications when users are invited to households, supporting both existing and new users
+41. ✅ **Admin User Creation** - Complete admin user management UI allowing application owner to create, list, update, and delete users with household assignment

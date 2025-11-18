@@ -18,6 +18,13 @@ interface OnboardingContextType {
   completeOnboarding: () => Promise<void>;
   checkOnboardingStatus: () => Promise<void>;
   reset: () => void;
+  // Invitation context
+  isInvitedUser: boolean;
+  invitationHouseholdId: string | null;
+  isDemoMode: boolean;
+  invitationToken: string | null;
+  setInvitationContext: (householdId: string, token: string) => void;
+  clearInvitationContext: () => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
@@ -31,6 +38,11 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [skippedSteps, setSkippedSteps] = useState<Set<number>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  // Invitation context
+  const [isInvitedUser, setIsInvitedUser] = useState(false);
+  const [invitationHouseholdId, setInvitationHouseholdId] = useState<string | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [invitationToken, setInvitationToken] = useState<string | null>(null);
 
   // Check onboarding status on mount
   const checkOnboardingStatus = useCallback(async () => {
@@ -126,6 +138,52 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setError(null);
   }, []);
 
+  // Invitation context methods
+  const setInvitationContext = useCallback((householdId: string, token: string) => {
+    setIsInvitedUser(true);
+    setInvitationHouseholdId(householdId);
+    setIsDemoMode(true);
+    setInvitationToken(token);
+    // Store in localStorage for persistence
+    try {
+      localStorage.setItem('unified-ledger:invitation-token', token);
+      localStorage.setItem('unified-ledger:invitation-household-id', householdId);
+    } catch (error) {
+      console.error('Failed to store invitation context in localStorage:', error);
+    }
+  }, []);
+
+  const clearInvitationContext = useCallback(() => {
+    setIsInvitedUser(false);
+    setInvitationHouseholdId(null);
+    setIsDemoMode(false);
+    setInvitationToken(null);
+    // Clear from localStorage
+    try {
+      localStorage.removeItem('unified-ledger:invitation-token');
+      localStorage.removeItem('unified-ledger:invitation-household-id');
+    } catch (error) {
+      console.error('Failed to clear invitation context from localStorage:', error);
+    }
+  }, []);
+
+  // Check for invitation context in localStorage on mount
+  useEffect(() => {
+    try {
+      const token = localStorage.getItem('unified-ledger:invitation-token');
+      const householdId = localStorage.getItem('unified-ledger:invitation-household-id');
+      
+      if (token && householdId) {
+        setIsInvitedUser(true);
+        setInvitationHouseholdId(householdId);
+        setIsDemoMode(true);
+        setInvitationToken(token);
+      }
+    } catch (error) {
+      console.error('Failed to read invitation context from localStorage:', error);
+    }
+  }, []);
+
   // Check onboarding status on mount
   useEffect(() => {
     checkOnboardingStatus();
@@ -148,6 +206,13 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         completeOnboarding,
         checkOnboardingStatus,
         reset,
+        // Invitation context
+        isInvitedUser,
+        invitationHouseholdId,
+        isDemoMode,
+        invitationToken,
+        setInvitationContext,
+        clearInvitationContext,
       }}
     >
       {children}
