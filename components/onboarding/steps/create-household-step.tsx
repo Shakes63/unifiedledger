@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { OnboardingStep } from '../onboarding-step';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useHousehold } from '@/contexts/household-context';
-import { Users } from 'lucide-react';
+import { useOnboarding } from '@/contexts/onboarding-context';
+import { Users, CheckCircle2 } from 'lucide-react';
 
 interface CreateHouseholdStepProps {
   onNext: () => void;
@@ -21,9 +22,25 @@ export function CreateHouseholdStep({
   onSkip,
   canSkip,
 }: CreateHouseholdStepProps) {
+  const { isDemoMode, invitationHouseholdId } = useOnboarding();
+  const { households } = useHousehold();
   const [householdName, setHouseholdName] = useState('My Household');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { refreshHouseholds, setSelectedHouseholdId } = useHousehold();
+
+  // Find household name
+  const invitedHousehold = households.find(h => h.id === invitationHouseholdId);
+  const householdNameDisplay = invitedHousehold?.name || 'the household';
+
+  // Auto-advance if in demo mode (household already exists)
+  useEffect(() => {
+    if (isDemoMode) {
+      const timer = setTimeout(() => {
+        onNext();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isDemoMode, onNext]);
 
   const handleSubmit = async () => {
     if (!householdName.trim()) {
@@ -63,6 +80,29 @@ export function CreateHouseholdStep({
       setIsSubmitting(false);
     }
   };
+
+  // Show skip message if in demo mode
+  if (isDemoMode) {
+    return (
+      <OnboardingStep
+        stepNumber={2}
+        title="Household Already Set Up"
+        description={`You're joining ${householdNameDisplay}. Demo data will be created in this household.`}
+        onNext={onNext}
+        onPrevious={onPrevious}
+        isFirstStep={false}
+      >
+        <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center">
+            <Users className="w-8 h-8 text-[var(--color-primary)]" />
+          </div>
+          <p className="text-muted-foreground">
+            Since you're joining an existing household, we'll skip household creation.
+          </p>
+        </div>
+      </OnboardingStep>
+    );
+  }
 
   return (
     <OnboardingStep

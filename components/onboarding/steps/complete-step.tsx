@@ -3,6 +3,7 @@
 import { OnboardingStep } from '../onboarding-step';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, ArrowRight, Home, Wallet, Receipt, Target, CreditCard, DollarSign } from 'lucide-react';
+import { useOnboarding } from '@/contexts/onboarding-context';
 import Link from 'next/link';
 
 interface CompleteStepProps {
@@ -12,6 +13,8 @@ interface CompleteStepProps {
 }
 
 export function CompleteStep({ onComplete, onPrevious, isLoading }: CompleteStepProps) {
+  const { isInvitedUser, clearInvitationContext } = useOnboarding();
+  
   const quickLinks = [
     { href: '/dashboard/transactions', label: 'Transactions', icon: DollarSign },
     { href: '/dashboard/accounts', label: 'Accounts', icon: Wallet },
@@ -21,16 +24,28 @@ export function CompleteStep({ onComplete, onPrevious, isLoading }: CompleteStep
     { href: '/dashboard', label: 'Dashboard', icon: Home },
   ];
 
+  const handleComplete = async () => {
+    // Clear invitation context after completion
+    if (isInvitedUser) {
+      clearInvitationContext();
+    }
+    await onComplete();
+  };
+
   return (
     <OnboardingStep
       stepNumber={8}
-      title="You're All Set!"
-      description="Congratulations! You've completed the onboarding. Here's what you can do next."
-      onNext={onComplete}
+      title={isInvitedUser ? "Demo Data Created!" : "You're All Set!"}
+      description={
+        isInvitedUser
+          ? "You can now explore the app with sample data. All demo data is clearly marked and won't affect real household finances."
+          : "Congratulations! You've completed the onboarding. Here's what you can do next."
+      }
+      onNext={handleComplete}
       onPrevious={onPrevious}
       isLastStep={true}
       isLoading={isLoading}
-      nextLabel="Start Using Unified Ledger"
+      nextLabel={isInvitedUser ? "Start Exploring" : "Start Using Unified Ledger"}
     >
       <div className="flex flex-col items-center justify-center py-8 text-center space-y-6">
         <div className="w-20 h-20 rounded-full bg-[var(--color-success)]/20 flex items-center justify-center">
@@ -38,13 +53,26 @@ export function CompleteStep({ onComplete, onPrevious, isLoading }: CompleteStep
         </div>
 
         <div className="space-y-4 max-w-md">
-          <h3 className="text-xl font-semibold text-foreground">
-            Welcome to Unified Ledger!
-          </h3>
-          <p className="text-muted-foreground">
-            You've set up the basics. Now you can start tracking your finances, managing budgets,
-            and achieving your financial goals.
-          </p>
+          {isInvitedUser ? (
+            <>
+              <h3 className="text-xl font-semibold text-foreground">
+                Welcome to Unified Ledger!
+              </h3>
+              <p className="text-muted-foreground">
+                Demo data has been created so you can practice and explore the app. All demo items are clearly marked with "Demo" prefix.
+              </p>
+            </>
+          ) : (
+            <>
+              <h3 className="text-xl font-semibold text-foreground">
+                Welcome to Unified Ledger!
+              </h3>
+              <p className="text-muted-foreground">
+                You've set up the basics. Now you can start tracking your finances, managing budgets,
+                and achieving your financial goals.
+              </p>
+            </>
+          )}
         </div>
 
         <div className="w-full max-w-md space-y-4">
@@ -66,23 +94,35 @@ export function CompleteStep({ onComplete, onPrevious, isLoading }: CompleteStep
           </div>
         </div>
 
-        <div className="bg-elevated border border-border rounded-lg p-4 w-full max-w-md text-left">
-          <p className="text-sm font-medium text-foreground mb-2">💡 Pro Tips:</p>
-          <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-            <li>Import transactions from CSV files</li>
-            <li>Set up categorization rules for automatic organization</li>
-            <li>Create budgets to track your spending</li>
-            <li>Invite family members to share households</li>
-          </ul>
-        </div>
+        {isInvitedUser ? (
+          <div className="bg-elevated border border-border rounded-lg p-4 w-full max-w-md text-left">
+            <p className="text-sm font-medium text-foreground mb-2">💡 Tips for Exploring:</p>
+            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+              <li>Try creating a transaction to see how it works</li>
+              <li>Explore the dashboard to see your demo accounts and balances</li>
+              <li>Check out bills, goals, and debts in their respective sections</li>
+              <li>Demo data won't affect real household finances</li>
+            </ul>
+          </div>
+        ) : (
+          <div className="bg-elevated border border-border rounded-lg p-4 w-full max-w-md text-left">
+            <p className="text-sm font-medium text-foreground mb-2">💡 Pro Tips:</p>
+            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+              <li>Import transactions from CSV files</li>
+              <li>Set up categorization rules for automatic organization</li>
+              <li>Create budgets to track your spending</li>
+              <li>Invite family members to share households</li>
+            </ul>
+          </div>
+        )}
 
         <Button
-          onClick={onComplete}
+          onClick={handleComplete}
           className="mt-6 bg-[var(--color-primary)] text-background hover:opacity-90"
           size="lg"
           disabled={isLoading}
         >
-          Start Using Unified Ledger
+          {isInvitedUser ? 'Start Exploring' : 'Start Using Unified Ledger'}
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
       </div>

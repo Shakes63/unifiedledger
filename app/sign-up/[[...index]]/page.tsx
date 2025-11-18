@@ -22,6 +22,13 @@ export default function SignUpPage() {
   const searchParams = useSearchParams();
   const isFirstSetup = searchParams.get('firstSetup') === 'true';
   
+  // Check for invitation token from URL or localStorage
+  const invitationTokenFromUrl = searchParams.get('invitation_token');
+  const invitationTokenFromStorage = typeof window !== 'undefined' 
+    ? localStorage.getItem('unified-ledger:invitation-token') 
+    : null;
+  const invitationToken = invitationTokenFromUrl || invitationTokenFromStorage;
+  
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -85,6 +92,40 @@ export default function SignUpPage() {
         }
       } else {
         toast.success('Account created successfully!');
+      }
+
+      // If invitation token exists, accept invitation and redirect to onboarding
+      if (invitationToken) {
+        try {
+          const acceptResponse = await fetch('/api/invitations/accept', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ token: invitationToken }),
+          });
+
+          if (acceptResponse.ok) {
+            const data = await acceptResponse.json();
+            // Store household ID in localStorage for onboarding context
+            if (data.householdId) {
+              localStorage.setItem('unified-ledger:invitation-household-id', data.householdId);
+            }
+            // Ensure token is stored in localStorage
+            localStorage.setItem('unified-ledger:invitation-token', invitationToken);
+            // Redirect with invitation flag to trigger demo mode onboarding
+            window.location.href = '/dashboard?onboarding=true&invited=true';
+            return;
+          } else {
+            const errorData = await acceptResponse.json().catch(() => ({}));
+            console.error('Failed to accept invitation:', errorData.error || 'Unknown error');
+            // Continue with normal flow even if invitation acceptance fails
+            toast.error('Account created, but invitation could not be accepted. Please try accepting it manually.');
+          }
+        } catch (error) {
+          console.error('Failed to accept invitation:', error);
+          // Continue with normal flow even if invitation acceptance fails
+          toast.error('Account created, but invitation could not be accepted. Please try accepting it manually.');
+        }
       }
 
       // Use window.location for a hard redirect to ensure middleware runs

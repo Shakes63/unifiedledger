@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { OnboardingStep } from '../onboarding-step';
 import { GoalForm } from '@/components/goals/goal-form';
-import { Target } from 'lucide-react';
+import { Target, CheckCircle2 } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useOnboarding } from '@/contexts/onboarding-context';
 import { toast } from 'sonner';
 
 interface CreateGoalStepProps {
@@ -20,8 +21,19 @@ export function CreateGoalStep({
   onSkip,
   canSkip,
 }: CreateGoalStepProps) {
+  const { isDemoMode } = useOnboarding();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { postWithHousehold } = useHouseholdFetch();
+
+  // Auto-advance if in demo mode (demo goals already created)
+  useEffect(() => {
+    if (isDemoMode) {
+      const timer = setTimeout(() => {
+        onNext();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isDemoMode, onNext]);
 
   const handleSubmit = async (formData: any) => {
     try {
@@ -42,6 +54,29 @@ export function CreateGoalStep({
       setIsSubmitting(false);
     }
   };
+
+  // Show skip message if in demo mode
+  if (isDemoMode) {
+    return (
+      <OnboardingStep
+        stepNumber={5}
+        title="Demo Goals Created"
+        description="Demo goals have been created automatically. You can explore them after onboarding."
+        onNext={onNext}
+        onPrevious={onPrevious}
+        isFirstStep={false}
+      >
+        <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-[var(--color-success)]/20 flex items-center justify-center">
+            <CheckCircle2 className="w-8 h-8 text-[var(--color-success)]" />
+          </div>
+          <p className="text-muted-foreground">
+            Demo goals have been created automatically. You can explore them after onboarding.
+          </p>
+        </div>
+      </OnboardingStep>
+    );
+  }
 
   return (
     <OnboardingStep

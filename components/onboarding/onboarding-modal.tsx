@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { OnboardingProgress } from './onboarding-progress';
 import { useOnboarding } from '@/contexts/onboarding-context';
@@ -11,6 +13,7 @@ import { CreateGoalStep } from './steps/create-goal-step';
 import { CreateDebtStep } from './steps/create-debt-step';
 import { CreateTransactionStep } from './steps/create-transaction-step';
 import { CompleteStep } from './steps/complete-step';
+import { CreateDemoDataStep } from './steps/create-demo-data-step';
 
 interface OnboardingModalProps {
   open: boolean;
@@ -18,6 +21,7 @@ interface OnboardingModalProps {
 }
 
 export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
+  const searchParams = useSearchParams();
   const {
     currentStep,
     totalSteps,
@@ -28,7 +32,27 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
     skipStep,
     completeOnboarding,
     isLoading,
+    isDemoMode,
+    isInvitedUser,
+    setInvitationContext,
   } = useOnboarding();
+
+  // Initialize invitation context from URL parameters or localStorage
+  useEffect(() => {
+    if (open && !isInvitedUser) {
+      const invitedParam = searchParams?.get('invited') === 'true';
+      const token = typeof window !== 'undefined' 
+        ? localStorage.getItem('unified-ledger:invitation-token') 
+        : null;
+      const householdId = typeof window !== 'undefined'
+        ? localStorage.getItem('unified-ledger:invitation-household-id')
+        : null;
+
+      if (invitedParam && token && householdId) {
+        setInvitationContext(householdId, token);
+      }
+    }
+  }, [open, searchParams, isInvitedUser, setInvitationContext]);
 
   const handleComplete = async () => {
     try {
@@ -48,6 +72,10 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
       case 1:
         return <WelcomeStep onNext={nextStep} />;
       case 2:
+        // In demo mode, show demo data creation step instead of household creation
+        if (isDemoMode) {
+          return <CreateDemoDataStep onNext={nextStep} onPrevious={previousStep} />;
+        }
         return (
           <CreateHouseholdStep
             onNext={nextStep}

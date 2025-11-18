@@ -59,14 +59,17 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
   - ✅ Form validation (email format, password strength, role selection)
   - ✅ Integrated into Admin Tab with User Management section
   - ✅ All components use semantic theme variables
-- Invited User Onboarding (🟡 PARTIAL - Steps 1-3 Complete)
-  - ✅ Invitation context added to onboarding system (isInvitedUser, isDemoMode, invitationHouseholdId)
-  - ✅ Demo data generation utility created (accounts, categories, merchants, bills, goals, debts, transactions)
-  - ✅ Demo data API endpoint created (POST /api/onboarding/generate-demo-data)
-  - ⏳ Sign-up page invitation detection pending (Step 4)
-  - ⏳ Invitation acceptance page updates pending (Step 5)
-  - ⏳ Onboarding step updates pending (Steps 6-10)
-  - Plan: `docs/invited-user-onboarding-plan.md`
+- Invited User Onboarding (✅ IMPLEMENTATION COMPLETE - Testing Pending)
+  - ✅ All 10 steps implemented: invitation context, demo data generator, API endpoint, sign-up detection, invitation page updates, onboarding step updates
+  - ✅ Sign-up page detects invitation tokens from URL or localStorage
+  - ✅ Invitation page handles new vs existing users differently
+  - ✅ Welcome step shows invitation-specific content with demo mode banner
+  - ✅ Demo data creation step component created
+  - ✅ All onboarding steps skip automatically in demo mode
+  - ✅ Complete step shows invitation-specific completion message
+  - ✅ Onboarding modal initializes invitation context from URL/localStorage
+  - ⏳ Manual testing pending - See `docs/invited-user-onboarding-test-plan.md` for test scenarios
+  - Implementation plan: `docs/invited-user-onboarding-implementation-plan.md`
 - Household Invite Flow with Email (✅ COMPLETE)
   - ✅ Invitation email template created with HTML and plain text versions
   - ✅ Email sending integrated into invitation API endpoint
@@ -210,7 +213,7 @@ _No active bugs_
 **What works:** Complete household data isolation across all financial data types. Users can switch between households and see fully isolated data. All API endpoints, frontend components, and business logic properly filter by household.
 
 ### Other Next Steps
-1. ⏳ Invited User Onboarding - Complete remaining steps (4-10): sign-up detection, invitation page updates, onboarding step updates for demo mode
+1. ⏳ Invited User Onboarding - Manual testing pending (implementation complete, see `docs/invited-user-onboarding-test-plan.md`)
 2. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
 3. Docker configuration for deployment
 4. Performance optimizations as needed

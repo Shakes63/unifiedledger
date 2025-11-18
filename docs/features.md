@@ -6,8 +6,6 @@
 
 ## Incomplete Features
 
-1. **Invited User Onboarding** - Special onboarding flow for invited users that creates demo data instead of real data, preventing interference with existing household finances. **Status:** Partially complete (Steps 1-3 done: invitation context, demo data generator, API endpoint). Steps 4-10 pending: sign-up detection, invitation page updates, onboarding step updates. Plan: `docs/invited-user-onboarding-plan.md`
-
 
 ---
 
@@ -54,3 +52,4 @@
 39. ✅ **Onboarding Flow** - Step-by-step wizard guiding new users through creating their first household, account, bill, goal, debt, and transaction with progress tracking
 40. ✅ **Household Invite Flow with Email** - Complete invitation system with email notifications when users are invited to households, supporting both existing and new users
 41. ✅ **Admin User Creation** - Complete admin user management UI allowing application owner to create, list, update, and delete users with household assignment
+42. ✅ **Invited User Onboarding** - Special onboarding flow for invited users that creates demo data instead of real data, preventing interference with existing household finances. Implementation complete, manual testing pending. See `docs/invited-user-onboarding-implementation-plan.md` and `docs/invited-user-onboarding-test-plan.md` for details.

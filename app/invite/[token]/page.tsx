@@ -32,6 +32,7 @@ export default function InvitationPage() {
   const [error, setError] = useState<string | null>(null);
   const [accepting, setAccepting] = useState(false);
   const [declined, setDeclined] = useState(false);
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fetchInvitation = async () => {
@@ -60,6 +61,24 @@ export default function InvitationPage() {
         } else if (data.status === 'expired' || data.status === 'declined') {
           setError(`This invitation has been ${data.status}`);
         }
+
+        // Check onboarding status if user is signed in
+        if (isSignedIn) {
+          try {
+            const onboardingResponse = await fetch('/api/user/onboarding/status', {
+              credentials: 'include',
+            });
+            if (onboardingResponse.ok) {
+              const onboardingData = await onboardingResponse.json();
+              setOnboardingCompleted(onboardingData.onboardingCompleted ?? false);
+            } else {
+              setOnboardingCompleted(false);
+            }
+          } catch (err) {
+            console.error('Failed to check onboarding status:', err);
+            setOnboardingCompleted(false);
+          }
+        }
       } catch (err) {
         console.error('Error fetching invitation:', err);
         setError(err instanceof Error ? err.message : 'Failed to load invitation');
@@ -69,12 +88,19 @@ export default function InvitationPage() {
     };
 
     fetchInvitation();
-  }, [token]);
+  }, [token, isSignedIn]);
 
   const handleAccept = async () => {
     if (!isSignedIn) {
+      // Store token before redirecting so it's available after sign-in
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('unified-ledger:invitation-token', token);
+        if (invitation?.householdId) {
+          localStorage.setItem('unified-ledger:invitation-household-id', invitation.householdId);
+        }
+      }
       // Redirect to sign in, then come back
-      router.push(`/sign-in?redirect_url=${encodeURIComponent(window.location.href)}`);
+      router.push(`/sign-in?redirect_url=${encodeURIComponent(window.location.href)}&invitation_token=${token}`);
       return;
     }
 
@@ -85,6 +111,7 @@ export default function InvitationPage() {
       const response = await fetch('/api/invitations/accept', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ token }),
       });
 
@@ -94,8 +121,41 @@ export default function InvitationPage() {
       }
 
       const data = await response.json();
-      // Redirect to dashboard (household will be automatically selected)
-      router.push('/dashboard');
+      
+      // Check if user is new (hasn't completed onboarding)
+      // If onboardingCompleted is null, check it now
+      let isNewUser = false;
+      if (onboardingCompleted === null) {
+        try {
+          const onboardingResponse = await fetch('/api/user/onboarding/status', {
+            credentials: 'include',
+          });
+          if (onboardingResponse.ok) {
+            const onboardingData = await onboardingResponse.json();
+            isNewUser = !(onboardingData.onboardingCompleted ?? false);
+          } else {
+            isNewUser = true; // Assume new user if check fails
+          }
+        } catch (err) {
+          console.error('Failed to check onboarding status:', err);
+          isNewUser = true; // Assume new user if check fails
+        }
+      } else {
+        isNewUser = !onboardingCompleted;
+      }
+
+      if (isNewUser) {
+        // Store invitation context for onboarding
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('unified-ledger:invitation-token', token);
+          localStorage.setItem('unified-ledger:invitation-household-id', data.householdId);
+        }
+        // Redirect to onboarding with invitation flag
+        router.push('/dashboard?onboarding=true&invited=true');
+      } else {
+        // Existing user - just redirect to dashboard (household will be switched automatically)
+        router.push('/dashboard');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       setAccepting(false);
