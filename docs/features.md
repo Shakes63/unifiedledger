@@ -6,12 +6,11 @@
 
 ## Incomplete Features
 
-1. **Onboarding: Demo Data Choice at End** - Add option for invited users to "Keep Demo Data" or "Clear Demo Data and Start Fresh" before completing onboarding
-2. **Onboarding: Educational Content** - Add "Why This Matters" info boxes to each step explaining feature benefits (auto-categorization, bill matching, spending reports, etc.)
-3. **Onboarding: Category/Budget Step** - Add new step for setting up categories and understanding budgets before transaction creation
-4. **Onboarding: Reorder Steps** - Move Transaction step earlier (after Account), make Bill/Goal/Debt clearly optional with "Set Up Later" messaging
-5. **Onboarding: Improved Step Descriptions** - Enhance descriptions with feature highlights (e.g., "auto-matches transactions to bills", "sends reminders before due dates")
-6. **Onboarding: Clear Skip Messaging** - Change "Skip" to "Set Up Later" with reassurance that features can be accessed from main menu
+1. **Onboarding: Educational Content** - Add "Why This Matters" info boxes to each step explaining feature benefits (auto-categorization, bill matching, spending reports, etc.)
+2. **Onboarding: Category/Budget Step** - Add new step for setting up categories and understanding budgets before transaction creation
+3. **Onboarding: Reorder Steps** - Move Transaction step earlier (after Account), make Bill/Goal/Debt clearly optional with "Set Up Later" messaging
+4. **Onboarding: Improved Step Descriptions** - Enhance descriptions with feature highlights (e.g., "auto-matches transactions to bills", "sends reminders before due dates")
+5. **Onboarding: Clear Skip Messaging** - Change "Skip" to "Set Up Later" with reassurance that features can be accessed from main menu
 
 ---
 
@@ -60,3 +59,4 @@
 41. ✅ **Admin User Creation** - Complete admin user management UI allowing application owner to create, list, update, and delete users with household assignment
 42. ✅ **Invited User Onboarding** - Special onboarding flow for invited users that creates demo data instead of real data, preventing interference with existing household finances. Implementation complete, manual testing pending.
 43. ✅ **Reports Advanced Filtering & Custom Date Range** - Enhanced reports dashboard with custom date range picker, advanced filtering by account/category/merchant, and filter persistence per household
+44. ✅ **Onboarding: Demo Data Choice at End** - Added option for invited users to "Keep Demo Data" or "Clear Demo Data and Start Fresh" before completing onboarding, with demo data summary display and proper cleanup

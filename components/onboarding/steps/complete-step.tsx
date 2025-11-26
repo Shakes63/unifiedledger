@@ -10,9 +10,10 @@ interface CompleteStepProps {
   onComplete: () => void;
   onPrevious: () => void;
   isLoading: boolean;
+  demoDataCleared?: boolean;
 }
 
-export function CompleteStep({ onComplete, onPrevious, isLoading }: CompleteStepProps) {
+export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleared = false }: CompleteStepProps) {
   const { isInvitedUser, clearInvitationContext } = useOnboarding();
   
   const quickLinks = [
@@ -32,15 +33,28 @@ export function CompleteStep({ onComplete, onPrevious, isLoading }: CompleteStep
     await onComplete();
   };
 
+  // Determine title and description based on user type and choice
+  const getTitle = () => {
+    if (!isInvitedUser) return "You're All Set!";
+    if (demoDataCleared) return "Fresh Start Ready!";
+    return "Demo Data Created!";
+  };
+
+  const getDescription = () => {
+    if (!isInvitedUser) {
+      return "Congratulations! You've completed the onboarding. Here's what you can do next.";
+    }
+    if (demoDataCleared) {
+      return "You're starting with a clean slate. Create your first account and transaction to get started.";
+    }
+    return "You can now explore the app with sample data. All demo data is clearly marked and won't affect real household finances.";
+  };
+
   return (
     <OnboardingStep
-      stepNumber={8}
-      title={isInvitedUser ? "Demo Data Created!" : "You're All Set!"}
-      description={
-        isInvitedUser
-          ? "You can now explore the app with sample data. All demo data is clearly marked and won't affect real household finances."
-          : "Congratulations! You've completed the onboarding. Here's what you can do next."
-      }
+      stepNumber={isInvitedUser ? 9 : 8}
+      title={getTitle()}
+      description={getDescription()}
       onNext={handleComplete}
       onPrevious={onPrevious}
       isLastStep={true}
@@ -54,14 +68,25 @@ export function CompleteStep({ onComplete, onPrevious, isLoading }: CompleteStep
 
         <div className="space-y-4 max-w-md">
           {isInvitedUser ? (
-            <>
-              <h3 className="text-xl font-semibold text-foreground">
-                Welcome to Unified Ledger!
-              </h3>
-              <p className="text-muted-foreground">
-                Demo data has been created so you can practice and explore the app. All demo items are clearly marked with "Demo" prefix.
-              </p>
-            </>
+            demoDataCleared ? (
+              <>
+                <h3 className="text-xl font-semibold text-foreground">
+                  Welcome to Unified Ledger!
+                </h3>
+                <p className="text-muted-foreground">
+                  You've chosen to start fresh. Create your first account and begin tracking your finances right away.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-xl font-semibold text-foreground">
+                  Welcome to Unified Ledger!
+                </h3>
+                <p className="text-muted-foreground">
+                  Demo data has been created so you can practice and explore the app. All demo items are clearly marked with "Demo" prefix.
+                </p>
+              </>
+            )
           ) : (
             <>
               <h3 className="text-xl font-semibold text-foreground">
@@ -95,18 +120,30 @@ export function CompleteStep({ onComplete, onPrevious, isLoading }: CompleteStep
         </div>
 
         {isInvitedUser ? (
-          <div className="bg-elevated border border-border rounded-lg p-4 w-full max-w-md text-left">
-            <p className="text-sm font-medium text-foreground mb-2">💡 Tips for Exploring:</p>
-            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>Try creating a transaction to see how it works</li>
-              <li>Explore the dashboard to see your demo accounts and balances</li>
-              <li>Check out bills, goals, and debts in their respective sections</li>
-              <li>Demo data won't affect real household finances</li>
-            </ul>
-          </div>
+          demoDataCleared ? (
+            <div className="bg-elevated border border-border rounded-lg p-4 w-full max-w-md text-left">
+              <p className="text-sm font-medium text-foreground mb-2">Getting Started:</p>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Create your first account to track your finances</li>
+                <li>Add transactions to start building your history</li>
+                <li>Set up bills for recurring expenses</li>
+                <li>Create savings goals to work towards</li>
+              </ul>
+            </div>
+          ) : (
+            <div className="bg-elevated border border-border rounded-lg p-4 w-full max-w-md text-left">
+              <p className="text-sm font-medium text-foreground mb-2">Tips for Exploring:</p>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Try creating a transaction to see how it works</li>
+                <li>Explore the dashboard to see your demo accounts and balances</li>
+                <li>Check out bills, goals, and debts in their respective sections</li>
+                <li>Demo data won't affect real household finances</li>
+              </ul>
+            </div>
+          )
         ) : (
           <div className="bg-elevated border border-border rounded-lg p-4 w-full max-w-md text-left">
-            <p className="text-sm font-medium text-foreground mb-2">💡 Pro Tips:</p>
+            <p className="text-sm font-medium text-foreground mb-2">Pro Tips:</p>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
               <li>Import transactions from CSV files</li>
               <li>Set up categorization rules for automatic organization</li>

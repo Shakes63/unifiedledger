@@ -25,11 +25,17 @@ interface OnboardingContextType {
   invitationToken: string | null;
   setInvitationContext: (householdId: string, token: string) => void;
   clearInvitationContext: () => void;
+  // Demo data choice
+  demoDataCleared: boolean;
+  setDemoDataCleared: (cleared: boolean) => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
-const TOTAL_STEPS = 8; // Welcome, Household, Account, Bill, Goal, Debt, Transaction, Complete
+// Non-demo users: 8 steps (Welcome, Household, Account, Bill, Goal, Debt, Transaction, Complete)
+// Demo users: 9 steps (Welcome, DemoData, Account, Bill, Goal, Debt, Transaction, DemoDataChoice, Complete)
+const TOTAL_STEPS_NON_DEMO = 8;
+const TOTAL_STEPS_DEMO = 9;
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [isOnboardingActive, setIsOnboardingActive] = useState(false);
@@ -43,6 +49,11 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [invitationHouseholdId, setInvitationHouseholdId] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [invitationToken, setInvitationToken] = useState<string | null>(null);
+  // Demo data choice
+  const [demoDataCleared, setDemoDataCleared] = useState(false);
+
+  // Calculate total steps based on demo mode
+  const totalSteps = isDemoMode ? TOTAL_STEPS_DEMO : TOTAL_STEPS_NON_DEMO;
 
   // Check onboarding status on mount
   const checkOnboardingStatus = useCallback(async () => {
@@ -89,8 +100,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         setIsOnboardingActive(false);
-        setCurrentStep(TOTAL_STEPS);
-        setCompletedSteps(new Set([...Array(TOTAL_STEPS).keys()].map(i => i + 1)));
+        const steps = isDemoMode ? TOTAL_STEPS_DEMO : TOTAL_STEPS_NON_DEMO;
+        setCurrentStep(steps);
+        setCompletedSteps(new Set([...Array(steps).keys()].map(i => i + 1)));
       } else {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to complete onboarding');
@@ -107,11 +119,11 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   // Navigation functions
   const nextStep = useCallback(() => {
     setCurrentStep((prev) => {
-      const next = Math.min(prev + 1, TOTAL_STEPS);
+      const next = Math.min(prev + 1, totalSteps);
       setCompletedSteps((completed) => new Set([...completed, prev]));
       return next;
     });
-  }, []);
+  }, [totalSteps]);
 
   const previousStep = useCallback(() => {
     setCurrentStep((prev) => Math.max(prev - 1, 1));
@@ -126,16 +138,17 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   }, [currentStep, nextStep]);
 
   const goToStep = useCallback((step: number) => {
-    if (step >= 1 && step <= TOTAL_STEPS) {
+    if (step >= 1 && step <= totalSteps) {
       setCurrentStep(step);
     }
-  }, []);
+  }, [totalSteps]);
 
   const reset = useCallback(() => {
     setCurrentStep(1);
     setCompletedSteps(new Set());
     setSkippedSteps(new Set());
     setError(null);
+    setDemoDataCleared(false);
   }, []);
 
   // Invitation context methods
@@ -194,7 +207,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       value={{
         isOnboardingActive,
         currentStep,
-        totalSteps: TOTAL_STEPS,
+        totalSteps,
         completedSteps,
         skippedSteps,
         isLoading,
@@ -213,6 +226,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         invitationToken,
         setInvitationContext,
         clearInvitationContext,
+        // Demo data choice
+        demoDataCleared,
+        setDemoDataCleared,
       }}
     >
       {children}

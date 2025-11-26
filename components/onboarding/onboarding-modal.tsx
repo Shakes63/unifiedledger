@@ -14,6 +14,7 @@ import { CreateDebtStep } from './steps/create-debt-step';
 import { CreateTransactionStep } from './steps/create-transaction-step';
 import { CompleteStep } from './steps/complete-step';
 import { CreateDemoDataStep } from './steps/create-demo-data-step';
+import { DemoDataChoiceStep } from './steps/demo-data-choice-step';
 
 interface OnboardingModalProps {
   open: boolean;
@@ -35,6 +36,8 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
     isDemoMode,
     isInvitedUser,
     setInvitationContext,
+    demoDataCleared,
+    setDemoDataCleared,
   } = useOnboarding();
 
   // Initialize invitation context from URL parameters or localStorage
@@ -130,11 +133,33 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
           />
         );
       case 8:
+        // For demo mode, step 8 is the demo data choice step
+        // For non-demo mode, step 8 is the complete step
+        if (isDemoMode) {
+          return (
+            <DemoDataChoiceStep
+              onNext={nextStep}
+              onPrevious={previousStep}
+              onDemoDataCleared={() => setDemoDataCleared(true)}
+            />
+          );
+        }
         return (
           <CompleteStep
             onComplete={handleComplete}
             onPrevious={previousStep}
             isLoading={isLoading}
+            demoDataCleared={demoDataCleared}
+          />
+        );
+      case 9:
+        // Step 9 is only for demo mode (complete step)
+        return (
+          <CompleteStep
+            onComplete={handleComplete}
+            onPrevious={previousStep}
+            isLoading={isLoading}
+            demoDataCleared={demoDataCleared}
           />
         );
       default:
