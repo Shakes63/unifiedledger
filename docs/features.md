@@ -12,12 +12,12 @@
 
 ## Completed Features
 
-1. ✅ **Enhanced Error Handling & Network Infrastructure** - Complete error handling system with reusable UI components, offline request queue, network status banner, and automatic retry
+1. ✅ **Enhanced Error Handling & Network Infrastructure** - Complete error handling system with reusable UI components, offline request queue, and automatic retry
 2. ✅ **Household Data Isolation Phase 0** - Three-tier settings architecture with per-household themes and notifications
-3. ✅ **Household Data Isolation Phase 1** - Complete household isolation for transactions, accounts, categories, and merchants with database migration applied
-4. ✅ **Household Data Isolation Phase 2** - Complete Bills & Budgets API isolation: 23 API endpoints, 13 frontend components, database migration with 0 NULL values
-5. ✅ **Household Data Isolation Phase 3** - Complete Goals & Debts household isolation with database migration, API endpoints, frontend components, testing, and documentation
-6. ✅ **Household Data Isolation Phase 4** - Complete Business Logic household isolation: categorization rules and rule execution logs isolated by household
+3. ✅ **Household Data Isolation Phase 1** - Complete household isolation for transactions, accounts, categories, and merchants
+4. ✅ **Household Data Isolation Phase 2** - Complete Bills & Budgets API isolation with 23 endpoints and 13 frontend components
+5. ✅ **Household Data Isolation Phase 3** - Complete Goals & Debts API isolation with 19 endpoints and 20 frontend components
+6. ✅ **Household Data Isolation Phase 4** - Complete Business Logic isolation for categorization rules and rule execution logs
 7. ✅ **Better Auth Authentication Bug Fixes** - Fixed 185 fetch calls missing credentials and session handling
 8. ✅ **Better Auth Cookie Integration** - Session cookie handling with proper authentication
 9. ✅ **Experimental Features System** - Feature gating with Quick Entry Mode, Enhanced Search, and Advanced Charts
@@ -34,29 +34,29 @@
 20. ✅ **Household Management System** - Multi-household support with role-based permissions
 21. ✅ **Avatar Upload** - Profile picture upload with display throughout app
 22. ✅ **Notifications Tab** - Granular per-notification-type channel selection (push/email)
-23. ✅ **Unified Settings Page** - Comprehensive settings interface with 3-tier structure
+23. ✅ **Unified Settings Page** - Comprehensive settings interface with 2-tier structure (Account/Households)
 24. ✅ **Transaction Save Performance** - 65-75% faster transaction creation through optimization
 25. ✅ **Income Frequency Tracking** - Category-level frequency tracking for budget projections
 26. ✅ **Goals Dashboard Widget** - Overall progress display across all active savings goals
 27. ✅ **Developer Mode** - Debug utility with entity ID badges, DEV indicator, and developer tools panel
 28. ✅ **Bill Frequency Expansion** - Support for one-time, weekly, and biweekly bill frequencies
 29. ✅ **Authentication Migration** - Complete Clerk to Better Auth migration with email/password
-30. ✅ **Auto-Backup Settings** - Automatic backup system with scheduler, settings UI, manual backups, backup history, and cron endpoint
-31. ✅ **Backup Household Isolation** - Complete household isolation for backups with per-household settings, history, and file storage
-32. ✅ **Two-Factor Authentication (2FA)** - Complete TOTP-based 2FA system with QR code setup, backup codes, login integration, and settings UI
-33. ✅ **OAuth Provider Management** - Complete OAuth provider management system with Google and GitHub support, provider linking/unlinking, primary login method selection, and sign-in page integration
-34. ✅ **Admin Backend Section** - Complete admin section for application owner with OAuth settings management (encrypted secrets), system information display, and owner-only access control
-35. ✅ **Advanced Permission System** - Granular permission management with custom overrides, comprehensive testing, and documentation
-36. ✅ **Quick Entry Mode Enhancement** - Enhanced keyboard-focused rapid transaction entry with category/merchant selection, smart defaults, transfer support, and comprehensive keyboard shortcuts
-37. ✅ **Settings Reorganization** - Restructured settings page from 3-tier to 2-tier navigation (Account/Households) with improved organization, Data Management moved to Account section, and Personal Preferences combining Theme, Notifications, and Financial Display
+30. ✅ **Auto-Backup Settings** - Automatic backup system with scheduler, settings UI, and backup history
+31. ✅ **Backup Household Isolation** - Complete household isolation for backups with per-household settings
+32. ✅ **Two-Factor Authentication (2FA)** - TOTP-based 2FA with QR code setup, backup codes, and login integration
+33. ✅ **OAuth Provider Management** - Google/GitHub OAuth with provider linking/unlinking and primary login selection
+34. ✅ **Admin Backend Section** - Admin section with OAuth settings management and owner-only access control
+35. ✅ **Advanced Permission System** - Granular permission management with custom overrides per member
+36. ✅ **Quick Entry Mode Enhancement** - Keyboard-focused rapid transaction entry with smart defaults and shortcuts
+37. ✅ **Settings Reorganization** - Restructured settings from 3-tier to 2-tier navigation (Account/Households)
 38. ✅ **Bill Merchant Field** - Optional merchant field for bills with auto-fill in transaction form
-39. ✅ **Onboarding Flow** - Step-by-step wizard guiding new users through creating their first household, account, bill, goal, debt, and transaction with progress tracking
-40. ✅ **Household Invite Flow with Email** - Complete invitation system with email notifications when users are invited to households, supporting both existing and new users
-41. ✅ **Admin User Creation** - Complete admin user management UI allowing application owner to create, list, update, and delete users with household assignment
-42. ✅ **Invited User Onboarding** - Special onboarding flow for invited users that creates demo data instead of real data, preventing interference with existing household finances. Implementation complete, manual testing pending.
-43. ✅ **Reports Advanced Filtering & Custom Date Range** - Enhanced reports dashboard with custom date range picker, advanced filtering by account/category/merchant, and filter persistence per household
-44. ✅ **Onboarding: Demo Data Choice at End** - Added option for invited users to "Keep Demo Data" or "Clear Demo Data and Start Fresh" before completing onboarding, with demo data summary display and proper cleanup
-45. ✅ **Onboarding: Educational Content** - Added "Why This Matters" info boxes to each onboarding step with reusable WhyThisMatters component, explaining feature benefits like auto-categorization, bill matching, milestone tracking, and payoff projections
-46. ✅ **Onboarding: Category/Budget Step** - Added new step 4 for setting up categories and budgets before transaction creation, with WhyThisMatters component, pre-filled example category, and common category suggestions
-47. ✅ **Onboarding: Reorder Steps** - Moved Transaction step earlier (after Category as step 5), making Bill/Goal/Debt optional advanced features (steps 6-8) with clear visual separation in welcome step
-48. ✅ **Onboarding: Clear Skip Messaging** - Changed "Skip" to "Set Up Later" with Clock icon and reassurance text ("Access from dashboard menu anytime"), added "Optional" badge to Bill/Goal/Debt steps
+39. ✅ **Onboarding Flow** - Step-by-step wizard guiding new users through setup with progress tracking
+40. ✅ **Household Invite Flow with Email** - Invitation system with email notifications for new/existing users
+41. ✅ **Admin User Creation** - Admin user management UI for creating, listing, updating, and deleting users
+42. ✅ **Invited User Onboarding** - Special flow for invited users with demo data to prevent interference
+43. ✅ **Reports Advanced Filtering** - Custom date range picker and filtering by account/category/merchant
+44. ✅ **Onboarding: Demo Data Choice** - Option for invited users to keep or clear demo data before completing
+45. ✅ **Onboarding: Educational Content** - "Why This Matters" info boxes explaining feature benefits in each step
+46. ✅ **Onboarding: Category/Budget Step** - Step 4 for setting up categories and budgets before transactions
+47. ✅ **Onboarding: Reorder Steps** - Transaction step moved earlier, Bill/Goal/Debt as optional advanced features
+48. ✅ **Onboarding: Clear Skip Messaging** - "Set Up Later" with Clock icon and "Optional" badge on skippable steps

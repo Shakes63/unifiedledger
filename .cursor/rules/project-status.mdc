@@ -87,12 +87,21 @@ alwaysApply: false
   - ✅ All invitation emails sent automatically when users are invited to households
   - ✅ Supports both existing and new users
 
+**Previous (2025-11-26):**
+- Onboarding Flow Enhancements (✅ COMPLETE - 5/6 improvements done)
+  - ✅ Demo Data Choice - Option for invited users to keep or clear demo data before completing
+  - ✅ Educational Content - "Why This Matters" info boxes with WhyThisMatters component in each step
+  - ✅ Category/Budget Step - New step 4 for setting up categories before transactions
+  - ✅ Reorder Steps - Transaction moved to step 5, Bill/Goal/Debt as optional steps 6-8
+  - ✅ Clear Skip Messaging - "Set Up Later" with Clock icon, "Optional" badge, reassurance text
+  - ⏳ Improved Step Descriptions - Pending (enhance with feature highlights)
+
 **Previous (2025-11-17):**
 - Onboarding Flow (✅ COMPLETE)
   - ✅ Database migration applied (onboarding_completed field)
-  - ✅ 8-step wizard with progress tracking (Welcome, Household, Account, Bill, Goal, Debt, Transaction, Complete)
-  - ✅ All form components integrated (AccountForm, BillForm, GoalForm, DebtForm, TransactionForm)
-  - ✅ Skip functionality for optional steps
+  - ✅ 9-step wizard for regular users, 10-step for demo users (Welcome, Household, Account, Category, Transaction, Bill, Goal, Debt, [DemoDataChoice], Complete)
+  - ✅ All form components integrated (AccountForm, CategoryForm, BillForm, GoalForm, DebtForm, TransactionForm)
+  - ✅ Skip functionality with "Set Up Later" messaging for optional steps
   - ✅ Completion tracking with API endpoints
   - ✅ Modal persistence logic (doesn't reappear after completion)
   - ✅ Accessibility improvements (DialogTitle, DialogDescription)
@@ -221,8 +230,7 @@ _No active bugs_
 
 ### Other Next Steps
 1. ⏳ Invited User Onboarding - Manual testing pending (implementation complete)
-2. ⏳ Onboarding Flow Improvements - 6 enhancements pending (see `docs/features.md` for details):
-   - Demo data choice at end, educational content, category/budget step, step reordering, improved descriptions, clearer skip messaging
+2. ⏳ Onboarding: Improved Step Descriptions - Enhance descriptions with feature highlights
 3. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
 4. Docker configuration for deployment
 5. Performance optimizations as needed
