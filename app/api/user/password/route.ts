@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { betterAuthAccount } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { verifyPassword, hashPassword } from '@/lib/auth/password-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,8 +56,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user's account to verify password
-    const account = await db
+    // Get user's credential account with password hash
+    const accounts = await db
       .select()
       .from(betterAuthAccount)
       .where(
@@ -67,39 +68,49 @@ export async function POST(request: NextRequest) {
       )
       .limit(1);
 
-    if (!account || account.length === 0 || !account[0].password) {
+    if (!accounts || accounts.length === 0 || !accounts[0].password) {
       return NextResponse.json(
-        { error: 'No password account found. Please contact support.' },
+        { error: 'No password account found. You may have signed up with OAuth.' },
         { status: 400 }
       );
     }
 
-    // Note: For production, we need to:
-    // 1. Verify currentPassword using Better Auth's password verification
-    // 2. Hash newPassword using Better Auth's password hashing
-    // For now, we're leaving a TODO and placeholder response
-    // TODO: Implement proper password verification and hashing using Better Auth
+    const account = accounts[0];
+    const storedPassword = account.password;
 
-    // This is a placeholder - in production, we would:
-    // - Use Better Auth's internal password comparison
-    // - Use Better Auth's internal password hashing
-    // - Update the password in the account table
+    // Verify current password
+    if (!storedPassword) {
+      return NextResponse.json(
+        { error: 'No password found for this account' },
+        { status: 400 }
+      );
+    }
 
-    // For now, return a message that this needs implementation
+    const isValidPassword = await verifyPassword(currentPassword, storedPassword);
+    
+    if (!isValidPassword) {
+      return NextResponse.json(
+        { error: 'Current password is incorrect' },
+        { status: 401 }
+      );
+    }
+
+    // Hash new password
+    const newHashedPassword = await hashPassword(newPassword);
+
+    // Update password in database
+    await db
+      .update(betterAuthAccount)
+      .set({
+        password: newHashedPassword,
+        updatedAt: new Date(),
+      })
+      .where(eq(betterAuthAccount.id, account.id));
+
     return NextResponse.json({
-      error: 'Password change functionality requires Better Auth integration. This feature is coming soon.',
-      todo: 'Implement password verification and hashing using Better Auth methods',
-    }, { status: 501 });
-
-    // When implemented, it would look something like:
-    // const isValid = await verifyPassword(currentPassword, account[0].password);
-    // if (!isValid) {
-    //   return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 });
-    // }
-    // const hashedPassword = await hashPassword(newPassword);
-    // await db.update(betterAuthAccount).set({ password: hashedPassword }).where(...);
-    // return NextResponse.json({ success: true, message: 'Password changed successfully' });
-
+      success: true,
+      message: 'Password changed successfully',
+    });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

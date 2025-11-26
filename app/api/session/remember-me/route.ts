@@ -4,6 +4,8 @@
  */
 
 import { NextResponse } from 'next/server';
+import { auth } from '@/lib/better-auth';
+import { headers } from 'next/headers';
 import { db } from '@/lib/db';
 import * as authSchema from '@/auth-schema';
 import { eq } from 'drizzle-orm';
@@ -12,12 +14,12 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    // Get session token from cookie
-    const cookies = request.headers.get('cookie') || '';
-    const sessionTokenMatch = cookies.match(/better-auth\.session_token=([^;]+)/);
-    const sessionToken = sessionTokenMatch?.[1];
+    // Get session using Better Auth API (consistent with other session routes)
+    const sessionResult = await auth.api.getSession({
+      headers: await headers(),
+    });
 
-    if (!sessionToken) {
+    if (!sessionResult || !sessionResult.session) {
       return NextResponse.json({ error: 'No session found' }, { status: 401 });
     }
 
@@ -32,27 +34,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Find session by token
-    const sessions = await db
-      .select()
-      .from(authSchema.session)
-      .where(eq(authSchema.session.token, sessionToken))
-      .limit(1);
-
-    if (!sessions || sessions.length === 0) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 401 });
-    }
-
-    const session = sessions[0];
-
-    // Update rememberMe field
+    // Update rememberMe field using session ID from Better Auth
     await db
       .update(authSchema.session)
       .set({
         rememberMe: rememberMe,
         updatedAt: new Date(),
       })
-      .where(eq(authSchema.session.id, session.id));
+      .where(eq(authSchema.session.id, sessionResult.session.id));
 
     return NextResponse.json({
       success: true,

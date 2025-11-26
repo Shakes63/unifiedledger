@@ -6,6 +6,7 @@ import { eq, and } from 'drizzle-orm';
 import { sendEmailChangeVerification } from '@/lib/email/email-service';
 import { verification as verificationTable } from '@/auth-schema';
 import { randomBytes } from 'crypto';
+import { verifyPassword } from '@/lib/auth/password-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,14 +81,20 @@ export async function POST(request: NextRequest) {
 
     if (!account || account.length === 0 || !account[0].password) {
       return NextResponse.json(
-        { error: 'Password verification failed' },
-        { status: 401 }
+        { error: 'No password account found. You may have signed up with OAuth.' },
+        { status: 400 }
       );
     }
 
-    // Note: For production, we should verify the password using Better Auth's password verification
-    // For now, we're assuming the user is authenticated via session, which is sufficient
-    // TODO: Implement password verification using Better Auth's internal methods
+    // Verify password using bcrypt
+    const isValidPassword = await verifyPassword(password, account[0].password);
+    
+    if (!isValidPassword) {
+      return NextResponse.json(
+        { error: 'Password is incorrect' },
+        { status: 401 }
+      );
+    }
 
     // Store pending email change
     await db

@@ -13,7 +13,7 @@ import { useWebVitals } from "@/hooks/useWebVitals";
 export function PerformanceProvider({ children }: { children: ReactNode }) {
   // Initialize Web Vitals tracking
   useWebVitals({
-    endpoint: "/api/performance/metrics",
+    endpoint: "/api/telemetry/vitals",
     debug: process.env.NODE_ENV === "development",
     sendToAnalytics: true,
   });

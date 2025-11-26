@@ -15,7 +15,7 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Loader2, Shield, Globe } from 'lucide-react';
+import { Loader2, Shield, Globe, Clock, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SignInPage() {
@@ -230,6 +230,24 @@ export default function SignInPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Session redirect reason message */}
+          {searchParams.get('reason') && (
+            <div className="mb-4 p-3 rounded-lg bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20">
+              <div className="flex items-center gap-2">
+                {searchParams.get('reason') === 'timeout' ? (
+                  <Clock className="w-4 h-4 text-[var(--color-warning)] flex-shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-[var(--color-warning)] flex-shrink-0" />
+                )}
+                <p className="text-sm text-[var(--color-warning)] font-medium">
+                  {searchParams.get('reason') === 'timeout'
+                    ? 'Your session expired due to inactivity. Please sign in again.'
+                    : 'Your session has expired. Please sign in again.'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-[var(--color-error)]/10 border border-[var(--color-error)]/20">
               <p className="text-sm text-[var(--color-error)] font-medium">

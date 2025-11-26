@@ -31,7 +31,7 @@ export interface UseWebVitalsOptions {
   /**
    * Send metrics to this endpoint
    * POST body will include the metric
-   * @default "/api/performance/metrics"
+   * @default "/api/telemetry/vitals"
    */
   endpoint?: string;
 
@@ -117,6 +117,8 @@ const metricQueue: Array<{
 }> = [];
 let flushTimeoutId: NodeJS.Timeout | null = null;
 const FLUSH_INTERVAL = 5000; // 5 seconds
+// Track the endpoint used by the queued flusher (updated on send)
+let currentAnalyticsEndpoint = "/api/telemetry/vitals";
 
 /**
  * Check if browser is online
@@ -135,6 +137,10 @@ async function sendMetricToAnalytics(
   metric: CoreWebVitalsMetric,
   endpoint: string
 ) {
+  // Persist endpoint for queued flushes
+  if (endpoint) {
+    currentAnalyticsEndpoint = endpoint;
+  }
   // Check if circuit breaker is open (too many failures)
   if (failureCount >= MAX_FAILURES) {
     const timeSinceLastFailure = Date.now() - lastFailureTime;
@@ -184,9 +190,7 @@ async function flushMetricQueue() {
   flushTimeoutId = null;
 
   try {
-    const endpoint = "/api/performance/metrics";
-
-    await fetch(endpoint, {
+    await fetch(currentAnalyticsEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -226,7 +230,7 @@ async function flushMetricQueue() {
  * @example
  * export default function Page() {
  *   useWebVitals({
- *     endpoint: "/api/performance/metrics",
+ *     endpoint: "/api/telemetry/vitals",
  *     debug: true,
  *   });
  *   return <div>Your page</div>;
@@ -234,7 +238,7 @@ async function flushMetricQueue() {
  */
 export function useWebVitals(options: UseWebVitalsOptions = {}) {
   const {
-    endpoint = "/api/performance/metrics",
+    endpoint = "/api/telemetry/vitals",
     onMetric,
     debug = false,
     sendToAnalytics = true,

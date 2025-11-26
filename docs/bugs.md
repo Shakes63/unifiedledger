@@ -1,6 +1,8 @@
-# Bugs Status (Updated 2025-01-27)
+# Bugs Status (Updated 2025-11-26)
 
 ## 🆕 ADD NEW BUGS HERE
+
+
 
 ---
 
@@ -14,7 +16,7 @@ _No active bugs_
 
 **Active Bugs:** 0
 **In Progress:** 0
-**Fixed (All Time):** 47
+**Fixed (All Time):** 54
 
 ---
 
@@ -26,65 +28,59 @@ _No active bugs_
 4. **Bill Save Performance** - Parallelized validation queries and batch instance creation (75% faster)
 5. **Budget Analytics Chart Dimension Warning** - Added explicit height and minHeight to chart wrapper
 6. **Dialog Accessibility Warning** - Added `DialogDescription` to all 7 dialogs for screen reader support
-7. **Budget Income Display Logic** - Reversed status logic so income exceeding budget shows as positive (green)
-8. **Goals Page Console Errors** - Fixed database schema mismatch (recreated savings_goals table)
-9. **Budget Export Incorrect Values** - Fixed transaction type query to properly include income categories
-10. **Reports Page Chart Dimension Warnings** - Added explicit `style={{ height: '320px' }}` to ChartContainer
-11. **Form Field ID/Name Attributes Missing** - Added id, name, and aria-label attributes to select dropdowns
-12. **Reports Charts Dimension Warnings (Multiple Components)** - Changed ResponsiveContainer in all chart components to use explicit `height={320}` instead of `height="100%"`
-13. **Image Aspect Ratio Warning** - Added explicit `style={{ height: 'auto' }}` to both logo Image components in sidebar for proper aspect ratio maintenance
-14. **Clerk Redirect URL Deprecation** - Updated environment variables from deprecated `AFTER_SIGN_IN_URL` to new `SIGN_IN_FALLBACK_REDIRECT_URL` for better redirect handling and to eliminate deprecation warnings
-15. **RecentTransactions Failed to Fetch (Bugs 1-4)** - Added initialization guards and comprehensive error states with retry functionality
-16. **HouseholdContext loadPreferences Failed to Fetch (Bug 5)** - Implemented enhanced fetch with retry logic, circuit breaker pattern, and fallback to cached preferences
-17. **WebVitals sendMetricToAnalytics Failed to Fetch (Bugs 6-7)** - Added circuit breaker pattern, metric batching (5s intervals), and offline detection
-18. **SessionActivity pingServer Failed to Fetch (Bugs 8-9)** - Added Page Visibility API checks, network status detection, timeout handling, and production-safe logging
-19. **Recent Transactions Infinite Loop** - Memoized `useHouseholdFetch` hook functions with `useCallback` and removed function references from `useEffect` dependency arrays in 6 components
-20. **Transaction Creation Sign-Out Bug** - Added household context readiness guards and improved error handling to prevent sign-out on 403 errors
-21. **Categories API 403 Forbidden** - Updated categories page to use household-aware fetch hooks and added household context guards
-22. **Transactions API 403 Forbidden** - Added household context readiness guards to transactions page and improved error handling
-23. **Accounts API 403 Forbidden** - Added household context readiness guards to accounts page
-24. **CompactStatsBar 403 Forbidden** - Updated CompactStatsBar component to use household-aware fetch hooks for all API calls
-25. **Logo Image Aspect Ratio Warning** - Removed `style={{ height: 'auto' }}` from collapsed sidebar logo Image component. Next.js Image best practice: when using explicit width/height props, don't modify dimensions via CSS.
-26. **Quick Entry Mode Account Loading** - Fixed race condition where accounts were fetched before household context was ready, causing 400 Bad Request errors. Added proper loading states, error handling, and useEffect hook that waits for household initialization before fetching accounts.
-27. **React Hydration Mismatch Error (Sign-In Page)** - Fixed hydration mismatch on sign-in page caused by OfflineBanner component rendering differently on server vs client. Implemented client-only rendering pattern using `mounted` state to ensure consistent SSR/client rendering during hydration. Component now returns `null` during SSR and initial client render, then renders after mount. Moved localStorage checks and DOM manipulation to run only after component mounts.
-28. **React Hydration Mismatch Error (Settings Page)** - Replaced nested Radix UI Tabs with custom button-based tab implementation to fix hydration mismatch from random ID generation
-29. **Quick Transaction Form Required Fields** - Added required field indicators (red asterisks) to Account and Type fields, plus notice explaining required fields
-30. **Transfer Display Logic with Account Filter** - Fixed transfer display to show blue (no sign) when no filter or both accounts filtered, red (-) when filtered by source, green (+) when filtered by destination. Added deduplication to combine transfer pairs into single transaction.
-31. **Combined Transfer View Toggle Not Working** - Fixed frontend filtering logic in `getFilteredTransactions` function to respect `combinedTransferView` preference. When toggle is OFF (separate view), both `transfer_out` and `transfer_in` transactions are displayed with proper color coding (red for transfer_out, green for transfer_in). Updated `getTransferDisplayProps` to show correct colors even when both accounts are selected in filter. Added preference fetching and state management in transactions page component.
-32. **Password Field Not Contained in Form** - Wrapped all password fields in settings page (ProfileTab, DataTab, PrivacyTab) within `<form>` elements with proper `onSubmit` handlers. Changed buttons from `onClick` to `type="submit"` for proper HTML form behavior and accessibility.
-33. **Image Aspect Ratio Warning** - Updated all logo Image components (sidebar collapsed/expanded, mobile nav, landing page, transactions page) to use `fill` prop instead of explicit width/height props, eliminating Next.js Image optimization warnings while maintaining aspect ratios.
-34. **Bills Not Showing in Transaction Form Dropdown** - Fixed transaction form to use `fetchWithHousehold` instead of regular `fetch` for pending bills API call. Added household ID check and proper dependencies to useEffect hook.
-35. **Bill Details Page Failed to Fetch** - Fixed BillDetails component and Edit Bill page to use `fetchWithHousehold` for all API calls (GET, PUT, DELETE). Added household ID checks and proper error handling. Also fixed category-selector bills fetch to use `fetchWithHousehold`.
-36. **Overdue Bill Payment Not Removing from List** - Fixed auto-matching logic to include both 'pending' and 'overdue' bill instances when matching transactions to bills. Updated transaction creation endpoint, transaction update endpoint, and bill matching endpoint to prioritize overdue bills first, then pending bills (oldest first). Overdue bills are now automatically matched and marked as paid when transactions are created/updated, causing them to disappear from the overdue bills list.
-
-37. **Pending Bill Instances with Past Due Dates** - Fixed issue where pending bill instances with past due dates weren't automatically marked as overdue. Updated GET endpoint to auto-update pending bills with past dates to overdue status, POST endpoint to set overdue status when creating instances with past dates, and bill creation endpoint to check dates. Also added data consistency fix to revert overdue bills with future dates back to pending.
-
-38. **Bills Dropdown Missing Overdue Bills and Incorrect Sorting** - Fixed transaction form bills dropdown to show both pending and overdue bills, sorted oldest first. Updated API endpoint to sort by ascending due date. Added visual indicators for overdue bills using theme error color.
-
-39. **Date Formatting Inconsistency Between Bills Dropdown and Bills Page** - Fixed date formatting mismatch where transaction form dropdown used `toLocaleDateString()` (browser-dependent format) while bills page used `format(parseISO(dueDate), 'MMM d, yyyy')` from date-fns. Updated transaction form to use the same consistent date format (`MMM d, yyyy`) as the bills page, ensuring dates display consistently across the application (e.g., "Jan 15, 2024").
-
-40. **Quick Entry Form Scrolling Issue** - Fixed quick entry modal being taller than viewport without scrolling. Added `max-h-[90vh] overflow-y-auto` to DialogContent to enable scrolling when form exceeds viewport height.
-
-41. **Quick Entry Form Missing Bill Payment Type** - Added bill payment type to quick entry form with bill selector dropdown, inline merchant creation, and automatic form pre-filling. Bills refresh after bill payment transactions are created.
-
-42. **Bill Form Missing Inline Merchant Creation** - Replaced plain merchant Select dropdown with MerchantSelector component in bill creation and update forms, enabling inline merchant creation matching transaction forms.
-
-43. **Bills Not Refreshing After Transaction Creation** - Implemented conditional bill refresh mechanism using custom events. Bills refresh automatically when 'bill' or 'expense' transactions are created. All bill-displaying components (bills page, widgets, dropdowns) listen for refresh events and update accordingly.
-
-44. **Bill Matching Not Working for Bills Without Merchants** - Implemented three-tier bill matching system: direct bill instance ID matching for explicit payments, bill-matcher utility for description/amount/date matching, and category-only fallback. Bills without merchants now match correctly.
-
-45. **Overdue Bills Sorting** - Fixed overdue bills section to sort by oldest first (changed from newest first) in bills page.
-
-46. **Pending Bills Month Navigation** - Replaced 30-day view with month-based navigation. Added forward/backward buttons to navigate between months. Back button hidden when viewing current month. Bills page now shows pending bills filtered by selected month.
-
-47. **Paid Bills Month Navigation** - Added month-based navigation to paid bills section matching pending bills functionality. Both navigation buttons always enabled (unlike pending) since paid bills exist in past months. Also fixed dashboard bills widget to show all bills and fetch overdue bills separately to ensure all overdue bills (including older ones) are displayed.
+7. **Budget Income Display Logic** - Reversed status logic so income exceeding budget shows as positive
+8. **Goals Page Console Errors** - Fixed database schema mismatch
+9. **Budget Export Incorrect Values** - Fixed transaction type query to include income categories
+10. **Reports Page Chart Dimension Warnings** - Added explicit height styling to ChartContainer
+11. **Form Field ID/Name Attributes Missing** - Added id, name, and aria-label to select dropdowns
+12. **Reports Charts Dimension Warnings** - Changed ResponsiveContainer to explicit height={320}
+13. **Image Aspect Ratio Warning** - Added height: auto to logo Image components
+14. **Clerk Redirect URL Deprecation** - Updated to new SIGN_IN_FALLBACK_REDIRECT_URL env var
+15. **RecentTransactions Failed to Fetch** - Added initialization guards and error states with retry
+16. **HouseholdContext loadPreferences Failed** - Added retry logic and circuit breaker pattern
+17. **WebVitals sendMetricToAnalytics Failed** - Added circuit breaker, metric batching, offline detection
+18. **SessionActivity pingServer Failed** - Added visibility checks, timeout handling, production-safe logging
+19. **Recent Transactions Infinite Loop** - Memoized useHouseholdFetch with useCallback
+20. **Transaction Creation Sign-Out Bug** - Added household context readiness guards
+21. **Categories API 403 Forbidden** - Updated to household-aware fetch hooks
+22. **Transactions API 403 Forbidden** - Added household context readiness guards
+23. **Accounts API 403 Forbidden** - Added household context readiness guards
+24. **CompactStatsBar 403 Forbidden** - Updated to use household-aware fetch hooks
+25. **Logo Image Aspect Ratio Warning** - Removed CSS dimension override from Next.js Image
+26. **Quick Entry Mode Account Loading** - Fixed race condition with household context loading
+27. **React Hydration Mismatch (Sign-In)** - Implemented client-only rendering pattern for OfflineBanner
+28. **React Hydration Mismatch (Settings)** - Replaced nested Radix Tabs with custom button-based tabs
+29. **Quick Transaction Form Required Fields** - Added red asterisk indicators to required fields
+30. **Transfer Display Logic with Account Filter** - Fixed color coding based on filter context
+31. **Combined Transfer View Toggle Not Working** - Fixed frontend filtering to respect preference
+32. **Password Field Not Contained in Form** - Wrapped password fields in form elements
+33. **Image Aspect Ratio Warning** - Updated logo components to use fill prop
+34. **Bills Not Showing in Transaction Form** - Fixed to use fetchWithHousehold for bills API
+35. **Bill Details Page Failed to Fetch** - Fixed all API calls to use fetchWithHousehold
+36. **Overdue Bill Payment Not Removing** - Fixed auto-matching to include overdue instances
+37. **Pending Bill Instances with Past Due Dates** - Auto-update to overdue status on past dates
+38. **Bills Dropdown Missing Overdue Bills** - Added overdue bills to dropdown with visual indicators
+39. **Date Formatting Inconsistency** - Standardized to MMM d, yyyy format with date-fns
+40. **Quick Entry Form Scrolling Issue** - Added max-h-[90vh] overflow-y-auto to DialogContent
+41. **Quick Entry Form Missing Bill Payment** - Added bill payment type with selector dropdown
+42. **Bill Form Missing Inline Merchant Creation** - Added MerchantSelector component to bill forms
+43. **Bills Not Refreshing After Transaction** - Implemented custom event-based bill refresh
+44. **Bill Matching Without Merchants** - Implemented three-tier matching system with fallbacks
+45. **Overdue Bills Sorting** - Fixed to sort by oldest first
+46. **Pending Bills Month Navigation** - Added month-based navigation with forward/backward buttons
+47. **Paid Bills Month Navigation** - Added month-based navigation matching pending bills
+48. **Intermittent Session Redirects** - Hardened middleware cookie parsing with Buffer.from, added sign-in reason display
+49. **Password Change Not Implemented** - Created password-utils.ts with bcrypt verify/hash functions
+50. **Email Change Skipped Password Verification** - Added bcrypt password verification before email change
+51. **Reset App Data Skipped Password Verification** - Added bcrypt password verification before reset
+52. **Session Timeout Cache Not Cleared** - Call clearTimeoutCache() when sessionTimeout is updated
+53. **Remember-Me Route Fragile Cookie Regex** - Replaced with auth.api.getSession() for consistency
+54. **Tab Visibility Not Triggering Session Check** - Added visibilitychange listener to immediately ping server
 
 ---
 
 ## 💡 Known Minor Issues (Not Blocking)
 
-These are minor warnings/deprecations that don't affect functionality:
-
-1. **Middleware Convention:** Next.js deprecation warning - "middleware" file convention should use "proxy" instead
+1. **Middleware Convention:** Next.js deprecation warning - "middleware" file should use "proxy" instead
 
 **Note:** These don't require immediate action but can be addressed as polish improvements.

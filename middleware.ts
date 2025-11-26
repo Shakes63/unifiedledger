@@ -18,16 +18,64 @@ export default async function middleware(request: NextRequest) {
   // Check if Better Auth session cookie exists
   // Better Auth stores the full session data in this cookie
   const sessionDataCookie = request.cookies.get("better-auth.session_data");
+  const sessionTokenCookie = request.cookies.get("better-auth.session_token");
+
+  // Debug logging guard (set SESSION_DEBUG=1 to enable)
+  const DEBUG = process.env.SESSION_DEBUG === "1";
+  const debugLog = (...args: unknown[]) => {
+    if (DEBUG) {
+      // eslint-disable-next-line no-console
+      console.log("[Middleware][Session]", ...args);
+    }
+  };
 
   // Extract token from session data if it exists
   let sessionToken: string | undefined;
+  let tokenSource: string | undefined;
   if (sessionDataCookie?.value) {
-    try {
-      const sessionData = JSON.parse(atob(sessionDataCookie.value.split('.')[0]));
-      sessionToken = sessionData?.session?.session?.token;
-    } catch (e) {
-      console.error('[Middleware] Failed to parse session cookie:', e);
+    const raw = sessionDataCookie.value;
+    const candidates: string[] = [];
+    // Try all dot-delimited segments (JWT-like header.payload.signature) and full string
+    const parts = raw.split(".");
+    for (const part of parts) {
+      if (part) candidates.push(part);
     }
+    candidates.push(raw);
+
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i]!;
+      for (const encoding of ["base64url", "base64"] as const) {
+        try {
+          const decoded = Buffer.from(candidate, encoding).toString("utf-8");
+          const obj = JSON.parse(decoded);
+          // Probe common shapes
+          const token =
+            obj?.session?.session?.token ??
+            obj?.session?.token ??
+            obj?.token;
+          if (typeof token === "string" && token.length > 0) {
+            sessionToken = token;
+            tokenSource = i < parts.length ? `session_data.part[${i}]` : "session_data.raw";
+            break;
+          }
+        } catch {
+          // Try next candidate/encoding silently
+        }
+      }
+      if (sessionToken) break;
+    }
+
+    if (!sessionToken) {
+      debugLog("Failed to extract token from session_data cookie");
+    } else {
+      debugLog("Extracted session token from", tokenSource);
+    }
+  }
+
+  // Fallback: explicit token cookie if provided by provider
+  if (!sessionToken && sessionTokenCookie?.value) {
+    sessionToken = sessionTokenCookie.value;
+    debugLog("Fell back to session_token cookie");
   }
 
   // Define protected routes
@@ -44,6 +92,12 @@ export default async function middleware(request: NextRequest) {
       // No session cookie - redirect to sign-in
       const signInUrl = new URL("/sign-in", request.url);
       signInUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
+      if (DEBUG) {
+        debugLog("Redirecting unauthenticated request", {
+          path: request.nextUrl.pathname,
+          reason: "no_token",
+        });
+      }
       return NextResponse.redirect(signInUrl);
     }
 
@@ -71,6 +125,21 @@ export default async function middleware(request: NextRequest) {
       response.cookies.delete("better-auth.session_data");
       response.cookies.delete("better-auth.session_token");
 
+      if (DEBUG) {
+        const now = Date.now();
+        const lastActivityMs = validation.session?.lastActivityAt instanceof Date
+          ? validation.session.lastActivityAt.getTime()
+          : (validation.session?.lastActivityAt || 0);
+        const lastActivityAgeMs = lastActivityMs ? (now - lastActivityMs) : undefined;
+        debugLog("Redirecting invalid session", {
+          path: request.nextUrl.pathname,
+          reason: validation.reason,
+          rememberMe: validation.session?.rememberMe ?? false,
+          hasLastActivity: Boolean(validation.session?.lastActivityAt),
+          lastActivityAgeMs,
+        });
+      }
+
       return response;
     }
 
@@ -93,6 +162,10 @@ export default async function middleware(request: NextRequest) {
           console.error('Failed to update session activity:', err)
         );
         activityUpdateCache.set(sessionId, now);
+        debugLog("Updated session activity (debounced)", {
+          path: request.nextUrl.pathname,
+          needsImmediateUpdate,
+        });
       }
     }
   }

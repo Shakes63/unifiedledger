@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { userSettings, importTemplates } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { clearTimeoutCache } from '@/lib/session-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -141,6 +142,12 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date().toISOString(),
         })
         .where(eq(userSettings.userId, userId));
+
+      // Clear session timeout cache if sessionTimeout was updated
+      // This ensures the new value is used immediately instead of waiting for cache TTL
+      if ('sessionTimeout' in updateData) {
+        clearTimeoutCache(userId);
+      }
     } else {
       // Create new settings record with provided data merged with defaults
       await db.insert(userSettings).values({

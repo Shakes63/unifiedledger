@@ -152,12 +152,36 @@ export function SessionActivityProvider({ children }: SessionActivityProviderPro
       }
     }
 
+    /**
+     * Handles tab visibility changes
+     * When tab becomes visible after being hidden, immediately check session status
+     * This catches cases where session timed out while tab was in background
+     */
+    function handleVisibilityChange() {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        // Tab became visible - immediately ping to check session status
+        // Reset last ping time to force an immediate ping
+        const now = Date.now();
+        const timeSinceLastPing = now - lastPingRef.current;
+        
+        // Only ping if it's been more than 30 seconds since last ping
+        // This prevents excessive pings when rapidly switching tabs
+        if (timeSinceLastPing > 30 * 1000) {
+          lastPingRef.current = 0; // Reset to force immediate ping
+          pingServer();
+        }
+      }
+    }
+
     // Register activity event listeners
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
 
     events.forEach(event => {
       window.addEventListener(event, handleActivity, { passive: true });
     });
+
+    // Register visibility change listener
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Initial ping on mount
     pingServer();
@@ -167,6 +191,8 @@ export function SessionActivityProvider({ children }: SessionActivityProviderPro
       events.forEach(event => {
         window.removeEventListener(event, handleActivity);
       });
+
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
 
       if (pingTimeoutRef.current) {
         clearTimeout(pingTimeoutRef.current);
