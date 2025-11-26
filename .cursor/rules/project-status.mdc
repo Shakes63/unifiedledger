@@ -32,6 +32,7 @@ alwaysApply: false
 - ✅ Authentication password verification implemented (password change, email change, reset app data)
 - ✅ Session/middleware hardened (cookie parsing, timeout cache, tab visibility handling)
 - ✅ Onboarding flow bugs fixed (2025-11-26): credentials missing in BillForm/invitation decline, modal resume after refresh, unused import cleanup
+- ✅ Recommended Monthly Savings Auto-Calculation (2025-11-26): Auto-calculates suggested monthly contribution for savings goals based on target date, displays in goal form and tracker with "Apply Recommendation" button
 
 ## Household Data Isolation Status
 

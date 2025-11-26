@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { Lightbulb, Check } from 'lucide-react';
+import {
+  calculateRecommendedMonthlySavings,
+  formatCurrency,
+} from '@/lib/goals/calculate-recommended-savings';
 
 const GOAL_CATEGORIES = [
   { value: 'emergency_fund', label: 'Emergency Fund' },
@@ -57,6 +62,36 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
     monthlyContribution: goal?.monthlyContribution || '',
     notes: goal?.notes || '',
   });
+
+  // Calculate recommended monthly savings based on current form values
+  const recommendation = useMemo(() => {
+    const targetAmount = parseFloat(String(formData.targetAmount)) || 0;
+    const currentAmount = parseFloat(String(formData.currentAmount)) || 0;
+    const targetDate = formData.targetDate || null;
+
+    if (targetAmount <= 0) {
+      return null;
+    }
+
+    return calculateRecommendedMonthlySavings(targetAmount, currentAmount, targetDate);
+  }, [formData.targetAmount, formData.currentAmount, formData.targetDate]);
+
+  // Check if current monthly contribution matches recommendation
+  const isRecommendationApplied = useMemo(() => {
+    if (!recommendation?.recommendedMonthly) return false;
+    const currentMonthly = parseFloat(String(formData.monthlyContribution)) || 0;
+    return Math.abs(currentMonthly - recommendation.recommendedMonthly) < 0.01;
+  }, [recommendation, formData.monthlyContribution]);
+
+  const handleApplyRecommendation = () => {
+    if (recommendation?.recommendedMonthly) {
+      setFormData((prev) => ({
+        ...prev,
+        monthlyContribution: recommendation.recommendedMonthly!.toFixed(2),
+      }));
+      toast.success('Recommended amount applied');
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -201,6 +236,62 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
           className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
         />
       </div>
+
+      {/* Recommended Monthly Savings */}
+      {recommendation && (
+        <div className="bg-elevated border border-border rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-full bg-[var(--color-primary)]/10 flex-shrink-0">
+              <Lightbulb className="w-4 h-4 text-[var(--color-primary)]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground mb-1">
+                Recommended Monthly Savings
+              </p>
+              {recommendation.recommendedMonthly !== null ? (
+                <>
+                  <p className="text-xl font-semibold text-[var(--color-primary)] font-mono">
+                    {formatCurrency(recommendation.recommendedMonthly)}
+                    <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {recommendation.message}
+                  </p>
+                  {recommendation.isTightTimeline && (
+                    <p className="text-xs text-[var(--color-warning)] mt-1">
+                      Tight timeline - consider adjusting your target date
+                    </p>
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleApplyRecommendation}
+                    disabled={isRecommendationApplied}
+                    className={`mt-3 ${
+                      isRecommendationApplied
+                        ? 'bg-[var(--color-success)]/20 text-[var(--color-success)] cursor-default'
+                        : 'bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]'
+                    }`}
+                  >
+                    {isRecommendationApplied ? (
+                      <>
+                        <Check className="w-4 h-4 mr-1" />
+                        Applied
+                      </>
+                    ) : (
+                      'Apply Recommendation'
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {recommendation.message}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Color Picker */}
       <div>

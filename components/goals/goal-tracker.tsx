@@ -1,14 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronUp, Edit2, Trash2, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Trash2, Check, Lightbulb } from 'lucide-react';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import {
+  calculateRecommendedMonthlySavings,
+  formatCurrency,
+} from '@/lib/goals/calculate-recommended-savings';
 
 interface Milestone {
   id: string;
@@ -28,6 +32,7 @@ interface GoalTrackerProps {
     category: string;
     color: string;
     status: string;
+    monthlyContribution?: number | null;
   };
   milestones?: Milestone[];
   onEdit?: (goal: any) => void;
@@ -55,6 +60,16 @@ export function GoalTracker({
         (new Date(goal.targetDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
       )
     : null;
+
+  // Calculate recommended monthly savings
+  const recommendation = useMemo(() => {
+    if (goal.status !== 'active') return null;
+    return calculateRecommendedMonthlySavings(
+      goal.targetAmount,
+      goal.currentAmount,
+      goal.targetDate
+    );
+  }, [goal.targetAmount, goal.currentAmount, goal.targetDate, goal.status]);
 
   const handleContribute = async () => {
     if (!selectedHouseholdId) {
@@ -180,9 +195,40 @@ export function GoalTracker({
           )}
           <div>
             <p className="text-muted-foreground text-xs">Category</p>
-            <p className="text-foreground font-semibold capitalize">{goal.category}</p>
+            <p className="text-foreground font-semibold capitalize">{goal.category.replace(/_/g, ' ')}</p>
           </div>
         </div>
+
+        {/* Recommended Monthly Savings */}
+        {recommendation?.recommendedMonthly !== null && recommendation?.recommendedMonthly !== undefined && goal.status === 'active' && (
+          <div className="bg-elevated/50 border border-border/50 rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-[var(--color-primary)] flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">Recommended Monthly</p>
+                  <p className="text-sm font-semibold text-[var(--color-primary)] font-mono">
+                    {formatCurrency(recommendation.recommendedMonthly)}/mo
+                  </p>
+                </div>
+                {goal.monthlyContribution && goal.monthlyContribution > 0 && (
+                  <div className="flex items-baseline justify-between gap-2 mt-1">
+                    <p className="text-xs text-muted-foreground">Your Planned</p>
+                    <p className="text-sm font-medium text-foreground font-mono">
+                      {formatCurrency(goal.monthlyContribution)}/mo
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            {recommendation.isTightTimeline && (
+              <p className="text-xs text-[var(--color-warning)] mt-2 flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[var(--color-warning)]" />
+                Tight timeline
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Milestones */}
         {milestones.length > 0 && (

@@ -8,7 +8,9 @@
 
 ## 🐛 Active Bugs
 
-_No active bugs_
+. ⏳ Fix 2 date handling edge cases in transfer matching tests
+2. the onboarding modal should go back to the top when going to the next step.
+3. review the split transaction code and tell me how we can improve it.
 
 ---
 

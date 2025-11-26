@@ -8,7 +8,11 @@ _Add new feature requests below. Include a brief description of what the feature
 
 ## Incomplete Features
 
-_(No incomplete features at this time)_
+1. **12-Month Annual Bill Planning Grid** - Year-at-a-glance view for non-monthly bills showing a grid with bill descriptions as rows and 12 month columns (January-December). Each cell shows due date and budgeted amount, making it easy to plan for irregular expenses throughout the year.
+
+2. **Persistent Additional Monthly Payment on Debts** - Add `additionalMonthlyPayment` field to debt records to store committed extra payment amount beyond minimum. Display in debt cards, use in payoff projections, and track actual vs planned extra payments over time.
+
+3. **Budget Summary Dashboard** - High-level overview page showing totals by budget category type: Total Income, Total Variable Expenses, Total Monthly Bills, Total Savings Contributions, Total Debt Payments. Provides at-a-glance view of monthly budget allocation similar to spreadsheet "Setup" tab.
 
 ---
 
@@ -62,4 +66,5 @@ _(No incomplete features at this time)_
 46. ✅ **Onboarding: Category/Budget Step** - Step 4 for setting up categories and budgets before transactions
 47. ✅ **Onboarding: Reorder Steps** - Transaction step moved earlier, Bill/Goal/Debt as optional advanced features
 48. ✅ **Onboarding: Clear Skip Messaging** - "Set Up Later" with Clock icon and "Optional" badge on skippable steps
-49. ✅ **Onboarding: Improved Step Descriptions** - Enhanced descriptions with feature highlights (auto-categorization, reminders, milestones)
+49. ✅ **Onboarding: Improved Step Descriptions** - Enhanced descriptions with feature highlights
+50. ✅ **Recommended Monthly Savings Auto-Calculation** - Auto-calculates suggested monthly contribution for savings goals with "Apply Recommendation" button
