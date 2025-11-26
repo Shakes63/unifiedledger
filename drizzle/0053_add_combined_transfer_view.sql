@@ -9,3 +9,4 @@ WHERE combined_transfer_view IS NULL;
 
 
 
+

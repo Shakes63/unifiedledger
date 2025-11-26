@@ -160,6 +160,7 @@ export function BillForm({
       const response = await fetch('/api/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           name: newCategoryName,
           type: 'monthly_bill',

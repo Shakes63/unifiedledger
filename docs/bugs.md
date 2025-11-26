@@ -16,7 +16,7 @@ _No active bugs_
 
 **Active Bugs:** 0
 **In Progress:** 0
-**Fixed (All Time):** 54
+**Fixed (All Time):** 58
 
 ---
 
@@ -76,6 +76,10 @@ _No active bugs_
 52. **Session Timeout Cache Not Cleared** - Call clearTimeoutCache() when sessionTimeout is updated
 53. **Remember-Me Route Fragile Cookie Regex** - Replaced with auth.api.getSession() for consistency
 54. **Tab Visibility Not Triggering Session Check** - Added visibilitychange listener to immediately ping server
+55. **BillForm Category Creation Missing Credentials** - Added credentials: 'include' to fetch call in handleCreateCategory
+56. **Invitation Decline Missing Credentials** - Added credentials: 'include' to fetch call in handleDecline
+57. **Onboarding Modal Not Resuming After Refresh** - Removed householdList.length check so onboarding resumes if incomplete
+58. **Unused Circle Import in OnboardingProgress** - Removed unused lucide-react Circle import
 
 ---
 

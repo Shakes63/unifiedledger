@@ -28,9 +28,10 @@ alwaysApply: false
 - ✅ Password Field Form Fix (2025-01-27) - Wrapped all password fields in settings page within proper `<form>` elements for accessibility and HTML validation
 - ✅ Bills API Household Auth Fixes (2025-01-27) - Fixed bills dropdown in transaction form, bill details page, edit bill page, and category-selector to use `fetchWithHousehold` for proper household authentication
 - ✅ Overdue Bill Payment Fixes (2025-01-27) - Fixed overdue bills not being auto-matched when transactions are created/updated, and fixed pending instances with past due dates not being marked as overdue
-- ✅ All bugs fixed (54 total - see docs/bugs.md for complete list)
+- ✅ All bugs fixed (58 total - see docs/bugs.md for complete list)
 - ✅ Authentication password verification implemented (password change, email change, reset app data)
 - ✅ Session/middleware hardened (cookie parsing, timeout cache, tab visibility handling)
+- ✅ Onboarding flow bugs fixed (2025-11-26): credentials missing in BillForm/invitation decline, modal resume after refresh, unused import cleanup
 
 ## Household Data Isolation Status
 
@@ -43,8 +44,6 @@ alwaysApply: false
 **What works:** Users can switch between households and see fully isolated transactions, accounts, categories, merchants, bills, budgets, goals, debts, and categorization rules. Rules engine filters by household. All API endpoints are updated for household isolation.
 
 **Household Data Isolation:** ✅ **100% COMPLETE** - All phases (0-4) complete and production-ready.
-
-See `docs/household-data-isolation-plan.md` for complete overview of all phases.
 
 ## Recent Major Features
 
@@ -79,8 +78,7 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
   - ✅ All onboarding steps skip automatically in demo mode
   - ✅ Complete step shows invitation-specific completion message
   - ✅ Onboarding modal initializes invitation context from URL/localStorage
-  - ⏳ Manual testing pending - See `docs/invited-user-onboarding-test-plan.md` for test scenarios
-  - Implementation plan: `docs/invited-user-onboarding-implementation-plan.md`
+  - ⏳ Manual testing pending
 - Household Invite Flow with Email (✅ COMPLETE)
   - ✅ Invitation email template created with HTML and plain text versions
   - ✅ Email sending integrated into invitation API endpoint
@@ -100,7 +98,6 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
   - ✅ Accessibility improvements (DialogTitle, DialogDescription)
   - ✅ Fixed TransactionForm redirect issue to support onboarding callback
   - ✅ All steps tested and verified working
-  - See `docs/onboarding-test-results.md` for complete test results
 
 **Previous (2025-01-27):**
 - Bill Merchant Field (✅ COMPLETE)
@@ -169,7 +166,6 @@ See `docs/household-data-isolation-plan.md` for complete overview of all phases.
   - ✅ Settings UI in Privacy & Security tab
   - ✅ Database migration applied with 2FA fields
   - ✅ All API endpoints implemented and tested
-  - See `docs/advanced-security-features-plan.md` for Phase 1 details and `docs/2fa-testing-guide.md` for testing instructions
 - 403 Forbidden Errors & Sign-Out Fix (100% COMPLETE - 5/5 bugs fixed)
   - ✅ Fixed transaction creation sign-out bug by adding household context readiness guards
   - ✅ Fixed categories API 403 error by updating to household-aware fetch hooks
@@ -224,7 +220,9 @@ _No active bugs_
 **What works:** Complete household data isolation across all financial data types. Users can switch between households and see fully isolated data. All API endpoints, frontend components, and business logic properly filter by household.
 
 ### Other Next Steps
-1. ⏳ Invited User Onboarding - Manual testing pending (implementation complete, see `docs/invited-user-onboarding-test-plan.md`)
+1. ⏳ Invited User Onboarding - Manual testing pending (implementation complete)
+2. ⏳ Onboarding Flow Improvements - 6 enhancements pending (see `docs/features.md` for details):
+   - Demo data choice at end, educational content, category/budget step, step reordering, improved descriptions, clearer skip messaging
 3. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
 4. Docker configuration for deployment
 5. Performance optimizations as needed

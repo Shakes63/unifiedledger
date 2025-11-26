@@ -15,20 +15,21 @@ import { useHousehold } from '@/contexts/household-context';
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const { isOnboardingActive } = useOnboarding();
-  const { households: householdList, initialized } = useHousehold();
+  const { initialized } = useHousehold();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Show onboarding if:
   // 1. Onboarding is active (not completed)
-  // 2. User has no households (new user)
-  // 3. Household context is initialized
+  // 2. Household context is initialized
+  // Note: We don't check householdList.length because user may have created
+  // a household during onboarding and refreshed - we still need to show onboarding
   useEffect(() => {
-    if (isOnboardingActive && initialized && householdList.length === 0) {
+    if (isOnboardingActive && initialized) {
       setShowOnboarding(true);
     } else if (!isOnboardingActive) {
       setShowOnboarding(false);
     }
-  }, [isOnboardingActive, initialized, householdList.length]);
+  }, [isOnboardingActive, initialized]);
 
   // Global keyboard listener for Quick Entry (Q key)
   useEffect(() => {

@@ -170,6 +170,7 @@ export default function InvitationPage() {
       const response = await fetch('/api/invitations/decline', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ token }),
       });
 
