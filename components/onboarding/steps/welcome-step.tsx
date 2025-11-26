@@ -24,8 +24,8 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
       title={isInvitedUser ? `Welcome to ${householdName}!` : "Welcome to Unified Ledger!"}
       description={
         isInvitedUser
-          ? "We'll create some demo data so you can practice and explore the app without affecting real household finances."
-          : "Let's get you started with a quick tour of the app's core features."
+          ? "Practice with demo data before working with real finances - all demo items are clearly marked and safe to explore."
+          : "Set up your finances in minutes with smart automation that learns your spending habits."
       }
       onNext={onNext}
       onPrevious={() => {}}

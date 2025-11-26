@@ -62,7 +62,7 @@ export function CreateBillStep({
       <OnboardingStep
         stepNumber={6}
         title="Demo Bills Created"
-        description="Demo bills have been created automatically. You can explore them after onboarding."
+        description="Demo bills are ready with upcoming due dates to show you reminders and payment matching."
         onNext={onNext}
         onPrevious={onPrevious}
         isFirstStep={false}
@@ -72,7 +72,7 @@ export function CreateBillStep({
             <CheckCircle2 className="w-8 h-8 text-[var(--color-success)]" />
           </div>
           <p className="text-muted-foreground">
-            Demo bills have been created automatically. You can explore them after onboarding.
+            Demo bills with upcoming due dates are ready for you to explore.
           </p>
         </div>
       </OnboardingStep>

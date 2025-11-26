@@ -62,7 +62,7 @@ export function CreateAccountStep({
       <OnboardingStep
         stepNumber={3}
         title="Demo Accounts Created"
-        description="Demo accounts have been created automatically. You can explore them after onboarding."
+        description="Demo accounts are ready with sample balances and transaction history to explore."
         onNext={onNext}
         onPrevious={onPrevious}
         isFirstStep={false}
@@ -72,7 +72,7 @@ export function CreateAccountStep({
             <CheckCircle2 className="w-8 h-8 text-[var(--color-success)]" />
           </div>
           <p className="text-muted-foreground">
-            Demo accounts have been created automatically. You can explore them after onboarding.
+            Demo accounts with sample balances are ready for you to explore.
           </p>
         </div>
       </OnboardingStep>
@@ -83,7 +83,7 @@ export function CreateAccountStep({
     <OnboardingStep
       stepNumber={3}
       title="Create Your First Account"
-      description="Connect all your accounts to see your complete financial picture in one dashboard."
+      description="See all balances in one place with automatic transfer detection and credit card utilization alerts."
       onNext={() => {}}
       onPrevious={onPrevious}
       onSkip={canSkip ? onSkip : undefined}

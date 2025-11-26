@@ -62,7 +62,7 @@ export function CreateDebtStep({
       <OnboardingStep
         stepNumber={8}
         title="Demo Debt Created"
-        description="Demo debt has been created automatically. You can explore it after onboarding."
+        description="Demo debt is ready with payoff projections and interest calculations to explore."
         onNext={onNext}
         onPrevious={onPrevious}
         isFirstStep={false}
@@ -72,7 +72,7 @@ export function CreateDebtStep({
             <CheckCircle2 className="w-8 h-8 text-[var(--color-success)]" />
           </div>
           <p className="text-muted-foreground">
-            Demo debt has been created automatically. You can explore it after onboarding.
+            Demo debt with payoff projections is ready for you to explore.
           </p>
         </div>
       </OnboardingStep>
@@ -83,7 +83,7 @@ export function CreateDebtStep({
     <OnboardingStep
       stepNumber={8}
       title="Track Your First Debt"
-      description="Get a clear payoff timeline with interest calculations and debt-free projections."
+      description="See your debt-free date with interest projections and compare snowball vs avalanche payoff strategies."
       onNext={() => {}}
       onPrevious={onPrevious}
       onSkip={canSkip ? onSkip : undefined}

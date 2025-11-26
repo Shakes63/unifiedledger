@@ -6,7 +6,7 @@
 
 ## Incomplete Features
 
-1. **Onboarding: Improved Step Descriptions** - Enhance descriptions with feature highlights (e.g., "auto-matches transactions to bills", "sends reminders before due dates")
+(No incomplete features at this time)
 
 ---
 
@@ -60,3 +60,4 @@
 46. ✅ **Onboarding: Category/Budget Step** - Step 4 for setting up categories and budgets before transactions
 47. ✅ **Onboarding: Reorder Steps** - Transaction step moved earlier, Bill/Goal/Debt as optional advanced features
 48. ✅ **Onboarding: Clear Skip Messaging** - "Set Up Later" with Clock icon and "Optional" badge on skippable steps
+49. ✅ **Onboarding: Improved Step Descriptions** - Enhanced descriptions with feature highlights (auto-categorization, reminders, milestones, etc.)

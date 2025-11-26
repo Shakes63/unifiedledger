@@ -72,7 +72,7 @@ export function CreateCategoryStep({
       <OnboardingStep
         stepNumber={4}
         title="Demo Categories Created"
-        description="Demo categories have been created automatically. You can explore them after onboarding."
+        description="Demo categories are ready with sample budgets to see how spending tracking works."
         onNext={onNext}
         onPrevious={onPrevious}
         isFirstStep={false}
@@ -82,7 +82,7 @@ export function CreateCategoryStep({
             <CheckCircle2 className="w-8 h-8 text-[var(--color-success)]" />
           </div>
           <p className="text-muted-foreground">
-            Demo categories have been created automatically. You can explore them after onboarding.
+            Demo categories with sample budgets are ready for you to explore.
           </p>
         </div>
       </OnboardingStep>
@@ -93,7 +93,7 @@ export function CreateCategoryStep({
     <OnboardingStep
       stepNumber={4}
       title="Organize Your Spending"
-      description="Categories help you track where your money goes and set budgets to stay on track."
+      description="Organize spending with auto-categorization that learns your patterns and alerts you when budgets approach limits."
       onNext={() => {}}
       onPrevious={onPrevious}
       onSkip={canSkip ? onSkip : undefined}

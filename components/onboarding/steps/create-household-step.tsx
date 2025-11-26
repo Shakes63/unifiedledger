@@ -109,7 +109,7 @@ export function CreateHouseholdStep({
     <OnboardingStep
       stepNumber={2}
       title="Create Your First Household"
-      description="Households let you organize finances and collaborate with family - each with their own activity feed and permissions."
+      description="Keep finances separate or share with family - role-based permissions control who can view, edit, and manage your data."
       onNext={handleSubmit}
       onPrevious={onPrevious}
       onSkip={canSkip ? onSkip : undefined}

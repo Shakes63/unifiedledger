@@ -64,7 +64,7 @@ export function CreateTransactionStep({
       <OnboardingStep
         stepNumber={5}
         title="Demo Transactions Created"
-        description="Demo transactions have been created automatically. You can explore them after onboarding."
+        description="Demo transactions are ready to show you how the spending tracker and search work."
         onNext={onNext}
         onPrevious={onPrevious}
         isFirstStep={false}
@@ -74,7 +74,7 @@ export function CreateTransactionStep({
             <CheckCircle2 className="w-8 h-8 text-[var(--color-success)]" />
           </div>
           <p className="text-muted-foreground">
-            Demo transactions have been created automatically. You can explore them after onboarding.
+            Demo transactions are ready for you to explore and search.
           </p>
         </div>
       </OnboardingStep>
@@ -85,7 +85,7 @@ export function CreateTransactionStep({
     <OnboardingStep
       stepNumber={5}
       title="Record Your First Transaction"
-      description="Track every dollar with smart categorization and powerful spending insights."
+      description="Record spending with smart suggestions that auto-fill categories and merchants based on your history."
       onNext={() => {}}
       onPrevious={onPrevious}
       onSkip={canSkip ? onSkip : undefined}

@@ -62,7 +62,7 @@ export function CreateGoalStep({
       <OnboardingStep
         stepNumber={7}
         title="Demo Goals Created"
-        description="Demo goals have been created automatically. You can explore them after onboarding."
+        description="Demo savings goals are ready with progress bars and milestones to explore."
         onNext={onNext}
         onPrevious={onPrevious}
         isFirstStep={false}
@@ -72,7 +72,7 @@ export function CreateGoalStep({
             <CheckCircle2 className="w-8 h-8 text-[var(--color-success)]" />
           </div>
           <p className="text-muted-foreground">
-            Demo goals have been created automatically. You can explore them after onboarding.
+            Demo savings goals with progress tracking are ready for you to explore.
           </p>
         </div>
       </OnboardingStep>
@@ -83,7 +83,7 @@ export function CreateGoalStep({
     <OnboardingStep
       stepNumber={7}
       title="Create Your First Savings Goal"
-      description="Watch your savings grow with progress tracking and celebrate when you hit milestones."
+      description="Track savings progress with visual milestones at 25%, 50%, 75% and automatic celebrations when you hit targets."
       onNext={() => {}}
       onPrevious={onPrevious}
       onSkip={canSkip ? onSkip : undefined}
