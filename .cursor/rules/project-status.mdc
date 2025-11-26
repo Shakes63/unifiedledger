@@ -88,13 +88,13 @@ alwaysApply: false
   - ✅ Supports both existing and new users
 
 **Previous (2025-11-26):**
-- Onboarding Flow Enhancements (✅ COMPLETE - 5/6 improvements done)
+- Onboarding Flow Enhancements (✅ COMPLETE - 6/6 improvements done)
   - ✅ Demo Data Choice - Option for invited users to keep or clear demo data before completing
   - ✅ Educational Content - "Why This Matters" info boxes with WhyThisMatters component in each step
   - ✅ Category/Budget Step - New step 4 for setting up categories before transactions
   - ✅ Reorder Steps - Transaction moved to step 5, Bill/Goal/Debt as optional steps 6-8
   - ✅ Clear Skip Messaging - "Set Up Later" with Clock icon, "Optional" badge, reassurance text
-  - ⏳ Improved Step Descriptions - Pending (enhance with feature highlights)
+  - ✅ Improved Step Descriptions - Enhanced descriptions with feature highlights (auto-categorization, reminders, milestones)
 
 **Previous (2025-11-17):**
 - Onboarding Flow (✅ COMPLETE)
@@ -230,10 +230,9 @@ _No active bugs_
 
 ### Other Next Steps
 1. ⏳ Invited User Onboarding - Manual testing pending (implementation complete)
-2. ⏳ Onboarding: Improved Step Descriptions - Enhance descriptions with feature highlights
-3. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
-4. Docker configuration for deployment
-5. Performance optimizations as needed
-6. User feedback and iterations
+2. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
+3. Docker configuration for deployment
+4. Performance optimizations as needed
+5. User feedback and iterations
 
 For detailed bug tracking, see `docs/bugs.md`.

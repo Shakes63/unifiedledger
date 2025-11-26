@@ -1,12 +1,14 @@
 # Features to Implement
 
-**Add new feature requests below this line:**
+## Add New Features Here
+
+_Add new feature requests below. Include a brief description of what the feature should do._
 
 ---
 
 ## Incomplete Features
 
-(No incomplete features at this time)
+_(No incomplete features at this time)_
 
 ---
 
@@ -60,4 +62,4 @@
 46. ✅ **Onboarding: Category/Budget Step** - Step 4 for setting up categories and budgets before transactions
 47. ✅ **Onboarding: Reorder Steps** - Transaction step moved earlier, Bill/Goal/Debt as optional advanced features
 48. ✅ **Onboarding: Clear Skip Messaging** - "Set Up Later" with Clock icon and "Optional" badge on skippable steps
-49. ✅ **Onboarding: Improved Step Descriptions** - Enhanced descriptions with feature highlights (auto-categorization, reminders, milestones, etc.)
+49. ✅ **Onboarding: Improved Step Descriptions** - Enhanced descriptions with feature highlights (auto-categorization, reminders, milestones)
