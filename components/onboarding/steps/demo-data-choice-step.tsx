@@ -134,7 +134,7 @@ export function DemoDataChoiceStep({
 
   return (
     <OnboardingStep
-      stepNumber={8}
+      stepNumber={9}
       title="What Would You Like to Do?"
       description="You have demo data set up to help you learn the app. Choose whether to keep it or start fresh."
       onNext={handleContinue}

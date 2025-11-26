@@ -52,7 +52,7 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
 
   return (
     <OnboardingStep
-      stepNumber={isInvitedUser ? 9 : 8}
+      stepNumber={isInvitedUser ? 10 : 9}
       title={getTitle()}
       description={getDescription()}
       onNext={handleComplete}

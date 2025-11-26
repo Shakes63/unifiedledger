@@ -6,10 +6,9 @@
 
 ## Incomplete Features
 
-1. **Onboarding: Category/Budget Step** - Add new step for setting up categories and understanding budgets before transaction creation
-2. **Onboarding: Reorder Steps** - Move Transaction step earlier (after Account), make Bill/Goal/Debt clearly optional with "Set Up Later" messaging
-3. **Onboarding: Improved Step Descriptions** - Enhance descriptions with feature highlights (e.g., "auto-matches transactions to bills", "sends reminders before due dates")
-4. **Onboarding: Clear Skip Messaging** - Change "Skip" to "Set Up Later" with reassurance that features can be accessed from main menu
+1. **Onboarding: Reorder Steps** - Move Transaction step earlier (after Account), make Bill/Goal/Debt clearly optional with "Set Up Later" messaging
+2. **Onboarding: Improved Step Descriptions** - Enhance descriptions with feature highlights (e.g., "auto-matches transactions to bills", "sends reminders before due dates")
+3. **Onboarding: Clear Skip Messaging** - Change "Skip" to "Set Up Later" with reassurance that features can be accessed from main menu
 
 ---
 
@@ -60,3 +59,4 @@
 43. ✅ **Reports Advanced Filtering & Custom Date Range** - Enhanced reports dashboard with custom date range picker, advanced filtering by account/category/merchant, and filter persistence per household
 44. ✅ **Onboarding: Demo Data Choice at End** - Added option for invited users to "Keep Demo Data" or "Clear Demo Data and Start Fresh" before completing onboarding, with demo data summary display and proper cleanup
 45. ✅ **Onboarding: Educational Content** - Added "Why This Matters" info boxes to each onboarding step with reusable WhyThisMatters component, explaining feature benefits like auto-categorization, bill matching, milestone tracking, and payoff projections
+46. ✅ **Onboarding: Category/Budget Step** - Added new step 4 for setting up categories and budgets before transaction creation, with WhyThisMatters component, pre-filled example category, and common category suggestions

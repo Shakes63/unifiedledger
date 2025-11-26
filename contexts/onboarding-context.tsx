@@ -32,10 +32,10 @@ interface OnboardingContextType {
 
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined);
 
-// Non-demo users: 8 steps (Welcome, Household, Account, Bill, Goal, Debt, Transaction, Complete)
-// Demo users: 9 steps (Welcome, DemoData, Account, Bill, Goal, Debt, Transaction, DemoDataChoice, Complete)
-const TOTAL_STEPS_NON_DEMO = 8;
-const TOTAL_STEPS_DEMO = 9;
+// Non-demo users: 9 steps (Welcome, Household, Account, Category, Bill, Goal, Debt, Transaction, Complete)
+// Demo users: 10 steps (Welcome, DemoData, Account, Category, Bill, Goal, Debt, Transaction, DemoDataChoice, Complete)
+const TOTAL_STEPS_NON_DEMO = 9;
+const TOTAL_STEPS_DEMO = 10;
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [isOnboardingActive, setIsOnboardingActive] = useState(false);

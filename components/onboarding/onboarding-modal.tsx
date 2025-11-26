@@ -15,6 +15,7 @@ import { CreateTransactionStep } from './steps/create-transaction-step';
 import { CompleteStep } from './steps/complete-step';
 import { CreateDemoDataStep } from './steps/create-demo-data-step';
 import { DemoDataChoiceStep } from './steps/demo-data-choice-step';
+import { CreateCategoryStep } from './steps/create-category-step';
 
 interface OnboardingModalProps {
   open: boolean;
@@ -98,7 +99,7 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
         );
       case 4:
         return (
-          <CreateBillStep
+          <CreateCategoryStep
             onNext={nextStep}
             onPrevious={previousStep}
             onSkip={handleSkip}
@@ -107,7 +108,7 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
         );
       case 5:
         return (
-          <CreateGoalStep
+          <CreateBillStep
             onNext={nextStep}
             onPrevious={previousStep}
             onSkip={handleSkip}
@@ -116,7 +117,7 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
         );
       case 6:
         return (
-          <CreateDebtStep
+          <CreateGoalStep
             onNext={nextStep}
             onPrevious={previousStep}
             onSkip={handleSkip}
@@ -125,7 +126,7 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
         );
       case 7:
         return (
-          <CreateTransactionStep
+          <CreateDebtStep
             onNext={nextStep}
             onPrevious={previousStep}
             onSkip={handleSkip}
@@ -133,8 +134,17 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
           />
         );
       case 8:
-        // For demo mode, step 8 is the demo data choice step
-        // For non-demo mode, step 8 is the complete step
+        return (
+          <CreateTransactionStep
+            onNext={nextStep}
+            onPrevious={previousStep}
+            onSkip={handleSkip}
+            canSkip={true}
+          />
+        );
+      case 9:
+        // For demo mode, step 9 is the demo data choice step
+        // For non-demo mode, step 9 is the complete step
         if (isDemoMode) {
           return (
             <DemoDataChoiceStep
@@ -152,8 +162,8 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
             demoDataCleared={demoDataCleared}
           />
         );
-      case 9:
-        // Step 9 is only for demo mode (complete step)
+      case 10:
+        // Step 10 is only for demo mode (complete step)
         return (
           <CompleteStep
             onComplete={handleComplete}

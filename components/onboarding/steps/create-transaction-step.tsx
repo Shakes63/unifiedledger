@@ -62,7 +62,7 @@ export function CreateTransactionStep({
   if (isDemoMode) {
     return (
       <OnboardingStep
-        stepNumber={7}
+        stepNumber={8}
         title="Demo Transactions Created"
         description="Demo transactions have been created automatically. You can explore them after onboarding."
         onNext={onNext}
@@ -83,7 +83,7 @@ export function CreateTransactionStep({
 
   return (
     <OnboardingStep
-      stepNumber={7}
+      stepNumber={8}
       title="Record Your First Transaction"
       description="Track every dollar with smart categorization and powerful spending insights."
       onNext={() => {}}

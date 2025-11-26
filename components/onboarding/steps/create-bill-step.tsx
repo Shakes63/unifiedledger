@@ -60,7 +60,7 @@ export function CreateBillStep({
   if (isDemoMode) {
     return (
       <OnboardingStep
-        stepNumber={4}
+        stepNumber={5}
         title="Demo Bills Created"
         description="Demo bills have been created automatically. You can explore them after onboarding."
         onNext={onNext}
@@ -81,7 +81,7 @@ export function CreateBillStep({
 
   return (
     <OnboardingStep
-      stepNumber={4}
+      stepNumber={5}
       title="Set Up Your First Bill"
       description="Never miss a payment - bills auto-match transactions and send reminders before due dates."
       onNext={() => {}}

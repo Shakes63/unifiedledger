@@ -60,7 +60,7 @@ export function CreateGoalStep({
   if (isDemoMode) {
     return (
       <OnboardingStep
-        stepNumber={5}
+        stepNumber={6}
         title="Demo Goals Created"
         description="Demo goals have been created automatically. You can explore them after onboarding."
         onNext={onNext}
@@ -81,7 +81,7 @@ export function CreateGoalStep({
 
   return (
     <OnboardingStep
-      stepNumber={5}
+      stepNumber={6}
       title="Create Your First Savings Goal"
       description="Watch your savings grow with progress tracking and celebrate when you hit milestones."
       onNext={() => {}}
