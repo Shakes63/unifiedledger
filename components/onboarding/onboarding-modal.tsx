@@ -107,6 +107,17 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
           />
         );
       case 5:
+        // Transaction moved here (core essentials: Account → Category → Transaction)
+        return (
+          <CreateTransactionStep
+            onNext={nextStep}
+            onPrevious={previousStep}
+            onSkip={handleSkip}
+            canSkip={true}
+          />
+        );
+      case 6:
+        // Optional advanced features start here
         return (
           <CreateBillStep
             onNext={nextStep}
@@ -115,7 +126,7 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
             canSkip={true}
           />
         );
-      case 6:
+      case 7:
         return (
           <CreateGoalStep
             onNext={nextStep}
@@ -124,18 +135,9 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
             canSkip={true}
           />
         );
-      case 7:
-        return (
-          <CreateDebtStep
-            onNext={nextStep}
-            onPrevious={previousStep}
-            onSkip={handleSkip}
-            canSkip={true}
-          />
-        );
       case 8:
         return (
-          <CreateTransactionStep
+          <CreateDebtStep
             onNext={nextStep}
             onPrevious={previousStep}
             onSkip={handleSkip}

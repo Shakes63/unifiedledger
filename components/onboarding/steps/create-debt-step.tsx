@@ -60,7 +60,7 @@ export function CreateDebtStep({
   if (isDemoMode) {
     return (
       <OnboardingStep
-        stepNumber={7}
+        stepNumber={8}
         title="Demo Debt Created"
         description="Demo debt has been created automatically. You can explore it after onboarding."
         onNext={onNext}
@@ -81,7 +81,7 @@ export function CreateDebtStep({
 
   return (
     <OnboardingStep
-      stepNumber={7}
+      stepNumber={8}
       title="Track Your First Debt"
       description="Get a clear payoff timeline with interest calculations and debt-free projections."
       onNext={() => {}}
@@ -90,6 +90,7 @@ export function CreateDebtStep({
       canSkip={canSkip}
       isLoading={isSubmitting}
       hideFooter={true}
+      isOptional={true}
     >
       <div className="space-y-6">
         <div className="flex items-center justify-center py-4">

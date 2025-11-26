@@ -82,48 +82,67 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
           ) : (
             <>
               <h3 className="text-xl font-semibold text-foreground">
-                We'll walk you through setting up your first:
+                We'll walk you through setting up:
               </h3>
-              <ul className="space-y-3 text-left text-muted-foreground">
-                <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-semibold text-[var(--color-primary)]">1</span>
-                  </div>
-                  <span>Household - Organize your finances</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-semibold text-[var(--color-primary)]">2</span>
-                  </div>
-                  <span>Account - Track your money</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-semibold text-[var(--color-primary)]">3</span>
-                  </div>
-                  <span>Bill - Set up recurring payments</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-semibold text-[var(--color-primary)]">4</span>
-                  </div>
-                  <span>Goal - Plan your savings</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-semibold text-[var(--color-primary)]">5</span>
-                  </div>
-                  <span>Debt - Track what you owe</span>
-                </li>
-                <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-semibold text-[var(--color-primary)]">6</span>
-                  </div>
-                  <span>Transaction - Record your spending</span>
-                </li>
-              </ul>
+              
+              {/* Essential Steps */}
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-[var(--color-primary)] uppercase tracking-wide">Getting Started</p>
+                <ul className="space-y-2 text-left text-muted-foreground">
+                  <li className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-semibold text-[var(--color-primary)]">1</span>
+                    </div>
+                    <span>Household - Organize your finances</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-semibold text-[var(--color-primary)]">2</span>
+                    </div>
+                    <span>Account - Track your money</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-semibold text-[var(--color-primary)]">3</span>
+                    </div>
+                    <span>Category - Organize spending</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-semibold text-[var(--color-primary)]">4</span>
+                    </div>
+                    <span>Transaction - Record your spending</span>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Optional Steps */}
+              <div className="space-y-2 pt-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Optional - Set Up Later</p>
+                <ul className="space-y-2 text-left text-muted-foreground/70">
+                  <li className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-elevated flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs text-muted-foreground">+</span>
+                    </div>
+                    <span>Bill - Recurring payments & reminders</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-elevated flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs text-muted-foreground">+</span>
+                    </div>
+                    <span>Goal - Savings progress tracking</span>
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-elevated flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs text-muted-foreground">+</span>
+                    </div>
+                    <span>Debt - Payoff projections</span>
+                  </li>
+                </ul>
+              </div>
+
               <p className="text-sm text-muted-foreground pt-4">
-                This will only take a few minutes. You can skip any step if you prefer to set it up later.
+                The essentials take just a few minutes. Optional features can be set up anytime from the dashboard.
               </p>
             </>
           )}

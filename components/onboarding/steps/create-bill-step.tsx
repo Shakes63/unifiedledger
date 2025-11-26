@@ -60,7 +60,7 @@ export function CreateBillStep({
   if (isDemoMode) {
     return (
       <OnboardingStep
-        stepNumber={5}
+        stepNumber={6}
         title="Demo Bills Created"
         description="Demo bills have been created automatically. You can explore them after onboarding."
         onNext={onNext}
@@ -81,7 +81,7 @@ export function CreateBillStep({
 
   return (
     <OnboardingStep
-      stepNumber={5}
+      stepNumber={6}
       title="Set Up Your First Bill"
       description="Never miss a payment - bills auto-match transactions and send reminders before due dates."
       onNext={() => {}}
@@ -90,6 +90,7 @@ export function CreateBillStep({
       canSkip={canSkip}
       isLoading={isSubmitting}
       hideFooter={true}
+      isOptional={true}
     >
       <div className="space-y-6">
         <div className="flex items-center justify-center py-4">
