@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { format, parseISO, differenceInDays, addDays, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
-import { AlertCircle, CheckCircle2, Clock, DollarSign, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, DollarSign, Plus, ChevronLeft, ChevronRight, CalendarRange } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -341,18 +341,26 @@ export default function BillsDashboard() {
     <div className="px-4 sm:px-6 lg:px-8 py-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Bills</h1>
-          <p className="text-muted-foreground mt-2">Track your upcoming and overdue bills</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Bills</h1>
+            <p className="text-muted-foreground mt-2">Track your upcoming and overdue bills</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard/bills/annual-planning">
+              <Button variant="outline" className="bg-elevated border-border text-foreground hover:bg-elevated">
+                <CalendarRange className="w-4 h-4 mr-2" />
+                Annual Planning
+              </Button>
+            </Link>
+            <Link href="/dashboard/bills/new">
+              <Button className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]">
+                <Plus className="w-4 h-4 mr-2" />
+                New Bill
+              </Button>
+            </Link>
+          </div>
         </div>
-        <Link href="/dashboard/bills/new">
-          <Button className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]">
-            <Plus className="w-4 h-4 mr-2" />
-            New Bill
-          </Button>
-        </Link>
-      </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

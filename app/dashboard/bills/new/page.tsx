@@ -7,16 +7,25 @@ import { BillForm } from '@/components/bills/bill-form';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 
 export default function NewBillPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const { fetchWithHousehold } = useHouseholdFetch();
+  const { selectedHouseholdId } = useHousehold();
 
   const handleSubmit = async (data: any, saveMode: 'save' | 'saveAndAdd' = 'save') => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household first');
+      return;
+    }
+
     try {
       setIsLoading(true);
 
-      const response = await fetch('/api/bills', {
+      const response = await fetchWithHousehold('/api/bills', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
