@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useHousehold } from '@/contexts/household-context';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { Users, CheckCircle2 } from 'lucide-react';
+import { WhyThisMatters } from '../why-this-matters';
 
 interface CreateHouseholdStepProps {
   onNext: () => void;
@@ -108,7 +109,7 @@ export function CreateHouseholdStep({
     <OnboardingStep
       stepNumber={2}
       title="Create Your First Household"
-      description="A household helps you organize your finances. You can create multiple households for different purposes (personal, business, etc.)."
+      description="Households let you organize finances and collaborate with family - each with their own activity feed and permissions."
       onNext={handleSubmit}
       onPrevious={onPrevious}
       onSkip={canSkip ? onSkip : undefined}
@@ -146,14 +147,14 @@ export function CreateHouseholdStep({
             </p>
           </div>
 
-          <div className="bg-elevated border border-border rounded-lg p-4 space-y-2">
-            <p className="text-sm font-medium text-foreground">What is a household?</p>
-            <p className="text-sm text-muted-foreground">
-              A household is a collection of accounts, transactions, bills, and budgets. You can
-              invite family members or collaborators to share a household, or keep it private for
-              personal use.
-            </p>
-          </div>
+          <WhyThisMatters
+            benefits={[
+              'Share finances with family members and invite collaborators',
+              'Keep personal and business finances completely separate',
+              'Real-time activity feed shows what everyone is doing',
+              'Role-based permissions control who can view and edit',
+            ]}
+          />
         </div>
       </div>
     </OnboardingStep>

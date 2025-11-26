@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { OnboardingStep } from '../onboarding-step';
 import { GoalForm } from '@/components/goals/goal-form';
 import { Target, CheckCircle2 } from 'lucide-react';
+import { WhyThisMatters } from '../why-this-matters';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { toast } from 'sonner';
@@ -82,7 +83,7 @@ export function CreateGoalStep({
     <OnboardingStep
       stepNumber={5}
       title="Create Your First Savings Goal"
-      description="Goals help you save for specific purposes - vacations, emergencies, big purchases, etc."
+      description="Watch your savings grow with progress tracking and celebrate when you hit milestones."
       onNext={() => {}}
       onPrevious={onPrevious}
       onSkip={canSkip ? onSkip : undefined}
@@ -97,7 +98,16 @@ export function CreateGoalStep({
           </div>
         </div>
 
-        <div className="bg-elevated border border-border rounded-lg p-4 mb-4">
+        <WhyThisMatters
+          benefits={[
+            'Visual progress bar shows how close you are',
+            'Celebrate milestones at 25%, 50%, 75%, and 100%',
+            'Link to a savings account to track contributions',
+            'Target date projections help you plan your saving',
+          ]}
+        />
+
+        <div className="bg-elevated border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground">
             We've pre-filled an example goal. Track your progress and celebrate milestones as you
             save!

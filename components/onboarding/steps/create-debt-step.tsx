@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { OnboardingStep } from '../onboarding-step';
 import { DebtForm } from '@/components/debts/debt-form';
 import { CreditCard, CheckCircle2 } from 'lucide-react';
+import { WhyThisMatters } from '../why-this-matters';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { toast } from 'sonner';
@@ -82,7 +83,7 @@ export function CreateDebtStep({
     <OnboardingStep
       stepNumber={6}
       title="Track Your First Debt"
-      description="Debts help you track what you owe - credit cards, loans, mortgages, etc."
+      description="Get a clear payoff timeline with interest calculations and debt-free projections."
       onNext={() => {}}
       onPrevious={onPrevious}
       onSkip={canSkip ? onSkip : undefined}
@@ -97,7 +98,16 @@ export function CreateDebtStep({
           </div>
         </div>
 
-        <div className="bg-elevated border border-border rounded-lg p-4 mb-4">
+        <WhyThisMatters
+          benefits={[
+            'See your estimated payoff date',
+            'Track interest costs and total amount paid',
+            'Celebrate becoming debt-free with milestone alerts',
+            'Compare snowball vs avalanche payoff strategies',
+          ]}
+        />
+
+        <div className="bg-elevated border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground">
             We've pre-filled an example debt. Track your progress and see payoff projections!
           </p>

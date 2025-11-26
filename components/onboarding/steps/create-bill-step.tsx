@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { OnboardingStep } from '../onboarding-step';
 import { BillForm } from '@/components/bills/bill-form';
 import { Receipt, CheckCircle2 } from 'lucide-react';
+import { WhyThisMatters } from '../why-this-matters';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { toast } from 'sonner';
@@ -82,7 +83,7 @@ export function CreateBillStep({
     <OnboardingStep
       stepNumber={4}
       title="Set Up Your First Bill"
-      description="Bills help you track recurring expenses like rent, utilities, subscriptions, etc."
+      description="Never miss a payment - bills auto-match transactions and send reminders before due dates."
       onNext={() => {}}
       onPrevious={onPrevious}
       onSkip={canSkip ? onSkip : undefined}
@@ -97,7 +98,16 @@ export function CreateBillStep({
           </div>
         </div>
 
-        <div className="bg-elevated border border-border rounded-lg p-4 mb-4">
+        <WhyThisMatters
+          benefits={[
+            'Get reminders before bills are due - never miss a payment',
+            'Transactions auto-match to bills when you record them',
+            'View payment history and track amount changes',
+            'Supports one-time, weekly, monthly, and annual bills',
+          ]}
+        />
+
+        <div className="bg-elevated border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground">
             We've pre-filled an example bill. The system will automatically match transactions to
             your bills when you record payments.

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { OnboardingStep } from '../onboarding-step';
 import { TransactionForm } from '@/components/transactions/transaction-form';
 import { DollarSign, CheckCircle2 } from 'lucide-react';
+import { WhyThisMatters } from '../why-this-matters';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { toast } from 'sonner';
@@ -84,7 +85,7 @@ export function CreateTransactionStep({
     <OnboardingStep
       stepNumber={7}
       title="Record Your First Transaction"
-      description="Transactions are the foundation of your financial tracking - income, expenses, and transfers."
+      description="Track every dollar with smart categorization and powerful spending insights."
       onNext={() => {}}
       onPrevious={onPrevious}
       onSkip={canSkip ? onSkip : undefined}
@@ -99,7 +100,16 @@ export function CreateTransactionStep({
           </div>
         </div>
 
-        <div className="bg-elevated border border-border rounded-lg p-4 mb-4">
+        <WhyThisMatters
+          benefits={[
+            'Auto-categorization learns from your spending patterns',
+            'Import transactions from bank CSV exports',
+            'Split single transactions across multiple categories',
+            'Powerful search with filters for date, amount, category, and more',
+          ]}
+        />
+
+        <div className="bg-elevated border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground">
             Record a transaction to see how the system tracks your spending. You can import
             transactions from CSV files later!
