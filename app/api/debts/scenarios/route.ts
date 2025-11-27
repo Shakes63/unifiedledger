@@ -131,6 +131,7 @@ export async function POST(request: NextRequest) {
       name: debt.name,
       remainingBalance: debt.remainingBalance,
       minimumPayment: debt.minimumPayment || 0,
+      additionalMonthlyPayment: debt.additionalMonthlyPayment || 0,
       interestRate: debt.interestRate || 0,
       type: debt.type || 'other',
       loanType: debt.loanType as 'revolving' | 'installment' | undefined,

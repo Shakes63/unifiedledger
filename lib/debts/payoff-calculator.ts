@@ -8,6 +8,7 @@ export interface DebtInput {
   name: string;
   remainingBalance: number;
   minimumPayment: number;
+  additionalMonthlyPayment?: number; // Per-debt extra payment commitment
   interestRate: number;
   type: string;
   loanType?: 'revolving' | 'installment';
@@ -43,6 +44,8 @@ export interface PayoffOrder {
   remainingBalance: number;
   interestRate: number;
   minimumPayment: number;
+  additionalMonthlyPayment?: number;
+  plannedPayment: number; // minimum + additional
   order: number;
   type: string;
   color?: string;
@@ -411,6 +414,8 @@ export function calculatePayoffStrategy(
     remainingBalance: debt.remainingBalance,
     interestRate: debt.interestRate,
     minimumPayment: debt.minimumPayment,
+    additionalMonthlyPayment: debt.additionalMonthlyPayment,
+    plannedPayment: (debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0),
     order: index + 1,
     type: debt.type,
     color: debt.color,
@@ -419,8 +424,10 @@ export function calculatePayoffStrategy(
 
   // Calculate total available for extra payments
   // IMPORTANT: Default to 0 if minimumPayment is null/undefined to prevent NaN
+  // Include per-debt additional payments as part of the planned payment
   const totalMinimums = debts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
-  const totalAvailable = totalMinimums + extraPayment;
+  const totalPerDebtExtras = debts.reduce((sum, d) => sum + (d.additionalMonthlyPayment || 0), 0);
+  const totalAvailable = totalMinimums + totalPerDebtExtras + extraPayment;
 
   // For biweekly payments, divide monthly amounts by 2
   const paymentDivisor = paymentFrequency === 'biweekly' ? 2 : 1;
@@ -428,9 +435,12 @@ export function calculatePayoffStrategy(
   // Calculate schedules using debt avalanche payment strategy
   const schedules: DebtPayoffSchedule[] = [];
   let currentMonth = 0;
+  // Include per-debt additional payment as part of the effective minimum
+  // This ensures each debt's committed extra is used in projections
   let remainingDebts = [...sortedDebts].map(debt => ({
     ...debt,
-    minimumPayment: (debt.minimumPayment || 0) / paymentDivisor,
+    // Effective payment = minimum + per-debt additional
+    minimumPayment: ((debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0)) / paymentDivisor,
   }));
   let availablePayment = totalAvailable / paymentDivisor;
 

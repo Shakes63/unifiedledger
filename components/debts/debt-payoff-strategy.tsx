@@ -300,8 +300,15 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                     </div>
                   </div>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  ${debt.minimumPayment.toFixed(2)}/mo min
+                <div className="text-right">
+                  <div className="text-xs text-muted-foreground">
+                    ${(debt.plannedPayment || debt.minimumPayment).toFixed(2)}/mo
+                  </div>
+                  {debt.additionalMonthlyPayment && debt.additionalMonthlyPayment > 0 && (
+                    <div className="text-xs text-[var(--color-income)]">
+                      +${debt.additionalMonthlyPayment.toFixed(2)} extra
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

@@ -71,6 +71,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
     originalAmount: debt?.originalAmount || '',
     remainingBalance: debt?.remainingBalance || '',
     minimumPayment: debt?.minimumPayment || '',
+    additionalMonthlyPayment: debt?.additionalMonthlyPayment || '',
     interestRate: debt?.interestRate || 0,
     interestType: debt?.interestType || 'none',
     type: debt?.type || 'other',
@@ -185,6 +186,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       originalAmount: parseFloat(formData.originalAmount),
       remainingBalance: parseFloat(formData.remainingBalance),
       minimumPayment: formData.minimumPayment ? parseFloat(formData.minimumPayment) : undefined,
+      additionalMonthlyPayment: formData.additionalMonthlyPayment ? parseFloat(String(formData.additionalMonthlyPayment)) : 0,
       interestRate: parseFloat(String(formData.interestRate)),
       // Loan structure fields
       loanTermMonths: formData.loanTermMonths ? parseInt(String(formData.loanTermMonths)) : undefined,
@@ -209,6 +211,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
         originalAmount: '',
         remainingBalance: '',
         minimumPayment: '',
+        additionalMonthlyPayment: '',
         interestRate: 0,
         interestType: 'none',
         type: preservedType,
@@ -393,6 +396,40 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             min="0"
             className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
+        </div>
+      </div>
+
+      {/* Additional Monthly Payment */}
+      <div className="p-4 bg-card rounded-lg border border-border">
+        <div className="flex items-center gap-2 mb-3">
+          <Label className="text-sm text-[var(--color-primary)]">Extra Payment Commitment</Label>
+          <Info className="w-4 h-4 text-muted-foreground" />
+        </div>
+        <div>
+          <Label className="text-muted-foreground text-sm mb-1">Additional Monthly Payment</Label>
+          <Input
+            name="additionalMonthlyPayment"
+            type="number"
+            value={formData.additionalMonthlyPayment}
+            onChange={handleChange}
+            placeholder="0.00"
+            step="0.01"
+            min="0"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Extra amount you commit to pay beyond the minimum each month. This will be used for more accurate payoff projections.
+          </p>
+          {formData.minimumPayment && formData.additionalMonthlyPayment && (
+            <div className="mt-3 p-3 bg-elevated rounded-lg border border-border">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Total Planned Payment:</span>
+                <span className="text-sm font-semibold text-[var(--color-income)] font-mono">
+                  ${(parseFloat(String(formData.minimumPayment)) + parseFloat(String(formData.additionalMonthlyPayment))).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

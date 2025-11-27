@@ -8,11 +8,9 @@ _Add new feature requests below. Include a brief description of what the feature
 
 ## Incomplete Features
 
-1. **Persistent Additional Monthly Payment on Debts** - Add `additionalMonthlyPayment` field to debt records to store committed extra payment amount beyond minimum. Display in debt cards, use in payoff projections, and track actual vs planned extra payments over time.
+1. **Budget Summary Dashboard** - High-level overview page showing totals by budget category type: Total Income, Total Variable Expenses, Total Monthly Bills, Total Savings Contributions, Total Debt Payments. Provides at-a-glance view of monthly budget allocation similar to spreadsheet "Setup" tab.
 
-2. **Budget Summary Dashboard** - High-level overview page showing totals by budget category type: Total Income, Total Variable Expenses, Total Monthly Bills, Total Savings Contributions, Total Debt Payments. Provides at-a-glance view of monthly budget allocation similar to spreadsheet "Setup" tab.
-
-3. **Non-Monthly Bill Month Selection** - Add option to select a specific month when creating non-monthly bills (quarterly, semi-annual, annual), with the dropdown defaulting to the current month.
+2. **Non-Monthly Bill Month Selection** - Add option to select a specific month when creating non-monthly bills (quarterly, semi-annual, annual), with the dropdown defaulting to the current month.
 
 ---
 
@@ -69,3 +67,4 @@ _Add new feature requests below. Include a brief description of what the feature
 49. ✅ **Onboarding: Improved Step Descriptions** - Enhanced descriptions with feature highlights
 50. ✅ **Recommended Monthly Savings Auto-Calculation** - Auto-calculates suggested monthly contribution
 51. ✅ **12-Month Annual Bill Planning Grid** - Year-at-a-glance grid for non-monthly bills with status tracking
+52. ✅ **Persistent Additional Monthly Payment on Debts** - Per-debt extra payment commitments for accurate payoff projections

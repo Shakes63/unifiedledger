@@ -34,6 +34,7 @@ alwaysApply: false
 - ✅ Onboarding flow bugs fixed (2025-11-26): credentials missing in BillForm/invitation decline, modal resume after refresh, unused import cleanup
 - ✅ Recommended Monthly Savings Auto-Calculation (2025-11-26): Auto-calculates suggested monthly contribution for savings goals based on target date, displays in goal form and tracker with "Apply Recommendation" button
 - ✅ 12-Month Annual Bill Planning Grid (2025-11-26): Year-at-a-glance grid view for non-monthly bills (quarterly, semi-annual, annual, one-time) with status tracking, CSV export, and quick actions
+- ✅ Persistent Additional Monthly Payment on Debts (2025-11-27): Per-debt `additionalMonthlyPayment` field for extra payment commitments, displayed in debt cards, used in payoff projections and adherence tracking
 
 ## Household Data Isolation Status
 

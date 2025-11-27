@@ -60,13 +60,21 @@ export async function GET(request: Request) {
       });
     }
 
-    // 3. Calculate total minimum payment
+    // 3. Calculate total minimum payment and per-debt extras
     const totalMinimumPayment = activeDebts.reduce(
       (sum, debt) => new Decimal(sum).plus(debt.minimumPayment || 0).toNumber(),
       0
     );
 
+    // Include per-debt additional payments as part of the planned payment
+    const totalPerDebtExtras = activeDebts.reduce(
+      (sum, debt) => new Decimal(sum).plus(debt.additionalMonthlyPayment || 0).toNumber(),
+      0
+    );
+
+    // Total expected = minimums + per-debt extras + global extra from settings
     const totalExpectedPayment = new Decimal(totalMinimumPayment)
+      .plus(totalPerDebtExtras)
       .plus(extraMonthlyPayment)
       .toNumber();
 
@@ -199,6 +207,7 @@ export async function GET(request: Request) {
       name: debt.name || 'Unknown Debt',
       remainingBalance: debt.remainingBalance || 0,
       minimumPayment: debt.minimumPayment || 0,
+      additionalMonthlyPayment: debt.additionalMonthlyPayment || 0,
       interestRate: debt.interestRate || 0,
       type: debt.type || 'credit_card',
       loanType: debt.loanType as 'revolving' | 'installment' | undefined,
@@ -283,6 +292,7 @@ export async function GET(request: Request) {
       averageAdherence: Math.round(averageAdherence * 10) / 10,
       totalExpectedPayment,
       totalMinimumPayment,
+      totalPerDebtExtras,
       actualAveragePayment: Math.round(actualAveragePayment * 100) / 100,
       projectionAdjustment,
       monthlyData,

@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronUp, Edit2, Trash2, CreditCard, AlertTriangle, History, BarChart3 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Trash2, CreditCard, AlertTriangle, History, BarChart3, TrendingUp } from 'lucide-react';
 import { CreditUtilizationBadge } from './credit-utilization-badge';
 import { PaymentHistoryList } from './payment-history-list';
 import { DebtAmortizationSection } from './debt-amortization-section';
@@ -34,6 +34,7 @@ interface DebtTrackerProps {
     originalAmount: number;
     remainingBalance: number;
     minimumPayment?: number;
+    additionalMonthlyPayment?: number;
     interestRate: number;
     type: string;
     color: string;
@@ -144,6 +145,13 @@ export function DebtPayoffTracker({
                     Paused
                   </span>
                 )}
+                {/* Extra Payment Badge */}
+                {debt.additionalMonthlyPayment && debt.additionalMonthlyPayment > 0 && debt.status !== 'paid_off' && (
+                  <span className="text-xs bg-[var(--color-income)]/20 text-[var(--color-income)] px-2 py-1 rounded flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3" />
+                    Extra
+                  </span>
+                )}
                 {/* Credit Utilization Badge */}
                 {hasLimit && (
                   <CreditUtilizationBadge
@@ -225,14 +233,24 @@ export function DebtPayoffTracker({
               ${paidOff.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </p>
           </div>
-          {debt.minimumPayment && (
+          {(debt.minimumPayment || debt.additionalMonthlyPayment) ? (
             <div>
-              <p className="text-muted-foreground text-xs">Min Payment</p>
-              <p className="text-foreground font-semibold">
-                ${debt.minimumPayment.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+              <p className="text-muted-foreground text-xs">
+                {debt.additionalMonthlyPayment && debt.additionalMonthlyPayment > 0 
+                  ? 'Planned Payment' 
+                  : 'Min Payment'}
               </p>
+              <p className="text-foreground font-semibold">
+                ${((debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0)).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+              </p>
+              {debt.additionalMonthlyPayment && debt.additionalMonthlyPayment > 0 && (
+                <p className="text-xs text-[var(--color-income)] flex items-center justify-center gap-1 mt-0.5">
+                  <TrendingUp className="w-3 h-3" />
+                  +${debt.additionalMonthlyPayment.toLocaleString('en-US', { maximumFractionDigits: 2 })} extra
+                </p>
+              )}
             </div>
-          )}
+          ) : null}
           {daysLeft !== null ? (
             <div>
               <p className="text-muted-foreground text-xs">Days Left</p>

@@ -1579,6 +1579,7 @@ export const debts = sqliteTable(
     originalAmount: real('original_amount').notNull(),
     remainingBalance: real('remaining_balance').notNull(),
     minimumPayment: real('minimum_payment'),
+    additionalMonthlyPayment: real('additional_monthly_payment').default(0),
     interestRate: real('interest_rate').default(0),
     interestType: text('interest_type', {
       enum: ['fixed', 'variable', 'none'],
