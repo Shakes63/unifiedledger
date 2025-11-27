@@ -51,8 +51,10 @@ export function CalendarWeek({
     const fetchWeekTransactions = async () => {
       setLoading(true);
       const transactions: Record<string, Transaction[]> = {};
+      // Calculate days inside the effect to avoid stale closure
+      const effectDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
 
-      for (const day of days) {
+      for (const day of effectDays) {
         const dayKey = format(day, 'yyyy-MM-dd');
         try {
           const response = await fetch(`/api/calendar/day?date=${day.toISOString()}`, { credentials: 'include' });
@@ -71,7 +73,7 @@ export function CalendarWeek({
     };
 
     fetchWeekTransactions();
-  }, [currentDate]);
+  }, [currentDate, weekStart, weekEnd]);
 
   return (
     <div className="space-y-4">

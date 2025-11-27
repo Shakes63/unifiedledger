@@ -31,7 +31,7 @@ export function BudgetWarning({
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
   const [budgetStatus, setBudgetStatus] = useState<BudgetStatus | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
   const [projectedPercentage, setProjectedPercentage] = useState(0);
 
   useEffect(() => {
@@ -87,25 +87,25 @@ export function BudgetWarning({
     remaining,
     percentage,
     warningLevel,
-    isOverBudget,
+    isOverBudget: _isOverBudget,
   } = budgetStatus;
 
   // Determine colors based on warning level
   let bgColor = 'bg-blue-500/10';
   let borderColor = 'border-blue-500/20';
   let textColor = 'text-blue-400';
-  let progressColor = 'bg-blue-500';
+  let _progressColor = 'bg-blue-500';
 
   if (warningLevel === 'warning') {
     bgColor = 'bg-amber-500/10';
     borderColor = 'border-amber-500/20';
     textColor = 'text-amber-400';
-    progressColor = 'bg-amber-500';
+    _progressColor = 'bg-amber-500';
   } else if (warningLevel === 'exceeded') {
     bgColor = 'bg-red-500/10';
     borderColor = 'border-red-500/20';
     textColor = 'text-red-400';
-    progressColor = 'bg-red-500';
+    _progressColor = 'bg-red-500';
   }
 
   return (

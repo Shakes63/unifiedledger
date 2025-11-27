@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -34,13 +34,7 @@ export function BackupHistory() {
   const [backupToDelete, setBackupToDelete] = useState<Backup | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  useEffect(() => {
-    if (selectedHouseholdId) {
-      fetchBackups();
-    }
-  }, [selectedHouseholdId]);
-
-  async function fetchBackups() {
+  const fetchBackups = useCallback(async () => {
     if (!selectedHouseholdId) {
       setLoading(false);
       return;
@@ -72,7 +66,13 @@ export function BackupHistory() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [selectedHouseholdId]);
+
+  useEffect(() => {
+    if (selectedHouseholdId) {
+      fetchBackups();
+    }
+  }, [selectedHouseholdId, fetchBackups]);
 
   async function downloadBackup(backup: Backup) {
     try {

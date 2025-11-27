@@ -142,6 +142,7 @@ export function AvatarUpload({
       <div className="relative">
         {previewUrl ? (
           <div className="w-30 h-30 rounded-full overflow-hidden border-2 border-border">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewUrl}
               alt="Preview"

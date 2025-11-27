@@ -58,7 +58,7 @@ export function TransferForm({
   onCancel,
 }: TransferFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedFromAccountId, setSelectedFromAccountId] = useState<string>('');
+  const [_selectedFromAccountId, _setSelectedFromAccountId] = useState<string>('');
 
   const {
     control,
@@ -79,8 +79,8 @@ export function TransferForm({
   });
 
   const fromAccountId = watch('fromAccountId');
-  const toAccountId = watch('toAccountId');
-  const amount = watch('amount');
+  const _toAccountId = watch('toAccountId');
+  const _amount = watch('amount');
 
   // Get balance of from account
   const fromAccount = accounts.find((a) => a.id === fromAccountId);

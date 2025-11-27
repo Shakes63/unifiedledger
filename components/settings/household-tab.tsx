@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -93,39 +93,7 @@ export function HouseholdTab() {
     }
   }, [households, activeTab, selectedHouseholdId]);
 
-  // Fetch household details when active tab changes
-  useEffect(() => {
-    if (activeTab && activeTab !== 'create-new') {
-      fetchHouseholdDetails(activeTab);
-    }
-  }, [activeTab]);
-
-  // Fetch member counts for all households
-  useEffect(() => {
-    async function fetchMemberCounts() {
-      const counts: Record<string, number> = {};
-      await Promise.all(
-        households.map(async (household) => {
-          try {
-            const response = await fetch(`/api/households/${household.id}/members`, { credentials: 'include' });
-            if (response.ok) {
-              const membersData = await response.json();
-              counts[household.id] = membersData.length;
-            }
-          } catch (_error) {
-            // Silently fail for member counts
-          }
-        })
-      );
-      setMemberCounts(counts);
-    }
-
-    if (households.length > 0) {
-      fetchMemberCounts();
-    }
-  }, [households]);
-
-  async function fetchHouseholdDetails(householdId: string) {
+  const fetchHouseholdDetails = useCallback(async (householdId: string) => {
     try {
       // Fetch members, invitations, and permissions in parallel
       const [membersResponse, invitationsResponse, permissionsResponse] = await Promise.all([
@@ -160,7 +128,39 @@ export function HouseholdTab() {
     } catch (_error) {
       toast.error('Failed to load household details');
     }
-  }
+  }, [households]);
+
+  // Fetch household details when active tab changes
+  useEffect(() => {
+    if (activeTab && activeTab !== 'create-new') {
+      fetchHouseholdDetails(activeTab);
+    }
+  }, [activeTab, fetchHouseholdDetails]);
+
+  // Fetch member counts for all households
+  useEffect(() => {
+    async function fetchMemberCounts() {
+      const counts: Record<string, number> = {};
+      await Promise.all(
+        households.map(async (household) => {
+          try {
+            const response = await fetch(`/api/households/${household.id}/members`, { credentials: 'include' });
+            if (response.ok) {
+              const membersData = await response.json();
+              counts[household.id] = membersData.length;
+            }
+          } catch (_error) {
+            // Silently fail for member counts
+          }
+        })
+      );
+      setMemberCounts(counts);
+    }
+
+    if (households.length > 0) {
+      fetchMemberCounts();
+    }
+  }, [households]);
 
   async function createHousehold() {
     if (!householdName.trim()) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -43,13 +43,7 @@ export function BackupSettingsForm() {
     nextBackupAt: null,
   });
 
-  useEffect(() => {
-    if (selectedHouseholdId) {
-      fetchSettings();
-    }
-  }, [selectedHouseholdId]);
-
-  async function fetchSettings() {
+  const fetchSettings = useCallback(async () => {
     if (!selectedHouseholdId) {
       setLoading(false);
       return;
@@ -81,7 +75,13 @@ export function BackupSettingsForm() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [selectedHouseholdId]);
+
+  useEffect(() => {
+    if (selectedHouseholdId) {
+      fetchSettings();
+    }
+  }, [selectedHouseholdId, fetchSettings]);
 
   async function saveSettings(updates: Partial<BackupSettings>) {
     if (!selectedHouseholdId) {

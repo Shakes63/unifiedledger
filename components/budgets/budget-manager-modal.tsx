@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -43,16 +43,7 @@ export function BudgetManagerModal({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Fetch categories when modal opens
-  useEffect(() => {
-    if (isOpen && selectedHouseholdId) {
-      fetchCategories();
-    } else if (isOpen && !selectedHouseholdId) {
-      setLoading(false);
-    }
-  }, [isOpen, selectedHouseholdId, fetchWithHousehold]);
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetchWithHousehold('/api/budgets');
@@ -85,7 +76,16 @@ export function BudgetManagerModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchWithHousehold]);
+
+  // Fetch categories when modal opens
+  useEffect(() => {
+    if (isOpen && selectedHouseholdId) {
+      fetchCategories();
+    } else if (isOpen && !selectedHouseholdId) {
+      setLoading(false);
+    }
+  }, [isOpen, selectedHouseholdId, fetchCategories]);
 
   const handleValueChange = (categoryId: string, value: string) => {
     setBudgetValues(prev => ({ ...prev, [categoryId]: value }));

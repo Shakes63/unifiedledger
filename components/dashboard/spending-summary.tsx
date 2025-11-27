@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
@@ -40,11 +40,7 @@ export function SpendingSummary({ period = 'monthly' }: SpendingSummaryProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [displayPeriod, setDisplayPeriod] = useState<'weekly' | 'monthly'>(period);
 
-  useEffect(() => {
-    fetchSummary();
-  }, [currentDate, displayPeriod]);
-
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     try {
       setLoading(true);
       const dateStr = currentDate.toISOString().split('T')[0];
@@ -59,7 +55,11 @@ export function SpendingSummary({ period = 'monthly' }: SpendingSummaryProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentDate, displayPeriod]);
+
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
 
   const handlePrevious = () => {
     setCurrentDate((prev) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -75,14 +75,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch household details when householdId changes
-  useEffect(() => {
-    if (householdId) {
-      fetchHouseholdDetails();
-    }
-  }, [householdId]);
-
-  async function fetchHouseholdDetails() {
+  const fetchHouseholdDetails = useCallback(async () => {
     try {
       setLoading(true);
       // Fetch members, invitations, and permissions in parallel
@@ -117,7 +110,14 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [householdId, selectedHousehold?.createdBy]);
+
+  // Fetch household details when householdId changes
+  useEffect(() => {
+    if (householdId) {
+      fetchHouseholdDetails();
+    }
+  }, [householdId, fetchHouseholdDetails]);
 
   async function inviteMember() {
     if (!inviteEmail.trim()) {

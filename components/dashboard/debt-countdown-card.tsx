@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import Link from 'next/link';
 import { ArrowRight, PartyPopper } from 'lucide-react';
@@ -21,11 +21,7 @@ export function DebtCountdownCard() {
   const [data, setData] = useState<CountdownData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchCountdownData();
-  }, [selectedHouseholdId, fetchWithHousehold]);
-
-  const fetchCountdownData = async () => {
+  const fetchCountdownData = useCallback(async () => {
     if (!selectedHouseholdId) {
       setLoading(false);
       return;
@@ -46,7 +42,11 @@ export function DebtCountdownCard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
+  useEffect(() => {
+    fetchCountdownData();
+  }, [fetchCountdownData]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

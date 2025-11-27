@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -39,13 +39,7 @@ export function AdvancedTab() {
   const [loading, setLoading] = useState(true);
   const [features, setFeatures] = useState<ExperimentalFeature[]>([]);
 
-  useEffect(() => {
-    fetchSettings();
-    fetchDatabaseStats();
-    setFeatures(getExperimentalFeatures());
-  }, [selectedHouseholdId, fetchWithHousehold]);
-
-  async function fetchSettings() {
+  const fetchSettings = useCallback(async () => {
     try {
       const response = await fetch('/api/user/settings', { credentials: 'include' });
       if (response.ok) {
@@ -59,9 +53,9 @@ export function AdvancedTab() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function fetchDatabaseStats() {
+  const fetchDatabaseStats = useCallback(async () => {
     if (!selectedHouseholdId) return;
 
     try {
@@ -93,7 +87,13 @@ export function AdvancedTab() {
     } catch (error) {
       console.error('Failed to fetch database stats:', error);
     }
-  }
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
+  useEffect(() => {
+    fetchSettings();
+    fetchDatabaseStats();
+    setFeatures(getExperimentalFeatures());
+  }, [fetchSettings, fetchDatabaseStats]);
 
   async function updateSetting(key: string, value: boolean) {
     try {

@@ -33,7 +33,7 @@ export function MerchantSelector({
 }: MerchantSelectorProps) {
   const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [merchants, setMerchants] = useState<Merchant[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [newMerchantName, setNewMerchantName] = useState('');
   const [creatingMerchant, setCreatingMerchant] = useState(false);
@@ -60,8 +60,7 @@ export function MerchantSelector({
     };
 
     fetchMerchants();
-    // Note: fetchWithHousehold is memoized in useHouseholdFetch hook, so we don't need it in dependencies
-  }, [selectedHouseholdId]);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   const handleCreateMerchant = async () => {
     if (!newMerchantName.trim()) {

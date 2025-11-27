@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { PartyPopper, Target, Medal, Award } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
@@ -37,11 +37,7 @@ export function DebtFreeCountdown() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
-    fetchCountdownData();
-  }, [selectedHouseholdId, fetchWithHousehold]);
-
-  const fetchCountdownData = async () => {
+  const fetchCountdownData = useCallback(async () => {
     if (!selectedHouseholdId) {
       setLoading(false);
       return;
@@ -64,7 +60,11 @@ export function DebtFreeCountdown() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
+  useEffect(() => {
+    fetchCountdownData();
+  }, [fetchCountdownData]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

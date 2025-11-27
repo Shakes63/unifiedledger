@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -142,19 +142,7 @@ export function PermissionManager({
   const [pendingChanges, setPendingChanges] = useState<CustomPermissions>({});
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Fetch permissions when dialog opens
-  useEffect(() => {
-    if (open && householdId && memberId) {
-      fetchPermissions();
-    } else {
-      // Reset state when dialog closes
-      setPermissionData(null);
-      setPendingChanges({});
-      setHasChanges(false);
-    }
-  }, [open, householdId, memberId]);
-
-  async function fetchPermissions() {
+  const fetchPermissions = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(
@@ -177,7 +165,19 @@ export function PermissionManager({
     } finally {
       setLoading(false);
     }
-  }
+  }, [householdId, memberId]);
+
+  // Fetch permissions when dialog opens
+  useEffect(() => {
+    if (open && householdId && memberId) {
+      fetchPermissions();
+    } else {
+      // Reset state when dialog closes
+      setPermissionData(null);
+      setPendingChanges({});
+      setHasChanges(false);
+    }
+  }, [open, householdId, memberId, fetchPermissions]);
 
   function toggleCustomPermission(permission: HouseholdPermission) {
     if (!permissionData) return;
@@ -207,7 +207,7 @@ export function PermissionManager({
     }
   }
 
-  function resetToDefaults() {
+  function _resetToDefaults() {
     if (!permissionData) return;
     setPendingChanges({});
     setHasChanges(false);

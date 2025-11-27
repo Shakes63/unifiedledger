@@ -45,7 +45,7 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
       { data: [], cumulative: 0 }
     );
     return { timelineData: result.data, totalMonths: result.cumulative };
-  }, [strategy.schedules]);
+  }, [strategy]);
 
   // Calculate milestone positions (25%, 50%, 75%, 100%)
   const milestones = [
@@ -66,7 +66,7 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
 
         {/* Timeline bars */}
         <div className="space-y-3 mb-6">
-          {timelineData.map((debt, index) => (
+          {timelineData.map((debt, _index) => (
             <div key={debt.debtId} className="space-y-1">
               <div className="flex justify-between text-sm">
                 <span className="text-foreground font-medium">{debt.debtName}</span>

@@ -190,7 +190,7 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
   }
 
   const typeInfo = typeConfig[transaction.type as keyof typeof typeConfig] || typeConfig.expense;
-  const isExpense = transaction.type === 'expense';
+  const _isExpense = transaction.type === 'expense';
   const sign = transaction.type === 'income' || transaction.type === 'transfer_in' || transaction.type === 'transfer' ? '+' : '-';
   const amountColor = transaction.type === 'income' ? 'text-[#10b981]' :
                      transaction.type === 'expense' ? 'text-[#f87171]' :

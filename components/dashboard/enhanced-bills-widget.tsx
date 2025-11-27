@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Clock, AlertCircle, ArrowRight, Calendar as CalendarIcon } from 'lucide-react';
@@ -32,35 +32,7 @@ export function EnhancedBillsWidget() {
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>('date');
 
-  useEffect(() => {
-    if (!selectedHouseholdId) {
-      setLoading(false);
-      return;
-    }
-    fetchBills();
-  }, [selectedHouseholdId, fetchWithHousehold]);
-
-  // Listen for bill refresh events (when transactions are created/updated)
-  useEffect(() => {
-    const handleBillsRefresh = () => {
-      if (selectedHouseholdId) {
-        fetchBills();
-      }
-    };
-
-    window.addEventListener('bills-refresh', handleBillsRefresh);
-    return () => window.removeEventListener('bills-refresh', handleBillsRefresh);
-  }, [selectedHouseholdId, fetchWithHousehold]);
-
-  useEffect(() => {
-    // Re-sort when sortBy changes
-    if (allBills.length > 0) {
-      const sorted = sortBills([...allBills], sortBy);
-      setBills(sorted);
-    }
-  }, [sortBy, allBills]);
-
-  const fetchBills = async () => {
+  const fetchBills = useCallback(async () => {
     try {
       setLoading(true);
       const now = new Date();
@@ -125,7 +97,35 @@ export function EnhancedBillsWidget() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchWithHousehold, sortBy]);
+
+  useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+    fetchBills();
+  }, [selectedHouseholdId, fetchBills]);
+
+  // Listen for bill refresh events (when transactions are created/updated)
+  useEffect(() => {
+    const handleBillsRefresh = () => {
+      if (selectedHouseholdId) {
+        fetchBills();
+      }
+    };
+
+    window.addEventListener('bills-refresh', handleBillsRefresh);
+    return () => window.removeEventListener('bills-refresh', handleBillsRefresh);
+  }, [selectedHouseholdId, fetchBills]);
+
+  useEffect(() => {
+    // Re-sort when sortBy changes
+    if (allBills.length > 0) {
+      const sorted = sortBills([...allBills], sortBy);
+      setBills(sorted);
+    }
+  }, [sortBy, allBills]);
 
   const sortBills = (billsToSort: BillInstance[], option: SortOption): BillInstance[] => {
     // Group bills by status with priority: overdue > pending > paid

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScenarioBuilder, type Scenario } from './scenario-builder';
 import { ScenarioComparisonCard } from './scenario-comparison-card';
@@ -36,18 +36,7 @@ export function WhatIfCalculator({
   const [comparison, setComparison] = useState<ScenarioComparisonResult | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Auto-calculate when scenarios change (debounced)
-  useEffect(() => {
-    if (!selectedHouseholdId) return;
-    
-    const timer = setTimeout(() => {
-      calculateScenarios();
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [scenarios, selectedHouseholdId]);
-
-  const calculateScenarios = async () => {
+  const calculateScenarios = useCallback(async () => {
     if (scenarios.length === 0 || !selectedHouseholdId) return;
 
     try {
@@ -73,7 +62,18 @@ export function WhatIfCalculator({
     } finally {
       setLoading(false);
     }
-  };
+  }, [scenarios, selectedHouseholdId, postWithHousehold]);
+
+  // Auto-calculate when scenarios change (debounced)
+  useEffect(() => {
+    if (!selectedHouseholdId) return;
+    
+    const timer = setTimeout(() => {
+      calculateScenarios();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [calculateScenarios, selectedHouseholdId]);
 
   const addScenario = (template?: Partial<Scenario>) => {
     const newId = (scenarios.length + 1).toString();

@@ -83,7 +83,7 @@ export function ConvertToTransferModal({
 
       fetchAccounts();
     }
-  }, [open, transaction]);
+  }, [open, transaction, fetchWithHousehold, selectedHouseholdId]);
 
   // Fetch matching transactions when target account changes
   useEffect(() => {
@@ -191,9 +191,9 @@ export function ConvertToTransferModal({
     }
   };
 
-  const sourceAccount = accounts.find((acc) => acc.id === transaction?.accountId);
-  const targetAccount = accounts.find((acc) => acc.id === targetAccountId);
-  const selectedMatch = matchingTransactions.find((tx) => tx.id === selectedMatchingTxId);
+  const _sourceAccount = accounts.find((acc) => acc.id === transaction?.accountId);
+  const _targetAccount = accounts.find((acc) => acc.id === targetAccountId);
+  const _selectedMatch = matchingTransactions.find((tx) => tx.id === selectedMatchingTxId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

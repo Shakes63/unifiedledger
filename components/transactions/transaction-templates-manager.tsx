@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,7 @@ interface Template {
   createdAt: string;
 }
 
-interface Account {
+interface _Account {
   id: string;
   name: string;
   type: string;
@@ -51,21 +51,15 @@ export function TransactionTemplatesManager({
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [newTemplate, setNewTemplate] = useState({
+  const [_showNewForm, _setShowNewForm] = useState(false);
+  const [_newTemplate, _setNewTemplate] = useState({
     name: '',
     description: '',
     accountId: '',
     amount: '',
   });
 
-  useEffect(() => {
-    if (selectedHouseholdId) {
-      fetchTemplates();
-    }
-  }, [selectedHouseholdId]);
-
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     if (!selectedHouseholdId) {
       setLoading(false);
       return;
@@ -83,7 +77,13 @@ export function TransactionTemplatesManager({
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
+  useEffect(() => {
+    if (selectedHouseholdId) {
+      fetchTemplates();
+    }
+  }, [selectedHouseholdId, fetchTemplates]);
 
   const handleDelete = async (templateId: string) => {
     setDeletingId(templateId);

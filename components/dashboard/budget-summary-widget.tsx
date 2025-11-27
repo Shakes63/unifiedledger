@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { ChevronRight } from 'lucide-react';
@@ -27,15 +27,7 @@ export function BudgetSummaryWidget() {
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<BudgetSummary | null>(null);
 
-  useEffect(() => {
-    if (!selectedHouseholdId) {
-      setLoading(false);
-      return;
-    }
-    fetchBudgetSummary();
-  }, [selectedHouseholdId, fetchWithHousehold]);
-
-  const fetchBudgetSummary = async () => {
+  const fetchBudgetSummary = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -86,7 +78,15 @@ export function BudgetSummaryWidget() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchWithHousehold]);
+
+  useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+    fetchBudgetSummary();
+  }, [selectedHouseholdId, fetchBudgetSummary]);
 
   // Don't render if there's no data or no budgets
   if (!loading && (!summary || !summary.hasBudgets)) {

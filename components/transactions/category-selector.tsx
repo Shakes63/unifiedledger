@@ -50,7 +50,7 @@ export function CategorySelector({
   const [categories, setCategories] = useState<Category[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [creatingCategory, setCreatingCategory] = useState(false);
@@ -125,8 +125,7 @@ export function CategorySelector({
     };
 
     fetchData();
-    // Note: fetchWithHousehold is memoized in useHouseholdFetch hook, so we don't need it in dependencies
-  }, [transactionType, selectedHouseholdId]);
+  }, [transactionType, selectedHouseholdId, fetchWithHousehold]);
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) {

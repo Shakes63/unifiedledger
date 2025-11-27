@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,13 +38,7 @@ export function TransactionHistory({
   const [error, setError] = useState<string | null>(null);
   const [repeatingId, setRepeatingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (selectedHouseholdId) {
-      fetchHistory();
-    }
-  }, [accountId, selectedHouseholdId]);
-
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     if (!selectedHouseholdId) {
       setLoading(false);
       return;
@@ -69,7 +63,13 @@ export function TransactionHistory({
     } finally {
       setLoading(false);
     }
-  };
+  }, [accountId, selectedHouseholdId, fetchWithHousehold]);
+
+  useEffect(() => {
+    if (selectedHouseholdId) {
+      fetchHistory();
+    }
+  }, [selectedHouseholdId, fetchHistory]);
 
   const handleRepeat = async (transaction: Transaction) => {
     if (onRepeat) {

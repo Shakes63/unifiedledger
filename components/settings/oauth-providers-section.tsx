@@ -185,7 +185,7 @@ export function OAuthProvidersSection() {
     }
   }
 
-  function getProviderIcon(providerId: string) {
+  function getProviderIcon(_providerId: string) {
     // Use Globe as default icon - can be replaced with actual provider icons
     return Globe;
   }

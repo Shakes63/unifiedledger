@@ -31,7 +31,7 @@ export function TransactionFormMobile({
   showHeader = true,
 }: TransactionFormMobileProps) {
   const router = useRouter();
-  const [isFormCollapsed, setIsFormCollapsed] = useState(false);
+  const [_isFormCollapsed, _setIsFormCollapsed] = useState(false);
 
   return (
     <div className="h-screen flex flex-col bg-background overflow-hidden md:overflow-auto md:h-auto">

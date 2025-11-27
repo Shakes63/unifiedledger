@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { toast } from 'sonner';
@@ -74,11 +74,7 @@ export function ActivityFeed({ householdId, limit = 20 }: ActivityFeedProps) {
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadActivities();
-  }, [householdId]);
-
-  const loadActivities = async () => {
+  const loadActivities = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/households/${householdId}/activity-log?limit=${limit}`, { credentials: 'include' });
@@ -91,7 +87,11 @@ export function ActivityFeed({ householdId, limit = 20 }: ActivityFeedProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [householdId, limit]);
+
+  useEffect(() => {
+    loadActivities();
+  }, [loadActivities]);
 
   if (loading) {
     return (

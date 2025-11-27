@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DebtToIncomeIndicator } from '@/components/budgets/debt-to-income-indicator';
@@ -40,19 +40,7 @@ export function BudgetSurplusCard() {
   const [applied, setApplied] = useState(false);
   const [authError, setAuthError] = useState(false);
 
-  useEffect(() => {
-    // Only fetch when auth is fully loaded, user is signed in, and household is selected
-    if (isLoaded && isSignedIn && selectedHouseholdId) {
-      fetchBudgetSummary();
-    } else if (isLoaded && !isSignedIn) {
-      setAuthError(true);
-      setLoading(false);
-    } else if (isLoaded && isSignedIn && !selectedHouseholdId) {
-      setLoading(false);
-    }
-  }, [isLoaded, isSignedIn, selectedHouseholdId, fetchWithHousehold]);
-
-  const fetchBudgetSummary = async () => {
+  const fetchBudgetSummary = useCallback(async () => {
     try {
       setLoading(true);
       setAuthError(false);
@@ -80,7 +68,19 @@ export function BudgetSurplusCard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchWithHousehold]);
+
+  useEffect(() => {
+    // Only fetch when auth is fully loaded, user is signed in, and household is selected
+    if (isLoaded && isSignedIn && selectedHouseholdId) {
+      fetchBudgetSummary();
+    } else if (isLoaded && !isSignedIn) {
+      setAuthError(true);
+      setLoading(false);
+    } else if (isLoaded && isSignedIn && !selectedHouseholdId) {
+      setLoading(false);
+    }
+  }, [isLoaded, isSignedIn, selectedHouseholdId, fetchBudgetSummary]);
 
   const handleApplied = () => {
     setApplied(true);

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRightLeft, Check, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface MatchScore {
+interface _MatchScore {
   amountScore: number;
   dateScore: number;
   descriptionScore: number;

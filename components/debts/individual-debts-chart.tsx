@@ -201,7 +201,7 @@ export function IndividualDebtsChart({
           />
 
           {/* Render stacked areas for each debt */}
-          {debtDetails.map((debt, index) => (
+          {debtDetails.map((debt, _index) => (
             <Area
               key={debt.id}
               type="monotone"

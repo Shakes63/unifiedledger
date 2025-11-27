@@ -33,7 +33,7 @@ export function AccountSelector({
 }: AccountSelectorProps) {
   const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!selectedHouseholdId) {
@@ -61,8 +61,7 @@ export function AccountSelector({
     };
 
     fetchAccounts();
-    // Note: fetchWithHousehold is memoized in useHouseholdFetch hook, so we don't need it in dependencies
-  }, [selectedAccountId, onAccountChange, selectedHouseholdId]);
+  }, [selectedAccountId, onAccountChange, selectedHouseholdId, fetchWithHousehold]);
 
   const selectedAccount = accounts.find((acc) => acc.id === selectedAccountId);
 

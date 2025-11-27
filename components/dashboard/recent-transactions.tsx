@@ -117,9 +117,7 @@ export function RecentTransactions() {
     };
 
     fetchData();
-    // Note: fetchWithHousehold is memoized in useHouseholdFetch hook, so we don't need it in dependencies
-    // It will automatically use the latest selectedHouseholdId through closure
-  }, [selectedAccountId, selectedHouseholdId, initialized, householdError]);
+  }, [selectedAccountId, selectedHouseholdId, initialized, householdError, fetchWithHousehold]);
 
   const handleRepeatTransaction = async (transaction: Transaction) => {
     try {

@@ -133,7 +133,6 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
   };
 
   // Memoize tooltip with chartData
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tooltipContent = useMemo(() => 
     function TrendsTooltipWrapper(props: { active?: boolean; payload?: any[]; label?: string | number }) {
       return <TrendsTooltip {...props} chartData={chartData} />;

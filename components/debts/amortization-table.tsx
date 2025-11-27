@@ -23,6 +23,7 @@ export function AmortizationTable({
   const parentRef = useRef<HTMLDivElement>(null);
 
   // Virtual scrolling setup
+  // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
     count: schedule.monthlyBreakdown.length,
     getScrollElement: () => parentRef.current,
@@ -41,7 +42,7 @@ export function AmortizationTable({
     let cumulativePrincipal = 0;
     let cumulativeInterest = 0;
 
-    schedule.monthlyBreakdown.forEach((payment, index) => {
+    schedule.monthlyBreakdown.forEach((payment, _index) => {
       cumulativePrincipal += payment.principalAmount;
       cumulativeInterest += payment.interestAmount;
       const percentPaid = (cumulativePrincipal / schedule.originalBalance) * 100;

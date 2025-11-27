@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -63,15 +63,7 @@ export function ApplySurplusModal({
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
 
-  useEffect(() => {
-    if (isOpen && selectedHouseholdId) {
-      fetchSuggestion();
-    } else if (isOpen && !selectedHouseholdId) {
-      setLoading(false);
-    }
-  }, [isOpen, selectedHouseholdId, fetchWithHousehold]);
-
-  const fetchSuggestion = async () => {
+  const fetchSuggestion = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetchWithHousehold('/api/budgets/surplus-suggestion');
@@ -88,11 +80,16 @@ export function ApplySurplusModal({
         setLoading(false);
         return;
       }
-      toast.error('Failed to load debt impact preview');
-    } finally {
+    }
+  }, [fetchWithHousehold]);
+
+  useEffect(() => {
+    if (isOpen && selectedHouseholdId) {
+      fetchSuggestion();
+    } else if (isOpen && !selectedHouseholdId) {
       setLoading(false);
     }
-  };
+  }, [isOpen, selectedHouseholdId, fetchSuggestion]);
 
   const handleApply = async () => {
     try {

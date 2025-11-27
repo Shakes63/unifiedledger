@@ -70,7 +70,7 @@ interface CustomField {
   updatedAt: string;
 }
 
-interface CustomFieldValue {
+interface _CustomFieldValue {
   id: string;
   fieldId: string;
   transactionId: string;
@@ -106,9 +106,9 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [creatingTag, setCreatingTag] = useState(false);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
-  const [customFieldsLoading, setCustomFieldsLoading] = useState(true);
+  const [_customFieldsLoading, setCustomFieldsLoading] = useState(true);
   const [accounts, setAccounts] = useState<Array<{ id: string; name: string; currentBalance: number }>>([]);
-  const [accountsLoading, setAccountsLoading] = useState(false);
+  const [_accountsLoading, setAccountsLoading] = useState(false);
   const [unpaidBills, setUnpaidBills] = useState<Array<any>>([]);
   const [billsLoading, setBillsLoading] = useState(false);
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
@@ -241,8 +241,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       };
       loadTransaction();
     }
-    // Note: fetchWithHousehold is memoized in useHouseholdFetch hook, so we don't need it in dependencies
-  }, [isEditMode, transactionId, selectedHouseholdId]);
+  }, [isEditMode, transactionId, selectedHouseholdId, fetchWithHousehold]);
 
   // Reset date to today when creating a new transaction
   useEffect(() => {
@@ -277,8 +276,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     };
 
     fetchAccounts();
-    // Note: fetchWithHousehold is memoized in useHouseholdFetch hook, so we don't need it in dependencies
-  }, [selectedHouseholdId]);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   // Fetch unpaid bills (pending and overdue) when type is 'bill'
   useEffect(() => {
@@ -690,7 +688,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       if (isEditMode) {
         // For edit mode, call the callback or go back to details
         setTimeout(() => {
-          onEditSuccess?.() || router.push(`/dashboard/transactions/${txId}`);
+          if (onEditSuccess) {
+            onEditSuccess();
+          } else {
+            router.push(`/dashboard/transactions/${txId}`);
+          }
         }, 1500);
       } else {
         // For create mode, check save mode

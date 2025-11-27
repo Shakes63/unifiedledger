@@ -157,7 +157,7 @@ export function PaymentHistoryList({
     <div className={`space-y-3 ${className}`}>
       {/* Payment list */}
       <div className="space-y-2">
-        {displayPayments.map((payment, index) => {
+        {displayPayments.map((payment, _index) => {
           const isLarge = isLargePayment(payment.amount);
           const hasPrincipalInterest = payment.principalAmount !== undefined && payment.interestAmount !== undefined;
 

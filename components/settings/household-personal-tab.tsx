@@ -61,12 +61,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
 
   const allThemes = getAllThemes();
 
-  // Fetch household preferences
-  useEffect(() => {
-    fetchPreferences();
-  }, [householdId]);
-
-  async function fetchPreferences() {
+  const fetchPreferences = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/user/households/${householdId}/preferences`, {
@@ -99,7 +94,12 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
     } finally {
       setLoading(false);
     }
-  }
+  }, [householdId]);
+
+  // Fetch household preferences
+  useEffect(() => {
+    fetchPreferences();
+  }, [fetchPreferences]);
 
   // Update current theme when ID changes
   useEffect(() => {
