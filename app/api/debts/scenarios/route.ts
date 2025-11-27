@@ -6,7 +6,6 @@ import { debts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import {
   calculateScenarioComparison,
-  type PayoffScenario,
   type DebtInput,
 } from '@/lib/debts/payoff-calculator';
 

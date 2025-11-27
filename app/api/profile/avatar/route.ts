@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
  * GET /api/profile/avatar
  * Get current user's avatar URL
  */
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const { userId } = await requireAuth();
 
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
  * DELETE /api/profile/avatar
  * Remove user's avatar
  */
-export async function DELETE(request: Request) {
+export async function DELETE(_request: Request) {
   try {
     const { userId } = await requireAuth();
 

@@ -14,10 +14,10 @@ import { budgetCategories } from "@/lib/db/schema";
  * - 200 OK: Application and database are healthy
  * - 503 Service Unavailable: Application or database issues
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check database connectivity by running a simple query
-    const connection = await db.select().from(budgetCategories).limit(1).execute();
+    await db.select().from(budgetCategories).limit(1).execute();
 
     // Return healthy status
     return NextResponse.json(
@@ -49,10 +49,10 @@ export async function GET(request: NextRequest) {
  * Liveness probe - quick check that application is running
  * Can be used instead of full health check for faster responses
  */
-export async function HEAD(request: NextRequest) {
+export async function HEAD(_request: NextRequest) {
   try {
     return new NextResponse(null, { status: 200 });
-  } catch (error) {
+  } catch {
     return new NextResponse(null, { status: 503 });
   }
 }

@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     const { nanoid } = await import('nanoid');
     const merchantId = nanoid();
 
-    const newMerchant = await db
+    await db
       .insert(merchants)
       .values({
         id: merchantId,

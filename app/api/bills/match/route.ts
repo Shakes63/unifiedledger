@@ -127,13 +127,10 @@ export async function POST(request: Request) {
           }
 
           // Find a pending bill instance for this match (filtered by household)
-          const txDate = new Date(result.transaction.date);
-          const currentMonth = txDate.getMonth();
-          const currentYear = txDate.getFullYear();
+          // Note: txDate could be used for more specific date range filtering in the future
 
           // Look for pending or overdue instance (prioritize overdue)
           // FIX: Include both 'pending' and 'overdue' statuses, prioritize overdue bills
-          const monthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
 
           const instance = await db
             .select()
@@ -228,15 +225,8 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '20');
-    const daysBack = parseInt(url.searchParams.get('daysBack') || '90');
-
-    // Calculate date range
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - daysBack);
-
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
+    // Note: daysBack is available for future date range filtering
+    // const daysBack = parseInt(url.searchParams.get('daysBack') || '90');
 
     // Get unmatched expense transactions (filtered by household)
     const unmatchedTransactions = await db

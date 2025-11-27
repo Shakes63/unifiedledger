@@ -93,7 +93,7 @@ export async function POST(request: Request) {
 
     const tagId = nanoid();
 
-    const newTag = await db.insert(tags).values({
+    await db.insert(tags).values({
       id: tagId,
       userId,
       name: name.trim(),

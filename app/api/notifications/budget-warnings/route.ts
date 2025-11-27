@@ -25,7 +25,7 @@ export const dynamic = 'force-dynamic';
  * - cron-job.org: 0 9 * * * (same format)
  * - Call from external service: POST https://yourdomain.com/api/notifications/budget-warnings
  */
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     const result = await checkAndCreateBudgetWarnings();
 
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
  * Returns information about the budget warnings check endpoint
  * Useful for monitoring and debugging
  */
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   return Response.json({
     endpoint: '/api/notifications/budget-warnings',
     description: 'Check all budgets and create warning notifications',

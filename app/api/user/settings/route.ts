@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Remove fields that shouldn't be updated via this endpoint
-    const { id, userId: bodyUserId, createdAt, ...updateData } = body;
+    const { id: _id, userId: _bodyUserId, createdAt: _createdAt, ...updateData } = body;
 
     // Validate session timeout if provided
     if ('sessionTimeout' in updateData) {

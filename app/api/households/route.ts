@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { households, householdMembers } from '@/lib/db/schema';
 import { user as betterAuthUser } from '@/auth-schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 export const dynamic = 'force-dynamic';
 

@@ -8,7 +8,7 @@ import {
   debtSettings,
   debtPayments 
 } from '@/lib/db/schema';
-import { eq, and, gte, lte, sum, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, sum } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';

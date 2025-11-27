@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
  * Can be called from a cron job or manually by admin
  * Requires Bearer token for security in production
  */
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     // In development/testing, allow this endpoint
     // In production, you should verify:
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
 /**
  * GET - Check bill reminders for authenticated user only
  */
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const { userId } = await requireAuth();
 

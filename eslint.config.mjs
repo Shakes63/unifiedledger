@@ -15,6 +15,21 @@ const eslintConfig = defineConfig([
     // Node.js utility scripts (CommonJS)
     "scripts/**/*.js",
   ]),
+  // Custom rules
+  {
+    rules: {
+      // Allow unused variables that start with underscore
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

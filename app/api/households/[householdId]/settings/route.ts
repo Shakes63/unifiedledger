@@ -104,7 +104,7 @@ export async function POST(
     const body = await request.json();
 
     // Remove fields that shouldn't be updated via this endpoint
-    const { id, householdId: bodyHouseholdId, createdAt, ...updateData } = body;
+    const { id: _id, householdId: _bodyHouseholdId, createdAt: _createdAt, ...updateData } = body;
 
     // Check if household settings exist
     const existingSettings = await db

@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, merchants, bills, billInstances } from '@/lib/db/schema';
+import { transactions, bills, billInstances } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -26,9 +26,9 @@ export async function POST(request: Request) {
     } = body;
 
     // Get transactions from the past X months (filtered by household)
-    const startDate = new Date();
-    startDate.setMonth(startDate.getMonth() - lookbackMonths);
-    const startDateStr = startDate.toISOString().split('T')[0];
+    // Note: startDate calculation available for future date range filtering
+    // const startDate = new Date();
+    // startDate.setMonth(startDate.getMonth() - lookbackMonths);
 
     const relevantTransactions = await db
       .select({

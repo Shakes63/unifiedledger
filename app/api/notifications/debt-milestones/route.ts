@@ -2,7 +2,6 @@ import { requireAuth, getAuthUser } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { debts } from '@/lib/db/schema';
 import { checkAndCreateDebtPayoffMilestoneNotifications } from '@/lib/notifications/debt-milestones';
-import { sql } from 'drizzle-orm';
 
 export async function POST(request: Request) {
   // For cron jobs, we might not have auth context

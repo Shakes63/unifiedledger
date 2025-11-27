@@ -2,8 +2,8 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { householdMembers } from '@/lib/db/schema';
 import { user as betterAuthUser } from '@/auth-schema';
-import { eq, and } from 'drizzle-orm';
-import { hasPermission, isMemberOfHousehold } from '@/lib/household/permissions';
+import { eq } from 'drizzle-orm';
+import { isMemberOfHousehold } from '@/lib/household/permissions';
 
 export const dynamic = 'force-dynamic';
 

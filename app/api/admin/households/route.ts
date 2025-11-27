@@ -1,7 +1,7 @@
 import { requireOwner } from '@/lib/auth/owner-helpers';
 import { db } from '@/lib/db';
 import { households, householdMembers } from '@/lib/db/schema';
-import { eq, sql, like, or } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 

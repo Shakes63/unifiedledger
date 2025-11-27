@@ -2,7 +2,7 @@ import { requireOwner } from '@/lib/auth/owner-helpers';
 import { auth } from '@/lib/better-auth';
 import { db } from '@/lib/db';
 import { betterAuthUser, households, householdMembers } from '@/lib/db/schema';
-import { eq, and, or, like, sql } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { headers } from 'next/headers';
 

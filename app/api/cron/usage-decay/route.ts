@@ -18,7 +18,6 @@ import {
   applyBatchDecay,
   calculateDecayImpact,
   generateDecayReport,
-  type UsageDecayConfig,
 } from "@/lib/analytics/usage-decay";
 
 /**
@@ -63,7 +62,7 @@ async function decayAccountsUsage(): Promise<{
     ];
 
     const config = getDecayConfigByType("accounts");
-    const results = applyBatchDecay(items, config);
+    applyBatchDecay(items, config);
     const impact = calculateDecayImpact(items, config);
 
     // TODO: Update database with decayed scores
@@ -105,7 +104,7 @@ async function decayCategoriesUsage(): Promise<{
     ];
 
     const config = getDecayConfigByType("categories");
-    const results = applyBatchDecay(items, config);
+    applyBatchDecay(items, config);
     const impact = calculateDecayImpact(items, config);
 
     // TODO: Update database with decayed scores
@@ -146,7 +145,7 @@ async function decayMerchantsUsage(): Promise<{
     ];
 
     const config = getDecayConfigByType("merchants");
-    const results = applyBatchDecay(items, config);
+    applyBatchDecay(items, config);
     const impact = calculateDecayImpact(items, config);
 
     // TODO: Update database with decayed scores
@@ -187,7 +186,7 @@ async function decayTagsUsage(): Promise<{
     ];
 
     const config = getDecayConfigByType("tags");
-    const results = applyBatchDecay(items, config);
+    applyBatchDecay(items, config);
     const impact = calculateDecayImpact(items, config);
 
     // TODO: Update database with decayed scores

@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
  * Backfills userName for all household members that don't have it set.
  * This is useful for fixing existing data created before the userName field was properly populated.
  */
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     const { userId } = await requireAuth();
 

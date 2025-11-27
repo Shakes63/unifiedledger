@@ -4,7 +4,6 @@ import { db } from '@/lib/db';
 import { debts } from '@/lib/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 import {
-  calculateUtilization,
   getUtilizationLevel,
   getUtilizationColor,
   getUtilizationRecommendation,

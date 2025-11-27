@@ -28,7 +28,7 @@ export const dynamic = 'force-dynamic';
  * Note: This runs independently from bill reminders and budget warnings.
  * You may want to schedule these at slightly different times to distribute load.
  */
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     const result = await checkAndCreateLowBalanceAlerts();
 
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
  * Returns information about the low balance alerts check endpoint
  * Useful for monitoring and debugging
  */
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   return Response.json({
     endpoint: '/api/notifications/low-balance-alerts',
     description: 'Check all accounts and create low balance alerts',

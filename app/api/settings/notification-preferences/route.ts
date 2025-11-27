@@ -48,7 +48,7 @@ function validateChannels(channels: any, fieldName: string): string | null {
  * GET - Fetch user's notification preferences
  * Auto-creates preferences with defaults if they don't exist
  */
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const { userId } = await requireAuth();
 
@@ -199,7 +199,7 @@ export async function PATCH(request: Request) {
     }
 
     // Remove fields that shouldn't be updated via API
-    const { id, userId: bodyUserId, createdAt, ...updates } = body;
+    const { id: _id, userId: _bodyUserId, createdAt: _createdAt, ...updates } = body;
 
     // Update preferences
     await updatePreferences(userId, updates);

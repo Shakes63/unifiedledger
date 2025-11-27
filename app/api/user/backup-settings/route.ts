@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     const { householdId } = await getAndVerifyHousehold(request, userId, body);
 
     // Remove fields that shouldn't be updated via this endpoint
-    const { id, userId: bodyUserId, householdId: bodyHouseholdId, createdAt, ...updateData } = body;
+    const { id: _id, userId: _bodyUserId, householdId: _bodyHouseholdId, createdAt: _createdAt, ...updateData } = body;
 
     // Validate frequency if provided
     if ('frequency' in updateData) {

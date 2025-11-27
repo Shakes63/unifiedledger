@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     const now = new Date().toISOString();
 
     try {
-      const result = await db.insert(accounts).values({
+      await db.insert(accounts).values({
         id: accountId,
         userId,
         householdId,

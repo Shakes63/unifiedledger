@@ -78,7 +78,7 @@ export async function POST(request: Request) {
     const { userId } = await requireAuth();
     const body = await request.json();
     const { householdId } = await getAndVerifyHousehold(request, userId, body);
-    const { month, budgets } = body;
+    const { month: _month, budgets } = body;
 
     // Validate request
     if (!budgets || !Array.isArray(budgets) || budgets.length === 0) {

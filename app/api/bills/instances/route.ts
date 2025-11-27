@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { billInstances, bills } from '@/lib/db/schema';
-import { eq, and, desc, asc, inArray, lt, gte } from 'drizzle-orm';
+import { eq, and, asc, inArray, lt, gte } from 'drizzle-orm';
 import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
@@ -49,8 +49,9 @@ export async function GET(request: Request) {
     const offset = parseInt(url.searchParams.get('offset') || '0');
     const status = url.searchParams.get('status'); // pending, paid, overdue, skipped
     const billId = url.searchParams.get('billId');
-    const dueDateStart = url.searchParams.get('dueDateStart');
-    const dueDateEnd = url.searchParams.get('dueDateEnd');
+    // Note: dueDateStart and dueDateEnd are available for future date range filtering
+    // const dueDateStart = url.searchParams.get('dueDateStart');
+    // const dueDateEnd = url.searchParams.get('dueDateEnd');
 
     const conditions = [
       eq(billInstances.userId, userId),
@@ -185,7 +186,7 @@ export async function POST(request: Request) {
     const today = format(new Date(), 'yyyy-MM-dd');
     const finalStatus = (status === 'pending' && dueDate < today) ? 'overdue' : status;
 
-    const newInstance = await db
+    await db
       .insert(billInstances)
       .values({
         id: instanceId,

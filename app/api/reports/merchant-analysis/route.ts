@@ -6,7 +6,6 @@ import {
   getCurrentMonthRange,
   getCurrentYearRange,
   getTopMerchants,
-  calculateDateRange,
 } from '@/lib/reports/report-utils';
 import { db } from '@/lib/db';
 import { merchants } from '@/lib/db/schema';

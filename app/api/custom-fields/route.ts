@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { customFields } from '@/lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export const dynamic = 'force-dynamic';
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
 
     const fieldId = nanoid();
 
-    const newField = await db.insert(customFields).values({
+    await db.insert(customFields).values({
       id: fieldId,
       userId,
       name: name.trim(),

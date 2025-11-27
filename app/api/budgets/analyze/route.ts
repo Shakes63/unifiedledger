@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories } from '@/lib/db/schema';
-import { eq, and, gte, lte, sum, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, sum } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';

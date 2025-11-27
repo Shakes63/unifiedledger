@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { householdMembers } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import {
   hasPermission,
   getEffectivePermissions,
@@ -223,7 +223,7 @@ export async function PUT(
         ? JSON.stringify(customPermissions)
         : null;
 
-    const result = await db
+    await db
       .update(householdMembers)
       .set({ customPermissions: customPermissionsJson })
       .where(eq(householdMembers.id, memberId))
@@ -331,7 +331,7 @@ export async function DELETE(
     }
 
     // Reset custom permissions to null
-    const result = await db
+    await db
       .update(householdMembers)
       .set({ customPermissions: null })
       .where(eq(householdMembers.id, memberId))

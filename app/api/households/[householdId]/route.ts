@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { households, householdMembers } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { households } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import { hasPermission, isMemberOfHousehold } from '@/lib/household/permissions';
 
 export const dynamic = 'force-dynamic';
