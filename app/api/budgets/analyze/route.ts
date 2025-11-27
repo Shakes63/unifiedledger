@@ -199,7 +199,7 @@ export async function GET(request: Request) {
 
     // Generate array of months in period
     const monthsInPeriod: Array<{ year: number; month: number; str: string }> = [];
-    let currentDate = new Date(startDate);
+    const currentDate = new Date(startDate);
 
     while (currentDate <= endDate) {
       const year = currentDate.getFullYear();

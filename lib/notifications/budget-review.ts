@@ -291,7 +291,7 @@ function formatNotificationMessage(month: string, metrics: BudgetReviewMetrics):
 
   if (metrics.recommendations.length > 0) {
     message += `\n💡 Recommendations:\n`;
-    metrics.recommendations.forEach((rec, index) => {
+    metrics.recommendations.forEach((rec) => {
       message += `• ${rec}\n`;
     });
   }

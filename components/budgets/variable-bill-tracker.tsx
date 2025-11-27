@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { VariableBillCard } from './variable-bill-card';
 import { toast } from 'sonner';
 import Decimal from 'decimal.js';
@@ -277,12 +278,12 @@ export function VariableBillTracker() {
             Variable bills help you track costs that change month-to-month, like utilities or phone
             bills. Set up your first variable bill to start tracking.
           </p>
-          <a
+          <Link
             href="/dashboard/bills"
             className="mt-4 px-6 py-2 bg-[var(--color-primary)] text-white text-sm rounded-lg hover:opacity-90 transition-opacity"
           >
             Set up your first variable bill →
-          </a>
+          </Link>
         </div>
       </div>
     );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useHousehold } from '@/contexts/household-context';
 
 type Period = 'month' | 'year' | '12months' | null;
@@ -88,61 +88,54 @@ const DEFAULT_FILTERS: StoredFilters = {
   merchantIds: [],
 };
 
+// Helper to load filters from localStorage
+function loadFiltersFromStorage(householdId: string | null): StoredFilters {
+  if (!householdId || typeof window === 'undefined') {
+    return { ...DEFAULT_FILTERS };
+  }
+  const storageKey = `report-filters-${householdId}`;
+  try {
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      const parsed: StoredFilters = JSON.parse(stored);
+      return {
+        startDate: parsed.startDate ?? DEFAULT_FILTERS.startDate,
+        endDate: parsed.endDate ?? DEFAULT_FILTERS.endDate,
+        period: parsed.period ?? DEFAULT_FILTERS.period,
+        accountIds: parsed.accountIds ?? DEFAULT_FILTERS.accountIds,
+        categoryIds: parsed.categoryIds ?? DEFAULT_FILTERS.categoryIds,
+        merchantIds: parsed.merchantIds ?? DEFAULT_FILTERS.merchantIds,
+      };
+    }
+  } catch {
+    // Fall back to defaults on error
+  }
+  return { ...DEFAULT_FILTERS };
+}
+
 /**
  * Hook for managing report filters with localStorage persistence per household
  */
 export function useReportFilters(): UseReportFiltersReturn {
   const { selectedHouseholdId } = useHousehold();
+  const prevHouseholdId = useRef<string | null>(null);
   
-  const [startDate, setStartDate] = useState<string | null>(null);
-  const [endDate, setEndDate] = useState<string | null>(null);
-  const [period, setPeriodState] = useState<Period>('12months');
-  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
-  const [selectedMerchantIds, setSelectedMerchantIds] = useState<string[]>([]);
+  // Combined filters state to avoid multiple setState calls
+  const [filters, setFilters] = useState<StoredFilters>(() => 
+    loadFiltersFromStorage(selectedHouseholdId)
+  );
 
-  // Load filters from localStorage on mount or household change
+  // Destructure for convenience
+  const { startDate, endDate, period, accountIds: selectedAccountIds, categoryIds: selectedCategoryIds, merchantIds: selectedMerchantIds } = filters;
+
+  // Load filters when household changes (defer state update to avoid sync setState)
   useEffect(() => {
-    if (!selectedHouseholdId) {
-      // Reset to defaults when no household selected
-      setStartDate(DEFAULT_FILTERS.startDate);
-      setEndDate(DEFAULT_FILTERS.endDate);
-      setPeriodState(DEFAULT_FILTERS.period);
-      setSelectedAccountIds(DEFAULT_FILTERS.accountIds);
-      setSelectedCategoryIds(DEFAULT_FILTERS.categoryIds);
-      setSelectedMerchantIds(DEFAULT_FILTERS.merchantIds);
-      return;
-    }
-
-    const storageKey = `report-filters-${selectedHouseholdId}`;
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const parsed: StoredFilters = JSON.parse(stored);
-        setStartDate(parsed.startDate ?? DEFAULT_FILTERS.startDate);
-        setEndDate(parsed.endDate ?? DEFAULT_FILTERS.endDate);
-        setPeriodState(parsed.period ?? DEFAULT_FILTERS.period);
-        setSelectedAccountIds(parsed.accountIds ?? DEFAULT_FILTERS.accountIds);
-        setSelectedCategoryIds(parsed.categoryIds ?? DEFAULT_FILTERS.categoryIds);
-        setSelectedMerchantIds(parsed.merchantIds ?? DEFAULT_FILTERS.merchantIds);
-      } else {
-        // Initialize with defaults
-        setStartDate(DEFAULT_FILTERS.startDate);
-        setEndDate(DEFAULT_FILTERS.endDate);
-        setPeriodState(DEFAULT_FILTERS.period);
-        setSelectedAccountIds(DEFAULT_FILTERS.accountIds);
-        setSelectedCategoryIds(DEFAULT_FILTERS.categoryIds);
-        setSelectedMerchantIds(DEFAULT_FILTERS.merchantIds);
-      }
-    } catch (error) {
-      console.error('Error loading report filters from localStorage:', error);
-      // Fall back to defaults on error
-      setStartDate(DEFAULT_FILTERS.startDate);
-      setEndDate(DEFAULT_FILTERS.endDate);
-      setPeriodState(DEFAULT_FILTERS.period);
-      setSelectedAccountIds(DEFAULT_FILTERS.accountIds);
-      setSelectedCategoryIds(DEFAULT_FILTERS.categoryIds);
-      setSelectedMerchantIds(DEFAULT_FILTERS.merchantIds);
+    if (prevHouseholdId.current !== selectedHouseholdId) {
+      prevHouseholdId.current = selectedHouseholdId;
+      // Use requestAnimationFrame to defer the state update
+      requestAnimationFrame(() => {
+        setFilters(loadFiltersFromStorage(selectedHouseholdId));
+      });
     }
   }, [selectedHouseholdId]);
 
@@ -152,86 +145,70 @@ export function useReportFilters(): UseReportFiltersReturn {
 
     const storageKey = `report-filters-${selectedHouseholdId}`;
     try {
-      const filtersToStore: StoredFilters = {
-        startDate,
-        endDate,
-        period,
-        accountIds: selectedAccountIds,
-        categoryIds: selectedCategoryIds,
-        merchantIds: selectedMerchantIds,
-      };
-      localStorage.setItem(storageKey, JSON.stringify(filtersToStore));
+      localStorage.setItem(storageKey, JSON.stringify(filters));
     } catch (error) {
       console.error('Error saving report filters to localStorage:', error);
     }
-  }, [
-    selectedHouseholdId,
-    startDate,
-    endDate,
-    period,
-    selectedAccountIds,
-    selectedCategoryIds,
-    selectedMerchantIds,
-  ]);
+  }, [selectedHouseholdId, filters]);
 
   // Set date range (clears period)
   const setDateRange = useCallback((start: string | null, end: string | null) => {
-    setStartDate(start);
-    setEndDate(end);
-    // Clear period when custom dates are set
-    if (start && end) {
-      setPeriodState(null);
-    }
+    setFilters(prev => ({
+      ...prev,
+      startDate: start,
+      endDate: end,
+      // Clear period when custom dates are set
+      period: (start && end) ? null : prev.period,
+    }));
   }, []);
 
   // Set period (calculates and sets date range, clears custom dates)
   const setPeriod = useCallback((newPeriod: Period) => {
-    setPeriodState(newPeriod);
     if (newPeriod) {
       // Calculate date range from period
       const { startDate: calculatedStart, endDate: calculatedEnd } = calculateDateRange(newPeriod);
-      setStartDate(calculatedStart);
-      setEndDate(calculatedEnd);
+      setFilters(prev => ({
+        ...prev,
+        period: newPeriod,
+        startDate: calculatedStart,
+        endDate: calculatedEnd,
+      }));
     } else {
       // Clear dates when period is cleared
-      setStartDate(null);
-      setEndDate(null);
+      setFilters(prev => ({
+        ...prev,
+        period: null,
+        startDate: null,
+        endDate: null,
+      }));
     }
   }, []);
 
   // Set account IDs
   const setAccountIds = useCallback((ids: string[]) => {
-    setSelectedAccountIds(ids);
+    setFilters(prev => ({ ...prev, accountIds: ids }));
   }, []);
 
   // Set category IDs
   const setCategoryIds = useCallback((ids: string[]) => {
-    setSelectedCategoryIds(ids);
+    setFilters(prev => ({ ...prev, categoryIds: ids }));
   }, []);
 
   // Set merchant IDs
   const setMerchantIds = useCallback((ids: string[]) => {
-    setSelectedMerchantIds(ids);
+    setFilters(prev => ({ ...prev, merchantIds: ids }));
   }, []);
 
   // Check if any filters are active
-  const hasActiveFilters = useCallback(() => {
-    return (
-      (startDate !== null && endDate !== null) ||
-      selectedAccountIds.length > 0 ||
-      selectedCategoryIds.length > 0 ||
-      selectedMerchantIds.length > 0
-    );
-  }, [startDate, endDate, selectedAccountIds, selectedCategoryIds, selectedMerchantIds]);
+  const hasActiveFilters = 
+    (startDate !== null && endDate !== null) ||
+    selectedAccountIds.length > 0 ||
+    selectedCategoryIds.length > 0 ||
+    selectedMerchantIds.length > 0;
 
   // Clear all filters
   const clearAllFilters = useCallback(() => {
-    setStartDate(DEFAULT_FILTERS.startDate);
-    setEndDate(DEFAULT_FILTERS.endDate);
-    setPeriodState(DEFAULT_FILTERS.period);
-    setSelectedAccountIds(DEFAULT_FILTERS.accountIds);
-    setSelectedCategoryIds(DEFAULT_FILTERS.categoryIds);
-    setSelectedMerchantIds(DEFAULT_FILTERS.merchantIds);
+    setFilters({ ...DEFAULT_FILTERS });
   }, []);
 
   // Build URLSearchParams for API calls
@@ -272,7 +249,7 @@ export function useReportFilters(): UseReportFiltersReturn {
     setAccountIds,
     setCategoryIds,
     setMerchantIds,
-    hasActiveFilters: hasActiveFilters(),
+    hasActiveFilters,
     clearAllFilters,
     getFilterParams,
   };

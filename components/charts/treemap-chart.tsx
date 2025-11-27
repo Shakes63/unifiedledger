@@ -25,6 +25,50 @@ interface TreemapChartProps {
   className?: string;
 }
 
+interface TreemapContentProps {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  name?: string;
+  color?: string;
+}
+
+// Custom treemap cell content - defined outside to avoid recreation
+function TreemapCellContent({ x = 0, y = 0, width = 0, height = 0, name, color }: TreemapContentProps) {
+  // Only show label if rectangle is large enough
+  const showLabel = width > 60 && height > 40;
+
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        style={{
+          fill: color || 'var(--color-primary)',
+          stroke: 'var(--color-border)',
+          strokeWidth: 2,
+          opacity: 0.9,
+        }}
+      />
+      {showLabel && (
+        <text
+          x={x + width / 2}
+          y={y + height / 2}
+          textAnchor="middle"
+          fill="var(--color-background)"
+          fontSize={12}
+          fontWeight="500"
+        >
+          {name}
+        </text>
+      )}
+    </g>
+  );
+}
+
 /**
  * Experimental Treemap Chart Component
  *
@@ -49,40 +93,6 @@ export function TreemapChart({
     })),
   };
 
-  const CustomContent = ({ x, y, width, height, name, color }: any) => {
-    // Only show label if rectangle is large enough
-    const showLabel = width > 60 && height > 40;
-
-    return (
-      <g>
-        <rect
-          x={x}
-          y={y}
-          width={width}
-          height={height}
-          style={{
-            fill: color,
-            stroke: 'var(--color-border)',
-            strokeWidth: 2,
-            opacity: 0.9,
-          }}
-        />
-        {showLabel && (
-          <text
-            x={x + width / 2}
-            y={y + height / 2}
-            textAnchor="middle"
-            fill="var(--color-background)"
-            fontSize={12}
-            fontWeight="500"
-          >
-            {name}
-          </text>
-        )}
-      </g>
-    );
-  };
-
   return (
     <ChartContainer
       title={
@@ -104,7 +114,7 @@ export function TreemapChart({
             aspectRatio={4 / 3}
             stroke="var(--color-border)"
             fill="var(--color-primary)"
-            content={<CustomContent />}
+            content={<TreemapCellContent />}
           >
             <Tooltip
               content={<ChartTooltip />}

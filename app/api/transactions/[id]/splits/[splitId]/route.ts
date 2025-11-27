@@ -7,6 +7,20 @@ import { eq, and } from 'drizzle-orm';
 export const dynamic = 'force-dynamic';
 
 /**
+ * Type for split update data with properly typed fields
+ */
+interface SplitUpdateData {
+  categoryId?: string;
+  amount?: number;
+  percentage?: number;
+  isPercentage?: boolean;
+  description?: string | null;
+  notes?: string | null;
+  sortOrder?: number;
+  updatedAt: string;
+}
+
+/**
  * PUT /api/transactions/[id]/splits/[splitId]
  * Update a specific split
  */
@@ -104,7 +118,7 @@ export async function PUT(
     }
 
     // Build update object with only provided fields
-    const updateData: Record<string, any> = {
+    const updateData: SplitUpdateData = {
       updatedAt: new Date().toISOString(),
     };
 

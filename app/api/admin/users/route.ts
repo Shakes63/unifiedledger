@@ -201,20 +201,19 @@ export async function GET(request: Request) {
     const total = allUsers.length;
 
     // Get paginated users
-    let usersQuery = db
+    const usersQuery = db
       .select({
         id: betterAuthUser.id,
         email: betterAuthUser.email,
         name: betterAuthUser.name,
         createdAt: betterAuthUser.createdAt,
       })
-      .from(betterAuthUser);
+      .from(betterAuthUser)
+      .$dynamic();
 
-    if (whereClause) {
-      usersQuery = usersQuery.where(whereClause);
-    }
-
-    const users = await usersQuery.limit(limit).offset(offset);
+    const users = await (whereClause
+      ? usersQuery.where(whereClause)
+      : usersQuery).limit(limit).offset(offset);
 
     // Get household count for each user
     const usersWithHouseholdCount = await Promise.all(

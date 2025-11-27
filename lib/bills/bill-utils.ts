@@ -215,8 +215,8 @@ export function calculateNextDueDate(
     case 'monthly': {
       // Monthly bills always use current month as base
       const monthsToAdd = instanceIndex;
-      let month = (currentDate.getMonth() + monthsToAdd) % 12;
-      let year = currentDate.getFullYear() + Math.floor((currentDate.getMonth() + monthsToAdd) / 12);
+      const month = (currentDate.getMonth() + monthsToAdd) % 12;
+      const year = currentDate.getFullYear() + Math.floor((currentDate.getMonth() + monthsToAdd) / 12);
 
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const instanceDueDate = Math.min(dueDate, daysInMonth);

@@ -259,7 +259,7 @@ class RequestQueue {
           batch.map((req) => this.processRequest(req))
         );
 
-        results.forEach((result, index) => {
+        results.forEach((result) => {
           if (result.status === 'fulfilled' && result.value) {
             succeeded++;
           } else {

@@ -14,13 +14,11 @@ import {
   dataExportRequests,
   accountDeletionRequests,
   importTemplates,
-  householdActivityLog,
 } from '@/lib/db/schema';
-import { eq, and, lt, sql } from 'drizzle-orm';
+import { eq, and, lt } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import {
   DEFAULT_USER_SETTINGS,
-  DEFAULT_NOTIFICATION_PREFERENCES,
   RULE_LOG_RETENTION_DAYS,
 } from '@/lib/constants/default-settings';
 
@@ -218,8 +216,8 @@ export async function logResetAction(
  * @returns true if rate limit exceeded, false otherwise
  */
 export async function checkResetRateLimit(
-  userId: string,
-  maxAttempts: number = 3
+  _userId: string,
+  _maxAttempts: number = 3
 ): Promise<boolean> {
   // TODO: Implement proper rate limiting using a dedicated tracking table
   // For now, we rely on the API endpoint's rate limiting logic

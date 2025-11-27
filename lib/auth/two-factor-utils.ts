@@ -32,7 +32,7 @@ export async function generateQRCode(otpauthUrl: string): Promise<string> {
       margin: 1,
     });
     return dataUrl;
-  } catch (error) {
+  } catch (_error) {
     throw new Error('Failed to generate QR code');
   }
 }
@@ -49,7 +49,7 @@ export function verifyTwoFactorToken(token: string, secret: string): boolean {
       window: 2, // Allow 2 time steps (60 seconds) of tolerance
     });
     return verified === true;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }

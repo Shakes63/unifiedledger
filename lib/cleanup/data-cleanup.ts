@@ -6,7 +6,18 @@
  */
 
 import { db } from "@/lib/db";
-import { and, eq, lt, sql } from "drizzle-orm";
+import { eq, lt, sql } from "drizzle-orm";
+import {
+  savedSearchFilters,
+  householdActivityLog,
+  importStaging,
+  importHistory,
+  transactionSplits,
+  // Note: 'transactions' referenced in raw SQL subqueries, not as Drizzle object
+  transactionTags,
+  customFieldValues,
+  tags,
+} from "@/lib/db/schema";
 
 export interface CleanupStats {
   name: string;
@@ -53,10 +64,10 @@ export async function cleanOldSearchHistory(): Promise<CleanupStats> {
 
     // Delete old search records
     const result = await db
-      .delete(require("@/lib/db/schema").savedSearchFilters)
+      .delete(savedSearchFilters)
       .where(
         lt(
-          sql`${require("@/lib/db/schema").savedSearchFilters.createdAt}`,
+          sql`${savedSearchFilters.createdAt}`,
           cutoffDate.toISOString()
         )
       );
@@ -99,10 +110,10 @@ export async function cleanOldActivityLogs(): Promise<CleanupStats> {
 
     // Delete old activity records
     const result = await db
-      .delete(require("@/lib/db/schema").householdActivityLog)
+      .delete(householdActivityLog)
       .where(
         lt(
-          sql`${require("@/lib/db/schema").householdActivityLog.createdAt}`,
+          sql`${householdActivityLog.createdAt}`,
           cutoffDate.toISOString()
         )
       );
@@ -144,22 +155,21 @@ export async function cleanOldImportHistory(): Promise<CleanupStats> {
     );
 
     // First delete associated import staging records
-    const importSchema = require("@/lib/db/schema");
     const stagingResult = await db
-      .delete(importSchema.importStaging)
+      .delete(importStaging)
       .where(
         lt(
-          sql`${importSchema.importStaging.createdAt}`,
+          sql`${importStaging.createdAt}`,
           cutoffDate.toISOString()
         )
       );
 
     // Then delete the import history records
     const historyResult = await db
-      .delete(importSchema.importHistory)
+      .delete(importHistory)
       .where(
         lt(
-          sql`${importSchema.importHistory.createdAt}`,
+          sql`${importHistory.startedAt}`,
           cutoffDate.toISOString()
         )
       );
@@ -196,13 +206,11 @@ export async function cleanOrphanedSplits(): Promise<CleanupStats> {
   const name = "orphanedSplits";
 
   try {
-    const splitSchema = require("@/lib/db/schema");
-
     // Delete splits where transaction doesn't exist
     const result = await db
-      .delete(splitSchema.transactionSplits)
+      .delete(transactionSplits)
       .where(
-        sql`${splitSchema.transactionSplits.transactionId} NOT IN (
+        sql`${transactionSplits.transactionId} NOT IN (
           SELECT id FROM transactions
         )`
       );
@@ -238,13 +246,11 @@ export async function cleanOrphanedTags(): Promise<CleanupStats> {
   const name = "orphanedTags";
 
   try {
-    const tagSchema = require("@/lib/db/schema");
-
     // Delete tag associations where transaction doesn't exist
     const result = await db
-      .delete(tagSchema.transactionTags)
+      .delete(transactionTags)
       .where(
-        sql`${tagSchema.transactionTags.transactionId} NOT IN (
+        sql`${transactionTags.transactionId} NOT IN (
           SELECT id FROM transactions
         )`
       );
@@ -280,13 +286,11 @@ export async function cleanOrphanedCustomFieldValues(): Promise<CleanupStats> {
   const name = "orphanedCustomFieldValues";
 
   try {
-    const fieldSchema = require("@/lib/db/schema");
-
     // Delete custom field values where transaction doesn't exist
     const result = await db
-      .delete(fieldSchema.customFieldValues)
+      .delete(customFieldValues)
       .where(
-        sql`${fieldSchema.customFieldValues.transactionId} NOT IN (
+        sql`${customFieldValues.transactionId} NOT IN (
           SELECT id FROM transactions
         )`
       );
@@ -322,12 +326,10 @@ export async function cleanUnusedTags(): Promise<CleanupStats> {
   const name = "unusedTags";
 
   try {
-    const tagSchema = require("@/lib/db/schema");
-
     // Delete tags with zero usage
     const result = await db
-      .delete(tagSchema.tags)
-      .where(eq(tagSchema.tags.usageCount, 0));
+      .delete(tags)
+      .where(eq(tags.usageCount, 0));
 
     const duration = performance.now() - startTime;
 

@@ -1,4 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useSyncExternalStore } from 'react';
+
+// Helper function to detect touch capability
+function detectTouch(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    'ontouchstart' in window ||
+    navigator.maxTouchPoints > 0 ||
+    (navigator as unknown as { msMaxTouchPoints: number }).msMaxTouchPoints > 0
+  );
+}
+
+// Helper function to get screen info
+function getScreenInfo() {
+  if (typeof window === 'undefined') {
+    return { width: 0, isMobile: false, isLandscape: false };
+  }
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  return {
+    width,
+    isMobile: width < 768,
+    isLandscape: width > height,
+  };
+}
 
 /**
  * Hook to detect and manage one-handed use mode
@@ -10,33 +34,16 @@ import { useState, useEffect } from 'react';
  * - Device size (phone vs tablet)
  */
 export function useOneHandedMode() {
-  const [isMobile, setIsMobile] = useState(false);
-  const [isLandscape, setIsLandscape] = useState(false);
-  const [isTouch, setIsTouch] = useState(false);
-  const [screenWidth, setScreenWidth] = useState(0);
+  // Initialize with computed values (already handles SSR)
+  const [screenInfo, setScreenInfo] = useState(getScreenInfo);
+  // Touch detection is stable on client, no need to re-check
+  const isTouch = detectTouch();
 
   useEffect(() => {
-    // Detect touch capability
-    setIsTouch(() => {
-      return (
-        typeof window !== 'undefined' &&
-        ('ontouchstart' in window ||
-          navigator.maxTouchPoints > 0 ||
-          (navigator as any).msMaxTouchPoints > 0)
-      );
-    });
-
-    // Initial detection
+    // Update screen info handler
     const updateScreenInfo = () => {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-
-      setScreenWidth(width);
-      setIsMobile(width < 768);
-      setIsLandscape(width > height);
+      setScreenInfo(getScreenInfo());
     };
-
-    updateScreenInfo();
 
     // Listen for resize events
     window.addEventListener('resize', updateScreenInfo);
@@ -47,6 +54,8 @@ export function useOneHandedMode() {
       window.removeEventListener('orientationchange', updateScreenInfo);
     };
   }, []);
+
+  const { width: screenWidth, isMobile, isLandscape } = screenInfo;
 
   /**
    * Returns true if one-handed mode should be active

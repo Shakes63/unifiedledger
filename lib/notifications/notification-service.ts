@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { notifications, notificationPreferences, pushSubscriptions } from '@/lib/db/schema';
-import { eq, and, desc, isNull, lt } from 'drizzle-orm';
+import { eq, and, isNull, lt } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export type NotificationType =
@@ -41,7 +41,7 @@ export async function createNotification(input: CreateNotificationInput) {
   try {
     const notificationId = nanoid();
 
-    const newNotification = await db.insert(notifications).values({
+    await db.insert(notifications).values({
       id: notificationId,
       userId: input.userId,
       householdId: input.householdId,
@@ -70,13 +70,13 @@ export async function createNotification(input: CreateNotificationInput) {
  */
 export async function sendPushNotification(
   userId: string,
-  title: string,
-  options: {
+  _title: string,
+  _options: {
     body?: string;
     icon?: string;
     badge?: string;
     tag?: string;
-    data?: Record<string, any>;
+    data?: Record<string, unknown>;
   } = {}
 ) {
   try {

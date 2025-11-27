@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import Decimal from 'decimal.js';
 
@@ -19,22 +19,73 @@ interface BudgetAllocationChartProps {
   showActual?: boolean; // Toggle between budgeted and actual view
 }
 
+// Format currency helper
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+};
+
+// Custom tooltip component - defined outside to avoid recreation
+interface TooltipPayload {
+  payload: { name: string; value: number; color: string };
+}
+
+function AllocationTooltip({ active, payload, total }: { active?: boolean; payload?: TooltipPayload[]; total: number }) {
+  if (active && payload && payload.length) {
+    const item = payload[0].payload;
+    const percentage = total > 0 
+      ? new Decimal(item.value).div(total).times(100).toNumber() 
+      : 0;
+    
+    return (
+      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+        <p className="font-semibold text-foreground">{item.name}</p>
+        <p className="text-sm font-mono" style={{ color: item.color }}>
+          {formatCurrency(item.value)}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {percentage.toFixed(1)}% of total
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
+
+// Custom legend component - defined outside to avoid recreation
+interface LegendEntry {
+  color: string;
+  value: string;
+}
+
+function AllocationLegend({ payload }: { payload?: LegendEntry[] }) {
+  return (
+    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4">
+      {payload?.map((entry: LegendEntry, index: number) => (
+        <div key={index} className="flex items-center gap-1.5">
+          <div 
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-xs text-muted-foreground">
+            {entry.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function BudgetAllocationChart({ 
   data,
   showActual = false,
 }: BudgetAllocationChartProps) {
-  // Format currency
-  const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
   // Build chart data - only include segments with positive values
-  const chartData = [
+  const chartData = useMemo(() => [
     { 
       name: 'Variable Expenses', 
       value: Math.max(0, data.variableExpenses), 
@@ -71,54 +122,18 @@ export function BudgetAllocationChart({
       color: 'var(--color-income)',
       colorValue: '#10b981',
     },
-  ].filter(item => item.value > 0);
+  ].filter(item => item.value > 0), [data]);
 
   // Calculate total for percentage
-  const total = chartData.reduce((sum, item) => 
+  const total = useMemo(() => chartData.reduce((sum, item) => 
     new Decimal(sum).plus(item.value).toNumber(), 0
-  );
+  ), [chartData]);
 
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const item = payload[0].payload;
-      const percentage = total > 0 
-        ? new Decimal(item.value).div(total).times(100).toNumber() 
-        : 0;
-      
-      return (
-        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-          <p className="font-semibold text-foreground">{item.name}</p>
-          <p className="text-sm font-mono" style={{ color: item.color }}>
-            {formatCurrency(item.value)}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {percentage.toFixed(1)}% of total
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  // Custom legend
-  const CustomLegend = ({ payload }: any) => {
-    return (
-      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-4">
-        {payload?.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center gap-1.5">
-            <div 
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-xs text-muted-foreground">
-              {entry.value}
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  // Memoize tooltip component with total
+  const tooltipContent = useMemo(() => 
+    function AllocationTooltipWrapper(props: { active?: boolean; payload?: TooltipPayload[] }) {
+      return <AllocationTooltip {...props} total={total} />;
+    }, [total]);
 
   // If no data, show empty state
   if (chartData.length === 0 || total === 0) {
@@ -163,8 +178,8 @@ export function BudgetAllocationChart({
                 />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
-            <Legend content={<CustomLegend />} />
+            <Tooltip content={tooltipContent} />
+            <Legend content={<AllocationLegend />} />
           </PieChart>
         </ResponsiveContainer>
         

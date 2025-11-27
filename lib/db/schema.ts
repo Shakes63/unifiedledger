@@ -3,7 +3,7 @@ import {
   text,
   integer,
   real,
-  primaryKey,
+  // primaryKey - available if composite primary keys are needed
   uniqueIndex,
   index,
 } from 'drizzle-orm/sqlite-core';

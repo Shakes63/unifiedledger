@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate historical net worth for chart
-    let historyData: any[] = [];
+    const historyData: any[] = [];
 
     // Determine grouping strategy
     const daysDiff2 = Math.ceil(

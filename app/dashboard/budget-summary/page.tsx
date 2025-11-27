@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   DollarSign, 
   ShoppingCart, 
@@ -271,12 +272,12 @@ export default function BudgetSummaryPage() {
               Set up your monthly budget to see a complete breakdown of your income, 
               expenses, savings, and debt payments.
             </p>
-            <a
+            <Link
               href="/dashboard/budgets"
               className="inline-flex items-center justify-center px-6 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity"
             >
               Set Up Budget
-            </a>
+            </Link>
           </div>
         </div>
       </div>

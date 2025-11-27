@@ -103,22 +103,22 @@ export function analyzeBundle(modules: BundleEntry[]): BundleAnalysis {
   }
 
   // Analyze largest modules
-  for (const module of largestModules) {
-    if (module.risk === "critical") {
+  for (const mod of largestModules) {
+    if (mod.risk === "critical") {
       warnings.push(
-        `${module.name} (${formatBytes(module.size)}) is critically large`
+        `${mod.name} (${formatBytes(mod.size)}) is critically large`
       );
 
-      if (module.type === "library") {
-        recommendations.push(`Consider alternatives to ${module.name} or lazy load it`);
-      } else if (module.type === "component") {
+      if (mod.type === "library") {
+        recommendations.push(`Consider alternatives to ${mod.name} or lazy load it`);
+      } else if (mod.type === "component") {
         recommendations.push(
-          `Split ${module.name} into smaller components or lazy load`
+          `Split ${mod.name} into smaller components or lazy load`
         );
       }
-    } else if (module.risk === "warning") {
+    } else if (mod.risk === "warning") {
       warnings.push(
-        `${module.name} (${formatBytes(module.size)}) is larger than recommended`
+        `${mod.name} (${formatBytes(mod.size)}) is larger than recommended`
       );
     }
   }
@@ -175,8 +175,8 @@ export function generateBundleReport(analysis: BundleAnalysis): string {
   report += `| Rank | Name | Size | Gzipped | Type | Risk |\n`;
   report += `|------|------|------|---------|------|------|\n`;
 
-  analysis.largestModules.forEach((module, index) => {
-    report += `| ${index + 1} | ${module.name} | ${formatBytes(module.size)} | ${formatBytes(module.gzipSize)} | ${module.type} | ${module.risk} |\n`;
+  analysis.largestModules.forEach((mod, index) => {
+    report += `| ${index + 1} | ${mod.name} | ${formatBytes(mod.size)} | ${formatBytes(mod.gzipSize)} | ${mod.type} | ${mod.risk} |\n`;
   });
   report += `\n`;
 

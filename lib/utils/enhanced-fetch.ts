@@ -281,8 +281,10 @@ export async function enhancedFetch(
     onRetry,
     deduplicate = true,
     signal: customSignal,
-    ...fetchOptions
+    ...rest
   } = options;
+  // Note: 'rest' contains remaining fetch options for future extensibility
+  void rest;
 
   // Check for in-flight duplicate requests
   if (deduplicate) {

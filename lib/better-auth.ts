@@ -3,10 +3,12 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/lib/db";
 import * as authSchema from "@/auth-schema";
 import { sendVerificationEmail } from "@/lib/email/email-service";
-import { lookupLocation } from "@/lib/geoip/geoip-service";
-import { eq } from "drizzle-orm";
+// GeoIP imports commented out - re-enable when Better Auth hooks are fixed
+// import { lookupLocation } from "@/lib/geoip/geoip-service";
+// import { eq } from "drizzle-orm";
 import { genericOAuth } from "better-auth/plugins/generic-oauth";
-import { loadOAuthSettingsFromDatabase } from "@/lib/auth/load-oauth-settings";
+// OAuth settings from database - currently using env vars instead
+// import { loadOAuthSettingsFromDatabase } from "@/lib/auth/load-oauth-settings";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -20,7 +22,7 @@ export const auth = betterAuth({
     // Email verification - Soft launch: emails are sent but not required for login
     // Set to true once ready for full enforcement
     requireEmailVerification: false,
-    sendVerificationEmail: async ({ user, url, token }: { user: { email: string; name: string | null }; url: string; token: string }) => {
+    sendVerificationEmail: async ({ user, url }: { user: { email: string; name: string | null }; url: string; token: string }) => {
       try {
         await sendVerificationEmail({
           to: user.email,

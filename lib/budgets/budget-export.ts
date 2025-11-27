@@ -2,7 +2,6 @@ import { db } from '@/lib/db';
 import { budgetCategories, transactions } from '@/lib/db/schema';
 import { eq, and, gte, lte, sum } from 'drizzle-orm';
 import Papa from 'papaparse';
-import Decimal from 'decimal.js';
 
 export interface BudgetExportOptions {
   startMonth: string; // 'YYYY-MM'
@@ -63,7 +62,7 @@ async function getBudgetDataForMonth(
   const daysElapsed = isCurrentMonth ? currentDay : daysInMonth;
 
   // Get all budget categories for this user and household
-  let query = db
+  const query = db
     .select()
     .from(budgetCategories)
     .where(
@@ -167,23 +166,9 @@ async function getBudgetDataForMonth(
   return categoryData;
 }
 
-/**
- * Format status label for CSV
- */
-function formatStatus(status: string): string {
-  switch (status) {
-    case 'on_track':
-      return 'On Track';
-    case 'warning':
-      return 'Warning';
-    case 'exceeded':
-      return 'Exceeded';
-    case 'unbudgeted':
-      return 'Unbudgeted';
-    default:
-      return status;
-  }
-}
+// Note: Status formatting now handled inline in getBudgetDataForMonth
+// Legacy function preserved for potential future use
+// function formatStatus(status: string): string { ... }
 
 /**
  * Format category type for display
@@ -336,7 +321,7 @@ export async function exportBudgetToCSV(
       categories: CategoryBudgetData[];
     }> = [];
 
-    let currentDate = new Date(startDate);
+    const currentDate = new Date(startDate);
 
     while (currentDate <= endDate) {
       const year = currentDate.getFullYear();

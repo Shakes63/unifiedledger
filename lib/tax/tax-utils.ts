@@ -5,10 +5,9 @@
 import { db } from '@/lib/db';
 import {
   transactionTaxClassifications,
-  categoryTaxMappings,
   taxCategories,
 } from '@/lib/db/schema';
-import { eq, and, gte, lte } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
 /**

@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const offset = parseInt(url.searchParams.get('offset') || '0');
     const activeOnly = url.searchParams.get('activeOnly') === 'true';
 
-    let conditions: any[] = [eq(customFields.userId, userId)];
+    const conditions: any[] = [eq(customFields.userId, userId)];
 
     if (activeOnly) {
       conditions.push(eq(customFields.isActive, true));

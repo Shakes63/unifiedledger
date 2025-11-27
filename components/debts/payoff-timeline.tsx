@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Calendar, ClipboardList } from 'lucide-react';
 import type { PayoffStrategyResult } from '@/lib/debts/payoff-calculator';
 
@@ -22,25 +23,36 @@ const COLORS = [
 export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
   const maxMonths = Math.max(...strategy.schedules.map(s => s.monthsToPayoff), 1);
 
-  // Calculate cumulative timeline
-  let cumulativeMonths = 0;
-  const timelineData = strategy.schedules.map((schedule, index) => {
-    const startMonth = cumulativeMonths;
-    cumulativeMonths += schedule.monthsToPayoff;
-    return {
-      ...schedule,
-      startMonth,
-      endMonth: cumulativeMonths,
-      color: COLORS[index % COLORS.length],
-    };
-  });
+  // Calculate cumulative timeline using useMemo with reduce (immutable pattern)
+  const { timelineData, totalMonths } = useMemo(() => {
+    const result = strategy.schedules.reduce<{
+      data: Array<typeof strategy.schedules[0] & { startMonth: number; endMonth: number; color: string }>;
+      cumulative: number;
+    }>(
+      (acc, schedule, index) => {
+        const startMonth = acc.cumulative;
+        const endMonth = acc.cumulative + schedule.monthsToPayoff;
+        return {
+          data: [...acc.data, {
+            ...schedule,
+            startMonth,
+            endMonth,
+            color: COLORS[index % COLORS.length],
+          }],
+          cumulative: endMonth,
+        };
+      },
+      { data: [], cumulative: 0 }
+    );
+    return { timelineData: result.data, totalMonths: result.cumulative };
+  }, [strategy.schedules]);
 
   // Calculate milestone positions (25%, 50%, 75%, 100%)
   const milestones = [
-    { percent: 25, month: Math.round(cumulativeMonths * 0.25) },
-    { percent: 50, month: Math.round(cumulativeMonths * 0.50) },
-    { percent: 75, month: Math.round(cumulativeMonths * 0.75) },
-    { percent: 100, month: cumulativeMonths },
+    { percent: 25, month: Math.round(totalMonths * 0.25) },
+    { percent: 50, month: Math.round(totalMonths * 0.50) },
+    { percent: 75, month: Math.round(totalMonths * 0.75) },
+    { percent: 100, month: totalMonths },
   ];
 
   return (
@@ -65,8 +77,8 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
                   className="absolute h-full rounded-lg flex items-center justify-center text-xs font-semibold text-[var(--color-card)] transition-all"
                   style={{
                     backgroundColor: debt.color,
-                    width: `${(debt.monthsToPayoff / cumulativeMonths) * 100}%`,
-                    left: `${(debt.startMonth / cumulativeMonths) * 100}%`,
+                    width: `${(debt.monthsToPayoff / totalMonths) * 100}%`,
+                    left: `${(debt.startMonth / totalMonths) * 100}%`,
                   }}
                 >
                   {debt.monthsToPayoff}mo
@@ -85,7 +97,7 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
             <div
               key={milestone.percent}
               className="absolute top-0 flex flex-col items-center"
-              style={{ left: `${(milestone.month / cumulativeMonths) * 100}%` }}
+              style={{ left: `${(milestone.month / totalMonths) * 100}%` }}
             >
               <div className="w-2 h-2 bg-[var(--color-chart-principal)] rounded-full mb-1"></div>
               <div className="text-xs text-[var(--color-chart-principal)] font-semibold whitespace-nowrap">
@@ -98,7 +110,7 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
         {/* Timeline scale */}
         <div className="flex justify-between text-xs text-muted-foreground mt-2">
           <span>Month 0</span>
-          <span>Month {cumulativeMonths}</span>
+          <span>Month {totalMonths}</span>
         </div>
       </div>
 

@@ -284,7 +284,7 @@ export function PrivacyTab() {
       <div>
         <h3 className="text-lg font-semibold text-foreground mb-2">Active Sessions</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Manage devices where you're currently signed in
+          Manage devices where you&apos;re currently signed in
         </p>
 
         {loading ? (

@@ -1,6 +1,7 @@
 import { requireOwner } from '@/lib/auth/owner-helpers';
 import { db } from '@/lib/db';
-import { betterAuthUser, householdMembers, households } from '@/lib/db/schema';
+import { user as betterAuthUser } from '@/auth-schema';
+import { householdMembers, households } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 

@@ -24,7 +24,7 @@ export default async function middleware(request: NextRequest) {
   const DEBUG = process.env.SESSION_DEBUG === "1";
   const debugLog = (...args: unknown[]) => {
     if (DEBUG) {
-      // eslint-disable-next-line no-console
+       
       console.log("[Middleware][Session]", ...args);
     }
   };

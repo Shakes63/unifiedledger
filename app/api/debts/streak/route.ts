@@ -101,7 +101,7 @@ export async function GET(request: Request) {
     const firstPaymentMonth = new Date(firstPaymentDate.getFullYear(), firstPaymentDate.getMonth(), 1);
 
     // Iterate from first payment month to current month
-    let currentMonth = new Date(firstPaymentMonth);
+    const currentMonth = new Date(firstPaymentMonth);
     const todayMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     while (currentMonth <= todayMonth) {

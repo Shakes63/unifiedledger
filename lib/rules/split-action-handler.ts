@@ -3,6 +3,7 @@ import { transactions, transactionSplits, budgetCategories } from '@/lib/db/sche
 import { eq, and, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
+import { validateSplitConfiguration } from '@/lib/transactions/split-calculator';
 
 /**
  * Split configuration for rule actions
@@ -39,9 +40,22 @@ export async function handleSplitCreation(
   splits: SplitConfig[]
 ): Promise<SplitCreationResult> {
   try {
-    // 1. Validate input
-    if (!splits || splits.length === 0) {
-      return { success: false, createdSplits: [], error: 'No splits provided' };
+    // 1. Validate input using consolidated validation
+    const validationError = validateSplitConfiguration(
+      splits.map((s) => ({
+        amount: s.amount,
+        percentage: s.percentage,
+        isPercentage: s.isPercentage,
+        categoryId: s.categoryId,
+      })),
+      {
+        requireCategory: true,
+        requirePositiveValues: true,
+      }
+    );
+
+    if (validationError) {
+      return { success: false, createdSplits: [], error: validationError };
     }
 
     // 2. Fetch transaction
@@ -84,11 +98,17 @@ export async function handleSplitCreation(
       let amount: number;
 
       if (split.isPercentage && split.percentage !== undefined) {
-        // Calculate amount from percentage
-        amount = totalAmount.times(split.percentage).dividedBy(100).toNumber();
+        // Calculate amount from percentage, rounded to 2 decimal places
+        amount = totalAmount
+          .times(split.percentage)
+          .dividedBy(100)
+          .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+          .toNumber();
       } else if (split.amount !== undefined) {
-        // Use fixed amount
-        amount = split.amount;
+        // Use fixed amount, rounded to 2 decimal places
+        amount = new Decimal(split.amount)
+          .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+          .toNumber();
       } else {
         // Default to 0 if neither provided
         amount = 0;
@@ -147,95 +167,5 @@ export async function handleSplitCreation(
   }
 }
 
-/**
- * Calculate total amount from splits (for validation)
- * Handles both percentage-based and fixed amount splits
- *
- * @param splits - Array of split configurations
- * @param transactionAmount - Total transaction amount
- * @returns Total amount of all splits
- */
-export function calculateSplitTotal(
-  splits: SplitConfig[],
-  transactionAmount: number
-): Decimal {
-  const totalAmountDecimal = new Decimal(transactionAmount);
-
-  return splits.reduce((sum, split) => {
-    if (split.isPercentage && split.percentage !== undefined) {
-      const amount = totalAmountDecimal.times(split.percentage).dividedBy(100);
-      return sum.plus(amount);
-    } else if (split.amount !== undefined) {
-      return sum.plus(split.amount);
-    }
-    return sum;
-  }, new Decimal(0));
-}
-
-/**
- * Calculate total percentage from splits (for validation)
- * Only counts percentage-based splits
- *
- * @param splits - Array of split configurations
- * @returns Total percentage (0-100+)
- */
-export function calculateTotalPercentage(splits: SplitConfig[]): number {
-  return splits
-    .filter((s) => s.isPercentage && s.percentage !== undefined)
-    .reduce((sum, s) => sum + (s.percentage || 0), 0);
-}
-
-/**
- * Validate split configuration
- * Checks for common errors before attempting to create splits
- *
- * @param splits - Array of split configurations
- * @param transactionAmount - Optional transaction amount for total validation
- * @returns Error message if invalid, null if valid
- */
-export function validateSplitConfig(
-  splits: SplitConfig[],
-  transactionAmount?: number
-): string | null {
-  // Must have at least one split
-  if (!splits || splits.length === 0) {
-    return 'At least one split is required';
-  }
-
-  // Validate each split
-  for (let i = 0; i < splits.length; i++) {
-    const split = splits[i];
-
-    if (!split.categoryId) {
-      return `Split #${i + 1}: Category is required`;
-    }
-
-    if (split.isPercentage) {
-      if (split.percentage === undefined || split.percentage <= 0 || split.percentage > 100) {
-        return `Split #${i + 1}: Percentage must be between 1 and 100`;
-      }
-    } else {
-      if (split.amount === undefined || split.amount <= 0) {
-        return `Split #${i + 1}: Amount must be greater than 0`;
-      }
-    }
-  }
-
-  // Validate total percentage doesn't exceed 100%
-  const totalPercentage = calculateTotalPercentage(splits);
-  if (totalPercentage > 100) {
-    return `Total percentage (${totalPercentage}%) exceeds 100%`;
-  }
-
-  // Validate total amount doesn't exceed transaction amount (if provided)
-  if (transactionAmount !== undefined) {
-    const splitTotal = calculateSplitTotal(splits, transactionAmount);
-    const transactionAmountDecimal = new Decimal(transactionAmount);
-
-    if (splitTotal.greaterThan(transactionAmountDecimal)) {
-      return `Split total ($${splitTotal.toFixed(2)}) exceeds transaction amount ($${transactionAmountDecimal.toFixed(2)})`;
-    }
-  }
-
-  return null; // Valid
-}
+// Legacy validation functions removed - now using consolidated validation
+// from @/lib/transactions/split-calculator (validateSplitConfiguration)

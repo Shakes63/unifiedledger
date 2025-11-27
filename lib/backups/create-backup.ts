@@ -22,7 +22,7 @@ import {
   transactionTags,
   customFieldValues,
 } from '@/lib/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { saveBackupFile, generateBackupFilename } from './backup-utils';
 

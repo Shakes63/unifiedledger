@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -67,7 +68,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
     ? (account.currentBalance / account.creditLimit) * 100
     : null;
 
-  const getAccountIcon = (iconName: string) => {
+  const IconComponent = useMemo(() => {
     const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
       wallet: Wallet,
       bank: Building2,
@@ -78,10 +79,8 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
       coins: Coins,
       briefcase: Briefcase,
     };
-    return iconMap[iconName] || Wallet;
-  };
-
-  const IconComponent = getAccountIcon(account.icon);
+    return iconMap[account.icon] || Wallet;
+  }, [account.icon]);
 
   return (
     <Card className="p-6 border border-border bg-card rounded-xl hover:border-border transition-all relative group">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { DashboardLayout } from '@/components/navigation/dashboard-layout';
 import { HouseholdProvider } from '@/contexts/household-context';
 import { DeveloperModeProvider } from '@/contexts/developer-mode-context';
@@ -16,20 +16,22 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const { isOnboardingActive } = useOnboarding();
   const { initialized } = useHousehold();
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  // For manual override when user completes onboarding
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
-  // Show onboarding if:
+  // Derive showOnboarding from state - show if:
   // 1. Onboarding is active (not completed)
   // 2. Household context is initialized
+  // 3. User hasn't manually dismissed it
   // Note: We don't check householdList.length because user may have created
   // a household during onboarding and refreshed - we still need to show onboarding
-  useEffect(() => {
-    if (isOnboardingActive && initialized) {
-      setShowOnboarding(true);
-    } else if (!isOnboardingActive) {
-      setShowOnboarding(false);
+  const showOnboarding = isOnboardingActive && initialized && !onboardingDismissed;
+
+  const handleOnboardingOpenChange = (open: boolean) => {
+    if (!open) {
+      setOnboardingDismissed(true);
     }
-  }, [isOnboardingActive, initialized]);
+  };
 
   // Global keyboard listener for Quick Entry (Q key)
   useEffect(() => {
@@ -52,11 +54,13 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     <>
       <DashboardLayout>{children}</DashboardLayout>
 
-      {/* Onboarding Modal */}
-      <OnboardingModal
-        open={showOnboarding}
-        onOpenChange={setShowOnboarding}
-      />
+      {/* Onboarding Modal - wrapped in Suspense since it uses useSearchParams */}
+      <Suspense fallback={null}>
+        <OnboardingModal
+          open={showOnboarding}
+          onOpenChange={handleOnboardingOpenChange}
+        />
+      </Suspense>
 
       {/* Experimental: Quick Entry Mode (Q key shortcut) */}
       <FeatureGate featureId="quick-entry">

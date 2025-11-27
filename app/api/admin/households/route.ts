@@ -35,19 +35,18 @@ export async function GET(request: Request) {
     const total = allHouseholds.length;
 
     // Get paginated households
-    let householdsQuery = db
+    const householdsQuery = db
       .select({
         id: households.id,
         name: households.name,
         createdAt: households.createdAt,
       })
-      .from(households);
+      .from(households)
+      .$dynamic();
 
-    if (whereClause) {
-      householdsQuery = householdsQuery.where(whereClause);
-    }
-
-    const householdsList = await householdsQuery
+    const householdsList = await (whereClause
+      ? householdsQuery.where(whereClause)
+      : householdsQuery)
       .limit(limit)
       .offset(offset)
       .orderBy(households.createdAt);

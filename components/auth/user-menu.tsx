@@ -2,7 +2,7 @@
 
 import { betterAuthClient } from '@/lib/better-auth-client';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -19,21 +19,48 @@ import { toast } from 'sonner';
 export function UserMenu() {
   const router = useRouter();
   const { data: session, isPending } = betterAuthClient.useSession();
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [avatarLoading, setAvatarLoading] = useState(true);
+  // State to track both URL and fetched status
+  const [avatarState, setAvatarState] = useState<{ url: string | null; fetched: boolean }>({ 
+    url: null, 
+    fetched: false 
+  });
+  const abortControllerRef = useRef<AbortController | null>(null);
 
+  // Track fetch status with ref to avoid re-triggering effect
+  const fetchingRef = useRef(false);
+  
   // Fetch avatar URL when session is available
   useEffect(() => {
-    if (session?.user?.id) {
-      fetch('/api/profile/avatar', { credentials: 'include' })
+    if (session?.user?.id && !avatarState.fetched && !fetchingRef.current) {
+      // Mark as fetching to prevent duplicate requests
+      fetchingRef.current = true;
+      
+      // Create abort controller for cleanup
+      abortControllerRef.current = new AbortController();
+      
+      fetch('/api/profile/avatar', { 
+        credentials: 'include',
+        signal: abortControllerRef.current.signal
+      })
         .then(res => res.json())
-        .then(data => setAvatarUrl(data.avatarUrl || null))
-        .catch(() => setAvatarUrl(null))
-        .finally(() => setAvatarLoading(false));
-    } else {
-      setAvatarLoading(false);
+        .then(data => {
+          setAvatarState({ url: data.avatarUrl || null, fetched: true });
+        })
+        .catch((err) => {
+          if (err.name !== 'AbortError') {
+            setAvatarState({ url: null, fetched: true });
+          }
+        });
     }
-  }, [session?.user?.id]);
+    
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, [session?.user?.id, avatarState.fetched]);
+
+  const avatarUrl = avatarState.url;
+  // Show loading while session is pending
+  const avatarLoading = isPending;
 
   const handleSignOut = async () => {
     try {

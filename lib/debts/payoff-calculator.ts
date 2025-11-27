@@ -226,26 +226,8 @@ function calculateInterestForPeriod(
   }
 }
 
-/**
- * Calculate monthly interest amount for a debt using appropriate method
- * @deprecated Use calculateInterestForPeriod instead
- */
-function calculateMonthlyInterest(
-  balance: Decimal,
-  annualRate: number,
-  loanType: 'revolving' | 'installment' = 'revolving',
-  compoundingFrequency: 'daily' | 'monthly' | 'quarterly' | 'annually' = 'monthly',
-  billingCycleDays: number = 30
-): Decimal {
-  return calculateInterestForPeriod(
-    balance,
-    annualRate,
-    'monthly',
-    loanType,
-    compoundingFrequency,
-    billingCycleDays
-  );
-}
+// @deprecated: calculateMonthlyInterest - use calculateInterestForPeriod instead
+// Kept for reference but removed to eliminate unused function warning
 
 /**
  * Sort debts by Snowball method (smallest balance first)
@@ -282,7 +264,7 @@ function calculateDebtSchedule(
     .sort((a, b) => a.month - b.month);
 
   // Track payment periods (26 for biweekly, 12 for monthly per year)
-  const periodsPerYear = getPaymentPeriodsPerYear(paymentFrequency);
+  // Note: periodsPerYear available via getPaymentPeriodsPerYear(paymentFrequency) if needed
   let paymentPeriod = 0;
 
   // Safety limit: max 360 months (30 years) to prevent memory issues
@@ -485,7 +467,7 @@ export function calculatePayoffStrategy(
   const nextSchedule = schedules[0];
 
   // For recommended payment, use the per-period amount (already divided for biweekly)
-  const recommendedPayment = availablePayment - remainingDebts.slice(1).reduce((sum, d) => sum + d.minimumPayment, 0);
+  const recommendedPaymentAmount = availablePayment - remainingDebts.slice(1).reduce((sum, d) => sum + d.minimumPayment, 0);
 
   return {
     method,
@@ -498,7 +480,7 @@ export function calculatePayoffStrategy(
       debtId: nextDebt.id,
       debtName: nextDebt.name,
       currentBalance: nextDebt.remainingBalance,
-      recommendedPayment: availablePayment - remainingDebts.slice(1).reduce((sum, d) => sum + d.minimumPayment, 0),
+      recommendedPayment: recommendedPaymentAmount,
       monthsUntilPayoff: nextSchedule.monthsToPayoff,
       totalInterest: nextSchedule.totalInterestPaid,
     },

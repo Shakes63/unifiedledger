@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 interface CollapsibleSectionProps {
@@ -16,24 +16,26 @@ export function CollapsibleSection({
   defaultExpanded = false,
   storageKey,
 }: CollapsibleSectionProps) {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-  const [mounted, setMounted] = useState(false);
-
-  // Load state from localStorage on mount
-  useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem(storageKey);
-    if (saved !== null) {
-      setIsExpanded(saved === 'true');
+  // Initialize from localStorage if available
+  const [isExpanded, setIsExpanded] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(storageKey);
+      if (saved !== null) {
+        return saved === 'true';
+      }
     }
-  }, [storageKey]);
+    return defaultExpanded;
+  });
+  const isFirstRender = useRef(true);
 
-  // Save state to localStorage when it changes
+  // Save state to localStorage when it changes (skip initial render)
   useEffect(() => {
-    if (mounted) {
-      localStorage.setItem(storageKey, String(isExpanded));
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
     }
-  }, [isExpanded, storageKey, mounted]);
+    localStorage.setItem(storageKey, String(isExpanded));
+  }, [isExpanded, storageKey]);
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);

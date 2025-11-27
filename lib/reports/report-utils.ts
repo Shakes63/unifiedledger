@@ -1,6 +1,6 @@
 import { and, eq, gte, lte, desc, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { transactions, budgetCategories, merchants } from '@/lib/db/schema';
+import { transactions, budgetCategories, merchants, accounts } from '@/lib/db/schema';
 import Decimal from 'decimal.js';
 
 /**
@@ -277,7 +277,6 @@ export function getTopMerchants(txns: TransactionData[], limit: number = 10): Ar
  * Calculate net worth from account balances for a household
  */
 export async function calculateNetWorth(userId: string, householdId: string): Promise<number> {
-  const { accounts } = require('@/lib/db/schema');
 
   const result = await db
     .select()

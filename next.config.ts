@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-// @ts-ignore - next-pwa doesn't have proper TypeScript definitions
 // import withPWA from "next-pwa";
 
 // TODO: Re-enable PWA once next-pwa supports Next.js 16 Turbopack

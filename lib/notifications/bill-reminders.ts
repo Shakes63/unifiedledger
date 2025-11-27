@@ -1,13 +1,12 @@
 import { db } from '@/lib/db';
 import { billInstances, bills } from '@/lib/db/schema';
-import { eq, and, lte, gte, isNull } from 'drizzle-orm';
+import { eq, and, lte, gte } from 'drizzle-orm';
 import { addDays, parseISO, differenceInDays, startOfDay } from 'date-fns';
 import { createNotification } from '@/lib/notifications/notification-service';
 
 export async function checkAndCreateBillReminders() {
   try {
     const today = new Date();
-    const todayISO = today.toISOString().split('T')[0];
 
     // Get all pending bill instances
     const pendingInstances = await db

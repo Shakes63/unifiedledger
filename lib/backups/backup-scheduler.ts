@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { backupSettings } from '@/lib/db/schema';
-import { and, eq, lte, sql } from 'drizzle-orm';
+import { and, eq, lte } from 'drizzle-orm';
 import { createUserBackup } from './create-backup';
 
 export interface SchedulerResult {

@@ -262,7 +262,7 @@ export function NotificationsTab() {
                   Enable budget warnings
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Get notified when you're approaching your budget limits
+                  Get notified when you&apos;re approaching your budget limits
                 </p>
               </div>
               <Switch

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useId } from 'react';
 
 interface ProgressRingProps {
   percentage: number; // 0-100
@@ -66,7 +66,8 @@ export function ProgressRing({
   };
 
   const colors = getColor();
-  const gradientId = `gradient-${Math.random().toString(36).substr(2, 9)}`;
+  const id = useId();
+  const gradientId = `gradient-${id}`;
 
   // Animate percentage on mount
   useEffect(() => {

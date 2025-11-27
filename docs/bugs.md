@@ -14,22 +14,26 @@
 
 ## 📋 Improvement Backlog
 
-**Split Transaction Improvements** - See `docs/split-transaction-review.md` for detailed plan
-- Medium: Consolidate duplicate validation logic between `split-calculator.ts` and `split-action-handler.ts`
-- Medium: Replace `Record<string, any>` with proper TypeScript types in split API
-- Medium: Add Decimal.js rounding to 2 decimal places before database storage
+**Split Transaction Improvements (Low Priority)** - See `docs/split-transaction-review.md` for details
 - Low: Add batch split update API endpoint
 - Low: Simplify auto-calculation logic in SplitBuilder
 - Low: Add loading states for category fetching
 
 ---
 
-## 🔧 Linter Errors to Fix (887 total: 421 errors, 466 warnings)
+## 🔧 Linter Errors to Fix (849 remaining: 419 errors, 430 warnings)
 
-### Critical: `@typescript-eslint/no-explicit-any` (421 errors)
+**Status:** In Progress - See `docs/linter-cleanup-plan.md` for plan
+- ✅ lib/ directory warnings fixed (36 warnings)
+- ⏳ app/api/ routes (pending)
+- ⏳ components/ (pending)
+- ⏳ __tests__/ (pending)
+- ⏳ scripts/ (pending)
+
+### Critical: `@typescript-eslint/no-explicit-any` (419 errors)
 Replace `any` types with proper TypeScript types across API routes, components, libraries, tests, and scripts.
 
-### Warnings: `@typescript-eslint/no-unused-vars` (466 warnings)
+### Warnings: `@typescript-eslint/no-unused-vars` (430 warnings)
 Remove or prefix with underscore unused variables/imports across the codebase.
 
 ---
@@ -37,9 +41,9 @@ Remove or prefix with underscore unused variables/imports across the codebase.
 ## 📊 Current Status
 
 **Active Bugs:** 1 (optional)
-**Linter Errors:** 421
-**Linter Warnings:** 466
-**Fixed (All Time):** 60
+**Linter Errors:** 419
+**Linter Warnings:** 430
+**Fixed (All Time):** 63
 
 ---
 
@@ -104,7 +108,10 @@ Remove or prefix with underscore unused variables/imports across the codebase.
 57. **Onboarding Modal Not Resuming After Refresh** - Removed householdList check
 58. **Unused Circle Import in OnboardingProgress** - Removed unused import
 59. **Onboarding Modal Not Scrolling to Top** - Added useRef/useEffect scroll reset
-60. **Split Transaction Code Review** - Fixed hardcoded colors in SplitBuilder (remaining improvements documented in `docs/split-transaction-review.md`)
+60. **Split Transaction Hardcoded Colors** - Replaced hex colors with CSS variables in SplitBuilder
+61. **Split Transaction Duplicate Validation** - Consolidated validation into `validateSplitConfiguration()` in split-calculator.ts with configurable options
+62. **Split Transaction TypeScript Any Types** - Created `SplitUpdateData` interface, replaced `Record<string, any>` in split API
+63. **Split Transaction Decimal Rounding** - Added `toDecimalPlaces(2, ROUND_HALF_UP)` to calculateSplitAmounts and handleSplitCreation
 
 ---
 

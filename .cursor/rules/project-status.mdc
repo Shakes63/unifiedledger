@@ -52,6 +52,12 @@ alwaysApply: false
 ## Recent Major Features
 
 **Latest (2025-11-27):**
+- Split Transaction Improvements (✅ COMPLETE - Medium Priority)
+  - ✅ Consolidated duplicate validation logic - Created `validateSplitConfiguration()` with configurable options
+  - ✅ Fixed TypeScript any types - Created `SplitUpdateData` interface in split API
+  - ✅ Added Decimal.js rounding - `toDecimalPlaces(2, ROUND_HALF_UP)` before database storage
+  - ✅ Added 20 new tests for validation options and rounding behavior
+- Linter Cleanup (⏳ IN PROGRESS) - Fixed 36 warnings in lib/ directory, see `docs/linter-cleanup-plan.md`
 - Onboarding Modal Scroll Fix (✅ COMPLETE) - Added useRef/useEffect to reset scroll position when navigating between steps
 - Split Transaction Code Review (✅ COMPLETE) - Fixed hardcoded colors in SplitBuilder, documented remaining improvements in `docs/split-transaction-review.md`
 - Non-Monthly Bill Month Selection (✅ COMPLETE)
@@ -251,8 +257,15 @@ alwaysApply: false
 ### Active Bugs
 1. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional - low priority)
 
+### In Progress
+- **Linter Cleanup** - See `docs/linter-cleanup-plan.md` for plan (849 remaining: 419 errors, 430 warnings)
+  - ✅ lib/ directory warnings fixed (36 warnings)
+  - ⏳ Remaining directories pending
+
 ### Improvement Backlog
-- **Split Transaction Improvements** - See `docs/split-transaction-review.md` for detailed plan
+- **Split Transaction Improvements (Low Priority)** - See `docs/split-transaction-review.md`
+  - Medium priority items COMPLETE (validation consolidation, TypeScript types, Decimal rounding)
+  - Low priority items remaining (batch API, auto-calc simplification, loading states)
 
 ### Household Data Isolation
 **Status:** ✅ **100% COMPLETE** - All phases (0-4) complete and production-ready

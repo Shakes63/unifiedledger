@@ -1,5 +1,5 @@
-import { parse as papaparse } from 'papaparse';
-import { nanoid } from 'nanoid';
+// Note: CSV parsing done by PapaParse in the component, not this module
+// nanoid available for future ID generation needs
 import Decimal from 'decimal.js';
 
 /**

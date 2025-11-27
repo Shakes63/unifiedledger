@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   AreaChart,
   Area,
@@ -22,6 +22,69 @@ interface TrendsData {
 
 interface AllocationTrendsChartProps {
   data: TrendsData;
+}
+
+interface ChartDataPoint {
+  month: string;
+  monthLabel: string;
+  income: number;
+  expenses: number;
+  savings: number;
+  surplus: number;
+}
+
+// Custom tooltip component - defined outside to avoid recreation
+// Using any for Recharts compatibility
+function TrendsTooltip({ 
+  active, 
+  payload, 
+  label,
+  chartData 
+}: { 
+  active?: boolean; 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: any[]; 
+  label?: string | number;
+  chartData: ChartDataPoint[];
+}) {
+  if (active && payload && payload.length) {
+    const labelStr = typeof label === 'string' ? label : String(label);
+    const monthData = chartData.find(d => d.monthLabel === labelStr);
+    const [year, month] = monthData?.month?.split('-') || [];
+    const fullMonth = year && month 
+      ? new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', { 
+          month: 'long', 
+          year: 'numeric' 
+        })
+      : labelStr;
+
+    return (
+      <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+        <p className="font-semibold text-foreground mb-2">{fullMonth}</p>
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        {payload.map((entry: any, index: number) => (
+          <div key={index} className="flex items-center justify-between gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="text-muted-foreground">{entry.name}</span>
+            </div>
+            <span className="font-mono" style={{ color: entry.color }}>
+              {new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              }).format(entry.value)}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
 }
 
 export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
@@ -53,14 +116,14 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
   };
 
   // Transform data for recharts
-  const chartData = data.months.map((month, index) => ({
+  const chartData = useMemo(() => data.months.map((month, index) => ({
     month,
     monthLabel: formatMonthLabel(month),
     income: data.income[index] || 0,
     expenses: data.expenses[index] || 0,
     savings: data.savings[index] || 0,
     surplus: data.surplus[index] || 0,
-  }));
+  })), [data.months, data.income, data.expenses, data.savings, data.surplus]);
 
   // Toggle series visibility
   const toggleSeries = (series: keyof typeof visibleSeries) => {
@@ -70,45 +133,12 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
     }));
   };
 
-  // Custom tooltip
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const monthData = chartData.find(d => d.monthLabel === label);
-      const [year, month] = monthData?.month?.split('-') || [];
-      const fullMonth = year && month 
-        ? new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', { 
-            month: 'long', 
-            year: 'numeric' 
-          })
-        : label;
-
-      return (
-        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-          <p className="font-semibold text-foreground mb-2">{fullMonth}</p>
-          {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center justify-between gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: entry.color }}
-                />
-                <span className="text-muted-foreground">{entry.name}</span>
-              </div>
-              <span className="font-mono" style={{ color: entry.color }}>
-                {new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                }).format(entry.value)}
-              </span>
-            </div>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
+  // Memoize tooltip with chartData
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tooltipContent = useMemo(() => 
+    function TrendsTooltipWrapper(props: { active?: boolean; payload?: any[]; label?: string | number }) {
+      return <TrendsTooltip {...props} chartData={chartData} />;
+    }, [chartData]);
 
   // Series configuration
   const seriesConfig = [
@@ -225,7 +255,7 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
             width={60}
           />
           
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={tooltipContent} />
 
           {seriesConfig.map((series) => (
             visibleSeries[series.key as keyof typeof visibleSeries] && (

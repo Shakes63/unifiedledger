@@ -10,7 +10,7 @@ export function formatDate(dateString: string | Date): string {
   try {
     const date = typeof dateString === 'string' ? parseISO(dateString) : dateString
     return format(date, 'MMM dd, yyyy')
-  } catch (error) {
+  } catch {
     return dateString?.toString() || 'Invalid date'
   }
 }

@@ -13,13 +13,13 @@ export function useOnlineStatus(onOnline?: () => void): {
   isOnline: boolean;
   isOffline: boolean;
 } {
-  const [status, setStatus] = useState<OnlineStatus>('checking');
-
-  // Check initial online status
-  useEffect(() => {
-    // Set initial status
-    setStatus(navigator.onLine ? 'online' : 'offline');
-  }, []);
+  // Initialize with actual status if available
+  const [status, setStatus] = useState<OnlineStatus>(() => {
+    if (typeof navigator !== 'undefined') {
+      return navigator.onLine ? 'online' : 'offline';
+    }
+    return 'checking';
+  });
 
   const handleOnline = useCallback(() => {
     console.log('Browser came online');

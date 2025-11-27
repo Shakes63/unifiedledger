@@ -35,19 +35,19 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
 
   // Determine title and description based on user type and choice
   const getTitle = () => {
-    if (!isInvitedUser) return "You're All Set!";
+    if (!isInvitedUser) return "You&apos;re All Set!";
     if (demoDataCleared) return "Fresh Start Ready!";
     return "Demo Data Created!";
   };
 
   const getDescription = () => {
     if (!isInvitedUser) {
-      return "Congratulations! You've completed the onboarding. Here's what you can do next.";
+      return "Congratulations! You&apos;ve completed the onboarding. Here&apos;s what you can do next.";
     }
     if (demoDataCleared) {
-      return "You're starting with a clean slate. Create your first account and transaction to get started.";
+      return "You&apos;re starting with a clean slate. Create your first account and transaction to get started.";
     }
-    return "You can now explore the app with sample data. All demo data is clearly marked and won't affect real household finances.";
+    return "You can now explore the app with sample data. All demo data is clearly marked and won&apos;t affect real household finances.";
   };
 
   return (
@@ -74,7 +74,7 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
                   Welcome to Unified Ledger!
                 </h3>
                 <p className="text-muted-foreground">
-                  You've chosen to start fresh. Create your first account and begin tracking your finances right away.
+                  You&apos;ve chosen to start fresh. Create your first account and begin tracking your finances right away.
                 </p>
               </>
             ) : (
@@ -83,7 +83,7 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
                   Welcome to Unified Ledger!
                 </h3>
                 <p className="text-muted-foreground">
-                  Demo data has been created so you can practice and explore the app. All demo items are clearly marked with "Demo" prefix.
+                  Demo data has been created so you can practice and explore the app. All demo items are clearly marked with &quot;Demo&quot; prefix.
                 </p>
               </>
             )
@@ -93,7 +93,7 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
                 Welcome to Unified Ledger!
               </h3>
               <p className="text-muted-foreground">
-                You've set up the basics. Now you can start tracking your finances, managing budgets,
+                You&apos;ve set up the basics. Now you can start tracking your finances, managing budgets,
                 and achieving your financial goals.
               </p>
             </>
@@ -137,7 +137,7 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
                 <li>Try creating a transaction to see how it works</li>
                 <li>Explore the dashboard to see your demo accounts and balances</li>
                 <li>Check out bills, goals, and debts in their respective sections</li>
-                <li>Demo data won't affect real household finances</li>
+                <li>Demo data won&apos;t affect real household finances</li>
               </ul>
             </div>
           )

@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { notificationPreferences, accounts, notifications } from '@/lib/db/schema';
-import { eq, and, lt, gte } from 'drizzle-orm';
+import { eq, and, gte } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications/notification-service';
 
 /**

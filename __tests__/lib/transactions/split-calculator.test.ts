@@ -1,7 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { describe, it, expect } from "vitest";
 import {
   validateSplits,
+  validateSplitConfiguration,
   calculateSplitAmounts,
   getRemainingForNewSplit,
   calculateSplitMetrics,
@@ -435,10 +436,12 @@ describe("Split Calculator - Financial Precision Tests", () => {
       const validation = validateSplits(splits, transactionAmount);
       expect(validation.valid).toBe(true);
 
-      // Calculate amounts
+      // Calculate amounts (now rounded to 2 decimal places)
       const amounts = calculateSplitAmounts(splits, transactionAmount);
       const total = amounts.reduce((sum, a) => sum + a.amount, 0);
-      expect(Math.abs(total - transactionAmount) < 0.01).toBe(true);
+      // With rounding to 2 decimal places, the sum may differ slightly
+      // from the transaction amount (by up to $0.03 for 3-way splits)
+      expect(Math.abs(total - transactionAmount) < 0.03).toBe(true);
 
       // Check remaining
       const remaining = getRemainingForNewSplit(splits, transactionAmount, true);
@@ -495,6 +498,216 @@ describe("Split Calculator - Financial Precision Tests", () => {
         transactionAmount
       );
       expect(revalidation.valid).toBe(true);
+    });
+  });
+
+  describe("validateSplitConfiguration (consolidated validation)", () => {
+    describe("Basic validation", () => {
+      it("should return null for valid splits", () => {
+        const splits: SplitEntry[] = [
+          { amount: 50, isPercentage: false, categoryId: "cat-1" },
+          { amount: 50, isPercentage: false, categoryId: "cat-2" },
+        ];
+        const error = validateSplitConfiguration(splits, { transactionAmount: 100 });
+        expect(error).toBeNull();
+      });
+
+      it("should reject empty splits array", () => {
+        const error = validateSplitConfiguration([]);
+        expect(error).toBe("At least one split is required");
+      });
+
+      it("should reject null splits", () => {
+        const error = validateSplitConfiguration(null as unknown as SplitEntry[]);
+        expect(error).toBe("At least one split is required");
+      });
+    });
+
+    describe("Category validation with requireCategory option", () => {
+      it("should require category when requireCategory is true", () => {
+        const splits: SplitEntry[] = [
+          { amount: 100, isPercentage: false }, // No categoryId
+        ];
+        const error = validateSplitConfiguration(splits, { requireCategory: true });
+        expect(error).toContain("Category is required");
+      });
+
+      it("should allow missing category when requireCategory is false", () => {
+        const splits: SplitEntry[] = [
+          { amount: 100, isPercentage: false },
+        ];
+        const error = validateSplitConfiguration(splits, { 
+          requireCategory: false,
+          transactionAmount: 100,
+        });
+        expect(error).toBeNull();
+      });
+    });
+
+    describe("Zero value handling with requirePositiveValues option", () => {
+      it("should allow zero amounts when requirePositiveValues is false (default)", () => {
+        const splits: SplitEntry[] = [
+          { amount: 0, isPercentage: false, categoryId: "cat-1" },
+          { amount: 100, isPercentage: false, categoryId: "cat-2" },
+        ];
+        const error = validateSplitConfiguration(splits, { transactionAmount: 100 });
+        expect(error).toBeNull();
+      });
+
+      it("should reject zero amounts when requirePositiveValues is true", () => {
+        const splits: SplitEntry[] = [
+          { amount: 0, isPercentage: false, categoryId: "cat-1" },
+        ];
+        const error = validateSplitConfiguration(splits, { requirePositiveValues: true });
+        expect(error).toContain("must be greater than 0");
+      });
+
+      it("should reject zero percentage when requirePositiveValues is true", () => {
+        const splits: SplitEntry[] = [
+          { percentage: 0, isPercentage: true, categoryId: "cat-1" },
+        ];
+        const error = validateSplitConfiguration(splits, { requirePositiveValues: true });
+        expect(error).toContain("must be greater than 0");
+      });
+
+      it("should allow zero percentage when requirePositiveValues is false", () => {
+        const splits: SplitEntry[] = [
+          { percentage: 0, isPercentage: true, categoryId: "cat-1" },
+          { percentage: 100, isPercentage: true, categoryId: "cat-2" },
+        ];
+        const error = validateSplitConfiguration(splits);
+        expect(error).toBeNull();
+      });
+    });
+
+    describe("Mixed splits validation", () => {
+      it("should reject mixed percentage and amount splits", () => {
+        const splits: SplitEntry[] = [
+          { percentage: 50, isPercentage: true },
+          { amount: 50, isPercentage: false },
+        ];
+        const error = validateSplitConfiguration(splits);
+        expect(error).toBe("Cannot mix percentage and amount splits");
+      });
+    });
+
+    describe("Total validation", () => {
+      it("should reject percentage splits that exceed 100%", () => {
+        const splits: SplitEntry[] = [
+          { percentage: 60, isPercentage: true },
+          { percentage: 60, isPercentage: true },
+        ];
+        const error = validateSplitConfiguration(splits);
+        expect(error).toContain("exceeds 100%");
+      });
+
+      it("should reject percentage splits that don't sum to 100%", () => {
+        const splits: SplitEntry[] = [
+          { percentage: 50, isPercentage: true },
+          { percentage: 40, isPercentage: true },
+        ];
+        const error = validateSplitConfiguration(splits);
+        expect(error).toContain("must sum to 100%");
+      });
+
+      it("should accept percentage splits within tolerance", () => {
+        const splits: SplitEntry[] = [
+          { percentage: 50.005, isPercentage: true },
+          { percentage: 50.004, isPercentage: true },
+        ];
+        // Total is 100.009, within 0.01 tolerance
+        const error = validateSplitConfiguration(splits);
+        expect(error).toBeNull();
+      });
+
+      it("should reject amount splits that exceed transaction amount", () => {
+        const splits: SplitEntry[] = [
+          { amount: 60, isPercentage: false },
+          { amount: 60, isPercentage: false },
+        ];
+        const error = validateSplitConfiguration(splits, { transactionAmount: 100 });
+        expect(error).toContain("exceeds transaction amount");
+      });
+
+      it("should accept amount splits that sum to transaction amount", () => {
+        const splits: SplitEntry[] = [
+          { amount: 50, isPercentage: false },
+          { amount: 50, isPercentage: false },
+        ];
+        const error = validateSplitConfiguration(splits, { transactionAmount: 100 });
+        expect(error).toBeNull();
+      });
+
+      it("should allow custom tolerance", () => {
+        const splits: SplitEntry[] = [
+          { percentage: 50, isPercentage: true },
+          { percentage: 50.05, isPercentage: true }, // Over 100 by 0.05
+        ];
+        // Default tolerance 0.01 should reject
+        const error1 = validateSplitConfiguration(splits, { tolerance: 0.01 });
+        expect(error1).not.toBeNull();
+
+        // Higher tolerance 0.1 should accept
+        const error2 = validateSplitConfiguration(splits, { tolerance: 0.1 });
+        expect(error2).toBeNull();
+      });
+    });
+
+    describe("Percentage range validation", () => {
+      it("should reject percentage over 100", () => {
+        const splits: SplitEntry[] = [
+          { percentage: 150, isPercentage: true },
+        ];
+        const error = validateSplitConfiguration(splits);
+        expect(error).toContain("cannot exceed 100");
+      });
+    });
+  });
+
+  describe("Decimal rounding in calculateSplitAmounts", () => {
+    it("should round calculated amounts to 2 decimal places", () => {
+      const splits: SplitEntry[] = [
+        { percentage: 33.33, isPercentage: true },
+        { percentage: 33.33, isPercentage: true },
+        { percentage: 33.34, isPercentage: true },
+      ];
+      const result = calculateSplitAmounts(splits, 100);
+
+      // Verify each amount has at most 2 decimal places
+      result.forEach((r) => {
+        const decimalStr = r.amount.toString();
+        const parts = decimalStr.split(".");
+        const decimalPart = parts[1] || "";
+        expect(decimalPart.length).toBeLessThanOrEqual(2);
+      });
+    });
+
+    it("should handle repeating decimals properly", () => {
+      // 33.33% of 100 = 33.33 (not 33.33333...)
+      const splits: SplitEntry[] = [
+        { percentage: 33.333333, isPercentage: true },
+      ];
+      const result = calculateSplitAmounts(splits, 100);
+      
+      // Should be rounded to 2 decimal places
+      expect(result[0].amount).toBe(33.33);
+    });
+
+    it("should round up correctly (ROUND_HALF_UP)", () => {
+      // 50.005% of 100 = 50.005 → should round to 50.01
+      const splits: SplitEntry[] = [
+        { percentage: 50.005, isPercentage: true },
+      ];
+      const result = calculateSplitAmounts(splits, 100);
+      expect(result[0].amount).toBe(50.01);
+    });
+
+    it("should not affect fixed amount splits", () => {
+      const splits: SplitEntry[] = [
+        { amount: 33.33, isPercentage: false },
+      ];
+      const result = calculateSplitAmounts(splits, 100);
+      expect(result[0].amount).toBe(33.33);
     });
   });
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -95,17 +95,14 @@ function detectPreset(startDate: string | null, endDate: string | null): PresetT
  */
 export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangePickerProps) {
   const [isExpanded, setIsExpanded] = useState(true);
-  const [activePreset, setActivePreset] = useState<PresetType>('custom');
   const [error, setError] = useState<string | null>(null);
 
-  // Detect preset when dates change
-  useEffect(() => {
+  // Derive active preset from dates (no state needed)
+  const activePreset = useMemo(() => {
     if (startDate && endDate) {
-      const detected = detectPreset(startDate, endDate);
-      setActivePreset(detected);
-    } else {
-      setActivePreset('custom');
+      return detectPreset(startDate, endDate);
     }
+    return 'custom' as PresetType;
   }, [startDate, endDate]);
 
   // Validate date range
@@ -140,7 +137,6 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
     const presetDates = getPresetDates(preset);
     if (presetDates) {
       setError(null);
-      setActivePreset(preset);
       onDateChange(presetDates.start, presetDates.end);
     }
   };
@@ -153,13 +149,8 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
     const validationError = validateDateRange(newStart, newEnd);
     setError(validationError);
     
-    if (!validationError) {
-      setActivePreset('custom');
-      onDateChange(newStart, newEnd);
-    } else {
-      // Still update start date even if validation fails (user might be typing)
-      onDateChange(newStart, newEnd);
-    }
+    // Update dates (validation is shown but doesn't block typing)
+    onDateChange(newStart, newEnd);
   };
 
   const handleEndDateChange = (value: string) => {
@@ -169,19 +160,13 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
     const validationError = validateDateRange(newStart, newEnd);
     setError(validationError);
     
-    if (!validationError) {
-      setActivePreset('custom');
-      onDateChange(newStart, newEnd);
-    } else {
-      // Still update end date even if validation fails (user might be typing)
-      onDateChange(newStart, newEnd);
-    }
+    // Update dates (validation is shown but doesn't block typing)
+    onDateChange(newStart, newEnd);
   };
 
   // Handle clear dates
   const handleClear = () => {
     setError(null);
-    setActivePreset('custom');
     onDateChange(null, null);
   };
 

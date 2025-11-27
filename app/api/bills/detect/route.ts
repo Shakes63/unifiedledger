@@ -226,8 +226,8 @@ export async function PUT(request: Request) {
         const currentYear = today.getFullYear();
 
         for (let i = 0; i < 3; i++) {
-          let month = (currentMonth + i) % 12;
-          let year = currentYear + Math.floor((currentMonth + i) / 12);
+          const month = (currentMonth + i) % 12;
+          const year = currentYear + Math.floor((currentMonth + i) / 12);
 
           const daysInMonth = new Date(year, month + 1, 0).getDate();
           const instanceDueDate = Math.min(dueDate, daysInMonth);

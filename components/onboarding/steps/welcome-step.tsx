@@ -40,7 +40,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
               🎯 Demo Mode
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              All data created during onboarding will be marked as "Demo" and won't affect real household finances.
+              All data created during onboarding will be marked as &quot;Demo&quot; and won&apos;t affect real household finances.
             </p>
           </div>
         )}
@@ -53,7 +53,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
           {isInvitedUser ? (
             <>
               <h3 className="text-xl font-semibold text-foreground">
-                We'll create demo data so you can explore:
+                We&apos;ll create demo data so you can explore:
               </h3>
               <ul className="space-y-3 text-left text-muted-foreground">
                 <li className="flex items-center gap-3">
@@ -82,7 +82,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
           ) : (
             <>
               <h3 className="text-xl font-semibold text-foreground">
-                We'll walk you through setting up:
+                We&apos;ll walk you through setting up:
               </h3>
               
               {/* Essential Steps */}

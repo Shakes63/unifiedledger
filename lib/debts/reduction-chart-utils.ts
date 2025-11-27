@@ -1,5 +1,5 @@
 import Decimal from 'decimal.js';
-import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths, addMonths } from 'date-fns';
+import { format, endOfMonth, eachMonthOfInterval, addMonths } from 'date-fns';
 
 export interface DebtWithPayments {
   id: string;

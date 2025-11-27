@@ -138,7 +138,8 @@ export async function findMatchingBills(
     return matches;
   }
 
-  const txKeywords = extractKeywords(transaction.description);
+  // Note: keyword extraction available for future enhanced matching
+  // const txKeywords = extractKeywords(transaction.description);
 
   for (const bill of bills) {
     const reasons: string[] = [];

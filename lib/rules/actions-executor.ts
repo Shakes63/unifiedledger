@@ -14,9 +14,7 @@ import type {
   TransactionMutations,
   ActionExecutionContext,
   ActionExecutionResult,
-  PATTERN_VARIABLES,
   SplitConfig,
-  SalesTaxConfig,
 } from './types';
 
 /**

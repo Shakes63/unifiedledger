@@ -77,7 +77,7 @@ export function EnhancedBillsWidget() {
         `/api/bills/instances?status=pending,paid&limit=1000`
       );
 
-      let allBillInstances: BillInstance[] = [];
+      const allBillInstances: BillInstance[] = [];
 
       // Process overdue bills - include all regardless of date
       if (overdueResponse.ok) {

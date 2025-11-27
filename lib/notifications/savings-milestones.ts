@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { savingsGoals, savingsMilestones, notifications } from '@/lib/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export async function checkAndCreateSavingsMilestoneNotifications(userId: string) {

@@ -273,7 +273,7 @@ export async function POST(request: Request) {
 
     // Create transaction(s)
     const decimalAmount = new Decimal(amount);
-    let transactionId = nanoid();
+    const transactionId = nanoid();
     let transferInId: string | null = null;
 
     // OPTIMIZATION: Create TWO transactions for transfers (Task 7: ~30-50% faster)
