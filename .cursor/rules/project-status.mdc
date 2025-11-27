@@ -52,6 +52,12 @@ alwaysApply: false
 ## Recent Major Features
 
 **Latest (2025-11-27):**
+- Non-Monthly Bill Month Selection (✅ COMPLETE)
+  - ✅ Added startMonth column to bills table (0-11 for Jan-Dec)
+  - ✅ Month selector dropdown in bill form for quarterly/semi-annual/annual bills
+  - ✅ Updated calculateNextDueDate to accept optional startMonth parameter
+  - ✅ Bill display shows month name (e.g., "March 15th") for non-monthly bills
+  - ✅ Defaults to current month when creating new bills
 - Budget Summary Dashboard (✅ COMPLETE)
   - ✅ API endpoint `/api/budgets/allocation-summary` with household isolation
   - ✅ Donut chart showing budget allocation breakdown
