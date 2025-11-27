@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     try {
       const auth = await requireAuth();
       userId = auth.userId;
-    } catch (error) {
+    } catch (_error) {
       // User not authenticated - return success but don't store
       // This prevents errors on public pages and unauthenticated requests
       return NextResponse.json({ success: true, stored: false });

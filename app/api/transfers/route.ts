@@ -260,7 +260,7 @@ export async function POST(request: Request) {
         .where(eq(accounts.id, toAccountId));
 
       // Track transfer pair usage
-      const transferPairKey = `${fromAccountId}→${toAccountId}`;
+      const _transferPairKey = `${fromAccountId}→${toAccountId}`;
       const existingAnalytics = await tx
         .select()
         .from(usageAnalytics)

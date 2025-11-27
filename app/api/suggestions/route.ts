@@ -62,7 +62,8 @@ export async function GET(request: Request) {
       }));
 
     // Get common amounts for this merchant/category
-    const usageData = await db
+    // Note: Usage data fetched for future enhanced suggestions
+    const _usageData = await db
       .select()
       .from(usageAnalytics)
       .where(eq(usageAnalytics.userId, userId))

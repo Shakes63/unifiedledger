@@ -8,7 +8,6 @@ import {
   groupByCategory,
   calculateSum,
   getUserCategories,
-  calculateDateRange,
 } from '@/lib/reports/report-utils';
 
 /**

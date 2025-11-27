@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
               .where(eq(user.id, userId));
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Invalid backup codes format, continue with TOTP only
       }
     }

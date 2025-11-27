@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { verification as verificationTable, user as userTable } from '@/auth-schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 

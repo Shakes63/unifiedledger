@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
           obj[header] = row[i] || '';
         });
         return obj;
-      }) : rows.map((row, idx) => {
+      }) : rows.map((row, _idx) => {
         const obj: Record<string, string> = {};
         row.forEach((val, i) => {
           obj[`Column ${i + 1}`] = val || '';

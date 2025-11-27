@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 /**
  * GET: Get backup scheduler configuration
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const config = {
       endpoint: '/api/cron/backups',

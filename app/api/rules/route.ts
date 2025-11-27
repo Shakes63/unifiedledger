@@ -297,7 +297,7 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-    } catch (err) {
+    } catch (_err) {
       return Response.json(
         { error: 'Conditions must be valid JSON' },
         { status: 400 }
@@ -496,7 +496,7 @@ export async function PUT(request: Request) {
             { status: 400 }
           );
         }
-      } catch (err) {
+      } catch (_err) {
         return Response.json(
           { error: 'Conditions must be valid JSON' },
           { status: 400 }

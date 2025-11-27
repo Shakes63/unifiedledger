@@ -3,7 +3,6 @@ import { db } from '@/lib/db';
 import { householdMembers } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { hasPermission } from '@/lib/household/permissions';
-import type { HouseholdRole } from '@/lib/household/permissions';
 
 export const dynamic = 'force-dynamic';
 

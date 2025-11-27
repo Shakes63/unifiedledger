@@ -119,9 +119,10 @@ export async function GET(request: NextRequest) {
     const topMerchants = getTopMerchants(expenses, limit);
 
     // Fetch merchant names for merchantIds
-    const merchantIdsFromData = topMerchants
+    // Note: merchantIds are nanoid format (longer strings)
+    const _merchantIdsFromData = topMerchants
       .map((m) => m.merchant)
-      .filter((id) => id && id.length > 10); // merchantIds are nanoid format (longer strings)
+      .filter((id) => id && id.length > 10);
 
     const merchantRecords = await db
       .select()

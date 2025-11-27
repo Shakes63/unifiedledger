@@ -53,7 +53,7 @@ const DEFAULT_CATEGORIES = [
   { name: 'Loan Payment', type: 'debt' },
 ];
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     const { userId } = await requireAuth();
 

@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, searchHistory, transactionTags, customFieldValues, accounts, budgetCategories } from '@/lib/db/schema';
+import { transactions, searchHistory, transactionTags, accounts, budgetCategories } from '@/lib/db/schema';
 import { eq, and, or, gte, lte, like, inArray, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';

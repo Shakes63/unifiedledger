@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories } from '@/lib/db/schema';
-import { eq, and, gte, lte, sum, sql, inArray } from 'drizzle-orm';
+import { eq, and, gte, lte, inArray } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 

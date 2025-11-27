@@ -78,7 +78,7 @@ export async function POST(request: Request) {
           { status: 401 }
         );
       }
-    } catch (verifyError) {
+    } catch (_verifyError) {
       // If verification fails, password is incorrect
       return NextResponse.json(
         { error: 'Invalid password' },

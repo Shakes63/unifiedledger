@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await requireAuth();
+    await requireAuth();
 
     const body = await request.json();
     const { token } = body;

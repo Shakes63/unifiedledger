@@ -13,7 +13,7 @@ import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     // Get session using Better Auth API
     const session = await auth.api.getSession({

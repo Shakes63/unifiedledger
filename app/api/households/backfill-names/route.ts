@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(_request: Request) {
   try {
-    const { userId } = await requireAuth();
+    await requireAuth();
 
     // Get all household members without userName
     const membersWithoutName = await db

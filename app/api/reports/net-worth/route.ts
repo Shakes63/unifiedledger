@@ -10,7 +10,6 @@ import {
   formatMonthLabel,
   calculateNetWorth,
 } from '@/lib/reports/report-utils';
-import Decimal from 'decimal.js';
 
 /**
  * GET /api/reports/net-worth

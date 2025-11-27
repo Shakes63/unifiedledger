@@ -14,29 +14,31 @@
 
 ## 🔧 Linter Errors to Fix (⏳ IN PROGRESS)
 
-**Status:** 775 problems remaining (419 errors, 356 warnings)
+**Status:** 730 problems remaining (419 errors, 311 warnings)
 
 **Plan Files:**
 - Main plan: `docs/linter-cleanup-plan.md`
 - API routes plan: `docs/linter-cleanup-api-routes-plan.md`
+- Phase 1 continuation: `docs/linter-cleanup-phase1-continuation.md`
 
 **Progress:**
 - ✅ lib/ directory warnings fixed (36 warnings)
-- ✅ app/api/ routes warnings (69 fixed, 45 remaining)
-- ⏳ components/ (pending)
+- ✅ app/api/ routes warnings COMPLETE (114 fixed, 0 remaining)
+- ⏳ components/ (pending - 210 warnings)
 - ⏳ __tests__/ (pending)
 - ⏳ scripts/ (pending)
 
-**What was done:**
-- Updated ESLint config to allow underscore-prefixed unused variables (`_variable`)
-- Fixed unused imports (sql, desc, and, or, like from drizzle-orm)
-- Prefixed unused function parameters with `_` (e.g., `_request: Request`)
-- Removed unused variable assignments
+**What was done (2025-11-27):**
+- Completed remaining 45 app/api/ warnings in 4 batches:
+  - Batch 1.1: Removed 17 unused imports
+  - Batch 1.2: Prefixed 8 unused request parameters with `_`
+  - Batch 1.3: Prefixed 8 unused caught errors with `_`
+  - Batch 1.4: Fixed 10 unused variable assignments
 - Build verified passing
+- ESLint config already allows underscore-prefixed unused variables
 
 **Remaining Work:**
-- 45 warnings still in app/api/
-- 356 total warnings across codebase
+- 311 warnings across codebase (210 in components/, 101 elsewhere)
 - 419 errors (`@typescript-eslint/no-explicit-any`) for Phase 2
 
 ---
@@ -54,8 +56,8 @@
 
 **Active Bugs:** 1 (optional)
 **Linter Errors:** 419
-**Linter Warnings:** 356
-**Fixed (All Time):** 137 (63 bugs + 74 linter warnings)
+**Linter Warnings:** 311
+**Fixed (All Time):** 182 (63 bugs + 119 linter warnings)
 
 ---
 

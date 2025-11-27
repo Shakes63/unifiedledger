@@ -15,7 +15,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { user as userSchema, verification } from '@/auth-schema';
-import { eq, and, gte } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { sendVerificationEmail } from '@/lib/email/email-service';
 import { getAppUrl } from '@/lib/email/email-config';
 import { nanoid } from 'nanoid';

@@ -40,7 +40,7 @@ export async function POST(_request: Request) {
  */
 export async function GET(_request: Request) {
   try {
-    const { userId } = await requireAuth();
+    await requireAuth();
 
     // User endpoint - just trigger the global check
     // This would typically be called daily by a cron job

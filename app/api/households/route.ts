@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const { userId } = await requireAuth();
 

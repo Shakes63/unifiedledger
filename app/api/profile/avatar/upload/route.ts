@@ -13,8 +13,8 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-// Maximum file size: 5MB
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+// Maximum file size: 5MB (used for client-side validation reference)
+const _MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export async function POST(request: Request) {
   try {

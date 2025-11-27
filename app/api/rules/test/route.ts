@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
     const body = await request.json();
-    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+    await getAndVerifyHousehold(request, userId, body);
 
     const { rule, transactions } = body;
 

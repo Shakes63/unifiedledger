@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
  * GET /api/sales-tax/categories
  * Fetch all active sales tax categories for the current user
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const { userId } = await requireAuth();
 

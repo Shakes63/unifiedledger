@@ -1,5 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
-import { requireHouseholdAuth, getHouseholdIdFromRequest } from '@/lib/api/household-auth';
+import { requireHouseholdAuth } from '@/lib/api/household-auth';
 import { generateDemoData } from '@/lib/onboarding/demo-data-generator';
 
 export const dynamic = 'force-dynamic';

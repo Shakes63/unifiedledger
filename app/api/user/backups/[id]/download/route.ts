@@ -37,7 +37,7 @@ export async function GET(
     // Verify user has access to this household
     try {
       await getAndVerifyHousehold(request, userId, { householdId: backupRecord.householdId });
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json(
         { error: 'Unauthorized: Not a member of this household' },
         { status: 403 }

@@ -3,7 +3,7 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtPayments } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { subMonths, startOfMonth, addMonths } from 'date-fns';
+import { subMonths, startOfMonth } from 'date-fns';
 import {
   aggregateHistoricalBalances,
   generateProjection,

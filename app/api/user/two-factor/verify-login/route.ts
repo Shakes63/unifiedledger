@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
 import { db } from '@/lib/db';
 import { user } from '@/auth-schema';
 import { eq } from 'drizzle-orm';
@@ -72,7 +71,7 @@ export async function POST(request: NextRequest) {
               .where(eq(user.id, currentUser.id));
           }
         }
-      } catch (error) {
+      } catch (_error) {
         // Invalid backup codes format, continue with TOTP only
       }
     }

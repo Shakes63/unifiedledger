@@ -4,7 +4,7 @@ import { getOrCreatePreferences, updatePreferences } from '@/lib/notifications/n
 export const dynamic = 'force-dynamic';
 
 // GET - Get user's notification preferences
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
   try {
     const { userId } = await requireAuth();
 

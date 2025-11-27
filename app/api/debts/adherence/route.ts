@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtSettings, debtPayments } from '@/lib/db/schema';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, gte, lte } from 'drizzle-orm';
 import { calculatePayoffStrategy, type DebtInput, type PayoffMethod, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
 import Decimal from 'decimal.js';
 

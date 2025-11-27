@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, budgetCategories, accounts } from '@/lib/db/schema';
+import { transactions, accounts } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
 

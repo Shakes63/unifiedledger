@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { transactions, billInstances, bills } from '@/lib/db/schema';
 import { eq, and, gte, lte, lt } from 'drizzle-orm';
-import { format, parse } from 'date-fns';
+import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
