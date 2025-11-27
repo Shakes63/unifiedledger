@@ -12,43 +12,28 @@
 
 ---
 
-## 🔧 Linter Errors to Fix (⏳ IN PROGRESS)
+## 🔧 Linter Cleanup (⏳ IN PROGRESS)
 
 **Status:** 730 problems remaining (419 errors, 311 warnings)
 
-**Plan Files:**
-- Main plan: `docs/linter-cleanup-plan.md`
-- API routes plan: `docs/linter-cleanup-api-routes-plan.md`
-- Phase 1 continuation: `docs/linter-cleanup-phase1-continuation.md`
+**Plan File:** `docs/linter-cleanup-phase1-continuation.md`
 
 **Progress:**
-- ✅ lib/ directory warnings fixed (36 warnings)
-- ✅ app/api/ routes warnings COMPLETE (114 fixed, 0 remaining)
-- ⏳ components/ (pending - 210 warnings)
-- ⏳ __tests__/ (pending)
-- ⏳ scripts/ (pending)
+- ✅ lib/ directory warnings (36 fixed)
+- ✅ app/api/ routes warnings (114 fixed - COMPLETE)
+- ⏳ components/ (210 warnings pending)
+- ⏳ __tests__/, scripts/, contexts/, hooks/ (pending)
 
-**What was done (2025-11-27):**
-- Completed remaining 45 app/api/ warnings in 4 batches:
-  - Batch 1.1: Removed 17 unused imports
-  - Batch 1.2: Prefixed 8 unused request parameters with `_`
-  - Batch 1.3: Prefixed 8 unused caught errors with `_`
-  - Batch 1.4: Fixed 10 unused variable assignments
-- Build verified passing
-- ESLint config already allows underscore-prefixed unused variables
-
-**Remaining Work:**
-- 311 warnings across codebase (210 in components/, 101 elsewhere)
-- 419 errors (`@typescript-eslint/no-explicit-any`) for Phase 2
+**Next:** Fix components/ warnings (210 remaining), then Phase 2 errors (419 `@typescript-eslint/no-explicit-any`)
 
 ---
 
 ## 📋 Improvement Backlog
 
-**Split Transaction Improvements (Low Priority)** - See `docs/split-transaction-review.md` for details
-- Low: Add batch split update API endpoint
-- Low: Simplify auto-calculation logic in SplitBuilder
-- Low: Add loading states for category fetching
+**Split Transaction Improvements (Low Priority)** - See `docs/split-transaction-review.md`
+- Add batch split update API endpoint
+- Simplify auto-calculation logic in SplitBuilder
+- Add loading states for category fetching
 
 ---
 
@@ -61,7 +46,7 @@
 
 ---
 
-## ✅ Fixed Bugs
+## ✅ Fixed Bugs (63 total)
 
 1. **Savings Goals GET 500 Error** - Enhanced error logging in API route
 2. **Savings Goals POST 500 Error** - Added explicit type casting for amounts
@@ -122,15 +107,13 @@
 57. **Onboarding Modal Not Resuming After Refresh** - Removed householdList check
 58. **Unused Circle Import in OnboardingProgress** - Removed unused import
 59. **Onboarding Modal Not Scrolling to Top** - Added useRef/useEffect scroll reset
-60. **Split Transaction Hardcoded Colors** - Replaced hex colors with CSS variables in SplitBuilder
-61. **Split Transaction Duplicate Validation** - Consolidated validation into `validateSplitConfiguration()` in split-calculator.ts with configurable options
-62. **Split Transaction TypeScript Any Types** - Created `SplitUpdateData` interface, replaced `Record<string, any>` in split API
-63. **Split Transaction Decimal Rounding** - Added `toDecimalPlaces(2, ROUND_HALF_UP)` to calculateSplitAmounts and handleSplitCreation
+60. **Split Transaction Hardcoded Colors** - Replaced hex colors with CSS variables
+61. **Split Transaction Duplicate Validation** - Consolidated into validateSplitConfiguration()
+62. **Split Transaction TypeScript Any Types** - Created SplitUpdateData interface
+63. **Split Transaction Decimal Rounding** - Added toDecimalPlaces(2, ROUND_HALF_UP)
 
 ---
 
 ## 💡 Known Minor Issues (Not Blocking)
 
 1. **Middleware Convention:** Next.js deprecation warning - "middleware" should use "proxy" instead
-
-**Note:** These don't require immediate action but can be addressed as polish improvements.

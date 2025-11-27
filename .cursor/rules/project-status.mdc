@@ -57,7 +57,7 @@ alwaysApply: false
   - ✅ Fixed TypeScript any types - Created `SplitUpdateData` interface in split API
   - ✅ Added Decimal.js rounding - `toDecimalPlaces(2, ROUND_HALF_UP)` before database storage
   - ✅ Added 20 new tests for validation options and rounding behavior
-- Linter Cleanup (⏳ IN PROGRESS) - Fixed 74 warnings total (36 in lib/, 69 in app/api/), see `docs/linter-cleanup-plan.md` and `docs/linter-cleanup-api-routes-plan.md`
+- Linter Cleanup (⏳ IN PROGRESS) - Fixed 155 warnings total (36 in lib/, 114 in app/api/ - COMPLETE), see `docs/linter-cleanup-phase1-continuation.md`
 - Onboarding Modal Scroll Fix (✅ COMPLETE) - Added useRef/useEffect to reset scroll position when navigating between steps
 - Split Transaction Code Review (✅ COMPLETE) - Fixed hardcoded colors in SplitBuilder, documented remaining improvements in `docs/split-transaction-review.md`
 - Non-Monthly Bill Month Selection (✅ COMPLETE)
@@ -258,12 +258,14 @@ alwaysApply: false
 1. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional - low priority)
 
 ### In Progress
-- **Linter Cleanup** - See `docs/linter-cleanup-plan.md` and `docs/linter-cleanup-api-routes-plan.md` for plans
-  - **Status:** 775 problems remaining (419 errors, 356 warnings) - 74 warnings fixed
-  - ✅ lib/ directory warnings fixed (36 warnings)
-  - ✅ app/api/ routes warnings (69 fixed, 45 remaining)
+- **Linter Cleanup** - See `docs/linter-cleanup-phase1-continuation.md` for detailed plan
+  - **Status:** 730 problems remaining (419 errors, 311 warnings) - 155 warnings fixed
+  - ✅ lib/ directory warnings (36 fixed)
+  - ✅ app/api/ routes warnings (114 fixed - COMPLETE)
   - ✅ ESLint config updated to allow `_variable` prefix for unused vars
-  - ⏳ components/, __tests__/, scripts/ (pending)
+  - ⏳ components/ (210 warnings pending)
+  - ⏳ __tests__/, scripts/, contexts/, hooks/ (pending)
+  - ⏳ Phase 2: 419 errors (`@typescript-eslint/no-explicit-any`) - not started
 
 ### Improvement Backlog
 - **Split Transaction Improvements (Low Priority)** - See `docs/split-transaction-review.md`
