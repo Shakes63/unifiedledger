@@ -12,8 +12,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { format } from 'date-fns';
-
 interface ChartDataPoint {
   month: string;
   projectedTotal: number;

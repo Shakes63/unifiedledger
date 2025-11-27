@@ -5,7 +5,6 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Clock, AlertCircle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 
@@ -122,7 +121,7 @@ export function BillsWidget() {
     return () => window.removeEventListener('bills-refresh', handleBillsRefresh);
   }, [selectedHouseholdId, fetchWithHousehold]);
 
-  const paidCount = bills.filter((b) => b.status === 'paid').length;
+  const _paidCount = bills.filter((b) => b.status === 'paid').length;
   const pendingCount = bills.filter((b) => b.status === 'pending').length;
   const totalAmount = bills.reduce((sum, b) => sum + (b.actualAmount || b.expectedAmount), 0);
   const paidAmount = bills

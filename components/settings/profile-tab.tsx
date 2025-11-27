@@ -42,7 +42,7 @@ export function ProfileTab() {
   const [resendingVerification, setResendingVerification] = useState(false);
 
   // Pending email change state
-  const [resendingEmailChange, setResendingEmailChange] = useState(false);
+  const [_resendingEmailChange, setResendingEmailChange] = useState(false);
   const [cancelingEmailChange, setCancelingEmailChange] = useState(false);
 
   useEffect(() => {
@@ -86,7 +86,7 @@ export function ProfileTab() {
     }
   };
 
-  const handleResendEmailChange = async () => {
+  const _handleResendEmailChange = async () => {
     if (!profile?.pendingEmail) return;
 
     setResendingEmailChange(true);

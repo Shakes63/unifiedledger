@@ -37,7 +37,6 @@ import {
   LogOut,
   Loader2,
   Clock,
-  Shield,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -92,7 +91,7 @@ export function PrivacyTab() {
         const settingsData = await settingsResponse.json();
         setSessionTimeout(settingsData.settings.sessionTimeout || 30);
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to load sessions');
     } finally {
       setLoading(false);
@@ -116,7 +115,7 @@ export function PrivacyTab() {
       }
 
       toast.success('Session timeout updated successfully');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to save session timeout');
       // Revert on error
       fetchSessions();
@@ -136,7 +135,7 @@ export function PrivacyTab() {
         const data = await response.json();
         toast.error(data.error || 'Failed to revoke session');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to revoke session');
     }
   }
@@ -151,7 +150,7 @@ export function PrivacyTab() {
       } else {
         toast.error('Failed to revoke sessions');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to revoke sessions');
     }
   }
@@ -172,7 +171,7 @@ export function PrivacyTab() {
       } else {
         toast.error('Failed to export data');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to export data');
     } finally {
       setExporting(false);
@@ -202,7 +201,7 @@ export function PrivacyTab() {
       } else {
         toast.error('Failed to export transactions');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to export transactions');
     } finally {
       setExporting(false);
@@ -241,7 +240,7 @@ export function PrivacyTab() {
         const data = await response.json();
         toast.error(data.error || 'Failed to delete account');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete account');
     } finally {
       setDeleting(false);

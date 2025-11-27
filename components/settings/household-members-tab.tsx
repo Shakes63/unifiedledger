@@ -112,7 +112,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
       if (permissionsResponse.ok) {
         setUserPermissions(await permissionsResponse.json());
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to load household details');
     } finally {
       setLoading(false);
@@ -146,7 +146,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
         const data = await response.json();
         toast.error(data.error || 'Failed to send invitation');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to send invitation');
     } finally {
       setSubmitting(false);
@@ -171,7 +171,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
         const data = await response.json();
         toast.error(data.error || 'Failed to leave household');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to leave household');
     } finally {
       setSubmitting(false);
@@ -201,7 +201,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
         const data = await response.json();
         toast.error(data.error || 'Failed to rename household');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to rename household');
     } finally {
       setSubmitting(false);
@@ -234,7 +234,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
         const data = await response.json();
         toast.error(data.error || 'Failed to delete household');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete household');
     } finally {
       setSubmitting(false);
@@ -260,7 +260,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
         const data = await response.json();
         toast.error(data.error || 'Failed to update role');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update role');
     }
   }
@@ -281,7 +281,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
         const data = await response.json();
         toast.error(data.error || 'Failed to remove member');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to remove member');
     }
   }

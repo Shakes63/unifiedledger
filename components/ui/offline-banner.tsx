@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { X, WifiOff, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, WifiOff, RefreshCw, AlertCircle } from 'lucide-react';
 import { useNetworkStatus } from '@/contexts/network-status-context';
 import { requestQueue } from '@/lib/utils/request-queue';
 import { betterAuthClient } from '@/lib/better-auth-client';
@@ -39,7 +39,7 @@ export function OfflineBanner({
   const { data: session } = betterAuthClient.useSession();
   const userId = session?.user?.id;
   const [dismissed, setDismissed] = React.useState(false);
-  const [dismissTime, setDismissTime] = React.useState<number | null>(null);
+  const [_dismissTime, setDismissTime] = React.useState<number | null>(null);
   const [queueCount, setQueueCount] = React.useState(0);
   const [isSyncing, setIsSyncing] = React.useState(false);
 

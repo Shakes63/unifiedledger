@@ -11,7 +11,7 @@ interface DashboardLayoutProps {
 }
 
 function DashboardLayoutContent({ children }: DashboardLayoutProps) {
-  const { sidebarOpen } = useNavigation();
+  const { sidebarOpen: _sidebarOpen } = useNavigation();
 
   return (
     <div className="h-screen bg-background flex flex-col lg:flex-row overflow-hidden w-full max-w-full">
@@ -35,6 +35,6 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
   );
 }
 
-export function DashboardLayout({ children, showTopNav = true }: DashboardLayoutProps) {
+export function DashboardLayout({ children, showTopNav: _showTopNav = true }: DashboardLayoutProps) {
   return <DashboardLayoutContent>{children}</DashboardLayoutContent>;
 }

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useHousehold } from '@/contexts/household-context';
 import { useOnboarding } from '@/contexts/onboarding-context';
-import { Users, CheckCircle2 } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { WhyThisMatters } from '../why-this-matters';
 
 interface CreateHouseholdStepProps {

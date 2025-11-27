@@ -108,7 +108,7 @@ export function GoalTracker({
       setContributeAmount('');
       setShowContribute(false);
       toast.success(`Added $${amount.toFixed(2)} to ${goal.name}`);
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to add contribution');
     }
   };

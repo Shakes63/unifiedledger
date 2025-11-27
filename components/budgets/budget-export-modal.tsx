@@ -28,7 +28,7 @@ export function BudgetExportModal({
   onClose,
   currentMonth,
 }: BudgetExportModalProps) {
-  const { selectedHouseholdId } = useHousehold();
+  const { selectedHouseholdId: _selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
   const [startMonth, setStartMonth] = useState(currentMonth);
   const [endMonth, setEndMonth] = useState(currentMonth);

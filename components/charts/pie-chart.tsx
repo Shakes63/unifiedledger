@@ -41,7 +41,7 @@ export function PieChart({
   isLoading,
   error,
   dataKey = 'value',
-  nameKey = 'name',
+  nameKey: _nameKey = 'name',
   className = '',
 }: PieChartProps) {
   return (

@@ -149,7 +149,7 @@ export function VariableBillCard({
 
   // Insight message
   const getInsightMessage = () => {
-    const { direction, percentChange, recommendedBudget } = bill.trend;
+    const { direction, percentChange: _percentChange, recommendedBudget } = bill.trend;
     const { variance } = bill.currentMonth;
 
     if (direction === 'improving' && variance && variance < 0) {
@@ -157,7 +157,7 @@ export function VariableBillCard({
     } else if (direction === 'worsening') {
       return `Costs are rising. Consider increasing your budget to $${recommendedBudget.toFixed(2)} to avoid overspending alerts.`;
     } else if (variance && variance < 0) {
-      const consecutiveUnder = 3; // TODO: Calculate from history
+      const _consecutiveUnder = 3; // TODO: Calculate from history
       return `You've been under budget consistently. Reduce to $${recommendedBudget.toFixed(2)} to free up funds.`;
     } else if (variance && variance > 0) {
       return `Over budget this month. Review usage or adjust budget to $${recommendedBudget.toFixed(2)}.`;

@@ -13,7 +13,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Plus, X, ChevronDown, AlertCircle, Zap, Tag, Store, FileEdit, FileText, ArrowRightLeft, Settings, Lightbulb, Scissors, DollarSign, Percent, Banknote, Receipt, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, X, AlertCircle, Zap, Tag, Store, FileEdit, FileText, ArrowRightLeft, Settings, Lightbulb, Scissors, DollarSign, Percent, Banknote, Receipt, CheckCircle2, XCircle } from 'lucide-react';
 import { Condition, ConditionGroup, ComparisonOperator, ConditionField } from '@/lib/rules/condition-evaluator';
 import { RuleAction } from '@/lib/rules/types';
 import { nanoid } from 'nanoid';
@@ -78,7 +78,7 @@ function ConditionRow({
   condition,
   onUpdate,
   onRemove,
-  level = 0,
+  level: _level = 0,
 }: {
   condition: Condition;
   onUpdate: (updated: Condition) => void;

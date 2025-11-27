@@ -16,7 +16,6 @@ import {
   X,
   ChevronDown,
   FileText,
-  Bell,
   Store,
   Calculator,
   Settings,

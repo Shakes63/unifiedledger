@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ProgressRing } from '@/components/ui/progress-ring';
-import { PartyPopper, Target, Flame, Medal, Award, Zap } from 'lucide-react';
+import { PartyPopper, Target, Medal, Award } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 

@@ -48,7 +48,7 @@ interface HouseholdInvitation {
   status: string;
 }
 
-interface Household {
+interface _Household {
   id: string;
   name: string;
   createdBy: string;
@@ -58,7 +58,7 @@ interface Household {
 }
 
 export function HouseholdTab() {
-  const { households, selectedHouseholdId, setSelectedHouseholdId, loading, refreshHouseholds } = useHousehold();
+  const { households, selectedHouseholdId, setSelectedHouseholdId: _setSelectedHouseholdId, loading, refreshHouseholds } = useHousehold();
   const [activeTab, setActiveTab] = useState<string>('');
   const [members, setMembers] = useState<HouseholdMember[]>([]);
   const [invitations, setInvitations] = useState<HouseholdInvitation[]>([]);
@@ -112,7 +112,7 @@ export function HouseholdTab() {
               const membersData = await response.json();
               counts[household.id] = membersData.length;
             }
-          } catch (error) {
+          } catch (_error) {
             // Silently fail for member counts
           }
         })
@@ -157,7 +157,7 @@ export function HouseholdTab() {
       if (permissionsResponse.ok) {
         setUserPermissions(await permissionsResponse.json());
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to load household details');
     }
   }
@@ -188,7 +188,7 @@ export function HouseholdTab() {
         const data = await response.json();
         toast.error(data.error || 'Failed to create household');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to create household');
     } finally {
       setSubmitting(false);
@@ -222,7 +222,7 @@ export function HouseholdTab() {
         const data = await response.json();
         toast.error(data.error || 'Failed to send invitation');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to send invitation');
     } finally {
       setSubmitting(false);
@@ -258,7 +258,7 @@ export function HouseholdTab() {
         const data = await response.json();
         toast.error(data.error || 'Failed to leave household');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to leave household');
     } finally {
       setSubmitting(false);
@@ -291,7 +291,7 @@ export function HouseholdTab() {
         const data = await response.json();
         toast.error(data.error || 'Failed to rename household');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to rename household');
     } finally {
       setSubmitting(false);
@@ -336,7 +336,7 @@ export function HouseholdTab() {
         const data = await response.json();
         toast.error(data.error || 'Failed to delete household');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete household');
     } finally {
       setSubmitting(false);
@@ -367,7 +367,7 @@ export function HouseholdTab() {
         const data = await response.json();
         toast.error(data.error || 'Failed to update role');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update role');
     }
   }
@@ -391,7 +391,7 @@ export function HouseholdTab() {
         const data = await response.json();
         toast.error(data.error || 'Failed to remove member');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to remove member');
     }
   }
@@ -423,7 +423,7 @@ export function HouseholdTab() {
         const data = await response.json();
         toast.error(data.error || 'Failed to update favorite status');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update favorite status');
     }
   }

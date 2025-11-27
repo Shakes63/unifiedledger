@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Loader2, Shield, AlertTriangle, Info } from 'lucide-react';
+import { Loader2, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import type {
   HouseholdPermission,

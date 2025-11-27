@@ -22,7 +22,7 @@ export function SyncStatus() {
     errors: 0,
   });
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<SyncSummary | null>(null);
+  const [_syncResult, setSyncResult] = useState<SyncSummary | null>(null);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   // Get initial sync status
@@ -70,7 +70,7 @@ export function SyncStatus() {
   }, [userId, isSyncing]);
 
   // Trigger sync when coming online
-  const handleAutoSync = useCallback(async () => {
+  const _handleAutoSync = useCallback(async () => {
     if (!userId || !isOnline) return;
 
     console.log('Auto-syncing pending transactions');

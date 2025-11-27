@@ -32,7 +32,7 @@ export function CreditUtilizationBadge({
   }
 
   const utilization = calculateUtilization(balance, creditLimit);
-  const level = getUtilizationLevel(utilization);
+  const _level = getUtilizationLevel(utilization);
   const color = getUtilizationColor(utilization);
   const emoji = getUtilizationEmoji(utilization);
   const recommendation = getUtilizationRecommendation(utilization);

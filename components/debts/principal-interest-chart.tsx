@@ -13,7 +13,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-import { Lightbulb, PartyPopper } from 'lucide-react';
+import { Lightbulb } from 'lucide-react';
 import type { DebtPayoffSchedule } from '@/lib/debts/payoff-calculator';
 import { ChartContainer } from '@/components/charts/chart-container';
 import { ChartTooltip } from '@/components/charts/chart-tooltip';

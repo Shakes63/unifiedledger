@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { VariableBillCard } from './variable-bill-card';
 import { toast } from 'sonner';
-import Decimal from 'decimal.js';
 import { FileText, BarChart3, Lightbulb } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
@@ -119,7 +118,7 @@ export function VariableBillTracker() {
       try {
         const parsed = JSON.parse(saved);
         setExpandedBills(new Set(parsed));
-      } catch (e) {
+      } catch (_e) {
         // Ignore parse errors
       }
     }

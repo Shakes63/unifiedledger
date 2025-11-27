@@ -8,7 +8,6 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Select } from '@/components/ui/select';
 import { SavedSearches } from './saved-searches';
 import { ChevronDown, Save } from 'lucide-react';
 import { FeatureGate } from '@/components/experimental/feature-gate';
@@ -218,7 +217,7 @@ export function AdvancedSearch({
     if (useRegex && filters.query) {
       try {
         new RegExp(filters.query);
-      } catch (e) {
+      } catch (_e) {
         toast.error('Invalid regex pattern');
         return;
       }
@@ -250,7 +249,7 @@ export function AdvancedSearch({
         const data = await response.json();
         toast.error(data.error || 'Failed to save search');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to save search');
     } finally {
       setSavingSearch(false);

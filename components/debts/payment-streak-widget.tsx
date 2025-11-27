@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
-import { Flame, Trophy, Loader2, Star, Gem, PartyPopper, Zap, Target } from 'lucide-react';
+import { Flame, Trophy, Loader2, Star, Gem, Zap } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 

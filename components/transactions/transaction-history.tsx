@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Copy, Repeat2, Trash2, Loader2 } from 'lucide-react';
+import { Copy, Repeat2, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 

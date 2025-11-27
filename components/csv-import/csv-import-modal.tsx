@@ -23,7 +23,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Upload, AlertCircle } from 'lucide-react';
 import { ColumnMapper } from './column-mapper';
 import { ImportPreview } from './import-preview';
-import { autoDetectMappings, parseCSVFile, type ColumnMapping } from '@/lib/csv-import';
+import { autoDetectMappings, type ColumnMapping } from '@/lib/csv-import';
 import { toast } from 'sonner';
 
 type Step = 'upload' | 'settings' | 'mapping' | 'preview' | 'complete';
@@ -46,7 +46,7 @@ export function CSVImportModal({
   const [step, setStep] = useState<Step>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState('');
-  const [fileContent, setFileContent] = useState<string>('');
+  const [_fileContent, setFileContent] = useState<string>('');
   const [headers, setHeaders] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -64,7 +64,7 @@ export function CSVImportModal({
 
   // Preview data
   const [previewData, setPreviewData] = useState<any>(null);
-  const [importId, setImportId] = useState<string>('');
+  const [_importId, setImportId] = useState<string>('');
 
   // Load default template when modal opens
   useEffect(() => {

@@ -50,7 +50,7 @@ export function CacheSettings() {
       } else {
         toast.error('Failed to clear cache');
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Error clearing cache');
     } finally {
       setIsClearing(false);
@@ -66,7 +66,7 @@ export function CacheSettings() {
       } else {
         toast.error('Failed to cleanup cache');
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Error cleaning up cache');
     } finally {
       setIsCleaningUp(false);

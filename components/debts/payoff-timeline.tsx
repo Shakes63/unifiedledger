@@ -21,7 +21,7 @@ const COLORS = [
 ];
 
 export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
-  const maxMonths = Math.max(...strategy.schedules.map(s => s.monthsToPayoff), 1);
+  const _maxMonths = Math.max(...strategy.schedules.map(s => s.monthsToPayoff), 1);
 
   // Calculate cumulative timeline using useMemo with reduce (immutable pattern)
   const { timelineData, totalMonths } = useMemo(() => {

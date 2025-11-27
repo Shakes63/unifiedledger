@@ -7,7 +7,6 @@ import {
   Cell,
   ResponsiveContainer,
   Tooltip,
-  Legend,
 } from 'recharts';
 import { Lightbulb, AlertTriangle, PartyPopper, Scale } from 'lucide-react';
 import type { DebtPayoffSchedule } from '@/lib/debts/payoff-calculator';

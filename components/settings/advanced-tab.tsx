@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Code, Zap, FlaskConical, Info, Database, Loader2, Sparkles, Search, BarChart3 } from 'lucide-react';
+import { Code, Zap, FlaskConical, Info, Database, Loader2, Sparkles, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDeveloperMode } from '@/contexts/developer-mode-context';
 import {
@@ -54,7 +54,7 @@ export function AdvancedTab() {
         setEnableAnimations(data.settings?.enableAnimations !== false);
         setExperimentalFeatures(data.settings?.experimentalFeatures || false);
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to load settings');
     } finally {
       setLoading(false);
@@ -126,7 +126,7 @@ export function AdvancedTab() {
       } else {
         toast.error('Failed to update setting');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update setting');
     }
   }

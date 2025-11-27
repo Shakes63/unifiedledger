@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Check, Lock, Loader2, Palette, Bell, DollarSign, Mail } from 'lucide-react';
+import { Check, Loader2, Palette, Bell, DollarSign, Mail } from 'lucide-react';
 import { type Theme } from '@/lib/themes/theme-config';
 import { getAllThemes, getTheme, applyTheme } from '@/lib/themes/theme-utils';
 import { toast } from 'sonner';

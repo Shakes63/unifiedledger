@@ -35,7 +35,7 @@ const SHORT_MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug
 
 export function AnnualPlanningGrid({
   bills,
-  monthNames,
+  monthNames: _monthNames,
   year,
   onCellClick,
 }: AnnualPlanningGridProps) {
@@ -95,7 +95,7 @@ export function AnnualPlanningGrid({
                 Bill
               </th>
               {/* Month Headers */}
-              {SHORT_MONTH_NAMES.map((month, index) => (
+              {SHORT_MONTH_NAMES.map((month, _index) => (
                 <th
                   key={month}
                   className="px-2 py-3 text-center text-sm font-semibold text-muted-foreground min-w-[70px]"

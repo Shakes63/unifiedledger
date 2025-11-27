@@ -24,7 +24,7 @@ const COLORS = {
 
 // Custom label renderer showing percentages
 const renderCustomLabel = (props: any) => {
-  const { cx, cy, midAngle, innerRadius, outerRadius, percent, name } = props;
+  const { cx, cy, midAngle, innerRadius, outerRadius, percent, name: _name } = props;
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.7;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);

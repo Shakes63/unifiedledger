@@ -188,7 +188,7 @@ export function AdminTab() {
     try {
       await fetchSystemInfo();
       toast.success('System information refreshed');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to refresh system information');
     } finally {
       setRefreshingSystemInfo(false);

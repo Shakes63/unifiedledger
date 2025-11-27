@@ -30,7 +30,7 @@ export function MonthlySurplusCard({
 
   // Determine status
   const isSurplus = actualSurplus >= 0;
-  const isOnTrack = actualSurplus >= budgetedSurplus;
+  const _isOnTrack = actualSurplus >= budgetedSurplus;
 
   // Format currency
   const formatCurrency = (amount: number): string => {

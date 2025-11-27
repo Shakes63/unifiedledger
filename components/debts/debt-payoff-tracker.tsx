@@ -56,7 +56,7 @@ interface DebtTrackerProps {
 export function DebtPayoffTracker({
   debt,
   milestones = [],
-  payments = [],
+  payments: _payments = [],
   onEdit,
   onDelete,
   onPayment,
@@ -113,7 +113,7 @@ export function DebtPayoffTracker({
       setPaymentAmount('');
       setShowPayment(false);
       toast.success(`Payment of $${amount.toFixed(2)} recorded!`);
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to record payment');
     }
   };

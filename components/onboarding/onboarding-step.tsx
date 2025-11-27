@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface OnboardingStepProps {
   stepNumber: number;
@@ -24,7 +23,7 @@ interface OnboardingStepProps {
 }
 
 export function OnboardingStep({
-  stepNumber,
+  stepNumber: _stepNumber,
   title,
   description,
   children,

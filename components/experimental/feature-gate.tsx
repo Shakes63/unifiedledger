@@ -40,7 +40,7 @@ interface FeatureGateProps {
  * </FeatureGate>
  * ```
  */
-export function FeatureGate({ featureId, fallback = null, children }: FeatureGateProps) {
+export function FeatureGate({ featureId: _featureId, fallback = null, children }: FeatureGateProps) {
   const { enabled, loading } = useExperimentalFeatures();
 
   // Don't render anything while loading

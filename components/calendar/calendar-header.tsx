@@ -4,11 +4,7 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-  isToday,
-  isTomorrow,
   addDays,
-  startOfMonth,
-  endOfMonth,
   subMonths,
   addMonths,
   addWeeks,
@@ -30,10 +26,10 @@ export function CalendarHeader({
   onViewModeChange,
 }: CalendarHeaderProps) {
   const today = new Date();
-  const tomorrow = addDays(today, 1);
+  const _tomorrow = addDays(today, 1);
 
-  const handleQuickDate = (targetDate: Date) => {
-    onDateChange(targetDate);
+  const _handleQuickDate = (_targetDate: Date) => {
+    onDateChange(_targetDate);
   };
 
   return (

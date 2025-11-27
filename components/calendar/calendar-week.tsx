@@ -7,8 +7,7 @@ import {
   format,
   isToday,
 } from 'date-fns';
-import { TransactionIndicators } from './transaction-indicators';
-import { Check, TrendingUp, TrendingDown } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface DayTransactionSummary {
@@ -39,7 +38,7 @@ interface CalendarWeekProps {
 export function CalendarWeek({
   currentDate,
   daySummaries = {},
-  onDayClick,
+  onDayClick: _onDayClick,
 }: CalendarWeekProps) {
   const weekStart = startOfWeek(currentDate);
   const weekEnd = endOfWeek(currentDate);

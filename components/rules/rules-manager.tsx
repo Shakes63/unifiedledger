@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus, Zap, Tag, Store, FileText, ArrowRightLeft, Scissors, Banknote, Receipt, CheckCircle2, XCircle } from 'lucide-react';
+import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus, Zap, Tag, Store, FileText, ArrowRightLeft, Scissors, Banknote, CheckCircle2, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';

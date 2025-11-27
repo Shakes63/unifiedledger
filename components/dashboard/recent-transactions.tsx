@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -142,7 +141,7 @@ export function RecentTransactions() {
       if (response.ok) {
         const result = await response.json();
         // Construct the full transaction object from the response and original data
-        const newTransaction: Transaction = {
+        const _newTransaction: Transaction = {
           id: result.id,
           description: transaction.description,
           amount: typeof transaction.amount === 'number' ? transaction.amount : parseFloat(transaction.amount as any) || 0,
@@ -245,7 +244,7 @@ export function RecentTransactions() {
     }
   };
 
-  const getTypeColor = (type: string) => {
+  const _getTypeColor = (type: string) => {
     switch (type) {
       case 'income':
         return { backgroundColor: 'color-mix(in oklch, var(--color-income) 20%, transparent)', color: 'var(--color-income)' };

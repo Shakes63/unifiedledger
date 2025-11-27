@@ -52,7 +52,7 @@ export function TwoFactorSection() {
 
   // Dialogs
   const [enableDialogOpen, setEnableDialogOpen] = useState(false);
-  const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
+  const [_verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [backupCodesDialogOpen, setBackupCodesDialogOpen] = useState(false);
   const [disableDialogOpen, setDisableDialogOpen] = useState(false);
   const [disableCode, setDisableCode] = useState('');

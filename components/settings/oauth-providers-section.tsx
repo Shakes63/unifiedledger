@@ -24,7 +24,6 @@ import {
   Link2,
   Unlink,
   AlertTriangle,
-  CheckCircle2,
   Globe,
 } from 'lucide-react';
 import { toast } from 'sonner';

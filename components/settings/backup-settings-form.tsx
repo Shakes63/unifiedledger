@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Save, Calendar, Download } from 'lucide-react';
+import { Loader2, Calendar, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHousehold } from '@/contexts/household-context';
 
@@ -91,7 +91,7 @@ export function BackupSettingsForm() {
 
     try {
       setSaving(true);
-      const updatedSettings = { ...settings, ...updates };
+      const _updatedSettings = { ...settings, ...updates };
       const response = await fetch('/api/user/backup-settings', {
         method: 'POST',
         headers: {
@@ -142,7 +142,7 @@ export function BackupSettingsForm() {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const _data = await response.json();
         toast.success('Backup created successfully');
         // Refresh settings to update lastBackupAt
         fetchSettings();

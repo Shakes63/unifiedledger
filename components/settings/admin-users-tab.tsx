@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -333,7 +333,7 @@ export function AdminUsersTab() {
     fetchUsers(searchQuery, newOffset);
   }
 
-  const RoleIcon = formRole ? ROLE_ICONS[formRole] || User : User;
+  const _RoleIcon = formRole ? ROLE_ICONS[formRole] || User : User;
 
   return (
     <div className="space-y-6">

@@ -97,7 +97,7 @@ export function CompactStatsBar() {
               setBudgetAdherence(budgetData.summary.adherenceScore || 0);
             }
           }
-        } catch (err) {
+        } catch (_err) {
           // Budget data not available, skip
         }
 
@@ -124,7 +124,7 @@ export function CompactStatsBar() {
               }
             }
           }
-        } catch (err) {
+        } catch (_err) {
           // Debt data not available, skip
         }
 
@@ -149,7 +149,7 @@ export function CompactStatsBar() {
               }
             }
           }
-        } catch (err) {
+        } catch (_err) {
           // Goals data not available, skip
         }
       } catch (error) {

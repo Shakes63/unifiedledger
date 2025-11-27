@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { toast } from 'sonner';
 import Link from 'next/link';
 import { TrendingUp } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';

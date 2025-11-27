@@ -35,7 +35,7 @@ function getProgressColor(percentage: number): 'red' | 'orange' | 'blue' | 'gree
   return 'red';
 }
 
-function getProgressGradient(percentage: number) {
+function _getProgressGradient(percentage: number) {
   if (percentage >= 100) return 'from-emerald-600 to-emerald-400';
   if (percentage >= 75) return 'from-cyan-600 to-cyan-400';
   if (percentage >= 50) return 'from-purple-600 to-purple-400';

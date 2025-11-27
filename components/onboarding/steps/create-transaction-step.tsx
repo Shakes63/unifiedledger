@@ -23,8 +23,8 @@ export function CreateTransactionStep({
   canSkip,
 }: CreateTransactionStepProps) {
   const { isDemoMode } = useOnboarding();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [accounts, setAccounts] = useState<any[]>([]);
+  const [isSubmitting, _setIsSubmitting] = useState(false);
+  const [_accounts, setAccounts] = useState<any[]>([]);
   const { fetchWithHousehold } = useHouseholdFetch();
 
   // Auto-advance if in demo mode (demo transactions already created)

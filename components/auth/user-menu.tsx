@@ -68,7 +68,7 @@ export function UserMenu() {
       toast.success('Signed out successfully');
       router.push('/sign-in');
       router.refresh();
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to sign out');
     }
   };

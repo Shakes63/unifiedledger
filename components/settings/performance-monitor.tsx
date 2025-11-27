@@ -12,14 +12,12 @@
  */
 
 import { useEffect, useState } from "react";
-import { AlertCircle, TrendingDown, TrendingUp } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   getStoredMetrics,
-  getAverageMetrics,
   getPageLoadMetrics,
-  exportMetricsAsJSON,
   downloadMetricsAsJSON,
   VITALS_THRESHOLDS,
   type CoreWebVitalsMetric,

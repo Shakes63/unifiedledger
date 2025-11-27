@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { TransactionForm } from './transaction-form';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 type TransactionType = 'income' | 'expense' | 'transfer_in' | 'transfer_out';

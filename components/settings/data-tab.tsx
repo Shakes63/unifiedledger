@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Database, Trash2, AlertTriangle, Loader2, Shield, CheckCircle2, FileSpreadsheet, HardDrive, History } from 'lucide-react';
+import { Database, Trash2, AlertTriangle, Loader2, Shield, FileSpreadsheet, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { BackupSettingsForm } from './backup-settings-form';
 import { BackupHistory } from './backup-history';
@@ -70,7 +70,7 @@ export function DataTab() {
         setDataRetentionYears(data.dataRetentionYears?.toString() || '7');
         setDefaultImportTemplateId(data.defaultImportTemplateId || null);
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to load settings');
     } finally {
       setLoading(false);
@@ -108,7 +108,7 @@ export function DataTab() {
       } else {
         toast.error('Failed to update settings');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update settings');
     } finally {
       setSaving(false);
@@ -140,7 +140,7 @@ export function DataTab() {
         const data = await response.json();
         toast.error(data.error || 'Failed to update template preference');
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update template preference');
     } finally {
       setSavingTemplate(false);
@@ -168,7 +168,7 @@ export function DataTab() {
       setTimeout(() => {
         window.location.reload();
       }, 1000);
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to clear cache');
     }
   }
