@@ -28,7 +28,7 @@ alwaysApply: false
 - ✅ Password Field Form Fix (2025-01-27) - Wrapped all password fields in settings page within proper `<form>` elements for accessibility and HTML validation
 - ✅ Bills API Household Auth Fixes (2025-01-27) - Fixed bills dropdown in transaction form, bill details page, edit bill page, and category-selector to use `fetchWithHousehold` for proper household authentication
 - ✅ Overdue Bill Payment Fixes (2025-01-27) - Fixed overdue bills not being auto-matched when transactions are created/updated, and fixed pending instances with past due dates not being marked as overdue
-- ✅ All bugs fixed (58 total - see docs/bugs.md for complete list)
+- ✅ All bugs fixed (60 total - see docs/bugs.md for complete list)
 - ✅ Authentication password verification implemented (password change, email change, reset app data)
 - ✅ Session/middleware hardened (cookie parsing, timeout cache, tab visibility handling)
 - ✅ Onboarding flow bugs fixed (2025-11-26): credentials missing in BillForm/invitation decline, modal resume after refresh, unused import cleanup
@@ -52,6 +52,8 @@ alwaysApply: false
 ## Recent Major Features
 
 **Latest (2025-11-27):**
+- Onboarding Modal Scroll Fix (✅ COMPLETE) - Added useRef/useEffect to reset scroll position when navigating between steps
+- Split Transaction Code Review (✅ COMPLETE) - Fixed hardcoded colors in SplitBuilder, documented remaining improvements in `docs/split-transaction-review.md`
 - Non-Monthly Bill Month Selection (✅ COMPLETE)
   - ✅ Added startMonth column to bills table (0-11 for Jan-Dec)
   - ✅ Month selector dropdown in bill form for quarterly/semi-annual/annual bills
@@ -247,7 +249,10 @@ alwaysApply: false
 ## Next Steps
 
 ### Active Bugs
-_No active bugs_
+1. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional - low priority)
+
+### Improvement Backlog
+- **Split Transaction Improvements** - See `docs/split-transaction-review.md` for detailed plan
 
 ### Household Data Isolation
 **Status:** ✅ **100% COMPLETE** - All phases (0-4) complete and production-ready

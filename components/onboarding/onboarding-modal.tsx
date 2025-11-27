@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { OnboardingProgress } from './onboarding-progress';
@@ -24,6 +24,7 @@ interface OnboardingModalProps {
 
 export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
   const searchParams = useSearchParams();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const {
     currentStep,
     totalSteps,
@@ -57,6 +58,13 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
       }
     }
   }, [open, searchParams, isInvitedUser, setInvitationContext]);
+
+  // Reset scroll position when step changes
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [currentStep]);
 
   const handleComplete = async () => {
     try {
@@ -205,7 +213,12 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
         )}
 
         {/* Step Content */}
-        <div className="flex-1 overflow-y-auto min-h-0">{renderStep()}</div>
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto min-h-0"
+        >
+          {renderStep()}
+        </div>
       </DialogContent>
     </Dialog>
   );
