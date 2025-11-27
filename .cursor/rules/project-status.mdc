@@ -35,6 +35,7 @@ alwaysApply: false
 - ✅ Recommended Monthly Savings Auto-Calculation (2025-11-26): Auto-calculates suggested monthly contribution for savings goals based on target date, displays in goal form and tracker with "Apply Recommendation" button
 - ✅ 12-Month Annual Bill Planning Grid (2025-11-26): Year-at-a-glance grid view for non-monthly bills (quarterly, semi-annual, annual, one-time) with status tracking, CSV export, and quick actions
 - ✅ Persistent Additional Monthly Payment on Debts (2025-11-27): Per-debt `additionalMonthlyPayment` field for extra payment commitments, displayed in debt cards, used in payoff projections and adherence tracking
+- ✅ Budget Summary Dashboard (2025-11-27): High-level overview page at `/dashboard/budget-summary` showing income, variable expenses, monthly bills, savings, debt payments with donut chart, allocation cards, surplus tracking, and 6-month trends
 
 ## Household Data Isolation Status
 
@@ -50,7 +51,17 @@ alwaysApply: false
 
 ## Recent Major Features
 
-**Latest (2025-11-26):**
+**Latest (2025-11-27):**
+- Budget Summary Dashboard (✅ COMPLETE)
+  - ✅ API endpoint `/api/budgets/allocation-summary` with household isolation
+  - ✅ Donut chart showing budget allocation breakdown
+  - ✅ Allocation cards for income, expenses, bills, savings, and debt payments
+  - ✅ Monthly surplus/shortfall card with quick actions
+  - ✅ 6-month trends chart with toggleable series
+  - ✅ Month navigation and responsive design
+  - ✅ Navigation added to sidebar (Financial section)
+
+**Previous (2025-11-26):**
 - 12-Month Annual Bill Planning Grid (✅ COMPLETE)
   - ✅ API endpoint for annual planning data (`/api/bills/annual-planning`)
   - ✅ Grid component with 12 month columns and bill rows

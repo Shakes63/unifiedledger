@@ -21,6 +21,7 @@ import {
   Settings,
   Calculator,
   Code,
+  LayoutDashboard,
 } from 'lucide-react';
 import Image from 'next/image';
 import { HouseholdSelector } from '@/components/household/household-selector';
@@ -57,6 +58,7 @@ const navSections: NavSection[] = [
     items: [
       { label: 'Bills', href: '/dashboard/bills', icon: <DollarSign className="w-4 h-4" /> },
       { label: 'Budgets', href: '/dashboard/budgets', icon: <Calculator className="w-4 h-4" /> },
+      { label: 'Budget Summary', href: '/dashboard/budget-summary', icon: <LayoutDashboard className="w-4 h-4" /> },
       { label: 'Goals', href: '/dashboard/goals', icon: <Target className="w-4 h-4" /> },
       { label: 'Debts', href: '/dashboard/debts', icon: <TrendingUp className="w-4 h-4" /> },
     ],
