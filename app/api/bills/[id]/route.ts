@@ -3,6 +3,7 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { bills, billInstances, budgetCategories, accounts, merchants } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { isNonMonthlyPeriodic } from '@/lib/bills/bill-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -125,6 +126,7 @@ export async function PUT(
       merchantId,
       expectedAmount,
       dueDate,
+      startMonth, // 0-11 for quarterly/semi-annual/annual bills
       isVariableAmount,
       amountTolerance,
       payeePatterns,
@@ -222,6 +224,27 @@ export async function PUT(
       }
     }
 
+    // Validate startMonth if provided
+    if (startMonth !== undefined) {
+      // Get the bill's frequency to validate startMonth
+      const billFrequency = existingBill[0].frequency;
+      
+      if (startMonth !== null) {
+        if (!isNonMonthlyPeriodic(billFrequency || 'monthly')) {
+          return Response.json(
+            { error: 'startMonth is only valid for quarterly, semi-annual, or annual bills' },
+            { status: 400 }
+          );
+        }
+        if (typeof startMonth !== 'number' || startMonth < 0 || startMonth > 11) {
+          return Response.json(
+            { error: 'startMonth must be between 0 (January) and 11 (December)' },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     // Build update object with only provided fields
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
@@ -237,6 +260,7 @@ export async function PUT(
       }
       updateData.dueDate = dueDate;
     }
+    if (startMonth !== undefined) updateData.startMonth = startMonth;
     if (isVariableAmount !== undefined) updateData.isVariableAmount = isVariableAmount;
     if (amountTolerance !== undefined) updateData.amountTolerance = amountTolerance;
     if (payeePatterns !== undefined) updateData.payeePatterns = payeePatterns ? JSON.stringify(payeePatterns) : null;

@@ -246,6 +246,7 @@ export const bills = sqliteTable(
       enum: ['one-time', 'weekly', 'biweekly', 'monthly', 'quarterly', 'semi-annual', 'annual'],
     }).default('monthly'),
     specificDueDate: text('specific_due_date'), // For one-time bills only (ISO date string)
+    startMonth: integer('start_month'), // 0-11 (Jan-Dec), only for quarterly/semi-annual/annual bills
     isVariableAmount: integer('is_variable_amount', { mode: 'boolean' }).default(false),
     amountTolerance: real('amount_tolerance').default(5.0),
     payeePatterns: text('payee_patterns'),

@@ -10,6 +10,7 @@ import {
   getInstanceCount,
   isWeekBasedFrequency,
   isOneTimeFrequency,
+  isNonMonthlyPeriodic,
 } from '@/lib/bills/bill-utils';
 
 export const dynamic = 'force-dynamic';
@@ -168,6 +169,7 @@ export async function POST(request: Request) {
       expectedAmount,
       dueDate,
       specificDueDate,
+      startMonth, // 0-11 for quarterly/semi-annual/annual bills
       frequency = 'monthly',
       isVariableAmount = false,
       amountTolerance = 5.0,
@@ -238,6 +240,22 @@ export async function POST(request: Request) {
             { status: 400 }
           );
         }
+      }
+    }
+
+    // Validate startMonth for non-monthly periodic bills
+    if (startMonth !== undefined && startMonth !== null) {
+      if (!isNonMonthlyPeriodic(frequency)) {
+        return Response.json(
+          { error: 'startMonth is only valid for quarterly, semi-annual, or annual bills' },
+          { status: 400 }
+        );
+      }
+      if (typeof startMonth !== 'number' || startMonth < 0 || startMonth > 11) {
+        return Response.json(
+          { error: 'startMonth must be between 0 (January) and 11 (December)' },
+          { status: 400 }
+        );
       }
     }
 
@@ -342,6 +360,7 @@ export async function POST(request: Request) {
       dueDate: isOneTimeFrequency(frequency) ? 1 : dueDate, // Set to 1 for one-time bills (ignored anyway)
       frequency,
       specificDueDate: isOneTimeFrequency(frequency) ? specificDueDate : null,
+      startMonth: isNonMonthlyPeriodic(frequency) ? (startMonth ?? null) : null, // Only for quarterly/semi-annual/annual
       isVariableAmount,
       amountTolerance,
       payeePatterns: payeePatterns ? JSON.stringify(payeePatterns) : null,
@@ -356,13 +375,17 @@ export async function POST(request: Request) {
     const todayString = format(today, 'yyyy-MM-dd');
     const instancesData = [];
 
+    // Determine startMonth value for instance generation
+    const effectiveStartMonth = isNonMonthlyPeriodic(frequency) ? (startMonth ?? null) : null;
+
     for (let i = 0; i < instanceCount; i++) {
       const dueDateString = calculateNextDueDate(
         frequency,
         dueDate,
         specificDueDate || null,
         today,
-        i
+        i,
+        effectiveStartMonth
       );
 
       // FIX: Automatically set status to 'overdue' if due date is in the past

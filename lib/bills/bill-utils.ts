@@ -41,6 +41,21 @@ export const DAY_OF_WEEK_OPTIONS = [
   { value: 6, label: 'Saturday' },
 ];
 
+export const MONTH_OPTIONS = [
+  { value: 0, label: 'January' },
+  { value: 1, label: 'February' },
+  { value: 2, label: 'March' },
+  { value: 3, label: 'April' },
+  { value: 4, label: 'May' },
+  { value: 5, label: 'June' },
+  { value: 6, label: 'July' },
+  { value: 7, label: 'August' },
+  { value: 8, label: 'September' },
+  { value: 9, label: 'October' },
+  { value: 10, label: 'November' },
+  { value: 11, label: 'December' },
+];
+
 /**
  * Check if frequency is week-based (weekly or biweekly)
  */
@@ -60,6 +75,38 @@ export function isMonthBasedFrequency(frequency: string): boolean {
  */
 export function isOneTimeFrequency(frequency: string): boolean {
   return frequency === 'one-time';
+}
+
+/**
+ * Check if frequency is non-monthly periodic (quarterly, semi-annual, annual)
+ * These frequencies support startMonth selection
+ */
+export function isNonMonthlyPeriodic(frequency: string): boolean {
+  return ['quarterly', 'semi-annual', 'annual'].includes(frequency);
+}
+
+/**
+ * Get ordinal suffix for a day number (1st, 2nd, 3rd, etc.)
+ */
+function getOrdinalSuffix(day: number): string {
+  if (day >= 11 && day <= 13) return 'th';
+  switch (day % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
+/**
+ * Format a month value (0-11) for display
+ */
+export function formatStartMonthDisplay(startMonth: number | null | undefined): string {
+  if (startMonth === null || startMonth === undefined) {
+    return '';
+  }
+  const monthOption = MONTH_OPTIONS.find(m => m.value === startMonth);
+  return monthOption ? monthOption.label : '';
 }
 
 /**
@@ -120,6 +167,7 @@ export function getInstanceCount(frequency: string): number {
  * @param specificDueDate - ISO date string for one-time bills
  * @param currentDate - The reference date to calculate from
  * @param instanceIndex - The instance number (0 for first, 1 for second, etc.)
+ * @param startMonth - Optional starting month (0-11) for non-monthly periodic bills (quarterly/semi-annual/annual)
  * @returns ISO date string (YYYY-MM-DD)
  */
 export function calculateNextDueDate(
@@ -127,7 +175,8 @@ export function calculateNextDueDate(
   dueDate: number,
   specificDueDate: string | null,
   currentDate: Date,
-  instanceIndex: number
+  instanceIndex: number,
+  startMonth?: number | null
 ): string {
   switch (frequency) {
     case 'one-time':
@@ -163,19 +212,77 @@ export function calculateNextDueDate(
       return biweeklyDate.toISOString().split('T')[0];
     }
 
-    case 'monthly':
+    case 'monthly': {
+      // Monthly bills always use current month as base
+      const monthsToAdd = instanceIndex;
+      let month = (currentDate.getMonth() + monthsToAdd) % 12;
+      let year = currentDate.getFullYear() + Math.floor((currentDate.getMonth() + monthsToAdd) / 12);
+
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const instanceDueDate = Math.min(dueDate, daysInMonth);
+
+      return new Date(year, month, instanceDueDate).toISOString().split('T')[0];
+    }
+
     case 'quarterly':
     case 'semi-annual':
     case 'annual': {
-      // Existing month-based logic
-      const monthIncrement = frequency === 'monthly' ? 1
-        : frequency === 'quarterly' ? 3
+      // Non-monthly periodic bills support startMonth selection
+      const monthIncrement = frequency === 'quarterly' ? 3
         : frequency === 'semi-annual' ? 6
         : 12;
 
-      const monthsToAdd = instanceIndex * monthIncrement;
-      let month = (currentDate.getMonth() + monthsToAdd) % 12;
-      let year = currentDate.getFullYear() + Math.floor((currentDate.getMonth() + monthsToAdd) / 12);
+      // Calculate base month and year
+      let baseMonth: number;
+      let baseYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth();
+      const currentDay = currentDate.getDate();
+
+      if (startMonth !== undefined && startMonth !== null) {
+        // User specified a start month
+        baseMonth = startMonth;
+
+        // Determine if we need to use the next occurrence
+        // Check if the specified start month/day has already passed this cycle
+        if (startMonth < currentMonth || 
+            (startMonth === currentMonth && dueDate < currentDay)) {
+          // For quarterly bills, find the next occurrence in the cycle
+          if (frequency === 'quarterly') {
+            // Find which occurrence of this quarterly cycle we're past
+            // Quarters for startMonth: startMonth, startMonth+3, startMonth+6, startMonth+9
+            let nextOccurrence = startMonth;
+            while (nextOccurrence < currentMonth || 
+                   (nextOccurrence === currentMonth && dueDate < currentDay)) {
+              nextOccurrence += monthIncrement;
+            }
+            if (nextOccurrence >= 12) {
+              baseYear += Math.floor(nextOccurrence / 12);
+              nextOccurrence = nextOccurrence % 12;
+            }
+            baseMonth = nextOccurrence;
+          } else {
+            // For semi-annual and annual, just add one increment to get next occurrence
+            baseMonth = startMonth + monthIncrement;
+            if (baseMonth >= 12) {
+              baseYear += Math.floor(baseMonth / 12);
+              baseMonth = baseMonth % 12;
+            }
+          }
+        }
+      } else {
+        // Legacy behavior: start from current month
+        baseMonth = currentMonth;
+      }
+
+      // Add increments for subsequent instances
+      const totalMonthsFromBase = instanceIndex * monthIncrement;
+      let month = baseMonth + totalMonthsFromBase;
+      let year = baseYear;
+      
+      if (month >= 12) {
+        year += Math.floor(month / 12);
+        month = month % 12;
+      }
 
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const instanceDueDate = Math.min(dueDate, daysInMonth);
@@ -194,12 +301,14 @@ export function calculateNextDueDate(
  * @param frequency - The bill frequency
  * @param dueDate - Day of month (1-31) or day of week (0-6)
  * @param specificDueDate - ISO date string for one-time bills
+ * @param startMonth - Optional starting month (0-11) for non-monthly periodic bills
  * @returns Formatted string for display
  */
 export function formatDueDateDisplay(
   frequency: string,
   dueDate: number | null,
-  specificDueDate: string | null
+  specificDueDate: string | null,
+  startMonth?: number | null
 ): string {
   if (isOneTimeFrequency(frequency) && specificDueDate) {
     const date = new Date(specificDueDate);
@@ -211,7 +320,15 @@ export function formatDueDateDisplay(
   } else if (isWeekBasedFrequency(frequency) && dueDate !== null) {
     const dayOption = DAY_OF_WEEK_OPTIONS.find(d => d.value === dueDate);
     return dayOption ? dayOption.label : `Day ${dueDate}`;
+  } else if (isNonMonthlyPeriodic(frequency) && dueDate !== null) {
+    // For quarterly/semi-annual/annual, show month name if startMonth is set
+    if (startMonth !== null && startMonth !== undefined) {
+      const monthLabel = formatStartMonthDisplay(startMonth);
+      return `${monthLabel} ${dueDate}${getOrdinalSuffix(dueDate)}`;
+    }
+    return `Day ${dueDate} of month`;
   } else if (dueDate !== null) {
+    // Monthly bills
     return `Day ${dueDate} of month`;
   }
   return 'Not set';

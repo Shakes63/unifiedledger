@@ -43,6 +43,7 @@ interface Bill {
   dueDate: number;
   frequency: string;
   specificDueDate?: string;
+  startMonth?: number | null; // 0-11 for quarterly/semi-annual/annual bills
   isVariableAmount: boolean;
   amountTolerance: number;
   payeePatterns?: string;
@@ -236,7 +237,7 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
                 <span className="text-sm font-medium">Due Date</span>
               </div>
               <p className="text-white">
-                {formatDueDateDisplay(bill.frequency, bill.dueDate, bill.specificDueDate || null)}
+                {formatDueDateDisplay(bill.frequency, bill.dueDate, bill.specificDueDate || null, bill.startMonth)}
               </p>
             </div>
 

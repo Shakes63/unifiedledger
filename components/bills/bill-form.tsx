@@ -17,8 +17,10 @@ import { AlertCircle, Plus, X } from 'lucide-react';
 import {
   FREQUENCY_LABELS,
   DAY_OF_WEEK_OPTIONS,
+  MONTH_OPTIONS,
   isWeekBasedFrequency,
   isOneTimeFrequency,
+  isNonMonthlyPeriodic,
   getDueDateLabel,
 } from '@/lib/bills/bill-utils';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
@@ -44,6 +46,9 @@ export function BillForm({
     expectedAmount: bill?.expectedAmount || '',
     dueDate: bill?.dueDate !== undefined ? String(bill.dueDate) : '1',
     specificDueDate: bill?.specificDueDate || '',
+    startMonth: bill?.startMonth !== undefined && bill?.startMonth !== null 
+      ? String(bill.startMonth) 
+      : String(new Date().getMonth()), // Default to current month
     frequency: bill?.frequency || 'monthly',
     isVariableAmount: bill?.isVariableAmount || false,
     amountTolerance: bill?.amountTolerance || 5.0,
@@ -252,6 +257,7 @@ export function BillForm({
       expectedAmount: parseFloat(String(formData.expectedAmount)),
       dueDate: isOneTimeFrequency(formData.frequency) ? null : parseInt(formData.dueDate),
       specificDueDate: isOneTimeFrequency(formData.frequency) ? formData.specificDueDate : null,
+      startMonth: isNonMonthlyPeriodic(formData.frequency) ? parseInt(formData.startMonth) : null,
       frequency: formData.frequency,
       isVariableAmount: formData.isVariableAmount,
       amountTolerance: parseFloat(String(formData.amountTolerance)) || 5.0,
@@ -267,11 +273,13 @@ export function BillForm({
     // If save & add another, reset form
     if (saveMode === 'saveAndAdd') {
       const preservedFrequency = formData.frequency;
+      const preservedStartMonth = formData.startMonth;
       setFormData({
         name: '',
         expectedAmount: '',
         dueDate: '1',
         specificDueDate: '',
+        startMonth: preservedStartMonth, // Preserve start month for convenience
         frequency: preservedFrequency,
         isVariableAmount: false,
         amountTolerance: 5.0,
@@ -397,6 +405,35 @@ export function BillForm({
           )}
         </div>
       </div>
+
+      {/* Start Month - Only for quarterly/semi-annual/annual bills */}
+      {isNonMonthlyPeriodic(formData.frequency) && (
+        <div>
+          <Label className="text-muted-foreground text-sm mb-2 block">Start Month*</Label>
+          <Select
+            value={formData.startMonth}
+            onValueChange={(value) => handleSelectChange('startMonth', value)}
+          >
+            <SelectTrigger className="bg-elevated border-border text-foreground">
+              <SelectValue placeholder="Select month" />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border">
+              {MONTH_OPTIONS.map((month) => (
+                <SelectItem 
+                  key={month.value} 
+                  value={month.value.toString()} 
+                  className="text-foreground"
+                >
+                  {month.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            The month when your first bill is due
+          </p>
+        </div>
+      )}
 
       {/* Amount Tolerance */}
       <div>
