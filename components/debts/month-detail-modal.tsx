@@ -180,7 +180,7 @@ export function MonthDetailModal({
 
             {/* Payment Details */}
             <div className="bg-elevated rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">This Month's Payment</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase mb-3">This Month&apos;s Payment</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Total Payment</div>
@@ -241,7 +241,7 @@ export function MonthDetailModal({
               </h3>
               {isPayoffMonth ? (
                 <p className="text-foreground">
-                  This is your final payment! You've successfully paid off <span className="font-semibold">{schedule.debtName}</span>.
+                  This is your final payment! You&apos;ve successfully paid off <span className="font-semibold">{schedule.debtName}</span>.
                   Total interest paid: <span className="font-mono font-semibold">${schedule.totalInterestPaid.toFixed(2)}</span>
                 </p>
               ) : (

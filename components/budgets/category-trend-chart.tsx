@@ -25,10 +25,23 @@ interface CategoryTrendChartProps {
   height?: number;
 }
 
+interface TooltipPayloadItem {
+  value: number;
+  dataKey: string;
+  color?: string;
+  name?: string;
+}
+
+interface TooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+}
+
 /**
  * Custom tooltip for category trend
  */
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label }: TooltipProps) {
   if (!active || !payload || !payload.length) return null;
 
   // Format month
@@ -48,8 +61,8 @@ function CustomTooltip({ active, payload, label }: any) {
     }).format(value);
   };
 
-  const budgetedData = payload.find((p: any) => p.dataKey === 'budgeted');
-  const actualData = payload.find((p: any) => p.dataKey === 'actual');
+  const budgetedData = payload.find((p: TooltipPayloadItem) => p.dataKey === 'budgeted');
+  const actualData = payload.find((p: TooltipPayloadItem) => p.dataKey === 'actual');
 
   const variance =
     actualData && budgetedData
@@ -58,7 +71,7 @@ function CustomTooltip({ active, payload, label }: any) {
 
   return (
     <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-      <p className="text-sm font-semibold text-foreground mb-2">{formatMonth(label)}</p>
+      <p className="text-sm font-semibold text-foreground mb-2">{label ? formatMonth(label) : ''}</p>
       <div className="space-y-1">
         {budgetedData && (
           <div className="flex items-center justify-between gap-4">

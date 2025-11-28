@@ -465,9 +465,9 @@ export function RuleBuilder({
         <div>
           <p className="mb-1">Tips for writing conditions:</p>
           <ul className="list-disc list-inside space-y-1">
-            <li>Use "Contains" for partial matches in description</li>
-            <li>Use "In list" with comma-separated values for multiple options</li>
-            <li>Use "Between" for amount ranges like "10, 50"</li>
+            <li>Use &quot;Contains&quot; for partial matches in description</li>
+            <li>Use &quot;In list&quot; with comma-separated values for multiple options</li>
+            <li>Use &quot;Between&quot; for amount ranges like &quot;10, 50&quot;</li>
             <li>Day of week: 0=Sunday, 1=Monday, etc.</li>
           </ul>
         </div>
@@ -734,8 +734,8 @@ export function RuleBuilder({
                               <strong className="text-foreground">How it works:</strong>
                             </p>
                             <ul className="list-disc list-inside space-y-1 ml-2">
-                              <li>Select "Taxable" to mark matching income as subject to sales tax</li>
-                              <li>Select "Not Taxable" to explicitly mark income as tax-exempt</li>
+                              <li>Select &quot;Taxable&quot; to mark matching income as subject to sales tax</li>
+                              <li>Select &quot;Not Taxable&quot; to explicitly mark income as tax-exempt</li>
                               <li>Only applies to income transactions (expenses are always excluded)</li>
                             </ul>
                           </div>
@@ -1362,7 +1362,7 @@ export function RuleBuilder({
             <ul className="list-disc list-inside space-y-1">
               <li>Actions are applied in the order listed when a rule matches</li>
               <li>Use pattern variables in descriptions to insert dynamic values</li>
-              <li>Example: "{'{original}'} - Work" becomes "Coffee at Starbucks - Work"</li>
+              <li>Example: &quot;{'{original}'} - Work&quot; becomes &quot;Coffee at Starbucks - Work&quot;</li>
               <li>At least one action is required for the rule to work</li>
             </ul>
           </div>

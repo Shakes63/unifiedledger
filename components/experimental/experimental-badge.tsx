@@ -49,7 +49,7 @@ export function ExperimentalBadge({ className = '' }: ExperimentalBadgeProps) {
         <TooltipContent className="bg-card border-border">
           <p className="text-xs text-muted-foreground max-w-xs">
             This feature is experimental and may change or be removed in future updates.
-            Enable "Experimental Features" in Settings → Advanced to access.
+            Enable &quot;Experimental Features&quot; in Settings → Advanced to access.
           </p>
         </TooltipContent>
       </Tooltip>

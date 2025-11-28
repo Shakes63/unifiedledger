@@ -374,7 +374,7 @@ export function OAuthProvidersSection() {
           <DialogHeader>
             <DialogTitle className="text-foreground">Unlink Provider</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Are you sure you want to unlink {unlinkProvider ? getProviderName(unlinkProvider) : 'this provider'}? You'll need to link it again to use it for sign-in.
+              Are you sure you want to unlink {unlinkProvider ? getProviderName(unlinkProvider) : 'this provider'}? You&apos;ll need to link it again to use it for sign-in.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

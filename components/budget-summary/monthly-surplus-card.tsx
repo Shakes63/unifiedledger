@@ -167,7 +167,7 @@ export function MonthlySurplusCard({
       {!isSurplus && (
         <div className="p-3 rounded-lg bg-[var(--color-error)]/10 border border-[var(--color-error)]/20">
           <p className="text-xs text-[var(--color-error)]">
-            You're spending more than you're earning this month. 
+            You&apos;re spending more than you&apos;re earning this month. 
             Review your expenses or adjust your budget.
           </p>
           <Link 

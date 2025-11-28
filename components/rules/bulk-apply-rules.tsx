@@ -229,9 +229,9 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
         <ul className="list-disc list-inside space-y-1">
           <li>Finds all uncategorized transactions matching your date range</li>
           <li>Applies your active rules in priority order (lowest priority number = highest priority)</li>
-          <li>Updates transactions with the first matching rule's category</li>
+          <li>Updates transactions with the first matching rule&apos;s category</li>
           <li>Logs all rule applications for audit tracking</li>
-          <li>Can be run multiple times - won't re-categorize already categorized transactions</li>
+          <li>Can be run multiple times - won&apos;t re-categorize already categorized transactions</li>
         </ul>
       </div>
     </Card>

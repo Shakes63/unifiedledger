@@ -258,13 +258,14 @@ alwaysApply: false
 1. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional - low priority)
 
 ### In Progress
-- **Linter Cleanup** - Plan file: `docs/linter-cleanup-plan.md`
-  - **Phase 1 (Warnings): ✅ COMPLETE** - 0 warnings in components/
-    - ✅ lib/ directory (36 fixed)
-    - ✅ app/api/ routes (114 fixed)
-    - ✅ components/ (210 fixed) - Wrapped 19 fetch functions in useCallback, fixed unused imports/variables/parameters
-  - **Phase 2 (Errors): ⏳ PENDING** - 196 `@typescript-eslint/no-explicit-any` errors
-  - ⏳ Other directories (__tests__/, scripts/, contexts/, hooks/) - pending
+- **Linter Cleanup Phase 2** - Plan file: `docs/linter-phase2-plan.md`
+  - **Phase 1 (Warnings): ✅ COMPLETE** - 0 warnings in components/ (360 warnings fixed)
+  - **Phase 2 (Errors): ⏳ IN PROGRESS** - 67 errors remaining (down from 196, 66% reduction)
+    - ✅ Fixed all 75 `react/no-unescaped-entities` errors
+    - ✅ Created `lib/types/index.ts` with shared TypeScript interfaces
+    - ✅ Fixed 54 of 121 `@typescript-eslint/no-explicit-any` errors
+    - ⏳ 67 `@typescript-eslint/no-explicit-any` errors remaining
+  - ⏳ Other directories (__tests__/, scripts/, contexts/, hooks/) - pending (warnings only)
 
 ### Improvement Backlog
 - **Split Transaction Improvements (Low Priority)** - See `docs/split-transaction-review.md`

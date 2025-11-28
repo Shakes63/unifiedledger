@@ -15,6 +15,7 @@ import { ChartTooltip } from './chart-tooltip';
 interface PieChartDataPoint {
   name: string;
   value: number;
+  [key: string]: string | number; // Index signature for Recharts compatibility
 }
 
 interface PieChartProps {
@@ -55,7 +56,7 @@ export function PieChart({
       <ResponsiveContainer width="100%" height={320}>
         <RechartsPieChart>
           <Pie
-            data={data as any}
+            data={data}
             cx="50%"
             cy="50%"
             labelLine={false}

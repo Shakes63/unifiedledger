@@ -77,6 +77,7 @@ export function PrincipalInterestChart({
   }, [schedule, startMonth]);
 
   // Handle chart click
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleChartClick = (data: any) => {
     if (data && data.activePayload && data.activePayload[0] && onMonthClick) {
       const monthNumber = data.activePayload[0].payload.monthNumber;

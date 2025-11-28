@@ -310,13 +310,13 @@ export function DemoDataChoiceStep({
                 {choice === 'clear' ? (
                   <>
                     <span className="font-medium text-foreground">Note:</span> All demo
-                    data (items prefixed with "Demo") will be permanently deleted. This
+                    data (items prefixed with &quot;Demo&quot;) will be permanently deleted. This
                     action cannot be undone.
                   </>
                 ) : choice === 'keep' ? (
                   <>
                     <span className="font-medium text-foreground">Tip:</span> Demo data is
-                    clearly marked and won't interfere with real finances. You can delete
+                    clearly marked and won&apos;t interfere with real finances. You can delete
                     it later from the settings.
                   </>
                 ) : (

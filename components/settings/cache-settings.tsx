@@ -97,7 +97,7 @@ export function CacheSettings() {
         <CardHeader>
           <CardTitle>Cache Management</CardTitle>
           <CardDescription>
-            Manage your app's cache storage and offline capabilities
+            Manage your app&apos;s cache storage and offline capabilities
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

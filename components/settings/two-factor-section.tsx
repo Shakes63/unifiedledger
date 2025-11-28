@@ -444,7 +444,7 @@ export function TwoFactorSection() {
 
           <DialogFooter>
             <Button onClick={() => setBackupCodesDialogOpen(false)}>
-              I've Saved These Codes
+              I&apos;ve Saved These Codes
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -456,7 +456,7 @@ export function TwoFactorSection() {
           <DialogHeader>
             <DialogTitle className="text-foreground">Disable Two-Factor Authentication?</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              This will reduce the security of your account. You'll need to enter a verification code from your authenticator app to confirm.
+              This will reduce the security of your account. You&apos;ll need to enter a verification code from your authenticator app to confirm.
             </DialogDescription>
           </DialogHeader>
 

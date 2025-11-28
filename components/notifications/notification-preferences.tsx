@@ -240,7 +240,7 @@ export function NotificationPreferences() {
                   className="bg-card border-border text-foreground"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  You'll receive a reminder {preferences.billReminderDaysBefore} day
+                  You&apos;ll receive a reminder {preferences.billReminderDaysBefore} day
                   {preferences.billReminderDaysBefore !== 1 ? 's' : ''} before each bill is due
                 </p>
               </div>
@@ -326,7 +326,7 @@ export function NotificationPreferences() {
                 className="bg-card border-border text-foreground"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                You'll be warned when spending reaches {preferences.budgetWarningThreshold}%
+                You&apos;ll be warned when spending reaches {preferences.budgetWarningThreshold}%
                 of your budget
               </p>
             </div>
@@ -416,7 +416,7 @@ export function NotificationPreferences() {
                 className="bg-card border-border text-foreground"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                You'll be alerted when balance drops below $
+                You&apos;ll be alerted when balance drops below $
                 {preferences.lowBalanceThreshold.toFixed(2)}
               </p>
             </div>

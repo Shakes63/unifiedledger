@@ -48,7 +48,11 @@ export function BillsWidget() {
           const rawData = Array.isArray(response_data) ? response_data : response_data.data || [];
 
           // Transform the data structure from { instance, bill } to flat structure with nested bill
-          const billInstances = rawData.map((row: any) => ({
+          interface BillInstanceRow {
+            instance: BillInstance;
+            bill: { id: string; name: string };
+          }
+          const billInstances = rawData.map((row: BillInstanceRow) => ({
             ...row.instance,
             bill: row.bill,
           }));
@@ -168,7 +172,7 @@ export function BillsWidget() {
   return (
     <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-foreground">This Month's Bills</h3>
+        <h3 className="text-lg font-semibold text-foreground">This Month&apos;s Bills</h3>
         <Link href="/dashboard/bills">
           <Button
             variant="ghost"

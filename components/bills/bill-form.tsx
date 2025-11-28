@@ -604,7 +604,7 @@ export function BillForm({
       <div>
         <Label className="text-muted-foreground text-sm mb-2 block">Payee Patterns (Optional)</Label>
         <p className="text-xs text-muted-foreground mb-2">
-          Add patterns to match transaction descriptions (e.g., "Electric", "Power Company")
+          Add patterns to match transaction descriptions (e.g., &quot;Electric&quot;, &quot;Power Company&quot;)
         </p>
         <div className="space-y-2">
           {formData.payeePatterns.map((pattern: string, index: number) => (

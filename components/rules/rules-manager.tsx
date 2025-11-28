@@ -506,7 +506,7 @@ export function RulesManager({
           <p className="font-semibold text-foreground mb-2">How Rules Work:</p>
           <ul className="list-disc list-inside space-y-1">
             <li>Rules are applied in order by priority (lower number = higher priority)</li>
-            <li>The first matching rule's actions are applied automatically</li>
+            <li>The first matching rule&apos;s actions are applied automatically</li>
             <li>Actions can set category, modify description, or set merchant</li>
             <li>Rules only apply to transactions without a manually selected category</li>
             <li>Toggle rules on/off without deleting them</li>

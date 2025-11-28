@@ -123,7 +123,7 @@ export function DebtFreeCountdown() {
         <div className="text-center">
           <PartyPopper className="w-16 h-16 text-[var(--color-income)] mx-auto mb-4" />
           <h2 className="text-3xl font-bold text-[var(--color-income)] mb-2">
-            You're Debt-Free!
+            You&apos;re Debt-Free!
           </h2>
           <p className="text-[var(--color-income)]/80 text-lg">
             Congratulations! You have no active debts. Keep up the great work!

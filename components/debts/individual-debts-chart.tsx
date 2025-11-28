@@ -39,20 +39,28 @@ function formatCurrency(value: number): string {
   return `$${value.toFixed(0)}`;
 }
 
+interface TooltipPayloadItem {
+  value: number;
+  dataKey: string;
+  color?: string;
+  name?: string;
+  payload?: Record<string, unknown>;
+}
+
 function CustomTooltip({
   active,
   payload,
   debtMap,
 }: {
   active?: boolean;
-  payload?: any[];
+  payload?: TooltipPayloadItem[];
   debtMap?: Record<string, DebtDetail>;
 }) {
   if (!active || !payload || payload.length === 0) {
     return null;
   }
 
-  const data = payload[0]?.payload;
+  const data = payload[0]?.payload as { month?: string } | undefined;
   if (!data) return null;
 
   // Sort payload by value (descending) for better readability
@@ -69,7 +77,7 @@ function CustomTooltip({
       <p className="font-semibold text-foreground text-sm mb-2">
         {data.month}
       </p>
-      {sortedPayload.map((entry: any, index: number) => {
+      {sortedPayload.map((entry: TooltipPayloadItem, index: number) => {
         const debtId = entry.dataKey;
         const debtName = debtMap?.[debtId]?.name || debtId;
         return (

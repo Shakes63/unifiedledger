@@ -23,6 +23,7 @@ const COLORS = {
 };
 
 // Custom label renderer showing percentages
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const renderCustomLabel = (props: any) => {
   const { cx, cy, midAngle, innerRadius, outerRadius, percent, name: _name } = props;
   const RADIAN = Math.PI / 180;
@@ -45,6 +46,7 @@ const renderCustomLabel = (props: any) => {
 };
 
 // Custom tooltip
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     return (
@@ -192,7 +194,7 @@ export function TotalCostPieChart({
       <div className="bg-gradient-to-r from-accent/20 to-accent/10 border border-accent/30 rounded-lg p-4 mb-4">
         <div className="text-center">
           <div className="text-xs text-muted-foreground uppercase mb-1">
-            Total Amount You'll Pay
+            Total Amount You&apos;ll Pay
           </div>
           <div className="text-3xl font-bold text-foreground font-mono">
             ${costData.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -213,7 +215,7 @@ export function TotalCostPieChart({
                 High Interest Cost
               </p>
               <p className="text-sm text-foreground">
-                You'll pay <span className="font-bold">{costData.interestMultiplier.toFixed(2)}x</span> the original amount
+                You&apos;ll pay <span className="font-bold">{costData.interestMultiplier.toFixed(2)}x</span> the original amount
                 due to interest. Consider making extra payments to reduce this cost significantly.
               </p>
             </div>
@@ -249,7 +251,7 @@ export function TotalCostPieChart({
                 Interest-Free Debt
               </p>
               <p className="text-sm text-foreground">
-                This debt has no interest charges. You'll pay exactly what you borrowed!
+                This debt has no interest charges. You&apos;ll pay exactly what you borrowed!
               </p>
             </div>
           </div>

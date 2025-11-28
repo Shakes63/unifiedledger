@@ -26,28 +26,37 @@ interface Milestone {
   achievedAt?: string;
 }
 
+interface DebtData {
+  id: string;
+  name: string;
+  creditorName: string;
+  originalAmount: number;
+  remainingBalance: number;
+  minimumPayment?: number;
+  additionalMonthlyPayment?: number;
+  interestRate: number;
+  type: string;
+  color: string;
+  status: string;
+  targetPayoffDate?: string;
+  creditLimit?: number | null;
+  loanType?: 'revolving' | 'installment';
+  compoundingFrequency?: 'daily' | 'monthly' | 'quarterly' | 'annually';
+  billingCycleDays?: number;
+}
+
+interface DebtPayment {
+  id: string;
+  amount: number;
+  date: string;
+  type: string;
+}
+
 interface DebtTrackerProps {
-  debt: {
-    id: string;
-    name: string;
-    creditorName: string;
-    originalAmount: number;
-    remainingBalance: number;
-    minimumPayment?: number;
-    additionalMonthlyPayment?: number;
-    interestRate: number;
-    type: string;
-    color: string;
-    status: string;
-    targetPayoffDate?: string;
-    creditLimit?: number | null;
-    loanType?: 'revolving' | 'installment';
-    compoundingFrequency?: 'daily' | 'monthly' | 'quarterly' | 'annually';
-    billingCycleDays?: number;
-  };
+  debt: DebtData;
   milestones?: Milestone[];
-  payments?: any[];
-  onEdit?: (debt: any) => void;
+  payments?: DebtPayment[];
+  onEdit?: (debt: DebtData) => void;
   onDelete?: (debtId: string) => void;
   onPayment?: (debtId: string, amount: number) => void;
   defaultExpanded?: boolean;

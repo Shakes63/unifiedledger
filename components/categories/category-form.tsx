@@ -22,9 +22,12 @@ const CATEGORY_TYPES = [
   { value: 'non_monthly_bill', label: 'Non-Monthly Bill' },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type CategoryData = Record<string, any>;
+
 interface CategoryFormProps {
-  category?: any;
-  onSubmit: (data: any) => void;
+  category?: CategoryData | null;
+  onSubmit: (data: CategoryData) => void;
   onCancel?: () => void;
   isLoading?: boolean;
 }
@@ -84,7 +87,7 @@ export function CategoryForm({
       name: formData.name,
       type: formData.type,
       monthlyBudget: parseFloat(String(formData.monthlyBudget)) || 0,
-      dueDate: formData.dueDate ? parseInt(formData.dueDate) : null,
+      dueDate: formData.dueDate ? parseInt(String(formData.dueDate)) : null,
       isTaxDeductible: formData.isTaxDeductible,
       isActive: formData.isActive,
       incomeFrequency: formData.type === 'income' ? formData.incomeFrequency : undefined,

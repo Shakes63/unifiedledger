@@ -11,17 +11,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 
+interface CategoryData {
+  id: string;
+  name: string;
+  type: 'income' | 'variable_expense' | 'monthly_bill' | 'savings' | 'debt' | 'non_monthly_bill';
+  monthlyBudget: number;
+  dueDate?: number | null;
+  usageCount: number;
+  isTaxDeductible?: boolean;
+}
+
 interface CategoryCardProps {
-  category: {
-    id: string;
-    name: string;
-    type: 'income' | 'variable_expense' | 'monthly_bill' | 'savings' | 'debt' | 'non_monthly_bill';
-    monthlyBudget: number;
-    dueDate?: number | null;
-    usageCount: number;
-    isTaxDeductible?: boolean;
-  };
-  onEdit?: (category: any) => void;
+  category: CategoryData;
+  onEdit?: (category: CategoryData) => void;
   onDelete?: (categoryId: string) => void;
 }
 

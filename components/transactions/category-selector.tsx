@@ -92,9 +92,12 @@ export function CategorySelector({
             const billsData = await billsResponse.json();
             // Bills API returns { data: [...], total, limit, offset }
             // Each item is { bill, category, account, upcomingInstances }
+            interface BillItem {
+              bill: { id: string; name: string; categoryId?: string };
+            }
             const billsWithCategories = (billsData.data || [])
-              .filter((item: any) => item.bill?.categoryId)
-              .map((item: any) => ({
+              .filter((item: BillItem) => item.bill?.categoryId)
+              .map((item: BillItem) => ({
                 id: item.bill.id,
                 name: item.bill.name,
                 categoryId: item.bill.categoryId,
@@ -107,9 +110,14 @@ export function CategorySelector({
           if (debtsResponse.ok) {
             const debtsData = await debtsResponse.json();
             // Debts API returns array directly
+            interface DebtItem {
+              id: string;
+              name: string;
+              categoryId?: string;
+            }
             const debtsWithCategories = (debtsData || [])
-              .filter((debt: any) => debt.categoryId)
-              .map((debt: any) => ({
+              .filter((debt: DebtItem) => debt.categoryId)
+              .map((debt: DebtItem) => ({
                 id: debt.id,
                 name: debt.name,
                 categoryId: debt.categoryId,

@@ -615,7 +615,7 @@ export function PrivacyTab() {
 
               <div>
                 <Label htmlFor="deleteConfirm" className="text-foreground">
-                  Type "DELETE MY ACCOUNT" to confirm
+                  Type &quot;DELETE MY ACCOUNT&quot; to confirm
                 </Label>
                 <Input
                   id="deleteConfirm"

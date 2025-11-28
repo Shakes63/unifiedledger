@@ -618,7 +618,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
               Leave Household
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Are you sure you want to leave "{selectedHousehold?.name}"? You'll lose access to all shared data.
+              Are you sure you want to leave &quot;{selectedHousehold?.name}&quot;? You&apos;ll lose access to all shared data.
             </DialogDescription>
           </DialogHeader>
 
@@ -717,7 +717,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
 
           <div className="py-4">
             <Label htmlFor="deleteConfirm" className="text-foreground">
-              Type the household name <span className="font-semibold">"{selectedHousehold?.name}"</span> to confirm
+              Type the household name <span className="font-semibold">&quot;{selectedHousehold?.name}&quot;</span> to confirm
             </Label>
             <Input
               id="deleteConfirm"

@@ -109,7 +109,7 @@ export function CreateAccountStep({
 
         <div className="bg-elevated border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground">
-            We've pre-filled an example account. Feel free to modify it or create your own.
+            We&apos;ve pre-filled an example account. Feel free to modify it or create your own.
           </p>
         </div>
 

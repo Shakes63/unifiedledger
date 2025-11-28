@@ -51,11 +51,16 @@ export function EnhancedBillsWidget() {
 
       const allBillInstances: BillInstance[] = [];
 
+      interface BillInstanceRow {
+        instance: BillInstance;
+        bill: { id: string; name: string };
+      }
+
       // Process overdue bills - include all regardless of date
       if (overdueResponse.ok) {
         const overdueData = await overdueResponse.json();
         const overdueRawData = Array.isArray(overdueData) ? overdueData : overdueData.data || [];
-        const overdueBills = overdueRawData.map((row: any) => ({
+        const overdueBills = overdueRawData.map((row: BillInstanceRow) => ({
           ...row.instance,
           bill: row.bill,
         }));
@@ -66,7 +71,7 @@ export function EnhancedBillsWidget() {
       if (currentMonthResponse.ok) {
         const currentMonthData = await currentMonthResponse.json();
         const currentMonthRawData = Array.isArray(currentMonthData) ? currentMonthData : currentMonthData.data || [];
-        const currentMonthBills = currentMonthRawData.map((row: any) => ({
+        const currentMonthBills = currentMonthRawData.map((row: BillInstanceRow) => ({
           ...row.instance,
           bill: row.bill,
         }));
@@ -217,7 +222,7 @@ export function EnhancedBillsWidget() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <CalendarIcon className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
-          <h3 className="text-lg font-semibold text-foreground">This Month's Bills</h3>
+          <h3 className="text-lg font-semibold text-foreground">This Month&apos;s Bills</h3>
         </div>
         <Link href="/dashboard/bills">
           <Button
@@ -364,7 +369,7 @@ export function EnhancedBillsWidget() {
           <CheckCircle2 className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--color-success)', opacity: 0.5 }} />
           <p className="text-lg font-medium text-foreground mb-2">No bills this month</p>
           <p className="text-sm text-muted-foreground mb-4">
-            You're all set! No bills are due this month.
+            You&apos;re all set! No bills are due this month.
           </p>
           <Link href="/dashboard/bills/new">
             <Button size="sm" className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)]">

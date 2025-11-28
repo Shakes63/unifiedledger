@@ -48,8 +48,13 @@ export function BudgetSummaryWidget() {
           ? new Decimal(totalSpent).div(totalBudget).times(100).toNumber()
           : 0;
 
+      interface BudgetCategory {
+        monthlyBudget: number;
+        status: string;
+      }
+
       const categoriesWithBudgets = data.categories.filter(
-        (c: any) => c.monthlyBudget > 0
+        (c: BudgetCategory) => c.monthlyBudget > 0
       );
 
       const hasBudgets = categoriesWithBudgets.length > 0;
@@ -59,10 +64,10 @@ export function BudgetSummaryWidget() {
         totalBudget,
         totalSpent,
         percentage,
-        onTrack: data.categories.filter((c: any) => c.status === 'on_track').length,
-        warning: data.categories.filter((c: any) => c.status === 'warning').length,
-        exceeded: data.categories.filter((c: any) => c.status === 'exceeded').length,
-        unbudgeted: data.categories.filter((c: any) => c.status === 'unbudgeted')
+        onTrack: data.categories.filter((c: BudgetCategory) => c.status === 'on_track').length,
+        warning: data.categories.filter((c: BudgetCategory) => c.status === 'warning').length,
+        exceeded: data.categories.filter((c: BudgetCategory) => c.status === 'exceeded').length,
+        unbudgeted: data.categories.filter((c: BudgetCategory) => c.status === 'unbudgeted')
           .length,
         hasBudgets,
       };

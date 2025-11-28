@@ -21,21 +21,23 @@ interface Milestone {
   achievedAt?: string;
 }
 
+interface GoalData {
+  id: string;
+  name: string;
+  description?: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate?: string;
+  category: string;
+  color: string;
+  status: string;
+  monthlyContribution?: number | null;
+}
+
 interface GoalTrackerProps {
-  goal: {
-    id: string;
-    name: string;
-    description?: string;
-    targetAmount: number;
-    currentAmount: number;
-    targetDate?: string;
-    category: string;
-    color: string;
-    status: string;
-    monthlyContribution?: number | null;
-  };
+  goal: GoalData;
   milestones?: Milestone[];
-  onEdit?: (goal: any) => void;
+  onEdit?: (goal: GoalData) => void;
   onDelete?: (goalId: string) => void;
   onContribute?: (goalId: string, amount: number) => void;
 }

@@ -44,9 +44,12 @@ const ACCOUNT_ICONS = [
   { value: 'briefcase', label: 'Briefcase', icon: Briefcase },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AccountData = Record<string, any>;
+
 interface AccountFormProps {
-  account?: any;
-  onSubmit: (data: any, saveMode?: 'save' | 'saveAndAdd') => void;
+  account?: AccountData | null;
+  onSubmit: (data: AccountData, saveMode?: 'save' | 'saveAndAdd') => void;
   onCancel?: () => void;
   isLoading?: boolean;
 }

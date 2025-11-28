@@ -98,7 +98,7 @@ export function CreateHouseholdStep({
             <Users className="w-8 h-8 text-[var(--color-primary)]" />
           </div>
           <p className="text-muted-foreground">
-            Since you're joining an existing household, we'll skip household creation.
+            Since you&apos;re joining an existing household, we&apos;ll skip household creation.
           </p>
         </div>
       </OnboardingStep>

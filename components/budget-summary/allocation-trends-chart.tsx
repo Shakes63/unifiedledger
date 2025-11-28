@@ -134,7 +134,7 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
 
   // Memoize tooltip with chartData
   const tooltipContent = useMemo(() => 
-    function TrendsTooltipWrapper(props: { active?: boolean; payload?: any[]; label?: string | number }) {
+    function TrendsTooltipWrapper(props: { active?: boolean; payload?: { dataKey: string; value: number; color: string }[]; label?: string | number }) {
       return <TrendsTooltip {...props} chartData={chartData} />;
     }, [chartData]);
 

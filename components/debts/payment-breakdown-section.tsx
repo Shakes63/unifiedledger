@@ -162,7 +162,7 @@ export function PaymentBreakdownSection({
                     <div>
                       <p className="font-semibold mb-1">High Interest Cost</p>
                       <p className="text-muted-foreground">
-                        You'll pay over ${(activeSchedule.totalInterestPaid / 1000).toFixed(0)}k in interest.
+                        You&apos;ll pay over ${(activeSchedule.totalInterestPaid / 1000).toFixed(0)}k in interest.
                         Even small extra payments can make a huge difference!
                       </p>
                     </div>

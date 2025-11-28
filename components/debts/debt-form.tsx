@@ -55,9 +55,12 @@ const COMPOUNDING_FREQUENCIES = [
   { value: 'annually', label: 'Annually' },
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DebtData = Record<string, any>;
+
 interface DebtFormProps {
-  debt?: any;
-  onSubmit: (data: any, saveMode?: 'save' | 'saveAndAdd') => void;
+  debt?: DebtData | null;
+  onSubmit: (data: DebtData, saveMode?: 'save' | 'saveAndAdd') => void;
   onCancel: () => void;
   isLoading?: boolean;
 }

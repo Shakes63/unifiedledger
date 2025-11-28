@@ -34,12 +34,23 @@ function formatCurrency(value: number): string {
   return `$${value.toFixed(0)}`;
 }
 
+interface TooltipPayloadItem {
+  value: number;
+  name?: string;
+  color?: string;
+  payload?: {
+    month?: string;
+    actualTotal?: number;
+    projectedTotal?: number;
+  };
+}
+
 function CustomTooltip({
   active,
   payload,
 }: {
   active?: boolean;
-  payload?: any[];
+  payload?: TooltipPayloadItem[];
 }) {
   if (!active || !payload || payload.length === 0) {
     return null;
@@ -59,7 +70,7 @@ function CustomTooltip({
       <p className="font-semibold text-foreground text-sm mb-1">
         {data.month}
       </p>
-      {payload.map((entry: any, index: number) => (
+      {payload.map((entry: TooltipPayloadItem, index: number) => (
         <p key={index} className="text-xs" style={{ color: entry.color }}>
           {entry.name}: {formatCurrency(entry.value)}
         </p>

@@ -119,7 +119,7 @@ export function CreateCategoryStep({
 
         <div className="bg-elevated border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground">
-            We've pre-filled an example category. Modify it or create your own spending category
+            We&apos;ve pre-filled an example category. Modify it or create your own spending category
             with a monthly budget.
           </p>
         </div>

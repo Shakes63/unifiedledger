@@ -114,7 +114,7 @@ export function CreateDemoDataStep({ onNext, onPrevious }: CreateDemoDataStepPro
                 </ul>
               </div>
               <p className="text-sm text-muted-foreground">
-                All demo data is clearly marked and won't affect real household finances.
+                All demo data is clearly marked and won&apos;t affect real household finances.
               </p>
             </div>
           </>

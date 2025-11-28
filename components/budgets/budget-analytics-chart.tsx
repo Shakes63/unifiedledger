@@ -23,10 +23,23 @@ interface BudgetAnalyticsChartProps {
   height?: number;
 }
 
+interface TooltipPayloadItem {
+  value: number;
+  dataKey: string;
+  color?: string;
+  name?: string;
+}
+
+interface TooltipProps {
+  active?: boolean;
+  payload?: TooltipPayloadItem[];
+  label?: string;
+}
+
 /**
  * Custom tooltip for budget analytics
  */
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label }: TooltipProps) {
   if (!active || !payload || !payload.length) return null;
 
   // Format month (YYYY-MM to MMM YYYY)
@@ -46,13 +59,13 @@ function CustomTooltip({ active, payload, label }: any) {
     }).format(value);
   };
 
-  const incomeData = payload.find((p: any) => p.dataKey === 'totalIncome');
-  const expensesData = payload.find((p: any) => p.dataKey === 'totalExpenses');
-  const savingsData = payload.find((p: any) => p.dataKey === 'savings');
+  const incomeData = payload.find((p: TooltipPayloadItem) => p.dataKey === 'totalIncome');
+  const expensesData = payload.find((p: TooltipPayloadItem) => p.dataKey === 'totalExpenses');
+  const savingsData = payload.find((p: TooltipPayloadItem) => p.dataKey === 'savings');
 
   return (
     <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-      <p className="text-sm font-semibold text-foreground mb-2">{formatMonth(label)}</p>
+      <p className="text-sm font-semibold text-foreground mb-2">{label ? formatMonth(label) : ''}</p>
       <div className="space-y-1">
         {incomeData && (
           <div className="flex items-center justify-between gap-4">

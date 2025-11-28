@@ -110,7 +110,7 @@ export function CreateDebtStep({
 
         <div className="bg-elevated border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground">
-            We've pre-filled an example debt. Track your progress and see payoff projections!
+            We&apos;ve pre-filled an example debt. Track your progress and see payoff projections!
           </p>
         </div>
 

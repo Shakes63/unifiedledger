@@ -124,7 +124,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
                 Only Paying Minimums?
               </h3>
               <p className="text-muted-foreground mb-3">
-                You're currently set to pay only the minimum payments. This will cost you significantly more in interest and keep you in debt much longer.
+                You&apos;re currently set to pay only the minimum payments. This will cost you significantly more in interest and keep you in debt much longer.
               </p>
               <div className="bg-elevated/60 rounded-lg p-4 space-y-2">
                 <div className="flex justify-between items-center">
@@ -134,7 +134,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Total interest you'll pay:</span>
+                  <span className="text-muted-foreground">Total interest you&apos;ll pay:</span>
                   <span className="text-xl font-bold font-mono text-[var(--color-error)]">
                     ${data.minimumOnlyScenario.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
@@ -327,7 +327,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
           <div className="flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-[var(--color-error)] mt-0.5 flex-shrink-0" />
             <p className="text-[var(--color-error)] text-sm font-medium">
-              <strong>WARNING:</strong> If you only pay minimums, you'll pay{' '}
+              <strong>WARNING:</strong> If you only pay minimums, you&apos;ll pay{' '}
             <span className="text-[var(--color-error)] font-bold">
               {interestMultiplier >= 2
                 ? `${Math.round(interestMultiplier)}x more`

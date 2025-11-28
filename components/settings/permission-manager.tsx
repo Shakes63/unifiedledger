@@ -357,7 +357,7 @@ export function PermissionManager({
                 <div className="text-sm text-foreground">
                   <p className="font-medium mb-1">Security Warning</p>
                   <p className="text-muted-foreground">
-                    Removing "Manage Permissions" from an admin may prevent them from managing
+                    Removing &quot;Manage Permissions&quot; from an admin may prevent them from managing
                     other members. Ensure at least one other admin or owner retains this
                     permission.
                   </p>

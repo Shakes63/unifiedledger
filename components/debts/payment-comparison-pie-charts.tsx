@@ -33,6 +33,7 @@ const COLORS = {
 };
 
 // Custom label renderer for pie chart
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const renderCustomLabel = (props: any) => {
   const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
   const RADIAN = Math.PI / 180;
@@ -55,6 +56,7 @@ const renderCustomLabel = (props: any) => {
 };
 
 // Custom tooltip
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     return (

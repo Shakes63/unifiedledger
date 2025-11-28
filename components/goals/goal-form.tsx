@@ -42,9 +42,12 @@ const GOAL_COLORS = [
   '#f97316', // orange
 ];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GoalData = Record<string, any>;
+
 interface GoalFormProps {
-  goal?: any;
-  onSubmit: (data: any) => void;
+  goal?: GoalData | null;
+  onSubmit: (data: GoalData) => void;
   onCancel: () => void;
   isLoading?: boolean;
 }

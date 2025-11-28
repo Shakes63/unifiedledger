@@ -45,7 +45,7 @@ export function CompactStatsBar() {
         const accountsResponse = await fetchWithHousehold('/api/accounts');
         if (accountsResponse.ok) {
           const accountsData = await accountsResponse.json();
-          const total = accountsData.reduce((sum: number, account: any) => {
+          const total = accountsData.reduce((sum: number, account: { currentBalance?: number }) => {
             return new Decimal(sum).plus(new Decimal(account.currentBalance || 0)).toNumber();
           }, 0);
           setTotalBalance(total);
@@ -59,13 +59,13 @@ export function CompactStatsBar() {
         const txResponse = await fetchWithHousehold('/api/transactions?limit=1000');
         if (txResponse.ok) {
           const txData = await txResponse.json();
-          const monthlyExpenses = txData.filter((tx: any) => {
+          const monthlyExpenses = txData.filter((tx: { date: string; type: string; amount?: number }) => {
             const txDate = new Date(tx.date);
             return tx.type === 'expense' &&
                    txDate >= firstDayOfMonth &&
                    txDate <= lastDayOfMonth;
           });
-          const total = monthlyExpenses.reduce((sum: number, tx: any) => {
+          const total = monthlyExpenses.reduce((sum: number, tx: { amount?: number }) => {
             return new Decimal(sum).plus(new Decimal(tx.amount || 0)).toNumber();
           }, 0);
           setMonthlySpending(total);
@@ -78,7 +78,7 @@ export function CompactStatsBar() {
           const rawData = Array.isArray(billsData) ? billsData : billsData.data || [];
 
           // Filter for this month only
-          const thisMonthBills = rawData.filter((row: any) => {
+          const thisMonthBills = rawData.filter((row: { instance: { dueDate: string } }) => {
             const dueDate = new Date(row.instance.dueDate);
             return dueDate >= firstDayOfMonth && dueDate <= lastDayOfMonth;
           });
@@ -91,7 +91,7 @@ export function CompactStatsBar() {
           if (budgetResponse.ok) {
             const budgetData = await budgetResponse.json();
             const categoriesWithBudgets = budgetData.categories.filter(
-              (c: any) => c.monthlyBudget > 0
+              (c: { monthlyBudget: number }) => c.monthlyBudget > 0
             );
             if (categoriesWithBudgets.length > 0) {
               setBudgetAdherence(budgetData.summary.adherenceScore || 0);
@@ -108,10 +108,10 @@ export function CompactStatsBar() {
             const debtsData = await debtsResponse.json();
             if (debtsData.length > 0) {
               // Calculate total debt paid percentage
-              const totalOriginal = debtsData.reduce((sum: number, debt: any) => {
+              const totalOriginal = debtsData.reduce((sum: number, debt: { originalBalance?: number; currentBalance?: number }) => {
                 return new Decimal(sum).plus(new Decimal(debt.originalBalance || debt.currentBalance || 0)).toNumber();
               }, 0);
-              const totalCurrent = debtsData.reduce((sum: number, debt: any) => {
+              const totalCurrent = debtsData.reduce((sum: number, debt: { currentBalance?: number }) => {
                 return new Decimal(sum).plus(new Decimal(debt.currentBalance || 0)).toNumber();
               }, 0);
               if (totalOriginal > 0) {
@@ -134,10 +134,10 @@ export function CompactStatsBar() {
           if (goalsResponse.ok) {
             const goalsData = await goalsResponse.json();
             if (Array.isArray(goalsData) && goalsData.length > 0) {
-              const totalTarget = goalsData.reduce((sum: number, g: any) => {
+              const totalTarget = goalsData.reduce((sum: number, g: { targetAmount?: number }) => {
                 return new Decimal(sum).plus(new Decimal(g.targetAmount || 0)).toNumber();
               }, 0);
-              const totalSaved = goalsData.reduce((sum: number, g: any) => {
+              const totalSaved = goalsData.reduce((sum: number, g: { currentAmount?: number }) => {
                 return new Decimal(sum).plus(new Decimal(g.currentAmount || 0)).toNumber();
               }, 0);
               if (totalTarget > 0) {

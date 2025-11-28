@@ -63,7 +63,7 @@ export function DebtAmortizationSection({
         const data = await response.json();
 
         // Filter to only this debt's schedule
-        const debtSchedule = data.schedules?.find((s: any) => s.debtId === debt.id);
+        const debtSchedule = data.schedules?.find((s: { debtId: string }) => s.debtId === debt.id);
 
         if (!debtSchedule) {
           throw new Error('Schedule not found for this debt');
@@ -76,7 +76,7 @@ export function DebtAmortizationSection({
           totalMonths: debtSchedule.monthsToPayoff,
           totalInterestPaid: debtSchedule.totalInterestPaid,
           debtFreeDate: new Date(debtSchedule.payoffDate),
-          payoffOrder: data.payoffOrder.filter((o: any) => o.debtId === debt.id),
+          payoffOrder: data.payoffOrder.filter((o: { debtId: string }) => o.debtId === debt.id),
           nextRecommendedPayment: data.nextRecommendedPayment?.debtId === debt.id
             ? data.nextRecommendedPayment
             : {
@@ -112,7 +112,7 @@ export function DebtAmortizationSection({
     return (
       <div className={`p-4 bg-elevated border border-border rounded-lg ${className}`}>
         <p className="text-sm text-muted-foreground text-center">
-          This debt has no interest, so there's no amortization schedule to display.
+          This debt has no interest, so there&apos;s no amortization schedule to display.
         </p>
       </div>
     );

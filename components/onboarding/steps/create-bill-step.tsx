@@ -110,7 +110,7 @@ export function CreateBillStep({
 
         <div className="bg-elevated border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground">
-            We've pre-filled an example bill. The system will automatically match transactions to
+            We&apos;ve pre-filled an example bill. The system will automatically match transactions to
             your bills when you record payments.
           </p>
         </div>

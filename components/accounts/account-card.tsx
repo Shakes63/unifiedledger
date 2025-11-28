@@ -28,19 +28,21 @@ import {
 import { toast } from 'sonner';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 
+interface AccountData {
+  id: string;
+  name: string;
+  type: string;
+  bankName?: string;
+  accountNumberLast4?: string;
+  currentBalance: number;
+  creditLimit?: number;
+  color: string;
+  icon: string;
+}
+
 interface AccountCardProps {
-  account: {
-    id: string;
-    name: string;
-    type: string;
-    bankName?: string;
-    accountNumberLast4?: string;
-    currentBalance: number;
-    creditLimit?: number;
-    color: string;
-    icon: string;
-  };
-  onEdit?: (account: any) => void;
+  account: AccountData;
+  onEdit?: (account: AccountData) => void;
   onDelete?: (accountId: string) => void;
 }
 

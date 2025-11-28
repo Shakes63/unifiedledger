@@ -110,7 +110,7 @@ export function CreateGoalStep({
 
         <div className="bg-elevated border border-border rounded-lg p-4">
           <p className="text-sm text-muted-foreground">
-            We've pre-filled an example goal. Track your progress and celebrate milestones as you
+            We&apos;ve pre-filled an example goal. Track your progress and celebrate milestones as you
             save!
           </p>
         </div>
