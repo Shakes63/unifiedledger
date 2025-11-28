@@ -39,18 +39,26 @@ interface CategorySelectorProps {
   selectedCategory: string | null;
   onCategoryChange: (categoryId: string | null) => void;
   transactionType: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+  onLoadingChange?: (isLoading: boolean) => void;
 }
 
 export function CategorySelector({
   selectedCategory,
   onCategoryChange,
   transactionType,
+  onLoadingChange,
 }: CategorySelectorProps) {
   const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [categories, setCategories] = useState<Category[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
-  const [_loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Notify parent of loading state changes
+  const updateLoading = (loading: boolean) => {
+    setIsLoading(loading);
+    onLoadingChange?.(loading);
+  };
   const [isCreating, setIsCreating] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [creatingCategory, setCreatingCategory] = useState(false);
@@ -62,13 +70,13 @@ export function CategorySelector({
 
   useEffect(() => {
     if (!selectedHouseholdId) {
-      setLoading(false);
+      updateLoading(false);
       return;
     }
 
     const fetchData = async () => {
       try {
-        setLoading(true);
+        updateLoading(true);
 
         // Fetch categories
         const categoriesResponse = await fetchWithHousehold('/api/categories');
@@ -128,7 +136,7 @@ export function CategorySelector({
       } catch (error) {
         console.error('Failed to fetch data:', error);
       } finally {
-        setLoading(false);
+        updateLoading(false);
       }
     };
 

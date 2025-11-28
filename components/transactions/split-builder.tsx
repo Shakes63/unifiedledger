@@ -14,12 +14,13 @@ import {
   type SplitEntry,
   type SplitValidationResult,
 } from '@/lib/transactions/split-calculator';
-import { Plus, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, AlertCircle, Scale, Loader2 } from 'lucide-react';
 
 export interface Split extends SplitEntry {
   id: string;
   categoryId: string;
   description?: string;
+  isAutoBalanced?: boolean;
 }
 
 interface SplitBuilderProps {
@@ -41,6 +42,7 @@ export function SplitBuilder({
 }: SplitBuilderProps) {
   const [validation, setValidation] = useState<SplitValidationResult | null>(null);
   const [splitType, setSplitType] = useState<'amount' | 'percentage'>('amount');
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   // Validate whenever splits change
   const validateCurrentSplits = (updatedSplits: Split[]) => {
@@ -81,7 +83,7 @@ export function SplitBuilder({
     const value = parseFloat(newAmount);
     if (isNaN(value)) return;
 
-    // Update the split that changed
+    // Update the split that changed and clear auto-balanced flag on manual edit
     const updatedSplits = splits.map((s) =>
       s.id === id
         ? {
@@ -89,45 +91,10 @@ export function SplitBuilder({
             amount: splitType === 'amount' ? value : 0,
             percentage: splitType === 'percentage' ? value : 0,
             isPercentage: splitType === 'percentage',
+            isAutoBalanced: false, // Clear flag on manual edit
           }
         : s
     );
-
-    // Auto-calculate the last split to equal the remainder
-    // Only if we have 2 or more splits and we're using fixed amounts
-    if (updatedSplits.length >= 2 && splitType === 'amount') {
-      const lastIndex = updatedSplits.length - 1;
-      const isEditingLastSplit = updatedSplits[lastIndex].id === id;
-
-      if (!isEditingLastSplit) {
-        // Sum all splits EXCEPT the last one
-        const sumExceptLast = updatedSplits
-          .slice(0, lastIndex)
-          .reduce((sum, split) => sum + (split.amount || 0), 0);
-
-        // Set last split to remainder
-        const remainder = Math.max(0, transactionAmount - sumExceptLast);
-        updatedSplits[lastIndex] = {
-          ...updatedSplits[lastIndex],
-          amount: remainder,
-        };
-      } else {
-        // User is editing the last split, so update the second-to-last split
-        if (updatedSplits.length > 2) {
-          const secondToLastIndex = lastIndex - 1;
-          // Sum all splits EXCEPT the second-to-last one
-          const sumExceptSecondToLast = updatedSplits
-            .filter((_, i) => i !== secondToLastIndex)
-            .reduce((sum, split) => sum + (split.amount || 0), 0);
-
-          const remainder = Math.max(0, transactionAmount - sumExceptSecondToLast);
-          updatedSplits[secondToLastIndex] = {
-            ...updatedSplits[secondToLastIndex],
-            amount: remainder,
-          };
-        }
-      }
-    }
 
     onSplitsChange(updatedSplits);
     validateCurrentSplits(updatedSplits);
@@ -151,6 +118,39 @@ export function SplitBuilder({
 
   const handleSwitchSplitType = (newType: 'amount' | 'percentage') => {
     setSplitType(newType);
+  };
+
+  // Balance splits by adjusting the last split to equal the remainder
+  const handleBalanceSplits = () => {
+    if (splits.length < 2) return;
+
+    const isPercentageMode = splitType === 'percentage';
+    const target = isPercentageMode ? 100 : transactionAmount;
+
+    // Sum all splits EXCEPT the last one
+    const sumExceptLast = splits
+      .slice(0, -1)
+      .reduce((sum, s) => sum + (isPercentageMode ? s.percentage || 0 : s.amount || 0), 0);
+
+    // Calculate remainder for the last split
+    const remainder = Math.max(0, target - sumExceptLast);
+
+    // Update splits - clear auto-balanced from all except last, set on last
+    const updatedSplits = splits.map((s, index) => {
+      if (index === splits.length - 1) {
+        return {
+          ...s,
+          ...(isPercentageMode
+            ? { percentage: parseFloat(remainder.toFixed(2)) }
+            : { amount: parseFloat(remainder.toFixed(2)) }),
+          isAutoBalanced: true,
+        };
+      }
+      return { ...s, isAutoBalanced: false };
+    });
+
+    onSplitsChange(updatedSplits);
+    validateCurrentSplits(updatedSplits);
   };
 
   const hasValidationError = validation && !validation.valid;
@@ -205,11 +205,21 @@ export function SplitBuilder({
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <p className="text-xs text-muted-foreground">
-                        {split.isPercentage ? `${split.percentage}%` : `$${split.amount?.toFixed(2)}`}
-                        {' • '}
-                        ${metrics.amount.toFixed(2)} ({metrics.percentage.toFixed(2)}%)
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          {split.isPercentage ? `${split.percentage}%` : `$${split.amount?.toFixed(2)}`}
+                          {' • '}
+                          ${metrics.amount.toFixed(2)} ({metrics.percentage.toFixed(2)}%)
+                        </p>
+                        {split.isAutoBalanced && (
+                          <Badge 
+                            variant="outline" 
+                            className="text-[10px] px-1.5 py-0 h-4 border-[var(--color-primary)]/40 text-[var(--color-primary)]"
+                          >
+                            Balanced
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <Button
                       type="button"
@@ -227,6 +237,7 @@ export function SplitBuilder({
                       selectedCategory={split.categoryId}
                       onCategoryChange={(catId) => handleUpdateSplitCategory(split.id, catId || '')}
                       transactionType={transactionType}
+                      onLoadingChange={setCategoriesLoading}
                     />
                     <div className="grid grid-cols-[1fr_auto] gap-2">
                       <Input
@@ -260,10 +271,20 @@ export function SplitBuilder({
       <Button
         type="button"
         onClick={handleAddSplit}
-        className="w-full bg-[var(--color-primary)] text-background hover:opacity-90 font-medium"
+        disabled={categoriesLoading}
+        className="w-full bg-[var(--color-primary)] text-background hover:opacity-90 font-medium disabled:opacity-50"
       >
-        <Plus className="w-4 h-4 mr-2" />
-        Add Split
+        {categoriesLoading ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Loading categories...
+          </>
+        ) : (
+          <>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Split
+          </>
+        )}
       </Button>
 
       {/* Validation Messages */}
@@ -295,7 +316,7 @@ export function SplitBuilder({
       {/* Summary */}
       {splits.length > 0 && (
         <Card className="border-border bg-background p-3">
-          <div className="text-sm space-y-1">
+          <div className="text-sm space-y-2">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Number of splits:</span>
               <span className="text-foreground font-medium">{splits.length}</span>
@@ -304,6 +325,17 @@ export function SplitBuilder({
               <span className="text-muted-foreground">Total amount:</span>
               <span className="text-foreground font-medium">${transactionAmount.toFixed(2)}</span>
             </div>
+            {hasValidationError && splits.length >= 2 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleBalanceSplits}
+                className="w-full mt-2 border-[var(--color-primary)]/40 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10"
+              >
+                <Scale className="w-4 h-4 mr-2" />
+                Balance Splits
+              </Button>
+            )}
             {!hasValidationError && (
               <Badge variant="outline" className="mt-2 w-full justify-center border-[var(--color-success)]/40 text-[var(--color-success)]">
                 ✓ Ready to save

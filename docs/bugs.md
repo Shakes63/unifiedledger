@@ -25,9 +25,10 @@
 
 ## Improvement Backlog
 
-**Split Transaction Improvements (Low Priority)** - See `docs/split-transaction-review.md`
-- Simplify auto-calculation logic in SplitBuilder
-- Add loading states for category fetching
+**Split Transaction Improvements** - ✅ COMPLETE (2025-11-28)
+- See `docs/split-transaction-review.md` for details
+- Simplified auto-calculation with explicit "Balance Splits" button
+- Added loading states for category fetching
 
 **Linter Cleanup - Remaining Directories (Low Priority)**
 - __tests__/, scripts/, contexts/, hooks/ directories (warnings only)
