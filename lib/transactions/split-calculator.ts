@@ -258,3 +258,50 @@ export function calculateSplitMetrics(
     return { percentage, amount };
   }
 }
+
+/**
+ * Batch split request item for API validation
+ */
+export interface BatchSplitItem {
+  id?: string;
+  categoryId: string;
+  amount?: number;
+  percentage?: number;
+  isPercentage: boolean;
+  description?: string;
+  notes?: string;
+  sortOrder?: number;
+}
+
+/**
+ * Validate a batch of splits for the batch update API
+ * 
+ * @param splits - Array of batch split items to validate
+ * @param transactionAmount - Total transaction amount for sum validation
+ * @returns Object with valid flag and error message (null if valid)
+ */
+export function validateBatchSplits(
+  splits: BatchSplitItem[],
+  transactionAmount: number
+): { valid: boolean; error: string | null } {
+  // Convert BatchSplitItem to SplitEntry for validation
+  const splitEntries: SplitEntry[] = splits.map((s) => ({
+    amount: s.amount,
+    percentage: s.percentage,
+    isPercentage: s.isPercentage,
+    categoryId: s.categoryId,
+  }));
+
+  // Use existing validateSplitConfiguration with strict options
+  const validationError = validateSplitConfiguration(splitEntries, {
+    requireCategory: true,
+    requirePositiveValues: false, // Allow zero for flexibility
+    tolerance: 0.01,
+    transactionAmount,
+  });
+
+  return {
+    valid: validationError === null,
+    error: validationError,
+  };
+}

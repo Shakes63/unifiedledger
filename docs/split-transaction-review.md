@@ -267,9 +267,13 @@ it('should handle negative amounts gracefully', () => {
 3. ✅ **Add proper TypeScript types** - Created `SplitUpdateData` interface
 4. ✅ **Add Decimal.js rounding** - Added `toDecimalPlaces(2, ROUND_HALF_UP)` before storage
 
-### Phase 3: Enhancements (Future)
+### Phase 3: Enhancements (In Progress)
 
-5. **Add batch update API** (~1 hour)
+5. ✅ **Add batch update API** (COMPLETE - 2025-11-28)
+   - Created `PUT /api/transactions/[id]/splits/batch` endpoint
+   - Single atomic operation for create/update/delete splits
+   - Updated `transaction-form.tsx` to use batch API
+   - Added 18 unit tests for validation
 6. **Simplify auto-calculation UX** (~2 hours)
 7. **Add loading states** (~30 min)
 8. **Add edge case tests** (~30 min)
@@ -284,15 +288,15 @@ it('should handle negative amounts gracefully', () => {
 | Medium | Duplicate validation | ✅ COMPLETE |
 | Medium | TypeScript any types | ✅ COMPLETE |
 | Medium | Missing Decimal rounding | ✅ COMPLETE |
-| Low | No batch update API | Pending |
+| Low | No batch update API | ✅ COMPLETE (2025-11-28) |
 | Low | Complex auto-calc logic | Pending |
 | Low | Missing loading states | Pending |
 | Low | Label color inconsistency | ✅ (fixed with hardcoded colors) |
 | Low | State timing pattern | Pending |
 | Low | Test coverage gaps | ✅ (added 20 new tests) |
 
-**Completed:** High + all Medium priority items (actual: ~60 min)  
-**Remaining:** 4 Low priority items (~4 hours estimated)
+**Completed:** High + all Medium + 1 Low priority items  
+**Remaining:** 3 Low priority items (~3.5 hours estimated)
 
 ---
 

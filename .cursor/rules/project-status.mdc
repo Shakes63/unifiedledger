@@ -266,7 +266,8 @@ alwaysApply: false
 ### Improvement Backlog
 - **Split Transaction Improvements (Low Priority)** - See `docs/split-transaction-review.md`
   - Medium priority items COMPLETE (validation consolidation, TypeScript types, Decimal rounding)
-  - Low priority items remaining (batch API, auto-calc simplification, loading states)
+  - ✅ Batch Split Update API COMPLETE (2025-11-28) - Atomic batch endpoint reducing 7+ calls to 1
+  - Low priority items remaining (auto-calc simplification, loading states)
 
 ### Household Data Isolation
 **Status:** ✅ **100% COMPLETE** - All phases (0-4) complete and production-ready

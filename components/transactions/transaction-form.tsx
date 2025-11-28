@@ -671,33 +671,38 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         }
       }
 
-      // Handle splits
+      // Handle splits using batch API (single atomic operation)
       if (useSplits && splits.length > 0) {
-        if (isEditMode) {
-          // In edit mode, delete old splits and create new ones
-          const oldSplits = await fetchWithHousehold(`/api/transactions/${txId}/splits`);
-          if (oldSplits.ok) {
-            const oldSplitsData = await oldSplits.json();
-            for (const oldSplit of oldSplitsData) {
-              await deleteWithHousehold(`/api/transactions/${txId}/splits/${oldSplit.id}`);
-            }
-          }
+        const batchSplits = splits.map((split, index) => ({
+          // Only include id if it's an existing database split (not a local temp id)
+          id: split.id && !split.id.startsWith('split-') ? split.id : undefined,
+          categoryId: split.categoryId,
+          amount: split.amount || 0,
+          percentage: split.percentage || 0,
+          isPercentage: split.isPercentage,
+          description: split.description,
+          sortOrder: index,
+        }));
+
+        const batchResponse = await putWithHousehold(
+          `/api/transactions/${txId}/splits/batch`,
+          { splits: batchSplits, deleteOthers: true }
+        );
+
+        if (!batchResponse.ok) {
+          const errorData = await batchResponse.json();
+          throw new Error(errorData.error || 'Failed to save splits');
         }
+      } else if (isEditMode && !useSplits) {
+        // If splits were disabled in edit mode, delete all existing splits
+        const batchResponse = await putWithHousehold(
+          `/api/transactions/${txId}/splits/batch`,
+          { splits: [], deleteOthers: true }
+        );
 
-        // Create new splits
-        for (const split of splits) {
-          const splitResponse = await postWithHousehold(`/api/transactions/${txId}/splits`, {
-            categoryId: split.categoryId,
-            amount: split.amount || 0,
-            percentage: split.percentage || 0,
-            isPercentage: split.isPercentage,
-            description: split.description,
-          });
-
-          if (!splitResponse.ok) {
-            const errorData = await splitResponse.json();
-            throw new Error(errorData.error || 'Failed to save split');
-          }
+        if (!batchResponse.ok) {
+          const errorData = await batchResponse.json();
+          throw new Error(errorData.error || 'Failed to remove splits');
         }
       }
 

@@ -794,3 +794,76 @@ export interface UnpaidBillInstance {
   debtId?: string | null;
 }
 
+// ============================================================================
+// TRANSACTION SPLIT TYPES
+// ============================================================================
+
+/**
+ * Transaction split entity representing a portion of a split transaction
+ */
+export interface TransactionSplit {
+  id: string;
+  userId: string;
+  householdId: string;
+  transactionId: string;
+  categoryId: string;
+  amount: number;
+  description?: string | null;
+  percentage?: number | null;
+  isPercentage: boolean;
+  sortOrder: number;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Single split item for batch update request
+ * If id is provided, it's an update; if absent, it's a create
+ */
+export interface BatchSplitRequestItem {
+  /** If present, updates existing split; if absent, creates new split */
+  id?: string;
+  /** Category ID for this split (required) */
+  categoryId: string;
+  /** Fixed amount for this split (used when isPercentage is false) */
+  amount?: number;
+  /** Percentage of transaction for this split (used when isPercentage is true) */
+  percentage?: number;
+  /** Whether this split uses percentage (true) or fixed amount (false) */
+  isPercentage: boolean;
+  /** Optional description for this split */
+  description?: string;
+  /** Optional notes for this split */
+  notes?: string;
+  /** Sort order for display (0-indexed) */
+  sortOrder?: number;
+}
+
+/**
+ * Request body for batch split update endpoint
+ */
+export interface BatchSplitRequest {
+  /** Array of splits defining the complete desired state */
+  splits: BatchSplitRequestItem[];
+  /** 
+   * If true (default), delete existing splits not in the array.
+   * If false, only create/update specified splits.
+   */
+  deleteOthers?: boolean;
+}
+
+/**
+ * Response from batch split update endpoint
+ */
+export interface BatchSplitResponse {
+  /** Number of new splits created */
+  created: number;
+  /** Number of existing splits updated */
+  updated: number;
+  /** Number of splits deleted */
+  deleted: number;
+  /** Final state of all splits for the transaction */
+  splits: TransactionSplit[];
+}
+
