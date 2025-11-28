@@ -12,7 +12,6 @@ import type {
   ActionExecutionContext,
   TransactionMutations,
   AppliedAction,
-  SplitConfig,
 } from "@/lib/rules/types";
 
 /**
@@ -121,12 +120,12 @@ function setupDbMock(data?: { categories?: any[]; merchants?: any[] }) {
   // Clear all previous mock calls
   vi.clearAllMocks();
 
-  // Default to using mock data
-  const categories = data?.categories || mockCategories;
-  const merchants = data?.merchants || mockMerchants;
+  // Default to using mock data (reserved for future test expansion)
+  const _categories = data?.categories || mockCategories;
+  const _merchants = data?.merchants || mockMerchants;
 
   // Setup the database mock to return data based on query
-  (db.limit as any).mockImplementation((limitValue: number) => {
+  (db.limit as any).mockImplementation((_limitValue: number) => {
     // The previous calls in the chain tell us what we're querying
     // For simplicity, we'll return based on the most recent operation
     // In real tests, we'll set expectations more explicitly
@@ -237,9 +236,9 @@ function createTestContext(
 }
 
 /**
- * Assert that mutations contain expected values
+ * Assert that mutations contain expected values (reserved for future test expansion)
  */
-function expectMutations(
+function _expectMutations(
   mutations: TransactionMutations,
   expected: Partial<TransactionMutations>
 ) {
@@ -250,9 +249,9 @@ function expectMutations(
 }
 
 /**
- * Assert that an applied action matches expected structure
+ * Assert that an applied action matches expected structure (reserved for future test expansion)
  */
-function expectAppliedAction(
+function _expectAppliedAction(
   action: AppliedAction,
   expected: {
     type: string;

@@ -2,7 +2,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GET, PUT, DELETE } from '@/app/api/households/[householdId]/members/[memberId]/permissions/route';
 import { db } from '@/lib/db';
-import { householdMembers } from '@/lib/db/schema';
 
 /**
  * Comprehensive integration tests for Household Member Permissions API
@@ -46,11 +45,11 @@ import {
 } from '@/lib/household/permissions';
 
 // Test data
-const TEST_USER_ID_OWNER = 'user-owner-123';
+const _TEST_USER_ID_OWNER = 'user-owner-123';
 const TEST_USER_ID_ADMIN = 'user-admin-456';
-const TEST_USER_ID_MEMBER = 'user-member-789';
+const _TEST_USER_ID_MEMBER = 'user-member-789';
 const TEST_USER_ID_VIEWER = 'user-viewer-012';
-const TEST_USER_ID_NON_MEMBER = 'user-non-member-999';
+const _TEST_USER_ID_NON_MEMBER = 'user-non-member-999';
 const TEST_HOUSEHOLD_ID = 'household-456';
 const TEST_MEMBER_ID = 'member-123';
 const TEST_TARGET_USER_ID = 'target-user-999';

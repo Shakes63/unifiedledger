@@ -9,8 +9,6 @@ import {
 import type {
   RuleAction,
   RuleActionType,
-  RuleEvaluationResult,
-  RuleMatch,
 } from "@/lib/rules/types";
 import type {
   TransactionData,

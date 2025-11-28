@@ -46,14 +46,8 @@ import {
   categorizationRules,
   transactionTemplates,
   taxCategories,
-  categoryTaxMappings,
-  transactionTaxClassifications,
   salesTaxSettings,
-  salesTaxCategories,
-  salesTaxTransactions,
-  quarterlyFilingRecords,
   notifications,
-  householdActivityLog,
   userSettings,
   userHouseholdPreferences,
   householdSettings,
@@ -88,11 +82,11 @@ function addMonths(date: string, months: number): string {
   return d.toISOString().split('T')[0];
 }
 
-function getDayOfWeek(date: string): number {
+function _getDayOfWeek(date: string): number {
   return new Date(date).getDay();
 }
 
-function getDayOfMonth(date: string): number {
+function _getDayOfMonth(date: string): number {
   return new Date(date).getDate();
 }
 
@@ -135,9 +129,10 @@ async function generateTestData() {
     
     userId = signUpResult.user.id;
     console.log(`✅ User account created: ${testEmail}`);
-  } catch (error: any) {
+  } catch (error: unknown) {
     // If user already exists, try to sign in to get the user ID
-    if (error.message?.includes('already exists') || error.message?.includes('UNIQUE constraint')) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('already exists') || errorMessage.includes('UNIQUE constraint')) {
       console.log('⚠️  User already exists, using existing account...');
       const signInResult = await auth.api.signInEmail({
         body: {
@@ -1055,7 +1050,7 @@ async function generateTestData() {
   }
 
   // Update account balances based on transactions
-  for (const [accountName, accountId] of Object.entries(accountIds1)) {
+  for (const [_accountName, accountId] of Object.entries(accountIds1)) {
     const finalBalance = accountBalances1[accountId].toNumber();
     await db.update(accounts)
       .set({ currentBalance: finalBalance, updatedAt: new Date().toISOString() })
@@ -1481,7 +1476,7 @@ async function generateTestData() {
   }
 
   // Update account balances based on transactions
-  for (const [accountName, accountId] of Object.entries(accountIds2)) {
+  for (const [_accountName, accountId] of Object.entries(accountIds2)) {
     const finalBalance = accountBalances2[accountId].toNumber();
     await db.update(accounts)
       .set({ currentBalance: finalBalance, updatedAt: new Date().toISOString() })

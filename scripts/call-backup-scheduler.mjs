@@ -7,7 +7,6 @@
  *   CRON_SECRET=your-secret node scripts/call-backup-scheduler.mjs
  */
 
-import { readFileSync } from 'fs';
 import { join } from 'path';
 import Database from 'better-sqlite3';
 

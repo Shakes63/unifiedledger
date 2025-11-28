@@ -25,8 +25,7 @@
 
 ## Improvement Backlog
 
-**Linter Cleanup - Remaining Directories (Low Priority)**
-- __tests__/, scripts/, contexts/, hooks/ directories (warnings only)
+(None)
 
 ---
 
@@ -39,13 +38,14 @@
 | Linter Errors | 0 (in components/) |
 | Linter Warnings | 0 (in components/) |
 | Build Status | Passing |
-| Fixed (All Time) | 573 (69 bugs + 310 warnings + 195 errors) |
+| Fixed (All Time) | 646 (70 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (69 total)
+## Fixed Bugs (70 total)
 
-1. ✅ **Fix Integration Test Failures (50 tests)** [FIXED 2025-11-28] - Fixed all 50 failing tests after Household Data Isolation. Updated rule-matcher.test.ts (25), actions-executor.test.ts (7), transaction-creation-rules.test.ts (5), migrate-to-household-preferences.test.ts (12), user-household-preferences.test.ts (1). Also fixed bug in getOrMigratePreferences where empty array check was incorrect.
+1. ✅ **Linter Cleanup - Remaining Directories** [FIXED 2025-11-28] - Fixed all 73 ESLint issues (17 errors + 56 warnings) in __tests__/, scripts/, contexts/, and hooks/ directories. Replaced `any` types with proper TypeScript interfaces, prefixed unused variables with `_`, removed unused imports, and fixed React hook dependencies.
+2. ✅ **Fix Integration Test Failures (50 tests)** [FIXED 2025-11-28] - Fixed all 50 failing tests after Household Data Isolation. Updated rule-matcher.test.ts (25), actions-executor.test.ts (7), transaction-creation-rules.test.ts (5), migrate-to-household-preferences.test.ts (12), user-household-preferences.test.ts (1). Also fixed bug in getOrMigratePreferences where empty array check was incorrect.
 2. ✅ **Split Builder Auto-Calculation UX** [FIXED] - Replaced silent auto-calculation with explicit "Balance Splits" button and "Balanced" badge indicator for clearer UX
 2. ✅ **Split Builder Loading States** [FIXED] - Added `onLoadingChange` callback to CategorySelector and loading spinner on Add Split button while categories load
 3. ✅ **Batch Split Update API** [FIXED] - Added atomic batch update endpoint (`PUT /api/transactions/[id]/splits/batch`) reducing 7+ sequential API calls to 1, with 18 unit tests

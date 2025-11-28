@@ -19,7 +19,7 @@ async function fetchWithCredentials(url, options = {}) {
   });
 }
 
-async function testInvitationCreation(householdId, email, authCookie) {
+async function _testInvitationCreation(householdId, email, authCookie) {
   console.log('\n📧 Test: Creating invitation...');
   try {
     const response = await fetchWithCredentials(
@@ -52,7 +52,7 @@ async function testInvitationCreation(householdId, email, authCookie) {
   }
 }
 
-async function testGetInvitation(token) {
+async function _testGetInvitation(token) {
   console.log('\n🔍 Test: Getting invitation details...');
   try {
     const response = await fetch(`${BASE_URL}/api/invitations/${token}`, {
@@ -77,7 +77,7 @@ async function testGetInvitation(token) {
   }
 }
 
-async function testDemoDataGeneration(householdId, authCookie) {
+async function _testDemoDataGeneration(householdId, authCookie) {
   console.log('\n🎲 Test: Generating demo data...');
   try {
     const response = await fetchWithCredentials(
@@ -112,7 +112,7 @@ async function testDemoDataGeneration(householdId, authCookie) {
   }
 }
 
-async function testOnboardingStatus(authCookie) {
+async function _testOnboardingStatus(authCookie) {
   console.log('\n📊 Test: Checking onboarding status...');
   try {
     const response = await fetchWithCredentials(

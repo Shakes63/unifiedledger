@@ -118,7 +118,7 @@ backups2.forEach(b => {
 });
 
 // Verify no cross-contamination - check if household 1 backups have household 2's ID
-const wrongBackups1 = db
+const _wrongBackups1 = db
   .prepare(`
     SELECT COUNT(*) as count
     FROM backup_history
@@ -127,7 +127,7 @@ const wrongBackups1 = db
   .get(userId, household1.id, household1.id);
 
 // Check if household 2 backups have household 1's ID  
-const wrongBackups2 = db
+const _wrongBackups2 = db
   .prepare(`
     SELECT COUNT(*) as count
     FROM backup_history

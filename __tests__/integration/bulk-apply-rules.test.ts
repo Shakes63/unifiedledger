@@ -445,7 +445,7 @@ describe("Integration: Bulk Apply Rules API", () => {
       name: "Grocery Rule",
       priority: 1,
     });
-    const [rule1] = await db.insert(categorizationRules).values(rule1Data).returning();
+    const [_rule1] = await db.insert(categorizationRules).values(rule1Data).returning();
 
     // Rule 2 (Priority 2): "Restaurant" → Dining
     const condition2 = createTestCondition("description", "contains", "Restaurant");

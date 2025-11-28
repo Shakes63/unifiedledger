@@ -1,4 +1,4 @@
-import { useState, useEffect, useSyncExternalStore } from 'react';
+import { useState, useEffect } from 'react';
 
 // Helper function to detect touch capability
 function detectTouch(): boolean {

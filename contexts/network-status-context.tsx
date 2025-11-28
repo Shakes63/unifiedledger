@@ -193,7 +193,7 @@ export function NetworkStatusProvider({
         }
         previousServerStatusRef.current = serverAvailable;
       }
-    } catch (error) {
+    } catch (_error) {
       // Health check failed (timeout, network error, etc.)
       setIsServerAvailable(false);
       setConnectionQuality(ConnectionQuality.UNKNOWN);

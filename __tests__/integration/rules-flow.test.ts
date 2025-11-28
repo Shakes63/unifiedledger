@@ -15,7 +15,7 @@
  * Target: 10 tests covering complete rule flows
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { db } from "@/lib/db";
 import {
   transactions,
@@ -25,7 +25,7 @@ import {
   ruleExecutionLog,
   categorizationRules,
 } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { findMatchingRule } from "@/lib/rules/rule-matcher";
 import { executeRuleActions } from "@/lib/rules/actions-executor";
 import type { TransactionData } from "@/lib/rules/condition-evaluator";
@@ -53,7 +53,7 @@ describe("Integration: Complete Rule Flow", () => {
   let testHouseholdId: string;
   let testAccountId: string;
   let testCategoryId: string;
-  let testMerchantId: string;
+  let _testMerchantId: string;
 
   // ============================================================================
   // SETUP & TEARDOWN
@@ -86,7 +86,7 @@ describe("Integration: Complete Rule Flow", () => {
       name: "Whole Foods",
     });
     const [merchant] = await db.insert(merchants).values(merchantData).returning();
-    testMerchantId = merchant.id;
+    _testMerchantId = merchant.id;
   });
 
   afterEach(async () => {
@@ -223,7 +223,7 @@ describe("Integration: Complete Rule Flow", () => {
       name: "Coffee Shop Rule",
       priority: 1,
     });
-    const [rule] = await db.insert(categorizationRules).values(ruleData).returning();
+    const [_rule] = await db.insert(categorizationRules).values(ruleData).returning();
 
     // 2. Create transaction
     const txnData = createTestTransaction(testUserId, testHouseholdId, testAccountId, {
@@ -726,7 +726,7 @@ describe("Integration: Complete Rule Flow", () => {
       name: "Invalid Category Rule",
       priority: 1,
     });
-    const [rule] = await db.insert(categorizationRules).values(ruleData).returning();
+    const [_rule] = await db.insert(categorizationRules).values(ruleData).returning();
 
     // 2. Create transaction
     const txnData = createTestTransaction(testUserId, testHouseholdId, testAccountId, {

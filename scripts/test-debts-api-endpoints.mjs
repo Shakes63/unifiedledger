@@ -19,20 +19,20 @@ const BASE_URL = 'http://localhost:3000';
 const API_BASE = `${BASE_URL}/api/debts`;
 
 /**
- * Helper function to get auth token from browser
+ * Helper function to get auth token from browser (reserved for future use)
  * Run this in browser console to get your session token
  */
-function getAuthToken() {
+function _getAuthToken() {
   // In browser console, cookies are accessible via document.cookie
   // Better Auth uses cookies, so we need to include credentials
   return null; // Will use credentials: 'include' in fetch
 }
 
 /**
- * Helper function to get household ID from current context
+ * Helper function to get household ID from current context (reserved for future use)
  * This should be called from the browser where household context is available
  */
-function getCurrentHouseholdId() {
+function _getCurrentHouseholdId() {
   // In browser, you can get this from localStorage or React context
   // For testing, you'll need to manually provide household IDs
   return null;

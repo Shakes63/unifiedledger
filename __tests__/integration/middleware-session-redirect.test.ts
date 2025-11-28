@@ -1,5 +1,18 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockedFunction } from 'vitest';
 import middleware from '@/middleware';
+import type { NextRequest } from 'next/server';
+
+// Type for validation result matching session-utils (used by mockedValidateSession)
+interface _MockValidationResult {
+  valid: boolean;
+  reason?: 'expired' | 'inactive' | 'not_found';
+  session?: {
+    id: string;
+    lastActivityAt: Date | null;
+    rememberMe: boolean;
+  };
+  userId?: string;
+}
 
 // Mock session-utils used by middleware
 vi.mock('@/lib/session-utils', () => {
@@ -11,8 +24,9 @@ vi.mock('@/lib/session-utils', () => {
 });
 
 const { validateSession } = await import('@/lib/session-utils');
+const mockedValidateSession = validateSession as MockedFunction<typeof validateSession>;
 
-function createRequest(pathname: string, cookies: Record<string, string> = {}) {
+function createRequest(pathname: string, cookies: Record<string, string> = {}): NextRequest {
   const cookieStore = new Map(Object.entries(cookies));
   return {
     url: `https://example.com${pathname}`,
@@ -23,7 +37,7 @@ function createRequest(pathname: string, cookies: Record<string, string> = {}) {
         return value ? { name, value } : undefined;
       },
     },
-  } as any;
+  } as unknown as NextRequest;
 }
 
 describe('middleware session redirect logic', () => {
@@ -32,11 +46,11 @@ describe('middleware session redirect logic', () => {
   });
 
   afterEach(() => {
-    delete (process as any).env.SESSION_DEBUG;
+    delete (process.env as NodeJS.ProcessEnv & { SESSION_DEBUG?: string }).SESSION_DEBUG;
   });
 
   it('redirects unauthenticated protected route to sign-in with callback', async () => {
-    (validateSession as any).mockResolvedValue({ valid: false, reason: 'not_found' });
+    mockedValidateSession.mockResolvedValue({ valid: false, reason: 'not_found' });
     const request = createRequest('/dashboard');
     const res = await middleware(request);
     expect(res?.status).toBe(307);
@@ -44,7 +58,7 @@ describe('middleware session redirect logic', () => {
   });
 
   it('allows access with valid session_token fallback cookie', async () => {
-    (validateSession as any).mockResolvedValue({
+    mockedValidateSession.mockResolvedValue({
       valid: true,
       session: { id: 's1', lastActivityAt: new Date(), rememberMe: false },
       userId: 'u1',
@@ -59,7 +73,7 @@ describe('middleware session redirect logic', () => {
   });
 
   it('redirects with reason=expired when session is expired', async () => {
-    (validateSession as any).mockResolvedValue({
+    mockedValidateSession.mockResolvedValue({
       valid: false,
       reason: 'expired',
       session: { id: 's1', lastActivityAt: new Date(Date.now() - 3600_000), rememberMe: false },
@@ -79,7 +93,7 @@ describe('middleware session redirect logic', () => {
   });
 
   it('redirects with reason=timeout when session inactive', async () => {
-    (validateSession as any).mockResolvedValue({
+    mockedValidateSession.mockResolvedValue({
       valid: false,
       reason: 'inactive',
       session: { id: 's1', lastActivityAt: new Date(Date.now() - 10 * 60_000), rememberMe: false },
@@ -97,7 +111,7 @@ describe('middleware session redirect logic', () => {
   });
 
   it('handles malformed session_data cookie gracefully (redirects to sign-in)', async () => {
-    (validateSession as any).mockResolvedValue({ valid: false, reason: 'not_found' });
+    mockedValidateSession.mockResolvedValue({ valid: false, reason: 'not_found' });
     const request = createRequest('/dashboard', {
       // Intentionally malformed (not base64/base64url)
       'better-auth.session_data': '!!!not-valid!!!',
@@ -108,7 +122,7 @@ describe('middleware session redirect logic', () => {
   });
 
   it('redirects auth pages to /dashboard when already authenticated', async () => {
-    (validateSession as any).mockResolvedValue({
+    mockedValidateSession.mockResolvedValue({
       valid: true,
       session: { id: 's1', lastActivityAt: new Date(), rememberMe: false },
       userId: 'u1',
@@ -123,7 +137,7 @@ describe('middleware session redirect logic', () => {
   });
 
   it('does not redirect when rememberMe is true and session is valid', async () => {
-    (validateSession as any).mockResolvedValue({
+    mockedValidateSession.mockResolvedValue({
       valid: true,
       session: { id: 's2', lastActivityAt: null, rememberMe: true },
       userId: 'u2',

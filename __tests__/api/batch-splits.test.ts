@@ -3,7 +3,7 @@
  * PUT /api/transactions/[id]/splits/batch
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { validateBatchSplits, type BatchSplitItem } from '@/lib/transactions/split-calculator';
 
 // Mock the auth helpers

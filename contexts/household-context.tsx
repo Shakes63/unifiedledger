@@ -272,6 +272,8 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refreshHouseholds();
+    // Intentionally run only on mount - refreshHouseholds is stable and including it would cause infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

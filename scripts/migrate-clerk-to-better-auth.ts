@@ -9,6 +9,17 @@
 
 import { sqlite } from '../lib/db';
 
+// Type definitions for SQLite query results
+interface UserRecord {
+  id: string;
+  email: string;
+  name: string;
+}
+
+interface CountResult {
+  count: number;
+}
+
 const CLERK_USER_ID = 'user_35Ax4rTdoJOYyvdVTiJuhc0hYBS';
 const BETTER_AUTH_USER_ID = 'KEWU5S1fbpia8KEIM4oKdln0PtVGS4yh';
 
@@ -71,9 +82,10 @@ async function migrateUserData() {
       throw new Error('Better Auth user not found! Please create your Better Auth account first.');
     }
 
+    const user = betterAuthUser as UserRecord;
     console.log('✓ Better Auth user verified');
-    console.log(`  Email: ${(betterAuthUser as any).email}`);
-    console.log(`  Name: ${(betterAuthUser as any).name}\n`);
+    console.log(`  Email: ${user.email}`);
+    console.log(`  Name: ${user.name}\n`);
 
     // Step 2: Count records to be migrated
     console.log('📊 Counting records to migrate...\n');
@@ -89,13 +101,13 @@ async function migrateUserData() {
           countQuery = `SELECT COUNT(*) as count FROM ${table} WHERE user_id = ?`;
         }
 
-        const result = sqlite.prepare(countQuery).get(CLERK_USER_ID) as any;
+        const result = sqlite.prepare(countQuery).get(CLERK_USER_ID) as CountResult | undefined;
         const count = Number(result?.count || 0);
 
         if (count > 0) {
           console.log(`  ${table}: ${count} record(s)`);
         }
-      } catch (error) {
+      } catch (_error) {
         // Table might not exist or have user_id column - skip it
         console.log(`  ${table}: skipped (table doesn't exist or no user_id column)`);
       }
@@ -127,8 +139,9 @@ async function migrateUserData() {
           console.log(`  ✓ ${table}: ${updated} record(s) updated`);
           totalUpdated += updated;
         }
-      } catch (error: any) {
-        console.log(`  ⚠ ${table}: skipped (${error.message})`);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.log(`  ⚠ ${table}: skipped (${errorMessage})`);
       }
     }
 
@@ -146,13 +159,13 @@ async function migrateUserData() {
           verifyQuery = `SELECT COUNT(*) as count FROM ${table} WHERE user_id = ?`;
         }
 
-        const result = sqlite.prepare(verifyQuery).get(BETTER_AUTH_USER_ID) as any;
+        const result = sqlite.prepare(verifyQuery).get(BETTER_AUTH_USER_ID) as CountResult | undefined;
         const count = Number(result?.count || 0);
 
         if (count > 0) {
           console.log(`  ✓ ${table}: ${count} record(s) now owned by Better Auth user`);
         }
-      } catch (error) {
+      } catch (_error) {
         // Skip tables that don't exist
       }
     }
@@ -167,9 +180,10 @@ async function migrateUserData() {
     console.log('3. Update API routes to use Better Auth');
     console.log('4. Remove Clerk dependencies\n');
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('\n❌ Migration failed!');
-    console.error(`Error: ${error.message}`);
+    console.error(`Error: ${errorMessage}`);
     console.error('\n⚠️  Your data is safe - database backup available.');
     console.error('   Restore from backup if needed: sqlite.db.backup-YYYYMMDD-HHMMSS\n');
     throw error;

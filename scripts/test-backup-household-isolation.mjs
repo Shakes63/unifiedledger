@@ -11,7 +11,7 @@
  */
 
 import Database from 'better-sqlite3';
-import { readFileSync, existsSync, readdirSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 
 const dbPath = join(process.cwd(), 'sqlite.db');
@@ -203,8 +203,9 @@ console.log('');
 // Step 4: Call backup creation API for each household
 console.log('📋 Step 4: Creating backups via API...');
 
-const { default: fetch } = await import('node-fetch');
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+// Note: fetch and baseUrl reserved for future API-based testing
+// const { default: fetch } = await import('node-fetch');
+// const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 // Get a session token (simplified - in real test you'd need proper auth)
 // For now, we'll test the backup creation function directly

@@ -6,6 +6,24 @@ import { offlineTransactionQueue, OfflineTransaction } from '@/lib/offline/trans
 import { nanoid } from 'nanoid';
 
 /**
+ * Transaction form data structure for offline queue
+ */
+interface TransactionFormData {
+  type: 'income' | 'expense' | 'transfer_out' | 'transfer_in';
+  amount: string;
+  description: string;
+  date: string;
+  accountId: string;
+  categoryId?: string;
+  merchantId?: string;
+  notes?: string;
+  billId?: string;
+  billInstanceId?: string;
+  tags?: string[];
+  [key: string]: unknown; // Allow additional fields
+}
+
+/**
  * Hook for handling offline transaction creation
  * Returns functions for submitting transactions that work offline
  */
@@ -16,7 +34,7 @@ export function useOfflineTransaction() {
   /**
    * Submit a transaction, queuing it offline if necessary
    */
-  const submitTransaction = async (formData: Record<string, any>) => {
+  const submitTransaction = async (formData: TransactionFormData) => {
     if (!session?.user?.id) {
       throw new Error('User not authenticated');
     }

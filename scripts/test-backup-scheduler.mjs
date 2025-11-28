@@ -15,7 +15,6 @@
  *   - Server must be running (or use direct database access)
  */
 
-import { readFileSync } from 'fs';
 import { join } from 'path';
 import Database from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';

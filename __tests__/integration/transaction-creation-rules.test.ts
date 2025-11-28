@@ -30,7 +30,6 @@ import { findMatchingRule } from "@/lib/rules/rule-matcher";
 import { executeRuleActions } from "@/lib/rules/actions-executor";
 import type { TransactionData } from "@/lib/rules/condition-evaluator";
 import {
-  generateTestUserId,
   createTestAccount,
   createTestCategory,
   createTestMerchant,
@@ -220,7 +219,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       name: "Coffee Shop Rule",
       priority: 1,
     });
-    const [rule] = await db.insert(categorizationRules).values(ruleData).returning();
+    const [_rule] = await db.insert(categorizationRules).values(ruleData).returning();
 
     // 2. Transaction input
     const transactionInput = {
@@ -390,7 +389,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       name: "Sales Tax Rule",
       priority: 1,
     });
-    const [rule] = await db.insert(categorizationRules).values(ruleData).returning();
+    const [_rule] = await db.insert(categorizationRules).values(ruleData).returning();
 
     // 2. Create income transaction
     const transactionInput = {
@@ -489,7 +488,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       name: "Tax Deduction Rule",
       priority: 1,
     });
-    const [rule] = await db.insert(categorizationRules).values(ruleData).returning();
+    const [_rule] = await db.insert(categorizationRules).values(ruleData).returning();
 
     // 3. Create expense transaction
     const transactionInput = {

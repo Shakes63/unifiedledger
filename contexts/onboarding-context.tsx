@@ -114,7 +114,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isDemoMode]);
 
   // Navigation functions
   const nextStep = useCallback(() => {

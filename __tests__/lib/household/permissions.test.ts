@@ -13,7 +13,6 @@ import {
   type CustomPermissions,
 } from '@/lib/household/permissions';
 import { db } from '@/lib/db';
-import { householdMembers } from '@/lib/db/schema';
 
 /**
  * Comprehensive unit tests for Permission Resolution Logic
@@ -46,7 +45,7 @@ vi.mock('@/lib/db', () => ({
 const TEST_USER_ID_OWNER = 'user-owner-123';
 const TEST_USER_ID_ADMIN = 'user-admin-456';
 const TEST_USER_ID_MEMBER = 'user-member-789';
-const TEST_USER_ID_VIEWER = 'user-viewer-012';
+const _TEST_USER_ID_VIEWER = 'user-viewer-012';
 const TEST_USER_ID_NON_MEMBER = 'user-non-member-999';
 const TEST_HOUSEHOLD_ID = 'household-456';
 const TEST_HOUSEHOLD_ID_SINGLE_ADMIN = 'household-single-admin-789';
