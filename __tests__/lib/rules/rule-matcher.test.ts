@@ -82,6 +82,12 @@ vi.mock('@/lib/db', () => {
 import { db } from '@/lib/db';
 
 // ============================================================================
+// TEST CONSTANTS
+// ============================================================================
+
+const TEST_HOUSEHOLD_ID = 'household-123';
+
+// ============================================================================
 // TEST DATA FACTORIES
 // ============================================================================
 
@@ -794,7 +800,7 @@ describe("Rule Matcher - findMatchingRule() Basic Matching", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ description: "Coffee Shop Purchase" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule).toBeDefined();
@@ -814,7 +820,7 @@ describe("Rule Matcher - findMatchingRule() Basic Matching", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ description: "Coffee Shop Purchase" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(false);
     expect(result.rule).toBeUndefined();
@@ -824,7 +830,7 @@ describe("Rule Matcher - findMatchingRule() Basic Matching", () => {
     mockDatabaseRules([]);
 
     const transaction = createTestTransaction();
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(false);
     expect(result.rule).toBeUndefined();
@@ -850,7 +856,7 @@ describe("Rule Matcher - findMatchingRule() Basic Matching", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop Purchase" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule).toBeDefined();
@@ -878,7 +884,7 @@ describe("Rule Matcher - findMatchingRule() Basic Matching", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop Purchase" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule).toBeDefined();
@@ -901,7 +907,7 @@ describe("Rule Matcher - findMatchingRule() Basic Matching", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-1');
@@ -924,7 +930,7 @@ describe("Rule Matcher - findMatchingRule() Basic Matching", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule).toBeDefined();
@@ -937,7 +943,7 @@ describe("Rule Matcher - findMatchingRule() Basic Matching", () => {
     vi.mocked(db.orderBy).mockRejectedValue(new Error('Database connection failed'));
 
     const transaction = createTestTransaction();
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(false);
     expect(result.errors).toBeDefined();
@@ -977,7 +983,7 @@ describe("Rule Matcher - findMatchingRule() Priority Matching", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-low');
@@ -1004,7 +1010,7 @@ describe("Rule Matcher - findMatchingRule() Priority Matching", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-1');
@@ -1028,7 +1034,7 @@ describe("Rule Matcher - findMatchingRule() Priority Matching", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-2');
@@ -1053,7 +1059,7 @@ describe("Rule Matcher - findMatchingRule() Priority Matching", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-0');
@@ -1078,7 +1084,7 @@ describe("Rule Matcher - findMatchingRule() Priority Matching", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-999');
@@ -1096,7 +1102,7 @@ describe("Rule Matcher - findMatchingRule() Priority Matching", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-3');
@@ -1130,7 +1136,7 @@ describe("Rule Matcher - findMatchingRule() Action Parsing", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.actions).toHaveLength(2);
@@ -1151,7 +1157,7 @@ describe("Rule Matcher - findMatchingRule() Action Parsing", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.actions).toHaveLength(1);
@@ -1170,7 +1176,7 @@ describe("Rule Matcher - findMatchingRule() Action Parsing", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.actions).toHaveLength(1);
@@ -1191,7 +1197,7 @@ describe("Rule Matcher - findMatchingRule() Action Parsing", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.actions).toHaveLength(3);
@@ -1212,7 +1218,7 @@ describe("Rule Matcher - findMatchingRule() Action Parsing", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.actions).toHaveLength(1);
@@ -1231,7 +1237,7 @@ describe("Rule Matcher - findMatchingRule() Action Parsing", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.actions).toHaveLength(0);
@@ -1436,7 +1442,7 @@ describe("Rule Matcher - Edge Cases & Error Handling", () => {
       date: "2025-01-23",
       // notes field is optional and missing
     };
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-1');
@@ -1452,7 +1458,7 @@ describe("Rule Matcher - Edge Cases & Error Handling", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ description: "Local café ☕ purchase" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-1');
@@ -1471,7 +1477,7 @@ describe("Rule Matcher - Edge Cases & Error Handling", () => {
       amount: 999999999.99,
       description: "Large transfer",
     });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-1');
@@ -1487,7 +1493,7 @@ describe("Rule Matcher - Edge Cases & Error Handling", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ date: "2024-02-29" }); // Leap year
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-1');
@@ -1503,7 +1509,7 @@ describe("Rule Matcher - Edge Cases & Error Handling", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ description: "A" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-1');
@@ -1519,7 +1525,7 @@ describe("Rule Matcher - Edge Cases & Error Handling", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ description: "🎉 Party expense 🎊" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-1');
@@ -1535,7 +1541,7 @@ describe("Rule Matcher - Edge Cases & Error Handling", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ amount: 0, description: "Zero amount" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-1');
@@ -1551,7 +1557,7 @@ describe("Rule Matcher - Edge Cases & Error Handling", () => {
     mockDatabaseRules([mockRule]);
 
     const transaction = createTestTransaction({ amount: -10.50, description: "Refund" });
-    const result = await findMatchingRule('user-123', transaction);
+    const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
     expect(result.rule!.ruleId).toBe('rule-1');

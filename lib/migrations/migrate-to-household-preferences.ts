@@ -178,7 +178,7 @@ export async function getOrMigratePreferences(
       .limit(1);
 
     // If not found, migrate and try again
-    if (!prefs) {
+    if (!prefs || prefs.length === 0) {
       console.log(`No preferences found for user ${userId} in household ${householdId}, migrating...`);
       await migrateUserPreferences(userId, householdId);
 

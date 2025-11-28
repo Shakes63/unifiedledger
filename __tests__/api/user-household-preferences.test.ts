@@ -56,6 +56,7 @@ const DEFAULT_PREFERENCES = {
   negativeNumberFormat: '-$100',
   defaultTransactionType: 'expense',
   theme: 'dark-mode',
+  combinedTransferView: true,
   billRemindersEnabled: true,
   billRemindersChannels: '["push","email"]',
   budgetWarningsEnabled: true,

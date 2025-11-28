@@ -13,11 +13,7 @@
 
 ## Active Bugs
 
-1. ⏳ **Fix Integration Test Failures (50 remaining)** - Household data isolation caused test failures
-   - **Progress:** Reduced from 75 to 50 failing tests (33% fixed)
-   - **Completed:** Integration tests (post-creation-actions, rules-flow, rule-execution-logging, bulk-apply-rules)
-   - **Remaining:** Unit tests (rule-matcher ~24, migrate-to-household-preferences ~13, actions-executor 7, transaction-creation-rules 5, user-household-preferences 1)
-   - **See:** `docs/fix-integration-tests-plan.md` for detailed status
+(None)
 
 ---
 
@@ -38,18 +34,19 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 1 (50 failing tests) |
-| Tests Passing | 540/590 (91.5%) |
+| Active Bugs | 0 |
+| Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 (in components/) |
 | Linter Warnings | 0 (in components/) |
 | Build Status | Passing |
-| Fixed (All Time) | 572 (68 bugs + 310 warnings + 195 errors) |
+| Fixed (All Time) | 573 (69 bugs + 310 warnings + 195 errors) |
 
 ---
 
-## Fixed Bugs (68 total)
+## Fixed Bugs (69 total)
 
-1. ✅ **Split Builder Auto-Calculation UX** [FIXED] - Replaced silent auto-calculation with explicit "Balance Splits" button and "Balanced" badge indicator for clearer UX
+1. ✅ **Fix Integration Test Failures (50 tests)** [FIXED 2025-11-28] - Fixed all 50 failing tests after Household Data Isolation. Updated rule-matcher.test.ts (25), actions-executor.test.ts (7), transaction-creation-rules.test.ts (5), migrate-to-household-preferences.test.ts (12), user-household-preferences.test.ts (1). Also fixed bug in getOrMigratePreferences where empty array check was incorrect.
+2. ✅ **Split Builder Auto-Calculation UX** [FIXED] - Replaced silent auto-calculation with explicit "Balance Splits" button and "Balanced" badge indicator for clearer UX
 2. ✅ **Split Builder Loading States** [FIXED] - Added `onLoadingChange` callback to CategorySelector and loading spinner on Add Split button while categories load
 3. ✅ **Batch Split Update API** [FIXED] - Added atomic batch update endpoint (`PUT /api/transactions/[id]/splits/batch`) reducing 7+ sequential API calls to 1, with 18 unit tests
 2. ✅ **Linter Cleanup Phase 2** [FIXED] - Fixed all 196 ESLint errors in components/ with proper type definitions in `lib/types/index.ts`

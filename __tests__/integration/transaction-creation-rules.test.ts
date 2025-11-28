@@ -37,6 +37,8 @@ import {
   createTestRule,
   createTestCondition,
   createTestAction,
+  setupTestUserWithHousehold,
+  cleanupTestHousehold,
 } from "./test-utils";
 
 // ============================================================================
@@ -45,6 +47,7 @@ import {
 
 describe("Integration: Transaction Creation API with Rules", () => {
   let testUserId: string;
+  let testHouseholdId: string;
   let testAccountId: string;
   let testCategoryId: string;
   let testMerchantId: string;
@@ -54,11 +57,13 @@ describe("Integration: Transaction Creation API with Rules", () => {
   // ============================================================================
 
   beforeEach(async () => {
-    // Generate unique test user ID for isolation
-    testUserId = generateTestUserId();
+    // Setup user with household
+    const setup = await setupTestUserWithHousehold();
+    testUserId = setup.userId;
+    testHouseholdId = setup.householdId;
 
     // Create test account
-    const accountData = createTestAccount(testUserId, {
+    const accountData = createTestAccount(testUserId, testHouseholdId, {
       name: "Test Checking",
       currentBalance: 1000.00,
     });
@@ -66,7 +71,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
     testAccountId = account.id;
 
     // Create test category
-    const categoryData = createTestCategory(testUserId, {
+    const categoryData = createTestCategory(testUserId, testHouseholdId, {
       name: "Groceries",
       type: "expense",
     });
@@ -74,7 +79,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
     testCategoryId = category.id;
 
     // Create test merchant
-    const merchantData = createTestMerchant(testUserId, {
+    const merchantData = createTestMerchant(testUserId, testHouseholdId, {
       name: "Whole Foods",
     });
     const [merchant] = await db.insert(merchants).values(merchantData).returning();
@@ -82,13 +87,8 @@ describe("Integration: Transaction Creation API with Rules", () => {
   });
 
   afterEach(async () => {
-    // Cleanup: Delete test data
-    await db.delete(ruleExecutionLog).where(eq(ruleExecutionLog.userId, testUserId));
-    await db.delete(transactions).where(eq(transactions.userId, testUserId));
-    await db.delete(categorizationRules).where(eq(categorizationRules.userId, testUserId));
-    await db.delete(merchants).where(eq(merchants.userId, testUserId));
-    await db.delete(budgetCategories).where(eq(budgetCategories.userId, testUserId));
-    await db.delete(accounts).where(eq(accounts.userId, testUserId));
+    // Cleanup: Delete test data using helper
+    await cleanupTestHousehold(testUserId, testHouseholdId);
   });
 
   // ============================================================================
@@ -99,7 +99,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
     // 1. Create rule: If description contains "Whole Foods" → set category
     const condition = createTestCondition("description", "contains", "Whole Foods");
     const action = createTestAction("set_category", { categoryId: testCategoryId });
-    const ruleData = createTestRule(testUserId, [condition], [action], {
+    const ruleData = createTestRule(testUserId, testHouseholdId, [condition], [action], {
       name: "Grocery Store Rule",
       priority: 1,
     });
@@ -127,7 +127,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       date: transactionInput.date,
     };
 
-    const ruleMatch = await findMatchingRule(testUserId, transactionData);
+    const ruleMatch = await findMatchingRule(testUserId, testHouseholdId, transactionData);
     expect(ruleMatch.matched).toBe(true);
     expect(ruleMatch.rule?.ruleId).toBe(rule.id);
 
@@ -155,6 +155,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       .values({
         id: nanoid(),
         userId: testUserId,
+        householdId: testHouseholdId,
         accountId: testAccountId,
         description: executionResult.mutations.description || transactionInput.description,
         amount: transactionInput.amount,
@@ -173,6 +174,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
     await db.insert(ruleExecutionLog).values({
       id: nanoid(),
       userId: testUserId,
+      householdId: testHouseholdId,
       ruleId: rule.id,
       transactionId: transaction.id,
       appliedCategoryId: executionResult.mutations.categoryId || null,
@@ -214,7 +216,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       createTestAction("set_merchant", { merchantId: testMerchantId }),
       createTestAction("append_description", { pattern: " - Morning Coffee" }),
     ];
-    const ruleData = createTestRule(testUserId, [condition], actions, {
+    const ruleData = createTestRule(testUserId, testHouseholdId, [condition], actions, {
       name: "Coffee Shop Rule",
       priority: 1,
     });
@@ -240,7 +242,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       date: transactionInput.date,
     };
 
-    const ruleMatch = await findMatchingRule(testUserId, transactionData);
+    const ruleMatch = await findMatchingRule(testUserId, testHouseholdId, transactionData);
     expect(ruleMatch.matched).toBe(true);
 
     const executionResult = await executeRuleActions(
@@ -272,6 +274,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       .values({
         id: nanoid(),
         userId: testUserId,
+        householdId: testHouseholdId,
         accountId: testAccountId,
         description: executionResult.mutations.description || transactionInput.description,
         amount: transactionInput.amount,
@@ -304,14 +307,14 @@ describe("Integration: Transaction Creation API with Rules", () => {
     // 1. Create rule that would match
     const condition = createTestCondition("description", "contains", "Store");
     const action = createTestAction("set_category", { categoryId: testCategoryId });
-    const ruleData = createTestRule(testUserId, [condition], [action], {
+    const ruleData = createTestRule(testUserId, testHouseholdId, [condition], [action], {
       name: "Store Rule",
       priority: 1,
     });
     await db.insert(categorizationRules).values(ruleData);
 
     // 2. Create another category for manual selection
-    const manualCategoryData = createTestCategory(testUserId, {
+    const manualCategoryData = createTestCategory(testUserId, testHouseholdId, {
       name: "Manual Category",
       type: "expense",
     });
@@ -340,6 +343,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       .values({
         id: nanoid(),
         userId: testUserId,
+        householdId: testHouseholdId,
         accountId: testAccountId,
         description: transactionInput.description,
         amount: transactionInput.amount,
@@ -380,9 +384,9 @@ describe("Integration: Transaction Creation API with Rules", () => {
     const condition = createTestCondition("description", "contains", "Client Payment");
     const actions = [
       createTestAction("set_category", { categoryId: testCategoryId }),
-      createTestAction("set_sales_tax"),
+      { type: 'set_sales_tax' as const, config: { value: true } },
     ];
-    const ruleData = createTestRule(testUserId, [condition], actions, {
+    const ruleData = createTestRule(testUserId, testHouseholdId, [condition], actions, {
       name: "Sales Tax Rule",
       priority: 1,
     });
@@ -408,7 +412,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       date: transactionInput.date,
     };
 
-    const ruleMatch = await findMatchingRule(testUserId, transactionData);
+    const ruleMatch = await findMatchingRule(testUserId, testHouseholdId, transactionData);
     expect(ruleMatch.matched).toBe(true);
 
     const executionResult = await executeRuleActions(
@@ -438,6 +442,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       .values({
         id: nanoid(),
         userId: testUserId,
+        householdId: testHouseholdId,
         accountId: testAccountId,
         description: transactionInput.description,
         amount: transactionInput.amount,
@@ -467,7 +472,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
 
   it("should mark transaction as tax deductible when category is configured", async () => {
     // 1. Create tax-deductible category
-    const taxCategoryData = createTestCategory(testUserId, {
+    const taxCategoryData = createTestCategory(testUserId, testHouseholdId, {
       name: "Business Expenses",
       type: "expense",
       isTaxDeductible: true,
@@ -480,7 +485,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       createTestAction("set_category", { categoryId: taxCategory.id }),
       createTestAction("set_tax_deduction"),
     ];
-    const ruleData = createTestRule(testUserId, [condition], actions, {
+    const ruleData = createTestRule(testUserId, testHouseholdId, [condition], actions, {
       name: "Tax Deduction Rule",
       priority: 1,
     });
@@ -506,7 +511,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       date: transactionInput.date,
     };
 
-    const ruleMatch = await findMatchingRule(testUserId, transactionData);
+    const ruleMatch = await findMatchingRule(testUserId, testHouseholdId, transactionData);
     expect(ruleMatch.matched).toBe(true);
 
     // Get category info for execution context
@@ -547,6 +552,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
       .values({
         id: nanoid(),
         userId: testUserId,
+        householdId: testHouseholdId,
         accountId: testAccountId,
         description: transactionInput.description,
         amount: transactionInput.amount,

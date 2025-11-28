@@ -19,7 +19,7 @@ alwaysApply: false
 - ✅ Offline mode with automatic sync
 - ✅ PWA support for mobile app experience
 - ✅ Unified Settings Page (restructured to 2-tier: Account/Households with improved organization)
-- ⏳ Testing: 540/590 passing (91.5%) - 50 tests need household support updates (see `docs/fix-integration-tests-plan.md`)
+- ✅ Testing: 590/590 passing (100%)
 - ✅ Enhanced Error Handling & Network Infrastructure (100% COMPLETE - Core fixes + UI enhancements)
 - ✅ Recent Transactions Infinite Loop Fix (2025-11-15) - Memoized useHouseholdFetch functions with useCallback
 - ✅ 403 Forbidden Errors & Sign-Out Fix (2025-01-XX) - Fixed 5 bugs: transaction sign-out, categories/transactions/accounts/CompactStatsBar 403 errors
@@ -28,7 +28,7 @@ alwaysApply: false
 - ✅ Password Field Form Fix (2025-01-27) - Wrapped all password fields in settings page within proper `<form>` elements for accessibility and HTML validation
 - ✅ Bills API Household Auth Fixes (2025-01-27) - Fixed bills dropdown in transaction form, bill details page, edit bill page, and category-selector to use `fetchWithHousehold` for proper household authentication
 - ✅ Overdue Bill Payment Fixes (2025-01-27) - Fixed overdue bills not being auto-matched when transactions are created/updated, and fixed pending instances with past due dates not being marked as overdue
-- ✅ All bugs fixed (60 total - see docs/bugs.md for complete list)
+- ✅ All bugs fixed (69 total - see docs/bugs.md for complete list)
 - ✅ Authentication password verification implemented (password change, email change, reset app data)
 - ✅ Session/middleware hardened (cookie parsing, timeout cache, tab visibility handling)
 - ✅ Onboarding flow bugs fixed (2025-11-26): credentials missing in BillForm/invitation decline, modal resume after refresh, unused import cleanup
@@ -262,17 +262,13 @@ alwaysApply: false
 ## Next Steps
 
 ### Active Bugs
-1. ⏳ **Fix Integration Test Failures (50 remaining)** - Household data isolation caused test failures
-   - **Progress:** Reduced from 75 to 50 failing tests (33% fixed)
-   - **Completed:** Integration tests (post-creation-actions, rules-flow, rule-execution-logging, bulk-apply-rules)
-   - **Remaining:** Unit tests (rule-matcher ~24, migrate-to-household-preferences ~13, actions-executor 7, transaction-creation-rules 5, user-household-preferences 1)
-   - **See:** `docs/fix-integration-tests-plan.md` for detailed status
+(None)
 
 ### In Progress
 (None)
 
 ### Recently Completed
-- **Integration Test Household Support** [PARTIAL] - Updated test-utils.ts with household factories, fixed 4 integration test files (25 tests). See `docs/fix-integration-tests-plan.md` for remaining work.
+- **Fix Integration Test Failures** [FIXED 2025-11-28] - Fixed all 50 failing tests after Household Data Isolation by adding householdId parameters to rule matcher, actions executor, transaction creation, migration helpers, and user household preferences tests.
 - **Linter Cleanup Phase 2** [FIXED] - Fixed all 196 ESLint errors in components/ (121 `@typescript-eslint/no-explicit-any` + 75 `react/no-unescaped-entities`). Created comprehensive type definitions in `lib/types/index.ts`. Other directories (__tests__/, scripts/, contexts/, hooks/) have warnings only (low priority).
 
 ### Improvement Backlog

@@ -46,15 +46,7 @@ vi.mock("@/lib/db/schema", () => ({
   merchants: { name: "merchants" },
 }));
 
-// Mock sales tax action handler
-vi.mock("@/lib/rules/sales-tax-action-handler", () => ({
-  validateSalesTaxConfig: vi.fn((config: any) => {
-    if (!config || !config.taxCategoryId) {
-      throw new Error("Tax category ID is required");
-    }
-    return config;
-  }),
-}));
+// Note: sales-tax-action-handler is not mocked - tests use actual validation logic
 
 // Import mocked modules after mocking
 import { db } from "@/lib/db";
@@ -1190,53 +1182,50 @@ describe("Actions Executor - set_tax_deduction Action", () => {
 describe("Actions Executor - set_sales_tax Action", () => {
   it("should apply sales tax to income transaction", async () => {
     const action = createTestAction("set_sales_tax", {
-      config: { taxCategoryId: "tax-cat-1", enabled: true }
+      config: { value: true }
     });
     const transaction = createTestTransaction({ type: "income" });
 
     const result = await executeRuleActions("user-1", [action], transaction);
 
-    expect(result.mutations.applySalesTax).toEqual({
-      taxCategoryId: "tax-cat-1",
-      enabled: true
-    });
+    expect(result.mutations.isSalesTaxable).toBe(true);
     expect(result.appliedActions).toHaveLength(1);
     expect(result.appliedActions[0].type).toBe("set_sales_tax");
   });
 
   it("should skip action for expense transaction", async () => {
     const action = createTestAction("set_sales_tax", {
-      config: { taxCategoryId: "tax-cat-1", enabled: true }
+      config: { value: true }
     });
     const transaction = createTestTransaction({ type: "expense" });
 
     const result = await executeRuleActions("user-1", [action], transaction);
 
-    expect(result.mutations.applySalesTax).toBeUndefined();
+    expect(result.mutations.isSalesTaxable).toBeUndefined();
     expect(result.appliedActions).toHaveLength(0);
   });
 
   it("should skip action for transfer_out transaction", async () => {
     const action = createTestAction("set_sales_tax", {
-      config: { taxCategoryId: "tax-cat-1", enabled: true }
+      config: { value: true }
     });
     const transaction = createTestTransaction({ type: "transfer_out" });
 
     const result = await executeRuleActions("user-1", [action], transaction);
 
-    expect(result.mutations.applySalesTax).toBeUndefined();
+    expect(result.mutations.isSalesTaxable).toBeUndefined();
     expect(result.appliedActions).toHaveLength(0);
   });
 
   it("should skip action for transfer_in transaction", async () => {
     const action = createTestAction("set_sales_tax", {
-      config: { taxCategoryId: "tax-cat-1", enabled: true }
+      config: { value: true }
     });
     const transaction = createTestTransaction({ type: "transfer_in" });
 
     const result = await executeRuleActions("user-1", [action], transaction);
 
-    expect(result.mutations.applySalesTax).toBeUndefined();
+    expect(result.mutations.isSalesTaxable).toBeUndefined();
     expect(result.appliedActions).toHaveLength(0);
   });
 
@@ -1246,21 +1235,21 @@ describe("Actions Executor - set_sales_tax Action", () => {
     const errors = validateActions(actions);
 
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain("Tax category ID is required");
+    expect(errors[0]).toContain("boolean value");
   });
 
-  it("should return validation error for missing taxCategoryId", () => {
-    const actions = [createTestAction("set_sales_tax", { config: { enabled: true } })];
+  it("should return validation error for non-boolean value", () => {
+    const actions = [createTestAction("set_sales_tax", { config: { value: "true" } })];
 
     const errors = validateActions(actions);
 
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain("Tax category ID is required");
+    expect(errors[0]).toContain("boolean value");
   });
 
   it("should have correct applied action structure", async () => {
     const action = createTestAction("set_sales_tax", {
-      config: { taxCategoryId: "tax-cat-1", enabled: true }
+      config: { value: true }
     });
     const transaction = createTestTransaction({ type: "income" });
 
@@ -1268,50 +1257,47 @@ describe("Actions Executor - set_sales_tax Action", () => {
 
     const appliedAction = result.appliedActions[0];
     expect(appliedAction.type).toBe("set_sales_tax");
-    expect(appliedAction.field).toBe("salesTax");
+    expect(appliedAction.field).toBe("isSalesTaxable");
     expect(appliedAction).toHaveProperty("originalValue");
     expect(appliedAction).toHaveProperty("newValue");
   });
 
-  it("should capture original value as null by default", async () => {
+  it("should capture original value as false by default", async () => {
     const action = createTestAction("set_sales_tax", {
-      config: { taxCategoryId: "tax-cat-1", enabled: true }
+      config: { value: true }
     });
     const transaction = createTestTransaction({ type: "income" });
 
     const result = await executeRuleActions("user-1", [action], transaction);
 
-    expect(result.appliedActions[0].originalValue).toBe(null);
+    expect(result.appliedActions[0].originalValue).toBe(false);
   });
 
-  it("should store complete config structure", async () => {
+  it("should set isSalesTaxable to true when value is true", async () => {
     const action = createTestAction("set_sales_tax", {
-      config: { taxCategoryId: "tax-cat-1", enabled: true }
+      config: { value: true }
     });
     const transaction = createTestTransaction({ type: "income" });
 
     const result = await executeRuleActions("user-1", [action], transaction);
 
-    expect(result.mutations.applySalesTax).toHaveProperty("taxCategoryId");
-    expect(result.mutations.applySalesTax).toHaveProperty("enabled");
-    expect(result.mutations.applySalesTax.taxCategoryId).toBe("tax-cat-1");
-    expect(result.mutations.applySalesTax.enabled).toBe(true);
+    expect(result.mutations.isSalesTaxable).toBe(true);
   });
 
-  it("should work with enabled flag as boolean", async () => {
+  it("should work with value flag as boolean (true and false)", async () => {
     const actionTrue = createTestAction("set_sales_tax", {
-      config: { taxCategoryId: "tax-cat-1", enabled: true }
+      config: { value: true }
     });
     const actionFalse = createTestAction("set_sales_tax", {
-      config: { taxCategoryId: "tax-cat-1", enabled: false }
+      config: { value: false }
     });
     const transaction = createTestTransaction({ type: "income" });
 
     const resultTrue = await executeRuleActions("user-1", [actionTrue], transaction);
     const resultFalse = await executeRuleActions("user-1", [actionFalse], transaction);
 
-    expect(resultTrue.mutations.applySalesTax.enabled).toBe(true);
-    expect(resultFalse.mutations.applySalesTax.enabled).toBe(false);
+    expect(resultTrue.mutations.isSalesTaxable).toBe(true);
+    expect(resultFalse.mutations.isSalesTaxable).toBe(false);
   });
 });
 
