@@ -121,7 +121,7 @@ export function CreateDebtStep({
             remainingBalance: 1000,
             originalAmount: 1000,
             interestRate: 18,
-            interestType: 'compound',
+            interestType: 'variable',
             color: '#ef4444',
           }}
           onSubmit={handleSubmit}

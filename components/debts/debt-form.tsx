@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import { Info } from 'lucide-react';
 import { calculateUtilization, getUtilizationLevel, getUtilizationColor } from '@/lib/debts/credit-utilization-utils';
+import type { DebtFormData } from '@/lib/types';
 
 const DEBT_TYPES = [
   { value: 'credit_card', label: 'Credit Card' },
@@ -55,12 +56,9 @@ const COMPOUNDING_FREQUENCIES = [
   { value: 'annually', label: 'Annually' },
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DebtData = Record<string, any>;
-
 interface DebtFormProps {
-  debt?: DebtData | null;
-  onSubmit: (data: DebtData, saveMode?: 'save' | 'saveAndAdd') => void;
+  debt?: Partial<DebtFormData> | null;
+  onSubmit: (data: Partial<DebtFormData>, saveMode?: 'save' | 'saveAndAdd') => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -148,13 +146,13 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       return;
     }
 
-    if (!formData.originalAmount || parseFloat(formData.originalAmount) <= 0) {
+    if (!formData.originalAmount || parseFloat(String(formData.originalAmount)) <= 0) {
       toast.error('Original amount must be greater than 0');
       setSaveMode(null);
       return;
     }
 
-    if (formData.remainingBalance === '' || parseFloat(formData.remainingBalance) < 0) {
+    if (formData.remainingBalance === '' || parseFloat(String(formData.remainingBalance)) < 0) {
       toast.error('Remaining balance is required and must be >= 0');
       setSaveMode(null);
       return;
@@ -186,9 +184,9 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
 
     onSubmit({
       ...formData,
-      originalAmount: parseFloat(formData.originalAmount),
-      remainingBalance: parseFloat(formData.remainingBalance),
-      minimumPayment: formData.minimumPayment ? parseFloat(formData.minimumPayment) : undefined,
+      originalAmount: parseFloat(String(formData.originalAmount)),
+      remainingBalance: parseFloat(String(formData.remainingBalance)),
+      minimumPayment: formData.minimumPayment ? parseFloat(String(formData.minimumPayment)) : undefined,
       additionalMonthlyPayment: formData.additionalMonthlyPayment ? parseFloat(String(formData.additionalMonthlyPayment)) : 0,
       interestRate: parseFloat(String(formData.interestRate)),
       // Loan structure fields

@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import type { CategoryFormData } from '@/lib/types';
 
 const CATEGORY_TYPES = [
   { value: 'income', label: 'Income' },
@@ -22,12 +23,9 @@ const CATEGORY_TYPES = [
   { value: 'non_monthly_bill', label: 'Non-Monthly Bill' },
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type CategoryData = Record<string, any>;
-
 interface CategoryFormProps {
-  category?: CategoryData | null;
-  onSubmit: (data: CategoryData) => void;
+  category?: Partial<CategoryFormData> | null;
+  onSubmit: (data: Partial<CategoryFormData>) => void;
   onCancel?: () => void;
   isLoading?: boolean;
 }

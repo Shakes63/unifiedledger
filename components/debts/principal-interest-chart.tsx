@@ -76,9 +76,25 @@ export function PrincipalInterestChart({
     return marks;
   }, [schedule, startMonth]);
 
+  // Data point type for this chart
+  interface ChartMonthData {
+    month: string;
+    monthNumber: number;
+    principal: number;
+    interest: number;
+    balance: number;
+    payment: number;
+  }
+
+  // Chart click event data type
+  interface ChartClickData {
+    activePayload?: Array<{
+      payload: ChartMonthData;
+    }>;
+  }
+
   // Handle chart click
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleChartClick = (data: any) => {
+  const handleChartClick = (data: ChartClickData | null) => {
     if (data && data.activePayload && data.activePayload[0] && onMonthClick) {
       const monthNumber = data.activePayload[0].payload.monthNumber;
       const monthIndex = monthNumber - startMonth - 1;
@@ -115,7 +131,7 @@ export function PrincipalInterestChart({
         <RechartsComposedChart
           data={chartData}
           margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-          onClick={handleChartClick}
+          onClick={handleChartClick as (data: unknown) => void}
         >
           <defs>
             {/* Gradient for principal */}

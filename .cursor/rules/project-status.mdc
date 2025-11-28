@@ -260,11 +260,12 @@ alwaysApply: false
 ### In Progress
 - **Linter Cleanup Phase 2** - Plan file: `docs/linter-phase2-plan.md`
   - **Phase 1 (Warnings): ✅ COMPLETE** - 0 warnings in components/ (360 warnings fixed)
-  - **Phase 2 (Errors): ⏳ IN PROGRESS** - 67 errors remaining (down from 196, 66% reduction)
+  - **Phase 2 (Errors): ⏳ IN PROGRESS** - 58 errors remaining (down from 196, 70% reduction)
     - ✅ Fixed all 75 `react/no-unescaped-entities` errors
     - ✅ Created `lib/types/index.ts` with shared TypeScript interfaces
-    - ✅ Fixed 54 of 121 `@typescript-eslint/no-explicit-any` errors
-    - ⏳ 67 `@typescript-eslint/no-explicit-any` errors remaining
+    - ✅ Fixed 63 of 121 `@typescript-eslint/no-explicit-any` errors
+    - ✅ Removed all 9 `eslint-disable-next-line` suppressions with proper types
+    - ⏳ 58 `@typescript-eslint/no-explicit-any` errors remaining
   - ⏳ Other directories (__tests__/, scripts/, contexts/, hooks/) - pending (warnings only)
 
 ### Improvement Backlog

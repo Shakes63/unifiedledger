@@ -266,13 +266,17 @@ export interface ChartTooltipProps {
   label?: string;
 }
 
-export interface PieLabelProps {
-  cx: number;
-  cy: number;
-  midAngle: number;
-  innerRadius: number;
-  outerRadius: number;
-  percent: number;
+/**
+ * Props for custom pie chart label renderer
+ * Compatible with Recharts PieLabelRenderProps
+ */
+export interface PieLabelRenderProps {
+  cx?: string | number;
+  cy?: string | number;
+  midAngle?: number;
+  innerRadius?: number;
+  outerRadius?: number;
+  percent?: number;
   name?: string;
   value?: number;
   fill?: string;
@@ -286,6 +290,48 @@ export interface ChartDataPoint {
   fill?: string;
 }
 
+/**
+ * Extended Recharts tooltip props with typed payload
+ * Generic T allows specifying the shape of the data point
+ */
+export interface RechartsTooltipPayloadItem<T = Record<string, unknown>> {
+  value: number;
+  name?: string;
+  dataKey?: string;
+  color?: string;
+  fill?: string;
+  payload: T;
+}
+
+export interface RechartsTooltipProps<T = Record<string, unknown>> {
+  active?: boolean;
+  payload?: RechartsTooltipPayloadItem<T>[];
+  label?: string | number;
+}
+
+/**
+ * Click event data from Recharts charts
+ * Generic T allows specifying the shape of the data point
+ */
+export interface RechartsClickData<T = Record<string, unknown>> {
+  activePayload?: Array<{
+    payload: T;
+    dataKey?: string;
+    value?: number;
+  }>;
+  activeLabel?: string;
+  activeTooltipIndex?: number;
+}
+
+/**
+ * Pie chart data point with total for percentage calculations
+ */
+export interface PieChartDataPoint {
+  name: string;
+  value: number;
+  total: number;
+}
+
 // ============================================================================
 // FORM TYPES
 // ============================================================================
@@ -297,6 +343,80 @@ export interface FormErrors {
 export interface SelectOption {
   value: string;
   label: string;
+}
+
+/**
+ * Form data for DebtForm component
+ * Uses string | number for numeric inputs to handle empty states
+ */
+export interface DebtFormData {
+  name: string;
+  description: string;
+  creditorName: string;
+  originalAmount: string | number;
+  remainingBalance: string | number;
+  minimumPayment: string | number;
+  additionalMonthlyPayment: string | number;
+  interestRate: number;
+  interestType: 'none' | 'fixed' | 'variable';
+  type: DebtType;
+  color: string;
+  startDate: string;
+  targetPayoffDate: string;
+  priority: number;
+  loanType: 'revolving' | 'installment';
+  loanTermMonths: string | number;
+  originationDate: string;
+  compoundingFrequency: 'daily' | 'monthly' | 'quarterly' | 'annually';
+  billingCycleDays: number;
+  lastStatementDate: string;
+  lastStatementBalance: string | number;
+  notes: string;
+  creditLimit: string | number;
+}
+
+/**
+ * Form data for GoalForm component
+ */
+export interface GoalFormData {
+  name: string;
+  description: string;
+  targetAmount: string | number;
+  currentAmount: number;
+  category: string;
+  color: string;
+  targetDate: string;
+  priority: number;
+  monthlyContribution: string | number;
+  notes: string;
+}
+
+/**
+ * Form data for AccountForm component
+ */
+export interface AccountFormData {
+  name: string;
+  type: AccountType;
+  bankName: string | null;
+  accountNumberLast4: string | null;
+  currentBalance: number;
+  creditLimit: string | number | null;
+  color: string;
+  icon: string;
+  isBusinessAccount: boolean;
+}
+
+/**
+ * Form data for CategoryForm component
+ */
+export interface CategoryFormData {
+  name: string;
+  type: CategoryType;
+  monthlyBudget: number;
+  dueDate: string | number | null;
+  isTaxDeductible: boolean;
+  isActive: boolean;
+  incomeFrequency: IncomeFrequency;
 }
 
 // ============================================================================

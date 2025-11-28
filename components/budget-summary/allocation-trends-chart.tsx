@@ -32,8 +32,16 @@ interface ChartDataPoint {
   surplus: number;
 }
 
+// Tooltip payload item type for this chart
+interface TrendsTooltipPayloadItem {
+  value: number;
+  name?: string;
+  dataKey?: string;
+  color: string;
+  payload?: ChartDataPoint;
+}
+
 // Custom tooltip component - defined outside to avoid recreation
-// Using any for Recharts compatibility
 function TrendsTooltip({ 
   active, 
   payload, 
@@ -41,8 +49,7 @@ function TrendsTooltip({
   chartData 
 }: { 
   active?: boolean; 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payload?: any[]; 
+  payload?: TrendsTooltipPayloadItem[]; 
   label?: string | number;
   chartData: ChartDataPoint[];
 }) {
@@ -60,8 +67,7 @@ function TrendsTooltip({
     return (
       <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
         <p className="font-semibold text-foreground mb-2">{fullMonth}</p>
-        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry: TrendsTooltipPayloadItem, index: number) => (
           <div key={index} className="flex items-center justify-between gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div 
@@ -134,7 +140,7 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
 
   // Memoize tooltip with chartData
   const tooltipContent = useMemo(() => 
-    function TrendsTooltipWrapper(props: { active?: boolean; payload?: { dataKey: string; value: number; color: string }[]; label?: string | number }) {
+    function TrendsTooltipWrapper(props: { active?: boolean; payload?: TrendsTooltipPayloadItem[]; label?: string | number }) {
       return <TrendsTooltip {...props} chartData={chartData} />;
     }, [chartData]);
 

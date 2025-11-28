@@ -18,6 +18,7 @@ import {
   calculateRecommendedMonthlySavings,
   formatCurrency,
 } from '@/lib/goals/calculate-recommended-savings';
+import type { GoalFormData } from '@/lib/types';
 
 const GOAL_CATEGORIES = [
   { value: 'emergency_fund', label: 'Emergency Fund' },
@@ -42,12 +43,9 @@ const GOAL_COLORS = [
   '#f97316', // orange
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type GoalData = Record<string, any>;
-
 interface GoalFormProps {
-  goal?: GoalData | null;
-  onSubmit: (data: GoalData) => void;
+  goal?: Partial<GoalFormData> | null;
+  onSubmit: (data: Partial<GoalFormData>) => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -126,16 +124,16 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
       return;
     }
 
-    if (!formData.targetAmount || parseFloat(formData.targetAmount) <= 0) {
+    if (!formData.targetAmount || parseFloat(String(formData.targetAmount)) <= 0) {
       toast.error('Target amount must be greater than 0');
       return;
     }
 
     onSubmit({
       ...formData,
-      targetAmount: parseFloat(formData.targetAmount),
+      targetAmount: parseFloat(String(formData.targetAmount)),
       currentAmount: parseFloat(String(formData.currentAmount)),
-      monthlyContribution: formData.monthlyContribution ? parseFloat(formData.monthlyContribution) : undefined,
+      monthlyContribution: formData.monthlyContribution ? parseFloat(String(formData.monthlyContribution)) : undefined,
     });
   };
 

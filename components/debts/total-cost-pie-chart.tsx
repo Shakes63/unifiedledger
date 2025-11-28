@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { AlertTriangle, CheckCircle2, PartyPopper } from 'lucide-react';
 import type { DebtPayoffSchedule } from '@/lib/debts/payoff-calculator';
+import type { PieLabelRenderProps, PieChartDataPoint, RechartsTooltipPayloadItem } from '@/lib/types';
 
 interface TotalCostPieChartProps {
   schedule: DebtPayoffSchedule;
@@ -23,9 +24,10 @@ const COLORS = {
 };
 
 // Custom label renderer showing percentages
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const renderCustomLabel = (props: any) => {
-  const { cx, cy, midAngle, innerRadius, outerRadius, percent, name: _name } = props;
+const renderCustomLabel = (props: PieLabelRenderProps) => {
+  const { cx: cxProp = 0, cy: cyProp = 0, midAngle = 0, innerRadius = 0, outerRadius = 0, percent = 0 } = props;
+  const cx = typeof cxProp === 'string' ? parseFloat(cxProp) : cxProp;
+  const cy = typeof cyProp === 'string' ? parseFloat(cyProp) : cyProp;
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.7;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
@@ -45,9 +47,14 @@ const renderCustomLabel = (props: any) => {
   );
 };
 
+// Custom tooltip props type
+interface CostTooltipProps {
+  active?: boolean;
+  payload?: RechartsTooltipPayloadItem<PieChartDataPoint>[];
+}
+
 // Custom tooltip
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }: CostTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-card border border-border rounded-lg p-4 shadow-lg">

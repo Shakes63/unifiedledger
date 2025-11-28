@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Wallet, DollarSign, CreditCard, TrendingUp, Coins, Building2, PiggyBank, Briefcase } from 'lucide-react';
+import type { AccountFormData, AccountType } from '@/lib/types';
 
 const ACCOUNT_TYPES = [
   { value: 'checking', label: 'Checking', icon: Wallet },
@@ -44,12 +45,22 @@ const ACCOUNT_ICONS = [
   { value: 'briefcase', label: 'Briefcase', icon: Briefcase },
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AccountData = Record<string, any>;
+// Accept both API entity and form data formats
+interface AccountInputData {
+  name?: string;
+  type?: string;
+  bankName?: string | null;
+  accountNumberLast4?: string | null;
+  currentBalance?: number;
+  creditLimit?: string | number | null;
+  color?: string;
+  icon?: string;
+  isBusinessAccount?: boolean;
+}
 
 interface AccountFormProps {
-  account?: AccountData | null;
-  onSubmit: (data: AccountData, saveMode?: 'save' | 'saveAndAdd') => void;
+  account?: AccountInputData | null;
+  onSubmit: (data: Partial<AccountFormData>, saveMode?: 'save' | 'saveAndAdd') => void;
   onCancel?: () => void;
   isLoading?: boolean;
 }
@@ -126,9 +137,9 @@ export function AccountForm({
       return;
     }
 
-    const submitData = {
+    const submitData: Partial<AccountFormData> = {
       name: formData.name,
-      type: formData.type,
+      type: formData.type as AccountType,
       bankName: formData.bankName || null,
       accountNumberLast4: formData.accountNumberLast4 || null,
       currentBalance: parseFloat(String(formData.currentBalance)) || 0,
