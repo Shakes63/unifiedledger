@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { betterAuthClient } from '@/lib/better-auth-client';
 import { RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { offlineTransactionQueue } from '@/lib/offline/transaction-queue';
+import { offlineTransactionQueue, type OfflineTransaction } from '@/lib/offline/transaction-queue';
 import { syncPendingTransactions, getSyncStatus, SyncSummary } from '@/lib/offline/offline-sync';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
@@ -137,7 +137,7 @@ export function SyncStatus() {
 export function PendingTransactionsList() {
   const { data: session } = betterAuthClient.useSession();
   const userId = session?.user?.id;
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<OfflineTransaction[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {

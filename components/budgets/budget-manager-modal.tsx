@@ -99,7 +99,7 @@ export function BudgetManagerModal({
       const budgets = Object.entries(budgetValues)
         .map(([categoryId, value]) => {
           const category = categories.find(c => c.id === categoryId);
-          const budget: any = {
+          const budget: { categoryId: string; monthlyBudget: number; incomeFrequency?: string } = {
             categoryId,
             monthlyBudget: parseFloat(value) || 0,
           };

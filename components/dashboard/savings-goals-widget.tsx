@@ -9,10 +9,20 @@ import { TrendingUp } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 
+interface SavingsGoal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  targetDate?: string | null;
+  status: string;
+  color: string;
+}
+
 export function SavingsGoalsWidget() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
-  const [goals, setGoals] = useState<any[]>([]);
+  const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadGoals = useCallback(async () => {

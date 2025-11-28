@@ -22,7 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Upload, AlertCircle } from 'lucide-react';
 import { ColumnMapper } from './column-mapper';
-import { ImportPreview } from './import-preview';
+import { ImportPreview, type StagingRecord } from './import-preview';
 import { autoDetectMappings, type ColumnMapping } from '@/lib/csv-import';
 import { toast } from 'sonner';
 
@@ -62,8 +62,15 @@ export function CSVImportModal({
   // Mappings
   const [mappings, setMappings] = useState<ColumnMapping[]>([]);
 
-  // Preview data
-  const [previewData, setPreviewData] = useState<any>(null);
+  // Preview data - contains staged transactions and import stats
+  const [previewData, setPreviewData] = useState<{
+    staging?: StagingRecord[];
+    totalRows?: number;
+    validRows?: number;
+    reviewRows?: number;
+    duplicateRows?: number;
+    importId?: string;
+  } | null>(null);
   const [_importId, setImportId] = useState<string>('');
 
   // Load default template when modal opens
@@ -436,12 +443,12 @@ export function CSVImportModal({
             <>
               {previewData ? (
                 <ImportPreview
-                  staging={previewData.staging}
+                  staging={previewData.staging || []}
                   fileName={fileName}
-                  totalRows={previewData.totalRows}
-                  validRows={previewData.validRows}
-                  reviewRows={previewData.reviewRows}
-                  duplicateRows={previewData.duplicateRows}
+                  totalRows={previewData.totalRows || 0}
+                  validRows={previewData.validRows || 0}
+                  reviewRows={previewData.reviewRows || 0}
+                  duplicateRows={previewData.duplicateRows || 0}
                   onConfirm={handleConfirmImport}
                   onBack={() => setStep('mapping')}
                   isLoading={isLoading}

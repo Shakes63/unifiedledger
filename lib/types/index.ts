@@ -679,3 +679,118 @@ export type SelectChangeEvent = React.ChangeEvent<HTMLSelectElement>;
 export type InputChangeEvent = React.ChangeEvent<HTMLInputElement>;
 export type TextAreaChangeEvent = React.ChangeEvent<HTMLTextAreaElement>;
 
+// ============================================================================
+// RULE ACTION CONFIG TYPES
+// ============================================================================
+
+/**
+ * Configuration for a split in a create_split rule action
+ */
+export interface SplitConfig {
+  categoryId: string;
+  amount: number;
+  percentage: number;
+  isPercentage: boolean;
+  description: string;
+}
+
+/**
+ * Configuration object for rule actions
+ * Different action types use different config properties
+ */
+export interface RuleActionConfig {
+  splits?: SplitConfig[];
+  targetAccountId?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
+// ============================================================================
+// ADDITIONAL FORM DATA TYPES
+// ============================================================================
+
+/**
+ * Form data for BillForm component
+ */
+export interface BillFormData {
+  name: string;
+  categoryId?: string | null;
+  merchantId?: string | null;
+  amount: number | string;
+  frequency: BillFrequency;
+  dueDate: number;
+  specificDueDate?: string;
+  startMonth?: number;
+  isAutoPay?: boolean;
+  notes?: string;
+  accountId?: string | null;
+  isVariableAmount?: boolean;
+  amountTolerance?: number;
+  payeePatterns?: string;
+}
+
+/**
+ * Form data for TransactionForm component
+ */
+export interface TransactionFormData {
+  accountId: string;
+  toAccountId?: string;
+  categoryId?: string | null;
+  merchantId?: string | null;
+  amount: number | string;
+  type: TransactionType;
+  date: string;
+  description: string;
+  notes?: string;
+  billId?: string | null;
+  billInstanceId?: string | null;
+  debtId?: string | null;
+  isTaxDeductible?: boolean;
+  isSalesTaxable?: boolean;
+}
+
+// ============================================================================
+// REPORT EXPORT TYPES
+// ============================================================================
+
+/**
+ * Individual row in a report export
+ */
+export interface ReportDataItem {
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+/**
+ * Report data structure that may contain array of items
+ */
+export interface ReportData {
+  data?: ReportDataItem[];
+  [key: string]: unknown;
+}
+
+/**
+ * Summary data for report exports
+ */
+export interface ReportSummary {
+  [key: string]: string | number;
+}
+
+// ============================================================================
+// UNPAID BILL TYPES
+// ============================================================================
+
+/**
+ * Unpaid bill instance with bill details for dropdown selection
+ */
+export interface UnpaidBillInstance {
+  id: string;
+  billId: string;
+  billName: string;
+  dueDate: string;
+  expectedAmount: number;
+  status: BillInstanceStatus;
+  categoryId?: string | null;
+  merchantId?: string | null;
+  debtId?: string | null;
+}
+

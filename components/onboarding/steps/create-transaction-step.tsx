@@ -8,6 +8,7 @@ import { WhyThisMatters } from '../why-this-matters';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { toast } from 'sonner';
+import type { Account } from '@/lib/types';
 
 interface CreateTransactionStepProps {
   onNext: () => void;
@@ -24,7 +25,7 @@ export function CreateTransactionStep({
 }: CreateTransactionStepProps) {
   const { isDemoMode } = useOnboarding();
   const [isSubmitting, _setIsSubmitting] = useState(false);
-  const [_accounts, setAccounts] = useState<any[]>([]);
+  const [_accounts, setAccounts] = useState<Account[]>([]);
   const { fetchWithHousehold } = useHouseholdFetch();
 
   // Auto-advance if in demo mode (demo transactions already created)

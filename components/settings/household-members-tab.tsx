@@ -253,7 +253,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
         toast.success('Member role updated');
         setMembers(
           members.map((m) =>
-            m.id === memberId ? { ...m, role: newRole as any } : m
+            m.id === memberId ? { ...m, role: newRole as HouseholdMember['role'] } : m
           )
         );
       } else {
@@ -573,7 +573,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
 
             <div>
               <Label htmlFor="inviteRole" className="text-foreground">Role</Label>
-              <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as any)}>
+              <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as 'admin' | 'member' | 'viewer')}>
                 <SelectTrigger id="inviteRole" className="mt-1 bg-elevated border-border">
                   <SelectValue />
                 </SelectTrigger>

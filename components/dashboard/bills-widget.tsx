@@ -97,7 +97,7 @@ export function BillsWidget() {
           const response_data = await response.json();
           const rawData = Array.isArray(response_data) ? response_data : response_data.data || [];
 
-          const billInstances = rawData.map((row: any) => ({
+          const billInstances = rawData.map((row: { instance: BillInstance; bill: { id: string; name: string } }) => ({
             ...row.instance,
             bill: row.bill,
           }));

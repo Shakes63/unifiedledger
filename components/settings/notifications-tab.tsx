@@ -21,6 +21,10 @@ import { useHousehold } from '@/contexts/household-context';
 
 type NotificationChannel = 'push' | 'email';
 
+// Preference value type - can be boolean, number, string, or channel array
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PreferenceValue = any;
+
 // Available notification channels with metadata
 const CHANNELS: Array<{
   id: NotificationChannel;
@@ -49,7 +53,7 @@ export function NotificationsTab() {
 
   // Update preference function
   const updatePreference = useCallback(
-    async (key: string, value: any) => {
+    async (key: string, value: PreferenceValue) => {
       if (!selectedHousehold || !preferences) return;
 
       setIsSaving(true);

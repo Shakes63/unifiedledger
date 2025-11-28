@@ -142,7 +142,7 @@ export function RecentTransactions() {
         const _newTransaction: Transaction = {
           id: result.id,
           description: transaction.description,
-          amount: typeof transaction.amount === 'number' ? transaction.amount : parseFloat(transaction.amount as any) || 0,
+          amount: typeof transaction.amount === 'number' ? transaction.amount : parseFloat(String(transaction.amount)) || 0,
           type: transaction.type,
           date: today,
           accountId: transaction.accountId,

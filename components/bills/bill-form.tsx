@@ -27,9 +27,30 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { MerchantSelector } from '@/components/transactions/merchant-selector';
 
+// Bill data structure for form
+export interface BillData {
+  id?: string;
+  name: string;
+  expectedAmount: number | string;
+  dueDate?: number | null;
+  specificDueDate?: string | null;
+  startMonth?: number | null;
+  frequency: string;
+  isVariableAmount?: boolean;
+  amountTolerance?: number;
+  categoryId?: string | null;
+  merchantId?: string | null;
+  debtId?: string | null;
+  accountId?: string | null;
+  autoMarkPaid?: boolean;
+  payeePatterns?: string | null;
+  notes?: string | null;
+  [key: string]: unknown; // Allow additional properties
+}
+
 interface BillFormProps {
-  bill?: any;
-  onSubmit: (data: any, saveMode?: 'save' | 'saveAndAdd') => void;
+  bill?: BillData;
+  onSubmit: (data: BillData, saveMode?: 'save' | 'saveAndAdd') => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -61,9 +82,9 @@ export function BillForm({
     notes: bill?.notes || '',
   });
 
-  const [categories, setCategories] = useState<any[]>([]);
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [debts, setDebts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; type: string }>>([]);
+  const [accounts, setAccounts] = useState<Array<{ id: string; name: string }>>([]);
+  const [debts, setDebts] = useState<Array<{ id: string; name: string; remainingBalance?: number }>>([]);
   const [newPayeePattern, setNewPayeePattern] = useState('');
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');

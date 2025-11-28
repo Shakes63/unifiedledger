@@ -12,6 +12,13 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
+// Legend payload type from Recharts
+interface LegendPayload {
+  dataKey?: string | number | ((obj: Record<string, unknown>) => unknown);
+  value?: string | number;
+  color?: string;
+}
+
 interface ChartDataPoint {
   month: string;
   byDebt: Record<string, number>;
@@ -115,8 +122,8 @@ export function IndividualDebtsChart({
     );
   }, [debtDetails]);
 
-  const handleLegendClick = (e: any) => {
-    const debtId = e.dataKey;
+  const handleLegendClick = (e: LegendPayload) => {
+    const debtId = typeof e.dataKey === 'string' ? e.dataKey : String(e.dataKey || '');
     const newVisible = new Set(visibleDebts);
     if (newVisible.has(debtId)) {
       newVisible.delete(debtId);
@@ -220,7 +227,6 @@ export function IndividualDebtsChart({
               isAnimationActive={true}
               dot={false}
               hide={!visibleDebts.has(debt.id)}
-              onClick={handleLegendClick}
             />
           ))}
         </AreaChart>

@@ -4,6 +4,18 @@ import { useEffect, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { toast } from 'sonner';
+
+// Activity entry from the API
+interface ActivityLogEntry {
+  id: string;
+  userId: string;
+  activityType: string;
+  description: string;
+  userName?: string | null;
+  userAvatarUrl?: string | null;
+  createdAt: string;
+  metadata?: Record<string, string | number | boolean>;
+}
 import {
   ArrowRightLeft,
   Plus,
@@ -71,7 +83,7 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ householdId, limit = 20 }: ActivityFeedProps) {
-  const [activities, setActivities] = useState<any[]>([]);
+  const [activities, setActivities] = useState<ActivityLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadActivities = useCallback(async () => {

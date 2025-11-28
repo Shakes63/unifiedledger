@@ -7,7 +7,7 @@ import { useDeveloperMode } from '@/contexts/developer-mode-context';
 
 interface DebugPanelProps {
   title: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   className?: string;
   defaultOpen?: boolean;
 }

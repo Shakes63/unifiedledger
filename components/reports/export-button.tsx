@@ -13,9 +13,10 @@ import { exportToCSV, exportToJSON, getExportFilename, prepareReportForExport } 
 import { toast } from 'sonner';
 
 interface ExportButtonProps {
-  data: any;
+  // Accept any data structure - will be processed by export utils
+  data: unknown;
   reportName: string;
-  summary?: Record<string, any>;
+  summary?: Record<string, string | number>;
 }
 
 /**
@@ -30,8 +31,15 @@ export function ExportButton({ data, reportName, summary }: ExportButtonProps) {
       setIsLoading(true);
       const filename = getExportFilename(reportName, 'csv');
 
-      // Prepare data for export
-      const csvData = Array.isArray(data) ? data : data.data || [data];
+      // Prepare data for export - handle various data shapes
+      let csvData: Record<string, unknown>[];
+      if (Array.isArray(data)) {
+        csvData = data as Record<string, unknown>[];
+      } else if (data && typeof data === 'object' && 'data' in data) {
+        csvData = (data as { data: Record<string, unknown>[] }).data || [data as Record<string, unknown>];
+      } else {
+        csvData = [data as Record<string, unknown>];
+      }
 
       // Add summary row if available
       if (summary) {

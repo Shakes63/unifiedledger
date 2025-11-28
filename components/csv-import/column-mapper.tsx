@@ -55,8 +55,8 @@ export function ColumnMapper({
 
   const updateMapping = (
     csvColumn: string,
-    field: string,
-    value: any
+    field: keyof ColumnMapping,
+    value: string | undefined
   ) => {
     const updated = mappings.map((m) =>
       m.csvColumn === csvColumn ? { ...m, [field]: value } : m

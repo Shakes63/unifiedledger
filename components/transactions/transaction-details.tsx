@@ -454,7 +454,15 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
       <ConvertToTransferModal
         open={showConvertModal}
         onOpenChange={setShowConvertModal}
-        transaction={transaction as any}
+        transaction={transaction ? {
+          id: transaction.id,
+          accountId: transaction.accountId,
+          date: transaction.date,
+          amount: transaction.amount,
+          description: transaction.description,
+          type: transaction.type,
+          notes: transaction.notes ?? undefined,
+        } : null}
         onSuccess={handleConvertSuccess}
       />
     </div>

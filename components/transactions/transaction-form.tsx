@@ -35,8 +35,44 @@ import { HapticFeedbackTypes } from '@/hooks/useHapticFeedback';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { Loader2 } from 'lucide-react';
+import type { Bill, BillInstance } from '@/lib/types';
 
 type TransactionType = 'income' | 'expense' | 'transfer' | 'bill';
+
+// Unpaid bill instance with bill details
+interface UnpaidBillWithInstance {
+  bill: Bill;
+  instance: BillInstance;
+}
+
+// Split data from API
+interface SplitData {
+  id: string;
+  categoryId: string;
+  amount: number;
+  percentage: number;
+  isPercentage: boolean;
+  description: string;
+}
+
+// Custom field value from API
+interface CustomFieldValueData {
+  fieldId: string;
+  value: string;
+}
+
+// Transaction template - matches the Template interface from TransactionTemplatesManager
+interface TransactionTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  accountId?: string;
+  categoryId?: string;
+  merchantId?: string;
+  amount?: number;
+  type: 'income' | 'expense' | 'transfer' | 'transfer_in' | 'transfer_out' | 'bill';
+  notes?: string;
+}
 
 interface Tag {
   id: string;
@@ -109,7 +145,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [_customFieldsLoading, setCustomFieldsLoading] = useState(true);
   const [accounts, setAccounts] = useState<Array<{ id: string; name: string; currentBalance: number }>>([]);
   const [_accountsLoading, setAccountsLoading] = useState(false);
-  const [unpaidBills, setUnpaidBills] = useState<Array<any>>([]);
+  const [unpaidBills, setUnpaidBills] = useState<UnpaidBillWithInstance[]>([]);
   const [billsLoading, setBillsLoading] = useState(false);
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
   const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
@@ -207,7 +243,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             const splitsResponse = await fetchWithHousehold(`/api/transactions/${transactionId}/splits`);
             if (splitsResponse.ok) {
               const splitsData = await splitsResponse.json();
-              setSplits(splitsData.map((split: any) => ({
+              setSplits(splitsData.map((split: SplitData) => ({
                 id: split.id,
                 categoryId: split.categoryId,
                 amount: split.amount,
@@ -222,7 +258,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           const tagsResponse = await fetchWithHousehold(`/api/transactions/${transactionId}/tags`);
           if (tagsResponse.ok) {
             const tagsData = await tagsResponse.json();
-            setSelectedTagIds(tagsData.map((tag: any) => tag.id));
+            setSelectedTagIds(tagsData.map((tag: Tag) => tag.id));
           }
 
           // Load custom field values
@@ -230,7 +266,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           if (customFieldValuesResponse.ok) {
             const valuesData = await customFieldValuesResponse.json();
             const valueMap: Record<string, string> = {};
-            (valuesData.data || []).forEach((fieldValue: any) => {
+            (valuesData.data || []).forEach((fieldValue: CustomFieldValueData) => {
               valueMap[fieldValue.fieldId] = fieldValue.value;
             });
             setCustomFieldValues(valueMap);
@@ -367,7 +403,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     }
 
     // Find the selected bill instance
-    const billInstance = unpaidBills.find((b: any) => b.instance.id === billInstanceId);
+    const billInstance = unpaidBills.find((b: UnpaidBillWithInstance) => b.instance.id === billInstanceId);
     if (billInstance) {
       // Pre-populate form with bill data
       setFormData((prev) => ({
@@ -381,15 +417,23 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     }
   };
 
-  const handleLoadTemplate = (template: any) => {
+  const handleLoadTemplate = (template: TransactionTemplate) => {
+    // Convert template type to valid TransactionType (transfer_in/transfer_out become transfer)
+    let formType: TransactionType = 'expense';
+    if (template.type === 'income' || template.type === 'expense' || template.type === 'transfer' || template.type === 'bill') {
+      formType = template.type;
+    } else if (template.type === 'transfer_in' || template.type === 'transfer_out') {
+      formType = 'transfer';
+    }
+    
     setFormData((prev) => ({
       ...prev,
-      accountId: template.accountId,
+      accountId: template.accountId || prev.accountId,
       categoryId: template.categoryId || '',
-      amount: template.amount.toString(),
+      amount: template.amount?.toString() || '',
       description: template.description || '',
       notes: template.notes || '',
-      type: template.type,
+      type: formType,
     }));
   };
 
@@ -848,7 +892,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
               ) : unpaidBills.length === 0 ? (
                 <SelectItem value="empty" disabled>No unpaid bills</SelectItem>
               ) : (
-                unpaidBills.map((item: any) => (
+                unpaidBills.map((item: UnpaidBillWithInstance) => (
                   <SelectItem key={item.instance.id} value={item.instance.id}>
                     <div className={item.instance.status === 'overdue' ? 'text-[var(--color-error)]' : 'text-foreground'}>
                       {item.instance.status === 'overdue' && (

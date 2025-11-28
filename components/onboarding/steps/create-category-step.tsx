@@ -46,7 +46,7 @@ export function CreateCategoryStep({
     }
   }, [isDemoMode, onNext]);
 
-  const handleSubmit = async (formData: any) => {
+  const handleSubmit = async (formData: Record<string, unknown>) => {
     try {
       setIsSubmitting(true);
       const response = await postWithHousehold('/api/categories', formData);

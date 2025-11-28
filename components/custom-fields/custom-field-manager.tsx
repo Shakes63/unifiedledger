@@ -82,7 +82,14 @@ export function CustomFieldManager() {
     }
 
     try {
-      const body: any = {
+      const body: {
+        name: string;
+        type: string;
+        description: string;
+        isRequired: boolean;
+        placeholder: string;
+        options?: string[];
+      } = {
         name: newFieldName.trim(),
         type: newFieldType,
         description: newFieldDescription,

@@ -18,12 +18,34 @@ Cursor
 
 ***Features***
 
-check the features.md in the docs folder and start on the next incomplete task. Before implementing please think hard and make a detailed step by step plan for doing so making sure to integrate it well into the existing application architecture as well as UI and styling using the theme variables everywhere it makes sense to. the plan should be added to a file in the docs folder. When the plan is complete start on the first task in the plan.
+Review docs/features.md and select the next incomplete task. Create a detailed implementation plan before coding:
+1. Document a step-by-step approach for completing the task
+2. Ensure seamless integration with the existing application architecture, UI, and styling patterns
+3. Use theme variables throughout the implementation
+4. Use proper TypeScript typing everywhere—never use any as a type
+5. Save the finalized plan to the docs/ folder
+Once the plan is complete and reviewed, implement the first task from the plan.
 
-update the features.md and the files in the .cursor/rules directory making sure to note if the task was not completed all the way and where to find the plan file for it if there is one. always leave a section at the top of the features.md file for me to add more features. if a feature has been completed then only leave the name of the feature marked completed and a 1 line description and remove the plan file. then commit and push the changes.
+
+Update features.md and .cursor/rules files with the following rules:
+1. Maintain a "New Features" section at the top of features.md for easy addition of new ideas
+2. For incomplete tasks: mark status, note what remains unfinished, and reference the plan file location
+3. For completed features: replace full entry with feature name + "[COMPLETED]" label + 1 line description, then delete the associated plan file
+4. Commit and push all changes
 
 ***Bugs***
 
-check the bugs.md in the docs folder and start on the next incomplete task. Before implementing please think hard and make a detailed step by step plan for doing so making sure to integrate it well into the existing application architecture as well as UI and styling using the theme variables everywhere it makes sense to. the plan should be added to a file in the docs folder. When the plan is complete start on the first task in the plan.
+Review docs/bugs.md and select the next incomplete task. Create a detailed implementation plan before coding:
+1. Document a step-by-step approach for completing the task
+2. Ensure seamless integration with the existing application architecture, UI, and styling patterns
+3. Use theme variables throughout the implementation
+4. Use proper TypeScript typing everywhere—never use any as a type
+5. Save the finalized plan to the docs/ folder
+Once the plan is complete and reviewed, implement the first task from the plan.
 
-update the bugs.md and the files in the .cursor/rules directory making sure to note if the task was not completed all the way and where to find the plan file for it if there is one. always leave a section at the top of the bugs.md file for me to add more bugs. if a bug has been completely fixed then only leave the name of the bug marked fixed and a 1 or 2 line description of the fix and remove the plan file. then commit and push the changes.
+
+Update bugs.md and .cursor/rules files with the following rules:
+1. Maintain a "New Bugs" section at the top of bugs.md for easy addition of new issues
+2. For incomplete tasks: mark status, note what remains unfinished, and reference the plan file location
+3. For completed bugs: replace full entry with bug name + "[FIXED]" label + 1-2 line description of the fix, then delete the associated plan file
+4. Commit and push all changes

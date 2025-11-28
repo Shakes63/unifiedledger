@@ -13,7 +13,6 @@ import { ChevronDown, Save } from 'lucide-react';
 import { FeatureGate } from '@/components/experimental/feature-gate';
 import { ExperimentalBadge } from '@/components/experimental/experimental-badge';
 import { toast } from 'sonner';
-
 interface SearchFilters {
   query?: string;
   categoryIds?: string[];
@@ -29,6 +28,7 @@ interface SearchFilters {
   hasNotes?: boolean;
   sortBy?: 'date' | 'amount' | 'description';
   sortOrder?: 'asc' | 'desc';
+  [key: string]: unknown; // Allow index access for compatibility with SavedSearches
 }
 
 interface Tag {
@@ -173,7 +173,7 @@ export function AdvancedSearch({
     setSelectedTypes(new Set());
   };
 
-  const handleLoadSavedSearch = (savedFilters: Record<string, any>) => {
+  const handleLoadSavedSearch = (savedFilters: SearchFilters) => {
     // Load filters from saved search
     setFilters({
       ...savedFilters,

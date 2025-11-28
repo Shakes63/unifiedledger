@@ -9,11 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Save, Trash2, Clock, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Search filters type - flexible to match various search interfaces
+type SearchFilters = Record<string, unknown>;
+
 interface SavedSearch {
   id: string;
   name: string;
   description?: string;
-  filters: Record<string, any>;
+  filters: SearchFilters;
   isDefault: boolean;
   usageCount: number;
   lastUsedAt?: string;
@@ -22,8 +25,8 @@ interface SavedSearch {
 }
 
 interface SavedSearchesProps {
-  currentFilters: Record<string, any>;
-  onLoadSearch: (filters: Record<string, any>) => void;
+  currentFilters: SearchFilters;
+  onLoadSearch: (filters: SearchFilters) => void;
   isLoading?: boolean;
 }
 

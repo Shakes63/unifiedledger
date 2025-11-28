@@ -36,7 +36,7 @@ export function CreateGoalStep({
     }
   }, [isDemoMode, onNext]);
 
-  const handleSubmit = async (formData: any) => {
+  const handleSubmit = async (formData: Record<string, unknown>) => {
     try {
       setIsSubmitting(true);
       const response = await postWithHousehold('/api/savings-goals', formData);

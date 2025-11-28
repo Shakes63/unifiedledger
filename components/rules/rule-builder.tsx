@@ -67,6 +67,27 @@ interface Account {
   icon?: string;
 }
 
+// Split configuration for create_split action
+interface SplitItem {
+  categoryId: string;
+  amount: number;
+  percentage: number;
+  isPercentage: boolean;
+  description: string;
+}
+
+// Action config with splits array
+interface ActionConfig {
+  splits?: SplitItem[];
+  value?: boolean | string;
+  targetAccountId?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
+// Split field value types
+type SplitFieldValue = string | number | boolean;
+
 interface RuleBuilderProps {
   initialConditions?: ConditionGroup | Condition;
   onConditionsChange: (conditions: ConditionGroup | Condition) => void;
@@ -371,7 +392,7 @@ export function RuleBuilder({
     handleActionsUpdate(newActions);
   };
 
-  const updateActionConfig = (index: number, config: any) => {
+  const updateActionConfig = (index: number, config: ActionConfig) => {
     const newActions = [...actions];
     newActions[index].config = config;
     handleActionsUpdate(newActions);
@@ -409,12 +430,12 @@ export function RuleBuilder({
   const updateSplitField = (
     actionIndex: number,
     splitIndex: number,
-    field: string,
-    value: any
+    field: keyof SplitItem,
+    value: SplitFieldValue
   ) => {
     const updatedActions = [...actions];
     if (updatedActions[actionIndex].config?.splits) {
-      updatedActions[actionIndex].config.splits[splitIndex][field] = value;
+      (updatedActions[actionIndex].config.splits[splitIndex] as Record<keyof SplitItem, SplitFieldValue>)[field] = value;
       handleActionsUpdate(updatedActions);
     }
   };
@@ -495,7 +516,7 @@ export function RuleBuilder({
                   <div className="w-48">
                     <Select
                       value={action.type}
-                      onValueChange={(type: any) => {
+                      onValueChange={(type: RuleAction['type']) => {
                         const updated: RuleAction = {
                           type,
                           value: type === 'set_category' || type === 'set_merchant' || type === 'set_account' ? '' : undefined,
@@ -957,7 +978,7 @@ export function RuleBuilder({
                         {/* Split Items List */}
                         {action.config?.splits && action.config.splits.length > 0 ? (
                           <div className="space-y-3">
-                            {action.config.splits.map((split: any, splitIndex: number) => (
+                            {action.config.splits.map((split: SplitItem, splitIndex: number) => (
                               <div key={splitIndex} className="bg-elevated border border-border rounded-lg p-4 space-y-3">
                                 {/* Split Header with Remove Button */}
                                 <div className="flex items-center justify-between">
@@ -1152,9 +1173,9 @@ export function RuleBuilder({
                           <div className="space-y-2">
                             {/* Total Percentage Display */}
                             {(() => {
-                              const percentageSplits = action.config.splits.filter((s: any) => s.isPercentage);
+                              const percentageSplits = action.config.splits.filter((s: SplitItem) => s.isPercentage);
                               const totalPercentage = percentageSplits.reduce(
-                                (sum: number, s: any) => sum + (s.percentage || 0),
+                                (sum: number, s: SplitItem) => sum + (s.percentage || 0),
                                 0
                               );
                               const hasPercentage = percentageSplits.length > 0;
@@ -1194,9 +1215,9 @@ export function RuleBuilder({
 
                             {/* Fixed Amount Summary */}
                             {(() => {
-                              const fixedSplits = action.config.splits.filter((s: any) => !s.isPercentage);
+                              const fixedSplits = action.config.splits.filter((s: SplitItem) => !s.isPercentage);
                               const totalFixed = fixedSplits.reduce(
-                                (sum: number, s: any) => sum + (s.amount || 0),
+                                (sum: number, s: SplitItem) => sum + (s.amount || 0),
                                 0
                               );
                               const hasFixed = fixedSplits.length > 0;

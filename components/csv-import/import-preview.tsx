@@ -6,13 +6,13 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-interface StagingRecord {
+export interface StagingRecord {
   rowNumber: number;
   status: 'pending' | 'review' | 'approved' | 'skipped' | 'imported';
   validationErrors?: string[];
   duplicateOf?: string;
   duplicateScore?: number;
-  data?: any;
+  data?: Record<string, string | number | boolean | null>;
 }
 
 interface ImportPreviewProps {

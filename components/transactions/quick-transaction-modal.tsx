@@ -29,6 +29,7 @@ import {
   loadQuickEntryDefaults,
   saveQuickEntryDefaults,
 } from '@/lib/utils/quick-entry-defaults';
+import type { Account, Bill, BillInstance } from '@/lib/types';
 
 interface QuickTransactionModalProps {
   open: boolean;
@@ -36,6 +37,35 @@ interface QuickTransactionModalProps {
 }
 
 type TransactionType = 'income' | 'expense' | 'transfer_in' | 'transfer_out' | 'bill';
+
+// Unpaid bill instance with bill details
+interface UnpaidBillWithInstance {
+  bill: Bill;
+  instance: BillInstance;
+}
+
+// Transaction data for API submission
+interface QuickTransactionData {
+  accountId: string;
+  amount: number;
+  description: string;
+  type: string;
+  date: string;
+  toAccountId?: string;
+  billInstanceId?: string;
+  categoryId?: string;
+  merchantId?: string;
+  notes?: string;
+}
+
+// Quick entry defaults
+interface QuickEntryDefaults {
+  accountId: string;
+  categoryId: string | null;
+  merchantId: string | null;
+  transactionType: TransactionType;
+  toAccountId?: string;
+}
 
 export function QuickTransactionModal({
   open,
@@ -55,11 +85,11 @@ export function QuickTransactionModal({
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   const [showNotes, setShowNotes] = useState(false);
-  const [accounts, setAccounts] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(false);
   const [accountsError, setAccountsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [unpaidBills, setUnpaidBills] = useState<Array<any>>([]);
+  const [unpaidBills, setUnpaidBills] = useState<UnpaidBillWithInstance[]>([]);
   const [billsLoading, setBillsLoading] = useState(false);
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
 
@@ -104,7 +134,7 @@ export function QuickTransactionModal({
       const defaults = loadQuickEntryDefaults(selectedHouseholdId, type);
       
       // Apply account default (validate it exists in accounts list)
-      if (defaults.accountId && data.some((acc: any) => acc.id === defaults.accountId)) {
+      if (defaults.accountId && data.some((acc: Account) => acc.id === defaults.accountId)) {
         setAccountId(defaults.accountId);
       } else if (data.length > 0) {
         setAccountId(data[0].id);
@@ -121,7 +151,7 @@ export function QuickTransactionModal({
       }
       
       // Apply toAccountId default for transfers (validate it exists)
-      if (defaults.toAccountId && data.some((acc: any) => acc.id === defaults.toAccountId)) {
+      if (defaults.toAccountId && data.some((acc: Account) => acc.id === defaults.toAccountId)) {
         setToAccountId(defaults.toAccountId);
       }
     } catch (error) {
@@ -204,7 +234,7 @@ export function QuickTransactionModal({
     }
 
     // Find the selected bill instance
-    const billInstance = unpaidBills.find((b: any) => b.instance.id === billInstanceId);
+    const billInstance = unpaidBills.find((b: UnpaidBillWithInstance) => b.instance.id === billInstanceId);
     if (billInstance) {
       // Pre-populate form with bill data
       setAmount(billInstance.instance.expectedAmount?.toString() || '');
@@ -227,7 +257,7 @@ export function QuickTransactionModal({
     const defaults = loadQuickEntryDefaults(selectedHouseholdId, type);
     
     // Apply account default (validate it exists)
-    if (defaults.accountId && accounts.some((acc: any) => acc.id === defaults.accountId)) {
+    if (defaults.accountId && accounts.some((acc: Account) => acc.id === defaults.accountId)) {
       setAccountId(defaults.accountId);
     }
     
@@ -242,7 +272,7 @@ export function QuickTransactionModal({
     }
     
     // Apply toAccountId default for transfers
-    if (defaults.toAccountId && accounts.some((acc: any) => acc.id === defaults.toAccountId)) {
+    if (defaults.toAccountId && accounts.some((acc: Account) => acc.id === defaults.toAccountId)) {
       setToAccountId(defaults.toAccountId);
     }
   }, [type, selectedHouseholdId, open, accounts, selectedBillInstanceId]);
@@ -314,7 +344,7 @@ export function QuickTransactionModal({
       // Bill payments are submitted as 'expense' (API auto-matches to bill)
       const apiType = type === 'transfer_out' || type === 'transfer_in' ? 'transfer' : type === 'bill' ? 'expense' : type;
 
-      const transactionData: any = {
+      const transactionData: QuickTransactionData = {
         accountId,
         amount: parseFloat(amount),
         description,
@@ -373,7 +403,7 @@ export function QuickTransactionModal({
 
       // Save smart defaults for next time
       if (selectedHouseholdId) {
-        const defaults: any = {
+        const defaults: QuickEntryDefaults = {
           accountId,
           categoryId,
           merchantId,
@@ -589,7 +619,7 @@ export function QuickTransactionModal({
                   ) : unpaidBills.length === 0 ? (
                     <SelectItem value="empty" disabled>No unpaid bills</SelectItem>
                   ) : (
-                    unpaidBills.map((item: any) => (
+                    unpaidBills.map((item: UnpaidBillWithInstance) => (
                       <SelectItem key={item.instance.id} value={item.instance.id}>
                         <div className={item.instance.status === 'overdue' ? 'text-[var(--color-error)]' : 'text-foreground'}>
                           {item.instance.status === 'overdue' && (

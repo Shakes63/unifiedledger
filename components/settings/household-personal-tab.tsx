@@ -22,6 +22,13 @@ import { useHousehold } from '@/contexts/household-context';
 
 type NotificationChannel = 'push' | 'email';
 
+// Preference value type - can be boolean, number, string, or channel array
+type PreferenceValue = boolean | number | string | NotificationChannel[];
+
+// User household preferences shape - API returns flexible structure
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type UserHouseholdPreferences = Record<string, any>;
+
 const CHANNELS: Array<{
   id: NotificationChannel;
   label: string;
@@ -56,7 +63,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
   });
   
   // Notifications state
-  const [preferences, setPreferences] = useState<any>(null);
+  const [preferences, setPreferences] = useState<UserHouseholdPreferences | null>(null);
   const [isSavingNotifications, setIsSavingNotifications] = useState(false);
 
   const allThemes = getAllThemes();
@@ -182,7 +189,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
   };
 
   const updatePreference = useCallback(
-    async (key: string, value: any) => {
+    async (key: string, value: PreferenceValue) => {
       if (!preferences) return;
 
       setIsSavingNotifications(true);
@@ -537,7 +544,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
             </div>
             <ChannelSelector
               channelField="billRemindersChannels"
-              enabled={preferences.billRemindersEnabled}
+              enabled={preferences.billRemindersEnabled ?? false}
             />
           </Card>
 

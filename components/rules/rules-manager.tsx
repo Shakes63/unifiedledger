@@ -23,6 +23,12 @@ interface Rule {
   description?: string;
 }
 
+interface CategoryItem {
+  id: string;
+  name: string;
+  type?: string;
+}
+
 interface RulesManagerProps {
   onCreateRule?: () => void;
   onEditRule?: (rule: Rule) => void;
@@ -284,12 +290,12 @@ export function RulesManager({
 
       // Fetch category names for each rule
       const rulesWithCategories = await Promise.all(
-        data.map(async (rule: any) => {
+        data.map(async (rule: Rule) => {
           try {
             const catResponse = await fetchWithHousehold('/api/categories');
             if (catResponse.ok) {
               const categories = await catResponse.json();
-              const category = categories.find((c: any) => c.id === rule.categoryId);
+              const category = categories.find((c: CategoryItem) => c.id === rule.categoryId);
               return { ...rule, categoryName: category?.name || 'Unknown' };
             }
           } catch (err) {

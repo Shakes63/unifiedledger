@@ -168,7 +168,7 @@ export function PreferencesTab() {
           <Label htmlFor="dateFormat" className="text-foreground">Date Format</Label>
           <Select
             value={preferences.dateFormat}
-            onValueChange={(value: any) => setPreferences({ ...preferences, dateFormat: value })}
+            onValueChange={(value: PreferencesData['dateFormat']) => setPreferences({ ...preferences, dateFormat: value })}
           >
             <SelectTrigger
               id="dateFormat"
@@ -193,7 +193,7 @@ export function PreferencesTab() {
           <Label htmlFor="numberFormat" className="text-foreground">Number Format</Label>
           <Select
             value={preferences.numberFormat}
-            onValueChange={(value: any) => setPreferences({ ...preferences, numberFormat: value })}
+            onValueChange={(value: PreferencesData['numberFormat']) => setPreferences({ ...preferences, numberFormat: value })}
           >
             <SelectTrigger
               id="numberFormat"
@@ -249,7 +249,7 @@ export function PreferencesTab() {
           <Label htmlFor="firstDayOfWeek" className="text-foreground">Start of Week</Label>
           <Select
             value={preferences.firstDayOfWeek}
-            onValueChange={(value: any) =>
+            onValueChange={(value: PreferencesData['firstDayOfWeek']) =>
               setPreferences({ ...preferences, firstDayOfWeek: value })
             }
           >
