@@ -25,11 +25,6 @@
 
 ## Improvement Backlog
 
-**Split Transaction Improvements** - ✅ COMPLETE (2025-11-28)
-- See `docs/split-transaction-review.md` for details
-- Simplified auto-calculation with explicit "Balance Splits" button
-- Added loading states for category fetching
-
 **Linter Cleanup - Remaining Directories (Low Priority)**
 - __tests__/, scripts/, contexts/, hooks/ directories (warnings only)
 
@@ -43,13 +38,15 @@
 | Linter Errors | 0 (in components/) |
 | Linter Warnings | 0 (in components/) |
 | Build Status | Passing |
-| Fixed (All Time) | 570 (66 bugs + 310 warnings + 195 errors) |
+| Fixed (All Time) | 572 (68 bugs + 310 warnings + 195 errors) |
 
 ---
 
-## Fixed Bugs (66 total)
+## Fixed Bugs (68 total)
 
-1. ✅ **Batch Split Update API** [FIXED] - Added atomic batch update endpoint (`PUT /api/transactions/[id]/splits/batch`) reducing 7+ sequential API calls to 1, with 18 unit tests
+1. ✅ **Split Builder Auto-Calculation UX** [FIXED] - Replaced silent auto-calculation with explicit "Balance Splits" button and "Balanced" badge indicator for clearer UX
+2. ✅ **Split Builder Loading States** [FIXED] - Added `onLoadingChange` callback to CategorySelector and loading spinner on Add Split button while categories load
+3. ✅ **Batch Split Update API** [FIXED] - Added atomic batch update endpoint (`PUT /api/transactions/[id]/splits/batch`) reducing 7+ sequential API calls to 1, with 18 unit tests
 2. ✅ **Linter Cleanup Phase 2** [FIXED] - Fixed all 196 ESLint errors in components/ with proper type definitions in `lib/types/index.ts`
 2. ✅ **Savings Goals GET 500 Error** - Added error logging
 3. ✅ **Savings Goals POST 500 Error** - Fixed amount type casting

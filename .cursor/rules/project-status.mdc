@@ -51,7 +51,14 @@ alwaysApply: false
 
 ## Recent Major Features
 
-**Latest (2025-11-27):**
+**Latest (2025-11-28):**
+- Split Transaction UX Improvements (✅ COMPLETE)
+  - ✅ Replaced silent auto-calculation with explicit "Balance Splits" button
+  - ✅ Added "Balanced" badge indicator on auto-balanced splits
+  - ✅ Added loading state to CategorySelector with `onLoadingChange` callback
+  - ✅ Add Split button shows spinner and disables while categories load
+
+**Previous (2025-11-27):**
 - Split Transaction Improvements (✅ COMPLETE - Medium Priority)
   - ✅ Consolidated duplicate validation logic - Created `validateSplitConfiguration()` with configurable options
   - ✅ Fixed TypeScript any types - Created `SplitUpdateData` interface in split API
@@ -264,10 +271,10 @@ alwaysApply: false
 - **Linter Cleanup Phase 2** [FIXED] - Fixed all 196 ESLint errors in components/ (121 `@typescript-eslint/no-explicit-any` + 75 `react/no-unescaped-entities`). Created comprehensive type definitions in `lib/types/index.ts`. Other directories (__tests__/, scripts/, contexts/, hooks/) have warnings only (low priority).
 
 ### Improvement Backlog
-- **Split Transaction Improvements (Low Priority)** - See `docs/split-transaction-review.md`
-  - Medium priority items COMPLETE (validation consolidation, TypeScript types, Decimal rounding)
-  - ✅ Batch Split Update API COMPLETE (2025-11-28) - Atomic batch endpoint reducing 7+ calls to 1
-  - Low priority items remaining (auto-calc simplification, loading states)
+- **Split Transaction Improvements** - ✅ ALL COMPLETE (2025-11-28) - See `docs/split-transaction-review.md`
+  - ✅ Batch Split Update API - Atomic batch endpoint reducing 7+ calls to 1
+  - ✅ Auto-calculation UX - Explicit "Balance Splits" button replaces silent auto-calc
+  - ✅ Loading states - CategorySelector exposes loading state, Add Split button shows spinner
 
 ### Household Data Isolation
 **Status:** ✅ **100% COMPLETE** - All phases (0-4) complete and production-ready
