@@ -30,7 +30,8 @@ import { findMatchingRule } from "@/lib/rules/rule-matcher";
 import { executeRuleActions } from "@/lib/rules/actions-executor";
 import type { TransactionData } from "@/lib/rules/condition-evaluator";
 import {
-  generateTestUserId,
+  setupTestUserWithHousehold,
+  cleanupTestHousehold,
   createTestAccount,
   createTestCategory,
   createTestMerchant,
@@ -49,6 +50,7 @@ import {
 
 describe("Integration: Complete Rule Flow", () => {
   let testUserId: string;
+  let testHouseholdId: string;
   let testAccountId: string;
   let testCategoryId: string;
   let testMerchantId: string;
@@ -58,27 +60,29 @@ describe("Integration: Complete Rule Flow", () => {
   // ============================================================================
 
   beforeEach(async () => {
-    // Generate unique test user ID for isolation
-    testUserId = generateTestUserId();
+    // Setup user with household FIRST (required for household isolation)
+    const setup = await setupTestUserWithHousehold();
+    testUserId = setup.userId;
+    testHouseholdId = setup.householdId;
 
-    // Create test account
-    const accountData = createTestAccount(testUserId, {
+    // Create test account (now with householdId)
+    const accountData = createTestAccount(testUserId, testHouseholdId, {
       name: "Test Checking",
       currentBalance: 1000.00,
     });
     const [account] = await db.insert(accounts).values(accountData).returning();
     testAccountId = account.id;
 
-    // Create test category
-    const categoryData = createTestCategory(testUserId, {
+    // Create test category (now with householdId)
+    const categoryData = createTestCategory(testUserId, testHouseholdId, {
       name: "Groceries",
-      type: "expense",
+      type: "variable_expense",
     });
     const [category] = await db.insert(budgetCategories).values(categoryData).returning();
     testCategoryId = category.id;
 
-    // Create test merchant
-    const merchantData = createTestMerchant(testUserId, {
+    // Create test merchant (now with householdId)
+    const merchantData = createTestMerchant(testUserId, testHouseholdId, {
       name: "Whole Foods",
     });
     const [merchant] = await db.insert(merchants).values(merchantData).returning();
@@ -86,13 +90,8 @@ describe("Integration: Complete Rule Flow", () => {
   });
 
   afterEach(async () => {
-    // Cleanup: Delete test data
-    await db.delete(ruleExecutionLog).where(eq(ruleExecutionLog.userId, testUserId));
-    await db.delete(transactions).where(eq(transactions.userId, testUserId));
-    await db.delete(categorizationRules).where(eq(categorizationRules.userId, testUserId));
-    await db.delete(merchants).where(eq(merchants.userId, testUserId));
-    await db.delete(budgetCategories).where(eq(budgetCategories.userId, testUserId));
-    await db.delete(accounts).where(eq(accounts.userId, testUserId));
+    // Cleanup all test data including household
+    await cleanupTestHousehold(testUserId, testHouseholdId);
   });
 
   // ============================================================================
@@ -103,14 +102,14 @@ describe("Integration: Complete Rule Flow", () => {
     // 1. Create rule: If description contains "Whole Foods" → set category to Groceries
     const condition = createTestCondition("description", "contains", "Whole Foods");
     const action = createTestAction("set_category", { categoryId: testCategoryId });
-    const ruleData = createTestRule(testUserId, [condition], [action], {
+    const ruleData = createTestRule(testUserId, testHouseholdId, [condition], [action], {
       name: "Grocery Store Rule",
       priority: 1,
     });
     const [rule] = await db.insert(categorizationRules).values(ruleData).returning();
 
     // 2. Create transaction without category
-    const txnData = createTestTransaction(testUserId, testAccountId, {
+    const txnData = createTestTransaction(testUserId, testHouseholdId, testAccountId, {
       description: "Whole Foods Market",
       amount: 45.50,
       categoryId: null,
@@ -126,7 +125,7 @@ describe("Integration: Complete Rule Flow", () => {
       notes: txn.notes || undefined,
     };
 
-    const ruleMatch = await findMatchingRule(testUserId, transactionData);
+    const ruleMatch = await findMatchingRule(testUserId, testHouseholdId, transactionData);
 
     // 4. Verify rule matched
     expect(ruleMatch.matched).toBe(true);
@@ -175,6 +174,7 @@ describe("Integration: Complete Rule Flow", () => {
     await db.insert(ruleExecutionLog).values({
       id: crypto.randomUUID(),
       userId: testUserId,
+      householdId: testHouseholdId,
       ruleId: rule.id,
       transactionId: txn.id,
       appliedCategoryId: executionResult.mutations.categoryId,
@@ -219,14 +219,14 @@ describe("Integration: Complete Rule Flow", () => {
       createTestAction("set_category", { categoryId: testCategoryId }),
       createTestAction("append_description", { pattern: " - Coffee" }),
     ];
-    const ruleData = createTestRule(testUserId, [condition], actions, {
+    const ruleData = createTestRule(testUserId, testHouseholdId, [condition], actions, {
       name: "Coffee Shop Rule",
       priority: 1,
     });
     const [rule] = await db.insert(categorizationRules).values(ruleData).returning();
 
     // 2. Create transaction
-    const txnData = createTestTransaction(testUserId, testAccountId, {
+    const txnData = createTestTransaction(testUserId, testHouseholdId, testAccountId, {
       description: "Starbucks",
       amount: 5.75,
     });
@@ -240,7 +240,7 @@ describe("Integration: Complete Rule Flow", () => {
       date: txn.date,
     };
 
-    const ruleMatch = await findMatchingRule(testUserId, transactionData);
+    const ruleMatch = await findMatchingRule(testUserId, testHouseholdId, transactionData);
     expect(ruleMatch.matched).toBe(true);
 
     const executionResult = await executeRuleActions(
@@ -297,14 +297,14 @@ describe("Integration: Complete Rule Flow", () => {
 
   it("should substitute pattern variables in description actions", async () => {
     // 1. Create category for pattern test
-    const coffeeCategoryData = createTestCategory(testUserId, {
+    const coffeeCategoryData = createTestCategory(testUserId, testHouseholdId, {
       name: "Coffee & Drinks",
-      type: "expense",
+      type: "variable_expense",
     });
     const [coffeeCategory] = await db.insert(budgetCategories).values(coffeeCategoryData).returning();
 
     // 2. Create merchant for pattern test
-    const merchantData = createTestMerchant(testUserId, {
+    const merchantData = createTestMerchant(testUserId, testHouseholdId, {
       name: "Starbucks Downtown",
     });
     const [merchant] = await db.insert(merchants).values(merchantData).returning();
@@ -318,14 +318,14 @@ describe("Integration: Complete Rule Flow", () => {
         pattern: "{merchant} - {category} - ${amount} on {date}",
       }),
     ];
-    const ruleData = createTestRule(testUserId, [condition], actions, {
+    const ruleData = createTestRule(testUserId, testHouseholdId, [condition], actions, {
       name: "Pattern Variable Test Rule",
       priority: 1,
     });
     await db.insert(categorizationRules).values(ruleData);
 
     // 4. Create transaction
-    const txnData = createTestTransaction(testUserId, testAccountId, {
+    const txnData = createTestTransaction(testUserId, testHouseholdId, testAccountId, {
       description: "morning coffee",
       amount: 6.50,
       date: "2025-01-23",
@@ -340,7 +340,7 @@ describe("Integration: Complete Rule Flow", () => {
       date: txn.date,
     };
 
-    const ruleMatch = await findMatchingRule(testUserId, transactionData);
+    const ruleMatch = await findMatchingRule(testUserId, testHouseholdId, transactionData);
     expect(ruleMatch.matched).toBe(true);
 
     // Get category and merchant info for context
@@ -393,15 +393,15 @@ describe("Integration: Complete Rule Flow", () => {
 
   it("should apply highest priority rule when multiple rules match", async () => {
     // 1. Create two categories
-    const generalCategoryData = createTestCategory(testUserId, {
+    const generalCategoryData = createTestCategory(testUserId, testHouseholdId, {
       name: "General Shopping",
-      type: "expense",
+      type: "variable_expense",
     });
     const [generalCategory] = await db.insert(budgetCategories).values(generalCategoryData).returning();
 
-    const groceryCategoryData = createTestCategory(testUserId, {
+    const groceryCategoryData = createTestCategory(testUserId, testHouseholdId, {
       name: "Groceries",
-      type: "expense",
+      type: "variable_expense",
     });
     const [groceryCategory] = await db.insert(budgetCategories).values(groceryCategoryData).returning();
 
@@ -411,6 +411,7 @@ describe("Integration: Complete Rule Flow", () => {
     const lowPriorityAction = createTestAction("set_category", { categoryId: generalCategory.id });
     const lowPriorityRule = createTestRule(
       testUserId,
+      testHouseholdId,
       [lowPriorityCondition],
       [lowPriorityAction],
       { name: "Low Priority Rule", priority: 10 }
@@ -422,6 +423,7 @@ describe("Integration: Complete Rule Flow", () => {
     const highPriorityAction = createTestAction("set_category", { categoryId: groceryCategory.id });
     const highPriorityRule = createTestRule(
       testUserId,
+      testHouseholdId,
       [highPriorityCondition],
       [highPriorityAction],
       { name: "High Priority Rule", priority: 1 }
@@ -429,7 +431,7 @@ describe("Integration: Complete Rule Flow", () => {
     const [highRule] = await db.insert(categorizationRules).values(highPriorityRule).returning();
 
     // 3. Create transaction that matches both rules
-    const txnData = createTestTransaction(testUserId, testAccountId, {
+    const txnData = createTestTransaction(testUserId, testHouseholdId, testAccountId, {
       description: "Walmart Groceries",
       amount: 75.00,
     });
@@ -443,7 +445,7 @@ describe("Integration: Complete Rule Flow", () => {
       date: txn.date,
     };
 
-    const ruleMatch = await findMatchingRule(testUserId, transactionData);
+    const ruleMatch = await findMatchingRule(testUserId, testHouseholdId, transactionData);
 
     // 5. Verify high priority rule matched
     expect(ruleMatch.matched).toBe(true);
@@ -472,14 +474,14 @@ describe("Integration: Complete Rule Flow", () => {
     const complexGroup = createTestConditionGroup("and", [orGroup, amountGroup]);
 
     const action = createTestAction("set_category", { categoryId: testCategoryId });
-    const ruleData = createTestRule(testUserId, complexGroup, [action], {
+    const ruleData = createTestRule(testUserId, testHouseholdId, complexGroup, [action], {
       name: "Complex Nested Rule",
       priority: 1,
     });
     const [rule] = await db.insert(categorizationRules).values(ruleData).returning();
 
     // 2. Test matching transaction
-    const matchingTxn = createTestTransaction(testUserId, testAccountId, {
+    const matchingTxn = createTestTransaction(testUserId, testHouseholdId, testAccountId, {
       description: "morning latte",
       amount: 6.50,
     });
@@ -492,12 +494,12 @@ describe("Integration: Complete Rule Flow", () => {
       date: matchTxn.date,
     };
 
-    const matchResult = await findMatchingRule(testUserId, matchData);
+    const matchResult = await findMatchingRule(testUserId, testHouseholdId, matchData);
     expect(matchResult.matched).toBe(true);
     expect(matchResult.rule?.ruleId).toBe(rule.id);
 
     // 3. Test non-matching transaction (amount too low)
-    const nonMatchingTxn = createTestTransaction(testUserId, testAccountId, {
+    const nonMatchingTxn = createTestTransaction(testUserId, testHouseholdId, testAccountId, {
       description: "morning coffee",
       amount: 4.00, // Below threshold
     });
@@ -510,11 +512,11 @@ describe("Integration: Complete Rule Flow", () => {
       date: noMatchTxn.date,
     };
 
-    const noMatchResult = await findMatchingRule(testUserId, noMatchData);
+    const noMatchResult = await findMatchingRule(testUserId, testHouseholdId, noMatchData);
     expect(noMatchResult.matched).toBe(false);
 
     // 4. Test non-matching transaction (wrong description)
-    const wrongDescTxn = createTestTransaction(testUserId, testAccountId, {
+    const wrongDescTxn = createTestTransaction(testUserId, testHouseholdId, testAccountId, {
       description: "tea", // Doesn't match OR group
       amount: 6.50,
     });
@@ -527,7 +529,7 @@ describe("Integration: Complete Rule Flow", () => {
       date: wrongTxn.date,
     };
 
-    const wrongResult = await findMatchingRule(testUserId, wrongData);
+    const wrongResult = await findMatchingRule(testUserId, testHouseholdId, wrongData);
     expect(wrongResult.matched).toBe(false);
   });
 
@@ -539,14 +541,14 @@ describe("Integration: Complete Rule Flow", () => {
     // 1. Create rule that won't match
     const condition = createTestCondition("description", "contains", "XYZ Corp");
     const action = createTestAction("set_category", { categoryId: testCategoryId });
-    const ruleData = createTestRule(testUserId, [condition], [action], {
+    const ruleData = createTestRule(testUserId, testHouseholdId, [condition], [action], {
       name: "XYZ Rule",
       priority: 1,
     });
     await db.insert(categorizationRules).values(ruleData);
 
     // 2. Create transaction that doesn't match
-    const txnData = createTestTransaction(testUserId, testAccountId, {
+    const txnData = createTestTransaction(testUserId, testHouseholdId, testAccountId, {
       description: "ABC Store",
       amount: 50.00,
       categoryId: null,
@@ -561,7 +563,7 @@ describe("Integration: Complete Rule Flow", () => {
       date: txn.date,
     };
 
-    const ruleMatch = await findMatchingRule(testUserId, transactionData);
+    const ruleMatch = await findMatchingRule(testUserId, testHouseholdId, transactionData);
 
     // 4. Verify no match
     expect(ruleMatch.matched).toBe(false);
@@ -593,7 +595,7 @@ describe("Integration: Complete Rule Flow", () => {
     // 1. Create inactive rule
     const condition = createTestCondition("description", "contains", "Test Store");
     const action = createTestAction("set_category", { categoryId: testCategoryId });
-    const ruleData = createTestRule(testUserId, [condition], [action], {
+    const ruleData = createTestRule(testUserId, testHouseholdId, [condition], [action], {
       name: "Inactive Rule",
       priority: 1,
       isActive: false,
@@ -601,7 +603,7 @@ describe("Integration: Complete Rule Flow", () => {
     await db.insert(categorizationRules).values(ruleData);
 
     // 2. Create transaction that would match if rule was active
-    const txnData = createTestTransaction(testUserId, testAccountId, {
+    const txnData = createTestTransaction(testUserId, testHouseholdId, testAccountId, {
       description: "Test Store Purchase",
       amount: 25.00,
     });
@@ -615,7 +617,7 @@ describe("Integration: Complete Rule Flow", () => {
       date: txn.date,
     };
 
-    const ruleMatch = await findMatchingRule(testUserId, transactionData);
+    const ruleMatch = await findMatchingRule(testUserId, testHouseholdId, transactionData);
 
     // 4. Verify inactive rule was skipped
     expect(ruleMatch.matched).toBe(false);
@@ -630,14 +632,14 @@ describe("Integration: Complete Rule Flow", () => {
     // 1. Create rule that would match
     const condition = createTestCondition("description", "contains", "Transfer");
     const action = createTestAction("set_category", { categoryId: testCategoryId });
-    const ruleData = createTestRule(testUserId, [condition], [action], {
+    const ruleData = createTestRule(testUserId, testHouseholdId, [condition], [action], {
       name: "Transfer Rule",
       priority: 1,
     });
     await db.insert(categorizationRules).values(ruleData);
 
     // 2. Create transfer_out transaction
-    const transferTxnData = createTestTransaction(testUserId, testAccountId, {
+    const transferTxnData = createTestTransaction(testUserId, testHouseholdId, testAccountId, {
       description: "Transfer to Savings",
       amount: 100.00,
       type: "transfer_out",
@@ -668,21 +670,21 @@ describe("Integration: Complete Rule Flow", () => {
     // 1. Create rule
     const condition = createTestCondition("description", "contains", "Store");
     const action = createTestAction("set_category", { categoryId: testCategoryId });
-    const ruleData = createTestRule(testUserId, [condition], [action], {
+    const ruleData = createTestRule(testUserId, testHouseholdId, [condition], [action], {
       name: "Store Rule",
       priority: 1,
     });
     await db.insert(categorizationRules).values(ruleData);
 
     // 2. Create another category
-    const manualCategoryData = createTestCategory(testUserId, {
+    const manualCategoryData = createTestCategory(testUserId, testHouseholdId, {
       name: "Manual Category",
-      type: "expense",
+      type: "variable_expense",
     });
     const [manualCategory] = await db.insert(budgetCategories).values(manualCategoryData).returning();
 
     // 3. Create transaction with manual category already set
-    const txnData = createTestTransaction(testUserId, testAccountId, {
+    const txnData = createTestTransaction(testUserId, testHouseholdId, testAccountId, {
       description: "Store Purchase",
       amount: 30.00,
       categoryId: manualCategory.id, // Already categorized
@@ -707,7 +709,7 @@ describe("Integration: Complete Rule Flow", () => {
       date: txn.date,
     };
 
-    const ruleMatch = await findMatchingRule(testUserId, transactionData);
+    const ruleMatch = await findMatchingRule(testUserId, testHouseholdId, transactionData);
     expect(ruleMatch.matched).toBe(true);
   });
 
@@ -720,14 +722,14 @@ describe("Integration: Complete Rule Flow", () => {
     const invalidCategoryId = "invalid-category-id-999";
     const condition = createTestCondition("description", "contains", "Test");
     const action = createTestAction("set_category", { categoryId: invalidCategoryId });
-    const ruleData = createTestRule(testUserId, [condition], [action], {
+    const ruleData = createTestRule(testUserId, testHouseholdId, [condition], [action], {
       name: "Invalid Category Rule",
       priority: 1,
     });
     const [rule] = await db.insert(categorizationRules).values(ruleData).returning();
 
     // 2. Create transaction
-    const txnData = createTestTransaction(testUserId, testAccountId, {
+    const txnData = createTestTransaction(testUserId, testHouseholdId, testAccountId, {
       description: "Test Purchase",
       amount: 20.00,
     });
@@ -741,7 +743,7 @@ describe("Integration: Complete Rule Flow", () => {
       date: txn.date,
     };
 
-    const ruleMatch = await findMatchingRule(testUserId, transactionData);
+    const ruleMatch = await findMatchingRule(testUserId, testHouseholdId, transactionData);
     expect(ruleMatch.matched).toBe(true);
 
     // 4. Try to execute rule actions (should fail validation)

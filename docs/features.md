@@ -8,7 +8,7 @@ _Add new feature requests below. Include a brief description of what the feature
 
 ## Incomplete Features
 
-_No incomplete features at this time._
+1. make a feature that will use a env variable To turn on and off test mode. When in test mode authentication should be turned off and there should be 1 admin account auto created and no login whatsoever.
 
 ---
 

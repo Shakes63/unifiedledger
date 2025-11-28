@@ -13,7 +13,11 @@
 
 ## Active Bugs
 
-1. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional - low priority)
+1. ⏳ **Fix Integration Test Failures (50 remaining)** - Household data isolation caused test failures
+   - **Progress:** Reduced from 75 to 50 failing tests (33% fixed)
+   - **Completed:** Integration tests (post-creation-actions, rules-flow, rule-execution-logging, bulk-apply-rules)
+   - **Remaining:** Unit tests (rule-matcher ~24, migrate-to-household-preferences ~13, actions-executor 7, transaction-creation-rules 5, user-household-preferences 1)
+   - **See:** `docs/fix-integration-tests-plan.md` for detailed status
 
 ---
 
@@ -34,7 +38,8 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 1 (optional) |
+| Active Bugs | 1 (50 failing tests) |
+| Tests Passing | 540/590 (91.5%) |
 | Linter Errors | 0 (in components/) |
 | Linter Warnings | 0 (in components/) |
 | Build Status | Passing |

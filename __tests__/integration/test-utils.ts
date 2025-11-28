@@ -3,9 +3,25 @@
  *
  * Helper functions and data factories for integration tests.
  * Provides consistent test data creation and assertion patterns.
+ * 
+ * Updated to support Household Data Isolation (2025-11-28)
  */
 
 import { nanoid } from 'nanoid';
+import { db } from '@/lib/db';
+import {
+  households,
+  householdMembers,
+  accounts,
+  budgetCategories,
+  merchants,
+  transactions,
+  transactionSplits,
+  categorizationRules,
+  ruleExecutionLog,
+  transferSuggestions,
+} from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import type {
   Condition,
   ConditionGroup,
@@ -18,9 +34,31 @@ import type { RuleAction, RuleActionType } from '@/lib/rules/types';
 // TYPE DEFINITIONS
 // ============================================================================
 
+export interface TestHousehold {
+  id?: string;
+  name: string;
+  createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TestHouseholdMember {
+  id?: string;
+  householdId: string;
+  userId: string;
+  userEmail: string;
+  userName?: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  joinedAt?: string;
+  invitedBy?: string | null;
+  isActive?: boolean;
+  isFavorite?: boolean;
+}
+
 export interface TestTransaction {
   id?: string;
   userId: string;
+  householdId: string;
   accountId: string;
   description: string;
   amount: number;
@@ -45,13 +83,14 @@ export interface TestTransaction {
 export interface TestAccount {
   id?: string;
   userId: string;
+  householdId: string;
   name: string;
-  type: 'checking' | 'savings' | 'credit_card' | 'investment' | 'other';
+  type: 'checking' | 'savings' | 'credit_card' | 'credit' | 'investment' | 'cash' | 'other';
   currentBalance: number;
   color?: string;
   icon?: string;
   isActive?: boolean;
-  isBusiness?: boolean;
+  isBusinessAccount?: boolean;
   creditLimit?: number | null;
   createdAt?: string;
   updatedAt?: string;
@@ -60,8 +99,9 @@ export interface TestAccount {
 export interface TestCategory {
   id?: string;
   userId: string;
+  householdId: string;
   name: string;
-  type: 'income' | 'expense' | 'savings';
+  type: 'income' | 'expense' | 'variable_expense' | 'monthly_bill' | 'savings' | 'debt' | 'non_monthly_bill';
   color?: string;
   icon?: string;
   isTaxDeductible?: boolean;
@@ -74,6 +114,7 @@ export interface TestCategory {
 export interface TestMerchant {
   id?: string;
   userId: string;
+  householdId: string;
   name: string;
   normalizedName: string;
   categoryId?: string | null;
@@ -88,6 +129,7 @@ export interface TestMerchant {
 export interface TestRule {
   id?: string;
   userId: string;
+  householdId: string;
   name: string;
   priority: number;
   isActive?: boolean;
@@ -99,20 +141,71 @@ export interface TestRule {
 }
 
 // ============================================================================
+// HOUSEHOLD DATA FACTORIES
+// ============================================================================
+
+/**
+ * Create test household with sensible defaults
+ */
+export function createTestHousehold(
+  createdBy: string,
+  overrides?: Partial<TestHousehold>
+): TestHousehold {
+  return {
+    id: nanoid(),
+    name: "Test Household",
+    createdBy,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+/**
+ * Create test household member with sensible defaults
+ */
+export function createTestHouseholdMember(
+  householdId: string,
+  userId: string,
+  userEmail: string,
+  overrides?: Partial<TestHouseholdMember>
+): TestHouseholdMember {
+  return {
+    id: nanoid(),
+    householdId,
+    userId,
+    userEmail,
+    userName: "Test User",
+    role: 'owner',
+    joinedAt: new Date().toISOString(),
+    invitedBy: null,
+    isActive: true,
+    isFavorite: false,
+    ...overrides,
+  };
+}
+
+// ============================================================================
 // DATA FACTORIES
 // ============================================================================
 
 /**
  * Create test transaction with sensible defaults
+ * @param userId - User ID
+ * @param householdId - Household ID (required for household isolation)
+ * @param accountId - Account ID
+ * @param overrides - Optional field overrides
  */
 export function createTestTransaction(
   userId: string,
+  householdId: string,
   accountId: string,
   overrides?: Partial<TestTransaction>
 ): TestTransaction {
   return {
     id: nanoid(),
     userId,
+    householdId,
     accountId,
     description: "Test Transaction",
     amount: 50.00,
@@ -137,21 +230,26 @@ export function createTestTransaction(
 
 /**
  * Create test account with sensible defaults
+ * @param userId - User ID
+ * @param householdId - Household ID (required for household isolation)
+ * @param overrides - Optional field overrides
  */
 export function createTestAccount(
   userId: string,
+  householdId: string,
   overrides?: Partial<TestAccount>
 ): TestAccount {
   return {
     id: nanoid(),
     userId,
+    householdId,
     name: "Test Checking",
     type: "checking",
     currentBalance: 1000.00,
     color: "#10b981",
     icon: "wallet",
     isActive: true,
-    isBusiness: false,
+    isBusinessAccount: false,
     creditLimit: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -161,16 +259,21 @@ export function createTestAccount(
 
 /**
  * Create test category with sensible defaults
+ * @param userId - User ID
+ * @param householdId - Household ID (required for household isolation)
+ * @param overrides - Optional field overrides
  */
 export function createTestCategory(
   userId: string,
+  householdId: string,
   overrides?: Partial<TestCategory>
 ): TestCategory {
   return {
     id: nanoid(),
     userId,
+    householdId,
     name: "Test Category",
-    type: "expense",
+    type: "variable_expense",
     color: "#f59e0b",
     icon: "tag",
     isTaxDeductible: false,
@@ -184,15 +287,20 @@ export function createTestCategory(
 
 /**
  * Create test merchant with sensible defaults
+ * @param userId - User ID
+ * @param householdId - Household ID (required for household isolation)
+ * @param overrides - Optional field overrides
  */
 export function createTestMerchant(
   userId: string,
+  householdId: string,
   overrides?: Partial<TestMerchant>
 ): TestMerchant {
   const name = overrides?.name || "Test Merchant";
   return {
     id: nanoid(),
     userId,
+    householdId,
     name,
     normalizedName: name.toLowerCase(),
     categoryId: null,
@@ -248,7 +356,7 @@ export function createTestConditionGroup(
  */
 export function createTestAction(
   type: RuleActionType,
-  configOrValue: any = {}
+  configOrValue: Record<string, unknown> | string = {}
 ): RuleAction {
   const action: RuleAction = { type };
 
@@ -256,24 +364,32 @@ export function createTestAction(
   switch (type) {
     case 'set_category':
       // Expect { categoryId: string }
-      action.value = configOrValue.categoryId || configOrValue;
+      action.value = typeof configOrValue === 'object' 
+        ? (configOrValue.categoryId as string) || ''
+        : configOrValue;
       break;
 
     case 'set_merchant':
       // Expect { merchantId: string }
-      action.value = configOrValue.merchantId || configOrValue;
+      action.value = typeof configOrValue === 'object'
+        ? (configOrValue.merchantId as string) || ''
+        : configOrValue;
       break;
 
     case 'set_account':
       // Expect { targetAccountId: string }
-      action.value = configOrValue.targetAccountId || configOrValue;
+      action.value = typeof configOrValue === 'object'
+        ? (configOrValue.targetAccountId as string) || ''
+        : configOrValue;
       break;
 
     case 'set_description':
     case 'prepend_description':
     case 'append_description':
       // Expect { pattern: string }
-      action.pattern = configOrValue.pattern || configOrValue;
+      action.pattern = typeof configOrValue === 'object'
+        ? (configOrValue.pattern as string) || ''
+        : configOrValue;
       break;
 
     case 'set_tax_deduction':
@@ -284,12 +400,12 @@ export function createTestAction(
     case 'convert_to_transfer':
     case 'create_split':
       // Complex actions use config field
-      action.config = configOrValue;
+      action.config = typeof configOrValue === 'object' ? configOrValue : {};
       break;
 
     default:
       // For unknown types, store in config
-      action.config = configOrValue;
+      action.config = typeof configOrValue === 'object' ? configOrValue : {};
       break;
   }
 
@@ -298,9 +414,15 @@ export function createTestAction(
 
 /**
  * Create test rule with conditions and actions
+ * @param userId - User ID
+ * @param householdId - Household ID (required for household isolation)
+ * @param conditions - Rule conditions
+ * @param actions - Rule actions
+ * @param overrides - Optional field overrides
  */
 export function createTestRule(
   userId: string,
+  householdId: string,
   conditions: Condition[] | ConditionGroup,
   actions: RuleAction[],
   overrides?: Partial<TestRule>
@@ -317,6 +439,7 @@ export function createTestRule(
   return {
     id: nanoid(),
     userId,
+    householdId,
     name: "Test Rule",
     priority: 1,
     isActive: true,
@@ -330,6 +453,57 @@ export function createTestRule(
 }
 
 // ============================================================================
+// SETUP & CLEANUP HELPERS
+// ============================================================================
+
+/**
+ * Setup test user with household - call at start of each test suite
+ * Creates a household and adds the user as owner
+ */
+export async function setupTestUserWithHousehold(): Promise<{
+  userId: string;
+  householdId: string;
+}> {
+  const userId = generateTestUserId();
+  const userEmail = `${userId}@test.example.com`;
+  
+  // Create household
+  const householdData = createTestHousehold(userId);
+  const [household] = await db.insert(households).values(householdData).returning();
+  
+  // Create household member (owner)
+  const memberData = createTestHouseholdMember(household.id, userId, userEmail);
+  await db.insert(householdMembers).values(memberData);
+  
+  return { userId, householdId: household.id };
+}
+
+/**
+ * Cleanup test household and all related data
+ * Deletes in correct order for foreign key constraints
+ */
+export async function cleanupTestHousehold(
+  userId: string,
+  householdId: string
+): Promise<void> {
+  // Delete in correct order for foreign keys
+  try {
+    await db.delete(transferSuggestions).where(eq(transferSuggestions.userId, userId));
+  } catch {
+    // Ignore if table doesn't exist or is empty
+  }
+  await db.delete(ruleExecutionLog).where(eq(ruleExecutionLog.userId, userId));
+  await db.delete(transactionSplits).where(eq(transactionSplits.userId, userId));
+  await db.delete(transactions).where(eq(transactions.userId, userId));
+  await db.delete(categorizationRules).where(eq(categorizationRules.userId, userId));
+  await db.delete(merchants).where(eq(merchants.userId, userId));
+  await db.delete(budgetCategories).where(eq(budgetCategories.userId, userId));
+  await db.delete(accounts).where(eq(accounts.userId, userId));
+  await db.delete(householdMembers).where(eq(householdMembers.householdId, householdId));
+  await db.delete(households).where(eq(households.id, householdId));
+}
+
+// ============================================================================
 // ASSERTION HELPERS
 // ============================================================================
 
@@ -337,11 +511,11 @@ export function createTestRule(
  * Verify transaction has expected fields
  */
 export function expectTransactionToMatch(
-  actual: any,
+  actual: Record<string, unknown>,
   expected: Partial<TestTransaction>
 ) {
   Object.keys(expected).forEach(key => {
-    expect(actual[key]).toBe((expected as any)[key]);
+    expect(actual[key]).toBe((expected as Record<string, unknown>)[key]);
   });
 }
 
@@ -349,13 +523,13 @@ export function expectTransactionToMatch(
  * Verify audit log entry has required fields
  */
 export function expectAuditLogEntry(
-  logEntry: any,
+  logEntry: Record<string, unknown>,
   expectedFields: {
     ruleId?: string;
     transactionId?: string;
     appliedCategoryId?: string | null;
     matched?: boolean;
-    appliedActions?: any[];
+    appliedActions?: unknown[];
   }
 ) {
   if (expectedFields.ruleId !== undefined) {
@@ -372,7 +546,7 @@ export function expectAuditLogEntry(
   }
   if (expectedFields.appliedActions !== undefined) {
     const actions = typeof logEntry.appliedActions === 'string'
-      ? JSON.parse(logEntry.appliedActions)
+      ? JSON.parse(logEntry.appliedActions as string)
       : logEntry.appliedActions;
     expect(actions).toEqual(expectedFields.appliedActions);
   }
@@ -387,11 +561,11 @@ export function expectAuditLogEntry(
  * Verify applied actions array structure
  */
 export function expectAppliedActions(
-  appliedActions: any[],
+  appliedActions: Array<Record<string, unknown>>,
   expectedActions: Array<{
     type: RuleActionType;
     field?: string;
-    value?: any;
+    value?: unknown;
   }>
 ) {
   expect(appliedActions).toHaveLength(expectedActions.length);
@@ -417,6 +591,13 @@ export function generateTestUserId(): string {
 }
 
 /**
+ * Generate unique test household ID for isolation
+ */
+export function generateTestHouseholdId(): string {
+  return `test-household-${nanoid()}`;
+}
+
+/**
  * Wait for async operations to complete
  */
 export function waitFor(ms: number): Promise<void> {
@@ -428,8 +609,8 @@ export function waitFor(ms: number): Promise<void> {
 // ============================================================================
 
 /**
- * Mock Clerk auth for integration tests
- * Usage: vi.mock('@clerk/nextjs/server', mockAuth(testUserId))
+ * Mock auth for integration tests
+ * Usage: vi.mock('@/lib/auth', mockAuth(testUserId))
  */
 export function mockAuth(userId: string) {
   return () => ({
