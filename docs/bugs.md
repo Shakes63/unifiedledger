@@ -35,8 +35,8 @@
 |--------|-------|
 | Active Bugs | 0 |
 | Tests Passing | 590/590 (100%) |
-| Linter Errors | 0 (in components/) |
-| Linter Warnings | 0 (in components/) |
+| Linter Errors | 0 |
+| Linter Warnings | 0 |
 | Build Status | Passing |
 | Fixed (All Time) | 646 (70 bugs + 310 warnings + 195 errors + 71 additional) |
 

@@ -268,8 +268,9 @@ alwaysApply: false
 (None)
 
 ### Recently Completed
+- **Linter Cleanup - Remaining Directories** [FIXED 2025-11-28] - Fixed all 73 ESLint issues (17 errors + 56 warnings) in __tests__/, scripts/, contexts/, and hooks/ directories. Replaced `any` types with proper TypeScript interfaces, prefixed unused variables with `_`, and fixed React hook dependencies.
 - **Fix Integration Test Failures** [FIXED 2025-11-28] - Fixed all 50 failing tests after Household Data Isolation by adding householdId parameters to rule matcher, actions executor, transaction creation, migration helpers, and user household preferences tests.
-- **Linter Cleanup Phase 2** [FIXED] - Fixed all 196 ESLint errors in components/ (121 `@typescript-eslint/no-explicit-any` + 75 `react/no-unescaped-entities`). Created comprehensive type definitions in `lib/types/index.ts`. Other directories (__tests__/, scripts/, contexts/, hooks/) have warnings only (low priority).
+- **Linter Cleanup Phase 2** [FIXED] - Fixed all 196 ESLint errors in components/ (121 `@typescript-eslint/no-explicit-any` + 75 `react/no-unescaped-entities`). Created comprehensive type definitions in `lib/types/index.ts`.
 
 ### Improvement Backlog
 - **Split Transaction Improvements** - ✅ ALL COMPLETE (2025-11-28) - See `docs/split-transaction-review.md`
