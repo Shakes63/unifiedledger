@@ -142,9 +142,11 @@ export async function GET(request: Request) {
       // Fill in data from instances
       const billInstances = instancesByBill.get(bill.id) || [];
       for (const instance of billInstances) {
-        const dueDate = new Date(instance.dueDate);
-        const month = dueDate.getMonth() + 1; // 1-indexed
-        const dayOfMonth = dueDate.getDate();
+        // Parse date string directly to avoid timezone issues
+        // (new Date("2026-11-01") parses as UTC, but getMonth/getDate use local timezone)
+        const [yearStr, monthStr, dayStr] = instance.dueDate.split('-');
+        const month = parseInt(monthStr, 10); // Already 1-indexed in ISO format
+        const dayOfMonth = parseInt(dayStr, 10);
 
         monthlyData[String(month)] = {
           dueDate: dayOfMonth,
@@ -181,8 +183,9 @@ export async function GET(request: Request) {
 
     // Calculate from all instances
     for (const instance of yearInstances) {
-      const dueDate = new Date(instance.dueDate);
-      const month = dueDate.getMonth() + 1;
+      // Parse date string directly to avoid timezone issues
+      const [, monthStr] = instance.dueDate.split('-');
+      const month = parseInt(monthStr, 10);
       const monthKey = String(month);
 
       monthlyBreakdown[monthKey].total += instance.expectedAmount;
