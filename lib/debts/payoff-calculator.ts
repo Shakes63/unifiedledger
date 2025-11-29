@@ -244,6 +244,345 @@ function sortByAvalanche(debts: DebtInput[]): DebtInput[] {
 }
 
 /**
+ * Internal state for tracking a debt during parallel simulation
+ */
+interface DebtSimulationState {
+  debt: DebtInput;
+  balance: Decimal;
+  totalInterestPaid: Decimal;
+  monthlyBreakdown: MonthlyPayment[];
+  paidOffAtPeriod: number | null;
+  effectiveMinimum: number; // minimum + per-debt additional
+}
+
+/**
+ * Get the focus debt based on method (the debt receiving extra payments)
+ * For snowball: smallest remaining balance
+ * For avalanche: highest interest rate
+ */
+function getFocusDebtIndex(debts: DebtSimulationState[], method: PayoffMethod): number {
+  if (debts.length === 0) return -1;
+  
+  if (method === 'snowball') {
+    // Find debt with smallest balance
+    let minIdx = 0;
+    let minBalance = debts[0].balance;
+    for (let i = 1; i < debts.length; i++) {
+      if (debts[i].balance.lessThan(minBalance)) {
+        minBalance = debts[i].balance;
+        minIdx = i;
+      }
+    }
+    return minIdx;
+  } else {
+    // Find debt with highest interest rate
+    let maxIdx = 0;
+    let maxRate = debts[0].debt.interestRate;
+    for (let i = 1; i < debts.length; i++) {
+      if (debts[i].debt.interestRate > maxRate) {
+        maxRate = debts[i].debt.interestRate;
+        maxIdx = i;
+      }
+    }
+    return maxIdx;
+  }
+}
+
+/**
+ * Simulate all debts in parallel, properly tracking interest on all balances
+ * This is the core fix for the bug where snowball and avalanche showed identical interest
+ */
+function simulatePayoffParallel(
+  debts: DebtInput[],
+  extraPayment: number,
+  method: PayoffMethod,
+  paymentFrequency: PaymentFrequency,
+  lumpSumPayments: LumpSumPayment[] = []
+): {
+  totalPeriods: number;
+  totalInterest: number;
+  schedules: DebtPayoffSchedule[];
+  payoffOrder: { debtId: string; order: number }[];
+} {
+  if (debts.length === 0) {
+    return { totalPeriods: 0, totalInterest: 0, schedules: [], payoffOrder: [] };
+  }
+
+  const paymentDivisor = paymentFrequency === 'biweekly' ? 2 : 1;
+  const periodsPerYear = getPaymentPeriodsPerYear(paymentFrequency);
+  
+  // Initialize simulation state for all debts
+  let activeDebts: DebtSimulationState[] = debts.map(debt => ({
+    debt,
+    balance: new Decimal(debt.remainingBalance),
+    totalInterestPaid: new Decimal(0),
+    monthlyBreakdown: [],
+    paidOffAtPeriod: null,
+    effectiveMinimum: ((debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0)) / paymentDivisor,
+  }));
+
+  // Calculate total available payment per period
+  const totalMinimums = debts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
+  const totalPerDebtExtras = debts.reduce((sum, d) => sum + (d.additionalMonthlyPayment || 0), 0);
+  let availablePayment = (totalMinimums + totalPerDebtExtras + extraPayment) / paymentDivisor;
+
+  // Extra payment that can be redirected when debts are paid off
+  let rolledOverPayment = new Decimal(0);
+  
+  const payoffOrder: { debtId: string; order: number }[] = [];
+  let payoffCounter = 0;
+  let period = 0;
+
+  // Safety limit
+  const MAX_PERIODS = paymentFrequency === 'biweekly' ? 780 : 360;
+
+  while (activeDebts.length > 0 && period < MAX_PERIODS) {
+    period++;
+    
+    // Calculate current month for lump sum matching
+    const currentMonth = paymentFrequency === 'biweekly'
+      ? Math.floor(period / 2.17) + 1
+      : period;
+
+    // Find the focus debt for this period
+    const focusIdx = getFocusDebtIndex(activeDebts, method);
+    
+    // Calculate total extra available this period (includes rolled over from paid debts)
+    let extraThisPeriod = new Decimal(availablePayment)
+      .minus(activeDebts.reduce((sum, d) => sum + d.effectiveMinimum, 0))
+      .plus(rolledOverPayment);
+    
+    // Reset rolled over for next iteration
+    rolledOverPayment = new Decimal(0);
+
+    // Process each active debt
+    const debtsToPay: { idx: number; payment: Decimal }[] = [];
+    
+    for (let i = 0; i < activeDebts.length; i++) {
+      const debtState = activeDebts[i];
+      const isFocus = i === focusIdx;
+
+      // Calculate interest for this period on current balance
+      const interestAmount = calculateInterestForPeriod(
+        debtState.balance,
+        debtState.debt.interestRate,
+        paymentFrequency,
+        debtState.debt.loanType || 'revolving',
+        debtState.debt.compoundingFrequency || 'monthly',
+        debtState.debt.billingCycleDays || 30
+      );
+
+      // Determine payment amount
+      let payment = new Decimal(debtState.effectiveMinimum);
+      
+      if (isFocus) {
+        payment = payment.plus(extraThisPeriod);
+        
+        // Check for lump sum payment
+        const lumpSum = lumpSumPayments.find(
+          ls => ls.month === currentMonth && 
+                (!ls.targetDebtId || ls.targetDebtId === debtState.debt.id)
+        );
+        if (lumpSum) {
+          payment = payment.plus(new Decimal(lumpSum.amount));
+        }
+      }
+
+      // Cap payment at balance + interest
+      const maxPayment = debtState.balance.plus(interestAmount);
+      if (payment.greaterThan(maxPayment)) {
+        payment = maxPayment;
+      }
+
+      // Calculate principal
+      const principalAmount = payment.minus(interestAmount);
+      
+      // Update state
+      debtState.balance = debtState.balance.minus(principalAmount);
+      if (debtState.balance.lessThan(0)) {
+        debtState.balance = new Decimal(0);
+      }
+      debtState.totalInterestPaid = debtState.totalInterestPaid.plus(interestAmount);
+
+      // Record payment breakdown
+      debtState.monthlyBreakdown.push({
+        debtId: debtState.debt.id,
+        debtName: debtState.debt.name,
+        paymentAmount: payment.toNumber(),
+        principalAmount: principalAmount.toNumber(),
+        interestAmount: interestAmount.toNumber(),
+        remainingBalance: debtState.balance.toNumber(),
+      });
+
+      // Check if paid off
+      if (debtState.balance.equals(0)) {
+        debtState.paidOffAtPeriod = period;
+        payoffCounter++;
+        payoffOrder.push({ debtId: debtState.debt.id, order: payoffCounter });
+        
+        // Roll over this debt's minimum payment for subsequent processing
+        rolledOverPayment = rolledOverPayment.plus(new Decimal(debtState.effectiveMinimum));
+      }
+    }
+
+    // Remove paid-off debts from active list
+    activeDebts = activeDebts.filter(d => d.paidOffAtPeriod === null);
+  }
+
+  // Build schedules from simulation state
+  const allDebtStates = debts.map(debt => {
+    const state = activeDebts.find(s => s.debt.id === debt.id) || 
+                  { debt, balance: new Decimal(0), totalInterestPaid: new Decimal(0), monthlyBreakdown: [], paidOffAtPeriod: period, effectiveMinimum: 0 };
+    
+    // Find original state that was processed (may have been removed from activeDebts)
+    const originalDebt = debts.find(d => d.id === debt.id)!;
+    
+    return state;
+  });
+
+  // Reconstruct proper state from simulation
+  // We need to track all debts that were processed, including paid-off ones
+  const debtStateMap = new Map<string, DebtSimulationState>();
+  
+  // Re-run simulation to collect all states properly
+  let simDebts: DebtSimulationState[] = debts.map(debt => ({
+    debt,
+    balance: new Decimal(debt.remainingBalance),
+    totalInterestPaid: new Decimal(0),
+    monthlyBreakdown: [],
+    paidOffAtPeriod: null,
+    effectiveMinimum: ((debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0)) / paymentDivisor,
+  }));
+
+  let simPeriod = 0;
+  let simRolledOver = new Decimal(0);
+  const simPayoffOrder: { debtId: string; order: number; period: number }[] = [];
+  let simPayoffCounter = 0;
+
+  while (simDebts.some(d => d.paidOffAtPeriod === null) && simPeriod < MAX_PERIODS) {
+    simPeriod++;
+    
+    const currentMonth = paymentFrequency === 'biweekly'
+      ? Math.floor(simPeriod / 2.17) + 1
+      : simPeriod;
+
+    const activeSimDebts = simDebts.filter(d => d.paidOffAtPeriod === null);
+    if (activeSimDebts.length === 0) break;
+
+    const focusIdx = getFocusDebtIndex(activeSimDebts, method);
+    
+    let extraThisPeriod = new Decimal(availablePayment)
+      .minus(activeSimDebts.reduce((sum, d) => sum + d.effectiveMinimum, 0))
+      .plus(simRolledOver);
+    
+    simRolledOver = new Decimal(0);
+
+    for (let i = 0; i < activeSimDebts.length; i++) {
+      const debtState = activeSimDebts[i];
+      const isFocus = i === focusIdx;
+
+      const interestAmount = calculateInterestForPeriod(
+        debtState.balance,
+        debtState.debt.interestRate,
+        paymentFrequency,
+        debtState.debt.loanType || 'revolving',
+        debtState.debt.compoundingFrequency || 'monthly',
+        debtState.debt.billingCycleDays || 30
+      );
+
+      let payment = new Decimal(debtState.effectiveMinimum);
+      
+      if (isFocus) {
+        payment = payment.plus(extraThisPeriod);
+        
+        const lumpSum = lumpSumPayments.find(
+          ls => ls.month === currentMonth && 
+                (!ls.targetDebtId || ls.targetDebtId === debtState.debt.id)
+        );
+        if (lumpSum) {
+          payment = payment.plus(new Decimal(lumpSum.amount));
+        }
+      }
+
+      const maxPayment = debtState.balance.plus(interestAmount);
+      if (payment.greaterThan(maxPayment)) {
+        payment = maxPayment;
+      }
+
+      const principalAmount = payment.minus(interestAmount);
+      
+      debtState.balance = debtState.balance.minus(principalAmount);
+      if (debtState.balance.lessThan(0)) {
+        debtState.balance = new Decimal(0);
+      }
+      debtState.totalInterestPaid = debtState.totalInterestPaid.plus(interestAmount);
+
+      debtState.monthlyBreakdown.push({
+        debtId: debtState.debt.id,
+        debtName: debtState.debt.name,
+        paymentAmount: payment.toNumber(),
+        principalAmount: principalAmount.toNumber(),
+        interestAmount: interestAmount.toNumber(),
+        remainingBalance: debtState.balance.toNumber(),
+      });
+
+      if (debtState.balance.equals(0) && debtState.paidOffAtPeriod === null) {
+        debtState.paidOffAtPeriod = simPeriod;
+        simPayoffCounter++;
+        simPayoffOrder.push({ debtId: debtState.debt.id, order: simPayoffCounter, period: simPeriod });
+        simRolledOver = simRolledOver.plus(new Decimal(debtState.effectiveMinimum));
+      }
+    }
+  }
+
+  // Calculate total interest from all debts
+  const totalInterest = simDebts.reduce(
+    (sum, d) => sum.plus(d.totalInterestPaid),
+    new Decimal(0)
+  ).toNumber();
+
+  // Convert periods to months
+  const totalMonths = paymentFrequency === 'biweekly'
+    ? Math.ceil(simPeriod / 2.17)
+    : simPeriod;
+
+  // Build schedules
+  const schedules: DebtPayoffSchedule[] = simDebts.map(debtState => {
+    const payoffInfo = simPayoffOrder.find(p => p.debtId === debtState.debt.id);
+    const periodsToPayoff = payoffInfo ? payoffInfo.period : simPeriod;
+    const monthsToPayoff = paymentFrequency === 'biweekly'
+      ? Math.ceil(periodsToPayoff / 2.17)
+      : periodsToPayoff;
+
+    const payoffDate = new Date();
+    payoffDate.setMonth(payoffDate.getMonth() + monthsToPayoff);
+
+    return {
+      debtId: debtState.debt.id,
+      debtName: debtState.debt.name,
+      originalBalance: debtState.debt.remainingBalance,
+      paymentAmount: debtState.effectiveMinimum * paymentDivisor, // Convert back to monthly
+      monthsToPayoff,
+      totalInterestPaid: debtState.totalInterestPaid.toNumber(),
+      payoffDate,
+      monthlyBreakdown: debtState.monthlyBreakdown,
+    };
+  });
+
+  // Sort payoff order by order number
+  const sortedPayoffOrder = simPayoffOrder
+    .sort((a, b) => a.order - b.order)
+    .map(p => ({ debtId: p.debtId, order: p.order }));
+
+  return {
+    totalPeriods: simPeriod,
+    totalInterest,
+    schedules,
+    payoffOrder: sortedPayoffOrder,
+  };
+}
+
+/**
  * Calculate payoff schedule for a single debt with optional lump sum payments
  */
 function calculateDebtSchedule(
@@ -355,6 +694,7 @@ function calculateDebtSchedule(
 
 /**
  * Calculate payoff strategy for all debts using specified method
+ * Uses parallel simulation to properly track interest on ALL debts simultaneously
  */
 export function calculatePayoffStrategy(
   debts: DebtInput[],
@@ -384,107 +724,82 @@ export function calculatePayoffStrategy(
     };
   }
 
-  // Sort debts by chosen method
+  // Use parallel simulation for accurate interest calculation
+  const simulation = simulatePayoffParallel(
+    debts,
+    extraPayment,
+    method,
+    paymentFrequency,
+    lumpSumPayments
+  );
+
+  // Sort debts by chosen method for initial payoff order display
   const sortedDebts = method === 'snowball'
     ? sortBySnowball(debts)
     : sortByAvalanche(debts);
 
-  // Create payoff order
-  const payoffOrder: PayoffOrder[] = sortedDebts.map((debt, index) => ({
-    debtId: debt.id,
-    debtName: debt.name,
-    remainingBalance: debt.remainingBalance,
-    interestRate: debt.interestRate,
-    minimumPayment: debt.minimumPayment,
-    additionalMonthlyPayment: debt.additionalMonthlyPayment,
-    plannedPayment: (debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0),
-    order: index + 1,
-    type: debt.type,
-    color: debt.color,
-    icon: debt.icon,
-  }));
+  // Create payoff order based on simulation results
+  const payoffOrder: PayoffOrder[] = sortedDebts.map((debt, index) => {
+    // Find actual payoff order from simulation
+    const simOrder = simulation.payoffOrder.find(p => p.debtId === debt.id);
+    
+    return {
+      debtId: debt.id,
+      debtName: debt.name,
+      remainingBalance: debt.remainingBalance,
+      interestRate: debt.interestRate,
+      minimumPayment: debt.minimumPayment,
+      additionalMonthlyPayment: debt.additionalMonthlyPayment,
+      plannedPayment: (debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0),
+      order: simOrder ? simOrder.order : index + 1,
+      type: debt.type,
+      color: debt.color,
+      icon: debt.icon,
+    };
+  });
 
-  // Calculate total available for extra payments
-  // IMPORTANT: Default to 0 if minimumPayment is null/undefined to prevent NaN
-  // Include per-debt additional payments as part of the planned payment
-  const totalMinimums = debts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
-  const totalPerDebtExtras = debts.reduce((sum, d) => sum + (d.additionalMonthlyPayment || 0), 0);
-  const totalAvailable = totalMinimums + totalPerDebtExtras + extraPayment;
+  // Sort payoff order by actual payoff sequence
+  payoffOrder.sort((a, b) => a.order - b.order);
 
-  // For biweekly payments, divide monthly amounts by 2
-  const paymentDivisor = paymentFrequency === 'biweekly' ? 2 : 1;
-
-  // Calculate schedules using debt avalanche payment strategy
-  const schedules: DebtPayoffSchedule[] = [];
-  let currentMonth = 0;
-  // Include per-debt additional payment as part of the effective minimum
-  // This ensures each debt's committed extra is used in projections
-  let remainingDebts = [...sortedDebts].map(debt => ({
-    ...debt,
-    // Effective payment = minimum + per-debt additional
-    minimumPayment: ((debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0)) / paymentDivisor,
-  }));
-  let availablePayment = totalAvailable / paymentDivisor;
-
-  while (remainingDebts.length > 0) {
-    // Pay minimums on all debts except the first
-    const minimumPayments = remainingDebts.slice(1).reduce((sum, d) => sum + d.minimumPayment, 0);
-
-    // All extra goes to first debt in order
-    const firstDebtPayment = availablePayment - minimumPayments;
-
-    // Calculate schedule for first debt
-    const schedule = calculateDebtSchedule(
-      remainingDebts[0],
-      firstDebtPayment,
-      currentMonth,
-      paymentFrequency,
-      lumpSumPayments
-    );
-
-    schedules.push(schedule);
-    currentMonth += schedule.monthsToPayoff;
-
-    // Remove paid-off debt from the list
-    const paidOffDebt = remainingDebts[0];
-    remainingDebts = remainingDebts.slice(1);
-
-    // Add the paid-off debt's minimum payment to the available pool
-    // This is the core of snowball/avalanche - when one debt is paid off,
-    // its minimum payment rolls over to help pay the next debt faster
-    availablePayment = availablePayment + paidOffDebt.minimumPayment;
-  }
-
-  // Calculate totals
-  const totalMonths = schedules.reduce((max, s) => Math.max(max, s.monthsToPayoff), 0);
-  const totalInterestPaid = schedules.reduce((sum, s) => sum + s.totalInterestPaid, 0);
+  // Calculate total months (use cumulative from simulation)
+  const totalMonths = paymentFrequency === 'biweekly'
+    ? Math.ceil(simulation.totalPeriods / 2.17)
+    : simulation.totalPeriods;
 
   const debtFreeDate = new Date();
-  debtFreeDate.setMonth(debtFreeDate.getMonth() + currentMonth);
+  debtFreeDate.setMonth(debtFreeDate.getMonth() + totalMonths);
 
-  // Next recommended payment is the first debt in order
-  const nextDebt = sortedDebts[0];
-  const nextSchedule = schedules[0];
+  // Find the first debt to pay (highest priority based on method)
+  const firstDebtId = payoffOrder.length > 0 ? payoffOrder[0].debtId : '';
+  const firstDebt = debts.find(d => d.id === firstDebtId) || sortedDebts[0];
+  const firstSchedule = simulation.schedules.find(s => s.debtId === firstDebtId) || simulation.schedules[0];
 
-  // For recommended payment, use the per-period amount (already divided for biweekly)
-  const recommendedPaymentAmount = availablePayment - remainingDebts.slice(1).reduce((sum, d) => sum + d.minimumPayment, 0);
+  // Calculate recommended payment for first debt
+  const paymentDivisor = paymentFrequency === 'biweekly' ? 2 : 1;
+  const totalMinimums = debts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
+  const totalPerDebtExtras = debts.reduce((sum, d) => sum + (d.additionalMonthlyPayment || 0), 0);
+  const totalAvailable = (totalMinimums + totalPerDebtExtras + extraPayment) / paymentDivisor;
+  const otherMinimums = debts
+    .filter(d => d.id !== firstDebtId)
+    .reduce((sum, d) => sum + ((d.minimumPayment || 0) + (d.additionalMonthlyPayment || 0)) / paymentDivisor, 0);
+  const recommendedPaymentAmount = totalAvailable - otherMinimums;
 
   return {
     method,
     paymentFrequency,
-    totalMonths: currentMonth,
-    totalInterestPaid,
+    totalMonths,
+    totalInterestPaid: simulation.totalInterest,
     debtFreeDate,
     payoffOrder,
     nextRecommendedPayment: {
-      debtId: nextDebt.id,
-      debtName: nextDebt.name,
-      currentBalance: nextDebt.remainingBalance,
+      debtId: firstDebt?.id || '',
+      debtName: firstDebt?.name || '',
+      currentBalance: firstDebt?.remainingBalance || 0,
       recommendedPayment: recommendedPaymentAmount,
-      monthsUntilPayoff: nextSchedule.monthsToPayoff,
-      totalInterest: nextSchedule.totalInterestPaid,
+      monthsUntilPayoff: firstSchedule?.monthsToPayoff || 0,
+      totalInterest: firstSchedule?.totalInterestPaid || 0,
     },
-    schedules,
+    schedules: simulation.schedules,
   };
 }
 

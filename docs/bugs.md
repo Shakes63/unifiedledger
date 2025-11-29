@@ -7,14 +7,11 @@
 <!-- Add new bugs here in the format: -->
 <!-- - **Bug Name** - Brief description of the issue -->
 
-- **Identical Interest Calculations for Snowball vs Avalanche Despite Different Timeframes** - The Debt Payoff Strategy comparison shows identical total interest amounts for both Snowball and Avalanche methods even when the payoff timeframes differ significantly (e.g., 50 months vs 35 months). **Example:** With $200 extra payment, Snowball shows 50 months/$1,350.53 interest while Avalanche shows 35 months/$1,350.53 interest. Mathematically, paying debt for 15 additional months should accumulate more interest with the slower method. **Location:** `lib/debts/payoff-calculator.ts` - The interest calculation logic may not properly account for interest accrual during the extended payoff period. **Impact:** Users cannot make informed decisions between methods because the interest savings are always shown as $0. **Fix:** Review the interest calculation algorithm in `calculatePayoffStrategy` and `comparePayoffMethods` functions to ensure interest is properly calculated based on remaining balances over time.
-
-
 ---
 
 ## Active Bugs
 
-- **Identical Interest Calculations for Snowball vs Avalanche Despite Different Timeframes** - See New Bugs section above
+(None)
 
 ---
 
@@ -34,18 +31,19 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 1 |
+| Active Bugs | 0 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 656 (80 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 657 (81 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (80 total)
+## Fixed Bugs (81 total)
 
-1. ✅ **Debt Payoff Strategy Not Updating After Adding New Debt** [FIXED 2025-11-29] - Added `refreshKey` state to debts page that increments on CRUD/payment operations and passes as `key` prop to child components, forcing remount and re-fetch.
+1. ✅ **Identical Interest Calculations for Snowball vs Avalanche Despite Different Timeframes** [FIXED 2025-11-29] - Rewrote payoff calculator to use parallel simulation that tracks ALL debts simultaneously. Interest now properly accrues on waiting debts while focusing on the priority debt. Snowball vs Avalanche now show different total interest amounts.
+2. ✅ **Debt Payoff Strategy Not Updating After Adding New Debt** [FIXED 2025-11-29] - Added `refreshKey` state to debts page that increments on CRUD/payment operations and passes as `key` prop to child components, forcing remount and re-fetch.
 2. ✅ **Payment Tracking Section Not Reflecting Recorded Payments** [FIXED 2025-11-29] - Same fix as above; `PaymentAdherenceCard` and `PaymentStreakWidget` now remount with fresh data after payments.
 3. ✅ **Debt-Free Countdown Widget Shows Stale Data After Payments** [FIXED 2025-11-29] - Same fix as above; `DebtFreeCountdown` now remounts with fresh data after debt changes.
 4. ✅ **Monthly Bill Category Displays in Two Budget Sections** [FIXED 2025-11-29] - Fixed `groupedCategories.expenses` in `/api/budgets/overview` to only include `variable_expense` types, preventing monthly_bill and non_monthly_bill categories from appearing in both "Essential Expenses" and "Discretionary Spending" sections.
