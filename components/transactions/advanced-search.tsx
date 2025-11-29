@@ -43,6 +43,7 @@ interface AdvancedSearchProps {
   accounts: Array<{ id: string; name: string }>;
   tags?: Array<Tag>;
   onSearch: (filters: SearchFilters) => void;
+  onClear?: () => void;
   isLoading?: boolean;
   initialFilters?: SearchFilters;
 }
@@ -52,6 +53,7 @@ export function AdvancedSearch({
   accounts,
   tags = [],
   onSearch,
+  onClear,
   isLoading = false,
   initialFilters,
 }: AdvancedSearchProps) {
@@ -171,6 +173,9 @@ export function AdvancedSearch({
     setSelectedAccounts(new Set());
     setSelectedTags(new Set());
     setSelectedTypes(new Set());
+    
+    // Notify parent to reload all transactions
+    onClear?.();
   };
 
   const handleLoadSavedSearch = (savedFilters: SearchFilters) => {

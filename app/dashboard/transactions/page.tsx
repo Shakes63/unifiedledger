@@ -241,6 +241,28 @@ function TransactionsContent() {
     await performSearch(filters, 0);
   };
 
+  const handleClearFilters = async () => {
+    setCurrentFilters(null);
+    setPaginationOffset(0);
+    setHasMore(false);
+    
+    // Refetch all transactions
+    try {
+      setSearchLoading(true);
+      const txResponse = await fetchWithHousehold('/api/transactions?limit=100');
+      if (txResponse.ok) {
+        const txData = await txResponse.json();
+        setTransactions(txData);
+        setTotalResults(txData.length);
+      }
+    } catch (error) {
+      console.error('Failed to refresh transactions:', error);
+      toast.error('Failed to refresh transactions');
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
   const handleNextPage = async () => {
     if (currentFilters) {
       await performSearch(currentFilters, paginationOffset + pageSize);
@@ -926,6 +948,7 @@ function TransactionsContent() {
             categories={categories}
             accounts={accounts}
             onSearch={handleAdvancedSearch}
+            onClear={handleClearFilters}
             isLoading={searchLoading}
             initialFilters={currentFilters}
           />

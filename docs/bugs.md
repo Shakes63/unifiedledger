@@ -4,8 +4,7 @@
 
 ## New Bugs
 
-<!-- Add new bugs here in the format: -->
-<!-- - **Bug Name** - Brief description of the issue -->
+(None)
 
 ---
 
@@ -36,11 +35,11 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 663 (87 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 669 (93 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (87 total)
+## Fixed Bugs (93 total)
 
 1. ✅ **Identical Interest Calculations for Snowball vs Avalanche** [FIXED 2025-11-29] - Rewrote payoff calculator to use parallel simulation tracking ALL debts simultaneously.
 2. ✅ **Debt Payoff Strategy Not Updating After Adding New Debt** [FIXED 2025-11-29] - Added `refreshKey` state forcing child component remount on data changes.
@@ -129,9 +128,19 @@
 85. ✅ **Bill Instances Not Generated for Future Years** [FIXED 2025-11-29] - Added on-demand instance generation via /api/bills/ensure-instances endpoint, triggered when viewing annual planner.
 86. ✅ **Calendar Week View Infinite Render Loop** [FIXED 2025-11-29] - Replaced Date objects in useEffect dependency array with `currentDate.getTime()` timestamp to avoid infinite re-renders caused by reference inequality.
 87. ✅ **Calendar Day Modal Bill Due Date Off-By-One** [FIXED 2025-11-29] - Changed `new Date(bill.dueDate)` to `parseISO(bill.dueDate)` from date-fns to avoid UTC timezone conversion that shifted dates back one day in local timezones behind UTC.
+88. ✅ **Transaction Detail Page 403 Forbidden** [FIXED 2025-11-29] - Fixed missing household context in transaction detail page, splits list, and convert-to-transfer modal by replacing raw `fetch()` calls with `useHouseholdFetch` hook methods that include `x-household-id` header.
+89. ✅ **Dashboard Budget Section Dual Auth Message in TEST MODE** [FIXED 2025-11-29] - Removed preemptive client-side auth check from `BudgetSurplusCard` that incorrectly showed auth error in TEST_MODE. Now relies on API 401 response for auth errors, matching the pattern used by `BudgetSummaryWidget`.
+90. ✅ **Transfers Page Stuck Loading** [FIXED 2025-11-29] - Updated transfers page, QuickTransferModal, TransferForm, and TransferList to use `useHousehold` context and `useHouseholdFetch` hook instead of old `betterAuthClient.useSession()` pattern. Also updated all hardcoded colors to semantic theme variables.
+91. ✅ **Database Statistics Show All Zeros in Advanced Settings** [FIXED 2025-11-29] - Created dedicated `/api/stats` endpoint with efficient COUNT queries for all entity types. Updated Advanced settings tab to use `fetchWithHousehold()` with the new endpoint instead of multiple individual API calls with incorrect response parsing.
+92. ✅ **NotificationBell Component Not Integrated** [FIXED 2025-11-29] - Imported and rendered `NotificationBell` component in sidebar footer next to UserMenu. Bell icon shows unread count badge and opens slide-out sheet with notifications list. Also added missing `credentials: 'include'` to PATCH API calls.
+93. ✅ **Advanced Search Clear All Not Resetting Results** [FIXED 2025-11-29] - Added `onClear` callback prop to `AdvancedSearch` component. Parent transactions page now passes a handler that resets `currentFilters` to `null` and refetches all transactions from the API when "Clear All" is clicked.
 
 ---
 
 ## Known Minor Issues (Not Blocking)
 
-(None)
+- **Session Ping 401 Errors in TEST MODE** - Console shows repeated 401 Unauthorized errors for `/api/session/ping` endpoint with message "Session ping returned 401 without reason: {error: No session found}". This is expected in TEST_MODE since session management is disabled. Non-blocking, app functions correctly.
+
+- **Dashboard Collapse State Not Persisting** - The collapsible sections on the dashboard (Budget Details, Debt & Credit) reset to expanded state on page reload. Would be a nice-to-have to remember collapse state in localStorage.
+
+- **Transaction History Route Missing** - `/dashboard/transaction-history` redirects to main dashboard. The route appears to not be implemented or was removed. Transaction audit trail functionality may need to be added in a future update.
