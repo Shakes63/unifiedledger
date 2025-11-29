@@ -153,7 +153,7 @@ export function getInstanceCount(frequency: string): number {
     case 'quarterly':
       return 4; // Full year (4 quarters)
     case 'semi-annual':
-      return 2; // ~1 year ahead
+      return 4; // ~2 years ahead (ensures both occurrences visible per year)
     case 'annual':
       return 2; // ~2 years ahead
     default:
