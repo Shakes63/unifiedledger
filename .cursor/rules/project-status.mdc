@@ -28,7 +28,7 @@ alwaysApply: false
 - ✅ Password Field Form Fix (2025-01-27) - Wrapped all password fields in settings page within proper `<form>` elements for accessibility and HTML validation
 - ✅ Bills API Household Auth Fixes (2025-01-27) - Fixed bills dropdown in transaction form, bill details page, edit bill page, and category-selector to use `fetchWithHousehold` for proper household authentication
 - ✅ Overdue Bill Payment Fixes (2025-01-27) - Fixed overdue bills not being auto-matched when transactions are created/updated, and fixed pending instances with past due dates not being marked as overdue
-- ✅ All bugs fixed (73 total - see docs/bugs.md for complete list)
+- ✅ All bugs fixed (81 total - see docs/bugs.md for complete list)
 - ✅ Authentication password verification implemented (password change, email change, reset app data)
 - ✅ Session/middleware hardened (cookie parsing, timeout cache, tab visibility handling)
 - ✅ Onboarding flow bugs fixed (2025-11-26): credentials missing in BillForm/invitation decline, modal resume after refresh, unused import cleanup
@@ -286,11 +286,16 @@ alwaysApply: false
 (None)
 
 ### Recently Completed
+- **Identical Interest Calculations for Snowball vs Avalanche** [FIXED 2025-11-29] - Rewrote payoff calculator to use parallel simulation tracking ALL debts simultaneously.
+- **Debt Payoff Strategy Not Updating After Adding New Debt** [FIXED 2025-11-29] - Added refreshKey state forcing child component remount on data changes.
+- **Payment Tracking Section Not Reflecting Recorded Payments** [FIXED 2025-11-29] - Same refreshKey fix for PaymentAdherenceCard and PaymentStreakWidget.
+- **Debt-Free Countdown Widget Shows Stale Data After Payments** [FIXED 2025-11-29] - Same refreshKey fix for DebtFreeCountdown component.
+- **Monthly Bill Category Displays in Two Budget Sections** [FIXED 2025-11-29] - Fixed groupedCategories.expenses to only include variable_expense types.
 - **Middleware to Proxy Convention Migration** [FIXED 2025-11-29] - Migrated from deprecated `middleware.ts` to `proxy.ts` per Next.js 16 convention.
-- **Response Body Stream Already Read (Household/Onboarding)** [FIXED 2025-11-29] - Fixed TypeError by adding `deduplicate: false` to enhancedFetch calls, preventing shared Response objects in React Strict Mode.
-- **Linter Cleanup - Remaining Directories** [FIXED 2025-11-28] - Fixed all 73 ESLint issues (17 errors + 56 warnings) in __tests__/, scripts/, contexts/, and hooks/ directories.
-- **Fix Integration Test Failures** [FIXED 2025-11-28] - Fixed all 50 failing tests after Household Data Isolation by adding householdId parameters to tests.
-- **Linter Cleanup Phase 2** [FIXED] - Fixed all 196 ESLint errors in components/. Created comprehensive type definitions in `lib/types/index.ts`.
+- **Response Body Stream Already Read (Household/Onboarding)** [FIXED 2025-11-29] - Fixed TypeError by adding `deduplicate: false` to enhancedFetch calls.
+- **Linter Cleanup - Remaining Directories** [FIXED 2025-11-28] - Fixed all 73 ESLint issues in __tests__/, scripts/, contexts/, and hooks/.
+- **Fix Integration Test Failures** [FIXED 2025-11-28] - Fixed all 50 failing tests after Household Data Isolation.
+- **Linter Cleanup Phase 2** [FIXED] - Fixed all 196 ESLint errors in components/.
 
 ### Improvement Backlog
 - **Split Transaction Improvements** - ✅ ALL COMPLETE (2025-11-28) - See `docs/split-transaction-review.md`
