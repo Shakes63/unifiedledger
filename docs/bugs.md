@@ -36,11 +36,11 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 661 (85 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 663 (87 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (85 total)
+## Fixed Bugs (87 total)
 
 1. ✅ **Identical Interest Calculations for Snowball vs Avalanche** [FIXED 2025-11-29] - Rewrote payoff calculator to use parallel simulation tracking ALL debts simultaneously.
 2. ✅ **Debt Payoff Strategy Not Updating After Adding New Debt** [FIXED 2025-11-29] - Added `refreshKey` state forcing child component remount on data changes.
@@ -127,6 +127,8 @@
 83. ✅ **Quarterly Bills Missing October** [FIXED 2025-11-29] - Changed getInstanceCount from 3 to 4 for quarterly frequency to ensure all 4 quarters appear in annual planner.
 84. ✅ **Semi-Annual Bills Only Showing One Per Year** [FIXED 2025-11-29] - Changed getInstanceCount from 2 to 4 for semi-annual frequency so both occurrences (Jan+Jul) visible per year.
 85. ✅ **Bill Instances Not Generated for Future Years** [FIXED 2025-11-29] - Added on-demand instance generation via /api/bills/ensure-instances endpoint, triggered when viewing annual planner.
+86. ✅ **Calendar Week View Infinite Render Loop** [FIXED 2025-11-29] - Replaced Date objects in useEffect dependency array with `currentDate.getTime()` timestamp to avoid infinite re-renders caused by reference inequality.
+87. ✅ **Calendar Day Modal Bill Due Date Off-By-One** [FIXED 2025-11-29] - Changed `new Date(bill.dueDate)` to `parseISO(bill.dueDate)` from date-fns to avoid UTC timezone conversion that shifted dates back one day in local timezones behind UTC.
 
 ---
 

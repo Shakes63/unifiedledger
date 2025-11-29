@@ -57,7 +57,8 @@ export async function POST(request: Request) {
 
     for (const bill of activeBills) {
       // Skip one-time bills - they have their single instance already
-      if (isOneTimeFrequency(bill.frequency)) {
+      // Also skip bills without a frequency set
+      if (!bill.frequency || isOneTimeFrequency(bill.frequency)) {
         continue;
       }
 

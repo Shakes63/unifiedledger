@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { betterAuthClient } from '@/lib/better-auth-client';
 import { startOfMonth, endOfMonth, format } from 'date-fns';
 import { CalendarHeader } from '@/components/calendar/calendar-header';
 import { CalendarMonth } from '@/components/calendar/calendar-month';
@@ -36,7 +35,6 @@ interface Bill {
 }
 
 export default function CalendarPage() {
-  const { data: session, isPending } = betterAuthClient.useSession();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [daySummaries, setDaySummaries] = useState<
@@ -52,8 +50,6 @@ export default function CalendarPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    if (isPending || !session) return;
-
     const loadCalendarData = async () => {
       try {
         setIsLoading(true);
@@ -76,7 +72,7 @@ export default function CalendarPage() {
     };
 
     loadCalendarData();
-  }, [isPending, session, currentDate]);
+  }, [currentDate]);
 
   const handleDayClick = async (date: Date) => {
     try {
@@ -99,14 +95,6 @@ export default function CalendarPage() {
       setIsLoading(false);
     }
   };
-
-  if (isPending) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-[var(--color-primary)]" />
-      </div>
-    );
-  }
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">

@@ -1,6 +1,6 @@
 'use client';
 
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -190,7 +190,7 @@ export function CalendarDayModal({
                         {bill.description}
                       </p>
                       <p className="text-muted-foreground text-sm">
-                        Due: {format(new Date(bill.dueDate), 'MMM d')}
+                        Due: {format(parseISO(bill.dueDate), 'MMM d')}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">

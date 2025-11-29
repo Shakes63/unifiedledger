@@ -73,7 +73,7 @@ export function CalendarWeek({
     };
 
     fetchWeekTransactions();
-  }, [currentDate, weekStart, weekEnd]);
+  }, [currentDate.getTime()]);
 
   return (
     <div className="space-y-4">

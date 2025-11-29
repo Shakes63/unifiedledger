@@ -86,3 +86,29 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ✅ Always include toast notifications for user actions
 - ✅ Always use semantic color tokens (CSS variables)
 - ✅ Always commit meaningful changes
+
+## Bug Tracking Guidelines
+
+**File:** `docs/bugs.md`
+
+**Adding New Bugs:**
+- Add to the "New Bugs" section at the top of `bugs.md`
+- Format: `- **Bug Name** - Brief description of the issue`
+- Include file paths and line numbers when known
+
+**Working on Bugs:**
+- Move bug from "New Bugs" or "Active Bugs" to "In Progress"
+- Create implementation plan in `docs/` folder (e.g., `docs/bug-name-fix-plan.md`)
+- Reference the plan file location in the bug entry
+
+**Incomplete Tasks:**
+- Keep in "In Progress" section with status note
+- Document what remains unfinished
+- Reference the plan file for continuation
+
+**Completed Bugs:**
+1. Move to "Fixed Bugs" section with next sequential number
+2. Format: `N. ✅ **Bug Name** [FIXED YYYY-MM-DD] - 1-2 line description of the fix`
+3. Update metrics table (decrement Active Bugs, increment Fixed count)
+4. Delete the associated plan file from `docs/`
+5. Commit and push changes
