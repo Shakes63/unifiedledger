@@ -28,7 +28,7 @@ alwaysApply: false
 - ✅ Password Field Form Fix (2025-01-27) - Wrapped all password fields in settings page within proper `<form>` elements for accessibility and HTML validation
 - ✅ Bills API Household Auth Fixes (2025-01-27) - Fixed bills dropdown in transaction form, bill details page, edit bill page, and category-selector to use `fetchWithHousehold` for proper household authentication
 - ✅ Overdue Bill Payment Fixes (2025-01-27) - Fixed overdue bills not being auto-matched when transactions are created/updated, and fixed pending instances with past due dates not being marked as overdue
-- ✅ All bugs fixed (81 total - see docs/bugs.md for complete list)
+- ✅ All bugs fixed (85 total - see docs/bugs.md for complete list)
 - ✅ Authentication password verification implemented (password change, email change, reset app data)
 - ✅ Session/middleware hardened (cookie parsing, timeout cache, tab visibility handling)
 - ✅ Onboarding flow bugs fixed (2025-11-26): credentials missing in BillForm/invitation decline, modal resume after refresh, unused import cleanup
@@ -52,6 +52,13 @@ alwaysApply: false
 ## Recent Major Features
 
 **Latest (2025-11-29):**
+- Annual Bill Planning Fixes (✅ COMPLETE)
+  - ✅ Fixed timezone bug in annual planning grid (Nov 1st appearing as Oct 31st) by parsing ISO date strings directly
+  - ✅ Fixed quarterly bills to create 4 instances (full year) instead of 3
+  - ✅ Fixed semi-annual bills to create 4 instances so both occurrences (Jan+Jul) visible per year
+  - ✅ Added on-demand bill instance generation via `/api/bills/ensure-instances` endpoint
+  - ✅ Annual planner now automatically generates missing instances when viewing any year
+  - ✅ No cron jobs required - instances created on-demand when user views annual planner
 - Middleware to Proxy Migration (✅ COMPLETE)
   - ✅ Migrated from deprecated `middleware.ts` to `proxy.ts` per Next.js 16 convention
   - ✅ Renamed file and exported function from `middleware` to `proxy`
@@ -286,6 +293,10 @@ alwaysApply: false
 (None)
 
 ### Recently Completed
+- **Annual Planning Grid Timezone Bug** [FIXED 2025-11-29] - Fixed date parsing to avoid local timezone conversion where November 1st appeared as October 31st.
+- **Quarterly Bills Missing October** [FIXED 2025-11-29] - Changed getInstanceCount from 3 to 4 for quarterly frequency to ensure all 4 quarters appear.
+- **Semi-Annual Bills Only Showing One Per Year** [FIXED 2025-11-29] - Changed getInstanceCount from 2 to 4 so both occurrences visible per year.
+- **Bill Instances Not Generated for Future Years** [FIXED 2025-11-29] - Added on-demand instance generation via /api/bills/ensure-instances endpoint.
 - **Identical Interest Calculations for Snowball vs Avalanche** [FIXED 2025-11-29] - Rewrote payoff calculator to use parallel simulation tracking ALL debts simultaneously.
 - **Debt Payoff Strategy Not Updating After Adding New Debt** [FIXED 2025-11-29] - Added refreshKey state forcing child component remount on data changes.
 - **Payment Tracking Section Not Reflecting Recorded Payments** [FIXED 2025-11-29] - Same refreshKey fix for PaymentAdherenceCard and PaymentStreakWidget.

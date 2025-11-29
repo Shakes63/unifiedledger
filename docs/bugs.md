@@ -36,11 +36,11 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 657 (81 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 661 (85 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (81 total)
+## Fixed Bugs (85 total)
 
 1. ✅ **Identical Interest Calculations for Snowball vs Avalanche** [FIXED 2025-11-29] - Rewrote payoff calculator to use parallel simulation tracking ALL debts simultaneously.
 2. ✅ **Debt Payoff Strategy Not Updating After Adding New Debt** [FIXED 2025-11-29] - Added `refreshKey` state forcing child component remount on data changes.
@@ -123,6 +123,10 @@
 79. ✅ **Split Transaction TypeScript Any Types** [FIXED] - Created SplitUpdateData interface.
 80. ✅ **Split Transaction Decimal Rounding** [FIXED] - Added toDecimalPlaces(2, ROUND_HALF_UP).
 81. ✅ **ESLint-Disable Suppressions** [FIXED] - Removed 9 suppressions with proper type definitions.
+82. ✅ **Annual Planning Grid Timezone Bug** [FIXED 2025-11-29] - Fixed date parsing to avoid local timezone conversion where November 1st appeared as October 31st by parsing ISO date strings directly.
+83. ✅ **Quarterly Bills Missing October** [FIXED 2025-11-29] - Changed getInstanceCount from 3 to 4 for quarterly frequency to ensure all 4 quarters appear in annual planner.
+84. ✅ **Semi-Annual Bills Only Showing One Per Year** [FIXED 2025-11-29] - Changed getInstanceCount from 2 to 4 for semi-annual frequency so both occurrences (Jan+Jul) visible per year.
+85. ✅ **Bill Instances Not Generated for Future Years** [FIXED 2025-11-29] - Added on-demand instance generation via /api/bills/ensure-instances endpoint, triggered when viewing annual planner.
 
 ---
 
