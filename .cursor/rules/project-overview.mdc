@@ -31,6 +31,7 @@ A comprehensive mobile-first personal finance application built with Next.js, fe
 ## Project Structure
 ```
 unifiedledger/
+├── proxy.ts                      # Route protection (renamed from middleware.ts per Next.js 16)
 ├── app/
 │   ├── api/                      # API routes (transactions, accounts, bills, rules, settings, etc.)
 │   └── dashboard/                # All dashboard pages (main, transactions, accounts, bills, calendar, goals, debts, reports, tax, sales-tax, settings, etc.)

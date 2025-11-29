@@ -5,6 +5,13 @@ alwaysApply: false
 
 # Important Architecture Decisions
 
+## Proxy (Route Protection)
+- **File:** `proxy.ts` (root directory) - renamed from `middleware.ts` per Next.js 16 convention
+- **Function:** `export default async function proxy(request: NextRequest)`
+- **Runtime:** Always runs on Node.js (no runtime config needed in Next.js 16+)
+- **Purpose:** Session validation, authentication checks, activity tracking, test mode bypass
+- **Note:** The "middleware" file convention was deprecated in Next.js 16 in favor of "proxy" to avoid confusion with Express.js middleware
+
 ## Transaction Types
 - `income` - Money coming in
 - `expense` - Money going out

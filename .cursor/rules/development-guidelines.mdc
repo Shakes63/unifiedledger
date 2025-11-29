@@ -64,6 +64,12 @@ pnpm drizzle-kit generate   # Generate database migration
 pnpm drizzle-kit migrate    # Apply database migration
 ```
 
+## Route Protection (Proxy)
+- **File:** `proxy.ts` in project root (NOT `middleware.ts`)
+- **Convention:** Next.js 16 deprecated "middleware" in favor of "proxy"
+- **Function:** Export `proxy(request)` not `middleware(request)`
+- **Runtime:** Always Node.js (no `export const runtime` needed)
+
 ## Never Do
 - ❌ Never use floating-point arithmetic for money (use Decimal.js)
 - ❌ Never commit without meaningful message
@@ -71,6 +77,7 @@ pnpm drizzle-kit migrate    # Apply database migration
 - ❌ Never start dev servers to leave running for user
 - ❌ Never use hardcoded colors (use CSS variables)
 - ❌ Never use emojis unless explicitly requested
+- ❌ Never create `middleware.ts` (use `proxy.ts` per Next.js 16 convention)
 
 ## Always Do
 - ✅ Always use pnpm (not npm or yarn)
