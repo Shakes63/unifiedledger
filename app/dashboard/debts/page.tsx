@@ -37,6 +37,12 @@ export default function DebtsPage() {
   const [showPaymentTracking, setShowPaymentTracking] = useState(false);
   const [debtSettings, setDebtSettings] = useState<any>(null);
   const [allExpanded, setAllExpanded] = useState<boolean | null>(null);
+  // Refresh key forces child components to remount and re-fetch their data
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const triggerRefresh = useCallback(() => {
+    setRefreshKey(prev => prev + 1);
+  }, []);
 
   const loadSettings = useCallback(async () => {
     if (!selectedHouseholdId) return;
@@ -123,6 +129,7 @@ export default function DebtsPage() {
       }
       loadDebts();
       loadStats();
+      triggerRefresh();
     } catch (error) {
       toast.error('Failed to add debt');
     }
@@ -145,6 +152,7 @@ export default function DebtsPage() {
       setSelectedDebt(null);
       loadDebts();
       loadStats();
+      triggerRefresh();
     } catch (error) {
       toast.error('Failed to update debt');
     }
@@ -165,6 +173,7 @@ export default function DebtsPage() {
       toast.success('Debt deleted successfully!');
       loadDebts();
       loadStats();
+      triggerRefresh();
     } catch (error) {
       toast.error('Failed to delete debt');
     }
@@ -181,6 +190,7 @@ export default function DebtsPage() {
   const handlePayment = () => {
     loadDebts();
     loadStats();
+    triggerRefresh();
   };
 
   if (loading && !stats) {
@@ -215,7 +225,7 @@ export default function DebtsPage() {
       {/* Debt-Free Countdown */}
       {stats && stats.activeDebtCount > 0 && (
         <div className="mb-6">
-          <DebtFreeCountdown />
+          <DebtFreeCountdown key={`countdown-${refreshKey}`} />
         </div>
       )}
 
@@ -345,7 +355,7 @@ export default function DebtsPage() {
             )}
           </button>
 
-          {showStrategy && <DebtPayoffStrategy />}
+          {showStrategy && <DebtPayoffStrategy key={`strategy-${refreshKey}`} />}
         </div>
       )}
 
@@ -374,8 +384,8 @@ export default function DebtsPage() {
 
           {showPaymentTracking && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <PaymentAdherenceCard />
-              <PaymentStreakWidget />
+              <PaymentAdherenceCard key={`adherence-${refreshKey}`} />
+              <PaymentStreakWidget key={`streak-${refreshKey}`} />
             </div>
           )}
         </div>
@@ -406,6 +416,7 @@ export default function DebtsPage() {
 
           {showWhatIf && (
             <WhatIfCalculator
+              key={`whatif-${refreshKey}`}
               currentExtraPayment={debtSettings.extraMonthlyPayment || 0}
               currentMethod={debtSettings.preferredMethod || 'avalanche'}
               currentFrequency={debtSettings.paymentFrequency || 'monthly'}
@@ -437,7 +448,7 @@ export default function DebtsPage() {
             )}
           </button>
 
-          {showMinWarning && <MinimumPaymentWarning />}
+          {showMinWarning && <MinimumPaymentWarning key={`minwarning-${refreshKey}`} />}
         </div>
       )}
 
