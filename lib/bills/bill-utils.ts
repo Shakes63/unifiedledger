@@ -11,6 +11,8 @@
  * - annual: Repeats once per year
  */
 
+import { format } from 'date-fns';
+
 export const FREQUENCY_LABELS: Record<string, string> = {
   'one-time': 'One Time',
   'weekly': 'Weekly',
@@ -196,7 +198,7 @@ export function calculateNextDueDate(
       const daysToAdd = daysUntilDue === 0 && instanceIndex === 0 ? 7 : daysUntilDue;
       weeklyDate.setDate(weeklyDate.getDate() + daysToAdd + (instanceIndex * 7));
 
-      return weeklyDate.toISOString().split('T')[0];
+      return format(weeklyDate, 'yyyy-MM-dd');
     }
 
     case 'biweekly': {
@@ -209,7 +211,7 @@ export function calculateNextDueDate(
       const daysToAdd = daysUntilDueBiweekly === 0 && instanceIndex === 0 ? 14 : daysUntilDueBiweekly;
       biweeklyDate.setDate(biweeklyDate.getDate() + daysToAdd + (instanceIndex * 14));
 
-      return biweeklyDate.toISOString().split('T')[0];
+      return format(biweeklyDate, 'yyyy-MM-dd');
     }
 
     case 'monthly': {
@@ -221,7 +223,7 @@ export function calculateNextDueDate(
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const instanceDueDate = Math.min(dueDate, daysInMonth);
 
-      return new Date(year, month, instanceDueDate).toISOString().split('T')[0];
+      return format(new Date(year, month, instanceDueDate), 'yyyy-MM-dd');
     }
 
     case 'quarterly':
@@ -287,7 +289,7 @@ export function calculateNextDueDate(
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const instanceDueDate = Math.min(dueDate, daysInMonth);
 
-      return new Date(year, month, instanceDueDate).toISOString().split('T')[0];
+      return format(new Date(year, month, instanceDueDate), 'yyyy-MM-dd');
     }
 
     default:

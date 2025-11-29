@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type MockedFunction } from 'vitest';
-import middleware from '@/middleware';
+import proxy from '@/proxy';
 import type { NextRequest } from 'next/server';
 
 // Type for validation result matching session-utils (used by mockedValidateSession)
@@ -40,7 +40,7 @@ function createRequest(pathname: string, cookies: Record<string, string> = {}): 
   } as unknown as NextRequest;
 }
 
-describe('middleware session redirect logic', () => {
+describe('proxy session redirect logic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -52,7 +52,7 @@ describe('middleware session redirect logic', () => {
   it('redirects unauthenticated protected route to sign-in with callback', async () => {
     mockedValidateSession.mockResolvedValue({ valid: false, reason: 'not_found' });
     const request = createRequest('/dashboard');
-    const res = await middleware(request);
+    const res = await proxy(request);
     expect(res?.status).toBe(307);
     expect(res?.headers.get('location')).toBe('https://example.com/sign-in?callbackUrl=%2Fdashboard');
   });
@@ -66,7 +66,7 @@ describe('middleware session redirect logic', () => {
     const request = createRequest('/dashboard', {
       'better-auth.session_token': 'token-abc',
     });
-    const res = await middleware(request);
+    const res = await proxy(request);
     // NextResponse.next() returns 200 response with no redirect location
     expect(res?.status).toBe(200);
     expect(res?.headers.get('location')).toBeNull();
@@ -85,7 +85,7 @@ describe('middleware session redirect logic', () => {
       'better-auth.session_data': fakePayload,
       'better-auth.session_token': 'token-expired',
     });
-    const res = await middleware(request);
+    const res = await proxy(request);
     expect(res?.status).toBe(307);
     expect(res?.headers.get('location')).toBe(
       'https://example.com/sign-in?callbackUrl=%2Fdashboard&reason=expired',
@@ -103,7 +103,7 @@ describe('middleware session redirect logic', () => {
     const request = createRequest('/dashboard', {
       'better-auth.session_data': payload,
     });
-    const res = await middleware(request);
+    const res = await proxy(request);
     expect(res?.status).toBe(307);
     expect(res?.headers.get('location')).toBe(
       'https://example.com/sign-in?callbackUrl=%2Fdashboard&reason=timeout',
@@ -116,7 +116,7 @@ describe('middleware session redirect logic', () => {
       // Intentionally malformed (not base64/base64url)
       'better-auth.session_data': '!!!not-valid!!!',
     });
-    const res = await middleware(request);
+    const res = await proxy(request);
     expect(res?.status).toBe(307);
     expect(res?.headers.get('location')).toBe('https://example.com/sign-in?callbackUrl=%2Fdashboard');
   });
@@ -131,7 +131,7 @@ describe('middleware session redirect logic', () => {
     const request = createRequest('/sign-in', {
       'better-auth.session_data': payload,
     });
-    const res = await middleware(request);
+    const res = await proxy(request);
     expect(res?.status).toBe(307);
     expect(res?.headers.get('location')).toBe('https://example.com/dashboard');
   });
@@ -146,7 +146,7 @@ describe('middleware session redirect logic', () => {
     const request = createRequest('/dashboard', {
       'better-auth.session_data': payload,
     });
-    const res = await middleware(request);
+    const res = await proxy(request);
     expect(res?.status).toBe(200);
     expect(res?.headers.get('location')).toBeNull();
   });

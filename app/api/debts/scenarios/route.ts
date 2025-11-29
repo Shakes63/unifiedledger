@@ -80,9 +80,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Validate payment frequency if provided
-      if (scenario.paymentFrequency && !['monthly', 'biweekly'].includes(scenario.paymentFrequency)) {
+      if (scenario.paymentFrequency && !['weekly', 'biweekly', 'monthly', 'quarterly'].includes(scenario.paymentFrequency)) {
         return NextResponse.json(
-          { error: 'paymentFrequency must be either "monthly" or "biweekly"' },
+          { error: 'paymentFrequency must be one of: weekly, biweekly, monthly, quarterly' },
           { status: 400 }
         );
       }

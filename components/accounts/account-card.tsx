@@ -63,11 +63,13 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
   };
 
   const isCreditAccount = account.type === 'credit';
+  // Use Math.abs() to handle both positive and negative balance conventions
+  // (some users enter negative balances to represent debt owed)
   const availableBalance = isCreditAccount
-    ? (account.creditLimit || 0) - account.currentBalance
+    ? (account.creditLimit || 0) - Math.abs(account.currentBalance)
     : account.currentBalance;
   const utilization = isCreditAccount && account.creditLimit
-    ? (account.currentBalance / account.creditLimit) * 100
+    ? (Math.abs(account.currentBalance) / account.creditLimit) * 100
     : null;
 
   const IconComponent = useMemo(() => {
