@@ -7,8 +7,6 @@
 <!-- Add new bugs here in the format: -->
 <!-- - **Bug Name** - Brief description of the issue -->
 
-- **Monthly Bill Category Displays in Two Budget Sections** - On the Budgets page (`/dashboard/budgets`), categories with type "Monthly Bill" (like Rent) appear in both "Essential Expenses" AND "Discretionary Spending" sections. The category should only appear in one section. **Location:** The grouping logic in the budgets page component that separates categories into sections (likely in `app/dashboard/budgets/page.tsx` or a related component). **Impact:** Confusing UX as users see the same category twice with the same budget amount. **Fix:** Review the category grouping logic to ensure "monthly_bill" type categories are only placed in one section (likely "Essential Expenses" since fixed bills are typically essential).
-
 - **Debt Payoff Strategy Not Updating After Adding New Debt** - When adding a new debt on the Debts page, the Debt Payoff Strategy section does not update to include the newly added debt. The "Your Payoff Order" list and "Method Comparison" calculations remain stale, still showing the old debt count and calculations. **Location:** `components/debts/debt-payoff-strategy.tsx` - The component doesn't re-fetch or recalculate when debts are added. **Impact:** Users see incorrect payoff projections after adding new debts. A high-APR credit card (22.99%) was added but the calculator still showed only 3 debts instead of 4, with unchanged interest calculations. **Fix:** Add a dependency on the debts list or implement a refresh mechanism when debts change.
 
 - **Identical Interest Calculations for Snowball vs Avalanche Despite Different Timeframes** - The Debt Payoff Strategy comparison shows identical total interest amounts for both Snowball and Avalanche methods even when the payoff timeframes differ significantly (e.g., 50 months vs 35 months). **Example:** With $200 extra payment, Snowball shows 50 months/$1,350.53 interest while Avalanche shows 35 months/$1,350.53 interest. Mathematically, paying debt for 15 additional months should accumulate more interest with the slower method. **Location:** `lib/debts/payoff-calculator.ts` - The interest calculation logic may not properly account for interest accrual during the extended payoff period. **Impact:** Users cannot make informed decisions between methods because the interest savings are always shown as $0. **Fix:** Review the interest calculation algorithm in `calculatePayoffStrategy` and `comparePayoffMethods` functions to ensure interest is properly calculated based on remaining balances over time.
@@ -21,7 +19,6 @@
 
 ## Active Bugs
 
-- **Monthly Bill Category Displays in Two Budget Sections** - See New Bugs section above
 - **Debt Payoff Strategy Not Updating After Adding New Debt** - See New Bugs section above
 - **Identical Interest Calculations for Snowball vs Avalanche Despite Different Timeframes** - See New Bugs section above
 - **Payment Tracking Section Not Reflecting Recorded Payments** - See New Bugs section above
@@ -45,18 +42,19 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 5 |
+| Active Bugs | 4 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 652 (76 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 653 (77 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (76 total)
+## Fixed Bugs (77 total)
 
-1. ✅ **Credit Card Available Balance Calculation Wrong with Negative Balance** [FIXED 2025-11-29] - Fixed available credit and utilization calculations in `account-card.tsx` to use `Math.abs()` on balance. Now handles both positive and negative balance conventions correctly.
+1. ✅ **Monthly Bill Category Displays in Two Budget Sections** [FIXED 2025-11-29] - Fixed `groupedCategories.expenses` in `/api/budgets/overview` to only include `variable_expense` types, preventing monthly_bill and non_monthly_bill categories from appearing in both "Essential Expenses" and "Discretionary Spending" sections.
+2. ✅ **Credit Card Available Balance Calculation Wrong with Negative Balance** [FIXED 2025-11-29] - Fixed available credit and utilization calculations in `account-card.tsx` to use `Math.abs()` on balance. Now handles both positive and negative balance conventions correctly.
 2. ✅ **What-If Calculator Fails with 400 Error for Weekly/Quarterly Frequencies** [FIXED 2025-11-29] - Updated `/api/debts/scenarios/route.ts` validation to accept all 4 payment frequencies (weekly, biweekly, monthly, quarterly) instead of just monthly and biweekly. Aligned with `PaymentFrequency` type definition.
 2. ✅ **Weekly/Biweekly Bill Instance Dates Off-By-One** [FIXED 2025-11-29] - Fixed timezone bug in `calculateNextDueDate` function where `toISOString().split('T')[0]` converted dates to UTC, causing off-by-one errors for evening users. Replaced with `format(date, 'yyyy-MM-dd')` from date-fns to preserve local date. Also fixed monthly/quarterly/semi-annual/annual frequencies for consistency.
 2. ✅ **Middleware to Proxy Convention Migration** [FIXED 2025-11-29] - Migrated from deprecated `middleware.ts` to `proxy.ts` per Next.js 16 convention. Renamed file and exported function from `middleware` to `proxy`, removed obsolete `runtime` config since proxy always runs on Node.js.

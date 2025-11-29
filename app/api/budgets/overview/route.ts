@@ -249,6 +249,9 @@ export async function GET(request: Request) {
       c.type === 'non_monthly_bill'
     );
     const savingsCategories = categoryStatuses.filter(c => c.type === 'savings');
+    // Separate discretionary expenses from bill categories for display grouping
+    // (expenseCategories still includes bills for total expense calculations)
+    const discretionaryCategories = categoryStatuses.filter(c => c.type === 'variable_expense');
 
     const totalIncome = incomeCategories.reduce(
       (sum, c) => new Decimal(sum).plus(c.monthlyBudget).toNumber(),
@@ -339,9 +342,11 @@ export async function GET(request: Request) {
     }
 
     // Group categories by type for organized display
+    // Note: expenses uses discretionaryCategories (variable_expense only) to avoid
+    // duplicate display of bill categories which have their own "bills" section
     const groupedCategories = {
       income: incomeCategories.sort((a, b) => a.name.localeCompare(b.name)),
-      expenses: expenseCategories.sort((a, b) => a.name.localeCompare(b.name)),
+      expenses: discretionaryCategories.sort((a, b) => a.name.localeCompare(b.name)),
       savings: savingsCategories.sort((a, b) => a.name.localeCompare(b.name)),
       bills: categoryStatuses
         .filter(c => c.type === 'monthly_bill' || c.type === 'non_monthly_bill')
