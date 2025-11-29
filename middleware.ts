@@ -3,6 +3,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { validateSession, updateSessionActivity, deleteSessionByToken } from "@/lib/session-utils";
+import { isTestMode, logTestModeWarning, TEST_SESSION_TOKEN } from "@/lib/test-mode";
 
 // Use Node.js runtime instead of Edge runtime (required for better-sqlite3)
 export const runtime = 'nodejs';
@@ -15,6 +16,52 @@ const activityUpdateCache = new Map<string, number>();
 const ACTIVITY_UPDATE_INTERVAL = 60 * 1000; // 1 minute
 
 export default async function middleware(request: NextRequest) {
+  // ============================================================================
+  // TEST MODE BYPASS
+  // ============================================================================
+  // When TEST_MODE=true, bypass all authentication checks
+  // This allows immediate access to the app without logging in
+  if (isTestMode()) {
+    const pathname = request.nextUrl.pathname;
+    
+    // Log test mode access (only once per unique path to avoid spam)
+    if (pathname.startsWith('/dashboard') || pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up')) {
+      logTestModeWarning(`middleware (${pathname})`);
+    }
+    
+    // Redirect auth pages to dashboard in test mode
+    if (pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up')) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+    
+    // Allow access to all protected routes without session validation
+    // The test session token will be used by API routes via auth helpers
+    const response = NextResponse.next();
+    
+    // Set a test session cookie so the frontend can detect test mode
+    // This cookie is used by the household context and other client-side code
+    response.cookies.set('better-auth.test_mode', 'true', {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      path: '/',
+    });
+    
+    // Also set a fake session token for any code that checks for it
+    response.cookies.set('better-auth.session_token', TEST_SESSION_TOKEN, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      path: '/',
+    });
+    
+    return response;
+  }
+
+  // ============================================================================
+  // NORMAL AUTHENTICATION FLOW
+  // ============================================================================
+  
   // Check if Better Auth session cookie exists
   // Better Auth stores the full session data in this cookie
   const sessionDataCookie = request.cookies.get("better-auth.session_data");

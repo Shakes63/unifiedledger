@@ -1,5 +1,6 @@
 import { auth } from '@/lib/better-auth';
 import { headers } from 'next/headers';
+import { isTestMode, getTestUser, logTestModeWarning } from '@/lib/test-mode';
 
 /**
  * Get session and user from Better Auth
@@ -7,6 +8,12 @@ import { headers } from 'next/headers';
  * @returns User data if authenticated, null otherwise
  */
 export async function getAuthUser() {
+  // Test mode bypass - return test user without session validation
+  if (isTestMode()) {
+    logTestModeWarning('getAuthUser');
+    return getTestUser();
+  }
+
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -28,6 +35,12 @@ export async function getAuthUser() {
  * @returns User data
  */
 export async function requireAuth() {
+  // Test mode bypass - return test user without session validation
+  if (isTestMode()) {
+    logTestModeWarning('requireAuth');
+    return getTestUser();
+  }
+
   const user = await getAuthUser();
 
   if (!user) {

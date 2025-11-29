@@ -51,7 +51,17 @@ alwaysApply: false
 
 ## Recent Major Features
 
-**Latest (2025-11-28):**
+**Latest (2025-11-29):**
+- Test Mode Feature (✅ COMPLETE)
+  - ✅ Environment variable (`TEST_MODE=true`) to bypass authentication for development/testing
+  - ✅ Auto-creates test admin user and household on first access
+  - ✅ Middleware bypass allows access to all protected routes without session
+  - ✅ Auth helpers return test user when in test mode
+  - ✅ Warning banner displayed at top of page in test mode
+  - ✅ Test mode initializer component ensures test data exists before API calls
+  - ✅ Documented in `.env.example` with security warnings
+
+**Previous (2025-11-28):**
 - Split Transaction UX Improvements (✅ COMPLETE)
   - ✅ Replaced silent auto-calculation with explicit "Balance Splits" button
   - ✅ Added "Balanced" badge indicator on auto-balanced splits

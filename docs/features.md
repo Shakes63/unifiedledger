@@ -8,13 +8,14 @@ _Add new feature requests below. Include a brief description of what the feature
 
 ## Incomplete Features
 
-1. make a feature that will use a env variable To turn on and off test mode. When in test mode authentication should be turned off and there should be 1 admin account auto created and no login whatsoever.
+(None)
 
 ---
 
 ## Completed Features
 
-1. ✅ **Non-Monthly Bill Month Selection** - Select specific start month for quarterly, semi-annual, and annual bills
+1. ✅ **Test Mode Feature** - Environment variable (`TEST_MODE=true`) to bypass authentication for development/testing. Auto-creates test admin user and household, displays warning banner.
+2. ✅ **Non-Monthly Bill Month Selection** - Select specific start month for quarterly, semi-annual, and annual bills
 2. ✅ **Budget Summary Dashboard** - High-level overview page with allocation chart and trends
 3. ✅ **Persistent Additional Monthly Payment on Debts** - Per-debt extra payment commitments for payoff projections
 4. ✅ **12-Month Annual Bill Planning Grid** - Year-at-a-glance grid for non-monthly bills
