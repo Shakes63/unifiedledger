@@ -1,12 +1,12 @@
-// Better Auth middleware for protecting routes
+// Better Auth proxy for protecting routes
 // Validates session against expiration and inactivity timeout
+// NOTE: Renamed from middleware.ts to proxy.ts per Next.js 16 convention
 
 import { NextResponse, type NextRequest } from "next/server";
 import { validateSession, updateSessionActivity, deleteSessionByToken } from "@/lib/session-utils";
 import { isTestMode, logTestModeWarning, TEST_SESSION_TOKEN } from "@/lib/test-mode";
 
-// Use Node.js runtime instead of Edge runtime (required for better-sqlite3)
-export const runtime = 'nodejs';
+// NOTE: Proxy always runs on Node.js runtime in Next.js 16+, no runtime config needed
 
 /**
  * Activity update debouncing cache
@@ -15,7 +15,7 @@ export const runtime = 'nodejs';
 const activityUpdateCache = new Map<string, number>();
 const ACTIVITY_UPDATE_INTERVAL = 60 * 1000; // 1 minute
 
-export default async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   // ============================================================================
   // TEST MODE BYPASS
   // ============================================================================

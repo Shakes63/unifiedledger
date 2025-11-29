@@ -63,6 +63,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
       const response = await enhancedFetch('/api/user/onboarding/status', {
         credentials: 'include',
+        deduplicate: false, // Prevent "body stream already read" in Strict Mode
         retries: 2,
         timeout: 5000,
       });
@@ -94,6 +95,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       const response = await enhancedFetch('/api/user/onboarding/complete', {
         method: 'POST',
         credentials: 'include',
+        deduplicate: false, // Prevent "body stream already read" in Strict Mode
         retries: 2,
         timeout: 5000,
       });

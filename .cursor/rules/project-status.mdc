@@ -28,7 +28,7 @@ alwaysApply: false
 - ✅ Password Field Form Fix (2025-01-27) - Wrapped all password fields in settings page within proper `<form>` elements for accessibility and HTML validation
 - ✅ Bills API Household Auth Fixes (2025-01-27) - Fixed bills dropdown in transaction form, bill details page, edit bill page, and category-selector to use `fetchWithHousehold` for proper household authentication
 - ✅ Overdue Bill Payment Fixes (2025-01-27) - Fixed overdue bills not being auto-matched when transactions are created/updated, and fixed pending instances with past due dates not being marked as overdue
-- ✅ All bugs fixed (69 total - see docs/bugs.md for complete list)
+- ✅ All bugs fixed (73 total - see docs/bugs.md for complete list)
 - ✅ Authentication password verification implemented (password change, email change, reset app data)
 - ✅ Session/middleware hardened (cookie parsing, timeout cache, tab visibility handling)
 - ✅ Onboarding flow bugs fixed (2025-11-26): credentials missing in BillForm/invitation decline, modal resume after refresh, unused import cleanup
@@ -52,10 +52,18 @@ alwaysApply: false
 ## Recent Major Features
 
 **Latest (2025-11-29):**
+- Middleware to Proxy Migration (✅ COMPLETE)
+  - ✅ Migrated from deprecated `middleware.ts` to `proxy.ts` per Next.js 16 convention
+  - ✅ Renamed file and exported function from `middleware` to `proxy`
+  - ✅ Removed obsolete `runtime` config (proxy always runs on Node.js)
+- Response Body Stream Fixes (✅ COMPLETE)
+  - ✅ Fixed "body stream already read" TypeError in household-context.tsx
+  - ✅ Fixed same error in onboarding-context.tsx
+  - ✅ Added `deduplicate: false` to enhancedFetch calls to prevent shared Response objects in React Strict Mode
 - Test Mode Feature (✅ COMPLETE)
   - ✅ Environment variable (`TEST_MODE=true`) to bypass authentication for development/testing
   - ✅ Auto-creates test admin user and household on first access
-  - ✅ Middleware bypass allows access to all protected routes without session
+  - ✅ Proxy bypass allows access to all protected routes without session
   - ✅ Auth helpers return test user when in test mode
   - ✅ Warning banner displayed at top of page in test mode
   - ✅ Test mode initializer component ensures test data exists before API calls
@@ -278,9 +286,11 @@ alwaysApply: false
 (None)
 
 ### Recently Completed
-- **Linter Cleanup - Remaining Directories** [FIXED 2025-11-28] - Fixed all 73 ESLint issues (17 errors + 56 warnings) in __tests__/, scripts/, contexts/, and hooks/ directories. Replaced `any` types with proper TypeScript interfaces, prefixed unused variables with `_`, and fixed React hook dependencies.
-- **Fix Integration Test Failures** [FIXED 2025-11-28] - Fixed all 50 failing tests after Household Data Isolation by adding householdId parameters to rule matcher, actions executor, transaction creation, migration helpers, and user household preferences tests.
-- **Linter Cleanup Phase 2** [FIXED] - Fixed all 196 ESLint errors in components/ (121 `@typescript-eslint/no-explicit-any` + 75 `react/no-unescaped-entities`). Created comprehensive type definitions in `lib/types/index.ts`.
+- **Middleware to Proxy Convention Migration** [FIXED 2025-11-29] - Migrated from deprecated `middleware.ts` to `proxy.ts` per Next.js 16 convention.
+- **Response Body Stream Already Read (Household/Onboarding)** [FIXED 2025-11-29] - Fixed TypeError by adding `deduplicate: false` to enhancedFetch calls, preventing shared Response objects in React Strict Mode.
+- **Linter Cleanup - Remaining Directories** [FIXED 2025-11-28] - Fixed all 73 ESLint issues (17 errors + 56 warnings) in __tests__/, scripts/, contexts/, and hooks/ directories.
+- **Fix Integration Test Failures** [FIXED 2025-11-28] - Fixed all 50 failing tests after Household Data Isolation by adding householdId parameters to tests.
+- **Linter Cleanup Phase 2** [FIXED] - Fixed all 196 ESLint errors in components/. Created comprehensive type definitions in `lib/types/index.ts`.
 
 ### Improvement Backlog
 - **Split Transaction Improvements** - ✅ ALL COMPLETE (2025-11-28) - See `docs/split-transaction-review.md`

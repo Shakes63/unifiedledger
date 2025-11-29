@@ -84,6 +84,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         `/api/user/households/${householdId}/preferences`,
         {
           credentials: 'include',
+          deduplicate: false, // Prevent "body stream already read" in Strict Mode
           retries: 2,
           timeout: 8000,
           onRetry: (attempt) => {
@@ -177,6 +178,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
       const response = await enhancedFetch('/api/households', {
         credentials: 'include',
+        deduplicate: false, // Prevent "body stream already read" in Strict Mode
         retries: 3,
         timeout: 10000,
         onRetry: (attempt) => {

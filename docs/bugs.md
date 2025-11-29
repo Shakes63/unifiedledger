@@ -1,4 +1,4 @@
-# Bugs Status (Updated 2025-11-28)
+# Bugs Status (Updated 2025-11-29)
 
 ---
 
@@ -38,13 +38,16 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 646 (70 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 649 (73 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (70 total)
+## Fixed Bugs (73 total)
 
-1. ✅ **Linter Cleanup - Remaining Directories** [FIXED 2025-11-28] - Fixed all 73 ESLint issues (17 errors + 56 warnings) in __tests__/, scripts/, contexts/, and hooks/ directories. Replaced `any` types with proper TypeScript interfaces, prefixed unused variables with `_`, removed unused imports, and fixed React hook dependencies.
+1. ✅ **Middleware to Proxy Convention Migration** [FIXED 2025-11-29] - Migrated from deprecated `middleware.ts` to `proxy.ts` per Next.js 16 convention. Renamed file and exported function from `middleware` to `proxy`, removed obsolete `runtime` config since proxy always runs on Node.js.
+2. ✅ **Response Body Stream Already Read (Household Context)** [FIXED 2025-11-29] - Fixed TypeError "Failed to execute 'json' on 'Response': body stream already read" in household-context.tsx by adding `deduplicate: false` to enhancedFetch calls, preventing shared Response objects in React Strict Mode.
+3. ✅ **Response Body Stream Already Read (Onboarding Context)** [FIXED 2025-11-29] - Fixed same TypeError in onboarding-context.tsx with identical fix. Root cause was request deduplication returning the same Response object to multiple callers in Strict Mode.
+3. ✅ **Linter Cleanup - Remaining Directories** [FIXED 2025-11-28] - Fixed all 73 ESLint issues (17 errors + 56 warnings) in __tests__/, scripts/, contexts/, and hooks/ directories. Replaced `any` types with proper TypeScript interfaces, prefixed unused variables with `_`, removed unused imports, and fixed React hook dependencies.
 2. ✅ **Fix Integration Test Failures (50 tests)** [FIXED 2025-11-28] - Fixed all 50 failing tests after Household Data Isolation. Updated rule-matcher.test.ts (25), actions-executor.test.ts (7), transaction-creation-rules.test.ts (5), migrate-to-household-preferences.test.ts (12), user-household-preferences.test.ts (1). Also fixed bug in getOrMigratePreferences where empty array check was incorrect.
 2. ✅ **Split Builder Auto-Calculation UX** [FIXED] - Replaced silent auto-calculation with explicit "Balance Splits" button and "Balanced" badge indicator for clearer UX
 2. ✅ **Split Builder Loading States** [FIXED] - Added `onLoadingChange` callback to CategorySelector and loading spinner on Add Split button while categories load
@@ -119,4 +122,4 @@
 
 ## Known Minor Issues (Not Blocking)
 
-1. **Middleware Convention:** Next.js deprecation warning - "middleware" should use "proxy" instead
+(None)
