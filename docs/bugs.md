@@ -35,13 +35,15 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 670 (94 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 672 (96 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (94 total)
+## Fixed Bugs (96 total)
 
 94. ✅ **Double-Negative Amount Display on Transactions** [FIXED 2025-11-30] - Fixed by using `Math.abs()` on transaction amounts in display logic across transaction list, recent transactions, and transaction history components. Also fixed test data script to store positive amounts.
+95. ✅ **Dashboard Recent Transactions Double-Negative Regression** [FIXED 2025-11-30] - The `recent-transactions.tsx` dashboard widget was still showing double-negatives (e.g., "-$-42.32") after Bug #94 fix. Fixed by adding `Math.abs()` to line 456 in the amount display logic.
+96. ✅ **Merchant Dropdown Shows Usage Numbers** [FIXED 2025-11-30] - Removed usage count display from merchant selector dropdown. Merchants now display as "Whole Foods" instead of "Whole Foods (4)". Sorting by usage count is preserved (API behavior), only the visual display was changed.
 1. ✅ **Identical Interest Calculations for Snowball vs Avalanche** [FIXED 2025-11-29] - Rewrote payoff calculator to use parallel simulation tracking ALL debts simultaneously.
 2. ✅ **Debt Payoff Strategy Not Updating After Adding New Debt** [FIXED 2025-11-29] - Added `refreshKey` state forcing child component remount on data changes.
 3. ✅ **Payment Tracking Section Not Reflecting Recorded Payments** [FIXED 2025-11-29] - Same refreshKey fix for PaymentAdherenceCard and PaymentStreakWidget.
@@ -145,6 +147,8 @@
 - **Dashboard Collapse State Not Persisting** - The collapsible sections on the dashboard (Budget Details, Debt & Credit) reset to expanded state on page reload. Would be a nice-to-have to remember collapse state in localStorage.
 
 - **Transaction History Route Missing** - `/dashboard/transaction-history` redirects to main dashboard. The route appears to not be implemented or was removed. Transaction audit trail functionality may need to be added in a future update.
+
+- **Bill Instance Operations Not Implemented** - The bill detail page (`/dashboard/bills/[id]`) displays bill instances (overdue and upcoming) but does not provide UI for managing them. Missing features: "Mark as Paid" button, "Mark as Pending" button, "Link to Transaction" functionality. Users cannot manually track bill payments from the bill detail view. Bill auto-detection via transactions works, but manual status updates are not available.
 
 - ~~**Edit Transaction Success Message Incorrect** - When updating a transaction, the success toast says "Transaction created successfully!" instead of "Transaction updated successfully!". Functionality works correctly, just the message text is wrong. Located in `components/transactions/transaction-form.tsx`.~~ **FIXED 2025-11-30**: Updated success message to use `isEditMode` conditional.
 

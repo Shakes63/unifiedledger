@@ -118,7 +118,7 @@ export function MerchantSelector({
               <SelectItem value="none">Skip (No merchant)</SelectItem>
               {merchants.map((merchant) => (
                 <SelectItem key={merchant.id} value={merchant.id}>
-                  {merchant.name} ({merchant.usageCount})
+                  {merchant.name}
                 </SelectItem>
               ))}
             </SelectContent>
