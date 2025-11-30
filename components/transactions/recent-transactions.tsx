@@ -173,7 +173,7 @@ export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTran
                       : 'var(--color-expense)'
                   }}
                 >
-                  {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                  {transaction.type === 'income' ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}
                 </p>
                 <Badge className={`${getTypeColor(transaction.type)} text-xs`} variant="secondary">
                   {transaction.type.replace('_', ' ')}

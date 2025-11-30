@@ -180,7 +180,7 @@ export function TransactionHistory({
                   : 'text-red-400'
               }`}>
                 {transaction.type === 'income' || transaction.type === 'transfer_in' ? '+' : '-'}
-                ${transaction.amount.toFixed(2)}
+                ${Math.abs(transaction.amount).toFixed(2)}
               </p>
 
               <div className="flex gap-2">

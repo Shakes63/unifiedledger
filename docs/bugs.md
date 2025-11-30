@@ -1,4 +1,4 @@
-# Bugs Status (Updated 2025-11-29)
+# Bugs Status (Updated 2025-11-30)
 
 ---
 
@@ -35,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 669 (93 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 670 (94 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (93 total)
+## Fixed Bugs (94 total)
 
+94. ✅ **Double-Negative Amount Display on Transactions** [FIXED 2025-11-30] - Fixed by using `Math.abs()` on transaction amounts in display logic across transaction list, recent transactions, and transaction history components. Also fixed test data script to store positive amounts.
 1. ✅ **Identical Interest Calculations for Snowball vs Avalanche** [FIXED 2025-11-29] - Rewrote payoff calculator to use parallel simulation tracking ALL debts simultaneously.
 2. ✅ **Debt Payoff Strategy Not Updating After Adding New Debt** [FIXED 2025-11-29] - Added `refreshKey` state forcing child component remount on data changes.
 3. ✅ **Payment Tracking Section Not Reflecting Recorded Payments** [FIXED 2025-11-29] - Same refreshKey fix for PaymentAdherenceCard and PaymentStreakWidget.
@@ -144,3 +145,31 @@
 - **Dashboard Collapse State Not Persisting** - The collapsible sections on the dashboard (Budget Details, Debt & Credit) reset to expanded state on page reload. Would be a nice-to-have to remember collapse state in localStorage.
 
 - **Transaction History Route Missing** - `/dashboard/transaction-history` redirects to main dashboard. The route appears to not be implemented or was removed. Transaction audit trail functionality may need to be added in a future update.
+
+- ~~**Edit Transaction Success Message Incorrect** - When updating a transaction, the success toast says "Transaction created successfully!" instead of "Transaction updated successfully!". Functionality works correctly, just the message text is wrong. Located in `components/transactions/transaction-form.tsx`.~~ **FIXED 2025-11-30**: Updated success message to use `isEditMode` conditional.
+
+---
+
+## Bug Tracking Guidelines
+
+**Adding New Bugs:**
+- Add to the "New Bugs" section at the top of this file
+- Format: `- **Bug Name** - Brief description of the issue`
+- Include file paths and line numbers when known
+
+**Working on Bugs:**
+- Move bug from "New Bugs" or "Active Bugs" to "In Progress"
+- Create implementation plan in `docs/` folder (e.g., `docs/bug-name-fix-plan.md`)
+- Reference the plan file location in the bug entry
+
+**Incomplete Tasks:**
+- Keep in "In Progress" section with status note
+- Document what remains unfinished
+- Reference the plan file for continuation
+
+**Completed Bugs:**
+1. Move to "Fixed Bugs" section with next sequential number
+2. Format: `N. ✅ **Bug Name** [FIXED YYYY-MM-DD] - 1-2 line description of the fix`
+3. Update metrics table (decrement Active Bugs, increment Fixed count)
+4. Delete the associated plan file from `docs/`
+5. Commit and push changes

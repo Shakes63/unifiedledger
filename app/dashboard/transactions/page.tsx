@@ -1058,7 +1058,7 @@ function TransactionsContent() {
                                 className="font-semibold text-sm"
                                 style={{ color: displayProps.color }}
                               >
-                                {displayProps.sign}${transaction.amount.toFixed(2)}
+                                {displayProps.sign}${Math.abs(transaction.amount).toFixed(2)}
                               </p>
                             );
                           })()}
