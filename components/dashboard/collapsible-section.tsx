@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 interface CollapsibleSectionProps {
@@ -16,26 +16,25 @@ export function CollapsibleSection({
   defaultExpanded = false,
   storageKey,
 }: CollapsibleSectionProps) {
-  // Initialize from localStorage if available
-  const [isExpanded, setIsExpanded] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(storageKey);
-      if (saved !== null) {
-        return saved === 'true';
-      }
-    }
-    return defaultExpanded;
-  });
-  const isFirstRender = useRef(true);
+  // Initialize with default - hydration safe (no localStorage read during SSR)
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [hasMounted, setHasMounted] = useState(false);
 
-  // Save state to localStorage when it changes (skip initial render)
+  // Load saved state from localStorage after mount (hydration-safe)
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
+    const saved = localStorage.getItem(storageKey);
+    if (saved !== null) {
+      setIsExpanded(saved === 'true');
     }
-    localStorage.setItem(storageKey, String(isExpanded));
-  }, [isExpanded, storageKey]);
+    setHasMounted(true);
+  }, [storageKey]);
+
+  // Save state to localStorage when it changes (only after mount)
+  useEffect(() => {
+    if (hasMounted) {
+      localStorage.setItem(storageKey, String(isExpanded));
+    }
+  }, [isExpanded, storageKey, hasMounted]);
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);

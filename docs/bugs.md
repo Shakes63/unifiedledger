@@ -35,15 +35,16 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 672 (96 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 673 (97 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (96 total)
+## Fixed Bugs (97 total)
 
 94. ✅ **Double-Negative Amount Display on Transactions** [FIXED 2025-11-30] - Fixed by using `Math.abs()` on transaction amounts in display logic across transaction list, recent transactions, and transaction history components. Also fixed test data script to store positive amounts.
 95. ✅ **Dashboard Recent Transactions Double-Negative Regression** [FIXED 2025-11-30] - The `recent-transactions.tsx` dashboard widget was still showing double-negatives (e.g., "-$-42.32") after Bug #94 fix. Fixed by adding `Math.abs()` to line 456 in the amount display logic.
 96. ✅ **Merchant Dropdown Shows Usage Numbers** [FIXED 2025-11-30] - Removed usage count display from merchant selector dropdown. Merchants now display as "Whole Foods" instead of "Whole Foods (4)". Sorting by usage count is preserved (API behavior), only the visual display was changed.
+97. ✅ **Dashboard Collapse State Not Persisting** [FIXED 2025-11-30] - Fixed hydration mismatch in `CollapsibleSection` component. Changed from reading localStorage during useState initialization (causes SSR/client mismatch) to using useEffect for hydration-safe localStorage read after mount.
 1. ✅ **Identical Interest Calculations for Snowball vs Avalanche** [FIXED 2025-11-29] - Rewrote payoff calculator to use parallel simulation tracking ALL debts simultaneously.
 2. ✅ **Debt Payoff Strategy Not Updating After Adding New Debt** [FIXED 2025-11-29] - Added `refreshKey` state forcing child component remount on data changes.
 3. ✅ **Payment Tracking Section Not Reflecting Recorded Payments** [FIXED 2025-11-29] - Same refreshKey fix for PaymentAdherenceCard and PaymentStreakWidget.
@@ -144,7 +145,7 @@
 
 - **Session Ping 401 Errors in TEST MODE** - Console shows repeated 401 Unauthorized errors for `/api/session/ping` endpoint with message "Session ping returned 401 without reason: {error: No session found}". This is expected in TEST_MODE since session management is disabled. Non-blocking, app functions correctly.
 
-- **Dashboard Collapse State Not Persisting** - The collapsible sections on the dashboard (Budget Details, Debt & Credit) reset to expanded state on page reload. Would be a nice-to-have to remember collapse state in localStorage.
+- ~~**Dashboard Collapse State Not Persisting** - The collapsible sections on the dashboard (Budget Details, Debt & Credit) reset to expanded state on page reload. Would be a nice-to-have to remember collapse state in localStorage.~~ **FIXED 2025-11-30**: Fixed hydration mismatch by using useEffect for localStorage read.
 
 - **Transaction History Route Missing** - `/dashboard/transaction-history` redirects to main dashboard. The route appears to not be implemented or was removed. Transaction audit trail functionality may need to be added in a future update.
 
