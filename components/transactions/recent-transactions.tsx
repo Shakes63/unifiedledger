@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { parseISO, format } from 'date-fns';
 
 interface Transaction {
   id: string;
@@ -59,7 +60,9 @@ export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTran
     try {
       setRepeatingTxId(transaction.id);
 
-      const today = new Date().toISOString().split('T')[0];
+      // Use toLocaleDateString with 'en-CA' locale to get YYYY-MM-DD format in local timezone
+      // This avoids the UTC timezone issue where toISOString() could return yesterday's date
+      const today = new Date().toLocaleDateString('en-CA');
 
       const response = await postWithHousehold('/api/transactions', {
         accountId: transaction.accountId,
@@ -72,8 +75,13 @@ export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTran
       });
 
       if (response.ok) {
-        const newTransaction = await response.json();
-        setTransactions([newTransaction, ...transactions.slice(0, -1)]);
+        await response.json(); // Consume the response but don't use it for state
+        // Refetch transactions to get accurate data with full fields
+        const refreshResponse = await fetchWithHousehold(`/api/transactions?limit=${limit}`);
+        if (refreshResponse.ok) {
+          const refreshedData = await refreshResponse.json();
+          setTransactions(refreshedData.slice(0, limit));
+        }
         toast.success(`Transaction repeated: ${transaction.description}`);
       } else {
         const error = await response.json();
@@ -153,11 +161,7 @@ export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTran
                   {transaction.description}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {new Date(transaction.date).toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+                  {format(parseISO(transaction.date), 'EEE, MMM d')}
                 </p>
               </div>
             </div>

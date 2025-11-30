@@ -35,12 +35,14 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 674 (98 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 676 (100 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (98 total)
+## Fixed Bugs (100 total)
 
+100. ✅ **Repeat Transaction Date Bug** [FIXED 2025-11-30] - Fixed timezone-related date display bug. The issue was that `new Date('YYYY-MM-DD')` parses dates as UTC midnight, which displays as the previous day in local timezones behind UTC. Replaced all `new Date(transaction.date)` calls with `parseISO()` from date-fns in 5 files for consistent date handling.
+99. ✅ **Transaction History Page Redirects in TEST_MODE** [FIXED 2025-11-30] - Fixed by replacing direct `auth.api.getSession()` call with `getAuthUser()` from auth-helpers.ts which has TEST_MODE bypass support. Also fixed hardcoded colors in page and component to use semantic theme variables.
 94. ✅ **Double-Negative Amount Display on Transactions** [FIXED 2025-11-30] - Fixed by using `Math.abs()` on transaction amounts in display logic across transaction list, recent transactions, and transaction history components. Also fixed test data script to store positive amounts.
 95. ✅ **Dashboard Recent Transactions Double-Negative Regression** [FIXED 2025-11-30] - The `recent-transactions.tsx` dashboard widget was still showing double-negatives (e.g., "-$-42.32") after Bug #94 fix. Fixed by adding `Math.abs()` to line 456 in the amount display logic.
 96. ✅ **Merchant Dropdown Shows Usage Numbers** [FIXED 2025-11-30] - Removed usage count display from merchant selector dropdown. Merchants now display as "Whole Foods" instead of "Whole Foods (4)". Sorting by usage count is preserved (API behavior), only the visual display was changed.

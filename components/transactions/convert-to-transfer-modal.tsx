@@ -22,6 +22,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowRightLeft, DollarSign, AlertCircle, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import Decimal from 'decimal.js';
+import { parseISO, format } from 'date-fns';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Transaction {
@@ -54,7 +55,7 @@ export function ConvertToTransferModal({
   transaction,
   onSuccess,
 }: ConvertToTransferModalProps) {
-  const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
+  const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [targetAccountId, setTargetAccountId] = useState<string>('');
   const [matchingTransactions, setMatchingTransactions] = useState<Transaction[]>([]);
@@ -96,8 +97,8 @@ export function ConvertToTransferModal({
       try {
         setLoadingMatches(true);
 
-        // Fetch transactions from target account
-        const response = await fetch(`/api/transactions?accountId=${targetAccountId}&limit=100`, { credentials: 'include' });
+        // Fetch transactions from target account (includes household header)
+        const response = await fetchWithHousehold(`/api/transactions?accountId=${targetAccountId}&limit=100`);
         if (!response.ok) {
           throw new Error('Failed to fetch transactions');
         }
@@ -109,14 +110,14 @@ export function ConvertToTransferModal({
         // - Similar amount (within 1% tolerance)
         // - Similar date (within 7 days)
         // - Not already a transfer
-        const txDate = new Date(transaction.date);
+        const txDate = parseISO(transaction.date);
         const txAmount = new Decimal(transaction.amount);
         const oppositeType = transaction.type === 'expense' ? 'income' : 'expense';
 
         const matches = transactions.filter((tx: Transaction) => {
           if (tx.type !== oppositeType) return false;
 
-          const matchDate = new Date(tx.date);
+          const matchDate = parseISO(tx.date);
           const daysDiff = Math.abs((txDate.getTime() - matchDate.getTime()) / (1000 * 60 * 60 * 24));
           if (daysDiff > 7) return false;
 
@@ -143,7 +144,7 @@ export function ConvertToTransferModal({
     };
 
     fetchMatchingTransactions();
-  }, [targetAccountId, transaction]);
+  }, [targetAccountId, transaction, fetchWithHousehold]);
 
   const handleConvert = async () => {
     if (!transaction || !targetAccountId) {
@@ -162,11 +163,10 @@ export function ConvertToTransferModal({
         body.matchingTransactionId = selectedMatchingTxId;
       }
 
-      const response = await fetch(`/api/transactions/${transaction.id}/convert-to-transfer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      const response = await postWithHousehold(
+        `/api/transactions/${transaction.id}/convert-to-transfer`,
+        body
+      );
 
       if (!response.ok) {
         const error = await response.json();
@@ -229,7 +229,7 @@ export function ConvertToTransferModal({
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-400">Date:</span>
                   <span className="text-sm text-white">
-                    {new Date(transaction.date).toLocaleDateString()}
+                    {format(parseISO(transaction.date), 'MMM d, yyyy')}
                   </span>
                 </div>
               </div>

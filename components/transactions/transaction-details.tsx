@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Trash2, Edit, ArrowLeft, ArrowRightLeft } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SplitsList } from './splits-list';
 import { ConvertToTransferModal } from './convert-to-transfer-modal';
+import { TransactionAuditLog } from './transaction-audit-log';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Transaction {
   id: string;
@@ -104,6 +106,7 @@ const typeConfig = {
 };
 
 export function TransactionDetails({ transactionId, onDelete }: TransactionDetailsProps) {
+  const { fetchWithHousehold, deleteWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,12 +114,17 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
   const [showConvertModal, setShowConvertModal] = useState(false);
 
   useEffect(() => {
+    // Wait for household to be selected before fetching
+    if (!selectedHouseholdId) {
+      return;
+    }
+
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Fetch transaction with enriched data
-        const txResponse = await fetch(`/api/transactions/${transactionId}`, { credentials: 'include' });
+        // Fetch transaction with enriched data (includes household header)
+        const txResponse = await fetchWithHousehold(`/api/transactions/${transactionId}`);
         if (!txResponse.ok) {
           throw new Error('Failed to fetch transaction');
         }
@@ -130,7 +138,7 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
     };
 
     fetchData();
-  }, [transactionId]);
+  }, [transactionId, fetchWithHousehold, selectedHouseholdId]);
 
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this transaction? This action cannot be undone.')) {
@@ -139,7 +147,7 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
 
     try {
       setDeleting(true);
-      const response = await fetch(`/api/transactions/${transactionId}`, { credentials: 'include', method: 'DELETE', });
+      const response = await deleteWithHousehold(`/api/transactions/${transactionId}`);
 
       if (!response.ok) {
         throw new Error('Failed to delete transaction');
@@ -159,7 +167,7 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
   const handleConvertSuccess = () => {
     // Reload transaction data after conversion
     setLoading(true);
-    fetch(`/api/transactions/${transactionId}`, { credentials: 'include' })
+    fetchWithHousehold(`/api/transactions/${transactionId}`)
       .then(res => res.json())
       .then(data => {
         setTransaction(data);
@@ -246,7 +254,7 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
                 {transaction.merchant?.name || transaction.description}
               </h1>
               <p className="text-[#9ca3af]">
-                {format(new Date(transaction.date), 'EEEE, MMMM d, yyyy')}
+                {format(parseISO(transaction.date), 'EEEE, MMMM d, yyyy')}
               </p>
             </div>
             <div className="text-right">
@@ -449,6 +457,9 @@ export function TransactionDetails({ transactionId, onDelete }: TransactionDetai
       {transaction.isSplit && (
         <SplitsList transactionId={transactionId} />
       )}
+
+      {/* Change History / Audit Trail */}
+      <TransactionAuditLog transactionId={transactionId} />
 
       {/* Convert to Transfer Modal */}
       <ConvertToTransferModal

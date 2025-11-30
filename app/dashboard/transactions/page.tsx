@@ -12,11 +12,13 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { AdvancedSearch } from '@/components/transactions/advanced-search';
 import { CSVImportModal } from '@/components/csv-import/csv-import-modal';
+import { TransactionTemplatesManager } from '@/components/transactions/transaction-templates-manager';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { HouseholdLoadingState } from '@/components/household/household-loading-state';
 import { NoHouseholdError } from '@/components/household/no-household-error';
+import { parseISO, format } from 'date-fns';
 import {
   Select,
   SelectContent,
@@ -279,7 +281,9 @@ function TransactionsContent() {
     try {
       setRepeatingTxId(transaction.id);
 
-      const today = new Date().toISOString().split('T')[0];
+      // Use toLocaleDateString with 'en-CA' locale to get YYYY-MM-DD format in local timezone
+      // This avoids the UTC timezone issue where toISOString() could return yesterday's date
+      const today = new Date().toLocaleDateString('en-CA');
 
       const response = await postWithHousehold('/api/transactions', {
         accountId: transaction.accountId,
@@ -930,6 +934,21 @@ function TransactionsContent() {
                 New Transaction
               </Button>
             </Link>
+            <TransactionTemplatesManager
+              onTemplateSelected={(template) => {
+                // Navigate to new transaction page with template data
+                const params = new URLSearchParams({
+                  templateId: template.id,
+                  accountId: template.accountId,
+                  amount: template.amount.toString(),
+                  type: template.type,
+                  description: template.name,
+                  ...(template.categoryId && { categoryId: template.categoryId }),
+                  ...(template.notes && { notes: template.notes }),
+                });
+                window.location.href = `/dashboard/transactions/new?${params.toString()}`;
+              }}
+            />
             <Button
               variant="outline"
               size="sm"
@@ -1019,10 +1038,7 @@ function TransactionsContent() {
                           )}
                           {/* Date, category, and split indicator */}
                           <p className="text-xs text-muted-foreground">
-                            {new Date(transaction.date).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                            })}
+                            {format(parseISO(transaction.date), 'MMM d')}
                             {categoryName && ` • ${categoryName}`}
                             {transaction.isSplit && ' • Split'}
                           </p>

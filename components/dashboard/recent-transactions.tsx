@@ -9,6 +9,7 @@ import { ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, AlertCircle, Refresh
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { parseISO, format } from 'date-fns';
 
 interface Transaction {
   id: string;
@@ -123,7 +124,9 @@ export function RecentTransactions() {
     try {
       setRepeatingTxId(transaction.id);
 
-      const today = new Date().toISOString().split('T')[0];
+      // Use toLocaleDateString with 'en-CA' locale to get YYYY-MM-DD format in local timezone
+      // This avoids the UTC timezone issue where toISOString() could return yesterday's date
+      const today = new Date().toLocaleDateString('en-CA');
 
       const response = await postWithHousehold('/api/transactions', {
         accountId: transaction.accountId,
@@ -428,10 +431,7 @@ export function RecentTransactions() {
                     </p>
                     {/* Date, category, and split indicator */}
                     <p className="text-xs text-muted-foreground">
-                      {new Date(transaction.date).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                      })}
+                      {format(parseISO(transaction.date), 'MMM d')}
                       {categoryName && ` • ${categoryName}`}
                       {transaction.isSplit && ' • Split'}
                     </p>
@@ -453,7 +453,7 @@ export function RecentTransactions() {
                       {transaction.type === 'transfer' || transaction.type === 'transfer_in' || transaction.type === 'transfer_out'
                         ? ''
                         : transaction.type === 'income' ? '+' : '-'}$
-                      {transaction.amount.toFixed(2)}
+                      {Math.abs(transaction.amount).toFixed(2)}
                     </p>
                     {/* Account name below amount */}
                     <p className="text-xs text-muted-foreground truncate max-w-[100px]">
