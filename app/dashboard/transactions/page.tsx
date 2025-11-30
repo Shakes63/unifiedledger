@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload, Plus, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
@@ -13,6 +13,10 @@ import { CSVImportModal } from '@/components/csv-import/csv-import-modal';
 import { TransactionTemplatesManager } from '@/components/transactions/transaction-templates-manager';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 import { InlineTransactionDropdown } from '@/components/transactions/inline-transaction-dropdown';
+import { InlineDescriptionEdit } from '@/components/transactions/inline-description-edit';
+import { InlineDateEdit } from '@/components/transactions/inline-date-edit';
+import { InlineAmountEdit } from '@/components/transactions/inline-amount-edit';
+import { InlineAccountSelect } from '@/components/transactions/inline-account-select';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { HouseholdLoadingState } from '@/components/household/household-loading-state';
@@ -571,7 +575,11 @@ function TransactionsContent() {
     return merchants;
   };
 
-  const handleUpdateTransaction = async (transactionId: string, field: 'categoryId' | 'merchantId', value: string) => {
+  const handleUpdateTransaction = async (
+    transactionId: string, 
+    field: 'categoryId' | 'merchantId' | 'accountId' | 'date' | 'amount' | 'description', 
+    value: string | number
+  ) => {
     try {
       setUpdatingTxId(transactionId);
 
@@ -957,107 +965,139 @@ function TransactionsContent() {
                     backgroundColor: 'var(--color-card)'
                   }}
                 >
-                  <Link href={`/dashboard/transactions/${transaction.id}`} className="block hover:bg-elevated rounded">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="p-1.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-elevated)' }}>
-                          {getTransactionIcon(transaction.type)}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="p-1.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                        {getTransactionIcon(transaction.type)}
+                      </div>
+                      {/* Date column - relative positioning for absolute date picker overlay */}
+                      <div className="relative flex-shrink-0 w-16">
+                        <InlineDateEdit
+                          value={transaction.date}
+                          transactionId={transaction.id}
+                          onUpdate={handleUpdateTransaction}
+                          disabled={updatingTxId === transaction.id}
+                        />
+                      </div>
+                      {/* Merchant & Description column */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {isTransfer ? (
+                            // Transfer: show "Account A → Account B" as text
+                            <p className="font-semibold text-foreground text-sm truncate">
+                              {display.merchant}
+                            </p>
+                          ) : (
+                            // Non-transfer: show merchant dropdown
+                            <InlineTransactionDropdown
+                              type="merchant"
+                              value={transaction.merchantId || null}
+                              transactionId={transaction.id}
+                              transactionType={transaction.type as 'income' | 'expense' | 'transfer_out' | 'transfer_in'}
+                              options={getFilteredMerchants(transaction.type)}
+                              onUpdate={handleUpdateTransaction}
+                              onCreate={handleInlineCreate}
+                              disabled={updatingTxId === transaction.id}
+                            />
+                          )}
+                          <EntityIdBadge id={transaction.id} label="TX" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          {/* Row 1: Merchant dropdown (for non-transfers) or transfer display */}
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {isTransfer ? (
-                              // Transfer: show "Account A → Account B" as text
-                              <p className="font-semibold text-foreground text-sm truncate">
-                                {display.merchant}
-                              </p>
-                            ) : (
-                              // Non-transfer: show merchant dropdown
-                              <InlineTransactionDropdown
-                                type="merchant"
-                                value={transaction.merchantId || null}
-                                transactionId={transaction.id}
-                                transactionType={transaction.type as 'income' | 'expense' | 'transfer_out' | 'transfer_in'}
-                                options={getFilteredMerchants(transaction.type)}
-                                onUpdate={handleUpdateTransaction}
-                                onCreate={handleInlineCreate}
-                                disabled={updatingTxId === transaction.id}
-                              />
-                            )}
-                            <EntityIdBadge id={transaction.id} label="TX" />
-                          </div>
-                          {/* Row 2: Description */}
-                          <p className="text-xs truncate text-muted-foreground">
-                            {display.description}
-                          </p>
-                          {/* Row 3: Date, category dropdown, split indicator */}
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
-                            <span>{format(parseISO(transaction.date), 'MMM d')}</span>
-                            {!isTransfer && (
-                              <>
-                                <span>•</span>
-                                <InlineTransactionDropdown
-                                  type="category"
-                                  value={transaction.categoryId || null}
-                                  transactionId={transaction.id}
-                                  transactionType={transaction.type as 'income' | 'expense' | 'transfer_out' | 'transfer_in'}
-                                  options={getFilteredCategories(transaction.type)}
-                                  onUpdate={handleUpdateTransaction}
-                                  onCreate={handleInlineCreate}
-                                  disabled={updatingTxId === transaction.id}
-                                />
-                              </>
-                            )}
-                            {transaction.isSplit && <span>• Split</span>}
-                          </div>
-                          {/* Developer Mode: Show related entity IDs */}
-                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            {!isTransfer && transaction.categoryId && (
-                              <EntityIdBadge id={transaction.categoryId} label="Cat" />
-                            )}
-                            {!isTransfer && transaction.merchantId && (
-                              <EntityIdBadge id={transaction.merchantId} label="Mer" />
-                            )}
-                            <EntityIdBadge id={transaction.accountId} label="Acc" />
-                          </div>
+                        <InlineDescriptionEdit
+                          value={transaction.description}
+                          transactionId={transaction.id}
+                          onUpdate={handleUpdateTransaction}
+                          disabled={updatingTxId === transaction.id}
+                        />
+                        {/* Developer Mode: Show related entity IDs */}
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          {!isTransfer && transaction.merchantId && (
+                            <EntityIdBadge id={transaction.merchantId} label="Mer" />
+                          )}
+                          <EntityIdBadge id={transaction.accountId} label="Acc" />
+                          {transaction.isSplit && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                              <Split className="w-3 h-3" /> Split
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <div className="text-right">
-                          {/* Amount */}
-                          {(() => {
-                            const isTransferTx = transaction.type === 'transfer_out' || transaction.type === 'transfer_in';
-                            const displayProps = isTransferTx 
-                              ? getTransferDisplayProps(transaction)
-                              : {
-                                  color: transaction.type === 'income'
-                                    ? 'var(--color-income)'
-                                    : 'var(--color-expense)',
-                                  sign: transaction.type === 'income' ? '+' : '-',
-                                  effectiveType: transaction.type as 'income' | 'expense',
-                                };
-                            
-                            return (
-                              <p
-                                className="font-semibold text-sm"
-                                style={{ color: displayProps.color }}
-                              >
-                                {displayProps.sign}${Math.abs(transaction.amount).toFixed(2)}
-                              </p>
-                            );
-                          })()}
-                          {/* Account name below amount */}
+                      {/* Category column */}
+                      {!isTransfer && (
+                        <div className="flex-shrink-0">
+                          <InlineTransactionDropdown
+                            type="category"
+                            value={transaction.categoryId || null}
+                            transactionId={transaction.id}
+                            transactionType={transaction.type as 'income' | 'expense' | 'transfer_out' | 'transfer_in'}
+                            options={getFilteredCategories(transaction.type)}
+                            onUpdate={handleUpdateTransaction}
+                            onCreate={handleInlineCreate}
+                            disabled={updatingTxId === transaction.id}
+                          />
+                          {transaction.categoryId && (
+                            <EntityIdBadge id={transaction.categoryId} label="Cat" />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <div className="text-right">
+                        {/* Amount (editable) */}
+                        {(() => {
+                          const isTransferTx = transaction.type === 'transfer_out' || transaction.type === 'transfer_in';
+                          const displayProps = isTransferTx 
+                            ? getTransferDisplayProps(transaction)
+                            : {
+                                color: transaction.type === 'income'
+                                  ? 'var(--color-income)'
+                                  : 'var(--color-expense)',
+                                sign: transaction.type === 'income' ? '+' : '-',
+                                effectiveType: transaction.type as 'income' | 'expense',
+                              };
+                          
+                          return (
+                            <InlineAmountEdit
+                              value={transaction.amount}
+                              transactionId={transaction.id}
+                              type={transaction.type as 'income' | 'expense' | 'transfer_out' | 'transfer_in'}
+                              sign={displayProps.sign}
+                              color={displayProps.color}
+                              onUpdate={handleUpdateTransaction}
+                              disabled={updatingTxId === transaction.id}
+                            />
+                          );
+                        })()}
+                        {/* Account (editable for non-transfers) */}
+                        {isTransfer ? (
                           <p className="text-xs text-muted-foreground truncate max-w-[100px]">
                             {accountName}
                           </p>
-                        </div>
+                        ) : (
+                          <InlineAccountSelect
+                            value={transaction.accountId}
+                            transactionId={transaction.id}
+                            accounts={accounts}
+                            onUpdate={handleUpdateTransaction}
+                            disabled={updatingTxId === transaction.id}
+                          />
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <Link href={`/dashboard/transactions/${transaction.id}`}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 flex-shrink-0"
+                            style={{ color: 'var(--color-muted-foreground)' }}
+                            title="Edit transaction"
+                          >
+                            <Pencil className="w-3 h-3" />
+                          </Button>
+                        </Link>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleRepeatTransaction(transaction);
-                          }}
+                          onClick={() => handleRepeatTransaction(transaction)}
                           disabled={repeatingTxId === transaction.id}
                           className="h-7 w-7 flex-shrink-0"
                           style={{ color: 'var(--color-muted-foreground)' }}
@@ -1067,7 +1107,7 @@ function TransactionsContent() {
                         </Button>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 </Card>
               );
             })}

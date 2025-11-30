@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Select,
   SelectContent,
@@ -42,14 +42,24 @@ export function InlineTransactionDropdown({
   disabled = false,
   className,
 }: InlineTransactionDropdownProps) {
+  const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [selectOpen, setSelectOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  // Use refs to track state for race condition prevention (refs update synchronously)
+  const isUpdatingRef = useRef(false);
+  const selectOpenRef = useRef(false);
 
   const isMissing = !value;
   const field = type === 'category' ? 'categoryId' : 'merchantId';
   const placeholder = type === 'category' ? 'Category...' : 'Merchant...';
+
+  // Get current option name
+  const currentOption = options.find(opt => opt.id === value);
+  const displayName = currentOption?.name || placeholder;
 
   // Filter categories based on transaction type
   const filteredOptions = type === 'category'
@@ -59,16 +69,66 @@ export function InlineTransactionDropdown({
       })
     : options;
 
+  // Auto-open dropdown when entering edit mode
+  useEffect(() => {
+    if (isEditing && !isCreating) {
+      // Small delay to ensure the Select is mounted
+      const timer = setTimeout(() => {
+        selectOpenRef.current = true;
+        setSelectOpen(true);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isEditing, isCreating]);
+
+  // Close edit mode when clicking outside
+  // Note: We only use this for the "create new" input mode.
+  // For the Select dropdown, onOpenChange handles closing.
+  // The Select uses a Portal, so clicks on dropdown items appear outside wrapperRef.
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        // Don't close if select dropdown is open (it's portaled outside wrapperRef)
+        // The Select's onOpenChange will handle closing when dropdown closes
+        // Use ref to get current value (avoids stale closure)
+        if (selectOpenRef.current) {
+          return;
+        }
+        // Use ref to check updating state to avoid race condition
+        if (!isUpdatingRef.current && !isCreatingNew) {
+          setIsEditing(false);
+          setIsCreating(false);
+          setNewName('');
+          selectOpenRef.current = false;
+          setSelectOpen(false);
+        }
+      }
+    };
+
+    if (isEditing) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isEditing, isCreatingNew]);
+
   const handleSelect = async (selectedValue: string) => {
     if (selectedValue === '__create_new__') {
       setIsCreating(true);
+      selectOpenRef.current = false;
+      setSelectOpen(false);
       return;
     }
 
     try {
+      // Set ref immediately to prevent race condition with onOpenChange
+      isUpdatingRef.current = true;
       setIsUpdating(true);
       await onUpdate(transactionId, field, selectedValue);
+      setIsEditing(false);
+      selectOpenRef.current = false;
+      setSelectOpen(false);
     } finally {
+      isUpdatingRef.current = false;
       setIsUpdating(false);
     }
   };
@@ -81,6 +141,7 @@ export function InlineTransactionDropdown({
       await onCreate(transactionId, type, newName.trim());
       setNewName('');
       setIsCreating(false);
+      setIsEditing(false);
     } finally {
       setIsCreatingNew(false);
     }
@@ -92,15 +153,49 @@ export function InlineTransactionDropdown({
       e.stopPropagation();
       handleCreate();
     } else if (e.key === 'Escape') {
+      e.preventDefault();
       setIsCreating(false);
+      setIsEditing(false);
       setNewName('');
+      selectOpenRef.current = false;
+      setSelectOpen(false);
     }
   };
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!disabled && !isUpdating) {
+      setIsEditing(true);
+    }
+  };
+
+  // Display mode: show text that can be clicked to edit
+  if (!isEditing) {
+    return (
+      <span
+        className={cn(
+          "text-xs cursor-pointer inline-flex items-center px-1.5 py-0.5 rounded",
+          "transition-colors duration-150",
+          isMissing
+            ? "border border-[var(--color-warning)] text-muted-foreground bg-transparent hover:bg-elevated"
+            : "text-foreground hover:bg-elevated hover:underline",
+          disabled && "cursor-not-allowed opacity-60",
+          className
+        )}
+        onClick={handleClick}
+        title={`${displayName} (click to edit)`}
+      >
+        {displayName}
+      </span>
+    );
+  }
 
   // In "create new" mode, show inline input
   if (isCreating) {
     return (
       <div 
+        ref={wrapperRef}
         className={cn("flex items-center gap-1", className)}
         onClick={(e) => e.preventDefault()}
       >
@@ -140,6 +235,7 @@ export function InlineTransactionDropdown({
             e.preventDefault();
             e.stopPropagation();
             setIsCreating(false);
+            setIsEditing(false);
             setNewName('');
           }}
           disabled={isCreatingNew}
@@ -151,9 +247,10 @@ export function InlineTransactionDropdown({
     );
   }
 
-  // Normal dropdown mode
+  // Edit mode: show dropdown
   return (
     <div 
+      ref={wrapperRef}
       className={cn("inline-flex items-center", className)}
       onClick={(e) => e.preventDefault()}
     >
@@ -161,14 +258,27 @@ export function InlineTransactionDropdown({
         value={value || ''}
         onValueChange={handleSelect}
         disabled={disabled || isUpdating}
+        open={selectOpen}
+        onOpenChange={(open) => {
+          selectOpenRef.current = open;
+          setSelectOpen(open);
+          // If dropdown closes without selection, exit edit mode
+          // Use ref to check updating state to avoid race condition
+          if (!open && !isUpdatingRef.current) {
+            setTimeout(() => {
+              // Double-check ref in timeout as well
+              if (!isCreating && !isUpdatingRef.current) {
+                setIsEditing(false);
+              }
+            }, 100);
+          }
+        }}
       >
         <SelectTrigger
           className={cn(
             "h-6 text-xs px-2 py-0.5 min-w-[80px] max-w-[140px] bg-elevated rounded",
             "focus:ring-1 focus:ring-offset-0",
-            isMissing
-              ? "border-[1.5px] border-[var(--color-warning)] text-muted-foreground"
-              : "border border-border text-foreground",
+            "border border-[var(--color-primary)] text-foreground",
             isUpdating && "opacity-60"
           )}
           onClick={(e) => e.stopPropagation()}
@@ -199,4 +309,3 @@ export function InlineTransactionDropdown({
     </div>
   );
 }
-
