@@ -51,7 +51,17 @@ alwaysApply: false
 
 ## Recent Major Features
 
-**Latest (2025-11-29):**
+**Latest (2025-11-30):**
+- Bill Instance Operations (✅ COMPLETE)
+  - ✅ BillInstanceActionsModal component for managing bill payment status
+  - ✅ TransactionLinkSelector component for linking expenses to bill instances
+  - ✅ Quick Actions: Mark as Paid, Mark as Pending, Skip Instance
+  - ✅ Link Transaction tab with smart matching (amount similarity, date proximity)
+  - ✅ Dropdown menu on each bill instance row with contextual actions
+  - ✅ View linked transaction, unlink functionality
+  - ✅ One-time bills auto-deactivate after payment (existing backend feature)
+
+**Previous (2025-11-29):**
 - Annual Bill Planning Fixes (✅ COMPLETE)
   - ✅ Fixed timezone bug in annual planning grid (Nov 1st appearing as Oct 31st) by parsing ISO date strings directly
   - ✅ Fixed quarterly bills to create 4 instances (full year) instead of 3

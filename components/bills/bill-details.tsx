@@ -1,57 +1,46 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Trash2, Edit, ArrowLeft, Calendar, DollarSign, CheckCircle2, AlertCircle, Clock, User } from 'lucide-react';
+import { Trash2, Edit, ArrowLeft, Calendar, DollarSign, CheckCircle2, AlertCircle, Clock, User, MoreHorizontal, ExternalLink, SkipForward } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useHousehold } from '@/contexts/household-context';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { BillInstanceActionsModal } from './bill-instance-actions-modal';
 import {
   FREQUENCY_LABELS,
   formatDueDateDisplay,
 } from '@/lib/bills/bill-utils';
+import type { Bill } from '@/lib/types';
 
 interface BillInstance {
   id: string;
   userId: string;
+  householdId: string;
   billId: string;
   dueDate: string;
   expectedAmount: number;
-  actualAmount?: number;
-  paidDate?: string;
-  transactionId?: string;
+  actualAmount?: number | null;
+  paidDate?: string | null;
+  transactionId?: string | null;
   status: 'pending' | 'paid' | 'overdue' | 'skipped';
   daysLate: number;
   lateFee: number;
   isManualOverride: boolean;
-  notes?: string;
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
-}
-
-interface Bill {
-  id: string;
-  userId: string;
-  name: string;
-  categoryId?: string;
-  merchantId?: string;
-  expectedAmount: number;
-  dueDate: number;
-  frequency: string;
-  specificDueDate?: string;
-  startMonth?: number | null; // 0-11 for quarterly/semi-annual/annual bills
-  isVariableAmount: boolean;
-  amountTolerance: number;
-  payeePatterns?: string;
-  accountId?: string;
-  isActive: boolean;
-  autoMarkPaid: boolean;
-  notes?: string;
-  createdAt: string;
 }
 
 interface Category {
@@ -86,35 +75,49 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  
+  // Modal state for instance actions
+  const [selectedInstance, setSelectedInstance] = useState<BillInstance | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const fetchBillData = useCallback(async () => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetchWithHousehold(`/api/bills/${billId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch bill');
+      }
+      const data = await response.json();
+      setBill(data.bill);
+      setInstances(data.instances || []);
+      setCategory(data.category || null);
+      setMerchant(data.merchant || null);
+      setAccount(data.account || null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  }, [billId, selectedHouseholdId, fetchWithHousehold]);
 
   useEffect(() => {
-    const fetchBill = async () => {
-      if (!selectedHouseholdId) {
-        setLoading(false);
-        return;
-      }
+    fetchBillData();
+  }, [fetchBillData]);
 
-      try {
-        setLoading(true);
-        const response = await fetchWithHousehold(`/api/bills/${billId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch bill');
-        }
-        const data = await response.json();
-        setBill(data.bill);
-        setInstances(data.instances || []);
-        setCategory(data.category || null);
-        setMerchant(data.merchant || null);
-        setAccount(data.account || null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const handleOpenInstanceModal = (instance: BillInstance) => {
+    setSelectedInstance(instance);
+    setIsModalOpen(true);
+  };
 
-    fetchBill();
-  }, [billId, selectedHouseholdId, fetchWithHousehold]);
+  const handleInstanceUpdated = () => {
+    // Refetch bill data to get updated instances
+    fetchBillData();
+  };
 
   const handleDelete = async () => {
     if (!window.confirm('Are you sure you want to delete this bill? This will delete all bill instances and cannot be undone.')) {
@@ -311,16 +314,21 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
 
       {/* Overdue Instances */}
       {overdueInstances.length > 0 && (
-        <Card className="bg-[#0a0a0a] border-red-900/30">
+        <Card className="bg-card border-[var(--color-error)]/30">
           <CardHeader>
-            <CardTitle className="text-red-400 flex items-center gap-2">
+            <CardTitle className="text-[var(--color-error)] flex items-center gap-2">
               <AlertCircle className="w-5 h-5" />
               Overdue Instances ({overdueInstances.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {overdueInstances.map((instance) => (
-              <InstanceItem key={instance.id} instance={instance} />
+              <InstanceItem
+                key={instance.id}
+                instance={instance}
+                bill={bill}
+                onAction={handleOpenInstanceModal}
+              />
             ))}
           </CardContent>
         </Card>
@@ -328,16 +336,21 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
 
       {/* Upcoming Instances */}
       {upcomingInstances.length > 0 && (
-        <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+        <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-amber-400" />
+              <Clock className="w-5 h-5 text-[var(--color-warning)]" />
               Upcoming Instances
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {upcomingInstances.map((instance) => (
-              <InstanceItem key={instance.id} instance={instance} />
+              <InstanceItem
+                key={instance.id}
+                instance={instance}
+                bill={bill}
+                onAction={handleOpenInstanceModal}
+              />
             ))}
           </CardContent>
         </Card>
@@ -345,60 +358,192 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
 
       {/* Paid Instances */}
       {paidInstances.length > 0 && (
-        <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
+        <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <CheckCircle2 className="w-5 h-5 text-[var(--color-success)]" />
               Recently Paid
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {paidInstances.map((instance) => (
-              <InstanceItem key={instance.id} instance={instance} />
+              <InstanceItem
+                key={instance.id}
+                instance={instance}
+                bill={bill}
+                onAction={handleOpenInstanceModal}
+              />
             ))}
           </CardContent>
         </Card>
+      )}
+
+      {/* Skipped Instances */}
+      {instances.filter(i => i.status === 'skipped').length > 0 && (
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <SkipForward className="w-5 h-5 text-muted-foreground" />
+              Skipped Instances
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {instances.filter(i => i.status === 'skipped').map((instance) => (
+              <InstanceItem
+                key={instance.id}
+                instance={instance}
+                bill={bill}
+                onAction={handleOpenInstanceModal}
+              />
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Instance Actions Modal */}
+      {selectedInstance && bill && (
+        <BillInstanceActionsModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          instance={selectedInstance}
+          bill={bill}
+          onSuccess={handleInstanceUpdated}
+        />
       )}
     </div>
   );
 }
 
-function InstanceItem({ instance }: { instance: BillInstance }) {
+interface InstanceItemProps {
+  instance: BillInstance;
+  bill: Bill;
+  onAction: (instance: BillInstance) => void;
+}
+
+function InstanceItem({ instance, bill, onAction }: InstanceItemProps) {
   const dueDate = parseISO(instance.dueDate);
+  const isPending = instance.status === 'pending';
+  const isOverdue = instance.status === 'overdue';
+  const isPaid = instance.status === 'paid';
+  const isSkipped = instance.status === 'skipped';
 
   return (
-    <div className="flex items-center justify-between p-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg">
+    <div className="flex items-center justify-between p-3 bg-elevated border border-border rounded-lg hover:bg-card transition-colors">
       <div className="flex items-start gap-3 flex-1">
         <div className="mt-0.5">
-          {instance.status === 'paid' && <CheckCircle2 className="w-5 h-5 text-emerald-400" />}
-          {instance.status === 'overdue' && <AlertCircle className="w-5 h-5 text-red-400" />}
-          {instance.status === 'pending' && <Clock className="w-5 h-5 text-amber-400" />}
+          {isPaid && <CheckCircle2 className="w-5 h-5 text-[var(--color-success)]" />}
+          {isOverdue && <AlertCircle className="w-5 h-5 text-[var(--color-error)]" />}
+          {isPending && <Clock className="w-5 h-5 text-[var(--color-warning)]" />}
+          {isSkipped && <SkipForward className="w-5 h-5 text-muted-foreground" />}
         </div>
-        <div className="flex-1">
-          <p className="text-sm text-gray-400">Due: {format(dueDate, 'MMM d, yyyy')}</p>
-          {instance.status === 'overdue' && instance.daysLate > 0 && (
-            <p className="text-sm text-red-400">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-muted-foreground">Due: {format(dueDate, 'MMM d, yyyy')}</p>
+          {isOverdue && instance.daysLate > 0 && (
+            <p className="text-sm text-[var(--color-error)]">
               {instance.daysLate} day{instance.daysLate !== 1 ? 's' : ''} overdue
-              {instance.lateFee > 0 && ` • Late fee: $${instance.lateFee.toFixed(2)}`}
+              {instance.lateFee > 0 && ` - Late fee: $${instance.lateFee.toFixed(2)}`}
             </p>
           )}
-          {instance.status === 'paid' && instance.paidDate && (
-            <p className="text-sm text-emerald-400">
+          {isPaid && instance.paidDate && (
+            <p className="text-sm text-[var(--color-success)]">
               Paid: {format(parseISO(instance.paidDate), 'MMM d, yyyy')}
             </p>
           )}
+          {isSkipped && (
+            <p className="text-sm text-muted-foreground">Skipped</p>
+          )}
           {instance.notes && (
-            <p className="text-sm text-gray-500 mt-1">{instance.notes}</p>
+            <p className="text-sm text-muted-foreground mt-1 truncate">{instance.notes}</p>
+          )}
+          {isPaid && instance.transactionId && (
+            <Link
+              href={`/dashboard/transactions/${instance.transactionId}`}
+              className="text-sm text-[var(--color-primary)] hover:underline inline-flex items-center gap-1 mt-1"
+            >
+              <ExternalLink className="w-3 h-3" />
+              View Transaction
+            </Link>
           )}
         </div>
       </div>
-      <div className="text-right">
-        <p className="font-medium text-white">${instance.expectedAmount.toFixed(2)}</p>
-        {instance.actualAmount && instance.actualAmount !== instance.expectedAmount && (
-          <p className="text-sm text-gray-400">
-            Actual: ${instance.actualAmount.toFixed(2)}
-          </p>
-        )}
+      <div className="flex items-center gap-3">
+        <div className="text-right">
+          <p className="font-mono font-medium text-foreground">${instance.expectedAmount.toFixed(2)}</p>
+          {instance.actualAmount && instance.actualAmount !== instance.expectedAmount && (
+            <p className="text-sm text-muted-foreground font-mono">
+              Actual: ${instance.actualAmount.toFixed(2)}
+            </p>
+          )}
+        </div>
+        
+        {/* Action Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <MoreHorizontal className="w-4 h-4" />
+              <span className="sr-only">Open menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-card border-border">
+            {(isPending || isOverdue) && (
+              <>
+                <DropdownMenuItem
+                  onClick={() => onAction(instance)}
+                  className="cursor-pointer"
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2 text-[var(--color-success)]" />
+                  Mark as Paid
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => onAction(instance)}
+                  className="cursor-pointer"
+                >
+                  <SkipForward className="w-4 h-4 mr-2" />
+                  Skip Instance
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => onAction(instance)}
+                  className="cursor-pointer"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Link to Transaction
+                </DropdownMenuItem>
+              </>
+            )}
+            {isPaid && (
+              <>
+                {instance.transactionId && (
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href={`/dashboard/transactions/${instance.transactionId}`}
+                      className="cursor-pointer"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      View Linked Transaction
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  onClick={() => onAction(instance)}
+                  className="cursor-pointer"
+                >
+                  <Clock className="w-4 h-4 mr-2" />
+                  Mark as Pending
+                </DropdownMenuItem>
+              </>
+            )}
+            {isSkipped && (
+              <DropdownMenuItem
+                onClick={() => onAction(instance)}
+                className="cursor-pointer"
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                Mark as Pending
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
