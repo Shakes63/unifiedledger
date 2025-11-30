@@ -2,13 +2,13 @@
 
 ## New Features
 
-_Add new feature requests here. Include a brief description of what the feature should do._
+Extend inline transaction editing to include date, account, amount, and description fields - all editable directly on the transaction card alongside the existing category and merchant dropdowns.
 
 ---
 
 ## Incomplete Features
 
-_No incomplete features at this time._
+_No incomplete features at this time.
 
 ---
 
@@ -55,3 +55,4 @@ _No incomplete features at this time._
 39. **Bill Instance Operations** [COMPLETED] - UI for managing bill payment status with Mark as Paid, Mark as Pending, Skip, and Link to Transaction.
 40. **Goal Deadlines on Calendar** [COMPLETED] - Display savings goal target dates on calendar with progress indicators, goal colors, and detailed view in day modal.
 41. **Debt Milestones on Calendar** [COMPLETED] - Display debt target payoff dates and achieved milestones (25%, 50%, 75%, 100%) on calendar with progress indicators, debt colors, trophy/credit card icons, and detailed view in day modal.
+42. **Inline Transaction Dropdowns** [COMPLETED] - Category and merchant fields editable as inline dropdowns on transaction cards with yellow outline for missing fields.

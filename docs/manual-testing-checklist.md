@@ -89,6 +89,22 @@ This document provides a comprehensive checklist for manually testing all featur
 - [ ] Pagination works (if many transactions) - Not tested (only 6 transactions)
 - [x] Clicking transaction opens detail view - **FIXED (Bug #89)**: Now uses household-aware fetch with x-household-id header
 
+### Inline Transaction Dropdowns
+
+- [ ] Category displays as inline dropdown on transaction card
+- [ ] Merchant displays as inline dropdown on transaction card
+- [ ] Selecting category from dropdown updates transaction immediately
+- [ ] Selecting merchant from dropdown updates transaction immediately
+- [ ] "Create new" option in category dropdown creates and applies new category
+- [ ] "Create new" option in merchant dropdown creates and applies new merchant
+- [ ] Missing category shows "Category..." placeholder with yellow border
+- [ ] Missing merchant shows "Merchant..." placeholder with yellow border
+- [ ] Transaction card has yellow border when category or merchant is missing
+- [ ] Transaction card has normal border when both category and merchant are filled
+- [ ] Transfer transactions do not show category/merchant dropdowns (show account transfer display instead)
+- [ ] Dropdown loading state shows spinner during update
+- [ ] Toast notification appears after successful update
+
 ### New Transaction (`/dashboard/transactions/new`)
 
 - [x] Form loads with all fields

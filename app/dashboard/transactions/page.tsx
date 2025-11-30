@@ -7,25 +7,17 @@ import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { AdvancedSearch } from '@/components/transactions/advanced-search';
 import { CSVImportModal } from '@/components/csv-import/csv-import-modal';
 import { TransactionTemplatesManager } from '@/components/transactions/transaction-templates-manager';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
+import { InlineTransactionDropdown } from '@/components/transactions/inline-transaction-dropdown';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { HouseholdLoadingState } from '@/components/household/household-loading-state';
 import { NoHouseholdError } from '@/components/household/no-household-error';
 import { parseISO, format } from 'date-fns';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 interface Transaction {
   id: string;
@@ -84,11 +76,6 @@ function TransactionsContent() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [defaultImportTemplateId, setDefaultImportTemplateId] = useState<string | undefined>(undefined);
   const [updatingTxId, setUpdatingTxId] = useState<string | null>(null);
-  const [creatingCategory, setCreatingCategory] = useState(false);
-  const [creatingMerchant, setCreatingMerchant] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newMerchantName, setNewMerchantName] = useState('');
-  const [pendingTxId, setPendingTxId] = useState<string | null>(null);
   const [combinedTransferView, setCombinedTransferView] = useState<boolean>(true); // Default to combined view
 
   // Auto-filter by account if accountId is in URL
@@ -614,95 +601,58 @@ function TransactionsContent() {
     }
   };
 
-  const handleCreateCategory = async (transactionId: string) => {
-    if (!newCategoryName.trim()) {
-      toast.error('Category name is required');
-      return;
-    }
-
+  // Handler for inline dropdown create action
+  const handleInlineCreate = async (transactionId: string, type: 'category' | 'merchant', name: string) => {
     try {
       setUpdatingTxId(transactionId);
-
-      // Get transaction to determine category type
-      const transaction = transactions.find(t => t.id === transactionId);
-      const categoryType = transaction?.type === 'income' ? 'income' : 'variable_expense';
-
-      // Create category
-      const response = await postWithHousehold('/api/categories', {
-        name: newCategoryName.trim(),
-        type: categoryType,
-      });
-
-      if (response.ok) {
-        const newCategory = await response.json();
-
-        // Refresh categories
-        const catResponse = await fetchWithHousehold('/api/categories');
-        if (catResponse.ok) {
-          const catData = await catResponse.json();
-          setCategories(catData);
-        }
-
-        // Update transaction with new category
-        await handleUpdateTransaction(transactionId, 'categoryId', newCategory.id);
-
-        setNewCategoryName('');
-        setCreatingCategory(false);
-        toast.success('Category created and applied');
-      } else {
-        toast.error('Failed to create category');
-      }
-    } catch (error) {
-      console.error('Error creating category:', error);
-      toast.error('Failed to create category');
-    } finally {
-      setUpdatingTxId(null);
-    }
-  };
-
-  const handleCreateMerchant = async (transactionId: string) => {
-    if (!newMerchantName.trim()) {
-      toast.error('Merchant name is required');
-      return;
-    }
-
-    try {
-      setUpdatingTxId(transactionId);
-
-      // Get transaction to determine merchant category
       const transaction = transactions.find(t => t.id === transactionId);
 
-      // If transaction has a category, link merchant to it
-      const merchantCategoryId = transaction?.categoryId || null;
+      if (type === 'category') {
+        const categoryType = transaction?.type === 'income' ? 'income' : 'variable_expense';
+        const response = await postWithHousehold('/api/categories', {
+          name: name.trim(),
+          type: categoryType,
+        });
 
-      // Create merchant
-      const response = await postWithHousehold('/api/merchants', {
-        name: newMerchantName.trim(),
-        categoryId: merchantCategoryId,
-      });
-
-      if (response.ok) {
-        const newMerchant = await response.json();
-
-        // Refresh merchants
-        const merResponse = await fetchWithHousehold('/api/merchants?limit=1000');
-        if (merResponse.ok) {
-          const merData = await merResponse.json();
-          setMerchants(merData);
+        if (response.ok) {
+          const newCategory = await response.json();
+          // Refresh categories
+          const catResponse = await fetchWithHousehold('/api/categories');
+          if (catResponse.ok) {
+            const catData = await catResponse.json();
+            setCategories(catData);
+          }
+          // Update transaction
+          await handleUpdateTransaction(transactionId, 'categoryId', newCategory.id);
+          toast.success(`Category "${name}" created`);
+        } else {
+          toast.error('Failed to create category');
         }
-
-        // Update transaction with new merchant
-        await handleUpdateTransaction(transactionId, 'merchantId', newMerchant.id);
-
-        setNewMerchantName('');
-        setCreatingMerchant(false);
-        toast.success('Merchant created and applied');
       } else {
-        toast.error('Failed to create merchant');
+        const merchantCategoryId = transaction?.categoryId || null;
+        const response = await postWithHousehold('/api/merchants', {
+          name: name.trim(),
+          categoryId: merchantCategoryId,
+        });
+
+        if (response.ok) {
+          const newMerchant = await response.json();
+          // Refresh merchants
+          const merResponse = await fetchWithHousehold('/api/merchants?limit=1000');
+          if (merResponse.ok) {
+            const merData = await merResponse.json();
+            setMerchants(merData);
+          }
+          // Update transaction
+          await handleUpdateTransaction(transactionId, 'merchantId', newMerchant.id);
+          toast.success(`Merchant "${name}" created`);
+        } else {
+          toast.error('Failed to create merchant');
+        }
       }
     } catch (error) {
-      console.error('Error creating merchant:', error);
-      toast.error('Failed to create merchant');
+      console.error(`Error creating ${type}:`, error);
+      toast.error(`Failed to create ${type}`);
     } finally {
       setUpdatingTxId(null);
     }
@@ -1014,34 +964,52 @@ function TransactionsContent() {
                           {getTransactionIcon(transaction.type)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          {/* Merchant name on top (bold) */}
-                          {display.merchant && (
-                            <div className="flex items-center gap-2">
+                          {/* Row 1: Merchant dropdown (for non-transfers) or transfer display */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isTransfer ? (
+                              // Transfer: show "Account A → Account B" as text
                               <p className="font-semibold text-foreground text-sm truncate">
                                 {display.merchant}
                               </p>
-                              <EntityIdBadge id={transaction.id} label="TX" />
-                            </div>
-                          )}
-                          {/* Description below merchant (or standalone if no merchant) */}
-                          {display.merchant ? (
-                            <p className="text-xs truncate text-muted-foreground">
-                              {display.description}
-                            </p>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium text-foreground text-sm truncate">
-                                {display.description}
-                              </p>
-                              <EntityIdBadge id={transaction.id} label="TX" />
-                            </div>
-                          )}
-                          {/* Date, category, and split indicator */}
-                          <p className="text-xs text-muted-foreground">
-                            {format(parseISO(transaction.date), 'MMM d')}
-                            {categoryName && ` • ${categoryName}`}
-                            {transaction.isSplit && ' • Split'}
+                            ) : (
+                              // Non-transfer: show merchant dropdown
+                              <InlineTransactionDropdown
+                                type="merchant"
+                                value={transaction.merchantId || null}
+                                transactionId={transaction.id}
+                                transactionType={transaction.type as 'income' | 'expense' | 'transfer_out' | 'transfer_in'}
+                                options={getFilteredMerchants(transaction.type)}
+                                onUpdate={handleUpdateTransaction}
+                                onCreate={handleInlineCreate}
+                                disabled={updatingTxId === transaction.id}
+                              />
+                            )}
+                            <EntityIdBadge id={transaction.id} label="TX" />
+                          </div>
+                          {/* Row 2: Description */}
+                          <p className="text-xs truncate text-muted-foreground">
+                            {display.description}
                           </p>
+                          {/* Row 3: Date, category dropdown, split indicator */}
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground flex-wrap">
+                            <span>{format(parseISO(transaction.date), 'MMM d')}</span>
+                            {!isTransfer && (
+                              <>
+                                <span>•</span>
+                                <InlineTransactionDropdown
+                                  type="category"
+                                  value={transaction.categoryId || null}
+                                  transactionId={transaction.id}
+                                  transactionType={transaction.type as 'income' | 'expense' | 'transfer_out' | 'transfer_in'}
+                                  options={getFilteredCategories(transaction.type)}
+                                  onUpdate={handleUpdateTransaction}
+                                  onCreate={handleInlineCreate}
+                                  disabled={updatingTxId === transaction.id}
+                                />
+                              </>
+                            )}
+                            {transaction.isSplit && <span>• Split</span>}
+                          </div>
                           {/* Developer Mode: Show related entity IDs */}
                           <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                             {!isTransfer && transaction.categoryId && (
@@ -1058,8 +1026,8 @@ function TransactionsContent() {
                         <div className="text-right">
                           {/* Amount */}
                           {(() => {
-                            const isTransfer = transaction.type === 'transfer_out' || transaction.type === 'transfer_in';
-                            const displayProps = isTransfer 
+                            const isTransferTx = transaction.type === 'transfer_out' || transaction.type === 'transfer_in';
+                            const displayProps = isTransferTx 
                               ? getTransferDisplayProps(transaction)
                               : {
                                   color: transaction.type === 'income'
@@ -1100,166 +1068,6 @@ function TransactionsContent() {
                       </div>
                     </div>
                   </Link>
-
-                  {/* Missing Info Section - Inline */}
-                  {hasMissingInfo && (
-                    <div className="mt-3 pt-3 border-t" style={{ borderColor: 'color-mix(in oklch, var(--color-warning) 30%, transparent)' }} onClick={(e) => e.stopPropagation()}>
-                      <p className="text-xs mb-2" style={{ color: 'var(--color-warning)' }}>
-                        {updatingTxId === transaction.id ? 'Updating...' : 'Missing information:'}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {/* Category selector */}
-                        {!transaction.categoryId && (
-                          <div className="flex-1 min-w-[200px]">
-                            {creatingCategory && pendingTxId === transaction.id ? (
-                              <div className="flex gap-1">
-                                <Input
-                                  value={newCategoryName}
-                                  onChange={(e) => setNewCategoryName(e.target.value)}
-                                  placeholder="New category name..."
-                                  className="h-8 text-xs"
-                                  style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      handleCreateCategory(transaction.id);
-                                    } else if (e.key === 'Escape') {
-                                      setCreatingCategory(false);
-                                      setNewCategoryName('');
-                                      setPendingTxId(null);
-                                    }
-                                  }}
-                                  autoFocus
-                                  disabled={updatingTxId === transaction.id}
-                                />
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleCreateCategory(transaction.id)}
-                                  disabled={updatingTxId === transaction.id || !newCategoryName.trim()}
-                                  className="h-8 px-2 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90"
-                                >
-                                  Add
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setCreatingCategory(false);
-                                    setNewCategoryName('');
-                                    setPendingTxId(null);
-                                  }}
-                                  disabled={updatingTxId === transaction.id}
-                                  className="h-8 px-2"
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            ) : (
-                              <Select
-                                onValueChange={(value) => {
-                                  if (value === '__create_new__') {
-                                    setCreatingCategory(true);
-                                    setPendingTxId(transaction.id);
-                                  } else {
-                                    handleUpdateTransaction(transaction.id, 'categoryId', value);
-                                  }
-                                }}
-                                disabled={updatingTxId === transaction.id}
-                              >
-                                <SelectTrigger className="h-8 text-xs disabled:opacity-50" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
-                                  <SelectValue placeholder="Select category..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__create_new__" className="font-medium" style={{ color: 'var(--color-income)' }}>
-                                    + Create new category...
-                                  </SelectItem>
-                                  {getFilteredCategories(transaction.type).map((category) => (
-                                    <SelectItem key={category.id} value={category.id}>
-                                      {category.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Merchant selector (only for non-transfer transactions) */}
-                        {transaction.type !== 'transfer_out' && transaction.type !== 'transfer_in' && !transaction.merchantId && (
-                          <div className="flex-1 min-w-[200px]">
-                            {creatingMerchant && pendingTxId === transaction.id ? (
-                              <div className="flex gap-1">
-                                <Input
-                                  value={newMerchantName}
-                                  onChange={(e) => setNewMerchantName(e.target.value)}
-                                  placeholder="New merchant name..."
-                                  className="h-8 text-xs"
-                                  style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      handleCreateMerchant(transaction.id);
-                                    } else if (e.key === 'Escape') {
-                                      setCreatingMerchant(false);
-                                      setNewMerchantName('');
-                                      setPendingTxId(null);
-                                    }
-                                  }}
-                                  autoFocus
-                                  disabled={updatingTxId === transaction.id}
-                                />
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleCreateMerchant(transaction.id)}
-                                  disabled={updatingTxId === transaction.id || !newMerchantName.trim()}
-                                  className="h-8 px-2 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90"
-                                >
-                                  Add
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    setCreatingMerchant(false);
-                                    setNewMerchantName('');
-                                    setPendingTxId(null);
-                                  }}
-                                  disabled={updatingTxId === transaction.id}
-                                  className="h-8 px-2"
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            ) : (
-                              <Select
-                                onValueChange={(value) => {
-                                  if (value === '__create_new__') {
-                                    setCreatingMerchant(true);
-                                    setPendingTxId(transaction.id);
-                                  } else {
-                                    handleUpdateTransaction(transaction.id, 'merchantId', value);
-                                  }
-                                }}
-                                disabled={updatingTxId === transaction.id}
-                              >
-                                <SelectTrigger className="h-8 text-xs disabled:opacity-50" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
-                                  <SelectValue placeholder="Select merchant..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="__create_new__" className="font-medium" style={{ color: 'var(--color-income)' }}>
-                                    + Create new merchant...
-                                  </SelectItem>
-                                  {getFilteredMerchants(transaction.type).map((merchant) => (
-                                    <SelectItem key={merchant.id} value={merchant.id}>
-                                      {merchant.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </Card>
               );
             })}
