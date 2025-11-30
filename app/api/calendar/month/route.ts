@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { transactions, billInstances, bills } from '@/lib/db/schema';
-import { eq, and, gte, lte, lt } from 'drizzle-orm';
+import { transactions, billInstances, bills, savingsGoals, debts, debtPayoffMilestones } from '@/lib/db/schema';
+import { eq, and, gte, lte, lt, isNotNull, sql } from 'drizzle-orm';
 import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
@@ -65,6 +65,28 @@ export async function GET(request: Request) {
         billDueCount: number;
         billOverdueCount: number;
         bills?: Array<{ name: string; status: string; amount: number }>;
+        goalCount: number;
+        goals?: Array<{
+          id: string;
+          name: string;
+          color: string;
+          targetAmount: number;
+          currentAmount: number;
+          progress: number;
+          status: string;
+        }>;
+        debtCount: number;
+        debts?: Array<{
+          id: string;
+          name: string;
+          color: string;
+          remainingBalance: number;
+          originalAmount: number;
+          progress: number;
+          type: 'target' | 'milestone';
+          milestonePercentage?: number;
+          status: string;
+        }>;
       }
     > = {};
 
@@ -80,6 +102,10 @@ export async function GET(request: Request) {
           billDueCount: 0,
           billOverdueCount: 0,
           bills: [],
+          goalCount: 0,
+          goals: [],
+          debtCount: 0,
+          debts: [],
         };
       }
 
@@ -126,6 +152,10 @@ export async function GET(request: Request) {
           billDueCount: 0,
           billOverdueCount: 0,
           bills: [],
+          goalCount: 0,
+          goals: [],
+          debtCount: 0,
+          debts: [],
         };
       }
 
@@ -155,6 +185,175 @@ export async function GET(request: Request) {
       } else if (billInstance.status === 'pending') {
         daySummaries[dateKey].billDueCount++;
       }
+    }
+
+    // Get all savings goals with target dates in this month
+    const monthGoals = await db
+      .select()
+      .from(savingsGoals)
+      .where(
+        and(
+          eq(savingsGoals.userId, userId),
+          isNotNull(savingsGoals.targetDate),
+          gte(savingsGoals.targetDate, format(startDate, 'yyyy-MM-dd')),
+          lte(savingsGoals.targetDate, format(endDate, 'yyyy-MM-dd'))
+        )
+      );
+
+    // Add goal details to day summaries
+    for (const goal of monthGoals) {
+      if (!goal.targetDate) continue;
+
+      const dateKey = goal.targetDate;
+
+      if (!daySummaries[dateKey]) {
+        daySummaries[dateKey] = {
+          incomeCount: 0,
+          expenseCount: 0,
+          transferCount: 0,
+          totalSpent: 0,
+          billDueCount: 0,
+          billOverdueCount: 0,
+          bills: [],
+          goalCount: 0,
+          goals: [],
+          debtCount: 0,
+          debts: [],
+        };
+      }
+
+      const targetAmount = goal.targetAmount || 0;
+      const currentAmount = goal.currentAmount || 0;
+      const progress = targetAmount > 0 ? Math.round((currentAmount / targetAmount) * 100) : 0;
+
+      daySummaries[dateKey].goals = daySummaries[dateKey].goals || [];
+      daySummaries[dateKey].goals!.push({
+        id: goal.id,
+        name: goal.name,
+        color: goal.color || '#10b981',
+        targetAmount,
+        currentAmount,
+        progress,
+        status: goal.status || 'active',
+      });
+      daySummaries[dateKey].goalCount++;
+    }
+
+    // Get all debts with target payoff dates in this month
+    const monthDebts = await db
+      .select()
+      .from(debts)
+      .where(
+        and(
+          eq(debts.userId, userId),
+          isNotNull(debts.targetPayoffDate),
+          gte(debts.targetPayoffDate, format(startDate, 'yyyy-MM-dd')),
+          lte(debts.targetPayoffDate, format(endDate, 'yyyy-MM-dd'))
+        )
+      );
+
+    // Add debt target payoff dates to day summaries
+    for (const debt of monthDebts) {
+      if (!debt.targetPayoffDate) continue;
+
+      const dateKey = debt.targetPayoffDate;
+
+      if (!daySummaries[dateKey]) {
+        daySummaries[dateKey] = {
+          incomeCount: 0,
+          expenseCount: 0,
+          transferCount: 0,
+          totalSpent: 0,
+          billDueCount: 0,
+          billOverdueCount: 0,
+          bills: [],
+          goalCount: 0,
+          goals: [],
+          debtCount: 0,
+          debts: [],
+        };
+      }
+
+      const originalAmount = debt.originalAmount || 0;
+      const remainingBalance = debt.remainingBalance || 0;
+      const progress = originalAmount > 0 
+        ? Math.round(((originalAmount - remainingBalance) / originalAmount) * 100) 
+        : 0;
+
+      daySummaries[dateKey].debts = daySummaries[dateKey].debts || [];
+      daySummaries[dateKey].debts!.push({
+        id: debt.id,
+        name: debt.name,
+        color: debt.color || '#ef4444',
+        remainingBalance,
+        originalAmount,
+        progress,
+        type: 'target',
+        status: debt.status || 'active',
+      });
+      daySummaries[dateKey].debtCount++;
+    }
+
+    // Get achieved milestones in this month
+    // We need to find milestones where achievedAt date falls within the range
+    const startDateStr2 = format(startDate, 'yyyy-MM-dd');
+    const endDateStr2 = format(endDate, 'yyyy-MM-dd') + 'T23:59:59';
+    
+    const monthMilestones = await db
+      .select({
+        milestone: debtPayoffMilestones,
+        debt: debts
+      })
+      .from(debtPayoffMilestones)
+      .innerJoin(debts, eq(debtPayoffMilestones.debtId, debts.id))
+      .where(
+        and(
+          eq(debtPayoffMilestones.userId, userId),
+          isNotNull(debtPayoffMilestones.achievedAt),
+          gte(debtPayoffMilestones.achievedAt, startDateStr2),
+          lte(debtPayoffMilestones.achievedAt, endDateStr2)
+        )
+      );
+
+    // Add milestones to day summaries
+    for (const { milestone, debt } of monthMilestones) {
+      if (!milestone.achievedAt) continue;
+      
+      // Get date part only from achievedAt (ISO string)
+      const dateKey = milestone.achievedAt.split('T')[0];
+
+      if (!daySummaries[dateKey]) {
+        daySummaries[dateKey] = {
+          incomeCount: 0,
+          expenseCount: 0,
+          transferCount: 0,
+          totalSpent: 0,
+          billDueCount: 0,
+          billOverdueCount: 0,
+          bills: [],
+          goalCount: 0,
+          goals: [],
+          debtCount: 0,
+          debts: [],
+        };
+      }
+
+      const originalAmount = debt.originalAmount || 0;
+      const remainingBalance = debt.remainingBalance || 0;
+
+      daySummaries[dateKey].debts = daySummaries[dateKey].debts || [];
+      daySummaries[dateKey].debts!.push({
+        id: `${debt.id}-milestone-${milestone.percentage}`,
+        name: `${debt.name} - ${milestone.percentage}% Paid Off!`,
+        color: debt.color || '#ef4444',
+        remainingBalance,
+        originalAmount,
+        progress: milestone.percentage,
+        type: 'milestone',
+        milestonePercentage: milestone.percentage,
+        status: debt.status || 'active',
+      });
+      daySummaries[dateKey].debtCount++;
     }
 
     return Response.json({

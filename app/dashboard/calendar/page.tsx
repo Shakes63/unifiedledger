@@ -8,6 +8,28 @@ import { CalendarWeek } from '@/components/calendar/calendar-week';
 import { CalendarDayModal } from '@/components/calendar/calendar-day-modal';
 import { Loader2 } from 'lucide-react';
 
+interface GoalSummary {
+  id: string;
+  name: string;
+  color: string;
+  targetAmount: number;
+  currentAmount: number;
+  progress: number;
+  status: string;
+}
+
+interface DebtSummary {
+  id: string;
+  name: string;
+  color: string;
+  remainingBalance: number;
+  originalAmount: number;
+  progress: number;
+  type: 'target' | 'milestone';
+  milestonePercentage?: number;
+  status: string;
+}
+
 interface DayTransactionSummary {
   incomeCount: number;
   expenseCount: number;
@@ -16,6 +38,10 @@ interface DayTransactionSummary {
   billDueCount: number;
   billOverdueCount: number;
   bills?: Array<{ name: string; status: string; amount: number }>;
+  goalCount: number;
+  goals?: GoalSummary[];
+  debtCount: number;
+  debts?: DebtSummary[];
 }
 
 interface Transaction {
@@ -34,6 +60,35 @@ interface Bill {
   status: 'pending' | 'paid' | 'overdue';
 }
 
+interface Goal {
+  id: string;
+  name: string;
+  description?: string | null;
+  targetAmount: number;
+  currentAmount: number;
+  progress: number;
+  color: string;
+  icon: string;
+  status: string;
+  category?: string | null;
+}
+
+interface Debt {
+  id: string;
+  name: string;
+  description?: string | null;
+  creditorName: string;
+  remainingBalance: number;
+  originalAmount: number;
+  progress: number;
+  color: string;
+  icon: string;
+  type: string;
+  status: string;
+  debtType: 'target' | 'milestone';
+  milestonePercentage?: number;
+}
+
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
@@ -45,6 +100,8 @@ export default function CalendarPage() {
     Transaction[]
   >([]);
   const [selectedDayBills, setSelectedDayBills] = useState<Bill[]>([]);
+  const [selectedDayGoals, setSelectedDayGoals] = useState<Goal[]>([]);
+  const [selectedDayDebts, setSelectedDayDebts] = useState<Debt[]>([]);
   const [selectedDayInfo, setSelectedDayInfo] = useState<DayTransactionSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -86,6 +143,8 @@ export default function CalendarPage() {
         const data = await response.json();
         setSelectedDayTransactions(data.transactions || []);
         setSelectedDayBills(data.bills || []);
+        setSelectedDayGoals(data.goals || []);
+        setSelectedDayDebts(data.debts || []);
         setSelectedDayInfo(data.summary);
         setIsModalOpen(true);
       }
@@ -141,6 +200,8 @@ export default function CalendarPage() {
           date={selectedDay}
           transactions={selectedDayTransactions}
           bills={selectedDayBills}
+          goals={selectedDayGoals}
+          debts={selectedDayDebts}
           transactionCounts={selectedDayInfo || undefined}
         />
       )}

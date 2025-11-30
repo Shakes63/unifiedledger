@@ -7,8 +7,30 @@ import {
   format,
   isToday,
 } from 'date-fns';
-import { Check } from 'lucide-react';
+import { Check, Target, CreditCard, Trophy } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
+interface GoalSummary {
+  id: string;
+  name: string;
+  color: string;
+  targetAmount: number;
+  currentAmount: number;
+  progress: number;
+  status: string;
+}
+
+interface DebtSummary {
+  id: string;
+  name: string;
+  color: string;
+  remainingBalance: number;
+  originalAmount: number;
+  progress: number;
+  type: 'target' | 'milestone';
+  milestonePercentage?: number;
+  status: string;
+}
 
 interface DayTransactionSummary {
   incomeCount: number;
@@ -18,6 +40,10 @@ interface DayTransactionSummary {
   billDueCount: number;
   billOverdueCount: number;
   bills?: Array<{ name: string; status: string; amount: number }>;
+  goalCount: number;
+  goals?: GoalSummary[];
+  debtCount: number;
+  debts?: DebtSummary[];
 }
 
 interface Transaction {
@@ -131,6 +157,58 @@ export function CalendarWeek({
                       <div className="flex-1 min-w-0">
                         <div className="truncate font-medium">{bill.name}</div>
                         <div className="text-[9px] opacity-75">${bill.amount.toFixed(2)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Goals */}
+              {summary?.goals && summary.goals.length > 0 && (
+                <div className="space-y-1 mb-2">
+                  {summary.goals.map((goal) => (
+                    <div
+                      key={goal.id}
+                      className="text-[10px] px-1.5 py-1 rounded flex items-center gap-0.5"
+                      style={{
+                        backgroundColor: `${goal.color}20`,
+                        color: goal.color,
+                      }}
+                    >
+                      <Target className="w-2.5 h-2.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium">{goal.name}</div>
+                        <div className="text-[9px] opacity-75">
+                          {goal.progress}% - ${goal.currentAmount.toLocaleString()} / ${goal.targetAmount.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Debts */}
+              {summary?.debts && summary.debts.length > 0 && (
+                <div className="space-y-1 mb-2">
+                  {summary.debts.map((debt) => (
+                    <div
+                      key={debt.id}
+                      className="text-[10px] px-1.5 py-1 rounded flex items-center gap-0.5"
+                      style={{
+                        backgroundColor: `${debt.color}20`,
+                        color: debt.color,
+                      }}
+                    >
+                      {debt.type === 'milestone' ? (
+                        <Trophy className="w-2.5 h-2.5 shrink-0" />
+                      ) : (
+                        <CreditCard className="w-2.5 h-2.5 shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium">{debt.name}</div>
+                        <div className="text-[9px] opacity-75">
+                          {debt.progress}% - ${(debt.originalAmount - debt.remainingBalance).toLocaleString()} / ${debt.originalAmount.toLocaleString()}
+                        </div>
                       </div>
                     </div>
                   ))}

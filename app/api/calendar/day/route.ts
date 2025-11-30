@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { transactions, budgetCategories, billInstances, bills, accounts, merchants } from '@/lib/db/schema';
-import { eq, and, lt } from 'drizzle-orm';
+import { transactions, budgetCategories, billInstances, bills, accounts, merchants, savingsGoals, debts, debtPayoffMilestones } from '@/lib/db/schema';
+import { eq, and, lt, isNotNull, gte, lte } from 'drizzle-orm';
 import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
@@ -163,6 +163,126 @@ export async function GET(request: Request) {
       })
     );
 
+    // Get all savings goals with target date on this day
+    const dayGoals = await db
+      .select()
+      .from(savingsGoals)
+      .where(
+        and(
+          eq(savingsGoals.userId, userId),
+          eq(savingsGoals.targetDate, dateKey)
+        )
+      );
+
+    // Enrich goals with progress calculation
+    const enrichedGoals = dayGoals.map((goal) => {
+      const targetAmount = goal.targetAmount || 0;
+      const currentAmount = goal.currentAmount || 0;
+      const progress = targetAmount > 0 ? Math.round((currentAmount / targetAmount) * 100) : 0;
+
+      return {
+        id: goal.id,
+        name: goal.name,
+        description: goal.description,
+        targetAmount,
+        currentAmount,
+        progress,
+        color: goal.color || '#10b981',
+        icon: goal.icon || 'target',
+        status: goal.status || 'active',
+        category: goal.category,
+      };
+    });
+
+    // Get all debts with target payoff date on this day
+    const dayDebts = await db
+      .select()
+      .from(debts)
+      .where(
+        and(
+          eq(debts.userId, userId),
+          eq(debts.targetPayoffDate, dateKey)
+        )
+      );
+
+    // Enrich debts with progress calculation
+    const enrichedDebts: Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      creditorName: string;
+      remainingBalance: number;
+      originalAmount: number;
+      progress: number;
+      color: string;
+      icon: string;
+      type: string;
+      status: string;
+      debtType: 'target' | 'milestone';
+      milestonePercentage?: number;
+    }> = dayDebts.map((debt) => {
+      const originalAmount = debt.originalAmount || 0;
+      const remainingBalance = debt.remainingBalance || 0;
+      const progress = originalAmount > 0 
+        ? Math.round(((originalAmount - remainingBalance) / originalAmount) * 100) 
+        : 0;
+
+      return {
+        id: debt.id,
+        name: debt.name,
+        description: debt.description,
+        creditorName: debt.creditorName,
+        remainingBalance,
+        originalAmount,
+        progress,
+        color: debt.color || '#ef4444',
+        icon: debt.icon || 'credit-card',
+        type: debt.type || 'other',
+        status: debt.status || 'active',
+        debtType: 'target' as const,
+      };
+    });
+
+    // Get milestones achieved on this day
+    // Match the date part of achievedAt (which is an ISO string)
+    const dayStart = dateKey;
+    const dayEnd = dateKey + 'T23:59:59';
+    
+    const dayMilestones = await db
+      .select({
+        milestone: debtPayoffMilestones,
+        debt: debts
+      })
+      .from(debtPayoffMilestones)
+      .innerJoin(debts, eq(debtPayoffMilestones.debtId, debts.id))
+      .where(
+        and(
+          eq(debtPayoffMilestones.userId, userId),
+          isNotNull(debtPayoffMilestones.achievedAt),
+          gte(debtPayoffMilestones.achievedAt, dayStart),
+          lte(debtPayoffMilestones.achievedAt, dayEnd)
+        )
+      );
+
+    // Add milestones to enriched debts array
+    for (const { milestone, debt } of dayMilestones) {
+      enrichedDebts.push({
+        id: `${debt.id}-milestone-${milestone.percentage}`,
+        name: debt.name,
+        description: `${milestone.percentage}% of debt paid off!`,
+        creditorName: debt.creditorName || '',
+        remainingBalance: debt.remainingBalance || 0,
+        originalAmount: debt.originalAmount || 0,
+        progress: milestone.percentage,
+        color: debt.color || '#ef4444',
+        icon: debt.icon || 'credit-card',
+        type: debt.type || 'other',
+        status: debt.status || 'active',
+        debtType: 'milestone' as const,
+        milestonePercentage: milestone.percentage,
+      });
+    }
+
     // Calculate summary statistics
     const billDueCount = dayBillInstances.filter(
       (b) => b.status === 'pending'
@@ -187,12 +307,16 @@ export async function GET(request: Request) {
         .reduce((sum, t) => sum + Math.abs(t.amount), 0),
       billDueCount,
       billOverdueCount,
+      goalCount: enrichedGoals.length,
+      debtCount: enrichedDebts.length,
     };
 
     return Response.json({
       date: dateKey,
       transactions: enrichedTransactions,
       bills: enrichedBills,
+      goals: enrichedGoals,
+      debts: enrichedDebts,
       summary,
     });
   } catch (error) {

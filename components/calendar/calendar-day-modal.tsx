@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { TransactionIndicators } from './transaction-indicators';
-import { TrendingDown, TrendingUp, ArrowRightLeft, Plus } from 'lucide-react';
+import { TrendingDown, TrendingUp, ArrowRightLeft, Plus, Target, CreditCard, Trophy } from 'lucide-react';
 import Link from 'next/link';
 
 interface Transaction {
@@ -29,12 +29,43 @@ interface Bill {
   status: 'pending' | 'paid' | 'overdue';
 }
 
+interface Goal {
+  id: string;
+  name: string;
+  description?: string | null;
+  targetAmount: number;
+  currentAmount: number;
+  progress: number;
+  color: string;
+  icon: string;
+  status: string;
+  category?: string | null;
+}
+
+interface Debt {
+  id: string;
+  name: string;
+  description?: string | null;
+  creditorName: string;
+  remainingBalance: number;
+  originalAmount: number;
+  progress: number;
+  color: string;
+  icon: string;
+  type: string;
+  status: string;
+  debtType: 'target' | 'milestone';
+  milestonePercentage?: number;
+}
+
 interface CalendarDayModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   date: Date;
   transactions?: Transaction[];
   bills?: Bill[];
+  goals?: Goal[];
+  debts?: Debt[];
   transactionCounts?: {
     incomeCount: number;
     expenseCount: number;
@@ -42,6 +73,8 @@ interface CalendarDayModalProps {
     totalSpent: number;
     billDueCount: number;
     billOverdueCount: number;
+    goalCount?: number;
+    debtCount?: number;
   };
 }
 
@@ -51,6 +84,8 @@ export function CalendarDayModal({
   date,
   transactions = [],
   bills = [],
+  goals = [],
+  debts = [],
   transactionCounts,
 }: CalendarDayModalProps) {
   const getTransactionIcon = (type: string) => {
@@ -115,6 +150,8 @@ export function CalendarDayModal({
               transferCount={transactionCounts.transferCount}
               billDueCount={transactionCounts.billDueCount}
               billOverdueCount={transactionCounts.billOverdueCount}
+              goalCount={transactionCounts.goalCount || goals.length}
+              debtCount={transactionCounts.debtCount || debts.length}
               totalSpent={transactionCounts.totalSpent}
               compact={false}
             />
@@ -211,10 +248,186 @@ export function CalendarDayModal({
             </div>
           )}
 
-          {transactions.length === 0 && bills.length === 0 && (
+          {/* Goals */}
+          {goals.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Goal Deadlines ({goals.length})
+                </h3>
+                <Link href="/dashboard/goals">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-border hover:bg-elevated"
+                  >
+                    View All
+                  </Button>
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {goals.map((goal) => (
+                  <div
+                    key={goal.id}
+                    className="p-3 bg-elevated rounded-lg border border-border"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="p-2 rounded-lg shrink-0"
+                        style={{ backgroundColor: `${goal.color}20` }}
+                      >
+                        <Target
+                          className="w-5 h-5"
+                          style={{ color: goal.color }}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium text-foreground truncate">
+                            {goal.name}
+                          </p>
+                          <span
+                            className="px-2 py-0.5 rounded text-xs font-semibold capitalize shrink-0"
+                            style={{
+                              backgroundColor: `${goal.color}20`,
+                              color: goal.color,
+                            }}
+                          >
+                            {goal.status}
+                          </span>
+                        </div>
+                        {goal.description && (
+                          <p className="text-muted-foreground text-sm mt-1 truncate">
+                            {goal.description}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-sm text-muted-foreground">
+                            ${goal.currentAmount.toLocaleString()} / ${goal.targetAmount.toLocaleString()}
+                          </p>
+                          <p
+                            className="text-sm font-semibold"
+                            style={{ color: goal.color }}
+                          >
+                            {goal.progress}%
+                          </p>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="mt-2 h-2 bg-border rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(goal.progress, 100)}%`,
+                              backgroundColor: goal.color,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Debts */}
+          {debts.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Debt Milestones ({debts.length})
+                </h3>
+                <Link href="/dashboard/debts">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-border hover:bg-elevated"
+                  >
+                    View All
+                  </Button>
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {debts.map((debt) => (
+                  <div
+                    key={debt.id}
+                    className="p-3 bg-elevated rounded-lg border border-border"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="p-2 rounded-lg shrink-0"
+                        style={{ backgroundColor: `${debt.color}20` }}
+                      >
+                        {debt.debtType === 'milestone' ? (
+                          <Trophy
+                            className="w-5 h-5"
+                            style={{ color: debt.color }}
+                          />
+                        ) : (
+                          <CreditCard
+                            className="w-5 h-5"
+                            style={{ color: debt.color }}
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium text-foreground truncate">
+                            {debt.name}
+                          </p>
+                          <span
+                            className="px-2 py-0.5 rounded text-xs font-semibold capitalize shrink-0"
+                            style={{
+                              backgroundColor: `${debt.color}20`,
+                              color: debt.color,
+                            }}
+                          >
+                            {debt.debtType === 'milestone' 
+                              ? `${debt.milestonePercentage}% Milestone`
+                              : 'Target Date'}
+                          </span>
+                        </div>
+                        {debt.description && (
+                          <p className="text-muted-foreground text-sm mt-1 truncate">
+                            {debt.description}
+                          </p>
+                        )}
+                        <p className="text-muted-foreground text-xs mt-1">
+                          {debt.creditorName}
+                        </p>
+                        <div className="flex items-center justify-between mt-2">
+                          <p className="text-sm text-muted-foreground">
+                            ${(debt.originalAmount - debt.remainingBalance).toLocaleString()} / ${debt.originalAmount.toLocaleString()} paid
+                          </p>
+                          <p
+                            className="text-sm font-semibold"
+                            style={{ color: debt.color }}
+                          >
+                            {debt.progress}%
+                          </p>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="mt-2 h-2 bg-border rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(debt.progress, 100)}%`,
+                              backgroundColor: debt.color,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {transactions.length === 0 && bills.length === 0 && goals.length === 0 && debts.length === 0 && (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">
-                No transactions or bills on this day
+                No activity on this day
               </p>
               <Link href="/dashboard/transactions/new">
                 <Button className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]">

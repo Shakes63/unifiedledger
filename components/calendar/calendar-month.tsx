@@ -10,6 +10,28 @@ import {
 } from 'date-fns';
 import { CalendarDay } from './calendar-day';
 
+interface GoalSummary {
+  id: string;
+  name: string;
+  color: string;
+  targetAmount: number;
+  currentAmount: number;
+  progress: number;
+  status: string;
+}
+
+interface DebtSummary {
+  id: string;
+  name: string;
+  color: string;
+  remainingBalance: number;
+  originalAmount: number;
+  progress: number;
+  type: 'target' | 'milestone';
+  milestonePercentage?: number;
+  status: string;
+}
+
 interface DayTransactionSummary {
   incomeCount: number;
   expenseCount: number;
@@ -18,6 +40,10 @@ interface DayTransactionSummary {
   billDueCount: number;
   billOverdueCount: number;
   bills?: Array<{ name: string; status: string; amount: number }>;
+  goalCount: number;
+  goals?: GoalSummary[];
+  debtCount: number;
+  debts?: DebtSummary[];
 }
 
 interface CalendarMonthProps {

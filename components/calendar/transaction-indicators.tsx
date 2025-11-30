@@ -1,6 +1,6 @@
 'use client';
 
-import { DollarSign, TrendingUp, TrendingDown, ArrowRightLeft, AlertCircle } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, ArrowRightLeft, AlertCircle, Target, CreditCard } from 'lucide-react';
 
 interface TransactionIndicatorsProps {
   incomeCount?: number;
@@ -8,6 +8,8 @@ interface TransactionIndicatorsProps {
   transferCount?: number;
   billDueCount?: number;
   billOverdueCount?: number;
+  goalCount?: number;
+  debtCount?: number;
   totalSpent?: number;
   compact?: boolean;
 }
@@ -18,6 +20,8 @@ export function TransactionIndicators({
   transferCount = 0,
   billDueCount = 0,
   billOverdueCount = 0,
+  goalCount = 0,
+  debtCount = 0,
   totalSpent,
   compact = false,
 }: TransactionIndicatorsProps) {
@@ -27,7 +31,7 @@ export function TransactionIndicators({
       incomeCount + expenseCount + transferCount;
     const totalBills = billDueCount + billOverdueCount;
 
-    if (totalTransactions === 0 && totalBills === 0) {
+    if (totalTransactions === 0 && totalBills === 0 && goalCount === 0 && debtCount === 0) {
       return null;
     }
 
@@ -61,6 +65,18 @@ export function TransactionIndicators({
           <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--color-warning)]/20 text-[var(--color-warning)] text-xs">
             <AlertCircle className="w-3 h-3" />
             <span>{billDueCount}</span>
+          </div>
+        )}
+        {goalCount > 0 && (
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--color-primary)]/20 text-[var(--color-primary)] text-xs">
+            <Target className="w-3 h-3" />
+            <span>{goalCount}</span>
+          </div>
+        )}
+        {debtCount > 0 && (
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--color-error)]/20 text-[var(--color-error)] text-xs">
+            <CreditCard className="w-3 h-3" />
+            <span>{debtCount}</span>
           </div>
         )}
       </div>
@@ -149,6 +165,44 @@ export function TransactionIndicators({
           )}
         </div>
       </div>
+
+      {/* Goals */}
+      {goalCount > 0 && (
+        <div className="bg-card border border-border rounded-lg p-3 col-span-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-muted-foreground text-sm">Goal Deadlines</span>
+            <Target className="w-4 h-4 text-[var(--color-primary)]" />
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[var(--color-primary)] flex items-center gap-1">
+              <Target className="w-3 h-3" />
+              Target Date
+            </span>
+            <span className="font-medium text-[var(--color-primary)]">
+              {goalCount}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Debts */}
+      {debtCount > 0 && (
+        <div className="bg-card border border-border rounded-lg p-3 col-span-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-muted-foreground text-sm">Debt Milestones</span>
+            <CreditCard className="w-4 h-4 text-[var(--color-error)]" />
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-[var(--color-error)] flex items-center gap-1">
+              <CreditCard className="w-3 h-3" />
+              Payoff Dates
+            </span>
+            <span className="font-medium text-[var(--color-error)]">
+              {debtCount}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
