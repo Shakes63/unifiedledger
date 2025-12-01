@@ -602,7 +602,7 @@ export default function SalesTaxPage() {
                           handleMarkFiled(quarter.quarter);
                         }}
                         disabled={isMarkingFiled === `Q${quarter.quarter}`}
-                        className="border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)] transition-colors cursor-pointer"
+                        className="border-border text-foreground hover:bg-elevated"
                       >
                         {isMarkingFiled === `Q${quarter.quarter}` ? 'Saving...' : 'Mark Filed'}
                       </Button>
