@@ -77,6 +77,10 @@ export interface RolldownPayment {
   isFocusDebt: boolean;
   /** Names of debts whose payments roll into this one */
   rolldownSources: string[];
+  /** Months to payoff with ONLY minimum payments (no strategy, no extra) */
+  minimumOnlyMonths: number;
+  /** Interest paid if only paying minimum */
+  minimumOnlyInterest: number;
   type: string;
   color?: string;
   icon?: string;
@@ -741,6 +745,68 @@ function calculateDebtSchedule(
 }
 
 /**
+ * Calculate months to pay off a single debt with only minimum payments
+ * Used to show comparison between minimum-only and strategy payoff times
+ */
+function calculateMinimumOnlyPayoff(
+  balance: number,
+  minimumPayment: number,
+  interestRate: number,
+  loanType: 'revolving' | 'installment' = 'revolving'
+): { months: number; totalInterest: number } {
+  if (balance <= 0 || minimumPayment <= 0) {
+    return { months: 0, totalInterest: 0 };
+  }
+
+  let currentBalance = new Decimal(balance);
+  const monthlyRate = new Decimal(interestRate).dividedBy(100).dividedBy(12);
+  let months = 0;
+  let totalInterest = new Decimal(0);
+  const maxMonths = 600; // 50 years safety limit
+
+  while (currentBalance.greaterThan(0) && months < maxMonths) {
+    months++;
+    
+    // Calculate interest for this month
+    let interestAmount: Decimal;
+    if (loanType === 'installment') {
+      interestAmount = currentBalance.times(monthlyRate);
+    } else {
+      // Revolving credit - use daily rate approximation
+      const dailyRate = new Decimal(interestRate).dividedBy(100).dividedBy(365);
+      interestAmount = currentBalance.times(dailyRate).times(30);
+    }
+    
+    totalInterest = totalInterest.plus(interestAmount);
+    
+    // Calculate payment (capped at balance + interest)
+    let payment = new Decimal(minimumPayment);
+    const maxPayment = currentBalance.plus(interestAmount);
+    if (payment.greaterThan(maxPayment)) {
+      payment = maxPayment;
+    }
+    
+    // Calculate principal
+    const principal = payment.minus(interestAmount);
+    currentBalance = currentBalance.minus(principal);
+    
+    if (currentBalance.lessThan(0)) {
+      currentBalance = new Decimal(0);
+    }
+    
+    // If payment doesn't cover interest, debt will never be paid off
+    if (principal.lessThanOrEqualTo(0) && months > 1) {
+      return { months: -1, totalInterest: -1 }; // -1 indicates never payoff
+    }
+  }
+
+  return { 
+    months: months >= maxMonths ? -1 : months, 
+    totalInterest: totalInterest.toNumber() 
+  };
+}
+
+/**
  * Calculate rolldown payment progression for visualization
  * Shows how payments change as each debt is paid off
  */
@@ -781,6 +847,14 @@ function calculateRolldownPayments(
     const payoffMonth = schedule?.monthsToPayoff || 0;
     const payoffDate = schedule?.payoffDate || new Date();
     
+    // Calculate minimum-only payoff time for comparison
+    const minimumOnlyResult = calculateMinimumOnlyPayoff(
+      debt.remainingBalance,
+      debt.minimumPayment || 0,
+      debt.interestRate,
+      debt.loanType || 'revolving'
+    );
+    
     // Build the rolldown payment info
     const rolldownPayment: RolldownPayment = {
       debtId: debt.id,
@@ -797,6 +871,8 @@ function calculateRolldownPayments(
       payoffDate,
       isFocusDebt: index === 0,
       rolldownSources,
+      minimumOnlyMonths: minimumOnlyResult.months,
+      minimumOnlyInterest: minimumOnlyResult.totalInterest,
       type: debt.type,
       color: debt.color,
       icon: debt.icon,

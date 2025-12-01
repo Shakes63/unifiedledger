@@ -339,13 +339,30 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                     
                     {/* Payoff Timeline */}
                     <div className="text-right">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Clock className="w-3 h-3" />
-                        <span className="text-xs">Month {debt.payoffMonth}</span>
+                      <div className="flex items-center gap-1 justify-end">
+                        <Clock className="w-3 h-3 text-[var(--color-income)]" />
+                        <span className="text-xs font-semibold text-[var(--color-income)]">Month {debt.payoffMonth}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {new Date(debt.payoffDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                       </div>
+                      {/* Minimum-only comparison */}
+                      {debt.minimumOnlyMonths > 0 && debt.minimumOnlyMonths !== debt.payoffMonth && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {debt.minimumOnlyMonths === -1 ? (
+                            <span className="text-[var(--color-error)]">Min only: Never</span>
+                          ) : (
+                            <span>
+                              Min only: {debt.minimumOnlyMonths} mo
+                              {debt.minimumOnlyMonths > debt.payoffMonth && (
+                                <span className="text-[var(--color-income)] ml-1">
+                                  ({debt.minimumOnlyMonths - debt.payoffMonth} faster)
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
