@@ -52,6 +52,11 @@ alwaysApply: false
 ## Recent Major Features
 
 **Latest (2025-12-01):**
+- Budget Adherence Tooltip (✅ COMPLETE)
+  - ✅ Tooltip explaining budget adherence score in CompactStatsBar
+  - ✅ Tooltip explaining budget adherence score in BudgetSummaryWidget
+  - ✅ Help icon visual affordance for discoverability
+  - ✅ Score level explanations (90%+ Excellent, 70-89% Good, 50-69% Fair, Below 50% Needs Work)
 - Debt Rolldown Payment Visualization (✅ COMPLETE)
   - ✅ Enhanced Debt Payoff Strategy UI showing payment progression
   - ✅ Focus debt highlighted with "Focus" badge and payment breakdown

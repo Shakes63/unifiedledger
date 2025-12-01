@@ -3,10 +3,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, HelpCircle } from 'lucide-react';
 import Decimal from 'decimal.js';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface BudgetSummary {
   adherenceScore: number;
@@ -224,7 +230,25 @@ export function BudgetSummaryWidget() {
             <span className={`text-sm font-semibold ${adherenceInfo.textColor}`}>
               {adherenceInfo.label}
             </span>
-            <p className="text-xs text-muted-foreground mt-0.5">Budget Adherence</p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center justify-center gap-1 mt-0.5 cursor-help">
+                    <p className="text-xs text-muted-foreground">Budget Adherence</p>
+                    <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p className="text-sm whitespace-pre-line">
+                    Budget Adherence measures how well you stay within your set budget limits.{'\n\n'}
+                    90%+ Excellent - On track{'\n'}
+                    70-89% Good - Minor adjustments needed{'\n'}
+                    50-69% Fair - Review spending{'\n'}
+                    Below 50% Needs work
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 

@@ -1,10 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Wallet, TrendingUp, Calendar, Target, TrendingDown } from 'lucide-react';
+import { Wallet, TrendingUp, Calendar, Target, TrendingDown, HelpCircle } from 'lucide-react';
 import Decimal from 'decimal.js';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface StatCardData {
   label: string;
@@ -12,6 +18,7 @@ interface StatCardData {
   icon: React.ReactNode;
   color: string;
   loading: boolean;
+  tooltip?: string;
 }
 
 export function CompactStatsBar() {
@@ -194,6 +201,7 @@ export function CompactStatsBar() {
       icon: <Target className="w-5 h-5" />,
       color: budgetAdherence >= 70 ? 'var(--color-success)' : budgetAdherence >= 50 ? 'var(--color-warning)' : 'var(--color-error)',
       loading,
+      tooltip: 'Budget Adherence measures how well you stay within your set budget limits.\n\n90%+ Excellent - On track\n70-89% Good - Minor adjustments needed\n50-69% Fair - Review spending\nBelow 50% Needs work',
     });
   }
 
@@ -220,39 +228,55 @@ export function CompactStatsBar() {
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
-      {stats.map((stat, index) => (
-        <div
-          key={index}
-          className="relative p-4 rounded-lg border transition-all hover:bg-elevated"
-          style={{
-            backgroundColor: 'var(--color-card)',
-            borderColor: 'var(--color-border)',
-          }}
-        >
-          {stat.loading ? (
-            <div className="animate-pulse">
-              <div className="h-4 w-16 rounded mb-2" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
-              <div className="h-6 w-20 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center gap-2 mb-1">
-                <div style={{ color: stat.color }}>
-                  {stat.icon}
-                </div>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
+    <TooltipProvider>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+        {stats.map((stat, index) => (
+          <div
+            key={index}
+            className="relative p-4 rounded-lg border transition-all hover:bg-elevated"
+            style={{
+              backgroundColor: 'var(--color-card)',
+              borderColor: 'var(--color-border)',
+            }}
+          >
+            {stat.loading ? (
+              <div className="animate-pulse">
+                <div className="h-4 w-16 rounded mb-2" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
+                <div className="h-6 w-20 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
               </div>
-              <p
-                className="text-lg font-bold truncate"
-                style={{ color: 'var(--color-foreground)' }}
-              >
-                {stat.value}
-              </p>
-            </>
-          )}
-        </div>
-      ))}
-    </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2 mb-1">
+                  <div style={{ color: stat.color }}>
+                    {stat.icon}
+                  </div>
+                  {stat.tooltip ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1 cursor-help">
+                          <p className="text-xs text-muted-foreground">{stat.label}</p>
+                          <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs whitespace-pre-line">
+                        <p className="text-sm">{stat.tooltip}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                  )}
+                </div>
+                <p
+                  className="text-lg font-bold truncate"
+                  style={{ color: 'var(--color-foreground)' }}
+                >
+                  {stat.value}
+                </p>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+    </TooltipProvider>
   );
 }

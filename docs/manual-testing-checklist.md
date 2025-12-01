@@ -46,6 +46,7 @@ This document provides a comprehensive checklist for manually testing all featur
 
 - [x] Compact stats bar displays correctly
 - [x] Stats bar shows total balance, income, expenses
+- [ ] Budget Adherence tooltip displays explanation on hover (help icon visible)
 - [x] "Add Transaction" button navigates to new transaction page
 - [x] Recent transactions widget loads and displays transactions
 - [x] "View All" link navigates to transactions page
@@ -63,6 +64,7 @@ This document provides a comprehensive checklist for manually testing all featur
 - [x] Section expands/collapses correctly
 - [ ] Collapse state persists across page reloads (Does NOT persist - resets to expanded on reload)
 - [x] Budget summary widget shows budget progress
+- [ ] Budget Adherence tooltip displays explanation on hover in summary widget (help icon visible)
 - [x] Budget surplus card displays correctly - **FIXED (Bug #88)**: No longer shows dual auth message in TEST MODE
 - [x] Budget warnings display when near/over budget (shows "1 Over" indicator)
 
