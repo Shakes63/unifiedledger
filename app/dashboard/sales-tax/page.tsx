@@ -214,6 +214,43 @@ export default function SalesTaxPage() {
     }
   };
 
+  const handleUndoFiling = async (quarter: number) => {
+    const key = `Q${quarter}`;
+    if (isMarkingFiled === key) return;
+
+    setIsMarkingFiled(key);
+    try {
+      const response = await fetch('/api/sales-tax/quarterly', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          year: parseInt(year, 10),
+          quarter,
+          status: 'pending',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to undo filing');
+      }
+
+      toast.success(`Q${quarter} filing undone`);
+      
+      // Refresh data without showing full-page loading state
+      const refreshResponse = await fetch(`/api/sales-tax/quarterly?year=${year}`, { credentials: 'include' });
+      if (refreshResponse.ok) {
+        const result = await refreshResponse.json();
+        setData(result);
+      }
+    } catch (error) {
+      console.error('Error undoing filing:', error);
+      toast.error('Failed to undo filing. Please try again.');
+    } finally {
+      setIsMarkingFiled(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -581,30 +618,49 @@ export default function SalesTaxPage() {
                   {quarter.status !== 'accepted' && (
                     <div className="flex items-center justify-between pt-2 border-t border-border">
                       <div className="flex items-center gap-2">
-                        {overdue && (
+                        {quarter.status === 'submitted' ? (
+                          <span className="text-xs text-[var(--color-success)]">
+                            Filed successfully
+                          </span>
+                        ) : overdue ? (
                           <span className="flex items-center gap-1 text-xs text-[var(--color-error)]">
                             <AlertCircle className="w-3 h-3" />
                             {Math.abs(daysUntil)} days overdue
                           </span>
-                        )}
-                        {!overdue && daysUntil > 0 && (
+                        ) : daysUntil > 0 ? (
                           <span className="text-xs text-[var(--color-warning)]">
                             {daysUntil} days until due
                           </span>
-                        )}
+                        ) : null}
                       </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleMarkFiled(quarter.quarter);
-                        }}
-                        disabled={isMarkingFiled === `Q${quarter.quarter}`}
-                        className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
-                      >
-                        {isMarkingFiled === `Q${quarter.quarter}` ? 'Saving...' : 'Mark Filed'}
-                      </Button>
+                      {quarter.status === 'submitted' ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleUndoFiling(quarter.quarter);
+                          }}
+                          disabled={isMarkingFiled === `Q${quarter.quarter}`}
+                          className="border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
+                        >
+                          {isMarkingFiled === `Q${quarter.quarter}` ? 'Saving...' : 'Undo Filing'}
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            handleMarkFiled(quarter.quarter);
+                          }}
+                          disabled={isMarkingFiled === `Q${quarter.quarter}`}
+                          className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+                        >
+                          {isMarkingFiled === `Q${quarter.quarter}` ? 'Saving...' : 'Mark Filed'}
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
