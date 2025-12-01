@@ -52,6 +52,13 @@ alwaysApply: false
 ## Recent Major Features
 
 **Latest (2025-12-01):**
+- Business Features Visibility (✅ COMPLETE)
+  - ✅ Tax Dashboard and Sales Tax pages hidden from navigation unless a business account exists
+  - ✅ API endpoint `/api/accounts/has-business` to check for active business accounts in household
+  - ✅ BusinessFeaturesContext for app-wide business account state management
+  - ✅ Sidebar and mobile nav dynamically filter business features based on account status
+  - ✅ Auto-refresh when accounts are created, updated, or deleted
+  - ✅ All styling uses semantic theme variables
 - Enhanced Debt Free Countdown (✅ COMPLETE)
   - ✅ Focus Debt Card displaying current target debt in debt-free countdown widget
   - ✅ Debt name, APR, progress bar with percentage paid
@@ -340,6 +347,7 @@ alwaysApply: false
 (None)
 
 ### Recently Completed
+- **Business Features Visibility** [COMPLETED 2025-12-01] - Tax Dashboard and Sales Tax pages hidden from navigation unless at least one business account exists in the current household.
 - **Debt Budget Integration** [COMPLETED 2025-12-01] - Debts automatically appear in budgeting system with auto-populated minimum payments and recommended payments from payoff strategy. Focus debt highlighted with strategy-recommended amounts.
 - **Sidebar Reorganization** [COMPLETED 2025-12-01] - Reorganized navigation into 6 workflow-based sections (Overview, Track, Plan, Goals, Analyze, Configure), updated icons, fixed mobile nav CSS variables.
 - **Annual Planning Grid Timezone Bug** [FIXED 2025-11-29] - Fixed date parsing to avoid local timezone conversion where November 1st appeared as October 31st.

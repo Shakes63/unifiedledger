@@ -31,6 +31,7 @@ import { NotificationBell } from '@/components/notifications/notification-bell';
 import { TestModeBadge, TestModeBadgeCompact } from '@/components/dev/test-mode-badge';
 import { useNavigation } from '@/context/navigation-context';
 import { useDeveloperMode } from '@/contexts/developer-mode-context';
+import { useBusinessFeatures } from '@/contexts/business-features-context';
 
 interface NavItem {
   label: string;
@@ -93,11 +94,28 @@ const navSections: NavSection[] = [
   },
 ];
 
+// Business features that should only appear when a business account exists
+const BUSINESS_FEATURE_LABELS = ['Tax Dashboard', 'Sales Tax'];
+
 export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, toggleSidebar } = useNavigation();
   const { isDeveloperMode } = useDeveloperMode();
+  const { hasBusinessAccounts } = useBusinessFeatures();
   const [expandedSections, setExpandedSections] = useState<string[]>(['Overview', 'Track']);
+
+  // Filter out business-only features if no business accounts exist
+  const filteredNavSections = navSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        if (BUSINESS_FEATURE_LABELS.includes(item.label)) {
+          return hasBusinessAccounts;
+        }
+        return true;
+      }),
+    }))
+    .filter((section) => section.items.length > 0);
 
   const toggleSection = (title: string) => {
     setExpandedSections((prev) =>
@@ -187,7 +205,7 @@ export function Sidebar() {
 
       {/* Navigation Sections */}
       <nav className={`flex-1 overflow-y-auto transition-all duration-300 ${sidebarOpen ? 'px-4 py-6 space-y-6' : 'px-2 py-4 space-y-2'}`}>
-        {navSections.map((section) => {
+        {filteredNavSections.map((section) => {
           if (!sidebarOpen) {
             // Collapsed view - show only icons
             return (

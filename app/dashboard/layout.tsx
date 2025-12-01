@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { DashboardLayout } from '@/components/navigation/dashboard-layout';
 import { HouseholdProvider } from '@/contexts/household-context';
+import { BusinessFeaturesProvider } from '@/contexts/business-features-context';
 import { DeveloperModeProvider } from '@/contexts/developer-mode-context';
 import { SessionActivityProvider } from '@/components/providers/session-activity-provider';
 import { ExperimentalFeaturesProvider } from '@/contexts/experimental-features-context';
@@ -81,13 +82,15 @@ export default function DashboardLayoutWrapper({
   return (
     <SessionActivityProvider>
       <HouseholdProvider>
-        <OnboardingProvider>
-          <ExperimentalFeaturesProvider>
-            <DeveloperModeProvider>
-              <DashboardContent>{children}</DashboardContent>
-            </DeveloperModeProvider>
-          </ExperimentalFeaturesProvider>
-        </OnboardingProvider>
+        <BusinessFeaturesProvider>
+          <OnboardingProvider>
+            <ExperimentalFeaturesProvider>
+              <DeveloperModeProvider>
+                <DashboardContent>{children}</DashboardContent>
+              </DeveloperModeProvider>
+            </ExperimentalFeaturesProvider>
+          </OnboardingProvider>
+        </BusinessFeaturesProvider>
       </HouseholdProvider>
     </SessionActivityProvider>
   );

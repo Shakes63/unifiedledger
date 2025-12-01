@@ -27,6 +27,7 @@ import { HouseholdSelector } from '@/components/household/household-selector';
 import { Button } from '@/components/ui/button';
 import { UserMenu } from '@/components/auth/user-menu';
 import { TestModeBadge } from '@/components/dev/test-mode-badge';
+import { useBusinessFeatures } from '@/contexts/business-features-context';
 
 interface NavItem {
   label: string;
@@ -89,10 +90,27 @@ const navSections: NavSection[] = [
   },
 ];
 
+// Business features that should only appear when a business account exists
+const BUSINESS_FEATURE_LABELS = ['Tax Dashboard', 'Sales Tax'];
+
 export function MobileNav() {
   const pathname = usePathname();
+  const { hasBusinessAccounts } = useBusinessFeatures();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>(['Overview']);
+
+  // Filter out business-only features if no business accounts exist
+  const filteredNavSections = navSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        if (BUSINESS_FEATURE_LABELS.includes(item.label)) {
+          return hasBusinessAccounts;
+        }
+        return true;
+      }),
+    }))
+    .filter((section) => section.items.length > 0);
 
   const toggleSection = (title: string) => {
     setExpandedSections((prev) =>
@@ -160,7 +178,7 @@ export function MobileNav() {
 
             {/* Navigation */}
             <nav className="flex-1 px-4 py-4 space-y-6">
-              {navSections.map((section) => (
+              {filteredNavSections.map((section) => (
                 <div key={section.title}>
                   <button
                     onClick={() => toggleSection(section.title)}

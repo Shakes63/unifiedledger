@@ -1462,6 +1462,17 @@ All 10 action types available:
 - [x] More menu expands for additional pages - **TESTED 2025-11-30:** Each section accordion expands/collapses independently, household selector visible in slide-out menu
 - [x] Mobile nav uses semantic CSS variables - **FIXED 2025-12-01:** Replaced hardcoded hex colors with theme tokens
 
+### Business Features Visibility (ADDED 2025-12-01)
+
+- [ ] Tax Dashboard and Sales Tax hidden when no business accounts exist
+- [ ] Tax Dashboard and Sales Tax visible when at least one business account exists
+- [ ] Creating a business account makes Tax Dashboard/Sales Tax appear
+- [ ] Deleting all business accounts hides Tax Dashboard/Sales Tax
+- [ ] Toggling isBusinessAccount flag refreshes navigation visibility
+- [ ] Business features visibility syncs across desktop sidebar and mobile nav
+- [ ] Direct URL access to /dashboard/tax without business account shows appropriate content
+- [ ] Direct URL access to /dashboard/sales-tax without business account shows appropriate content
+
 ### User Menu
 
 - [ ] User avatar/initials display

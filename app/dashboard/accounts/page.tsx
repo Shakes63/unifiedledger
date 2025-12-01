@@ -9,6 +9,7 @@ import { AccountForm } from '@/components/accounts/account-form';
 import { AccountCard } from '@/components/accounts/account-card';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { useBusinessFeatures } from '@/contexts/business-features-context';
 import { HouseholdLoadingState } from '@/components/household/household-loading-state';
 import { NoHouseholdError } from '@/components/household/no-household-error';
 
@@ -26,6 +27,7 @@ interface Account {
 
 export default function AccountsPage() {
   const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
+  const { refresh: refreshBusinessFeatures } = useBusinessFeatures();
   const {
     fetchWithHousehold,
     postWithHousehold,
@@ -101,6 +103,9 @@ export default function AccountsPage() {
           const data = await fetchResponse.json();
           setAccounts(data);
 
+          // Refresh business features context in case business account status changed
+          await refreshBusinessFeatures();
+
           // Only close dialog for regular save, keep open for save & add another
           if (saveMode === 'save') {
             setIsDialogOpen(false);
@@ -144,6 +149,9 @@ export default function AccountsPage() {
       if (response.ok) {
         toast.success('Account deleted successfully');
         setAccounts(accounts.filter((acc) => acc.id !== accountId));
+
+        // Refresh business features context in case business account was deleted
+        await refreshBusinessFeatures();
       } else {
         toast.error('Failed to delete account');
       }
