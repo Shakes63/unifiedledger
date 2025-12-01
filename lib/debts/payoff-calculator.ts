@@ -280,6 +280,26 @@ function sortByAvalanche(debts: DebtInput[]): DebtInput[] {
 }
 
 /**
+ * Get the focus debt ID based on the payoff method
+ * This is the debt that should receive extra payments according to the strategy
+ * - Avalanche: highest interest rate first
+ * - Snowball: smallest balance first
+ */
+export function getMethodBasedFocusDebtId(debts: DebtInput[], method: PayoffMethod): string {
+  if (debts.length === 0) return '';
+  
+  if (method === 'snowball') {
+    // Smallest balance first
+    const sorted = sortBySnowball(debts);
+    return sorted[0].id;
+  } else {
+    // Highest interest rate first (avalanche)
+    const sorted = sortByAvalanche(debts);
+    return sorted[0].id;
+  }
+}
+
+/**
  * Internal state for tracking a debt during parallel simulation
  */
 interface DebtSimulationState {
@@ -809,6 +829,7 @@ function calculateMinimumOnlyPayoff(
 /**
  * Calculate rolldown payment progression for visualization
  * Shows how payments change as each debt is paid off
+ * @param focusDebtId - The debt that should be marked as focus based on the method
  */
 function calculateRolldownPayments(
   debts: DebtInput[],
@@ -816,7 +837,8 @@ function calculateRolldownPayments(
   method: PayoffMethod,
   paymentFrequency: PaymentFrequency,
   schedules: DebtPayoffSchedule[],
-  payoffOrder: { debtId: string; order: number }[]
+  payoffOrder: { debtId: string; order: number }[],
+  focusDebtId: string
 ): RolldownPayment[] {
   if (debts.length === 0) return [];
 
@@ -855,6 +877,11 @@ function calculateRolldownPayments(
       debt.loanType || 'revolving'
     );
     
+    // Mark as focus based on method-determined focus debt ID, not payoff order
+    // This ensures avalanche always shows highest interest as focus,
+    // and snowball always shows lowest balance as focus
+    const isFocusDebt = debt.id === focusDebtId;
+    
     // Build the rolldown payment info
     const rolldownPayment: RolldownPayment = {
       debtId: debt.id,
@@ -869,7 +896,7 @@ function calculateRolldownPayments(
       rolldownAmount: cumulativeRolldown,
       payoffMonth,
       payoffDate,
-      isFocusDebt: index === 0,
+      isFocusDebt,
       rolldownSources,
       minimumOnlyMonths: minimumOnlyResult.months,
       minimumOnlyInterest: minimumOnlyResult.totalInterest,
@@ -967,18 +994,20 @@ export function calculatePayoffStrategy(
   const debtFreeDate = new Date();
   debtFreeDate.setMonth(debtFreeDate.getMonth() + totalMonths);
 
-  // Find the first debt to pay (highest priority based on method)
-  const firstDebtId = payoffOrder.length > 0 ? payoffOrder[0].debtId : '';
-  const firstDebt = debts.find(d => d.id === firstDebtId) || sortedDebts[0];
-  const firstSchedule = simulation.schedules.find(s => s.debtId === firstDebtId) || simulation.schedules[0];
+  // Determine focus debt based on method (not simulation payoff order)
+  // This ensures avalanche always shows highest interest debt as focus,
+  // and snowball always shows lowest balance as focus, regardless of extra payment amount
+  const focusDebtId = getMethodBasedFocusDebtId(debts, method);
+  const focusDebt = debts.find(d => d.id === focusDebtId) || sortedDebts[0];
+  const focusSchedule = simulation.schedules.find(s => s.debtId === focusDebtId) || simulation.schedules[0];
 
-  // Calculate recommended payment for first debt
+  // Calculate recommended payment for focus debt
   const paymentDivisor = paymentFrequency === 'biweekly' ? 2 : 1;
   const totalMinimums = debts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
   const totalPerDebtExtras = debts.reduce((sum, d) => sum + (d.additionalMonthlyPayment || 0), 0);
   const totalAvailable = (totalMinimums + totalPerDebtExtras + extraPayment) / paymentDivisor;
   const otherMinimums = debts
-    .filter(d => d.id !== firstDebtId)
+    .filter(d => d.id !== focusDebtId)
     .reduce((sum, d) => sum + ((d.minimumPayment || 0) + (d.additionalMonthlyPayment || 0)) / paymentDivisor, 0);
   const recommendedPaymentAmount = totalAvailable - otherMinimums;
 
@@ -989,7 +1018,8 @@ export function calculatePayoffStrategy(
     method,
     paymentFrequency,
     simulation.schedules,
-    simulation.payoffOrder
+    simulation.payoffOrder,
+    focusDebtId
   );
 
   return {
@@ -1001,12 +1031,12 @@ export function calculatePayoffStrategy(
     payoffOrder,
     rolldownPayments,
     nextRecommendedPayment: {
-      debtId: firstDebt?.id || '',
-      debtName: firstDebt?.name || '',
-      currentBalance: firstDebt?.remainingBalance || 0,
+      debtId: focusDebt?.id || '',
+      debtName: focusDebt?.name || '',
+      currentBalance: focusDebt?.remainingBalance || 0,
       recommendedPayment: recommendedPaymentAmount,
-      monthsUntilPayoff: firstSchedule?.monthsToPayoff || 0,
-      totalInterest: firstSchedule?.totalInterestPaid || 0,
+      monthsUntilPayoff: focusSchedule?.monthsToPayoff || 0,
+      totalInterest: focusSchedule?.totalInterestPaid || 0,
     },
     schedules: simulation.schedules,
   };

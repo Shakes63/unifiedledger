@@ -4,20 +4,13 @@
 
 ## New Bugs
 
-1. in the debt section of the budget page the debts should update individually. for instance right now it shows that the total amount that needs to be paid per month is 714 and 800 has been paid but it was all paid to 2 of the bills and the other 2 bills were not paid at all. it should show the bills that have been overpaid as overbudget and the ones that have not been paid as under budget. 
-2. for some reason when the avalanche method is chosen it only chooses the higher interest debt as the focus if the extra payment amount is past a certain threshold. do you know why that is?
+(None)
 
 
 
 ---
 
 ## Active Bugs
-
-(None)
-
----
-
-## In Progress
 
 (None)
 
@@ -44,12 +37,14 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 682 (106 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 684 (108 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (106 total)
+## Fixed Bugs (108 total)
 
+108. ✅ **Avalanche Focus Debt Threshold Issue** [FIXED 2025-12-01] - Fixed focus debt determination to always use method-based selection (highest interest for avalanche, lowest balance for snowball) regardless of extra payment amount. Added `getMethodBasedFocusDebtId()` helper and updated `calculatePayoffStrategy` and `calculateRolldownPayments` in payoff-calculator.ts.
+107. ✅ **Debt Budget Individual Payment Status** [FIXED 2025-12-01] - Added individual payment status tracking to debt budget section. Cards now show "Unpaid", "Partial", "Paid", or "Overpaid" badges with color-coded warnings. Section header displays status breakdown (e.g., "2 paid, 1 unpaid") to clearly show which debts need attention instead of aggregate totals masking individual statuses.
 106. ✅ **Sales Tax Mark Filed Button UX Issues** [FIXED 2025-12-01] - Fixed button to look clickable with hover effects (primary color border/text, fills on hover). Fixed page jumping to top by replacing `fetchSalesTaxData()` with inline data refresh that doesn't trigger full-page loading state. Added `type="button"` and `e.preventDefault()`.
 105. ✅ **Sales Tax Mark Filed Button Not Working** [FIXED 2025-12-01] - Added `updateQuarterlyFilingStatus` utility function, PUT endpoint for `/api/sales-tax/quarterly`, and onClick handler to the "Mark Filed" button. Button now marks quarters as "submitted" with loading state and toast notifications.
 104. ✅ **Goals Filter Empty State Incorrect Message** [FIXED 2025-12-01] - Fixed empty state on goals page to show filter-aware messages. When filtered by "completed" with no results, now shows "No completed goals yet" with link to active goals, instead of "Create your first goal".

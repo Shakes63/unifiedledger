@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
-import { CreditCard, Star, TrendingUp, Clock, ExternalLink } from 'lucide-react';
+import { CreditCard, Star, TrendingUp, Clock, ExternalLink, AlertCircle, CheckCircle2, TrendingDown } from 'lucide-react';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 import Link from 'next/link';
 import Decimal from 'decimal.js';
@@ -28,20 +28,41 @@ interface DebtBudgetCardProps {
   debt: DebtBudgetItem;
 }
 
+// Payment status type for clear categorization
+type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'overpaid';
+
 export function DebtBudgetCard({ debt }: DebtBudgetCardProps) {
   const percentage = debt.recommendedPayment > 0
     ? new Decimal(debt.actualPaid).div(debt.recommendedPayment).times(100).toNumber()
     : 0;
 
-  const isComplete = debt.actualPaid >= debt.recommendedPayment;
-  const isPartial = debt.actualPaid > 0 && debt.actualPaid < debt.recommendedPayment;
+  // Determine payment status
+  const getPaymentStatus = (): PaymentStatus => {
+    if (debt.actualPaid === 0 && debt.recommendedPayment > 0) return 'unpaid';
+    if (debt.actualPaid > debt.recommendedPayment) return 'overpaid';
+    if (debt.actualPaid >= debt.recommendedPayment) return 'paid';
+    return 'partial';
+  };
+
+  const paymentStatus = getPaymentStatus();
+  const isUnpaid = paymentStatus === 'unpaid';
+  const isPartial = paymentStatus === 'partial';
+  const isPaid = paymentStatus === 'paid';
+  const isOverpaid = paymentStatus === 'overpaid';
+  
   const remaining = new Decimal(debt.recommendedPayment).minus(debt.actualPaid).toNumber();
+  const overpaidAmount = isOverpaid 
+    ? new Decimal(debt.actualPaid).minus(debt.recommendedPayment).toNumber() 
+    : 0;
 
   // Determine status for coloring
   const getProgressColor = () => {
-    if (isComplete) return 'bg-[var(--color-success)]';
+    if (isUnpaid) return 'bg-[var(--color-error)]';
+    if (isOverpaid) return 'bg-[var(--color-primary)]';
+    if (isPaid) return 'bg-[var(--color-success)]';
     if (percentage >= 80) return 'bg-[var(--color-warning)]';
-    return 'bg-[var(--color-primary)]';
+    if (percentage >= 50) return 'bg-[var(--color-warning)]';
+    return 'bg-[var(--color-error)]';
   };
 
   // Format payoff date
@@ -73,8 +94,22 @@ export function DebtBudgetCard({ debt }: DebtBudgetCardProps) {
               Focus
             </span>
           )}
-          {isComplete && (
-            <span className="text-xs bg-[var(--color-success)]/20 text-[var(--color-success)] px-2 py-0.5 rounded-full">
+          {/* Payment Status Badges */}
+          {isUnpaid && (
+            <span className="inline-flex items-center gap-1 text-xs bg-[var(--color-error)]/20 text-[var(--color-error)] px-2 py-0.5 rounded-full">
+              <AlertCircle className="w-3 h-3" />
+              Unpaid
+            </span>
+          )}
+          {isOverpaid && (
+            <span className="inline-flex items-center gap-1 text-xs bg-[var(--color-primary)]/20 text-[var(--color-primary)] px-2 py-0.5 rounded-full">
+              <TrendingUp className="w-3 h-3" />
+              +${overpaidAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </span>
+          )}
+          {isPaid && !isOverpaid && (
+            <span className="inline-flex items-center gap-1 text-xs bg-[var(--color-success)]/20 text-[var(--color-success)] px-2 py-0.5 rounded-full">
+              <CheckCircle2 className="w-3 h-3" />
               Paid
             </span>
           )}
@@ -159,11 +194,28 @@ export function DebtBudgetCard({ debt }: DebtBudgetCardProps) {
         )}
       </div>
 
-      {/* Remaining to pay indicator */}
+      {/* Status Indicators */}
+      {isUnpaid && (
+        <div className="mt-3 p-2 bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-lg">
+          <p className="text-xs text-[var(--color-error)] flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
+            No payment recorded this month - ${debt.recommendedPayment.toLocaleString('en-US', { minimumFractionDigits: 2 })} due
+          </p>
+        </div>
+      )}
       {isPartial && remaining > 0 && (
         <div className="mt-3 p-2 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-lg">
-          <p className="text-xs text-[var(--color-warning)]">
+          <p className="text-xs text-[var(--color-warning)] flex items-center gap-1">
+            <TrendingDown className="w-3 h-3" />
             ${remaining.toLocaleString('en-US', { minimumFractionDigits: 2 })} remaining to pay this month
+          </p>
+        </div>
+      )}
+      {isOverpaid && (
+        <div className="mt-3 p-2 bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/30 rounded-lg">
+          <p className="text-xs text-[var(--color-primary)] flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" />
+            Overpaid by ${overpaidAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} this month
           </p>
         </div>
       )}

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { DebtBudgetCard } from './debt-budget-card';
-import { CreditCard, Star, TrendingUp, ExternalLink, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { CreditCard, Star, TrendingUp, ExternalLink, ChevronDown, ChevronUp, Info, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import Link from 'next/link';
@@ -13,6 +13,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+
+// Payment status type for tracking
+type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'overpaid';
+
+interface StatusCounts {
+  unpaid: number;
+  partial: number;
+  paid: number;
+  overpaid: number;
+}
 
 interface DebtBudgetItem {
   debtId: string;
@@ -116,6 +126,28 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
         .toNumber()
     : 0;
 
+  // Calculate status counts for individual debts
+  const statusCounts = useMemo((): StatusCounts => {
+    const counts: StatusCounts = { unpaid: 0, partial: 0, paid: 0, overpaid: 0 };
+    
+    data.debts.forEach(debt => {
+      if (debt.actualPaid === 0 && debt.recommendedPayment > 0) {
+        counts.unpaid++;
+      } else if (debt.actualPaid > debt.recommendedPayment) {
+        counts.overpaid++;
+      } else if (debt.actualPaid >= debt.recommendedPayment) {
+        counts.paid++;
+      } else {
+        counts.partial++;
+      }
+    });
+    
+    return counts;
+  }, [data.debts]);
+
+  // Check if there are debts that need attention
+  const needsAttention = statusCounts.unpaid > 0 || statusCounts.partial > 0;
+
   return (
     <div>
       {/* Section Header */}
@@ -191,6 +223,55 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
             </div>
           )}
 
+          {/* Status Summary - Shows individual debt payment statuses */}
+          {needsAttention && (
+            <div className="mb-4 p-3 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-xl">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-4 h-4 text-[var(--color-warning)]" />
+                <span className="text-sm font-medium text-foreground">Payment Status</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-sm">
+                {statusCounts.unpaid > 0 && (
+                  <span className="flex items-center gap-1 text-[var(--color-error)]">
+                    <span className="w-2 h-2 rounded-full bg-[var(--color-error)]" />
+                    {statusCounts.unpaid} unpaid
+                  </span>
+                )}
+                {statusCounts.partial > 0 && (
+                  <span className="flex items-center gap-1 text-[var(--color-warning)]">
+                    <span className="w-2 h-2 rounded-full bg-[var(--color-warning)]" />
+                    {statusCounts.partial} partial
+                  </span>
+                )}
+                {statusCounts.paid > 0 && (
+                  <span className="flex items-center gap-1 text-[var(--color-success)]">
+                    <span className="w-2 h-2 rounded-full bg-[var(--color-success)]" />
+                    {statusCounts.paid} paid
+                  </span>
+                )}
+                {statusCounts.overpaid > 0 && (
+                  <span className="flex items-center gap-1 text-[var(--color-primary)]">
+                    <span className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
+                    {statusCounts.overpaid} overpaid
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* All Paid Success Message */}
+          {!needsAttention && data.debts.length > 0 && (
+            <div className="mb-4 p-3 bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 rounded-xl">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[var(--color-success)]" />
+                <span className="text-sm font-medium text-[var(--color-success)]">
+                  All {data.debts.length} debt{data.debts.length !== 1 ? 's' : ''} paid this month
+                  {statusCounts.overpaid > 0 && ` (${statusCounts.overpaid} with extra payments)`}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Summary Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <div className="bg-card border border-border rounded-lg p-3">
@@ -234,10 +315,41 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
 
       {/* Collapsed Summary */}
       {!isExpanded && (
-        <div className="flex items-center justify-between p-3 bg-card border border-border rounded-lg">
-          <span className="text-sm text-muted-foreground">
-            {data.debts.length} debt{data.debts.length !== 1 ? 's' : ''} to pay
-          </span>
+        <div className={`flex items-center justify-between p-3 bg-card border rounded-lg ${
+          needsAttention ? 'border-[var(--color-warning)]' : 'border-border'
+        }`}>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">
+              {data.debts.length} debt{data.debts.length !== 1 ? 's' : ''}
+            </span>
+            {/* Compact status indicators */}
+            <div className="flex items-center gap-2 text-xs">
+              {statusCounts.paid > 0 && (
+                <span className="flex items-center gap-1 text-[var(--color-success)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-success)]" />
+                  {statusCounts.paid}
+                </span>
+              )}
+              {statusCounts.overpaid > 0 && (
+                <span className="flex items-center gap-1 text-[var(--color-primary)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]" />
+                  +{statusCounts.overpaid}
+                </span>
+              )}
+              {statusCounts.partial > 0 && (
+                <span className="flex items-center gap-1 text-[var(--color-warning)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-warning)]" />
+                  {statusCounts.partial}
+                </span>
+              )}
+              {statusCounts.unpaid > 0 && (
+                <span className="flex items-center gap-1 text-[var(--color-error)]">
+                  <AlertCircle className="w-3 h-3" />
+                  {statusCounts.unpaid}
+                </span>
+              )}
+            </div>
+          </div>
           <span className="text-sm font-mono">
             <span className={percentagePaid >= 100 ? 'text-[var(--color-success)]' : 'text-foreground'}>
               ${data.totalActualPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
