@@ -5,13 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Wallet,
-  TrendingUp,
-  DollarSign,
-  PieChart,
+  CreditCard,
+  BarChart2,
   Calendar,
   Receipt,
   Target,
-  AlertCircle,
+  Workflow,
   ChevronDown,
   FileText,
   ChevronLeft,
@@ -20,6 +19,8 @@ import {
   Calculator,
   Code,
   LayoutDashboard,
+  LayoutGrid,
+  Tags,
 } from 'lucide-react';
 import Image from 'next/image';
 import { HouseholdSelector } from '@/components/household/household-selector';
@@ -45,44 +46,49 @@ interface NavSection {
 
 const navSections: NavSection[] = [
   {
-    title: 'Core',
+    title: 'Overview',
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: <Wallet className="w-4 h-4" /> },
+      { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
+    ],
+  },
+  {
+    title: 'Track',
+    items: [
       { label: 'Transactions', href: '/dashboard/transactions', icon: <Receipt className="w-4 h-4" /> },
       { label: 'Accounts', href: '/dashboard/accounts', icon: <Wallet className="w-4 h-4" /> },
       { label: 'Calendar', href: '/dashboard/calendar', icon: <Calendar className="w-4 h-4" /> },
     ],
   },
   {
-    title: 'Financial',
+    title: 'Plan',
     items: [
-      { label: 'Bills', href: '/dashboard/bills', icon: <DollarSign className="w-4 h-4" /> },
       { label: 'Budgets', href: '/dashboard/budgets', icon: <Calculator className="w-4 h-4" /> },
-      { label: 'Budget Summary', href: '/dashboard/budget-summary', icon: <LayoutDashboard className="w-4 h-4" /> },
-      { label: 'Goals', href: '/dashboard/goals', icon: <Target className="w-4 h-4" /> },
-      { label: 'Debts', href: '/dashboard/debts', icon: <TrendingUp className="w-4 h-4" /> },
+      { label: 'Budget Summary', href: '/dashboard/budget-summary', icon: <LayoutGrid className="w-4 h-4" /> },
+      { label: 'Bills', href: '/dashboard/bills', icon: <FileText className="w-4 h-4" /> },
     ],
   },
   {
-    title: 'Tools',
+    title: 'Goals',
     items: [
-      { label: 'Reports', href: '/dashboard/reports', icon: <FileText className="w-4 h-4" /> },
+      { label: 'Savings Goals', href: '/dashboard/goals', icon: <Target className="w-4 h-4" /> },
+      { label: 'Debts', href: '/dashboard/debts', icon: <CreditCard className="w-4 h-4" /> },
     ],
   },
   {
-    title: 'Settings',
+    title: 'Analyze',
     items: [
-      { label: 'Categories', href: '/dashboard/categories', icon: <PieChart className="w-4 h-4" /> },
-      { label: 'Merchants', href: '/dashboard/merchants', icon: <Store className="w-4 h-4" /> },
-      { label: 'Rules', href: '/dashboard/rules', icon: <AlertCircle className="w-4 h-4" /> },
-      { label: 'Settings', href: '/dashboard/settings', icon: <Settings className="w-4 h-4" /> },
-    ],
-  },
-  {
-    title: 'Tax',
-    items: [
+      { label: 'Reports', href: '/dashboard/reports', icon: <BarChart2 className="w-4 h-4" /> },
       { label: 'Tax Dashboard', href: '/dashboard/tax', icon: <FileText className="w-4 h-4" /> },
-      { label: 'Sales Tax', href: '/dashboard/sales-tax', icon: <DollarSign className="w-4 h-4" /> },
+      { label: 'Sales Tax', href: '/dashboard/sales-tax', icon: <Receipt className="w-4 h-4" /> },
+    ],
+  },
+  {
+    title: 'Configure',
+    items: [
+      { label: 'Categories', href: '/dashboard/categories', icon: <Tags className="w-4 h-4" /> },
+      { label: 'Merchants', href: '/dashboard/merchants', icon: <Store className="w-4 h-4" /> },
+      { label: 'Rules', href: '/dashboard/rules', icon: <Workflow className="w-4 h-4" /> },
+      { label: 'Settings', href: '/dashboard/settings', icon: <Settings className="w-4 h-4" /> },
     ],
   },
 ];
@@ -91,7 +97,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { sidebarOpen, toggleSidebar } = useNavigation();
   const { isDeveloperMode } = useDeveloperMode();
-  const [expandedSections, setExpandedSections] = useState<string[]>(['Core', 'Settings']);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['Overview', 'Track']);
 
   const toggleSection = (title: string) => {
     setExpandedSections((prev) =>

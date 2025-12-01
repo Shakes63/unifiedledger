@@ -2,11 +2,10 @@
 
 ## New Features
 
-1. we should rearrange the sidebar in a way that makes more sense.
-2. Debts should be a part of the budgeting system and should auto populate the minimum payment and it should recommend the amount that is recommended by the debt payoff strategy for the debt that is being focused on.
-3. the debt free countdown should show some information about the debt that you are focusing on right now including the name of the debt the progress on that debt and the payoff date and amount of months and days till payoff
-4. the sales tax should calculate an estimated amount that you will have to pay for sales tax for the quarter as well. Here in texas I have separate percentages that get charged for State, County, and City that all get added together for the total amount i have to pay for sales tax
-5. all business features should be hidden unless an account that is marked as business is created.
+1. Debts should be a part of the budgeting system and should auto populate the minimum payment and it should recommend the amount that is recommended by the debt payoff strategy for the debt that is being focused on.
+2. the debt free countdown should show some information about the debt that you are focusing on right now including the name of the debt the progress on that debt and the payoff date and amount of months and days till payoff
+3. the sales tax should calculate an estimated amount that you will have to pay for sales tax for the quarter as well. Here in texas I have separate percentages that get charged for State, County, and City that all get added together for the total amount i have to pay for sales tax
+4. all business features should be hidden unless an account that is marked as business is created.
 
 ---
 
@@ -17,6 +16,8 @@ _No incomplete features at this time._
 ---
 
 ## Completed Features
+
+48. **Sidebar Reorganization** [COMPLETED] - Reorganized sidebar navigation from 5 sections to 6 workflow-based sections: Overview, Track, Plan, Goals, Analyze, Configure. Fixed mobile nav hardcoded colors to use semantic CSS variables.
 
 47. **Tax Dashboard PDF Export** [COMPLETED] - Export button in Tax Dashboard to generate professional PDF reports with summary, deductions by category, and form type organization for accountants.
 

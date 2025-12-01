@@ -52,6 +52,11 @@ alwaysApply: false
 ## Recent Major Features
 
 **Latest (2025-12-01):**
+- Sidebar Reorganization (✅ COMPLETE)
+  - ✅ Reorganized from 5 sections to 6 workflow-based sections: Overview, Track, Plan, Goals, Analyze, Configure
+  - ✅ Updated icons for better visual clarity (Dashboard, Debts, Reports, Categories, Rules)
+  - ✅ Mobile nav matches desktop organization
+  - ✅ Fixed mobile nav hardcoded colors to use semantic CSS variables
 - Budget Adherence Tooltip (✅ COMPLETE)
   - ✅ Tooltip explaining budget adherence score in CompactStatsBar
   - ✅ Tooltip explaining budget adherence score in BudgetSummaryWidget
@@ -318,6 +323,7 @@ alwaysApply: false
 (None)
 
 ### Recently Completed
+- **Sidebar Reorganization** [COMPLETED 2025-12-01] - Reorganized navigation into 6 workflow-based sections (Overview, Track, Plan, Goals, Analyze, Configure), updated icons, fixed mobile nav CSS variables.
 - **Annual Planning Grid Timezone Bug** [FIXED 2025-11-29] - Fixed date parsing to avoid local timezone conversion where November 1st appeared as October 31st.
 - **Quarterly Bills Missing October** [FIXED 2025-11-29] - Changed getInstanceCount from 3 to 4 for quarterly frequency to ensure all 4 quarters appear.
 - **Semi-Annual Bills Only Showing One Per Year** [FIXED 2025-11-29] - Changed getInstanceCount from 2 to 4 so both occurrences visible per year.

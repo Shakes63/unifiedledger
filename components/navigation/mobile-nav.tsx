@@ -5,13 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Wallet,
-  TrendingUp,
-  DollarSign,
-  PieChart,
+  CreditCard,
+  BarChart2,
   Calendar,
   Receipt,
   Target,
-  AlertCircle,
+  Workflow,
   Menu,
   X,
   ChevronDown,
@@ -20,6 +19,8 @@ import {
   Calculator,
   Settings,
   LayoutDashboard,
+  LayoutGrid,
+  Tags,
 } from 'lucide-react';
 import Image from 'next/image';
 import { HouseholdSelector } from '@/components/household/household-selector';
@@ -41,39 +42,49 @@ interface NavSection {
 
 const navSections: NavSection[] = [
   {
-    title: 'Core',
+    title: 'Overview',
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: <Wallet className="w-4 h-4" /> },
+      { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
+    ],
+  },
+  {
+    title: 'Track',
+    items: [
       { label: 'Transactions', href: '/dashboard/transactions', icon: <Receipt className="w-4 h-4" /> },
       { label: 'Accounts', href: '/dashboard/accounts', icon: <Wallet className="w-4 h-4" /> },
       { label: 'Calendar', href: '/dashboard/calendar', icon: <Calendar className="w-4 h-4" /> },
     ],
   },
   {
-    title: 'Financial',
+    title: 'Plan',
     items: [
-      { label: 'Bills', href: '/dashboard/bills', icon: <DollarSign className="w-4 h-4" /> },
       { label: 'Budgets', href: '/dashboard/budgets', icon: <Calculator className="w-4 h-4" /> },
-      { label: 'Budget Summary', href: '/dashboard/budget-summary', icon: <LayoutDashboard className="w-4 h-4" /> },
-      { label: 'Goals', href: '/dashboard/goals', icon: <Target className="w-4 h-4" /> },
-      { label: 'Debts', href: '/dashboard/debts', icon: <TrendingUp className="w-4 h-4" /> },
+      { label: 'Budget Summary', href: '/dashboard/budget-summary', icon: <LayoutGrid className="w-4 h-4" /> },
+      { label: 'Bills', href: '/dashboard/bills', icon: <FileText className="w-4 h-4" /> },
     ],
   },
   {
-    title: 'Tools',
+    title: 'Goals',
     items: [
-      { label: 'Categories', href: '/dashboard/categories', icon: <PieChart className="w-4 h-4" /> },
-      { label: 'Merchants', href: '/dashboard/merchants', icon: <Store className="w-4 h-4" /> },
-      { label: 'Rules', href: '/dashboard/rules', icon: <AlertCircle className="w-4 h-4" /> },
-      { label: 'Reports', href: '/dashboard/reports', icon: <FileText className="w-4 h-4" /> },
-      { label: 'Settings', href: '/dashboard/settings', icon: <Settings className="w-4 h-4" /> },
+      { label: 'Savings Goals', href: '/dashboard/goals', icon: <Target className="w-4 h-4" /> },
+      { label: 'Debts', href: '/dashboard/debts', icon: <CreditCard className="w-4 h-4" /> },
     ],
   },
   {
-    title: 'Tax',
+    title: 'Analyze',
     items: [
+      { label: 'Reports', href: '/dashboard/reports', icon: <BarChart2 className="w-4 h-4" /> },
       { label: 'Tax Dashboard', href: '/dashboard/tax', icon: <FileText className="w-4 h-4" /> },
-      { label: 'Sales Tax', href: '/dashboard/sales-tax', icon: <DollarSign className="w-4 h-4" /> },
+      { label: 'Sales Tax', href: '/dashboard/sales-tax', icon: <Receipt className="w-4 h-4" /> },
+    ],
+  },
+  {
+    title: 'Configure',
+    items: [
+      { label: 'Categories', href: '/dashboard/categories', icon: <Tags className="w-4 h-4" /> },
+      { label: 'Merchants', href: '/dashboard/merchants', icon: <Store className="w-4 h-4" /> },
+      { label: 'Rules', href: '/dashboard/rules', icon: <Workflow className="w-4 h-4" /> },
+      { label: 'Settings', href: '/dashboard/settings', icon: <Settings className="w-4 h-4" /> },
     ],
   },
 ];
@@ -81,7 +92,7 @@ const navSections: NavSection[] = [
 export function MobileNav() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<string[]>(['Core']);
+  const [expandedSections, setExpandedSections] = useState<string[]>(['Overview']);
 
   const toggleSection = (title: string) => {
     setExpandedSections((prev) =>
@@ -105,7 +116,7 @@ export function MobileNav() {
   return (
     <div className="lg:hidden w-full max-w-full overflow-x-hidden">
       {/* Mobile Header */}
-      <header className="sticky top-0 z-50 bg-[#1a1a1a] border-b border-[#2a2a2a] w-full">
+      <header className="sticky top-0 z-50 bg-card border-b border-border w-full">
         <div className="px-4 py-3 flex items-center justify-between w-full max-w-full">
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="relative w-6 h-6">
@@ -116,7 +127,7 @@ export function MobileNav() {
                 className="object-contain"
               />
             </div>
-            <span className="font-bold text-white text-sm">Unified</span>
+            <span className="font-bold text-foreground text-sm">Unified</span>
           </Link>
 
           <div className="flex items-center gap-2">
@@ -126,7 +137,7 @@ export function MobileNav() {
               variant="ghost"
               size="icon"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-[#9ca3af]"
+              className="text-muted-foreground"
             >
               {mobileMenuOpen ? (
                 <X className="w-5 h-5" />
@@ -140,10 +151,10 @@ export function MobileNav() {
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 top-[57px] z-40 bg-[#0a0a0a] w-full max-w-full overflow-x-hidden">
+        <div className="fixed inset-0 top-[57px] z-40 bg-background w-full max-w-full overflow-x-hidden">
           <div className="flex flex-col h-full overflow-y-auto w-full max-w-full">
             {/* Household Selector */}
-            <div className="px-4 py-4 border-b border-[#2a2a2a]">
+            <div className="px-4 py-4 border-b border-border">
               <HouseholdSelector />
             </div>
 
@@ -153,7 +164,7 @@ export function MobileNav() {
                 <div key={section.title}>
                   <button
                     onClick={() => toggleSection(section.title)}
-                    className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-[#9ca3af] uppercase tracking-wider hover:text-white transition-colors mb-2"
+                    className="flex items-center justify-between w-full px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors mb-2"
                   >
                     <span>{section.title}</span>
                     <ChevronDown
@@ -176,16 +187,16 @@ export function MobileNav() {
                             <div
                               className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-colors ${
                                 active
-                                  ? 'bg-[#10b981]/20 text-[#10b981]'
-                                  : 'text-[#9ca3af] hover:text-white hover:bg-[#242424]'
+                                  ? 'bg-accent/20 text-accent'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
                               }`}
                             >
                               <div className="flex items-center gap-3">
                                 <span
                                   className={
                                     active
-                                      ? 'text-[#10b981]'
-                                      : 'text-[#6b7280]'
+                                      ? 'text-accent'
+                                      : 'text-muted-foreground'
                                   }
                                 >
                                   {item.icon}
@@ -193,7 +204,7 @@ export function MobileNav() {
                                 <span>{item.label}</span>
                               </div>
                               {item.badge && (
-                                <span className="px-2 py-0.5 bg-[#10b981]/20 text-[#10b981] text-xs rounded-full">
+                                <span className="px-2 py-0.5 bg-accent/20 text-accent text-xs rounded-full">
                                   {item.badge}
                                 </span>
                               )}

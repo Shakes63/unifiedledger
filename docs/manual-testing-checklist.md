@@ -1391,23 +1391,26 @@ All 10 action types available:
 ## 20. Navigation & Layout
 
 **Tested: 2025-11-30** | **Result: Passing (Mobile nav tested)**
+**Updated: 2025-12-01** | **Sidebar Reorganization completed**
 
 ### Sidebar (Desktop)
 
 - [x] Sidebar displays on desktop
-- [x] All navigation links work (Core, Financial, Tools, Settings, Tax sections)
+- [ ] All navigation links work - **UPDATED 2025-12-01:** Reorganized into 6 sections: Overview (Dashboard), Track (Transactions, Accounts, Calendar), Plan (Budgets, Budget Summary, Bills), Goals (Savings Goals, Debts), Analyze (Reports, Tax Dashboard, Sales Tax), Configure (Categories, Merchants, Rules, Settings)
 - [x] Active page highlighted (Dashboard link appears active)
 - [x] Collapse/expand works (section accordions expand/collapse)
 - [ ] Collapsed state persists - Cannot test (TEST MODE banner blocks collapse button)
 - [ ] User menu shows at bottom - Not visible in snapshot
 - [x] Household selector works ("Test Household" dropdown visible)
+- [ ] New icons display correctly - **ADDED 2025-12-01:** Updated icons for Dashboard (LayoutDashboard), Debts (CreditCard), Reports (BarChart2), etc.
 
 ### Mobile Navigation
 
 - [x] Bottom navigation shows on mobile - **NOTE:** App uses hamburger slide-out menu, not bottom nav
-- [x] All navigation links work - **TESTED 2025-11-30:** Core section (Dashboard, Transactions, Accounts, Calendar), Financial (Bills, Budgets, Budget Summary, Goals, Debts), Tools (Categories, Merchants, Rules, Reports, Settings), Tax (Tax Dashboard, Sales Tax)
+- [ ] All navigation links work - **UPDATED 2025-12-01:** Same 6 sections as desktop: Overview, Track, Plan, Goals, Analyze, Configure
 - [x] Active page highlighted - Navigation working correctly
 - [x] More menu expands for additional pages - **TESTED 2025-11-30:** Each section accordion expands/collapses independently, household selector visible in slide-out menu
+- [x] Mobile nav uses semantic CSS variables - **FIXED 2025-12-01:** Replaced hardcoded hex colors with theme tokens
 
 ### User Menu
 
