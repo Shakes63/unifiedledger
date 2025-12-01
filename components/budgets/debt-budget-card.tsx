@@ -133,7 +133,7 @@ export function DebtBudgetCard({ debt }: DebtBudgetCardProps) {
             ${debt.actualPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })} of $
             {debt.recommendedPayment.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </span>
-          <span className={`font-semibold ${isComplete ? 'text-[var(--color-success)]' : 'text-foreground'}`}>
+          <span className={`font-semibold ${isPaid || isOverpaid ? 'text-[var(--color-success)]' : 'text-foreground'}`}>
             {Math.min(Math.round(percentage), 100)}%
           </span>
         </div>
