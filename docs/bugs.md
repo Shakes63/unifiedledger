@@ -4,7 +4,21 @@
 
 ## New Bugs
 
-(None)
+- **Debt Milestones Not Appearing on Calendar** - Calendar has full infrastructure for displaying debt target dates and milestone achievements, but they never appear because:
+  1. `targetPayoffDate` field on debts is optional and users rarely fill it manually
+  2. The calculated "Debt-Free Date" projection (shown on Debts page) is never synced to the `targetPayoffDate` field
+  3. Milestone achievements (25%/50%/75%/100%) are calculated dynamically on-the-fly but never recorded to `debtPayoffMilestones` table with `achievedAt` dates
+  
+  **Files involved:**
+  - `app/api/calendar/month/route.ts` - Queries `debts.targetPayoffDate` and `debtPayoffMilestones.achievedAt` (lines 242-356)
+  - `app/api/calendar/day/route.ts` - Same queries for day view (lines 197-285)
+  - `components/calendar/calendar-day.tsx` - Has DebtSummary rendering code (never receives data)
+  - `lib/db/schema.ts` - `targetPayoffDate` field exists (line 1596), `debtPayoffMilestones` table exists
+  
+  **Suggested fix:** Either:
+  - Auto-populate `targetPayoffDate` from payoff calculations when saving/updating a debt
+  - Record milestone achievements with dates when debt progress crosses 25%/50%/75%/100% thresholds
+  - Or both (recommended)
 
 ---
 
@@ -30,7 +44,7 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 0 |
+| Active Bugs | 1 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
