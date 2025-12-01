@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MapPin, BarChart3, DollarSign, Lightbulb } from 'lucide-react';
-import type { ComparisonResult, PayoffMethod, PaymentFrequency } from '@/lib/debts/payoff-calculator';
+import { MapPin, BarChart3, DollarSign, Lightbulb, ArrowDown, Target, Clock, Sparkles } from 'lucide-react';
+import type { ComparisonResult, PayoffMethod, PaymentFrequency, RolldownPayment } from '@/lib/debts/payoff-calculator';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 
@@ -276,39 +276,126 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
           </div>
         </div>
 
-        {/* Payoff Order */}
+        {/* Payoff Order with Rolldown Visualization */}
         <div className="bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="w-6 h-6 text-foreground" />
+            <Target className="w-6 h-6 text-[var(--color-primary)]" />
             <h3 className="text-lg font-semibold text-foreground">Your Payoff Order</h3>
+            <span className="text-xs text-muted-foreground ml-auto capitalize">
+              {method} Method
+            </span>
           </div>
 
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {currentStrategy.payoffOrder.map((debt) => (
-              <div
-                key={debt.debtId}
-                className="flex items-center justify-between p-3 bg-elevated rounded-lg hover:bg-elevated transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-card flex items-center justify-center text-foreground font-semibold">
-                    {debt.order}
-                  </div>
-                  <div>
-                    <div className="text-foreground font-medium">{debt.debtName}</div>
-                    <div className="text-xs text-muted-foreground">
-                      ${debt.remainingBalance.toFixed(2)} @ {debt.interestRate}% APR
+          <div className="space-y-1">
+            {currentStrategy.rolldownPayments?.map((debt: RolldownPayment, index: number) => (
+              <div key={debt.debtId}>
+                {/* Rolldown Arrow for debts after the first */}
+                {index > 0 && (
+                  <div className="flex items-center justify-center py-1">
+                    <div className="flex items-center gap-2 text-[var(--color-income)]">
+                      <ArrowDown className="w-4 h-4" />
+                      <span className="text-xs font-medium">
+                        +${debt.rolldownAmount.toFixed(0)} rolls down
+                      </span>
+                      <ArrowDown className="w-4 h-4" />
                     </div>
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-muted-foreground">
-                    ${(debt.plannedPayment || debt.minimumPayment).toFixed(2)}/mo
-                  </div>
-                  {debt.additionalMonthlyPayment && debt.additionalMonthlyPayment > 0 && (
-                    <div className="text-xs text-[var(--color-income)]">
-                      +${debt.additionalMonthlyPayment.toFixed(2)} extra
+                )}
+
+                {/* Debt Card */}
+                <div
+                  className={`p-4 rounded-lg border transition-all ${
+                    debt.isFocusDebt
+                      ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30'
+                      : 'bg-elevated border-border'
+                  }`}
+                >
+                  {/* Header Row */}
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
+                          debt.isFocusDebt
+                            ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                            : 'bg-card text-foreground border border-border'
+                        }`}
+                      >
+                        {debt.order}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-foreground font-medium">{debt.debtName}</span>
+                          {debt.isFocusDebt && (
+                            <span className="text-xs bg-[var(--color-primary)] text-[var(--color-primary-foreground)] px-2 py-0.5 rounded-full">
+                              Focus
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          ${debt.remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })} @ {debt.interestRate}% APR
+                        </div>
+                      </div>
                     </div>
-                  )}
+                    
+                    {/* Payoff Timeline */}
+                    <div className="text-right">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Clock className="w-3 h-3" />
+                        <span className="text-xs">Month {debt.payoffMonth}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(debt.payoffDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Breakdown */}
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    {debt.isFocusDebt ? (
+                      /* Focus debt shows current active payment */
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Current Payment:</span>
+                          <span className="text-lg font-mono font-semibold text-[var(--color-income)]">
+                            ${debt.activePayment.toFixed(2)}/mo
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground flex flex-wrap gap-x-2">
+                          <span>${debt.minimumPayment.toFixed(0)} min</span>
+                          {debt.additionalMonthlyPayment > 0 && (
+                            <span>+ ${debt.additionalMonthlyPayment.toFixed(0)} committed</span>
+                          )}
+                          {parseFloat(extraPayment) > 0 && (
+                            <span className="text-[var(--color-income)]">+ ${parseFloat(extraPayment).toFixed(0)} extra</span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      /* Non-focus debts show what payment will be after rolldown */
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Now:</span>
+                          <span className="text-sm font-mono text-foreground">
+                            ${debt.currentPayment.toFixed(2)}/mo
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Sparkles className="w-3 h-3 text-[var(--color-income)]" />
+                            After #{debt.order - 1} paid:
+                          </span>
+                          <span className="text-sm font-mono font-semibold text-[var(--color-income)]">
+                            ${debt.activePayment.toFixed(2)}/mo
+                          </span>
+                        </div>
+                        {debt.rolldownSources.length > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            (${debt.minimumPayment.toFixed(0)} min + ${debt.rolldownAmount.toFixed(0)} rolled from {debt.rolldownSources.slice(-1)[0]})
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

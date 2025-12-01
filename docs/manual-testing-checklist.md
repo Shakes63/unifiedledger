@@ -765,10 +765,23 @@ Note: The calendar has full debt milestone support (verified in code), but test 
 ### Debt Payoff Strategy
 
 - [x] "Debt Payoff Strategy" expandable section visible (Compare Snowball vs Avalanche)
-- [ ] Avalanche method calculations work - Not tested
-- [ ] Snowball method calculations work - Not tested
-- [ ] Can switch between methods - Not tested
-- [ ] Savings comparison shows difference - Not tested
+- [x] Avalanche method calculations work - **TESTED 2025-12-01**: Correctly orders by highest interest rate first
+- [x] Snowball method calculations work - Method selector toggles between strategies
+- [x] Can switch between methods - **TESTED 2025-12-01**: Toggle buttons work correctly
+- [x] Savings comparison shows difference - **TESTED 2025-12-01**: Shows time and interest savings between methods
+
+### Debt Rolldown Payment Visualization
+
+**Tested: 2025-12-01** | **Result: Feature Complete**
+
+- [x] Focus debt shows "Focus" badge and highlighted styling
+- [x] Focus debt shows current payment breakdown (minimum + extra)
+- [x] Rolldown arrows display between debts with rolldown amounts (+$84 rolls down)
+- [x] Subsequent debts show "Now:" current payment and "After #N paid:" projected payment
+- [x] Rolldown source explanation shows (e.g., "$380 min + $84 rolled from Chase Sapphire")
+- [x] Payoff month and date display for each debt (Month 15, Mar 2027)
+- [x] Method label shows in payoff order header ("avalanche Method")
+- [x] Payment frequency affects rolldown calculations correctly
 
 ### Debt Payments
 

@@ -51,7 +51,17 @@ alwaysApply: false
 
 ## Recent Major Features
 
-**Latest (2025-11-30):**
+**Latest (2025-12-01):**
+- Debt Rolldown Payment Visualization (✅ COMPLETE)
+  - ✅ Enhanced Debt Payoff Strategy UI showing payment progression
+  - ✅ Focus debt highlighted with "Focus" badge and payment breakdown
+  - ✅ Rolldown arrows showing payment flow between debts (+$84 rolls down)
+  - ✅ Each debt shows current payment vs. projected payment after rolldown
+  - ✅ Rolldown source explanations ($380 min + $84 rolled from Chase)
+  - ✅ Payoff month and date displayed for each debt
+  - ✅ All styling uses semantic theme variables
+
+**Previous (2025-11-30):**
 - Bill Instance Operations (✅ COMPLETE)
   - ✅ BillInstanceActionsModal component for managing bill payment status
   - ✅ TransactionLinkSelector component for linking expenses to bill instances

@@ -52,6 +52,36 @@ export interface PayoffOrder {
   icon?: string;
 }
 
+/**
+ * Enhanced payment info showing rolldown progression
+ */
+export interface RolldownPayment {
+  debtId: string;
+  order: number;
+  debtName: string;
+  remainingBalance: number;
+  interestRate: number;
+  minimumPayment: number;
+  additionalMonthlyPayment: number;
+  /** What they currently pay (minimum + per-debt additional) before becoming focus */
+  currentPayment: number;
+  /** Payment when this debt becomes the focus (includes extra + rolldown) */
+  activePayment: number;
+  /** Amount rolled from previously paid debts */
+  rolldownAmount: number;
+  /** Month number when this debt will be paid off */
+  payoffMonth: number;
+  /** Actual date when this debt will be paid off */
+  payoffDate: Date;
+  /** Is this the current priority debt receiving extra payments? */
+  isFocusDebt: boolean;
+  /** Names of debts whose payments roll into this one */
+  rolldownSources: string[];
+  type: string;
+  color?: string;
+  icon?: string;
+}
+
 export interface PayoffStrategyResult {
   method: PayoffMethod;
   paymentFrequency: PaymentFrequency;
@@ -59,6 +89,8 @@ export interface PayoffStrategyResult {
   totalInterestPaid: number;
   debtFreeDate: Date;
   payoffOrder: PayoffOrder[];
+  /** Enhanced payoff order with rolldown visualization data */
+  rolldownPayments: RolldownPayment[];
   nextRecommendedPayment: {
     debtId: string;
     debtName: string;
@@ -709,6 +741,79 @@ function calculateDebtSchedule(
 }
 
 /**
+ * Calculate rolldown payment progression for visualization
+ * Shows how payments change as each debt is paid off
+ */
+function calculateRolldownPayments(
+  debts: DebtInput[],
+  extraPayment: number,
+  method: PayoffMethod,
+  paymentFrequency: PaymentFrequency,
+  schedules: DebtPayoffSchedule[],
+  payoffOrder: { debtId: string; order: number }[]
+): RolldownPayment[] {
+  if (debts.length === 0) return [];
+
+  // Sort debts by the payoff order
+  const sortedDebts = [...debts].sort((a, b) => {
+    const orderA = payoffOrder.find(p => p.debtId === a.id)?.order ?? 999;
+    const orderB = payoffOrder.find(p => p.debtId === b.id)?.order ?? 999;
+    return orderA - orderB;
+  });
+
+  // Track cumulative rolldown as each debt is paid off
+  let cumulativeRolldown = 0;
+  const paidOffDebts: string[] = [];
+
+  const rolldownPayments: RolldownPayment[] = sortedDebts.map((debt, index) => {
+    const schedule = schedules.find(s => s.debtId === debt.id);
+    const order = payoffOrder.find(p => p.debtId === debt.id)?.order ?? index + 1;
+    
+    // Current payment before becoming focus (just minimum + per-debt additional)
+    const currentPayment = (debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0);
+    
+    // When this debt becomes focus, it gets: its current payment + extra + all rolldown
+    const activePayment = currentPayment + extraPayment + cumulativeRolldown;
+    
+    // Collect rolldown sources (names of debts that rolled into this one)
+    const rolldownSources = [...paidOffDebts];
+    
+    const payoffMonth = schedule?.monthsToPayoff || 0;
+    const payoffDate = schedule?.payoffDate || new Date();
+    
+    // Build the rolldown payment info
+    const rolldownPayment: RolldownPayment = {
+      debtId: debt.id,
+      order,
+      debtName: debt.name,
+      remainingBalance: debt.remainingBalance,
+      interestRate: debt.interestRate,
+      minimumPayment: debt.minimumPayment || 0,
+      additionalMonthlyPayment: debt.additionalMonthlyPayment || 0,
+      currentPayment,
+      activePayment,
+      rolldownAmount: cumulativeRolldown,
+      payoffMonth,
+      payoffDate,
+      isFocusDebt: index === 0,
+      rolldownSources,
+      type: debt.type,
+      color: debt.color,
+      icon: debt.icon,
+    };
+
+    // After this debt is paid off, its payment rolls down to the next debt
+    // This includes minimum + per-debt additional (the extra payment stays constant)
+    cumulativeRolldown += currentPayment;
+    paidOffDebts.push(debt.name);
+
+    return rolldownPayment;
+  });
+
+  return rolldownPayments;
+}
+
+/**
  * Calculate payoff strategy for all debts using specified method
  * Uses parallel simulation to properly track interest on ALL debts simultaneously
  */
@@ -728,6 +833,7 @@ export function calculatePayoffStrategy(
       totalInterestPaid: 0,
       debtFreeDate: now,
       payoffOrder: [],
+      rolldownPayments: [],
       nextRecommendedPayment: {
         debtId: '',
         debtName: '',
@@ -800,6 +906,16 @@ export function calculatePayoffStrategy(
     .reduce((sum, d) => sum + ((d.minimumPayment || 0) + (d.additionalMonthlyPayment || 0)) / paymentDivisor, 0);
   const recommendedPaymentAmount = totalAvailable - otherMinimums;
 
+  // Calculate rolldown payments for visualization
+  const rolldownPayments = calculateRolldownPayments(
+    debts,
+    extraPayment,
+    method,
+    paymentFrequency,
+    simulation.schedules,
+    simulation.payoffOrder
+  );
+
   return {
     method,
     paymentFrequency,
@@ -807,6 +923,7 @@ export function calculatePayoffStrategy(
     totalInterestPaid: simulation.totalInterest,
     debtFreeDate,
     payoffOrder,
+    rolldownPayments,
     nextRecommendedPayment: {
       debtId: firstDebt?.id || '',
       debtName: firstDebt?.name || '',

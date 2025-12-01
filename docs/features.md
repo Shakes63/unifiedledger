@@ -2,31 +2,20 @@
 
 ## New Features
 
-- **Debt Rolldown Payment Visualization** - Enhance the Debt Payoff Strategy UI to clearly show how payments change as debts are paid off. Currently only shows minimum payments per debt; should display:
-  1. Actual payment amount for the focus debt (minimum + extra)
-  2. Projected payment amounts for each subsequent debt after rolldown
-  3. Clear progression showing how freed-up payments flow to the next debt
-  
-  Example display:
-  ```
-  1. Chase Sapphire - $4,200 @ 22.99%
-     → Pay $334/mo ($84 min + $250 extra) - Payoff: Month 15
-  
-  2. Auto Loan - $8,500 @ 8.9%  
-     → After Chase pays off, pay $714/mo ($380 min + $334 rolled) - Payoff: Month 30
-  ```
+_No new features at this time. Add new feature ideas here._
 
 ---
 
 ## Incomplete Features
 
-_No incomplete features at this time.
+_No incomplete features at this time._
 
 ---
 
 ## Completed Features
 
 1. **Transaction History/Audit Trail** [COMPLETED] - View modification history for transactions showing who made changes, what changed, and when. Displays timeline of all creates, updates, and deletes with field-level change tracking.
+44. **Debt Rolldown Payment Visualization** [COMPLETED] - Enhanced Debt Payoff Strategy UI showing how payments change as debts are paid off, with rolldown arrows, payment breakdowns, and payoff timelines for each debt.
 2. **Test Mode Feature** [COMPLETED] - Environment variable to bypass authentication for development/testing with auto-created test user.
 3. **Non-Monthly Bill Month Selection** [COMPLETED] - Select specific start month for quarterly, semi-annual, and annual bills.
 4. **Budget Summary Dashboard** [COMPLETED] - High-level overview page with allocation chart, surplus tracking, and trends.
