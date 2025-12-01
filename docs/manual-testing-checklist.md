@@ -770,6 +770,20 @@ Note: The calendar has full debt milestone support (verified in code), but test 
 - [ ] Payment adherence tracking works - "Payment Tracking" button visible
 - [ ] Payment streak widget shows current streak - Not tested
 
+### Enhanced Debt Free Countdown (Added 2025-12-01)
+
+- [ ] Focus Debt Card displays in Debt-Free Countdown widget
+- [ ] Focus debt name shows with current focus label
+- [ ] APR badge displays interest rate
+- [ ] Progress bar shows percentage paid with debt color
+- [ ] Remaining balance and original amount display correctly
+- [ ] Payoff date shows with months and days countdown
+- [ ] Monthly payment shows with extra payment indicator
+- [ ] Strategy method shows (Snowball/Avalanche) with description
+- [ ] Focus debt updates when strategy changes
+- [ ] Handles single debt case correctly
+- [ ] Empty state (no debts) still shows celebration message
+
 ### Credit Utilization
 
 - [ ] Utilization percentage calculates correctly - Not tested

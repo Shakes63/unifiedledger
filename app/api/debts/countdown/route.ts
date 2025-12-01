@@ -15,6 +15,23 @@ interface Milestone {
   achievedDate?: string;
 }
 
+interface FocusDebtInfo {
+  id: string;
+  name: string;
+  originalAmount: number;
+  remainingBalance: number;
+  percentagePaid: number;
+  interestRate: number;
+  payoffDate: string;
+  monthsRemaining: number;
+  daysRemaining: number;
+  currentPayment: number;
+  activePayment: number;
+  strategyMethod: string;
+  color: string | null;
+  icon: string | null;
+}
+
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
@@ -79,6 +96,49 @@ export async function GET(request: Request) {
 
     // Calculate payoff strategy
     const strategy = calculatePayoffStrategy(debtInputs, extraPayment, preferredMethod, paymentFrequency);
+
+    // Find the focus debt (the one currently receiving extra payments)
+    const focusRolldown = strategy.rolldownPayments.find(rp => rp.isFocusDebt);
+    let focusDebt: FocusDebtInfo | null = null;
+
+    if (focusRolldown) {
+      // Find the original debt data
+      const originalDebt = activeDebts.find(d => d.id === focusRolldown.debtId);
+      
+      if (originalDebt) {
+        // Calculate days remaining until payoff
+        const payoffDate = new Date(focusRolldown.payoffDate);
+        const now = new Date();
+        const timeDiff = payoffDate.getTime() - now.getTime();
+        const totalDaysRemaining = Math.max(0, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
+        const monthsRemaining = focusRolldown.payoffMonth;
+        // Calculate remaining days after full months
+        const daysRemaining = totalDaysRemaining - (monthsRemaining * 30);
+        
+        // Calculate percentage paid for this specific debt
+        const paidOnDebt = new Decimal(originalDebt.originalAmount).minus(originalDebt.remainingBalance);
+        const percentagePaid = originalDebt.originalAmount > 0
+          ? paidOnDebt.dividedBy(originalDebt.originalAmount).times(100).toNumber()
+          : 0;
+
+        focusDebt = {
+          id: originalDebt.id,
+          name: originalDebt.name,
+          originalAmount: originalDebt.originalAmount,
+          remainingBalance: originalDebt.remainingBalance,
+          percentagePaid: Math.round(percentagePaid * 10) / 10,
+          interestRate: originalDebt.interestRate || 0,
+          payoffDate: payoffDate.toISOString(),
+          monthsRemaining,
+          daysRemaining: Math.max(0, daysRemaining),
+          currentPayment: focusRolldown.currentPayment,
+          activePayment: focusRolldown.activePayment,
+          strategyMethod: preferredMethod,
+          color: originalDebt.color,
+          icon: originalDebt.icon,
+        };
+      }
+    }
 
     // Calculate total original debt and total remaining
     const totalOriginalDebt = activeDebts.reduce(
@@ -181,6 +241,7 @@ export async function GET(request: Request) {
         percentage: nextMilestone.percentage,
         monthsAway: nextMilestone.monthsAway,
       } : null,
+      focusDebt,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

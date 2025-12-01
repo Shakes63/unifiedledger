@@ -2,11 +2,10 @@
 
 ## New Features
 
-1. the debt free countdown should show some information about the debt that you are focusing on right now including the name of the debt the progress on that debt and the payoff date and amount of months and days till payoff
-2. the sales tax should calculate an estimated amount that you will have to pay for sales tax for the quarter as well. Here in texas I have separate percentages that get charged for State, County, and City that all get added together for the total amount i have to pay for sales tax
-3. all business features should be hidden unless an account that is marked as business is created.
-4. the business accounts should have 2 toggles. 1 that toggles sales tax tracking and enables the sales tax features and another for tax deduction tracking which enables the business tax deduction tracking.
-5. you should be able to create categories that are marked as business and those categories should show up in their own section in the category dropdown and that section should be moved to the top when choosing a category on a transaction that is marked as being for a business account.
+1. the sales tax should calculate an estimated amount that you will have to pay for sales tax for the quarter as well. Here in texas I have separate percentages that get charged for State, County, and City that all get added together for the total amount i have to pay for sales tax
+2. all business features should be hidden unless an account that is marked as business is created.
+3. the business accounts should have 2 toggles. 1 that toggles sales tax tracking and enables the sales tax features and another for tax deduction tracking which enables the business tax deduction tracking.
+4. you should be able to create categories that are marked as business and those categories should show up in their own section in the category dropdown and that section should be moved to the top when choosing a category on a transaction that is marked as being for a business account.
 
 ---
 
@@ -17,6 +16,8 @@ _No incomplete features at this time._
 ---
 
 ## Completed Features
+
+50. **Enhanced Debt Free Countdown** [COMPLETED] - Focus debt card showing current target debt name, progress bar, payoff date with months/days countdown, active payment amount with extra payment indicator, and strategy method (snowball/avalanche).
 
 49. **Debt Budget Integration** [COMPLETED] - Debts automatically appear in the budgeting system with auto-populated minimum payments and recommended payment amounts based on the selected payoff strategy. Focus debt is highlighted with strategy-recommended payments.
 

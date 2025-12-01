@@ -52,6 +52,13 @@ alwaysApply: false
 ## Recent Major Features
 
 **Latest (2025-12-01):**
+- Enhanced Debt Free Countdown (✅ COMPLETE)
+  - ✅ Focus Debt Card displaying current target debt in debt-free countdown widget
+  - ✅ Debt name, APR, progress bar with percentage paid
+  - ✅ Payoff date with months and days countdown
+  - ✅ Active payment amount with extra payment indicator
+  - ✅ Strategy method display (Snowball/Avalanche) with description
+  - ✅ All styling uses semantic theme variables
 - Debt Budget Integration (✅ COMPLETE)
   - ✅ New `/api/budgets/debts` endpoint returns debt payment budget data with focus debt and recommended payments
   - ✅ DebtBudgetSection component displays debts as budget items on Budgets page

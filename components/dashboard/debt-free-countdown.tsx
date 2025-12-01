@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { ProgressRing } from '@/components/ui/progress-ring';
-import { PartyPopper, Target, Medal, Award } from 'lucide-react';
+import { PartyPopper, Target, Medal, Award, Zap, Calendar, DollarSign, TrendingDown } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 
@@ -11,6 +11,23 @@ interface Milestone {
   monthsAway: number;
   achieved: boolean;
   achievedDate?: string;
+}
+
+interface FocusDebt {
+  id: string;
+  name: string;
+  originalAmount: number;
+  remainingBalance: number;
+  percentagePaid: number;
+  interestRate: number;
+  payoffDate: string;
+  monthsRemaining: number;
+  daysRemaining: number;
+  currentPayment: number;
+  activePayment: number;
+  strategyMethod: string;
+  color: string | null;
+  icon: string | null;
 }
 
 interface CountdownData {
@@ -28,6 +45,7 @@ interface CountdownData {
     percentage: number;
     monthsAway: number;
   } | null;
+  focusDebt: FocusDebt | null;
 }
 
 export function DebtFreeCountdown() {
@@ -133,6 +151,18 @@ export function DebtFreeCountdown() {
     );
   }
 
+  const formatPayoffDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const getStrategyLabel = (method: string) => {
+    if (method === 'snowball') {
+      return 'Smallest balance first';
+    }
+    return 'Highest rate first';
+  };
+
   // Has debts - show countdown
   return (
     <div className="bg-gradient-to-br from-card to-elevated border border-border rounded-xl p-6 md:p-8">
@@ -148,6 +178,103 @@ export function DebtFreeCountdown() {
           {getMotivationalMessage(data.percentageComplete)}
         </p>
       </div>
+
+      {/* Focus Debt Card */}
+      {data.focusDebt && (
+        <div className="mb-6 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-primary)]/5 border border-[var(--color-primary)]/30 rounded-xl p-4 md:p-5">
+          {/* Focus Header */}
+          <div className="flex items-center gap-2 mb-3">
+            <Zap className="w-5 h-5 text-[var(--color-primary)]" />
+            <span className="text-sm font-semibold text-[var(--color-primary)] uppercase tracking-wide">
+              Current Focus
+            </span>
+          </div>
+
+          {/* Debt Name & Rate */}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg md:text-xl font-bold text-foreground">
+              {data.focusDebt.name}
+            </h3>
+            <span className="text-sm font-medium text-muted-foreground bg-elevated px-2 py-1 rounded">
+              {data.focusDebt.interestRate.toFixed(2)}% APR
+            </span>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="mb-3">
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs text-muted-foreground">Progress</span>
+              <span className="text-xs font-medium text-[var(--color-income)]">
+                {data.focusDebt.percentagePaid.toFixed(1)}% paid
+              </span>
+            </div>
+            <div className="h-2 bg-elevated rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(100, data.focusDebt.percentagePaid)}%`,
+                  backgroundColor: data.focusDebt.color || 'var(--color-primary)',
+                }}
+              />
+            </div>
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-xs text-muted-foreground">
+                ${data.focusDebt.remainingBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} remaining
+              </span>
+              <span className="text-xs text-muted-foreground">
+                of ${data.focusDebt.originalAmount.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+              </span>
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {/* Payoff Date */}
+            <div className="bg-elevated/50 rounded-lg p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Payoff Date</span>
+              </div>
+              <div className="text-sm font-semibold text-foreground">
+                {formatPayoffDate(data.focusDebt.payoffDate)}
+              </div>
+              <div className="text-xs text-[var(--color-primary)] mt-0.5">
+                {data.focusDebt.monthsRemaining} mo{data.focusDebt.daysRemaining > 0 ? `, ${data.focusDebt.daysRemaining} days` : ''}
+              </div>
+            </div>
+
+            {/* Active Payment */}
+            <div className="bg-elevated/50 rounded-lg p-3">
+              <div className="flex items-center gap-1.5 mb-1">
+                <DollarSign className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Monthly Payment</span>
+              </div>
+              <div className="text-sm font-semibold font-mono text-foreground">
+                ${data.focusDebt.activePayment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              {data.focusDebt.activePayment > data.focusDebt.currentPayment && (
+                <div className="text-xs text-[var(--color-income)] mt-0.5">
+                  +${(data.focusDebt.activePayment - data.focusDebt.currentPayment).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} extra
+                </div>
+              )}
+            </div>
+
+            {/* Strategy */}
+            <div className="bg-elevated/50 rounded-lg p-3 col-span-2 md:col-span-1">
+              <div className="flex items-center gap-1.5 mb-1">
+                <TrendingDown className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Strategy</span>
+              </div>
+              <div className="text-sm font-semibold text-foreground capitalize">
+                {data.focusDebt.strategyMethod}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {getStrategyLabel(data.focusDebt.strategyMethod)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
         {/* Left: Progress Ring */}
