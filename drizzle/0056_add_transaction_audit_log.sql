@@ -23,3 +23,4 @@ CREATE INDEX IF NOT EXISTS `idx_transaction_audit_log_created` ON `transaction_a
 CREATE INDEX IF NOT EXISTS `idx_transaction_audit_log_tx_created` ON `transaction_audit_log` (`transaction_id`, `created_at`);
 
 
+

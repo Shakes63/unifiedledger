@@ -6,6 +6,9 @@ import {
   getQuarterlyReportsByAccount,
   getYearlyQuarterlyReportsByAccount,
   updateQuarterlyFilingStatus,
+  getQuarterlyReportWithBreakdown,
+  getFullSalesTaxSettings,
+  calculateTaxBreakdown,
 } from '@/lib/sales-tax/sales-tax-utils';
 
 /**
@@ -88,13 +91,33 @@ export async function GET(request: NextRequest) {
       // Get all quarters for the year (optionally filtered by account)
       const reports = await getYearlyQuarterlyReports(userId, year, accountIdParam || undefined);
 
+      // Get settings for tax breakdown calculation
+      const settings = await getFullSalesTaxSettings(userId);
+
+      // Calculate total amounts
+      const totalSales = reports.reduce((sum, r) => sum + r.totalSales, 0);
+      const totalTax = reports.reduce((sum, r) => sum + r.totalTax, 0);
+      const totalDue = reports.reduce((sum, r) => sum + r.balanceDue, 0);
+
+      // Calculate overall tax breakdown
+      const overallTaxBreakdown = settings
+        ? calculateTaxBreakdown(totalSales, settings)
+        : null;
+
+      // Add tax breakdown to each quarter's report
+      const quartersWithBreakdown = reports.map((r) => ({
+        ...r,
+        taxBreakdown: settings ? calculateTaxBreakdown(r.totalSales, settings) : null,
+      }));
+
       const summary = {
         year,
         accountId: accountIdParam || undefined,
-        totalSales: reports.reduce((sum, r) => sum + r.totalSales, 0),
-        totalTax: reports.reduce((sum, r) => sum + r.totalTax, 0),
-        totalDue: reports.reduce((sum, r) => sum + r.balanceDue, 0),
-        quarters: reports,
+        totalSales,
+        totalTax,
+        totalDue,
+        taxBreakdown: overallTaxBreakdown,
+        quarters: quartersWithBreakdown,
       };
 
       return NextResponse.json(summary);

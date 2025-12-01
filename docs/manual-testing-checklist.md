@@ -989,6 +989,29 @@ Note: The calendar has full debt milestone support (verified in code), but test 
 - [x] Export button visible
 - [x] Summary cards: Total Sales, Total Sales Tax, Total Due, Effective Rate
 
+### Multi-Level Tax Rate Configuration (NEW - 2025-12-01)
+
+- [ ] Edit button opens multi-level rate configuration form
+- [ ] State rate input field with name field (e.g., 6.25% Texas)
+- [ ] County rate input field with name field (e.g., 0.5% Travis County)
+- [ ] City rate input field with name field (e.g., 1.0% Austin)
+- [ ] Special District rate input field with name field (e.g., 0.25% Transit)
+- [ ] Combined total rate displays correctly (sum of all rates)
+- [ ] Save button persists all rate values
+- [ ] Cancel button reverts to original values
+- [ ] Read mode shows rate breakdown with colored indicators
+- [ ] Only non-zero rates display in read mode
+
+### Quarterly Estimated Payment Breakdown (NEW - 2025-12-01)
+
+- [ ] Breakdown section visible when tax data exists and rates configured
+- [ ] State tax amount calculated and displayed with rate percentage
+- [ ] County tax amount calculated and displayed with rate percentage
+- [ ] City tax amount calculated and displayed with rate percentage
+- [ ] Special District amount calculated and displayed with rate percentage
+- [ ] Total estimated due displayed prominently
+- [ ] Color-coded jurisdiction indicators match configuration section
+
 ### Sales Tax Categories
 
 - [ ] Can set sales tax categories - Not tested (requires editing)

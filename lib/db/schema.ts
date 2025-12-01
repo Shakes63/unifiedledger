@@ -1861,13 +1861,23 @@ export const salesTaxSettings = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull().unique(),
-    defaultRate: real('default_rate').notNull().default(0), // 0-100 (e.g., 8.5 for 8.5%)
-    jurisdiction: text('jurisdiction'), // e.g., "California", "New York"
+    defaultRate: real('default_rate').notNull().default(0), // 0-100 (e.g., 8.5 for 8.5%) - computed total for backward compat
+    jurisdiction: text('jurisdiction'), // e.g., "California", "New York" - legacy field
     fiscalYearStart: text('fiscal_year_start'), // e.g., "01-01" for calendar year
     filingFrequency: text('filing_frequency', {
       enum: ['monthly', 'quarterly', 'annually'],
     }).default('quarterly'),
     enableTracking: integer('enable_tracking', { mode: 'boolean' }).default(true),
+    // Multi-level tax rates (0-100 percentages)
+    stateRate: real('state_rate').default(0), // e.g., 6.25 for 6.25%
+    countyRate: real('county_rate').default(0), // e.g., 0.5 for 0.5%
+    cityRate: real('city_rate').default(0), // e.g., 1.0 for 1.0%
+    specialDistrictRate: real('special_district_rate').default(0), // e.g., 0.25 for transit
+    // Jurisdiction names for display
+    stateName: text('state_name'), // e.g., "Texas"
+    countyName: text('county_name'), // e.g., "Travis County"
+    cityName: text('city_name'), // e.g., "Austin"
+    specialDistrictName: text('special_district_name'), // e.g., "CAMPO Transit"
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   },

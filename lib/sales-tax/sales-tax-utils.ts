@@ -50,6 +50,50 @@ export interface SalesTaxSettings {
 }
 
 /**
+ * Full sales tax settings including multi-level rates
+ */
+export interface FullSalesTaxSettings extends SalesTaxSettings {
+  stateRate: number;
+  countyRate: number;
+  cityRate: number;
+  specialDistrictRate: number;
+  stateName: string | null;
+  countyName: string | null;
+  cityName: string | null;
+  specialDistrictName: string | null;
+}
+
+/**
+ * Individual tax jurisdiction breakdown
+ */
+export interface TaxJurisdictionAmount {
+  name: string;
+  rate: number;
+  amount: number;
+}
+
+/**
+ * Complete tax breakdown by jurisdiction level
+ */
+export interface TaxRateBreakdown {
+  state: TaxJurisdictionAmount;
+  county: TaxJurisdictionAmount;
+  city: TaxJurisdictionAmount;
+  specialDistrict: TaxJurisdictionAmount;
+  total: {
+    rate: number;
+    amount: number;
+  };
+}
+
+/**
+ * Quarterly report with tax breakdown
+ */
+export interface QuarterlyReportWithBreakdown extends QuarterlyReport {
+  taxBreakdown: TaxRateBreakdown;
+}
+
+/**
  * Get US quarter dates and due dates (standard)
  */
 export function getQuarterDates(year: number): Quarter[] {
@@ -107,6 +151,127 @@ export async function getUserSalesTaxRate(userId: string): Promise<number> {
   }
 
   return settings[0].defaultRate;
+}
+
+/**
+ * Get user's full sales tax settings including multi-level rates
+ * Returns null if not configured
+ */
+export async function getFullSalesTaxSettings(
+  userId: string
+): Promise<FullSalesTaxSettings | null> {
+  const settings = await db
+    .select()
+    .from(salesTaxSettings)
+    .where(eq(salesTaxSettings.userId, userId))
+    .limit(1);
+
+  if (settings.length === 0) {
+    return null;
+  }
+
+  const s = settings[0];
+  return {
+    defaultRate: s.defaultRate,
+    jurisdiction: s.jurisdiction || '',
+    fiscalYearStart: s.fiscalYearStart || '01-01',
+    filingFrequency: s.filingFrequency || 'quarterly',
+    enableTracking: s.enableTracking ?? true,
+    stateRate: s.stateRate || 0,
+    countyRate: s.countyRate || 0,
+    cityRate: s.cityRate || 0,
+    specialDistrictRate: s.specialDistrictRate || 0,
+    stateName: s.stateName || null,
+    countyName: s.countyName || null,
+    cityName: s.cityName || null,
+    specialDistrictName: s.specialDistrictName || null,
+  };
+}
+
+/**
+ * Calculate tax breakdown by jurisdiction level
+ * Uses Decimal.js for precise financial calculations
+ */
+export function calculateTaxBreakdown(
+  saleAmount: number,
+  settings: FullSalesTaxSettings
+): TaxRateBreakdown {
+  const sale = new Decimal(saleAmount);
+
+  const stateAmount = sale.times(new Decimal(settings.stateRate).dividedBy(100));
+  const countyAmount = sale.times(new Decimal(settings.countyRate).dividedBy(100));
+  const cityAmount = sale.times(new Decimal(settings.cityRate).dividedBy(100));
+  const specialAmount = sale.times(
+    new Decimal(settings.specialDistrictRate).dividedBy(100)
+  );
+  const totalAmount = stateAmount.plus(countyAmount).plus(cityAmount).plus(specialAmount);
+  const totalRate = new Decimal(settings.stateRate)
+    .plus(settings.countyRate)
+    .plus(settings.cityRate)
+    .plus(settings.specialDistrictRate);
+
+  return {
+    state: {
+      name: settings.stateName || 'State',
+      rate: settings.stateRate,
+      amount: stateAmount.toNumber(),
+    },
+    county: {
+      name: settings.countyName || 'County',
+      rate: settings.countyRate,
+      amount: countyAmount.toNumber(),
+    },
+    city: {
+      name: settings.cityName || 'City',
+      rate: settings.cityRate,
+      amount: cityAmount.toNumber(),
+    },
+    specialDistrict: {
+      name: settings.specialDistrictName || 'Special District',
+      rate: settings.specialDistrictRate,
+      amount: specialAmount.toNumber(),
+    },
+    total: {
+      rate: totalRate.toNumber(),
+      amount: totalAmount.toNumber(),
+    },
+  };
+}
+
+/**
+ * Get quarterly report with tax breakdown by jurisdiction
+ * @param userId User ID
+ * @param year Tax year
+ * @param quarter Quarter (1-4)
+ * @param accountId Optional - filter by specific business account
+ */
+export async function getQuarterlyReportWithBreakdown(
+  userId: string,
+  year: number,
+  quarter: number,
+  accountId?: string
+): Promise<QuarterlyReportWithBreakdown> {
+  // Get base report
+  const report = await getQuarterlyReport(userId, year, quarter, accountId);
+
+  // Get full settings for breakdown
+  const settings = await getFullSalesTaxSettings(userId);
+
+  // Calculate breakdown
+  const taxBreakdown = settings
+    ? calculateTaxBreakdown(report.totalSales, settings)
+    : {
+        state: { name: 'State', rate: 0, amount: 0 },
+        county: { name: 'County', rate: 0, amount: 0 },
+        city: { name: 'City', rate: 0, amount: 0 },
+        specialDistrict: { name: 'Special District', rate: 0, amount: 0 },
+        total: { rate: 0, amount: 0 },
+      };
+
+  return {
+    ...report,
+    taxBreakdown,
+  };
 }
 
 /**

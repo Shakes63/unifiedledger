@@ -4,7 +4,28 @@
 
 ## New Bugs
 
-(None) 
+1. in the debt section of the budget page the debts should update individually. for instance right now it shows that the total amount that needs to be paid per month is 714 and 800 has been paid but it was all paid to 2 of the bills and the other 2 bills were not paid at all. it should show the bills that have been overpaid as overbudget and the ones that have not been paid as under budget. 
+2. for some reason when the avalanche method is chosen it only chooses the higher interest debt as the focus if the extra payment amount is past a certain threshold. do you know why that is?
+3. ## Error Type
+Console Error
+
+## Error Message
+Failed to load sales tax data
+
+
+    at fetchSalesTaxData (app/dashboard/sales-tax/page.tsx:169:15)
+
+## Code Frame
+  167 |
+  168 |       if (!response.ok) {
+> 169 |         throw new Error('Failed to load sales tax data');
+      |               ^
+  170 |       }
+  171 |
+  172 |       const result = await response.json();
+
+Next.js version: 16.0.1 (Turbopack)
+
 
 ---
 

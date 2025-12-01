@@ -15,6 +15,23 @@ import { BarChart } from '@/components/charts';
 import { AlertCircle, Calendar, DollarSign, TrendingUp, CheckCircle2, Settings, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface TaxJurisdictionAmount {
+  name: string;
+  rate: number;
+  amount: number;
+}
+
+interface TaxRateBreakdown {
+  state: TaxJurisdictionAmount;
+  county: TaxJurisdictionAmount;
+  city: TaxJurisdictionAmount;
+  specialDistrict: TaxJurisdictionAmount;
+  total: {
+    rate: number;
+    amount: number;
+  };
+}
+
 interface QuarterlyReport {
   year: number;
   quarter: number;
@@ -25,6 +42,7 @@ interface QuarterlyReport {
   submittedDate?: string;
   status: 'not_due' | 'pending' | 'submitted' | 'accepted' | 'rejected';
   balanceDue: number;
+  taxBreakdown?: TaxRateBreakdown | null;
 }
 
 interface SalesTaxSummary {
@@ -32,7 +50,19 @@ interface SalesTaxSummary {
   totalSales: number;
   totalTax: number;
   totalDue: number;
+  taxBreakdown?: TaxRateBreakdown | null;
   quarters: QuarterlyReport[];
+}
+
+interface TaxSettings {
+  stateRate: number;
+  countyRate: number;
+  cityRate: number;
+  specialDistrictRate: number;
+  stateName: string;
+  countyName: string;
+  cityName: string;
+  specialDistrictName: string;
 }
 
 /**
@@ -45,11 +75,20 @@ export default function SalesTaxPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Tax rate configuration state
-  const [taxRate, setTaxRate] = useState<number>(0);
-  const [jurisdiction, setJurisdiction] = useState<string>('');
+  // Multi-level tax rate configuration state
+  const [stateRate, setStateRate] = useState<number>(0);
+  const [countyRate, setCountyRate] = useState<number>(0);
+  const [cityRate, setCityRate] = useState<number>(0);
+  const [specialDistrictRate, setSpecialDistrictRate] = useState<number>(0);
+  const [stateName, setStateName] = useState<string>('');
+  const [countyName, setCountyName] = useState<string>('');
+  const [cityName, setCityName] = useState<string>('');
+  const [specialDistrictName, setSpecialDistrictName] = useState<string>('');
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [isSavingRate, setIsSavingRate] = useState(false);
+
+  // Computed total rate
+  const totalTaxRate = stateRate + countyRate + cityRate + specialDistrictRate;
   
   // Filing status state
   const [isMarkingFiled, setIsMarkingFiled] = useState<string | null>(null);
@@ -67,11 +106,18 @@ export default function SalesTaxPage() {
       const response = await fetch('/api/sales-tax/settings', { credentials: 'include' });
       if (response.ok) {
         const settings = await response.json();
-        setTaxRate(settings.defaultRate);
-        setJurisdiction(settings.jurisdiction || '');
+        // Load multi-level rates
+        setStateRate(settings.stateRate || 0);
+        setCountyRate(settings.countyRate || 0);
+        setCityRate(settings.cityRate || 0);
+        setSpecialDistrictRate(settings.specialDistrictRate || 0);
+        setStateName(settings.stateName || '');
+        setCountyName(settings.countyName || '');
+        setCityName(settings.cityName || '');
+        setSpecialDistrictName(settings.specialDistrictName || '');
       }
-    } catch (error) {
-      console.error('Error fetching tax rate settings:', error);
+    } catch (err) {
+      console.error('Error fetching tax rate settings:', err);
     }
   };
 
@@ -81,24 +127,32 @@ export default function SalesTaxPage() {
       const response = await fetch('/api/sales-tax/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          defaultRate: taxRate,
-          jurisdiction,
+          stateRate,
+          countyRate,
+          cityRate,
+          specialDistrictRate,
+          stateName,
+          countyName,
+          cityName,
+          specialDistrictName,
           filingFrequency: 'quarterly',
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save settings');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save settings');
       }
 
       setIsEditingRate(false);
       // Refresh reports with new rate
       fetchSalesTaxData();
       toast.success('Tax rate settings saved');
-    } catch (error) {
-      console.error('Error saving tax rate:', error);
-      toast.error('Failed to save tax rate settings');
+    } catch (err) {
+      console.error('Error saving tax rate:', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to save tax rate settings');
     } finally {
       setIsSavingRate(false);
     }
@@ -341,43 +395,117 @@ export default function SalesTaxPage() {
             )}
           </CardTitle>
           <CardDescription>
-            Configure your sales tax rate for quarterly reporting
+            Configure your multi-level sales tax rates (State, County, City, Special District)
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isEditingRate ? (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">
-                  Sales Tax Rate (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  value={taxRate}
-                  onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                  className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
-                  placeholder="e.g., 8.5"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Enter your local sales tax rate (e.g., 8.5 for 8.5%)
-                </p>
+            <div className="space-y-6">
+              {/* Multi-level rate inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* State Rate */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">State</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={stateRate}
+                    onChange={(e) => setStateRate(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                    placeholder="Rate %"
+                  />
+                  <input
+                    type="text"
+                    value={stateName}
+                    onChange={(e) => setStateName(e.target.value)}
+                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground text-sm"
+                    placeholder="e.g., Texas"
+                  />
+                </div>
+
+                {/* County Rate */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">County</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={countyRate}
+                    onChange={(e) => setCountyRate(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                    placeholder="Rate %"
+                  />
+                  <input
+                    type="text"
+                    value={countyName}
+                    onChange={(e) => setCountyName(e.target.value)}
+                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground text-sm"
+                    placeholder="e.g., Travis County"
+                  />
+                </div>
+
+                {/* City Rate */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">City</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={cityRate}
+                    onChange={(e) => setCityRate(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                    placeholder="Rate %"
+                  />
+                  <input
+                    type="text"
+                    value={cityName}
+                    onChange={(e) => setCityName(e.target.value)}
+                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground text-sm"
+                    placeholder="e.g., Austin"
+                  />
+                </div>
+
+                {/* Special District Rate */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Special District</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={specialDistrictRate}
+                    onChange={(e) => setSpecialDistrictRate(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
+                    placeholder="Rate %"
+                  />
+                  <input
+                    type="text"
+                    value={specialDistrictName}
+                    onChange={(e) => setSpecialDistrictName(e.target.value)}
+                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground text-sm"
+                    placeholder="e.g., Transit"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm text-muted-foreground">
-                  Jurisdiction (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={jurisdiction}
-                  onChange={(e) => setJurisdiction(e.target.value)}
-                  className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground"
-                  placeholder="e.g., California, New York"
-                />
+              {/* Total Rate Display */}
+              <div className="p-3 bg-elevated rounded-lg border border-border">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Combined Total Rate:</span>
+                  <span className="text-xl font-bold text-[var(--color-primary)]">
+                    {totalTaxRate.toFixed(2)}%
+                  </span>
+                </div>
               </div>
+
+              <p className="text-xs text-muted-foreground">
+                Enter each jurisdiction&apos;s tax rate as a percentage (e.g., 6.25 for 6.25%). 
+                Leave unused jurisdictions at 0.
+              </p>
 
               <div className="flex gap-2">
                 <Button
@@ -400,33 +528,74 @@ export default function SalesTaxPage() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Tax Rate</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {taxRate.toFixed(2)}%
-                </p>
+            <div className="space-y-4">
+              {/* Total Rate Display */}
+              <div className="flex items-center justify-between p-3 bg-elevated rounded-lg">
+                <span className="text-muted-foreground">Combined Tax Rate</span>
+                <span className="text-2xl font-bold text-[var(--color-primary)]">
+                  {totalTaxRate.toFixed(2)}%
+                </span>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Jurisdiction</p>
-                <p className="text-lg font-medium text-foreground">
-                  {jurisdiction || 'Not set'}
-                </p>
-              </div>
+
+              {/* Rate Breakdown */}
+              {totalTaxRate > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+                  {stateRate > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[var(--color-primary)]" />
+                        <span className="text-xs text-muted-foreground">State</span>
+                      </div>
+                      <p className="text-sm font-medium text-foreground">{stateRate.toFixed(2)}%</p>
+                      {stateName && <p className="text-xs text-muted-foreground">{stateName}</p>}
+                    </div>
+                  )}
+                  {countyRate > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[var(--color-success)]" />
+                        <span className="text-xs text-muted-foreground">County</span>
+                      </div>
+                      <p className="text-sm font-medium text-foreground">{countyRate.toFixed(2)}%</p>
+                      {countyName && <p className="text-xs text-muted-foreground">{countyName}</p>}
+                    </div>
+                  )}
+                  {cityRate > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[var(--color-warning)]" />
+                        <span className="text-xs text-muted-foreground">City</span>
+                      </div>
+                      <p className="text-sm font-medium text-foreground">{cityRate.toFixed(2)}%</p>
+                      {cityName && <p className="text-xs text-muted-foreground">{cityName}</p>}
+                    </div>
+                  )}
+                  {specialDistrictRate > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-[var(--color-transfer)]" />
+                        <span className="text-xs text-muted-foreground">Special</span>
+                      </div>
+                      <p className="text-sm font-medium text-foreground">{specialDistrictRate.toFixed(2)}%</p>
+                      {specialDistrictName && <p className="text-xs text-muted-foreground">{specialDistrictName}</p>}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {taxRate === 0 && !isEditingRate && (
+          {totalTaxRate === 0 && !isEditingRate && (
             <div className="mt-4 p-3 bg-[var(--color-warning)]/10 border border-[var(--color-warning)] rounded-lg">
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-[var(--color-warning)] mt-0.5 flex-shrink-0" />
                 <div className="text-sm">
                   <p className="text-foreground font-medium mb-1">
-                    Configure Your Tax Rate
+                    Configure Your Tax Rates
                   </p>
                   <p className="text-muted-foreground">
-                    Set your sales tax rate to see accurate quarterly reports.
-                    Reports will show $0 tax until a rate is configured.
+                    Set your sales tax rates by jurisdiction to see accurate quarterly reports.
+                    You can configure State, County, City, and Special District rates separately.
                   </p>
                 </div>
               </div>
@@ -533,6 +702,117 @@ export default function SalesTaxPage() {
           </CardContent>
         </Card>
       </div>
+      )}
+
+      {/* Quarterly Estimated Payment Breakdown */}
+      {hasData && data.taxBreakdown && totalTaxRate > 0 && (
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <DollarSign className="w-5 h-5 text-[var(--color-warning)]" />
+              Estimated Quarterly Payment Breakdown
+            </CardTitle>
+            <CardDescription>
+              Your sales tax due by jurisdiction for the year
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {/* State */}
+              {data.taxBreakdown.state.rate > 0 && (
+                <div className="flex items-center justify-between py-3 border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-[var(--color-primary)]" />
+                    <div>
+                      <span className="text-foreground font-medium">
+                        {data.taxBreakdown.state.name}
+                      </span>
+                      <span className="text-muted-foreground text-sm ml-2">
+                        ({data.taxBreakdown.state.rate.toFixed(2)}%)
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-mono font-medium text-foreground">
+                    ${data.taxBreakdown.state.amount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+
+              {/* County */}
+              {data.taxBreakdown.county.rate > 0 && (
+                <div className="flex items-center justify-between py-3 border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-[var(--color-success)]" />
+                    <div>
+                      <span className="text-foreground font-medium">
+                        {data.taxBreakdown.county.name}
+                      </span>
+                      <span className="text-muted-foreground text-sm ml-2">
+                        ({data.taxBreakdown.county.rate.toFixed(2)}%)
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-mono font-medium text-foreground">
+                    ${data.taxBreakdown.county.amount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+
+              {/* City */}
+              {data.taxBreakdown.city.rate > 0 && (
+                <div className="flex items-center justify-between py-3 border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-[var(--color-warning)]" />
+                    <div>
+                      <span className="text-foreground font-medium">
+                        {data.taxBreakdown.city.name}
+                      </span>
+                      <span className="text-muted-foreground text-sm ml-2">
+                        ({data.taxBreakdown.city.rate.toFixed(2)}%)
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-mono font-medium text-foreground">
+                    ${data.taxBreakdown.city.amount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+
+              {/* Special District */}
+              {data.taxBreakdown.specialDistrict.rate > 0 && (
+                <div className="flex items-center justify-between py-3 border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-[var(--color-transfer)]" />
+                    <div>
+                      <span className="text-foreground font-medium">
+                        {data.taxBreakdown.specialDistrict.name}
+                      </span>
+                      <span className="text-muted-foreground text-sm ml-2">
+                        ({data.taxBreakdown.specialDistrict.rate.toFixed(2)}%)
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-mono font-medium text-foreground">
+                    ${data.taxBreakdown.specialDistrict.amount.toFixed(2)}
+                  </span>
+                </div>
+              )}
+
+              {/* Total */}
+              <div className="flex items-center justify-between pt-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-foreground font-bold text-lg">Total Estimated Due</span>
+                  <span className="text-muted-foreground text-sm">
+                    ({data.taxBreakdown.total.rate.toFixed(2)}%)
+                  </span>
+                </div>
+                <span className="font-mono font-bold text-xl text-[var(--color-warning)]">
+                  ${data.taxBreakdown.total.amount.toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Sales vs Tax Chart */}

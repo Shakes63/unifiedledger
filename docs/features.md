@@ -2,10 +2,9 @@
 
 ## New Features
 
-1. the sales tax should calculate an estimated amount that you will have to pay for sales tax for the quarter as well. Here in texas I have separate percentages that get charged for State, County, and City that all get added together for the total amount i have to pay for sales tax
-2. all business features should be hidden unless an account that is marked as business is created.
-3. the business accounts should have 2 toggles. 1 that toggles sales tax tracking and enables the sales tax features and another for tax deduction tracking which enables the business tax deduction tracking.
-4. you should be able to create categories that are marked as business and those categories should show up in their own section in the category dropdown and that section should be moved to the top when choosing a category on a transaction that is marked as being for a business account.
+1. all business features should be hidden unless an account that is marked as business is created.
+2. the business accounts should have 2 toggles. 1 that toggles sales tax tracking and enables the sales tax features and another for tax deduction tracking which enables the business tax deduction tracking.
+3. you should be able to create categories that are marked as business and those categories should show up in their own section in the category dropdown and that section should be moved to the top when choosing a category on a transaction that is marked as being for a business account.
 
 ---
 
@@ -16,6 +15,10 @@ _No incomplete features at this time._
 ---
 
 ## Completed Features
+
+51. **Multi-Level Sales Tax Rates** [COMPLETED] - Configure separate State, County, City, and Special District tax rates with quarterly estimated payment breakdown by jurisdiction.
+
+
 
 50. **Enhanced Debt Free Countdown** [COMPLETED] - Focus debt card showing current target debt name, progress bar, payoff date with months/days countdown, active payment amount with extra payment indicator, and strategy method (snowball/avalanche).
 
