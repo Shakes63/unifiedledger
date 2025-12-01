@@ -918,7 +918,18 @@ Note: The calendar has full debt milestone support (verified in code), but test 
 - [x] Summary by tax category displays (table with Category, Form, Amount, Count)
 - [x] "Tax Year Summary" card shows Income, Deductions, Taxable Income, Est. Quarterly Payment
 - [x] "Tax Preparation Tips" checklist displayed
-- [ ] Export tax report works - Not tested (no export button visible)
+
+### Tax PDF Export
+
+- [x] Export PDF button visible in header next to year selector
+- [x] Clicking Export PDF downloads a PDF file
+- [x] PDF filename includes year (e.g., `tax_deductions_2025.pdf`)
+- [x] PDF filename includes filter suffix when filtered (e.g., `tax_deductions_2025_personal.pdf`)
+- [x] Export button disabled when no data available
+- [x] PDF contains summary section with income, deductions, taxable income
+- [x] PDF contains deductions table organized by form type
+- [x] PDF includes generation date and filter type in header
+- [x] Toast notification appears on successful export
 
 ### Business vs Personal Tax Deductions
 

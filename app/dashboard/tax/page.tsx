@@ -11,7 +11,9 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart } from '@/components/charts';
-import { FileText, DollarSign, TrendingUp, AlertCircle, Building2, User } from 'lucide-react';
+import { FileText, DollarSign, TrendingUp, AlertCircle, Building2, User, Download, Loader2 } from 'lucide-react';
+import { exportTaxToPDF, TaxExportData } from '@/lib/tax/tax-pdf-export';
+import { toast } from 'sonner';
 
 type DeductionTypeFilter = 'all' | 'business' | 'personal';
 
@@ -56,6 +58,7 @@ export default function TaxPage() {
   const [data, setData] = useState<TaxData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     fetchTaxData();
@@ -89,6 +92,38 @@ export default function TaxPage() {
       options.push(i);
     }
     return options;
+  };
+
+  const handleExportPDF = async () => {
+    if (!data || !data.summary.byCategory || data.summary.byCategory.length === 0) {
+      toast.error('No tax data available to export');
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      
+      const exportData: TaxExportData = {
+        year: data.summary.year,
+        totalIncome: data.summary.totalIncome,
+        totalDeductions: data.summary.totalDeductions,
+        businessDeductions: data.summary.businessDeductions,
+        personalDeductions: data.summary.personalDeductions,
+        taxableIncome: data.summary.taxableIncome,
+        estimatedQuarterlyPayment: data.estimates.estimatedQuarterlyPayment,
+        estimatedAnnualTax: data.estimates.estimatedAnnualTax,
+        categories: data.summary.byCategory,
+        filterType: typeFilter,
+      };
+
+      exportTaxToPDF(exportData);
+      toast.success('Tax report exported to PDF');
+    } catch (err) {
+      console.error('Error exporting PDF:', err);
+      toast.error('Failed to export PDF');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const getDeductionTypeBadge = (type: 'business' | 'personal' | 'mixed') => {
@@ -162,18 +197,34 @@ export default function TaxPage() {
             <h1 className="text-3xl font-bold text-foreground">Tax Dashboard</h1>
             <p className="text-muted-foreground mt-1">Track deductions and prepare for tax season</p>
           </div>
-          <Select value={year} onValueChange={setYear}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Select year" />
-            </SelectTrigger>
-            <SelectContent>
-              {getYearOptions().map((y) => (
-                <SelectItem key={y} value={y.toString()}>
-                  {y}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-3">
+            <Select value={year} onValueChange={setYear}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Select year" />
+              </SelectTrigger>
+              <SelectContent>
+                {getYearOptions().map((y) => (
+                  <SelectItem key={y} value={y.toString()}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={handleExportPDF}
+              disabled={isExporting || !hasData}
+              variant="outline"
+              className="flex items-center gap-2"
+              aria-label="Export tax report to PDF"
+            >
+              {isExporting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              Export PDF
+            </Button>
+          </div>
         </div>
 
         {/* Filter Tabs */}
