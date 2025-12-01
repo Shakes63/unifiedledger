@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import {
   Select,
   SelectContent,
@@ -76,13 +77,17 @@ export function MerchantSelector({
 
       if (response.ok) {
         const newMerchant = await response.json();
-        // Add to merchants list
-        setMerchants([...merchants, newMerchant]);
-        // Auto-select the new merchant
-        onMerchantChange(newMerchant.id);
-        // Reset creation UI
-        setNewMerchantName('');
-        setIsCreating(false);
+        // Use flushSync to ensure merchants state updates synchronously
+        flushSync(() => {
+          setMerchants([...merchants, newMerchant]);
+        });
+        // Use setTimeout to ensure parent state updates propagate
+        // before switching back to Select view
+        setTimeout(() => {
+          onMerchantChange(newMerchant.id);
+          setNewMerchantName('');
+          setIsCreating(false);
+        }, 0);
         toast.success(`Merchant "${newMerchant.name}" created!`);
       } else {
         toast.error('Failed to create merchant');
@@ -108,32 +113,32 @@ export function MerchantSelector({
   return (
     <div className="space-y-2">
       {!hideLabel && <label className="text-sm font-medium text-foreground">Merchant</label>}
-      {!isCreating ? (
-        <div className="flex gap-2">
-          <Select value={selectedMerchant || ''} onValueChange={onMerchantChange}>
-            <SelectTrigger className="flex-1 bg-elevated border border-border text-foreground rounded-lg">
-              <SelectValue placeholder="Select or skip" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Skip (No merchant)</SelectItem>
-              {merchants.map((merchant) => (
-                <SelectItem key={merchant.id} value={merchant.id}>
-                  {merchant.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => setIsCreating(true)}
-            className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
-          >
-            <Plus className="w-4 h-4" />
-          </Button>
-        </div>
-      ) : (
+      {/* Keep Select mounted but hidden during creation to preserve controlled value state */}
+      <div className={`flex gap-2 ${isCreating ? 'hidden' : ''}`}>
+        <Select value={selectedMerchant || ''} onValueChange={onMerchantChange}>
+          <SelectTrigger className="flex-1 bg-elevated border border-border text-foreground rounded-lg">
+            <SelectValue placeholder="Select or skip" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Skip (No merchant)</SelectItem>
+            {merchants.map((merchant) => (
+              <SelectItem key={merchant.id} value={merchant.id}>
+                {merchant.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => setIsCreating(true)}
+          className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+        >
+          <Plus className="w-4 h-4" />
+        </Button>
+      </div>
+      {isCreating && (
         <div className="flex gap-2">
           <Input
             autoFocus

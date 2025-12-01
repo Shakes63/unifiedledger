@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import {
   Select,
   SelectContent,
@@ -159,13 +160,17 @@ export function CategorySelector({
 
       if (response.ok) {
         const newCategory = await response.json();
-        // Add to categories list
-        setCategories([...categories, newCategory]);
-        // Auto-select the new category
-        onCategoryChange(newCategory.id);
-        // Reset creation UI
-        setNewCategoryName('');
-        setIsCreating(false);
+        // Use flushSync to ensure categories state updates synchronously
+        flushSync(() => {
+          setCategories([...categories, newCategory]);
+        });
+        // Use setTimeout to ensure parent state updates propagate
+        // before switching back to Select view
+        setTimeout(() => {
+          onCategoryChange(newCategory.id);
+          setNewCategoryName('');
+          setIsCreating(false);
+        }, 0);
         toast.success(`Category "${newCategory.name}" created!`);
       } else {
         toast.error('Failed to create category');
@@ -191,110 +196,110 @@ export function CategorySelector({
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium text-foreground">Category</label>
-      {!isCreating ? (
-        <div className="flex gap-2">
-          <Select value={selectedCategory || 'none'} onValueChange={(value) => onCategoryChange(value === 'none' ? null : value)}>
-            <SelectTrigger className="flex-1 bg-elevated border-border text-foreground rounded-lg">
-              <SelectValue placeholder="Select or skip" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Skip (No category)</SelectItem>
+      {/* Keep Select mounted but hidden during creation to preserve controlled value state */}
+      <div className={`flex gap-2 ${isCreating ? 'hidden' : ''}`}>
+        <Select value={selectedCategory || 'none'} onValueChange={(value) => onCategoryChange(value === 'none' ? null : value)}>
+          <SelectTrigger className="flex-1 bg-elevated border-border text-foreground rounded-lg">
+            <SelectValue placeholder="Select or skip" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Skip (No category)</SelectItem>
 
-              {(() => {
-                // Track which categoryIds we've already shown to prevent duplicates
-                const shownCategoryIds = new Set<string>();
+            {(() => {
+              // Track which categoryIds we've already shown to prevent duplicates
+              const shownCategoryIds = new Set<string>();
 
-                // Collect all items to display
-                const billItems: React.ReactElement[] = [];
-                const debtItems: React.ReactElement[] = [];
-                const categoryItems: React.ReactElement[] = [];
+              // Collect all items to display
+              const billItems: React.ReactElement[] = [];
+              const debtItems: React.ReactElement[] = [];
+              const categoryItems: React.ReactElement[] = [];
 
-                // Add bills
-                bills.forEach((bill) => {
-                  if (!shownCategoryIds.has(bill.categoryId)) {
-                    shownCategoryIds.add(bill.categoryId);
-                    billItems.push(
-                      <SelectItem key={`bill-${bill.id}`} value={bill.categoryId}>
-                        {bill.name}
-                      </SelectItem>
-                    );
-                  }
-                });
+              // Add bills
+              bills.forEach((bill) => {
+                if (!shownCategoryIds.has(bill.categoryId)) {
+                  shownCategoryIds.add(bill.categoryId);
+                  billItems.push(
+                    <SelectItem key={`bill-${bill.id}`} value={bill.categoryId}>
+                      {bill.name}
+                    </SelectItem>
+                  );
+                }
+              });
 
-                // Add debts
-                debts.forEach((debt) => {
-                  if (!shownCategoryIds.has(debt.categoryId)) {
-                    shownCategoryIds.add(debt.categoryId);
-                    debtItems.push(
-                      <SelectItem key={`debt-${debt.id}`} value={debt.categoryId}>
-                        {debt.name}
-                      </SelectItem>
-                    );
-                  }
-                });
+              // Add debts
+              debts.forEach((debt) => {
+                if (!shownCategoryIds.has(debt.categoryId)) {
+                  shownCategoryIds.add(debt.categoryId);
+                  debtItems.push(
+                    <SelectItem key={`debt-${debt.id}`} value={debt.categoryId}>
+                      {debt.name}
+                    </SelectItem>
+                  );
+                }
+              });
 
-                // Add regular categories (excluding those used by bills/debts)
-                categories.forEach((category) => {
-                  if (!shownCategoryIds.has(category.id)) {
-                    shownCategoryIds.add(category.id);
-                    categoryItems.push(
-                      <SelectItem key={`cat-${category.id}`} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    );
-                  }
-                });
+              // Add regular categories (excluding those used by bills/debts)
+              categories.forEach((category) => {
+                if (!shownCategoryIds.has(category.id)) {
+                  shownCategoryIds.add(category.id);
+                  categoryItems.push(
+                    <SelectItem key={`cat-${category.id}`} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  );
+                }
+              });
 
-                return (
-                  <>
-                    {/* Bills Section */}
-                    {billItems.length > 0 && (
-                      <>
-                        <SelectSeparator />
-                        <SelectGroup>
-                          <SelectLabel>Bills</SelectLabel>
-                          {billItems}
-                        </SelectGroup>
-                      </>
-                    )}
+              return (
+                <>
+                  {/* Bills Section */}
+                  {billItems.length > 0 && (
+                    <>
+                      <SelectSeparator />
+                      <SelectGroup>
+                        <SelectLabel>Bills</SelectLabel>
+                        {billItems}
+                      </SelectGroup>
+                    </>
+                  )}
 
-                    {/* Debts Section */}
-                    {debtItems.length > 0 && (
-                      <>
-                        <SelectSeparator />
-                        <SelectGroup>
-                          <SelectLabel>Debts</SelectLabel>
-                          {debtItems}
-                        </SelectGroup>
-                      </>
-                    )}
+                  {/* Debts Section */}
+                  {debtItems.length > 0 && (
+                    <>
+                      <SelectSeparator />
+                      <SelectGroup>
+                        <SelectLabel>Debts</SelectLabel>
+                        {debtItems}
+                      </SelectGroup>
+                    </>
+                  )}
 
-                    {/* Regular Categories Section */}
-                    {categoryItems.length > 0 && (
-                      <>
-                        <SelectSeparator />
-                        <SelectGroup>
-                          <SelectLabel>Categories</SelectLabel>
-                          {categoryItems}
-                        </SelectGroup>
-                      </>
-                    )}
-                  </>
-                );
-              })()}
-            </SelectContent>
-          </Select>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => setIsCreating(true)}
-            className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
-          >
-            <Plus className="w-4 h-4" />
-          </Button>
-        </div>
-      ) : (
+                  {/* Regular Categories Section */}
+                  {categoryItems.length > 0 && (
+                    <>
+                      <SelectSeparator />
+                      <SelectGroup>
+                        <SelectLabel>Categories</SelectLabel>
+                        {categoryItems}
+                      </SelectGroup>
+                    </>
+                  )}
+                </>
+              );
+            })()}
+          </SelectContent>
+        </Select>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => setIsCreating(true)}
+          className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+        >
+          <Plus className="w-4 h-4" />
+        </Button>
+      </div>
+      {isCreating && (
         <div className="flex gap-2">
           <Input
             autoFocus

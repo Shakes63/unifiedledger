@@ -51,6 +51,7 @@ export function InlineTransactionDropdown({
   const wrapperRef = useRef<HTMLDivElement>(null);
   // Use refs to track state for race condition prevention (refs update synchronously)
   const isUpdatingRef = useRef(false);
+  const isCreatingRef = useRef(false);
   const selectOpenRef = useRef(false);
 
   const isMissing = !value;
@@ -97,6 +98,7 @@ export function InlineTransactionDropdown({
         // Use ref to check updating state to avoid race condition
         if (!isUpdatingRef.current && !isCreatingNew) {
           setIsEditing(false);
+          isCreatingRef.current = false;
           setIsCreating(false);
           setNewName('');
           selectOpenRef.current = false;
@@ -113,6 +115,8 @@ export function InlineTransactionDropdown({
 
   const handleSelect = async (selectedValue: string) => {
     if (selectedValue === '__create_new__') {
+      // Set ref immediately to prevent race condition with onOpenChange
+      isCreatingRef.current = true;
       setIsCreating(true);
       selectOpenRef.current = false;
       setSelectOpen(false);
@@ -140,6 +144,7 @@ export function InlineTransactionDropdown({
       setIsCreatingNew(true);
       await onCreate(transactionId, type, newName.trim());
       setNewName('');
+      isCreatingRef.current = false;
       setIsCreating(false);
       setIsEditing(false);
     } finally {
@@ -154,6 +159,7 @@ export function InlineTransactionDropdown({
       handleCreate();
     } else if (e.key === 'Escape') {
       e.preventDefault();
+      isCreatingRef.current = false;
       setIsCreating(false);
       setIsEditing(false);
       setNewName('');
@@ -234,6 +240,7 @@ export function InlineTransactionDropdown({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            isCreatingRef.current = false;
             setIsCreating(false);
             setIsEditing(false);
             setNewName('');
@@ -263,11 +270,11 @@ export function InlineTransactionDropdown({
           selectOpenRef.current = open;
           setSelectOpen(open);
           // If dropdown closes without selection, exit edit mode
-          // Use ref to check updating state to avoid race condition
+          // Use refs to check state to avoid race condition with stale closures
           if (!open && !isUpdatingRef.current) {
             setTimeout(() => {
-              // Double-check ref in timeout as well
-              if (!isCreating && !isUpdatingRef.current) {
+              // Double-check refs in timeout as well
+              if (!isCreatingRef.current && !isUpdatingRef.current) {
                 setIsEditing(false);
               }
             }, 100);

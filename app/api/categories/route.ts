@@ -144,7 +144,7 @@ export async function POST(request: Request) {
 
     const categoryId = nanoid();
 
-    await db.insert(budgetCategories).values({
+    const categoryData = {
       id: categoryId,
       userId,
       householdId,
@@ -155,12 +155,14 @@ export async function POST(request: Request) {
       isTaxDeductible,
       incomeFrequency: type === 'income' && incomeFrequency ? incomeFrequency : 'variable',
       createdAt: new Date().toISOString(),
-    });
+      usageCount: 0,
+      sortOrder: 0,
+    };
 
-    return Response.json(
-      { id: categoryId, message: 'Category created successfully' },
-      { status: 201 }
-    );
+    await db.insert(budgetCategories).values(categoryData);
+
+    // Return full category object for client-side use
+    return Response.json(categoryData, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
