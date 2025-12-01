@@ -35,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 677 (101 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 678 (102 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (101 total)
+## Fixed Bugs (102 total)
 
+102. ✅ **Inline Description Edit Text Box Too Small** [FIXED 2025-12-01] - Replaced single-line `<Input>` with multi-line `<Textarea>` (2 rows, min-h-[40px], max-h-[80px], min-w-[200px], max-w-[300px]). Display mode now uses `line-clamp-2` instead of `truncate` to show up to 2 lines of text.
 101. ✅ **Inline Transaction Dropdown Merchant/Category Creation Bug** [FIXED 2025-12-01] - Fixed issue on transactions list page where creating a new merchant/category from inline dropdown would exit edit mode before creation completed. Root cause: stale closure issue in `onOpenChange` callback - the `isCreating` state was captured before the state update took effect. Fixed by adding `isCreatingRef` to synchronously track creating state and using it in the setTimeout callback. Also fixed related bugs in transaction form: (1) Categories API only returned `{id, message}` - now returns full object. (2) CategorySelector/MerchantSelector used conditional rendering causing unmount/remount - fixed with CSS hidden class and `flushSync`.
 100. ✅ **Repeat Transaction Date Bug** [FIXED 2025-11-30] - Fixed timezone-related date display bug. The issue was that `new Date('YYYY-MM-DD')` parses dates as UTC midnight, which displays as the previous day in local timezones behind UTC. Replaced all `new Date(transaction.date)` calls with `parseISO()` from date-fns in 5 files for consistent date handling.
 99. ✅ **Transaction History Page Redirects in TEST_MODE** [FIXED 2025-11-30] - Fixed by replacing direct `auth.api.getSession()` call with `getAuthUser()` from auth-helpers.ts which has TEST_MODE bypass support. Also fixed hardcoded colors in page and component to use semantic theme variables.
