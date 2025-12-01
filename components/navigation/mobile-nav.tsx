@@ -90,22 +90,24 @@ const navSections: NavSection[] = [
   },
 ];
 
-// Business features that should only appear when a business account exists
-const BUSINESS_FEATURE_LABELS = ['Tax Dashboard', 'Sales Tax'];
-
 export function MobileNav() {
   const pathname = usePathname();
-  const { hasBusinessAccounts } = useBusinessFeatures();
+  const { hasSalesTaxAccounts, hasTaxDeductionAccounts } = useBusinessFeatures();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<string[]>(['Overview']);
 
-  // Filter out business-only features if no business accounts exist
+  // Filter out business-only features based on account settings
+  // Tax Dashboard: requires at least one account with tax deduction tracking
+  // Sales Tax: requires at least one account with sales tax tracking
   const filteredNavSections = navSections
     .map((section) => ({
       ...section,
       items: section.items.filter((item) => {
-        if (BUSINESS_FEATURE_LABELS.includes(item.label)) {
-          return hasBusinessAccounts;
+        if (item.label === 'Tax Dashboard') {
+          return hasTaxDeductionAccounts;
+        }
+        if (item.label === 'Sales Tax') {
+          return hasSalesTaxAccounts;
         }
         return true;
       }),

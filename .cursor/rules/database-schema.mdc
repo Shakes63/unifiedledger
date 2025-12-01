@@ -13,6 +13,7 @@ alwaysApply: false
 - **households** - Household groups
 - **householdMembers** - User-household relationships with roles
 - **accounts** - Financial accounts (household-scoped)
+  - Business Features: `enableSalesTax` (sales tax tracking toggle), `enableTaxDeductions` (tax deduction tracking toggle), `isBusinessAccount` (computed from either toggle)
 - **budgetCategories** - Budget categories (household-scoped)
 - **transactions** - Financial transactions (household-scoped)
 - **transactionSplits** - Split transaction details (household-scoped)

@@ -2,8 +2,7 @@
 
 ## New Features
 
-1. the business accounts should have 2 toggles. 1 that toggles sales tax tracking and enables the sales tax features and another for tax deduction tracking which enables the business tax deduction tracking.
-2. you should be able to create categories that are marked as business and those categories should show up in their own section in the category dropdown and that section should be moved to the top when choosing a category on a transaction that is marked as being for a business account.
+1. you should be able to create categories that are marked as business and those categories should show up in their own section in the category dropdown and that section should be moved to the top when choosing a category on a transaction that is marked as being for a business account.
 
 ---
 
@@ -14,6 +13,8 @@ _No incomplete features at this time._
 ---
 
 ## Completed Features
+
+53. **Business Account Feature Toggles** [COMPLETED] - Separate toggles for Sales Tax Tracking and Tax Deduction Tracking on accounts, allowing granular control over business features per account.
 
 52. **Business Features Visibility** [COMPLETED] - Tax Dashboard and Sales Tax pages hidden from navigation unless at least one business account exists in the current household.
 

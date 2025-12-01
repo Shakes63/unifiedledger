@@ -24,6 +24,8 @@ export interface Account {
   creditLimit?: number | null;
   isActive: boolean;
   isBusinessAccount: boolean;
+  enableSalesTax: boolean;
+  enableTaxDeductions: boolean;
   color: string;
   icon: string;
   sortOrder: number;
@@ -404,6 +406,8 @@ export interface AccountFormData {
   color: string;
   icon: string;
   isBusinessAccount: boolean;
+  enableSalesTax: boolean;
+  enableTaxDeductions: boolean;
 }
 
 /**

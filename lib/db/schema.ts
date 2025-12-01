@@ -30,6 +30,8 @@ export const accounts = sqliteTable(
     creditLimit: real('credit_limit'),
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
     isBusinessAccount: integer('is_business_account', { mode: 'boolean' }).default(false),
+    enableSalesTax: integer('enable_sales_tax', { mode: 'boolean' }).default(false),
+    enableTaxDeductions: integer('enable_tax_deductions', { mode: 'boolean' }).default(false),
     color: text('color').default('#3b82f6'),
     icon: text('icon').default('wallet'),
     sortOrder: integer('sort_order').default(0),

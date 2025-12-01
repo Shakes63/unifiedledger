@@ -56,6 +56,8 @@ interface AccountInputData {
   color?: string;
   icon?: string;
   isBusinessAccount?: boolean;
+  enableSalesTax?: boolean;
+  enableTaxDeductions?: boolean;
 }
 
 interface AccountFormProps {
@@ -81,7 +83,9 @@ export function AccountForm({
     creditLimit: account?.creditLimit || '',
     color: account?.color || '#3b82f6',
     icon: account?.icon || 'wallet',
-    isBusinessAccount: account?.isBusinessAccount || false,
+    // Support both new toggles and legacy isBusinessAccount
+    enableSalesTax: account?.enableSalesTax ?? account?.isBusinessAccount ?? false,
+    enableTaxDeductions: account?.enableTaxDeductions ?? account?.isBusinessAccount ?? false,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -146,7 +150,10 @@ export function AccountForm({
       creditLimit: formData.creditLimit ? parseFloat(String(formData.creditLimit)) : null,
       color: formData.color,
       icon: formData.icon,
-      isBusinessAccount: formData.isBusinessAccount,
+      // Compute isBusinessAccount from toggles for backward compatibility
+      isBusinessAccount: formData.enableSalesTax || formData.enableTaxDeductions,
+      enableSalesTax: formData.enableSalesTax,
+      enableTaxDeductions: formData.enableTaxDeductions,
     };
 
     onSubmit(submitData, saveMode || 'save');
@@ -163,7 +170,8 @@ export function AccountForm({
         creditLimit: '',
         color: '#3b82f6',
         icon: 'wallet',
-        isBusinessAccount: false,
+        enableSalesTax: false,
+        enableTaxDeductions: false,
       });
       setSaveMode(null);
 
@@ -261,23 +269,47 @@ export function AccountForm({
         )}
       </div>
 
-      {/* Business Account Toggle */}
-      <div className="p-4 bg-card rounded-lg border border-border space-y-3">
+      {/* Business Features Section */}
+      <div className="p-4 bg-card rounded-lg border border-border space-y-4">
+        <div className="text-sm font-medium text-foreground">Business Features</div>
+        
+        {/* Sales Tax Tracking Toggle */}
         <div className="flex items-center justify-between">
           <div>
-            <Label className="text-muted-foreground text-sm block font-medium">Business Account</Label>
-            <p className="text-xs text-muted-foreground mt-1">Enable sales tax tracking for this account</p>
+            <Label className="text-muted-foreground text-sm block font-medium">Sales Tax Tracking</Label>
+            <p className="text-xs text-muted-foreground mt-1">Track sales tax on income for quarterly reporting</p>
           </div>
           <button
             type="button"
-            onClick={() => handleCheckboxChange('isBusinessAccount')}
+            onClick={() => handleCheckboxChange('enableSalesTax')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isBusinessAccount ? 'bg-[var(--color-primary)]' : 'bg-elevated'
+              formData.enableSalesTax ? 'bg-[var(--color-primary)]' : 'bg-elevated'
             }`}
           >
             <span
               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                formData.isBusinessAccount ? 'translate-x-6' : 'translate-x-1'
+                formData.enableSalesTax ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+        
+        {/* Tax Deduction Tracking Toggle */}
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-muted-foreground text-sm block font-medium">Tax Deduction Tracking</Label>
+            <p className="text-xs text-muted-foreground mt-1">Mark expenses as business deductions for tax purposes</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleCheckboxChange('enableTaxDeductions')}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              formData.enableTaxDeductions ? 'bg-[var(--color-primary)]' : 'bg-elevated'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                formData.enableTaxDeductions ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
           </button>

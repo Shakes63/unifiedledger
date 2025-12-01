@@ -59,6 +59,8 @@ export async function PUT(
       color,
       icon,
       isBusinessAccount,
+      enableSalesTax,
+      enableTaxDeductions,
     } = body;
 
     // Validate required fields
@@ -69,6 +71,17 @@ export async function PUT(
       );
     }
 
+    // Determine final toggle values
+    const finalEnableSalesTax = enableSalesTax !== undefined 
+      ? enableSalesTax 
+      : existingAccount[0].enableSalesTax ?? existingAccount[0].isBusinessAccount ?? false;
+    const finalEnableTaxDeductions = enableTaxDeductions !== undefined 
+      ? enableTaxDeductions 
+      : existingAccount[0].enableTaxDeductions ?? existingAccount[0].isBusinessAccount ?? false;
+    
+    // Compute isBusinessAccount from toggles
+    const computedIsBusinessAccount = finalEnableSalesTax || finalEnableTaxDeductions;
+    
     // Update the account
     await db
       .update(accounts)
@@ -81,7 +94,9 @@ export async function PUT(
         creditLimit: creditLimit || null,
         color: color || existingAccount[0].color,
         icon: icon || existingAccount[0].icon,
-        isBusinessAccount: isBusinessAccount !== undefined ? isBusinessAccount : existingAccount[0].isBusinessAccount,
+        isBusinessAccount: computedIsBusinessAccount,
+        enableSalesTax: finalEnableSalesTax,
+        enableTaxDeductions: finalEnableTaxDeductions,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(accounts.id, id));

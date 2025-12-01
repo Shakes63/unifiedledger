@@ -283,6 +283,20 @@ Note: These extended inline editing features allow editing description and amoun
 - [ ] Save creates/updates account - Not tested
 - [x] Cancel discards changes - Closes dialog without saving
 
+### Business Feature Toggles
+
+**Added: 2025-12-01** | **Status: Needs Testing**
+
+- [ ] Sales Tax Tracking toggle works - Toggle in Business Features section
+- [ ] Tax Deduction Tracking toggle works - Toggle in Business Features section
+- [ ] Creating account with only Sales Tax enabled shows Sales Tax page in nav
+- [ ] Creating account with only Tax Deductions enabled shows Tax Dashboard in nav
+- [ ] Creating account with both toggles enabled shows both pages in nav
+- [ ] Creating account with neither toggle does not show either page
+- [ ] Editing existing account correctly pre-fills toggle values
+- [ ] Transaction tax deduction type correctly uses enableTaxDeductions flag
+- [ ] Save & Add Another resets toggle values to false
+
 ### Account Operations
 
 - [x] Edit account works - Form pre-fills with existing data (tested with Test Credit Card)
@@ -295,7 +309,7 @@ Note: These extended inline editing features allow editing description and amoun
 - Checking account shows bank name (Test Bank)
 - "View Transactions" links available for each account
 - Account form includes icon selector with 8 options (Wallet, Bank, Credit Card, Piggy Bank, Trending Up, Dollar Sign, Coins, Briefcase)
-- Business Account toggle for sales tax tracking
+- Business Features section with separate Sales Tax Tracking and Tax Deduction Tracking toggles
 - Last 4 Digits field for account identification
 
 ---

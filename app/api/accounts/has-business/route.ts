@@ -1,20 +1,24 @@
 /**
- * API Endpoint: Check if household has business accounts
+ * API Endpoint: Check if household has business accounts with specific features
  *
  * GET /api/accounts/has-business
  * Header: x-household-id (required)
  *
- * Response: { hasBusinessAccounts: boolean }
+ * Response: { 
+ *   hasBusinessAccounts: boolean,      // Backward compat: true if any business feature is enabled
+ *   hasSalesTaxAccounts: boolean,      // True if any account has sales tax tracking enabled
+ *   hasTaxDeductionAccounts: boolean   // True if any account has tax deduction tracking enabled
+ * }
  *
- * Used by the navigation to conditionally show/hide business features
- * (Tax Dashboard, Sales Tax) based on whether the household has
- * at least one active business account.
+ * Used by the navigation to conditionally show/hide business features:
+ * - Tax Dashboard: shown when hasTaxDeductionAccounts is true
+ * - Sales Tax: shown when hasSalesTaxAccounts is true
  */
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { accounts } from '@/lib/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, or } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth-helpers';
 import {
   getHouseholdIdFromRequest,
@@ -37,21 +41,41 @@ export async function GET(request: Request) {
 
     await requireHouseholdAuth(userId, householdId);
 
-    // Check if any active business account exists in the household
-    const businessAccount = await db
-      .select({ id: accounts.id })
+    // Query for active accounts with business features enabled
+    const activeAccounts = await db
+      .select({ 
+        id: accounts.id,
+        isBusinessAccount: accounts.isBusinessAccount,
+        enableSalesTax: accounts.enableSalesTax,
+        enableTaxDeductions: accounts.enableTaxDeductions,
+      })
       .from(accounts)
       .where(
         and(
           eq(accounts.householdId, householdId),
-          eq(accounts.isBusinessAccount, true),
-          eq(accounts.isActive, true)
+          eq(accounts.isActive, true),
+          // Account has at least one business feature enabled
+          or(
+            eq(accounts.isBusinessAccount, true),
+            eq(accounts.enableSalesTax, true),
+            eq(accounts.enableTaxDeductions, true)
+          )
         )
-      )
-      .limit(1);
+      );
+
+    // Check for specific features across all accounts
+    const hasSalesTaxAccounts = activeAccounts.some(
+      acc => acc.enableSalesTax === true || (acc.isBusinessAccount === true && acc.enableSalesTax !== false)
+    );
+    const hasTaxDeductionAccounts = activeAccounts.some(
+      acc => acc.enableTaxDeductions === true || (acc.isBusinessAccount === true && acc.enableTaxDeductions !== false)
+    );
+    const hasBusinessAccounts = hasSalesTaxAccounts || hasTaxDeductionAccounts;
 
     return NextResponse.json({
-      hasBusinessAccounts: businessAccount.length > 0,
+      hasBusinessAccounts,
+      hasSalesTaxAccounts,
+      hasTaxDeductionAccounts,
     });
   } catch (error) {
     console.error('[API] Error checking business accounts:', error);

@@ -64,6 +64,8 @@ export async function POST(request: Request) {
       color = '#3b82f6',
       icon = 'wallet',
       isBusinessAccount = false,
+      enableSalesTax = false,
+      enableTaxDeductions = false,
     } = body;
 
     if (!name || !type) {
@@ -89,6 +91,9 @@ export async function POST(request: Request) {
     const now = new Date().toISOString();
 
     try {
+      // Compute isBusinessAccount from toggles if not explicitly set
+      const computedIsBusinessAccount = isBusinessAccount || enableSalesTax || enableTaxDeductions;
+      
       await db.insert(accounts).values({
         id: accountId,
         userId,
@@ -101,7 +106,9 @@ export async function POST(request: Request) {
         creditLimit: creditLimit || null,
         color,
         icon,
-        isBusinessAccount,
+        isBusinessAccount: computedIsBusinessAccount,
+        enableSalesTax,
+        enableTaxDeductions,
         createdAt: now,
         updatedAt: now,
       });

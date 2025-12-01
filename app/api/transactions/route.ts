@@ -424,9 +424,10 @@ export async function POST(request: Request) {
         transferId: null,
         isPending,
         isTaxDeductible: postCreationMutations?.isTaxDeductible || false,
-        // Auto-detect tax deduction type based on account's business flag
+        // Auto-detect tax deduction type based on account's tax deduction tracking flag
+        // Falls back to isBusinessAccount for backward compatibility
         taxDeductionType: (postCreationMutations?.isTaxDeductible) 
-          ? (account[0].isBusinessAccount ? 'business' : 'personal')
+          ? ((account[0].enableTaxDeductions ?? account[0].isBusinessAccount) ? 'business' : 'personal')
           : 'none',
         isSalesTaxable: (type === 'income' && (isSalesTaxable || postCreationMutations?.isSalesTaxable)) || false,
         // Offline sync tracking
