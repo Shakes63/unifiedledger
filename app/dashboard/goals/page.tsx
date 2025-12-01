@@ -282,13 +282,39 @@ export default function GoalsPage() {
         </div>
       ) : goals.length === 0 ? (
         <div className="text-center py-12 bg-card border border-border rounded-lg">
-          <p className="text-muted-foreground">No goals yet. Create your first goal to get started!</p>
-          <Button
-            onClick={() => setIsFormOpen(true)}
-            className="mt-4 bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
-          >
-            Create Goal
-          </Button>
+          {filter === 'all' ? (
+            <>
+              <p className="text-muted-foreground">No goals yet. Create your first goal to get started!</p>
+              <Button
+                onClick={() => setIsFormOpen(true)}
+                className="mt-4 bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+              >
+                Create Goal
+              </Button>
+            </>
+          ) : filter === 'active' ? (
+            <>
+              <p className="text-muted-foreground">No active goals. All your goals may be completed!</p>
+              <Button
+                onClick={() => setFilter('completed')}
+                variant="outline"
+                className="mt-4 border-border text-foreground hover:bg-elevated"
+              >
+                View Completed Goals
+              </Button>
+            </>
+          ) : (
+            <>
+              <p className="text-muted-foreground">No completed goals yet. Keep working towards your goals!</p>
+              <Button
+                onClick={() => setFilter('active')}
+                variant="outline"
+                className="mt-4 border-border text-foreground hover:bg-elevated"
+              >
+                View Active Goals
+              </Button>
+            </>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

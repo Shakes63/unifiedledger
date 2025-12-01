@@ -4,7 +4,7 @@
 
 ## New Bugs
 
-(None)
+1. The mark filed button does not work on the sales tax page
 
 ---
 
@@ -41,12 +41,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 679 (103 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 680 (104 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (103 total)
+## Fixed Bugs (104 total)
 
+104. ✅ **Goals Filter Empty State Incorrect Message** [FIXED 2025-12-01] - Fixed empty state on goals page to show filter-aware messages. When filtered by "completed" with no results, now shows "No completed goals yet" with link to active goals, instead of "Create your first goal".
 103. ✅ **Debt Milestones Not Appearing on Calendar** [FIXED 2025-12-01] - Created `lib/debts/payoff-date-utils.ts` to auto-sync `targetPayoffDate` when debts are created/updated or settings change. Fixed inverted comparison in `milestone-utils.ts` (gte instead of lte). Added payoff date sync to POST/PUT debt APIs and bulk sync when debt settings change.
 102. ✅ **Inline Description Edit Text Box Too Small** [FIXED 2025-12-01] - Replaced single-line `<Input>` with multi-line `<Textarea>` (2 rows, min-h-[40px], max-h-[80px], min-w-[200px], max-w-[300px]). Display mode now uses `line-clamp-2` instead of `truncate` to show up to 2 lines of text.
 101. ✅ **Inline Transaction Dropdown Merchant/Category Creation Bug** [FIXED 2025-12-01] - Fixed issue on transactions list page where creating a new merchant/category from inline dropdown would exit edit mode before creation completed. Root cause: stale closure issue in `onOpenChange` callback - the `isCreating` state was captured before the state update took effect. Fixed by adding `isCreatingRef` to synchronously track creating state and using it in the setTimeout callback. Also fixed related bugs in transaction form: (1) Categories API only returned `{id, message}` - now returns full object. (2) CategorySelector/MerchantSelector used conditional rendering causing unmount/remount - fixed with CSS hidden class and `flushSync`.
