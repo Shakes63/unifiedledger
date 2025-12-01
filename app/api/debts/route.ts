@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { debts, debtPayoffMilestones, budgetCategories, accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { syncDebtPayoffDate } from '@/lib/debts/payoff-date-utils';
 
 export async function GET(request: Request) {
   try {
@@ -164,6 +165,10 @@ export async function POST(request: Request) {
         createdAt: now,
       });
     }
+
+    // Calculate and set the projected payoff date
+    // This enables the debt to appear on the calendar at its target date
+    await syncDebtPayoffDate(debtId, userId, householdId);
 
     const debt = await db
       .select()

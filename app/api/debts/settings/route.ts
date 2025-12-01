@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { debtSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { syncAllDebtPayoffDates } from '@/lib/debts/payoff-date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,6 +104,10 @@ export async function PUT(request: Request) {
           )
         );
     }
+
+    // Recalculate payoff dates for all active debts when settings change
+    // These settings affect payoff projections (extra payment, method, frequency)
+    await syncAllDebtPayoffDates(userId, householdId);
 
     return Response.json({ success: true });
   } catch (error) {

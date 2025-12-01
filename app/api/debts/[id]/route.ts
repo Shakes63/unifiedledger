@@ -3,6 +3,7 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtPayments, debtPayoffMilestones } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { syncDebtPayoffDate } from '@/lib/debts/payoff-date-utils';
 
 export async function GET(
   request: Request,
@@ -113,6 +114,10 @@ export async function PUT(
     const updates: any = { ...body };
     updates.updatedAt = new Date().toISOString();
 
+    // Track if we need to recalculate payoff date
+    const payoffAffectingFields = ['remainingBalance', 'minimumPayment', 'additionalMonthlyPayment', 'interestRate'];
+    const needsPayoffRecalc = payoffAffectingFields.some(field => body[field] !== undefined);
+
     // If remaining balance changed, recalculate milestone amounts
     if (body.remainingBalance !== undefined && body.remainingBalance !== debt.remainingBalance) {
       const newBalance = body.remainingBalance;
@@ -144,12 +149,41 @@ export async function PUT(
             .where(eq(debtPayoffMilestones.id, existing.id));
         }
       }
+
+      // Check for newly achieved milestones based on the new balance
+      // A milestone is achieved when remaining balance drops to or below the threshold
+      const allMilestones = await db
+        .select()
+        .from(debtPayoffMilestones)
+        .where(
+          and(
+            eq(debtPayoffMilestones.debtId, id),
+            eq(debtPayoffMilestones.householdId, householdId)
+          )
+        );
+
+      const now = new Date().toISOString();
+      for (const milestone of allMilestones) {
+        // Check if milestone is newly achieved (not already marked, and balance is at or below threshold)
+        if (!milestone.achievedAt && newBalance <= milestone.milestoneBalance) {
+          await db
+            .update(debtPayoffMilestones)
+            .set({ achievedAt: now })
+            .where(eq(debtPayoffMilestones.id, milestone.id));
+        }
+      }
     }
 
     await db
       .update(debts)
       .set(updates)
       .where(eq(debts.id, id));
+
+    // Recalculate payoff date if relevant fields changed
+    // This updates targetPayoffDate so debt appears on calendar
+    if (needsPayoffRecalc) {
+      await syncDebtPayoffDate(id, userId, householdId);
+    }
 
     const updatedDebt = await db
       .select()

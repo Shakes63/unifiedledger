@@ -10,7 +10,7 @@
 
 import { db } from '@/lib/db';
 import { debtPayoffMilestones } from '@/lib/db/schema';
-import { eq, and, isNull, lte } from 'drizzle-orm';
+import { eq, and, isNull, gte } from 'drizzle-orm';
 
 /**
  * Batch update all unachieved milestones that have been reached
@@ -37,6 +37,10 @@ export async function batchUpdateMilestones(
   try {
     // First, get count of milestones that will be updated
     // (for logging/analytics purposes)
+    // A milestone is achieved when the remaining balance drops to or below the milestone threshold
+    // e.g., 25% paid off = balance at 75% of original (milestoneBalance = original * 0.75)
+    // When newBalance <= milestoneBalance, the milestone is achieved
+    // In SQL: milestoneBalance >= newBalance means "milestone threshold is at or above current balance"
     const unachievedMilestones = await db
       .select()
       .from(debtPayoffMilestones)
@@ -44,7 +48,7 @@ export async function batchUpdateMilestones(
         and(
           eq(debtPayoffMilestones.debtId, debtId),
           isNull(debtPayoffMilestones.achievedAt),
-          lte(debtPayoffMilestones.milestoneBalance, newBalance)
+          gte(debtPayoffMilestones.milestoneBalance, newBalance)
         )
       );
 
@@ -63,7 +67,7 @@ export async function batchUpdateMilestones(
         and(
           eq(debtPayoffMilestones.debtId, debtId),
           isNull(debtPayoffMilestones.achievedAt),
-          lte(debtPayoffMilestones.milestoneBalance, newBalance)
+          gte(debtPayoffMilestones.milestoneBalance, newBalance)
         )
       );
 
@@ -89,6 +93,8 @@ export async function checkAchievableMilestones(
   newBalance: number
 ): Promise<string[]> {
   try {
+    // A milestone is achieved when balance drops to or below the threshold
+    // milestoneBalance >= newBalance means the threshold is at or above current balance
     const achievableMilestones = await db
       .select()
       .from(debtPayoffMilestones)
@@ -96,7 +102,7 @@ export async function checkAchievableMilestones(
         and(
           eq(debtPayoffMilestones.debtId, debtId),
           isNull(debtPayoffMilestones.achievedAt),
-          lte(debtPayoffMilestones.milestoneBalance, newBalance)
+          gte(debtPayoffMilestones.milestoneBalance, newBalance)
         )
       );
 

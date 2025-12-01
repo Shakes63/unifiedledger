@@ -4,25 +4,17 @@
 
 ## New Bugs
 
-- **Debt Milestones Not Appearing on Calendar** - Calendar has full infrastructure for displaying debt target dates and milestone achievements, but they never appear because:
-  1. `targetPayoffDate` field on debts is optional and users rarely fill it manually
-  2. The calculated "Debt-Free Date" projection (shown on Debts page) is never synced to the `targetPayoffDate` field
-  3. Milestone achievements (25%/50%/75%/100%) are calculated dynamically on-the-fly but never recorded to `debtPayoffMilestones` table with `achievedAt` dates
-  
-  **Files involved:**
-  - `app/api/calendar/month/route.ts` - Queries `debts.targetPayoffDate` and `debtPayoffMilestones.achievedAt` (lines 242-356)
-  - `app/api/calendar/day/route.ts` - Same queries for day view (lines 197-285)
-  - `components/calendar/calendar-day.tsx` - Has DebtSummary rendering code (never receives data)
-  - `lib/db/schema.ts` - `targetPayoffDate` field exists (line 1596), `debtPayoffMilestones` table exists
-  
-  **Suggested fix:** Either:
-  - Auto-populate `targetPayoffDate` from payoff calculations when saving/updating a debt
-  - Record milestone achievements with dates when debt progress crosses 25%/50%/75%/100% thresholds
-  - Or both (recommended)
+(None)
 
 ---
 
 ## Active Bugs
+
+(None)
+
+---
+
+## In Progress
 
 (None)
 
@@ -44,17 +36,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 1 |
+| Active Bugs | 0 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 678 (102 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 679 (103 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (102 total)
+## Fixed Bugs (103 total)
 
+103. ✅ **Debt Milestones Not Appearing on Calendar** [FIXED 2025-12-01] - Created `lib/debts/payoff-date-utils.ts` to auto-sync `targetPayoffDate` when debts are created/updated or settings change. Fixed inverted comparison in `milestone-utils.ts` (gte instead of lte). Added payoff date sync to POST/PUT debt APIs and bulk sync when debt settings change.
 102. ✅ **Inline Description Edit Text Box Too Small** [FIXED 2025-12-01] - Replaced single-line `<Input>` with multi-line `<Textarea>` (2 rows, min-h-[40px], max-h-[80px], min-w-[200px], max-w-[300px]). Display mode now uses `line-clamp-2` instead of `truncate` to show up to 2 lines of text.
 101. ✅ **Inline Transaction Dropdown Merchant/Category Creation Bug** [FIXED 2025-12-01] - Fixed issue on transactions list page where creating a new merchant/category from inline dropdown would exit edit mode before creation completed. Root cause: stale closure issue in `onOpenChange` callback - the `isCreating` state was captured before the state update took effect. Fixed by adding `isCreatingRef` to synchronously track creating state and using it in the setTimeout callback. Also fixed related bugs in transaction form: (1) Categories API only returned `{id, message}` - now returns full object. (2) CategorySelector/MerchantSelector used conditional rendering causing unmount/remount - fixed with CSS hidden class and `flushSync`.
 100. ✅ **Repeat Transaction Date Bug** [FIXED 2025-11-30] - Fixed timezone-related date display bug. The issue was that `new Date('YYYY-MM-DD')` parses dates as UTC midnight, which displays as the previous day in local timezones behind UTC. Replaced all `new Date(transaction.date)` calls with `parseISO()` from date-fns in 5 files for consistent date handling.
