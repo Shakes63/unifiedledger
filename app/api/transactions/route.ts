@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances, debts, debtPayments } from '@/lib/db/schema';
+import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances, debts, debtPayments, betterAuthUser } from '@/lib/db/schema';
 import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
@@ -15,6 +15,7 @@ import { findMatchingBillInstance } from '@/lib/bills/bill-matching-helpers';
 import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
 import { batchUpdateMilestones } from '@/lib/debts/milestone-utils';
 import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
+import { logTransactionAudit, createTransactionSnapshot } from '@/lib/transactions/audit-logger';
 // Sales tax now handled as boolean flag on transaction, no separate records needed
 
 export const dynamic = 'force-dynamic';
@@ -423,6 +424,10 @@ export async function POST(request: Request) {
         transferId: null,
         isPending,
         isTaxDeductible: postCreationMutations?.isTaxDeductible || false,
+        // Auto-detect tax deduction type based on account's business flag
+        taxDeductionType: (postCreationMutations?.isTaxDeductible) 
+          ? (account[0].isBusinessAccount ? 'business' : 'personal')
+          : 'none',
         isSalesTaxable: (type === 'income' && (isSalesTaxable || postCreationMutations?.isSalesTaxable)) || false,
         // Offline sync tracking
         offlineId: offlineId || null,
@@ -1242,6 +1247,56 @@ export async function POST(request: Request) {
       hasRules: !!appliedRuleId,
       isTransfer: type === 'transfer',
     });
+
+    // Log audit trail for transaction creation (non-blocking)
+    try {
+      // Fetch user name and related entity names for audit log
+      const [userRecord, accountName, categoryName, merchantName] = await Promise.all([
+        db.select({ name: betterAuthUser.name }).from(betterAuthUser).where(eq(betterAuthUser.id, userId)).limit(1),
+        db.select({ name: accounts.name }).from(accounts).where(eq(accounts.id, accountId)).limit(1),
+        appliedCategoryId
+          ? db.select({ name: budgetCategories.name }).from(budgetCategories).where(eq(budgetCategories.id, appliedCategoryId)).limit(1)
+          : Promise.resolve([]),
+        finalMerchantId
+          ? db.select({ name: merchants.name }).from(merchants).where(eq(merchants.id, finalMerchantId)).limit(1)
+          : Promise.resolve([]),
+      ]);
+
+      const snapshot = createTransactionSnapshot({
+        id: transactionId,
+        accountId,
+        categoryId: appliedCategoryId,
+        merchantId: finalMerchantId,
+        date,
+        amount: decimalAmount.toNumber(),
+        description: finalDescription,
+        notes: notes || null,
+        type: type === 'transfer' ? 'transfer_out' : type,
+        isPending,
+        isTaxDeductible: postCreationMutations?.isTaxDeductible || false,
+        isSalesTaxable: (type === 'income' && (isSalesTaxable || postCreationMutations?.isSalesTaxable)) || false,
+        billId: linkedBillId,
+        debtId: linkedDebtId || debtId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }, {
+        accountName: accountName[0]?.name,
+        categoryName: categoryName[0]?.name,
+        merchantName: merchantName[0]?.name,
+      });
+
+      await logTransactionAudit({
+        transactionId,
+        userId,
+        householdId,
+        userName: userRecord[0]?.name || 'Unknown User',
+        actionType: 'created',
+        snapshot,
+      });
+    } catch (auditError) {
+      // Non-fatal: don't fail the create if audit logging fails
+      console.error('Failed to log transaction creation audit:', auditError);
+    }
 
     return Response.json(
       {

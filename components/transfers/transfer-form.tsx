@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 const transferSchema = z.object({
   fromAccountId: z.string().min(1, 'From account is required'),
@@ -57,8 +58,8 @@ export function TransferForm({
   onSuccess,
   onCancel,
 }: TransferFormProps) {
+  const { postWithHousehold } = useHouseholdFetch();
   const [isLoading, setIsLoading] = useState(false);
-  const [_selectedFromAccountId, _setSelectedFromAccountId] = useState<string>('');
 
   const {
     control,
@@ -79,8 +80,6 @@ export function TransferForm({
   });
 
   const fromAccountId = watch('fromAccountId');
-  const _toAccountId = watch('toAccountId');
-  const _amount = watch('amount');
 
   // Get balance of from account
   const fromAccount = accounts.find((a) => a.id === fromAccountId);
@@ -108,18 +107,14 @@ export function TransferForm({
         return;
       }
 
-      const response = await fetch('/api/transfers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fromAccountId: data.fromAccountId,
-          toAccountId: data.toAccountId,
-          amount: data.amount,
-          date: data.date,
-          description: data.description,
-          fees: data.fees,
-          notes: data.notes,
-        }),
+      const response = await postWithHousehold('/api/transfers', {
+        fromAccountId: data.fromAccountId,
+        toAccountId: data.toAccountId,
+        amount: data.amount,
+        date: data.date,
+        description: data.description,
+        fees: data.fees,
+        notes: data.notes,
       });
 
       if (!response.ok) {
@@ -128,11 +123,6 @@ export function TransferForm({
       }
 
       const result = await response.json();
-
-      // Refresh page to update balances
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
 
       toast.success('Transfer created successfully!');
       reset();
@@ -148,13 +138,13 @@ export function TransferForm({
   };
 
   return (
-    <Card className="p-6 bg-[#1a1a1a] border-[#2a2a2a]">
-      <h2 className="text-2xl font-bold text-white mb-6">New Transfer</h2>
+    <Card className="p-6 bg-card border-border">
+      <h2 className="text-2xl font-bold text-foreground mb-6">New Transfer</h2>
 
       {/* Suggested Pairs */}
       {suggestedPairs.length > 0 && (
-        <div className="mb-6 pb-6 border-b border-[#2a2a2a]">
-          <p className="text-sm text-[#9ca3af] mb-3">Quick transfers</p>
+        <div className="mb-6 pb-6 border-b border-border">
+          <p className="text-sm text-muted-foreground mb-3">Quick transfers</p>
           <div className="flex flex-wrap gap-2">
             {suggestedPairs.slice(0, 5).map((pair) => (
               <button
@@ -163,10 +153,10 @@ export function TransferForm({
                   setValue('fromAccountId', pair.fromAccountId);
                   setValue('toAccountId', pair.toAccountId);
                 }}
-                className="px-3 py-2 rounded-lg bg-[#242424] hover:bg-[#2a2a2a] text-sm text-[#9ca3af] hover:text-white transition border border-[#2a2a2a] hover:border-[#3a3a3a]"
+                className="px-3 py-2 rounded-lg bg-elevated hover:bg-elevated/80 text-sm text-muted-foreground hover:text-foreground transition border border-border hover:border-ring"
               >
                 {pair.fromAccountName} → {pair.toAccountName}
-                <span className="ml-2 text-[#6b7280]">
+                <span className="ml-2 text-muted-foreground/60">
                   ({pair.usageCount}x)
                 </span>
               </button>
@@ -178,7 +168,7 @@ export function TransferForm({
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* From Account */}
         <div>
-          <Label htmlFor="fromAccountId" className="text-white mb-2 block">
+          <Label htmlFor="fromAccountId" className="text-foreground mb-2 block">
             From Account
           </Label>
           <Controller
@@ -186,15 +176,15 @@ export function TransferForm({
             control={control}
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+                <SelectTrigger className="bg-elevated border-border text-foreground">
                   <SelectValue placeholder="Select account" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#242424] border-[#2a2a2a]">
+                <SelectContent className="bg-elevated border-border">
                   {accounts.map((account) => (
                     <SelectItem
                       key={account.id}
                       value={account.id}
-                      className="text-white"
+                      className="text-foreground"
                     >
                       {account.name} ($
                       {account.currentBalance.toFixed(2)})
@@ -205,12 +195,12 @@ export function TransferForm({
             )}
           />
           {errors.fromAccountId && (
-            <p className="text-red-400 text-sm mt-1">
+            <p className="text-[var(--color-error)] text-sm mt-1">
               {errors.fromAccountId.message}
             </p>
           )}
           {fromBalance !== undefined && (
-            <p className="text-[#6b7280] text-sm mt-2">
+            <p className="text-muted-foreground text-sm mt-2">
               Available balance: ${fromBalance.toFixed(2)}
             </p>
           )}
@@ -218,7 +208,7 @@ export function TransferForm({
 
         {/* To Account */}
         <div>
-          <Label htmlFor="toAccountId" className="text-white mb-2 block">
+          <Label htmlFor="toAccountId" className="text-foreground mb-2 block">
             To Account
           </Label>
           <Controller
@@ -226,17 +216,17 @@ export function TransferForm({
             control={control}
             render={({ field }) => (
               <Select value={field.value} onValueChange={field.onChange}>
-                <SelectTrigger className="bg-[#242424] border-[#2a2a2a] text-white">
+                <SelectTrigger className="bg-elevated border-border text-foreground">
                   <SelectValue placeholder="Select account" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#242424] border-[#2a2a2a]">
+                <SelectContent className="bg-elevated border-border">
                   {accounts
                     .filter((a) => a.id !== fromAccountId)
                     .map((account) => (
                       <SelectItem
                         key={account.id}
                         value={account.id}
-                        className="text-white"
+                        className="text-foreground"
                       >
                         {account.name}
                       </SelectItem>
@@ -246,7 +236,7 @@ export function TransferForm({
             )}
           />
           {errors.toAccountId && (
-            <p className="text-red-400 text-sm mt-1">
+            <p className="text-[var(--color-error)] text-sm mt-1">
               {errors.toAccountId.message}
             </p>
           )}
@@ -254,7 +244,7 @@ export function TransferForm({
 
         {/* Amount */}
         <div>
-          <Label htmlFor="amount" className="text-white mb-2 block">
+          <Label htmlFor="amount" className="text-foreground mb-2 block">
             Amount
           </Label>
           <Controller
@@ -266,12 +256,12 @@ export function TransferForm({
                 type="number"
                 placeholder="0.00"
                 step="0.01"
-                className="bg-[#242424] border-[#2a2a2a] text-white placeholder-[#6b7280]"
+                className="bg-elevated border-border text-foreground placeholder-muted-foreground"
               />
             )}
           />
           {errors.amount && (
-            <p className="text-red-400 text-sm mt-1">
+            <p className="text-[var(--color-error)] text-sm mt-1">
               {errors.amount.message}
             </p>
           )}
@@ -279,7 +269,7 @@ export function TransferForm({
 
         {/* Fees (Optional) */}
         <div>
-          <Label htmlFor="fees" className="text-white mb-2 block">
+          <Label htmlFor="fees" className="text-foreground mb-2 block">
             Fees (Optional)
           </Label>
           <Controller
@@ -291,12 +281,12 @@ export function TransferForm({
                 type="number"
                 placeholder="0.00"
                 step="0.01"
-                className="bg-[#242424] border-[#2a2a2a] text-white placeholder-[#6b7280]"
+                className="bg-elevated border-border text-foreground placeholder-muted-foreground"
               />
             )}
           />
           {errors.fees && (
-            <p className="text-red-400 text-sm mt-1">
+            <p className="text-[var(--color-error)] text-sm mt-1">
               {errors.fees.message}
             </p>
           )}
@@ -304,7 +294,7 @@ export function TransferForm({
 
         {/* Date */}
         <div>
-          <Label htmlFor="date" className="text-white mb-2 block">
+          <Label htmlFor="date" className="text-foreground mb-2 block">
             Date
           </Label>
           <Controller
@@ -314,12 +304,12 @@ export function TransferForm({
               <Input
                 {...field}
                 type="date"
-                className="bg-[#242424] border-[#2a2a2a] text-white"
+                className="bg-elevated border-border text-foreground"
               />
             )}
           />
           {errors.date && (
-            <p className="text-red-400 text-sm mt-1">
+            <p className="text-[var(--color-error)] text-sm mt-1">
               {errors.date.message}
             </p>
           )}
@@ -327,7 +317,7 @@ export function TransferForm({
 
         {/* Description */}
         <div>
-          <Label htmlFor="description" className="text-white mb-2 block">
+          <Label htmlFor="description" className="text-foreground mb-2 block">
             Description
           </Label>
           <Controller
@@ -337,7 +327,7 @@ export function TransferForm({
               <Input
                 {...field}
                 placeholder="Transfer"
-                className="bg-[#242424] border-[#2a2a2a] text-white placeholder-[#6b7280]"
+                className="bg-elevated border-border text-foreground placeholder-muted-foreground"
               />
             )}
           />
@@ -345,7 +335,7 @@ export function TransferForm({
 
         {/* Notes */}
         <div>
-          <Label htmlFor="notes" className="text-white mb-2 block">
+          <Label htmlFor="notes" className="text-foreground mb-2 block">
             Notes
           </Label>
           <Controller
@@ -355,7 +345,7 @@ export function TransferForm({
               <Textarea
                 {...field}
                 placeholder="Optional notes about this transfer"
-                className="bg-[#242424] border-[#2a2a2a] text-white placeholder-[#6b7280]"
+                className="bg-elevated border-border text-foreground placeholder-muted-foreground"
               />
             )}
           />
@@ -366,7 +356,7 @@ export function TransferForm({
           <Button
             type="submit"
             disabled={isLoading}
-            className="flex-1 bg-[var(--color-primary)] hover:opacity-90 text-white"
+            className="flex-1 bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
           >
             {isLoading ? (
               <>
@@ -382,7 +372,7 @@ export function TransferForm({
               type="button"
               onClick={onCancel}
               variant="outline"
-              className="flex-1 border-[#2a2a2a] text-[#9ca3af] hover:bg-[#242424]"
+              className="flex-1 border-border text-muted-foreground hover:bg-elevated"
             >
               Cancel
             </Button>

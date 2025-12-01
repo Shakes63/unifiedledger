@@ -25,6 +25,7 @@ import Image from 'next/image';
 import { HouseholdSelector } from '@/components/household/household-selector';
 import { Button } from '@/components/ui/button';
 import { UserMenu } from '@/components/auth/user-menu';
+import { TestModeBadge } from '@/components/dev/test-mode-badge';
 
 interface NavItem {
   label: string;
@@ -118,7 +119,8 @@ export function MobileNav() {
             <span className="font-bold text-white text-sm">Unified</span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <TestModeBadge />
             <UserMenu />
             <Button
               variant="ghost"

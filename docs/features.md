@@ -2,7 +2,12 @@
 
 ## New Features
 
-_No new features at this time. Add new feature ideas here._
+1. for the tax dashboard it should also have an export button to export the amounts for each tax category to a pdf to print for the accountant.
+2. we should rearrange the sidebar in a way that makes more sense.
+3. on the dashboard page it should have a tool tip for the budget adherence section that explains what budget adherence means
+4. Debts should be a part of the budgeting system and should auto populate the minimum payment and it should recommend the amount that is recommended by the debt payoff strategy for the debt that is being focused on.
+5. the debt free countdown should show some information about the debt that you are focusing on right now including the name of the debt the progress on that debt and the payoff date and amount of months and days till payoff
+6. the sales tax should calculate an estimated amount that you will have to pay for sales tax for the quarter as well. Here in texas I have separate percentages that get charged for State, County, and City that all get added together for the total amount i have to pay for sales tax
 
 ---
 
@@ -13,6 +18,8 @@ _No incomplete features at this time._
 ---
 
 ## Completed Features
+
+45. **Business vs Personal Tax Deductions** [COMPLETED] - Filter and track tax deductions separately by business or personal type with auto-detection based on account's business flag, split summary cards, and type badges in the deductions table.
 
 1. **Transaction History/Audit Trail** [COMPLETED] - View modification history for transactions showing who made changes, what changed, and when. Displays timeline of all creates, updates, and deletes with field-level change tracking.
 44. **Debt Rolldown Payment Visualization** [COMPLETED] - Enhanced Debt Payoff Strategy UI showing how payments change as debts are paid off, with rolldown arrows, payment breakdowns, and payoff timelines for each debt.

@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { betterAuthClient } from '@/lib/better-auth-client';
 import { Button } from '@/components/ui/button';
 import { TransferList } from '@/components/transfers/transfer-list';
 import { QuickTransferModal } from '@/components/transfers/quick-transfer-modal';
-import { Loader2, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
+import { HouseholdLoadingState } from '@/components/household/household-loading-state';
+import { NoHouseholdError } from '@/components/household/no-household-error';
 
 interface Account {
   id: string;
@@ -30,28 +33,44 @@ interface Transfer {
 }
 
 export default function TransfersPage() {
-  const { data: session, isPending } = betterAuthClient.useSession();
+  const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
+  const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
+  
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Load accounts and transfers
   useEffect(() => {
-    if (isPending || !session) return;
+    // Don't fetch if household context isn't initialized yet
+    if (!initialized || householdLoading) {
+      return;
+    }
+
+    // Don't fetch if no household is selected
+    if (!selectedHouseholdId || !householdId) {
+      setIsLoading(false);
+      return;
+    }
 
     const loadData = async () => {
       try {
         setIsLoading(true);
 
         // Load accounts
-        const accountsRes = await fetch('/api/accounts', { credentials: 'include' });
+        const accountsRes = await fetchWithHousehold('/api/accounts');
         if (accountsRes.ok) {
           const accountsData = await accountsRes.json();
-          setAccounts(accountsData.accounts || []);
+          setAccounts(accountsData || []);
         }
 
         // Load transfers
-        loadTransfers();
+        const transfersRes = await fetchWithHousehold('/api/transfers?limit=50');
+        if (transfersRes.ok) {
+          const transfersData = await transfersRes.json();
+          setTransfers(transfersData.transfers || []);
+        }
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -60,11 +79,11 @@ export default function TransfersPage() {
     };
 
     loadData();
-  }, [isPending, session]);
+  }, [initialized, householdLoading, selectedHouseholdId, householdId, fetchWithHousehold]);
 
   const loadTransfers = async () => {
     try {
-      const response = await fetch('/api/transfers?limit=50', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/transfers?limit=50');
       if (response.ok) {
         const data = await response.json();
         setTransfers(data.transfers || []);
@@ -79,10 +98,31 @@ export default function TransfersPage() {
     loadTransfers();
   };
 
-  if (isPending) {
+  // Show loading state while household context initializes
+  if (!initialized || householdLoading) {
+    return <HouseholdLoadingState />;
+  }
+
+  // Show error state if no household is selected
+  if (!selectedHouseholdId || !householdId) {
+    return <NoHouseholdError />;
+  }
+
+  // Show skeleton loading while fetching data
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="animate-pulse space-y-4">
+            <div className="h-10 bg-elevated rounded-lg w-1/3"></div>
+            <div className="h-6 bg-elevated rounded-lg w-1/4"></div>
+            <div className="mt-6 space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-20 bg-elevated rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -93,7 +133,7 @@ export default function TransfersPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Transfers</h1>
+            <h1 className="text-3xl font-bold text-foreground">Transfers</h1>
           <p className="text-muted-foreground mt-2">
             Move money between your accounts
           </p>
@@ -101,7 +141,7 @@ export default function TransfersPage() {
         <Button
           onClick={() => setIsModalOpen(true)}
           disabled={accounts.length < 2}
-          className="bg-[var(--color-primary)] hover:opacity-90 text-white"
+          className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Transfer
@@ -109,8 +149,8 @@ export default function TransfersPage() {
       </div>
 
       {accounts.length < 2 && (
-        <div className="bg-amber-400/10 border border-amber-400/20 rounded-lg p-4">
-          <p className="text-amber-400">
+        <div className="bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 rounded-lg p-4">
+          <p className="text-[var(--color-warning)]">
             You need at least 2 accounts to create transfers.
           </p>
         </div>
@@ -128,6 +168,7 @@ export default function TransfersPage() {
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         accounts={accounts}
+        onSuccess={handleTransferSuccess}
       />
       </div>
     </div>

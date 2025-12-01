@@ -1,11 +1,12 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, accounts, budgetCategories, transactionSplits, bills, billInstances, merchants, debts, tags, transactionTags, customFields, customFieldValues } from '@/lib/db/schema';
+import { transactions, accounts, budgetCategories, transactionSplits, bills, billInstances, merchants, debts, tags, transactionTags, customFields, customFieldValues, betterAuthUser } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { deleteSalesTaxRecord } from '@/lib/sales-tax/transaction-sales-tax';
 import { findMatchingBillInstance } from '@/lib/bills/bill-matching-helpers';
+import { logTransactionAudit, detectChanges, createTransactionSnapshot, DisplayNames } from '@/lib/transactions/audit-logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -307,6 +308,98 @@ export async function PUT(
         updatedAt: new Date().toISOString(),
       })
       .where(eq(transactions.id, id));
+
+    // Log audit trail for transaction update
+    try {
+      // Build the new transaction state for comparison
+      const newTransactionState = {
+        accountId: newAccountId,
+        categoryId: newCategoryId,
+        merchantId: newMerchantId,
+        date: newDate,
+        amount: newAmount.toNumber(),
+        description: newDescription,
+        notes: newNotes,
+        isPending: newIsPending,
+        type: transaction.type,
+        isTaxDeductible: transaction.isTaxDeductible,
+        isSalesTaxable: transaction.isSalesTaxable,
+        billId: transaction.billId,
+        debtId: transaction.debtId,
+      };
+
+      // Fetch display names for changed foreign keys
+      const displayNames: DisplayNames = {};
+      
+      // Fetch old and new account names if account changed
+      if (newAccountId !== transaction.accountId) {
+        const [oldAcc, newAcc] = await Promise.all([
+          db.select({ name: accounts.name }).from(accounts).where(eq(accounts.id, transaction.accountId)).limit(1),
+          db.select({ name: accounts.name }).from(accounts).where(eq(accounts.id, newAccountId)).limit(1),
+        ]);
+        displayNames.accountId = {
+          old: oldAcc[0]?.name || 'Unknown Account',
+          new: newAcc[0]?.name || 'Unknown Account',
+        };
+      }
+
+      // Fetch old and new category names if category changed
+      if (newCategoryId !== transaction.categoryId) {
+        const [oldCat, newCat] = await Promise.all([
+          transaction.categoryId
+            ? db.select({ name: budgetCategories.name }).from(budgetCategories).where(eq(budgetCategories.id, transaction.categoryId)).limit(1)
+            : Promise.resolve([]),
+          newCategoryId
+            ? db.select({ name: budgetCategories.name }).from(budgetCategories).where(eq(budgetCategories.id, newCategoryId)).limit(1)
+            : Promise.resolve([]),
+        ]);
+        displayNames.categoryId = {
+          old: oldCat[0]?.name || 'None',
+          new: newCat[0]?.name || 'None',
+        };
+      }
+
+      // Fetch old and new merchant names if merchant changed
+      if (newMerchantId !== transaction.merchantId) {
+        const [oldMerch, newMerch] = await Promise.all([
+          transaction.merchantId
+            ? db.select({ name: merchants.name }).from(merchants).where(eq(merchants.id, transaction.merchantId)).limit(1)
+            : Promise.resolve([]),
+          newMerchantId
+            ? db.select({ name: merchants.name }).from(merchants).where(eq(merchants.id, newMerchantId)).limit(1)
+            : Promise.resolve([]),
+        ]);
+        displayNames.merchantId = {
+          old: oldMerch[0]?.name || 'None',
+          new: newMerch[0]?.name || 'None',
+        };
+      }
+
+      // Detect changes between old and new state
+      const changes = detectChanges(transaction, newTransactionState, displayNames);
+
+      // Only log if there are actual changes
+      if (changes.length > 0) {
+        // Fetch user name for audit log
+        const [userRecord] = await db
+          .select({ name: betterAuthUser.name })
+          .from(betterAuthUser)
+          .where(eq(betterAuthUser.id, userId))
+          .limit(1);
+
+        await logTransactionAudit({
+          transactionId: id,
+          userId,
+          householdId,
+          userName: userRecord?.name || 'Unknown User',
+          actionType: 'updated',
+          changes,
+        });
+      }
+    } catch (auditError) {
+      // Non-fatal: don't fail the update if audit logging fails
+      console.error('Failed to log transaction audit:', auditError);
+    }
 
     // Auto-match bills
     // Priority 1: Direct bill instance ID matching (for explicit bill payments)
@@ -639,6 +732,47 @@ export async function DELETE(
 
     const transaction = existingTransaction[0];
     const decimalAmount = new Decimal(transaction.amount);
+
+    // Log audit trail before deleting
+    try {
+      // Fetch related data for snapshot
+      const [accountData, categoryData, merchantData, billData, debtData, userRecord] = await Promise.all([
+        db.select({ name: accounts.name }).from(accounts).where(eq(accounts.id, transaction.accountId)).limit(1),
+        transaction.categoryId
+          ? db.select({ name: budgetCategories.name }).from(budgetCategories).where(eq(budgetCategories.id, transaction.categoryId)).limit(1)
+          : Promise.resolve([]),
+        transaction.merchantId
+          ? db.select({ name: merchants.name }).from(merchants).where(eq(merchants.id, transaction.merchantId)).limit(1)
+          : Promise.resolve([]),
+        transaction.billId
+          ? db.select({ name: bills.name }).from(bills).where(eq(bills.id, transaction.billId)).limit(1)
+          : Promise.resolve([]),
+        transaction.debtId
+          ? db.select({ name: debts.name }).from(debts).where(eq(debts.id, transaction.debtId)).limit(1)
+          : Promise.resolve([]),
+        db.select({ name: betterAuthUser.name }).from(betterAuthUser).where(eq(betterAuthUser.id, userId)).limit(1),
+      ]);
+
+      const snapshot = createTransactionSnapshot(transaction, {
+        accountName: accountData[0]?.name,
+        categoryName: categoryData[0]?.name,
+        merchantName: merchantData[0]?.name,
+        billName: billData[0]?.name,
+        debtName: debtData[0]?.name,
+      });
+
+      await logTransactionAudit({
+        transactionId: id,
+        userId,
+        householdId,
+        userName: userRecord[0]?.name || 'Unknown User',
+        actionType: 'deleted',
+        snapshot,
+      });
+    } catch (auditError) {
+      // Non-fatal: don't fail the delete if audit logging fails
+      console.error('Failed to log transaction deletion audit:', auditError);
+    }
 
     // Delete all splits if transaction has splits
     if (transaction.isSplit) {

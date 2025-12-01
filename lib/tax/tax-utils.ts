@@ -6,9 +6,15 @@ import { db } from '@/lib/db';
 import {
   transactionTaxClassifications,
   taxCategories,
+  transactions,
 } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import Decimal from 'decimal.js';
+
+/**
+ * Tax deduction type filter
+ */
+export type TaxDeductionTypeFilter = 'all' | 'business' | 'personal';
 
 /**
  * Tax deduction summary by category
@@ -21,6 +27,7 @@ export interface TaxDeductionSummary {
   totalAmount: number;
   transactionCount: number;
   isDeductible: boolean;
+  deductionType: 'business' | 'personal' | 'mixed';
 }
 
 /**
@@ -30,6 +37,8 @@ export interface TaxYearSummary {
   year: number;
   totalIncome: number;
   totalDeductions: number;
+  businessDeductions: number;
+  personalDeductions: number;
   taxableIncome: number;
   byCategory: TaxDeductionSummary[];
 }
@@ -140,10 +149,14 @@ export const STANDARD_TAX_CATEGORIES = [
 
 /**
  * Get tax deductions for a user in a given tax year
+ * @param userId - User ID
+ * @param taxYear - Tax year to query
+ * @param typeFilter - Filter by 'business', 'personal', or 'all'
  */
 export async function getTaxDeductions(
   userId: string,
-  taxYear: number
+  taxYear: number,
+  typeFilter: TaxDeductionTypeFilter = 'all'
 ): Promise<TaxDeductionSummary[]> {
   const classifications = await db
     .select()
@@ -155,10 +168,33 @@ export async function getTaxDeductions(
       )
     );
 
-  // Group by tax category
-  const byCategory = new Map<string, TaxDeductionSummary>();
+  // Get transaction IDs to look up their deduction types
+  const transactionIds = classifications.map(c => c.transactionId);
+  
+  // Fetch transaction deduction types
+  const transactionDeductionTypes = new Map<string, string>();
+  if (transactionIds.length > 0) {
+    const txns = await db
+      .select({ id: transactions.id, taxDeductionType: transactions.taxDeductionType })
+      .from(transactions)
+      .where(inArray(transactions.id, transactionIds));
+    
+    txns.forEach(t => {
+      transactionDeductionTypes.set(t.id, t.taxDeductionType || 'none');
+    });
+  }
+
+  // Group by tax category with type tracking
+  const byCategory = new Map<string, TaxDeductionSummary & { typeCount: { business: number; personal: number } }>();
 
   for (const classification of classifications) {
+    const txnType = transactionDeductionTypes.get(classification.transactionId) || 'none';
+    
+    // Apply type filter
+    if (typeFilter !== 'all' && txnType !== typeFilter) {
+      continue;
+    }
+
     const category = await db
       .select()
       .from(taxCategories)
@@ -179,36 +215,74 @@ export async function getTaxDeductions(
         totalAmount: 0,
         transactionCount: 0,
         isDeductible: category.deductible || false,
+        deductionType: 'mixed',
+        typeCount: { business: 0, personal: 0 },
       });
     }
 
     const summary = byCategory.get(key)!;
     summary.totalAmount += classification.allocatedAmount || 0;
     summary.transactionCount += 1;
+    
+    // Track type counts
+    if (txnType === 'business') {
+      summary.typeCount.business += 1;
+    } else if (txnType === 'personal') {
+      summary.typeCount.personal += 1;
+    }
   }
 
-  return Array.from(byCategory.values()).sort(
-    (a, b) => b.totalAmount - a.totalAmount
-  );
+  // Determine final deduction type for each category
+  const results = Array.from(byCategory.values()).map(summary => {
+    const { typeCount, ...rest } = summary;
+    let deductionType: 'business' | 'personal' | 'mixed' = 'mixed';
+    
+    if (typeCount.business > 0 && typeCount.personal === 0) {
+      deductionType = 'business';
+    } else if (typeCount.personal > 0 && typeCount.business === 0) {
+      deductionType = 'personal';
+    }
+    
+    return { ...rest, deductionType };
+  });
+
+  return results.sort((a, b) => b.totalAmount - a.totalAmount);
 }
 
 /**
  * Calculate tax year summary
+ * @param userId - User ID
+ * @param taxYear - Tax year to query
+ * @param typeFilter - Filter by 'business', 'personal', or 'all'
  */
 export async function getTaxYearSummary(
   userId: string,
-  taxYear: number
+  taxYear: number,
+  typeFilter: TaxDeductionTypeFilter = 'all'
 ): Promise<TaxYearSummary> {
-  const deductions = await getTaxDeductions(userId, taxYear);
+  const deductions = await getTaxDeductions(userId, taxYear, typeFilter);
 
   let totalIncome = new Decimal(0);
   let totalDeductions = new Decimal(0);
+  let businessDeductions = new Decimal(0);
+  let personalDeductions = new Decimal(0);
 
   deductions.forEach((ded) => {
     const amount = new Decimal(ded.totalAmount);
 
     if (ded.isDeductible) {
       totalDeductions = totalDeductions.plus(amount);
+      
+      // Track business vs personal deductions
+      if (ded.deductionType === 'business') {
+        businessDeductions = businessDeductions.plus(amount);
+      } else if (ded.deductionType === 'personal') {
+        personalDeductions = personalDeductions.plus(amount);
+      } else {
+        // Mixed - split evenly for summary (or could use transaction-level data)
+        businessDeductions = businessDeductions.plus(amount.dividedBy(2));
+        personalDeductions = personalDeductions.plus(amount.dividedBy(2));
+      }
     } else {
       // Income categories
       if (ded.categoryName.includes('Income')) {
@@ -223,6 +297,8 @@ export async function getTaxYearSummary(
     year: taxYear,
     totalIncome: totalIncome.toNumber(),
     totalDeductions: totalDeductions.toNumber(),
+    businessDeductions: businessDeductions.toNumber(),
+    personalDeductions: personalDeductions.toNumber(),
     taxableIncome: Math.max(taxableIncome, 0),
     byCategory: deductions,
   };

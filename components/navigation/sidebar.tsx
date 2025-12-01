@@ -26,6 +26,8 @@ import { HouseholdSelector } from '@/components/household/household-selector';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { UserMenu } from '@/components/auth/user-menu';
+import { NotificationBell } from '@/components/notifications/notification-bell';
+import { TestModeBadge, TestModeBadgeCompact } from '@/components/dev/test-mode-badge';
 import { useNavigation } from '@/context/navigation-context';
 import { useDeveloperMode } from '@/contexts/developer-mode-context';
 
@@ -258,8 +260,10 @@ export function Sidebar() {
       </nav>
 
       {/* Footer Section */}
-      <div className="p-4 border-t border-border space-y-2">
-        <div className="px-3 py-2 flex items-center justify-center">
+      <div className="p-4 border-t border-border">
+        <div className={`flex items-center ${sidebarOpen ? 'justify-between' : 'justify-center flex-col gap-2'}`}>
+          {sidebarOpen ? <TestModeBadge /> : <TestModeBadgeCompact />}
+          <NotificationBell />
           <UserMenu />
         </div>
       </div>

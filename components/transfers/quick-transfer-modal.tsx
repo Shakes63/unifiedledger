@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { TransferForm } from './transfer-form';
 import { Loader2 } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Account {
   id: string;
@@ -30,23 +31,26 @@ interface QuickTransferModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   accounts: Account[];
+  onSuccess?: () => void;
 }
 
 export function QuickTransferModal({
   open,
   onOpenChange,
   accounts,
+  onSuccess,
 }: QuickTransferModalProps) {
+  const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [suggestedPairs, setSuggestedPairs] = useState<SuggestedPair[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !selectedHouseholdId) return;
 
     const loadSuggestions = async () => {
       try {
         setIsLoadingSuggestions(true);
-        const response = await fetch('/api/transfers/suggest?limit=5', { credentials: 'include' });
+        const response = await fetchWithHousehold('/api/transfers/suggest?limit=5');
 
         if (!response.ok) throw new Error('Failed to load suggestions');
 
@@ -60,25 +64,26 @@ export function QuickTransferModal({
     };
 
     loadSuggestions();
-  }, [open]);
+  }, [open, selectedHouseholdId, fetchWithHousehold]);
 
-  const handleSuccess = () => {
+  const handleSuccess = (transferId: string) => {
     onOpenChange(false);
+    onSuccess?.();
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#0a0a0a] border-[#2a2a2a] max-w-md">
+      <DialogContent className="bg-card border-border max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-white">New Transfer</DialogTitle>
-          <DialogDescription className="text-[#9ca3af]">
+          <DialogTitle className="text-foreground">New Transfer</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Transfer money between your accounts
           </DialogDescription>
         </DialogHeader>
 
         {isLoadingSuggestions ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+            <Loader2 className="w-6 h-6 animate-spin text-[var(--color-primary)]" />
           </div>
         ) : (
           <TransferForm

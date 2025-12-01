@@ -85,6 +85,7 @@ export function NotificationBell() {
     try {
       const response = await fetch(`/api/notifications/${notificationId}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isRead: true }),
       });
@@ -107,6 +108,7 @@ export function NotificationBell() {
     try {
       const response = await fetch(`/api/notifications/${notificationId}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isDismissed: true }),
       });

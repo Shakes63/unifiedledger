@@ -108,14 +108,14 @@ export function TransactionTemplatesManager({
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'income':
-        return 'bg-emerald-500/20 text-emerald-400';
+        return 'bg-[var(--color-income)]/20 text-[var(--color-income)]';
       case 'expense':
-        return 'bg-red-500/20 text-red-400';
+        return 'bg-[var(--color-expense)]/20 text-[var(--color-expense)]';
       case 'transfer_in':
       case 'transfer_out':
-        return 'bg-blue-500/20 text-blue-400';
+        return 'bg-[var(--color-transfer)]/20 text-[var(--color-transfer)]';
       default:
-        return 'bg-gray-500/20 text-gray-400';
+        return 'bg-muted/20 text-muted-foreground';
     }
   };
 
@@ -138,12 +138,12 @@ export function TransactionTemplatesManager({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="bg-[#242424] text-white border-[#3a3a3a] hover:bg-[#2a2a2a]">
+        <Button variant="outline" size="sm" className="bg-card text-foreground border-border hover:bg-elevated">
           <Copy className="w-4 h-4 mr-2" />
-          Use Template
+          Templates
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a] max-w-2xl">
+      <DialogContent className="bg-card border-border max-w-2xl">
         <DialogHeader>
           <DialogTitle>Transaction Templates</DialogTitle>
           <DialogDescription className="text-muted-foreground">
@@ -152,7 +152,7 @@ export function TransactionTemplatesManager({
         </DialogHeader>
 
         {error && (
-          <div className="p-4 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-sm">
+          <div className="p-4 bg-[var(--color-error)]/20 border border-[var(--color-error)]/40 rounded-lg text-[var(--color-error)] text-sm">
             {error}
           </div>
         )}
@@ -170,7 +170,7 @@ export function TransactionTemplatesManager({
             {templates.map((template) => (
               <Card
                 key={template.id}
-                className="p-4 border-[#2a2a2a] bg-[#242424] hover:bg-[#2a2a2a] cursor-pointer transition-colors"
+                className="p-4 border-border bg-elevated hover:bg-muted/50 cursor-pointer transition-colors"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div
@@ -178,7 +178,7 @@ export function TransactionTemplatesManager({
                     onClick={() => handleUseTemplate(template)}
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <p className="font-medium text-white">{template.name}</p>
+                      <p className="font-medium text-foreground">{template.name}</p>
                       <Badge className={getTypeColor(template.type)}>
                         {getTypeLabel(template.type)}
                       </Badge>
@@ -199,7 +199,7 @@ export function TransactionTemplatesManager({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-8 w-8 p-0 hover:bg-[#3a3a3a]"
+                    className="h-8 w-8 p-0 hover:bg-muted"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleDelete(template.id);

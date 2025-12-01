@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Split {
   id: string;
@@ -18,15 +19,21 @@ interface SplitsListProps {
 }
 
 export function SplitsList({ transactionId }: SplitsListProps) {
+  const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [splits, setSplits] = useState<Split[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Wait for household to be selected before fetching
+    if (!selectedHouseholdId) {
+      return;
+    }
+
     const fetchSplits = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/transactions/${transactionId}/splits`, { credentials: 'include' });
+        const response = await fetchWithHousehold(`/api/transactions/${transactionId}/splits`);
         if (!response.ok) {
           throw new Error('Failed to fetch splits');
         }
@@ -40,7 +47,7 @@ export function SplitsList({ transactionId }: SplitsListProps) {
     };
 
     fetchSplits();
-  }, [transactionId]);
+  }, [transactionId, fetchWithHousehold, selectedHouseholdId]);
 
   if (loading) {
     return (

@@ -858,7 +858,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {success && (
         <div className="p-4 bg-[var(--color-success)]/20 border border-[var(--color-success)]/40 rounded-lg text-[var(--color-success)] text-sm">
-          Transaction created successfully! Redirecting...
+          Transaction {isEditMode ? 'updated' : 'created'} successfully! Redirecting...
         </div>
       )}
 

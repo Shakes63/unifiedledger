@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { DebtToIncomeIndicator } from '@/components/budgets/debt-to-income-indicator';
 import { ApplySurplusModal } from '@/components/budgets/apply-surplus-modal';
 import { DollarSign, TrendingDown, AlertCircle, CheckCircle } from 'lucide-react';
-import { betterAuthClient } from '@/lib/better-auth-client';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 
@@ -29,9 +28,6 @@ interface BudgetSummary {
 }
 
 export function BudgetSurplusCard() {
-  const { data: session, isPending } = betterAuthClient.useSession();
-  const isLoaded = !isPending;
-  const isSignedIn = !!session;
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
   const [data, setData] = useState<BudgetSummary | null>(null);
@@ -71,16 +67,14 @@ export function BudgetSurplusCard() {
   }, [fetchWithHousehold]);
 
   useEffect(() => {
-    // Only fetch when auth is fully loaded, user is signed in, and household is selected
-    if (isLoaded && isSignedIn && selectedHouseholdId) {
-      fetchBudgetSummary();
-    } else if (isLoaded && !isSignedIn) {
-      setAuthError(true);
+    // Only fetch when household is selected
+    // Auth errors are handled by the API response (401 status)
+    if (!selectedHouseholdId) {
       setLoading(false);
-    } else if (isLoaded && isSignedIn && !selectedHouseholdId) {
-      setLoading(false);
+      return;
     }
-  }, [isLoaded, isSignedIn, selectedHouseholdId, fetchBudgetSummary]);
+    fetchBudgetSummary();
+  }, [selectedHouseholdId, fetchBudgetSummary]);
 
   const handleApplied = () => {
     setApplied(true);

@@ -10,9 +10,11 @@ import { formatDate } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Transfer {
   id: string;
@@ -40,6 +42,7 @@ export function TransferList({
   isLoading = false,
   onRefresh,
 }: TransferListProps) {
+  const { deleteWithHousehold } = useHouseholdFetch();
   const [selectedTransfer, setSelectedTransfer] = useState<Transfer | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -50,7 +53,7 @@ export function TransferList({
 
     try {
       setIsDeleting(true);
-      const response = await fetch(`/api/transfers/${transferId}`, { credentials: 'include', method: 'DELETE', });
+      const response = await deleteWithHousehold(`/api/transfers/${transferId}`);
 
       if (!response.ok) {
         const error = await response.json();
@@ -58,6 +61,7 @@ export function TransferList({
       }
 
       toast.success('Transfer deleted successfully');
+      setSelectedTransfer(null);
       onRefresh?.();
     } catch (error) {
       console.error('Delete error:', error);
@@ -72,29 +76,29 @@ export function TransferList({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-emerald-400/10 text-emerald-400';
+        return 'bg-[var(--color-success)]/10 text-[var(--color-success)]';
       case 'pending':
-        return 'bg-amber-400/10 text-amber-400';
+        return 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]';
       case 'failed':
-        return 'bg-red-400/10 text-red-400';
+        return 'bg-[var(--color-error)]/10 text-[var(--color-error)]';
       default:
-        return 'bg-gray-400/10 text-gray-400';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
   if (isLoading) {
     return (
-      <Card className="p-8 text-center bg-[#1a1a1a] border-[#2a2a2a]">
-        <p className="text-[#9ca3af]">Loading transfers...</p>
+      <Card className="p-8 text-center bg-card border-border">
+        <p className="text-muted-foreground">Loading transfers...</p>
       </Card>
     );
   }
 
   if (transfers.length === 0) {
     return (
-      <Card className="p-8 text-center bg-[#1a1a1a] border-[#2a2a2a]">
-        <p className="text-[#9ca3af]">No transfers yet</p>
-        <p className="text-[#6b7280] text-sm mt-2">
+      <Card className="p-8 text-center bg-card border-border">
+        <p className="text-muted-foreground">No transfers yet</p>
+        <p className="text-muted-foreground/60 text-sm mt-2">
           Create your first transfer to move money between accounts
         </p>
       </Card>
@@ -107,18 +111,18 @@ export function TransferList({
         {transfers.map((transfer) => (
           <Card
             key={transfer.id}
-            className="p-4 bg-[#1a1a1a] border-[#2a2a2a] hover:border-[#3a3a3a] transition cursor-pointer"
+            className="p-4 bg-card border-border hover:border-ring transition cursor-pointer"
             onClick={() => setSelectedTransfer(transfer)}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 flex-1">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="text-white font-medium">
+                    <span className="text-foreground font-medium">
                       {transfer.fromAccountName}
                     </span>
-                    <ArrowRight className="w-4 h-4 text-[#6b7280]" />
-                    <span className="text-white font-medium">
+                    <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-foreground font-medium">
                       {transfer.toAccountName}
                     </span>
                   </div>
@@ -126,7 +130,7 @@ export function TransferList({
                     <Badge variant="outline" className={getStatusColor(transfer.status)}>
                       {transfer.status}
                     </Badge>
-                    <span className="text-[#6b7280] text-sm">
+                    <span className="text-muted-foreground text-sm">
                       {formatDate(transfer.date)}
                     </span>
                   </div>
@@ -135,11 +139,11 @@ export function TransferList({
 
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <p className="text-white font-medium">
+                  <p className="text-foreground font-medium">
                     ${parseFloat(transfer.amount.toString()).toFixed(2)}
                   </p>
                   {transfer.fees && parseFloat(transfer.fees.toString()) > 0 && (
-                    <p className="text-[#6b7280] text-sm">
+                    <p className="text-muted-foreground text-sm">
                       Fee: ${parseFloat(transfer.fees.toString()).toFixed(2)}
                     </p>
                   )}
@@ -152,7 +156,7 @@ export function TransferList({
                       e.stopPropagation();
                       setSelectedTransfer(transfer);
                     }}
-                    className="text-[#9ca3af] hover:text-white hover:bg-[#242424]"
+                    className="text-muted-foreground hover:text-foreground hover:bg-elevated"
                   >
                     <Info className="w-4 h-4" />
                   </Button>
@@ -164,7 +168,7 @@ export function TransferList({
                       handleDelete(transfer.id);
                     }}
                     disabled={isDeleting}
-                    className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                    className="text-[var(--color-error)] hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -177,23 +181,26 @@ export function TransferList({
 
       {/* Transfer Details Dialog */}
       <Dialog open={!!selectedTransfer} onOpenChange={(open) => !open && setSelectedTransfer(null)}>
-        <DialogContent className="bg-[#1a1a1a] border-[#2a2a2a] text-white">
+        <DialogContent className="bg-card border-border text-foreground">
           <DialogHeader>
             <DialogTitle>Transfer Details</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              View transfer information and manage this transfer
+            </DialogDescription>
           </DialogHeader>
 
           {selectedTransfer && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[#6b7280] text-sm mb-1">From Account</p>
-                  <p className="text-white font-medium">
+                  <p className="text-muted-foreground text-sm mb-1">From Account</p>
+                  <p className="text-foreground font-medium">
                     {selectedTransfer.fromAccountName}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[#6b7280] text-sm mb-1">To Account</p>
-                  <p className="text-white font-medium">
+                  <p className="text-muted-foreground text-sm mb-1">To Account</p>
+                  <p className="text-foreground font-medium">
                     {selectedTransfer.toAccountName}
                   </p>
                 </div>
@@ -201,13 +208,13 @@ export function TransferList({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-[#6b7280] text-sm mb-1">Amount</p>
-                  <p className="text-white font-medium">
+                  <p className="text-muted-foreground text-sm mb-1">Amount</p>
+                  <p className="text-foreground font-medium">
                     ${parseFloat(selectedTransfer.amount.toString()).toFixed(2)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[#6b7280] text-sm mb-1">Status</p>
+                  <p className="text-muted-foreground text-sm mb-1">Status</p>
                   <Badge variant="outline" className={getStatusColor(selectedTransfer.status)}>
                     {selectedTransfer.status}
                   </Badge>
@@ -216,31 +223,31 @@ export function TransferList({
 
               {selectedTransfer.fees && parseFloat(selectedTransfer.fees.toString()) > 0 && (
                 <div>
-                  <p className="text-[#6b7280] text-sm mb-1">Fees</p>
-                  <p className="text-white font-medium">
+                  <p className="text-muted-foreground text-sm mb-1">Fees</p>
+                  <p className="text-foreground font-medium">
                     ${parseFloat(selectedTransfer.fees.toString()).toFixed(2)}
                   </p>
                 </div>
               )}
 
               <div>
-                <p className="text-[#6b7280] text-sm mb-1">Date</p>
-                <p className="text-white font-medium">
+                <p className="text-muted-foreground text-sm mb-1">Date</p>
+                <p className="text-foreground font-medium">
                   {formatDate(selectedTransfer.date)}
                 </p>
               </div>
 
               <div>
-                <p className="text-[#6b7280] text-sm mb-1">Description</p>
-                <p className="text-white">
+                <p className="text-muted-foreground text-sm mb-1">Description</p>
+                <p className="text-foreground">
                   {selectedTransfer.description}
                 </p>
               </div>
 
               {selectedTransfer.notes && (
                 <div>
-                  <p className="text-[#6b7280] text-sm mb-1">Notes</p>
-                  <p className="text-white">{selectedTransfer.notes}</p>
+                  <p className="text-muted-foreground text-sm mb-1">Notes</p>
+                  <p className="text-foreground">{selectedTransfer.notes}</p>
                 </div>
               )}
 
@@ -249,7 +256,7 @@ export function TransferList({
                   onClick={() => handleDelete(selectedTransfer.id)}
                   disabled={isDeleting}
                   variant="destructive"
-                  className="flex-1 bg-red-600 hover:bg-red-700"
+                  className="flex-1 bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
                 >
                   {isDeleting ? 'Deleting...' : 'Delete Transfer'}
                 </Button>

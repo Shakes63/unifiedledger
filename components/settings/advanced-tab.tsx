@@ -59,31 +59,22 @@ export function AdvancedTab() {
     if (!selectedHouseholdId) return;
 
     try {
-      // Fetch statistics from various endpoints
-      const [txnRes, accountsRes, categoriesRes, billsRes, goalsRes, debtsRes] = await Promise.all([
-        fetch('/api/transactions?limit=1', { credentials: 'include' }),
-        fetch('/api/accounts?limit=1', { credentials: 'include' }),
-        fetch('/api/categories?limit=1', { credentials: 'include' }),
-        fetch('/api/bills?limit=1', { credentials: 'include' }),
-        fetchWithHousehold('/api/savings-goals?limit=1'),
-        fetchWithHousehold('/api/debts?limit=1'),
-      ]);
-
-      const txnData = await txnRes.json();
-      const accountsData = await accountsRes.json();
-      const categoriesData = await categoriesRes.json();
-      const billsData = await billsRes.json();
-      const goalsData = await goalsRes.json();
-      const debtsData = await debtsRes.json();
-
-      setStats({
-        transactions: txnData.total || 0,
-        accounts: accountsData.data?.length || 0,
-        categories: categoriesData.data?.length || 0,
-        bills: billsData.data?.length || 0,
-        goals: goalsData.data?.length || 0,
-        debts: debtsData.data?.length || 0,
-      });
+      // Fetch statistics from dedicated stats endpoint
+      const response = await fetchWithHousehold('/api/stats');
+      
+      if (response.ok) {
+        const data = await response.json();
+        setStats({
+          transactions: data.transactions || 0,
+          accounts: data.accounts || 0,
+          categories: data.categories || 0,
+          bills: data.bills || 0,
+          goals: data.goals || 0,
+          debts: data.debts || 0,
+        });
+      } else {
+        console.error('Failed to fetch database stats:', response.status);
+      }
     } catch (error) {
       console.error('Failed to fetch database stats:', error);
     }

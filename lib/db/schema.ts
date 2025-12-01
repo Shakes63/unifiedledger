@@ -165,6 +165,9 @@ export const transactions = sqliteTable(
     isSplit: integer('is_split', { mode: 'boolean' }).default(false),
     splitParentId: text('split_parent_id'),
     isTaxDeductible: integer('is_tax_deductible', { mode: 'boolean' }).default(false),
+    taxDeductionType: text('tax_deduction_type', {
+      enum: ['business', 'personal', 'none'],
+    }).default('none'),
     isSalesTaxable: integer('is_sales_taxable', { mode: 'boolean' }).default(false),
     importHistoryId: text('import_history_id'),
     importRowNumber: integer('import_row_number'),
@@ -2040,3 +2043,45 @@ export const oauthSettings = sqliteTable(
     providerIdIdx: index('idx_oauth_settings_provider').on(table.providerId),
   })
 );
+
+// ============================================================================
+// TRANSACTION AUDIT LOG
+// ============================================================================
+
+export const transactionAuditLog = sqliteTable(
+  'transaction_audit_log',
+  {
+    id: text('id').primaryKey(),
+    transactionId: text('transaction_id').notNull(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
+    userName: text('user_name'), // Denormalized for display if user is deleted
+    actionType: text('action_type', {
+      enum: ['created', 'updated', 'deleted'],
+    }).notNull(),
+    // Field-level changes stored as JSON: { field: { oldValue, newValue, oldDisplayValue?, newDisplayValue? } }[]
+    changes: text('changes'),
+    // Snapshot of transaction state (for deleted transactions or initial creation)
+    snapshot: text('snapshot'),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    transactionIdIdx: index('idx_transaction_audit_log_transaction').on(table.transactionId),
+    userIdIdx: index('idx_transaction_audit_log_user').on(table.userId),
+    householdIdIdx: index('idx_transaction_audit_log_household').on(table.householdId),
+    createdAtIdx: index('idx_transaction_audit_log_created').on(table.createdAt),
+    txCreatedIdx: index('idx_transaction_audit_log_tx_created').on(
+      table.transactionId,
+      table.createdAt
+    ),
+  })
+);
+
+export const transactionAuditLogRelations = relations(transactionAuditLog, ({ one }) => ({
+  transaction: one(transactions, {
+    fields: [transactionAuditLog.transactionId],
+    references: [transactions.id],
+  }),
+}));

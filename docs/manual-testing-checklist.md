@@ -918,6 +918,22 @@ Note: The calendar has full debt milestone support (verified in code), but test 
 - [x] "Tax Preparation Tips" checklist displayed
 - [ ] Export tax report works - Not tested (no export button visible)
 
+### Business vs Personal Tax Deductions
+
+- [ ] Filter tabs display (All Deductions, Business, Personal)
+- [ ] Clicking "Business" tab filters to show only business deductions
+- [ ] Clicking "Personal" tab filters to show only personal deductions
+- [ ] Clicking "All Deductions" tab shows combined view
+- [ ] Summary cards show split totals: Business Deductions, Personal Deductions
+- [ ] Deductions table shows "Type" column with badges (Business/Personal/Mixed)
+- [ ] Type badges are color-coded (Business: blue, Personal: green, Mixed: gray)
+- [ ] Business deductions card shows "(Schedule C)" label
+- [ ] Personal deductions card shows "(Schedule A)" label
+- [ ] Form type section shows type labels (Business) or (Personal) next to each form
+- [ ] Tax summary shows separate Business Deductions and Personal Deductions line items
+- [ ] Auto-detection works: transactions from business accounts tagged as "business" when tax deductible
+- [ ] Auto-detection works: transactions from non-business accounts tagged as "personal" when tax deductible
+
 ---
 
 ## 13. Sales Tax

@@ -26,12 +26,14 @@ Review docs/features.md and select the next incomplete task. Create a detailed i
 5. Save the finalized plan to the docs/ folder
 Once the plan is complete and reviewed, implement the first task from the plan.
 
+then
 
 Update features.md and .cursor/rules files with the following rules:
 1. Maintain a "New Features" section at the top of features.md for easy addition of new ideas
 2. For incomplete tasks: mark status, note what remains unfinished, and reference the plan file location
 3. For completed features: replace full entry with feature name + "[COMPLETED]" label + 1 line description, then delete the associated plan file
-4. Commit and push all changes
+4. add feature to manual-testing-checklist.md 
+5. Commit and push all changes
 
 ***Bugs***
 
@@ -43,9 +45,42 @@ Review docs/bugs.md and select the next incomplete task. Create a detailed imple
 5. Save the finalized plan to the docs/ folder
 Once the plan is complete and reviewed, implement the first task from the plan.
 
+then
 
 Update bugs.md and .cursor/rules files with the following rules:
 1. Maintain a "New Bugs" section at the top of bugs.md for easy addition of new issues
 2. For incomplete tasks: mark status, note what remains unfinished, and reference the plan file location
 3. For completed bugs: replace full entry with bug name + "[FIXED]" label + 1-2 line description of the fix, then delete the associated plan file
 4. Commit and push all changes
+
+***Manual Testing***
+
+Review docs/manual-testing-checklist.md and systematically test the application using the browser:
+1. Start with the next untested section in the checklist
+2. Navigate to the relevant page and test each item using browser tools
+3. For each test case:
+   - Mark [x] if the test passes
+   - Mark [!] if there's an issue and add a brief note
+   - Leave [ ] if not yet tested
+4. If you find a bug, document it in docs/bugs.md with:
+   - Clear title and description
+   - Steps to reproduce
+   - Expected vs actual behavior
+5. After completing a section, update the checklist with test date and results
+6. Continue to the next section until testing is complete or time runs out
+
+Focus on functional correctness, UI/UX issues, and edge cases. Use browser dev tools to monitor console errors and network requests during testing.
+
+***Retest Fixed Bugs***
+
+Review docs/manual-testing-checklist.md and retest items that previously failed but have since been fixed:
+1. Search the checklist for items marked with [!] (failed tests)
+2. Cross-reference with docs/bugs.md to verify the associated bug has been marked as fixed
+3. For each fixed bug, retest the corresponding checklist item using browser tools:
+   - If the test now passes: change [!] to [x] and remove or update the failure note
+   - If the test still fails: keep [!] and update the note with current behavior
+   - If the bug fix introduced new issues: document in bugs.md
+4. Update the "Last Tested" date for any retested sections
+5. Continue until all [!] items with fixed bugs have been retested
+
+Focus on verifying the fix works correctly and hasn't caused regressions. Use browser dev tools to confirm no new console errors or failed network requests.
