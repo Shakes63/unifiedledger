@@ -595,14 +595,13 @@ export default function SalesTaxPage() {
                       </div>
                       <Button
                         type="button"
-                        variant="outline"
                         size="sm"
                         onClick={(e) => {
                           e.preventDefault();
                           handleMarkFiled(quarter.quarter);
                         }}
                         disabled={isMarkingFiled === `Q${quarter.quarter}`}
-                        className="border-border text-foreground hover:bg-elevated"
+                        className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
                       >
                         {isMarkingFiled === `Q${quarter.quarter}` ? 'Saving...' : 'Mark Filed'}
                       </Button>
