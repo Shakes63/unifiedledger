@@ -322,12 +322,13 @@ function simulatePayoffParallel(
   }));
 
   // Calculate total available payment per period
+  // This is the user's total budget: all minimum payments + extra payment
   const totalMinimums = debts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
   const totalPerDebtExtras = debts.reduce((sum, d) => sum + (d.additionalMonthlyPayment || 0), 0);
   let availablePayment = (totalMinimums + totalPerDebtExtras + extraPayment) / paymentDivisor;
 
-  // Extra payment that can be redirected when debts are paid off
-  let rolledOverPayment = new Decimal(0);
+  // Track excess payment when focus debt is paid off mid-period with less than allocated
+  let excessPayment = new Decimal(0);
   
   const payoffOrder: { debtId: string; order: number }[] = [];
   let payoffCounter = 0;
@@ -347,13 +348,17 @@ function simulatePayoffParallel(
     // Find the focus debt for this period
     const focusIdx = getFocusDebtIndex(activeDebts, method);
     
-    // Calculate total extra available this period (includes rolled over from paid debts)
+    // Calculate extra available this period:
+    // Total budget minus what's needed for minimums on active debts
+    // The debt rolldown happens automatically: when a debt is paid off and removed from
+    // activeDebts, its minimum is no longer subtracted, so the extra increases
+    // Also add any excess from focus debt being paid off with less than its allocation
     let extraThisPeriod = new Decimal(availablePayment)
       .minus(activeDebts.reduce((sum, d) => sum + d.effectiveMinimum, 0))
-      .plus(rolledOverPayment);
+      .plus(excessPayment);
     
-    // Reset rolled over for next iteration
-    rolledOverPayment = new Decimal(0);
+    // Reset excess for this period
+    excessPayment = new Decimal(0);
 
     // Process each active debt
     const debtsToPay: { idx: number; payment: Decimal }[] = [];
@@ -391,6 +396,10 @@ function simulatePayoffParallel(
       // Cap payment at balance + interest
       const maxPayment = debtState.balance.plus(interestAmount);
       if (payment.greaterThan(maxPayment)) {
+        // Track excess that couldn't be applied (will roll to next period)
+        if (isFocus) {
+          excessPayment = excessPayment.plus(payment.minus(maxPayment));
+        }
         payment = maxPayment;
       }
 
@@ -419,9 +428,9 @@ function simulatePayoffParallel(
         debtState.paidOffAtPeriod = period;
         payoffCounter++;
         payoffOrder.push({ debtId: debtState.debt.id, order: payoffCounter });
-        
-        // Roll over this debt's minimum payment for subsequent processing
-        rolledOverPayment = rolledOverPayment.plus(new Decimal(debtState.effectiveMinimum));
+        // Note: The debt rolldown happens automatically in the next period because
+        // this debt's effectiveMinimum is no longer subtracted from availablePayment
+        // when calculating extraThisPeriod (since it's removed from activeDebts)
       }
     }
 
@@ -455,7 +464,7 @@ function simulatePayoffParallel(
   }));
 
   let simPeriod = 0;
-  let simRolledOver = new Decimal(0);
+  let simExcessPayment = new Decimal(0);
   const simPayoffOrder: { debtId: string; order: number; period: number }[] = [];
   let simPayoffCounter = 0;
 
@@ -471,11 +480,13 @@ function simulatePayoffParallel(
 
     const focusIdx = getFocusDebtIndex(activeSimDebts, method);
     
+    // Calculate extra available this period:
+    // Total budget minus minimums of active debts, plus any excess from previous period
     let extraThisPeriod = new Decimal(availablePayment)
       .minus(activeSimDebts.reduce((sum, d) => sum + d.effectiveMinimum, 0))
-      .plus(simRolledOver);
+      .plus(simExcessPayment);
     
-    simRolledOver = new Decimal(0);
+    simExcessPayment = new Decimal(0);
 
     for (let i = 0; i < activeSimDebts.length; i++) {
       const debtState = activeSimDebts[i];
@@ -506,6 +517,10 @@ function simulatePayoffParallel(
 
       const maxPayment = debtState.balance.plus(interestAmount);
       if (payment.greaterThan(maxPayment)) {
+        // Track excess when focus debt is capped
+        if (isFocus) {
+          simExcessPayment = simExcessPayment.plus(payment.minus(maxPayment));
+        }
         payment = maxPayment;
       }
 
@@ -530,7 +545,8 @@ function simulatePayoffParallel(
         debtState.paidOffAtPeriod = simPeriod;
         simPayoffCounter++;
         simPayoffOrder.push({ debtId: debtState.debt.id, order: simPayoffCounter, period: simPeriod });
-        simRolledOver = simRolledOver.plus(new Decimal(debtState.effectiveMinimum));
+        // Note: Debt rolldown happens automatically - this debt's minimum is no longer
+        // subtracted in the next period since it's filtered out of activeSimDebts
       }
     }
   }
