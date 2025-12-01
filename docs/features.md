@@ -2,7 +2,19 @@
 
 ## New Features
 
-Extend inline transaction editing to include date, account, amount, and description fields - all editable directly on the transaction card alongside the existing category and merchant dropdowns.
+- **Debt Rolldown Payment Visualization** - Enhance the Debt Payoff Strategy UI to clearly show how payments change as debts are paid off. Currently only shows minimum payments per debt; should display:
+  1. Actual payment amount for the focus debt (minimum + extra)
+  2. Projected payment amounts for each subsequent debt after rolldown
+  3. Clear progression showing how freed-up payments flow to the next debt
+  
+  Example display:
+  ```
+  1. Chase Sapphire - $4,200 @ 22.99%
+     → Pay $334/mo ($84 min + $250 extra) - Payoff: Month 15
+  
+  2. Auto Loan - $8,500 @ 8.9%  
+     → After Chase pays off, pay $714/mo ($380 min + $334 rolled) - Payoff: Month 30
+  ```
 
 ---
 
@@ -56,3 +68,4 @@ _No incomplete features at this time.
 40. **Goal Deadlines on Calendar** [COMPLETED] - Display savings goal target dates on calendar with progress indicators, goal colors, and detailed view in day modal.
 41. **Debt Milestones on Calendar** [COMPLETED] - Display debt target payoff dates and achieved milestones (25%, 50%, 75%, 100%) on calendar with progress indicators, debt colors, trophy/credit card icons, and detailed view in day modal.
 42. **Inline Transaction Dropdowns** [COMPLETED] - Category and merchant fields editable as inline dropdowns on transaction cards with yellow outline for missing fields.
+43. **Extended Inline Transaction Editing** [COMPLETED] - Date, account, amount, and description fields editable directly on transaction cards alongside existing category and merchant dropdowns.
