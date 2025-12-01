@@ -28,6 +28,7 @@ interface CategoryFormProps {
   onSubmit: (data: Partial<CategoryFormData>) => void;
   onCancel?: () => void;
   isLoading?: boolean;
+  defaultBusinessCategory?: boolean;
 }
 
 export function CategoryForm({
@@ -35,6 +36,7 @@ export function CategoryForm({
   onSubmit,
   onCancel,
   isLoading = false,
+  defaultBusinessCategory = false,
 }: CategoryFormProps) {
   const [formData, setFormData] = useState({
     name: category?.name || '',
@@ -42,6 +44,7 @@ export function CategoryForm({
     monthlyBudget: category?.monthlyBudget || 0,
     dueDate: category?.dueDate || '',
     isTaxDeductible: category?.isTaxDeductible || false,
+    isBusinessCategory: category?.isBusinessCategory ?? defaultBusinessCategory,
     isActive: category?.isActive !== undefined ? category.isActive : true,
     incomeFrequency: category?.incomeFrequency || 'variable',
   });
@@ -87,6 +90,7 @@ export function CategoryForm({
       monthlyBudget: parseFloat(String(formData.monthlyBudget)) || 0,
       dueDate: formData.dueDate ? parseInt(String(formData.dueDate)) : null,
       isTaxDeductible: formData.isTaxDeductible,
+      isBusinessCategory: formData.isBusinessCategory,
       isActive: formData.isActive,
       incomeFrequency: formData.type === 'income' ? formData.incomeFrequency : undefined,
     };
@@ -224,6 +228,25 @@ export function CategoryForm({
             <span
               className={`inline-block h-4 w-4 transform rounded-full bg-[var(--color-card)] transition-transform ${
                 formData.isTaxDeductible ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+        <div className="flex items-center justify-between pt-2 border-t border-border">
+          <div>
+            <Label className="text-muted-foreground text-sm block font-medium">Business Category</Label>
+            <p className="text-xs text-muted-foreground mt-1">Mark as a business category to group it separately in transaction forms</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleCheckboxChange('isBusinessCategory')}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              formData.isBusinessCategory ? 'bg-[var(--color-income)]' : 'bg-border'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-[var(--color-card)] transition-transform ${
+                formData.isBusinessCategory ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
           </button>

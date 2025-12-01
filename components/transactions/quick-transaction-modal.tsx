@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   Dialog,
@@ -92,6 +92,12 @@ export function QuickTransactionModal({
   const [unpaidBills, setUnpaidBills] = useState<UnpaidBillWithInstance[]>([]);
   const [billsLoading, setBillsLoading] = useState(false);
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
+
+  // Compute whether selected account is a business account for category filtering
+  const selectedAccountIsBusinessAccount = useMemo(() => {
+    const account = accounts.find(a => a.id === accountId);
+    return account?.isBusinessAccount || false;
+  }, [accounts, accountId]);
 
   // Fetch accounts and load smart defaults
   const fetchAccounts = async () => {
@@ -770,6 +776,7 @@ export function QuickTransactionModal({
               selectedCategory={categoryId}
               onCategoryChange={setCategoryId}
               transactionType={type === 'bill' ? 'expense' : type}
+              isBusinessAccount={selectedAccountIsBusinessAccount}
             />
           )}
 

@@ -22,6 +22,7 @@ interface Category {
   id: string;
   name: string;
   type: string;
+  isBusinessCategory?: boolean;
 }
 
 interface Bill {
@@ -41,6 +42,7 @@ interface CategorySelectorProps {
   onCategoryChange: (categoryId: string | null) => void;
   transactionType: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
   onLoadingChange?: (isLoading: boolean) => void;
+  isBusinessAccount?: boolean;
 }
 
 export function CategorySelector({
@@ -48,6 +50,7 @@ export function CategorySelector({
   onCategoryChange,
   transactionType,
   onLoadingChange,
+  isBusinessAccount = false,
 }: CategorySelectorProps) {
   const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -156,6 +159,7 @@ export function CategorySelector({
         name: newCategoryName,
         type: getCategoryType(),
         monthlyBudget: 0,
+        isBusinessCategory: isBusinessAccount,
       });
 
       if (response.ok) {
@@ -212,7 +216,8 @@ export function CategorySelector({
               // Collect all items to display
               const billItems: React.ReactElement[] = [];
               const debtItems: React.ReactElement[] = [];
-              const categoryItems: React.ReactElement[] = [];
+              const businessCategoryItems: React.ReactElement[] = [];
+              const personalCategoryItems: React.ReactElement[] = [];
 
               // Add bills
               bills.forEach((bill) => {
@@ -239,49 +244,85 @@ export function CategorySelector({
               });
 
               // Add regular categories (excluding those used by bills/debts)
+              // Split into business and personal categories
               categories.forEach((category) => {
                 if (!shownCategoryIds.has(category.id)) {
                   shownCategoryIds.add(category.id);
-                  categoryItems.push(
+                  const item = (
                     <SelectItem key={`cat-${category.id}`} value={category.id}>
                       {category.name}
                     </SelectItem>
                   );
+                  if (category.isBusinessCategory) {
+                    businessCategoryItems.push(item);
+                  } else {
+                    personalCategoryItems.push(item);
+                  }
                 }
               });
 
+              // Render sections in order based on account type
+              // If business account: Business first, then Bills, Debts, Personal
+              // If personal account: Personal first, then Bills, Debts, Business
+              const renderBusinessSection = () =>
+                businessCategoryItems.length > 0 && (
+                  <>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>Business</SelectLabel>
+                      {businessCategoryItems}
+                    </SelectGroup>
+                  </>
+                );
+
+              const renderPersonalSection = () =>
+                personalCategoryItems.length > 0 && (
+                  <>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>Personal</SelectLabel>
+                      {personalCategoryItems}
+                    </SelectGroup>
+                  </>
+                );
+
+              const renderBillsSection = () =>
+                billItems.length > 0 && (
+                  <>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>Bills</SelectLabel>
+                      {billItems}
+                    </SelectGroup>
+                  </>
+                );
+
+              const renderDebtsSection = () =>
+                debtItems.length > 0 && (
+                  <>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>Debts</SelectLabel>
+                      {debtItems}
+                    </SelectGroup>
+                  </>
+                );
+
               return (
                 <>
-                  {/* Bills Section */}
-                  {billItems.length > 0 && (
+                  {isBusinessAccount ? (
                     <>
-                      <SelectSeparator />
-                      <SelectGroup>
-                        <SelectLabel>Bills</SelectLabel>
-                        {billItems}
-                      </SelectGroup>
+                      {renderBusinessSection()}
+                      {renderBillsSection()}
+                      {renderDebtsSection()}
+                      {renderPersonalSection()}
                     </>
-                  )}
-
-                  {/* Debts Section */}
-                  {debtItems.length > 0 && (
+                  ) : (
                     <>
-                      <SelectSeparator />
-                      <SelectGroup>
-                        <SelectLabel>Debts</SelectLabel>
-                        {debtItems}
-                      </SelectGroup>
-                    </>
-                  )}
-
-                  {/* Regular Categories Section */}
-                  {categoryItems.length > 0 && (
-                    <>
-                      <SelectSeparator />
-                      <SelectGroup>
-                        <SelectLabel>Categories</SelectLabel>
-                        {categoryItems}
-                      </SelectGroup>
+                      {renderPersonalSection()}
+                      {renderBillsSection()}
+                      {renderDebtsSection()}
+                      {renderBusinessSection()}
                     </>
                   )}
                 </>

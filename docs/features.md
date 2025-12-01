@@ -2,7 +2,7 @@
 
 ## New Features
 
-1. you should be able to create categories that are marked as business and those categories should show up in their own section in the category dropdown and that section should be moved to the top when choosing a category on a transaction that is marked as being for a business account.
+_No new features pending._
 
 ---
 
@@ -13,6 +13,8 @@ _No incomplete features at this time._
 ---
 
 ## Completed Features
+
+54. **Business Categories** [COMPLETED] - Categories can be marked as business categories and appear in a dedicated "Business" section in category dropdowns. When selecting categories for a business account transaction, the Business section moves to the top.
 
 53. **Business Account Feature Toggles** [COMPLETED] - Separate toggles for Sales Tax Tracking and Tax Deduction Tracking on accounts, allowing granular control over business features per account.
 

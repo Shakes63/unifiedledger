@@ -623,7 +623,21 @@ Note: The calendar has full debt milestone support (verified in code), but test 
 - [ ] Save creates/updates category - Not tested (form verified)
 - [x] Active toggle works
 - [x] Tax Deductible toggle works
+- [ ] Business Category toggle works
 - [x] Monthly Budget field works
+
+### Business Categories (NEW)
+
+- [ ] Business Category toggle appears in category form
+- [ ] Toggle persists on save
+- [ ] Toggle state loads correctly when editing existing category
+- [ ] New categories created from transaction form inherit business flag based on account
+- [ ] Category dropdown shows "Business" section for business categories
+- [ ] Category dropdown shows "Personal" section for personal categories
+- [ ] When selecting a business account, Business section appears first
+- [ ] When selecting a personal account, Personal section appears first
+- [ ] Quick Transaction Modal respects business account category ordering
+- [ ] Category selector quick-create defaults to business when account is business
 
 ### Category Operations
 

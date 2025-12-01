@@ -29,7 +29,7 @@ export async function PUT(
       );
     }
 
-    const { name, monthlyBudget, dueDate, isTaxDeductible, incomeFrequency } = body;
+    const { name, monthlyBudget, dueDate, isTaxDeductible, isBusinessCategory, incomeFrequency } = body;
 
     // Verify category belongs to user AND household
     const category = await db
@@ -91,6 +91,7 @@ export async function PUT(
         monthlyBudget: monthlyBudget ?? category[0].monthlyBudget,
         dueDate: dueDate !== undefined ? dueDate : category[0].dueDate,
         isTaxDeductible: isTaxDeductible !== undefined ? isTaxDeductible : category[0].isTaxDeductible,
+        isBusinessCategory: isBusinessCategory !== undefined ? isBusinessCategory : category[0].isBusinessCategory,
         incomeFrequency: incomeFrequency !== undefined ? incomeFrequency : category[0].incomeFrequency,
       })
       .where(eq(budgetCategories.id, id));

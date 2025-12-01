@@ -102,7 +102,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, type, monthlyBudget = 0, dueDate, isTaxDeductible = false, incomeFrequency } = body;
+    const { name, type, monthlyBudget = 0, dueDate, isTaxDeductible = false, isBusinessCategory = false, incomeFrequency } = body;
 
     if (!name || !type) {
       return Response.json(
@@ -153,6 +153,7 @@ export async function POST(request: Request) {
       monthlyBudget,
       dueDate: dueDate || null,
       isTaxDeductible,
+      isBusinessCategory,
       incomeFrequency: type === 'income' && incomeFrequency ? incomeFrequency : 'variable',
       createdAt: new Date().toISOString(),
       usageCount: 0,

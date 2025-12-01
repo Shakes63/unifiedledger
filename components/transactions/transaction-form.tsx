@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -143,7 +143,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [_customFieldsLoading, setCustomFieldsLoading] = useState(true);
-  const [accounts, setAccounts] = useState<Array<{ id: string; name: string; currentBalance: number }>>([]);
+  const [accounts, setAccounts] = useState<Array<{ id: string; name: string; currentBalance: number; isBusinessAccount?: boolean }>>([]);
   const [_accountsLoading, setAccountsLoading] = useState(false);
   const [unpaidBills, setUnpaidBills] = useState<UnpaidBillWithInstance[]>([]);
   const [billsLoading, setBillsLoading] = useState(false);
@@ -151,6 +151,12 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
   const [saveMode, setSaveMode] = useState<'save' | 'saveAndAdd' | null>(null);
   const isEditMode = !!transactionId;
+
+  // Compute whether selected account is a business account for category filtering
+  const selectedAccountIsBusinessAccount = useMemo(() => {
+    const account = accounts.find(a => a.id === formData.accountId);
+    return account?.isBusinessAccount || false;
+  }, [accounts, formData.accountId]);
 
   // Helper function to get today's date in YYYY-MM-DD format
   const getTodaysDate = () => {
@@ -1025,6 +1031,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           selectedCategory={formData.categoryId}
           onCategoryChange={handleCategoryChange}
           transactionType={(formData.type === 'bill' ? 'expense' : formData.type) as 'income' | 'expense'}
+          isBusinessAccount={selectedAccountIsBusinessAccount}
         />
       )}
 

@@ -419,6 +419,7 @@ export interface CategoryFormData {
   monthlyBudget: number;
   dueDate: string | number | null;
   isTaxDeductible: boolean;
+  isBusinessCategory: boolean;
   isActive: boolean;
   incomeFrequency: IncomeFrequency;
 }

@@ -63,6 +63,7 @@ export const budgetCategories = sqliteTable(
     dueDate: integer('due_date'),
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
     isTaxDeductible: integer('is_tax_deductible', { mode: 'boolean' }).default(false),
+    isBusinessCategory: integer('is_business_category', { mode: 'boolean' }).default(false),
     sortOrder: integer('sort_order').default(0),
     usageCount: integer('usage_count').default(0),
     lastUsedAt: text('last_used_at'),
