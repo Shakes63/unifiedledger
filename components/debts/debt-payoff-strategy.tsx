@@ -388,11 +388,12 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                             ${debt.activePayment.toFixed(2)}/mo
                           </span>
                         </div>
-                        {debt.rolldownSources.length > 0 && (
-                          <div className="text-xs text-muted-foreground">
-                            (${debt.minimumPayment.toFixed(0)} min + ${debt.rolldownAmount.toFixed(0)} rolled from {debt.rolldownSources.slice(-1)[0]})
-                          </div>
-                        )}
+                        <div className="text-xs text-muted-foreground">
+                          (${debt.minimumPayment.toFixed(0)} min
+                          {debt.additionalMonthlyPayment > 0 && ` + $${debt.additionalMonthlyPayment.toFixed(0)} committed`}
+                          {debt.rolldownAmount > 0 && ` + $${debt.rolldownAmount.toFixed(0)} rolled`}
+                          {parseFloat(extraPayment) > 0 && <span className="text-[var(--color-income)]"> + ${parseFloat(extraPayment).toFixed(0)} extra</span>})
+                        </div>
                       </div>
                     )}
                   </div>
