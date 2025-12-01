@@ -165,7 +165,7 @@ export function DebtPayoffTracker({
                   </span>
                 )}
                 {/* Extra Payment Badge */}
-                {debt.additionalMonthlyPayment && debt.additionalMonthlyPayment > 0 && debt.status !== 'paid_off' && (
+                {(debt.additionalMonthlyPayment ?? 0) > 0 && debt.status !== 'paid_off' && (
                   <span className="text-xs bg-[var(--color-income)]/20 text-[var(--color-income)] px-2 py-1 rounded flex items-center gap-1">
                     <TrendingUp className="w-3 h-3" />
                     Extra
@@ -255,14 +255,14 @@ export function DebtPayoffTracker({
           {(debt.minimumPayment || debt.additionalMonthlyPayment) ? (
             <div>
               <p className="text-muted-foreground text-xs">
-                {debt.additionalMonthlyPayment && debt.additionalMonthlyPayment > 0 
+                {(debt.additionalMonthlyPayment ?? 0) > 0 
                   ? 'Planned Payment' 
                   : 'Min Payment'}
               </p>
               <p className="text-foreground font-semibold">
                 ${((debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0)).toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </p>
-              {debt.additionalMonthlyPayment && debt.additionalMonthlyPayment > 0 && (
+              {(debt.additionalMonthlyPayment ?? 0) > 0 && (
                 <p className="text-xs text-[var(--color-income)] flex items-center justify-center gap-1 mt-0.5">
                   <TrendingUp className="w-3 h-3" />
                   +${debt.additionalMonthlyPayment.toLocaleString('en-US', { maximumFractionDigits: 2 })} extra
