@@ -516,6 +516,8 @@ Note: These extended inline editing features allow editing description and amoun
 
 ### Debt Budget Integration (Added 2025-12-01)
 
+**Tested: 2025-12-01** | **Result: PASSING - Individual Status Indicators Verified**
+
 - [x] Debt Payments section appears on Budgets page when debts exist - **VERIFIED 2025-12-01**: Section shows with 4 debts
 - [x] Focus debt is highlighted with recommended payment from payoff strategy - **VERIFIED**: "Focus Debt: Test Credit Card (snowball method)" displayed
 - [x] Each debt card shows: debt name, creditor, minimum payment, recommended payment - **VERIFIED**: Shows all details for Test Credit Card, Auto Loan, Student Loan, Chase Sapphire
@@ -526,6 +528,9 @@ Note: These extended inline editing features allow editing description and amoun
 - [x] Budget Manager Modal shows read-only debt section with auto-calculated values - **VERIFIED**: "Debt Payments (Auto-calculated)" section shows all 4 debts with Focus badge, Total $714.00, "Adjust Debt Strategy" link
 - [x] Budget Summary Card shows debt payment progress bar - **VERIFIED**: Monthly Summary shows "Debt Payments $714.00 recommended, $0.00 paid"
 - [x] Debt totals are included in surplus/deficit calculation - **VERIFIED**: Modal Summary shows "Total Debt Payments: $714.00" and "Surplus/Deficit: $8986.00"
+- [x] Individual debt status badges (Unpaid/Partial/Paid/Overpaid) - **VERIFIED 2025-12-01**: Cards show "Unpaid" badge with red warning for unpaid debts, "Paid" badge with green for paid debts
+- [x] Payment Status summary shows count breakdown - **VERIFIED**: "3 unpaid, 1 paid" displayed in status summary section
+- [x] Collapsed view shows compact status indicators - **VERIFIED**: Shows "4 debts" with "1" paid indicator and "3" unpaid with alert icon
 
 ### Additional Observations (Budgets)
 

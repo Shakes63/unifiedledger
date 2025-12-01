@@ -37,12 +37,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 684 (108 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 685 (109 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (108 total)
+## Fixed Bugs (109 total)
 
+109. ✅ **Debt Budget Section React Hooks Order Error** [FIXED 2025-12-01] - Fixed "Rendered more hooks than during the previous render" error caused by `useMemo` being placed after early returns. Moved `statusCounts` useMemo and `needsAttention` calculation before the early return statements. Also fixed `isComplete` reference error in debt-budget-card.tsx by updating to `isPaid || isOverpaid`.
 108. ✅ **Avalanche Focus Debt Threshold Issue** [FIXED 2025-12-01] - Fixed focus debt determination to always use method-based selection (highest interest for avalanche, lowest balance for snowball) regardless of extra payment amount. Added `getMethodBasedFocusDebtId()` helper and updated `calculatePayoffStrategy` and `calculateRolldownPayments` in payoff-calculator.ts.
 107. ✅ **Debt Budget Individual Payment Status** [FIXED 2025-12-01] - Added individual payment status tracking to debt budget section. Cards now show "Unpaid", "Partial", "Paid", or "Overpaid" badges with color-coded warnings. Section header displays status breakdown (e.g., "2 paid, 1 unpaid") to clearly show which debts need attention instead of aggregate totals masking individual statuses.
 106. ✅ **Sales Tax Mark Filed Button UX Issues** [FIXED 2025-12-01] - Fixed button to look clickable with hover effects (primary color border/text, fills on hover). Fixed page jumping to top by replacing `fetchSalesTaxData()` with inline data refresh that doesn't trigger full-page loading state. Added `type="button"` and `e.preventDefault()`.
