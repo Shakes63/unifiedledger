@@ -4,7 +4,7 @@
 
 ## New Bugs
 
-(None)
+(None) 
 
 ---
 
@@ -41,12 +41,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 681 (105 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 682 (106 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (105 total)
+## Fixed Bugs (106 total)
 
+106. ✅ **Sales Tax Mark Filed Button UX Issues** [FIXED 2025-12-01] - Fixed button to look clickable with hover effects (primary color border/text, fills on hover). Fixed page jumping to top by replacing `fetchSalesTaxData()` with inline data refresh that doesn't trigger full-page loading state. Added `type="button"` and `e.preventDefault()`.
 105. ✅ **Sales Tax Mark Filed Button Not Working** [FIXED 2025-12-01] - Added `updateQuarterlyFilingStatus` utility function, PUT endpoint for `/api/sales-tax/quarterly`, and onClick handler to the "Mark Filed" button. Button now marks quarters as "submitted" with loading state and toast notifications.
 104. ✅ **Goals Filter Empty State Incorrect Message** [FIXED 2025-12-01] - Fixed empty state on goals page to show filter-aware messages. When filtered by "completed" with no results, now shows "No completed goals yet" with link to active goals, instead of "Create your first goal".
 103. ✅ **Debt Milestones Not Appearing on Calendar** [FIXED 2025-12-01] - Created `lib/debts/payoff-date-utils.ts` to auto-sync `targetPayoffDate` when debts are created/updated or settings change. Fixed inverted comparison in `milestone-utils.ts` (gte instead of lte). Added payoff date sync to POST/PUT debt APIs and bulk sync when debt settings change.

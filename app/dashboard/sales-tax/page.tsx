@@ -199,7 +199,13 @@ export default function SalesTaxPage() {
       }
 
       toast.success(`Q${quarter} marked as filed!`);
-      fetchSalesTaxData(); // Refresh data
+      
+      // Refresh data without showing full-page loading state
+      const refreshResponse = await fetch(`/api/sales-tax/quarterly?year=${year}`, { credentials: 'include' });
+      if (refreshResponse.ok) {
+        const result = await refreshResponse.json();
+        setData(result);
+      }
     } catch (error) {
       console.error('Error marking as filed:', error);
       toast.error('Failed to mark as filed. Please try again.');
@@ -588,10 +594,15 @@ export default function SalesTaxPage() {
                         )}
                       </div>
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => handleMarkFiled(quarter.quarter)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleMarkFiled(quarter.quarter);
+                        }}
                         disabled={isMarkingFiled === `Q${quarter.quarter}`}
+                        className="border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-primary-foreground)] transition-colors cursor-pointer"
                       >
                         {isMarkingFiled === `Q${quarter.quarter}` ? 'Saving...' : 'Mark Filed'}
                       </Button>
