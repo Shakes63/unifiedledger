@@ -435,6 +435,71 @@ export function getStatusColor(
 }
 
 /**
+ * Update or create quarterly filing record
+ * @param userId User ID
+ * @param year Tax year
+ * @param quarter Quarter (1-4)
+ * @param status Filing status
+ * @param notes Optional notes
+ */
+export async function updateQuarterlyFilingStatus(
+  userId: string,
+  year: number,
+  quarter: number,
+  status: 'not_due' | 'pending' | 'submitted' | 'accepted' | 'rejected',
+  notes?: string
+): Promise<void> {
+  const quarterDates = getQuarterDates(year);
+  const quarterInfo = quarterDates.find((q) => q.quarter === quarter);
+
+  if (!quarterInfo) {
+    throw new Error('Invalid quarter');
+  }
+
+  // Check if record exists
+  const existing = await db
+    .select()
+    .from(quarterlyFilingRecords)
+    .where(
+      and(
+        eq(quarterlyFilingRecords.userId, userId),
+        eq(quarterlyFilingRecords.taxYear, year),
+        eq(quarterlyFilingRecords.quarter, quarter)
+      )
+    )
+    .limit(1);
+
+  const submittedDate =
+    status === 'submitted' || status === 'accepted'
+      ? new Date().toISOString()
+      : null;
+
+  if (existing.length === 0) {
+    // Create new record
+    await db.insert(quarterlyFilingRecords).values({
+      id: uuidv4(),
+      userId,
+      taxYear: year,
+      quarter,
+      dueDate: quarterInfo.dueDate,
+      submittedDate,
+      status,
+      notes: notes || null,
+    });
+  } else {
+    // Update existing record
+    await db
+      .update(quarterlyFilingRecords)
+      .set({
+        status,
+        submittedDate: submittedDate || existing[0].submittedDate,
+        notes: notes || existing[0].notes,
+      })
+      .where(eq(quarterlyFilingRecords.id, existing[0].id));
+  }
+}
+
+/**
  * Format tax rate for display
  */
 export function formatTaxRate(rate: number): string {

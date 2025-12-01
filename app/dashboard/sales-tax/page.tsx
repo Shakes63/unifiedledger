@@ -50,6 +50,9 @@ export default function SalesTaxPage() {
   const [jurisdiction, setJurisdiction] = useState<string>('');
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [isSavingRate, setIsSavingRate] = useState(false);
+  
+  // Filing status state
+  const [isMarkingFiled, setIsMarkingFiled] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTaxRateSettings();
@@ -172,6 +175,37 @@ export default function SalesTaxPage() {
     if (status === 'accepted' || status === 'submitted') return false;
     const daysUntil = getDaysUntilDue(dueDate);
     return daysUntil < 0;
+  };
+
+  const handleMarkFiled = async (quarter: number) => {
+    const key = `Q${quarter}`;
+    if (isMarkingFiled === key) return;
+
+    setIsMarkingFiled(key);
+    try {
+      const response = await fetch('/api/sales-tax/quarterly', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          year: parseInt(year, 10),
+          quarter,
+          status: 'submitted',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update filing status');
+      }
+
+      toast.success(`Q${quarter} marked as filed!`);
+      fetchSalesTaxData(); // Refresh data
+    } catch (error) {
+      console.error('Error marking as filed:', error);
+      toast.error('Failed to mark as filed. Please try again.');
+    } finally {
+      setIsMarkingFiled(null);
+    }
   };
 
   if (isLoading) {
@@ -553,8 +587,13 @@ export default function SalesTaxPage() {
                           </span>
                         )}
                       </div>
-                      <Button variant="outline" size="sm">
-                        Mark Filed
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleMarkFiled(quarter.quarter)}
+                        disabled={isMarkingFiled === `Q${quarter.quarter}`}
+                      >
+                        {isMarkingFiled === `Q${quarter.quarter}` ? 'Saving...' : 'Mark Filed'}
                       </Button>
                     </div>
                   )}

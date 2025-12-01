@@ -5,6 +5,7 @@ import {
   getQuarterlyReport,
   getQuarterlyReportsByAccount,
   getYearlyQuarterlyReportsByAccount,
+  updateQuarterlyFilingStatus,
 } from '@/lib/sales-tax/sales-tax-utils';
 
 /**
@@ -105,6 +106,65 @@ export async function GET(request: NextRequest) {
     console.error('Error getting quarterly reports:', error);
     return NextResponse.json(
       { error: 'Failed to get quarterly reports' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PUT /api/sales-tax/quarterly
+ * Update quarterly filing status
+ * Body: { year: number, quarter: number, status: string, notes?: string }
+ */
+export async function PUT(request: NextRequest) {
+  try {
+    const { userId } = await requireAuth();
+    const body = await request.json();
+
+    const { year, quarter, status, notes } = body;
+
+    // Validate required fields
+    if (!year || !quarter || !status) {
+      return NextResponse.json(
+        { error: 'Missing required fields: year, quarter, status' },
+        { status: 400 }
+      );
+    }
+
+    // Validate year
+    const yearNum = typeof year === 'string' ? parseInt(year, 10) : year;
+    if (isNaN(yearNum) || yearNum < 2000 || yearNum > new Date().getFullYear() + 1) {
+      return NextResponse.json({ error: 'Invalid year' }, { status: 400 });
+    }
+
+    // Validate quarter
+    const quarterNum = typeof quarter === 'string' ? parseInt(quarter, 10) : quarter;
+    if (isNaN(quarterNum) || quarterNum < 1 || quarterNum > 4) {
+      return NextResponse.json({ error: 'Invalid quarter' }, { status: 400 });
+    }
+
+    // Validate status
+    const validStatuses = ['not_due', 'pending', 'submitted', 'accepted', 'rejected'];
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    }
+
+    await updateQuarterlyFilingStatus(
+      userId,
+      yearNum,
+      quarterNum,
+      status as 'not_due' | 'pending' | 'submitted' | 'accepted' | 'rejected',
+      notes
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    console.error('Error updating filing status:', error);
+    return NextResponse.json(
+      { error: 'Failed to update filing status' },
       { status: 500 }
     );
   }
