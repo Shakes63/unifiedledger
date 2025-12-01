@@ -1610,36 +1610,38 @@ The onboarding flow is comprehensive:
 
 ## 23. Developer Mode
 
-**Tested: 2025-11-30** | **Result: Passing (Entity ID badges verified on Transactions)**
+**Tested: 2025-12-01** | **Result: ISSUES FOUND - Persistence Bug**
 
 ### Enable/Disable
 
 - [x] Developer mode toggle in Advanced settings - Toggle present and functional
 - [x] Toggle saves correctly - Immediately applies changes
-- [ ] Mode persists across sessions - Not tested (would need page reload)
+- [!] Mode persists across sessions - **BUG**: Does NOT persist across page navigation. Navigating to another page resets developer mode.
 
 ### DEV Badge
 
 - [x] DEV badge shows in sidebar when enabled - Shows next to "Unified Ledger" logo
-- [ ] Badge visible in collapsed sidebar - Not tested
-- [ ] Badge hidden when mode disabled - Not tested
+- [x] Badge visible in collapsed sidebar - **VERIFIED 2025-12-01**: Badge shows as icon in collapsed state
+- [x] Badge hidden when mode disabled - **VERIFIED 2025-12-01**: Badge disappears when mode toggled off
 
 ### Entity ID Badges
 
 - [x] ID badges show on entities when enabled:
   - [x] Transactions - **TESTED 2025-11-30**: Shows TX, Cat, Mer, and Acc badges with truncated IDs and copy icons on each transaction row
-  - [ ] Accounts - NOT SHOWING (needs investigation)
+  - [!] Accounts - **NOT IMPLEMENTED** (no ID badges on account cards) - 2025-12-01
   - [ ] Bills - NOT TESTED
-  - [ ] Categories - NOT SHOWING (needs investigation)
+  - [!] Categories - **NOT IMPLEMENTED** (needs investigation)
   - [ ] Merchants - NOT TESTED
   - [ ] Goals - NOT TESTED
   - [ ] Debts - NOT TESTED
   - [ ] Budgets - NOT TESTED
 - [ ] Click to copy ID works - Badge click navigates to detail page (may need fix to copy instead)
 - [ ] Toast notification confirms copy - N/A (copy not tested)
-- [ ] Badges hidden when mode disabled - Not tested
+- [x] Badges hidden when mode disabled - **VERIFIED**: Badges not shown when mode off
 
 **Note (2025-11-30):** Transaction list shows Entity ID badges correctly with TX/Cat/Mer/Acc prefixes and truncated IDs. Other entity pages (Accounts, Categories) don't show ID badges - may not be implemented for those pages yet.
+
+**BUG FOUND (2025-12-01):** Developer Mode does not persist across page navigation. Setting is lost when navigating away from Settings page. Added to bugs.md.
 
 ### Developer Tools Panel
 
@@ -1647,9 +1649,9 @@ The onboarding flow is comprehensive:
 - [x] User info section displays - Shows ID: N/A, Email: N/A (expected in TEST_MODE)
 - [x] Household info section displays - Shows ID: test-household-001, Name: Test Household
 - [x] Current route displays - Shows /dashboard/settings correctly
-- [ ] Debug data export works - Button visible, not tested
-- [ ] Cache clearing works - Button visible, not tested
-- [ ] Panel hidden when mode disabled - Not tested
+- [x] Debug data export works - **VERIFIED 2025-12-01**: Downloads debug-data-{timestamp}.json file
+- [x] Cache clearing works - **VERIFIED 2025-12-01**: Clears localStorage/cache and reloads page (resets dev mode and experimental features)
+- [x] Panel hidden when mode disabled - **VERIFIED**: Panel not visible when mode is off
 
 ---
 

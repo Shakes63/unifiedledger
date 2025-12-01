@@ -93,6 +93,32 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
     fetchDebtData();
   }, [fetchDebtData]);
 
+  // Calculate status counts for individual debts - MUST be before early returns (Rules of Hooks)
+  const statusCounts = useMemo((): StatusCounts => {
+    const counts: StatusCounts = { unpaid: 0, partial: 0, paid: 0, overpaid: 0 };
+    
+    if (!data || !data.debts) {
+      return counts;
+    }
+    
+    data.debts.forEach(debt => {
+      if (debt.actualPaid === 0 && debt.recommendedPayment > 0) {
+        counts.unpaid++;
+      } else if (debt.actualPaid > debt.recommendedPayment) {
+        counts.overpaid++;
+      } else if (debt.actualPaid >= debt.recommendedPayment) {
+        counts.paid++;
+      } else {
+        counts.partial++;
+      }
+    });
+    
+    return counts;
+  }, [data]);
+
+  // Check if there are debts that need attention
+  const needsAttention = statusCounts.unpaid > 0 || statusCounts.partial > 0;
+
   // Loading state
   if (loading) {
     return (
@@ -125,28 +151,6 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
         .times(100)
         .toNumber()
     : 0;
-
-  // Calculate status counts for individual debts
-  const statusCounts = useMemo((): StatusCounts => {
-    const counts: StatusCounts = { unpaid: 0, partial: 0, paid: 0, overpaid: 0 };
-    
-    data.debts.forEach(debt => {
-      if (debt.actualPaid === 0 && debt.recommendedPayment > 0) {
-        counts.unpaid++;
-      } else if (debt.actualPaid > debt.recommendedPayment) {
-        counts.overpaid++;
-      } else if (debt.actualPaid >= debt.recommendedPayment) {
-        counts.paid++;
-      } else {
-        counts.partial++;
-      }
-    });
-    
-    return counts;
-  }, [data.debts]);
-
-  // Check if there are debts that need attention
-  const needsAttention = statusCounts.unpaid > 0 || statusCounts.partial > 0;
 
   return (
     <div>

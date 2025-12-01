@@ -4,7 +4,7 @@
 
 ## New Bugs
 
-(None)
+- **Developer Mode Does Not Persist Across Navigation** - When Developer Mode is enabled in Settings > Advanced, navigating to another page (e.g., Accounts, Bills) causes the setting to reset. The DEV badge disappears and Dev Tools button is not visible on other pages. The setting should be stored in localStorage and persist across navigation. Found during manual testing 2025-12-01.
 
 
 
@@ -32,7 +32,7 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 0 |
+| Active Bugs | 1 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
