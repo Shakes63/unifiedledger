@@ -8,10 +8,40 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import Decimal from 'decimal.js';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { Info, Star, ExternalLink, CreditCard } from 'lucide-react';
+import Link from 'next/link';
+
+interface DebtBudgetItem {
+  debtId: string;
+  debtName: string;
+  creditorName: string;
+  minimumPayment: number;
+  additionalMonthlyPayment: number;
+  recommendedPayment: number;
+  isFocusDebt: boolean;
+  remainingBalance: number;
+  interestRate: number;
+  color: string;
+}
+
+interface DebtBudgetData {
+  debts: DebtBudgetItem[];
+  totalMinimumPayments: number;
+  totalRecommendedPayments: number;
+  focusDebt: DebtBudgetItem | null;
+  extraPaymentAmount: number;
+  payoffMethod: 'snowball' | 'avalanche';
+}
 
 interface Category {
   id: string;
@@ -42,6 +72,7 @@ export function BudgetManagerModal({
   const [frequencies, setFrequencies] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [debtBudgetData, setDebtBudgetData] = useState<DebtBudgetData | null>(null);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -78,14 +109,28 @@ export function BudgetManagerModal({
     }
   }, [fetchWithHousehold]);
 
-  // Fetch categories when modal opens
+  const fetchDebtBudgetData = useCallback(async () => {
+    try {
+      const response = await fetchWithHousehold(`/api/budgets/debts?month=${month}`);
+      if (response.ok) {
+        const data = await response.json();
+        setDebtBudgetData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching debt budget data:', error);
+      // Silently fail - debts section will just not show
+    }
+  }, [fetchWithHousehold, month]);
+
+  // Fetch categories and debt data when modal opens
   useEffect(() => {
     if (isOpen && selectedHouseholdId) {
       fetchCategories();
+      fetchDebtBudgetData();
     } else if (isOpen && !selectedHouseholdId) {
       setLoading(false);
     }
-  }, [isOpen, selectedHouseholdId, fetchCategories]);
+  }, [isOpen, selectedHouseholdId, fetchCategories, fetchDebtBudgetData]);
 
   const handleValueChange = (categoryId: string, value: string) => {
     setBudgetValues(prev => ({ ...prev, [categoryId]: value }));
@@ -185,12 +230,16 @@ export function BudgetManagerModal({
         return new Decimal(sum).plus(value || 0).toNumber();
       }, 0);
 
+    // Include debt payments from the debt system
+    const debtTotal = debtBudgetData?.totalRecommendedPayments || 0;
+
     const surplus = new Decimal(incomeTotal)
       .minus(expenseTotal)
       .minus(savingsTotal)
+      .minus(debtTotal)
       .toNumber();
 
-    return { incomeTotal, expenseTotal, savingsTotal, surplus };
+    return { incomeTotal, expenseTotal, savingsTotal, debtTotal, surplus };
   };
 
   const totals = calculateTotals();
@@ -326,14 +375,72 @@ export function BudgetManagerModal({
               </div>
             )}
 
-            {/* Debt */}
-            {groupedCategories.debt.length > 0 && (
+            {/* Debt Payments (Auto-calculated from Debt System) */}
+            {debtBudgetData && debtBudgetData.debts.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3">
-                  Debt Payments
-                </h3>
-                <div className="space-y-2">
-                  {groupedCategories.debt.map(renderCategoryInput)}
+                <div className="flex items-center gap-2 mb-3">
+                  <CreditCard className="w-4 h-4 text-[var(--color-expense)]" />
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Debt Payments
+                  </h3>
+                  <span className="text-xs text-muted-foreground">(Auto-calculated)</span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-muted-foreground hover:text-foreground transition-colors">
+                          <Info className="w-3.5 h-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>
+                          Debt payments are automatically calculated from your debt payoff strategy.
+                          Edit them on the Debts page.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <div className="space-y-2 bg-elevated/50 rounded-lg p-3 border border-border">
+                  {debtBudgetData.debts.map(debt => (
+                    <div key={debt.debtId} className="flex items-center justify-between py-1">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: debt.color }}
+                        />
+                        <span className="text-sm text-foreground">{debt.debtName}</span>
+                        {debt.isFocusDebt && (
+                          <span className="inline-flex items-center gap-0.5 text-xs text-[var(--color-primary)]">
+                            <Star className="w-3 h-3" />
+                            Focus
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-mono text-foreground">
+                          ${debt.recommendedPayment.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </span>
+                        {debt.isFocusDebt && debt.recommendedPayment > debt.minimumPayment && (
+                          <span className="text-xs text-muted-foreground ml-1">
+                            (min: ${debt.minimumPayment.toFixed(2)})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between pt-2 mt-2 border-t border-border">
+                    <span className="text-sm font-medium text-muted-foreground">Total Debt Payments:</span>
+                    <span className="text-sm font-mono font-semibold text-[var(--color-expense)]">
+                      ${debtBudgetData.totalRecommendedPayments.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <Link
+                    href="/dashboard/debts"
+                    className="flex items-center justify-center gap-1 mt-2 text-xs text-[var(--color-primary)] hover:underline"
+                  >
+                    Adjust Debt Strategy
+                    <ExternalLink className="w-3 h-3" />
+                  </Link>
                 </div>
               </div>
             )}
@@ -359,6 +466,14 @@ export function BudgetManagerModal({
                   ${totals.savingsTotal.toFixed(2)}
                 </span>
               </div>
+              {totals.debtTotal > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Total Debt Payments:</span>
+                  <span className="font-semibold text-[var(--color-expense)]">
+                    ${totals.debtTotal.toFixed(2)}
+                  </span>
+                </div>
+              )}
               <div className="border-t border-border pt-2 mt-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Surplus/Deficit:</span>

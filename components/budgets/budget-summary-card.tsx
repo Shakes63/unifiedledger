@@ -1,7 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Decimal from 'decimal.js';
+import { CreditCard } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
+
+interface DebtBudgetData {
+  totalRecommendedPayments: number;
+  totalActualPaid: number;
+  debts: { debtId: string }[];
+}
 
 interface BudgetSummaryCardProps {
   summary: {
@@ -22,6 +31,28 @@ interface BudgetSummaryCardProps {
 }
 
 export function BudgetSummaryCard({ summary, month }: BudgetSummaryCardProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
+  const [debtData, setDebtData] = useState<DebtBudgetData | null>(null);
+
+  // Fetch debt data
+  const fetchDebtData = useCallback(async () => {
+    if (!selectedHouseholdId) return;
+    try {
+      const response = await fetchWithHousehold(`/api/budgets/debts?month=${month}`);
+      if (response.ok) {
+        const data = await response.json();
+        setDebtData(data);
+      }
+    } catch (error) {
+      console.error('Error fetching debt data:', error);
+    }
+  }, [selectedHouseholdId, month, fetchWithHousehold]);
+
+  useEffect(() => {
+    fetchDebtData();
+  }, [fetchDebtData]);
+
   // Format month for display
   const formatMonth = (monthStr: string) => {
     const [year, monthNum] = monthStr.split('-');
@@ -242,6 +273,62 @@ export function BudgetSummaryCard({ summary, month }: BudgetSummaryCardProps) {
                 </span>
               ) : (
                 <span className="text-xs text-muted-foreground">On target</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Debt Payments */}
+        {debtData && debtData.debts.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                <CreditCard className="w-4 h-4" />
+                Debt Payments
+              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">
+                  ${debtData.totalRecommendedPayments.toFixed(2)} recommended
+                </span>
+                <span className="text-sm font-semibold text-[var(--color-expense)]">
+                  ${debtData.totalActualPaid.toFixed(2)} paid
+                </span>
+              </div>
+            </div>
+            <div className="w-full bg-muted rounded-lg h-3 overflow-hidden">
+              <div
+                className={`h-full transition-all duration-300 ${
+                  debtData.totalActualPaid >= debtData.totalRecommendedPayments
+                    ? 'bg-[var(--color-success)]'
+                    : debtData.totalActualPaid >= debtData.totalRecommendedPayments * 0.8
+                    ? 'bg-[var(--color-warning)]'
+                    : 'bg-[var(--color-expense)]'
+                }`}
+                style={{
+                  width: `${Math.min(
+                    100,
+                    debtData.totalRecommendedPayments > 0
+                      ? (debtData.totalActualPaid / debtData.totalRecommendedPayments) * 100
+                      : 0
+                  )}%`,
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-xs text-muted-foreground">
+                {debtData.totalRecommendedPayments > 0
+                  ? ((debtData.totalActualPaid / debtData.totalRecommendedPayments) * 100).toFixed(1)
+                  : 0}
+                %
+              </span>
+              {debtData.totalActualPaid >= debtData.totalRecommendedPayments ? (
+                <span className="text-xs text-[var(--color-success)]">
+                  ✓ All payments made
+                </span>
+              ) : (
+                <span className="text-xs text-[var(--color-expense)]">
+                  ${(debtData.totalRecommendedPayments - debtData.totalActualPaid).toFixed(2)} remaining
+                </span>
               )}
             </div>
           </div>

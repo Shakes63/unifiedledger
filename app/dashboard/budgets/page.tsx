@@ -7,6 +7,7 @@ import { BudgetManagerModal } from '@/components/budgets/budget-manager-modal';
 import { BudgetExportModal } from '@/components/budgets/budget-export-modal';
 import { VariableBillTracker } from '@/components/budgets/variable-bill-tracker';
 import { BudgetAnalyticsSection } from '@/components/budgets/budget-analytics-section';
+import { DebtBudgetSection } from '@/components/budgets/debt-budget-section';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
@@ -409,6 +410,11 @@ export default function BudgetsPage() {
             )}
           </div>
         )}
+
+        {/* Debt Payments */}
+        <div className="pt-6 border-t border-border">
+          <DebtBudgetSection month={selectedMonth} />
+        </div>
 
         {/* Variable Bill Tracking */}
         <div className="pt-6 border-t border-border">

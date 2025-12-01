@@ -500,6 +500,19 @@ Note: These extended inline editing features allow editing description and amoun
 - Trend stats with percentage changes (+248.2%, +0.0%, etc.)
 - Empty state message when no budget set for month ("No Budget Set Up")
 
+### Debt Budget Integration (Added 2025-12-01)
+
+- [ ] Debt Payments section appears on Budgets page when debts exist
+- [ ] Focus debt is highlighted with recommended payment from payoff strategy
+- [ ] Each debt card shows: debt name, creditor, minimum payment, recommended payment
+- [ ] Progress bar shows actual payments vs recommended
+- [ ] "Manage Debts" link navigates to debts page
+- [ ] Debt payments section is collapsible
+- [ ] Summary stats show: Total Minimum, Recommended, Paid, Remaining
+- [ ] Budget Manager Modal shows read-only debt section with auto-calculated values
+- [ ] Budget Summary Card shows debt payment progress bar
+- [ ] Debt totals are included in surplus/deficit calculation
+
 ### Additional Observations (Budgets)
 
 - Recommendations section showing AI insights ("Groceries consistently under budget - Consider reducing by $554")

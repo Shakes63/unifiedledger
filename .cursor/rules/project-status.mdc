@@ -52,6 +52,16 @@ alwaysApply: false
 ## Recent Major Features
 
 **Latest (2025-12-01):**
+- Debt Budget Integration (✅ COMPLETE)
+  - ✅ New `/api/budgets/debts` endpoint returns debt payment budget data with focus debt and recommended payments
+  - ✅ DebtBudgetSection component displays debts as budget items on Budgets page
+  - ✅ DebtBudgetCard component shows individual debt with progress, minimum/recommended payments
+  - ✅ Focus debt highlighted with recommended payment from payoff strategy (snowball/avalanche)
+  - ✅ Summary stats: Total Minimum, Recommended, Paid This Month, Remaining
+  - ✅ BudgetManagerModal includes read-only debt section with auto-calculated values
+  - ✅ BudgetSummaryCard shows debt payment progress bar with actual vs recommended
+  - ✅ Debt totals included in surplus/deficit calculations
+  - ✅ All styling uses semantic theme variables
 - Sidebar Reorganization (✅ COMPLETE)
   - ✅ Reorganized from 5 sections to 6 workflow-based sections: Overview, Track, Plan, Goals, Analyze, Configure
   - ✅ Updated icons for better visual clarity (Dashboard, Debts, Reports, Categories, Rules)
@@ -323,6 +333,7 @@ alwaysApply: false
 (None)
 
 ### Recently Completed
+- **Debt Budget Integration** [COMPLETED 2025-12-01] - Debts automatically appear in budgeting system with auto-populated minimum payments and recommended payments from payoff strategy. Focus debt highlighted with strategy-recommended amounts.
 - **Sidebar Reorganization** [COMPLETED 2025-12-01] - Reorganized navigation into 6 workflow-based sections (Overview, Track, Plan, Goals, Analyze, Configure), updated icons, fixed mobile nav CSS variables.
 - **Annual Planning Grid Timezone Bug** [FIXED 2025-11-29] - Fixed date parsing to avoid local timezone conversion where November 1st appeared as October 31st.
 - **Quarterly Bills Missing October** [FIXED 2025-11-29] - Changed getInstanceCount from 3 to 4 for quarterly frequency to ensure all 4 quarters appear.
