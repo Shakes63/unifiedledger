@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronUp, Edit2, Trash2, CreditCard, AlertTriangle, History, BarChart3, TrendingUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Trash2, CreditCard, AlertTriangle, History, BarChart3, TrendingUp, Clock, Zap } from 'lucide-react';
 import { CreditUtilizationBadge } from './credit-utilization-badge';
 import { PaymentHistoryList } from './payment-history-list';
 import { DebtAmortizationSection } from './debt-amortization-section';
@@ -52,6 +52,14 @@ interface DebtPayment {
   type: string;
 }
 
+interface PayoffTimeline {
+  strategyMonths: number;
+  strategyDate: Date | string;
+  minimumOnlyMonths: number;
+  order: number;
+  method: string;
+}
+
 interface DebtTrackerProps {
   debt: DebtData;
   milestones?: Milestone[];
@@ -60,6 +68,7 @@ interface DebtTrackerProps {
   onDelete?: (debtId: string) => void;
   onPayment?: (debtId: string, amount: number) => void;
   defaultExpanded?: boolean;
+  payoffTimeline?: PayoffTimeline;
 }
 
 export function DebtPayoffTracker({
@@ -70,6 +79,7 @@ export function DebtPayoffTracker({
   onDelete,
   onPayment,
   defaultExpanded = false,
+  payoffTimeline,
 }: DebtTrackerProps) {
   const { selectedHouseholdId } = useHousehold();
   const { postWithHousehold } = useHouseholdFetch();
@@ -274,6 +284,49 @@ export function DebtPayoffTracker({
             </div>
           )}
         </div>
+
+        {/* Payoff Timeline (Strategy vs Minimum) */}
+        {payoffTimeline && debt.status !== 'paid_off' && (
+          <div className="bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/30 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="w-4 h-4 text-[var(--color-primary)]" />
+              <span className="text-xs font-semibold text-foreground">
+                Payoff Timeline ({payoffTimeline.method})
+              </span>
+              <span className="text-xs text-muted-foreground ml-auto">
+                #{payoffTimeline.order} priority
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">With Strategy</p>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-[var(--color-income)]" />
+                  <span className="text-sm font-semibold text-[var(--color-income)]">
+                    {payoffTimeline.strategyMonths} months
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(payoffTimeline.strategyDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Min Payments Only</p>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-sm font-semibold text-muted-foreground">
+                    {payoffTimeline.minimumOnlyMonths === -1 ? 'Never' : `${payoffTimeline.minimumOnlyMonths} months`}
+                  </span>
+                </div>
+                {payoffTimeline.minimumOnlyMonths > 0 && payoffTimeline.minimumOnlyMonths !== -1 && (
+                  <p className="text-xs text-[var(--color-income)]">
+                    {payoffTimeline.minimumOnlyMonths - payoffTimeline.strategyMonths} months faster!
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Interest Rate */}
         {debt.interestRate > 0 && (

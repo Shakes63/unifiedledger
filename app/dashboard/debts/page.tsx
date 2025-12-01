@@ -39,6 +39,8 @@ export default function DebtsPage() {
   const [allExpanded, setAllExpanded] = useState<boolean | null>(null);
   // Refresh key forces child components to remount and re-fetch their data
   const [refreshKey, setRefreshKey] = useState(0);
+  // Strategy data for payoff timelines on individual debt cards
+  const [strategyData, setStrategyData] = useState<any>(null);
 
   const triggerRefresh = useCallback(() => {
     setRefreshKey(prev => prev + 1);
@@ -85,6 +87,20 @@ export default function DebtsPage() {
     }
   }, [selectedHouseholdId, fetchWithHousehold]);
 
+  const loadStrategyData = useCallback(async () => {
+    if (!selectedHouseholdId || !debtSettings) return;
+    try {
+      const extraPayment = debtSettings.extraMonthlyPayment || 0;
+      const response = await fetchWithHousehold(`/api/debts/payoff-strategy?compare=true&extraPayment=${extraPayment}`);
+      if (response.ok) {
+        const data = await response.json();
+        setStrategyData(data);
+      }
+    } catch (error) {
+      console.error('Error loading strategy data:', error);
+    }
+  }, [selectedHouseholdId, debtSettings, fetchWithHousehold]);
+
   // Fetch debts and settings
   useEffect(() => {
     if (!selectedHouseholdId) return;
@@ -92,6 +108,13 @@ export default function DebtsPage() {
     loadStats();
     loadSettings();
   }, [filter, selectedHouseholdId, loadDebts, loadStats, loadSettings]);
+
+  // Load strategy data when settings are available
+  useEffect(() => {
+    if (debtSettings) {
+      loadStrategyData();
+    }
+  }, [debtSettings, loadStrategyData, refreshKey]);
 
   const loadDebtDetails = async (debtId: string) => {
     if (!selectedHouseholdId) {
@@ -318,16 +341,32 @@ export default function DebtsPage() {
 
           {/* Debts Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {debts.map((debt) => (
-              <DebtPayoffTracker
-                key={debt.id}
-                debt={debt}
-                onEdit={handleEditDebt}
-                onDelete={handleDeleteDebt}
-                onPayment={handlePayment}
-                defaultExpanded={allExpanded ?? false}
-              />
-            ))}
+            {debts.map((debt) => {
+              // Get payoff timeline from strategy data for this debt
+              const currentMethod = debtSettings?.preferredMethod || 'avalanche';
+              const rolldownPayment = strategyData?.[currentMethod]?.rolldownPayments?.find(
+                (r: { debtId: string }) => r.debtId === debt.id
+              );
+              const payoffTimeline = rolldownPayment ? {
+                strategyMonths: rolldownPayment.payoffMonth,
+                strategyDate: rolldownPayment.payoffDate,
+                minimumOnlyMonths: rolldownPayment.minimumOnlyMonths,
+                order: rolldownPayment.order,
+                method: currentMethod,
+              } : undefined;
+
+              return (
+                <DebtPayoffTracker
+                  key={debt.id}
+                  debt={debt}
+                  onEdit={handleEditDebt}
+                  onDelete={handleDeleteDebt}
+                  onPayment={handlePayment}
+                  defaultExpanded={allExpanded ?? false}
+                  payoffTimeline={payoffTimeline}
+                />
+              );
+            })}
           </div>
         </div>
       )}
