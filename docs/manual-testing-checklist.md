@@ -690,7 +690,7 @@ Note: The calendar has full debt milestone support (verified in code), but test 
 
 ## 9. Savings Goals
 
-**Tested: 2025-11-30** | **Result: Passing (Goal Form verified)**
+**Tested: 2025-12-01** | **Result: PASSING - Goals Dashboard Widget + Edit Modal + Add Contribution Verified**
 
 ### Goals Page (`/dashboard/goals`)
 
@@ -742,8 +742,8 @@ Note: The calendar has full debt milestone support (verified in code), but test 
 
 ### Goals Dashboard Widget
 
-- [ ] Widget shows on main dashboard - Not tested
-- [ ] Overall progress across goals displays - Not tested
+- [x] Widget shows on main dashboard - **VERIFIED 2025-12-01**: "Goals Progress: 40%" displayed in summary stats row
+- [x] Overall progress across goals displays - **VERIFIED**: Shows combined progress percentage (40% for 2 goals)
 
 ### Additional Observations (Goals)
 
