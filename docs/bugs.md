@@ -6,6 +6,7 @@
 
 (None)
 
+
 ---
 
 ## Active Bugs
@@ -35,12 +36,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 688 (112 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 689 (113 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (112 total)
+## Fixed Bugs (113 total)
 
+113. ✅ **Merchant Tax Exemption Not Applied on Transaction Update** [FIXED 2025-12-02] - When changing a merchant to a tax-exempt one, the transaction's `isSalesTaxable` flag was not being updated in the PUT route. Added check for new merchant tax exemption status and auto-updates `isSalesTaxable` to false + deletes any existing sales tax record.
 112. ✅ **TransactionForm formData Reference Before Initialization** [FIXED 2025-12-02] - Fixed `ReferenceError: Cannot access 'formData' before initialization` by moving the `selectedAccountIsBusinessAccount` useMemo hook to after the `formData` useState declaration. This was a JavaScript Temporal Dead Zone issue.
 111. ✅ **Tax Deductions Not Appearing in Tax Dashboard** [FIXED 2025-12-02] - Added Category-to-Tax-Category Mapping UI in Settings and auto-classification logic. When transactions are marked tax deductible with a mapped category, `transactionTaxClassifications` records are now auto-created so deductions appear in Tax Dashboard.
 110. ✅ **Developer Mode Does Not Persist Across Navigation** [FIXED 2025-12-02] - Added localStorage caching to `DeveloperModeProvider` for instant persistence. Now reads from localStorage on mount for immediate state restoration, then syncs with server. Value persists across page navigation without waiting for API response.

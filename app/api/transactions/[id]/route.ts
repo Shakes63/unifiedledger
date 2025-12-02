@@ -293,6 +293,29 @@ export async function PUT(
       }
     }
 
+    // Check if merchant changed and handle tax exemption for income transactions
+    let newIsSalesTaxable = transaction.isSalesTaxable;
+    if (
+      transaction.type === 'income' &&
+      newMerchantId !== transaction.merchantId &&
+      newMerchantId
+    ) {
+      // Check if the new merchant is tax-exempt
+      const merchantExemptCheck = await db
+        .select({ isSalesTaxExempt: merchants.isSalesTaxExempt })
+        .from(merchants)
+        .where(eq(merchants.id, newMerchantId))
+        .limit(1);
+      const merchantIsSalesTaxExempt = merchantExemptCheck[0]?.isSalesTaxExempt || false;
+
+      // If new merchant is tax-exempt and transaction was taxable, make it non-taxable
+      if (merchantIsSalesTaxExempt && transaction.isSalesTaxable) {
+        newIsSalesTaxable = false;
+        // Delete any existing sales tax record
+        await deleteSalesTaxRecord(id);
+      }
+    }
+
     // Update transaction
     await db
       .update(transactions)
@@ -305,6 +328,7 @@ export async function PUT(
         description: newDescription,
         notes: newNotes,
         isPending: newIsPending,
+        isSalesTaxable: newIsSalesTaxable,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(transactions.id, id));
@@ -323,7 +347,7 @@ export async function PUT(
         isPending: newIsPending,
         type: transaction.type,
         isTaxDeductible: transaction.isTaxDeductible,
-        isSalesTaxable: transaction.isSalesTaxable,
+        isSalesTaxable: newIsSalesTaxable,
         billId: transaction.billId,
         debtId: transaction.debtId,
       };
