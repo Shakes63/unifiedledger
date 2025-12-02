@@ -35,6 +35,7 @@ import {
   User,
 } from 'lucide-react';
 import { useHousehold } from '@/contexts/household-context';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface TaxCategory {
   id: string;
@@ -83,7 +84,8 @@ const FORM_TYPE_LABELS: Record<string, string> = {
 };
 
 export function TaxMappingTab() {
-  const { selectedHouseholdId, fetchWithHousehold } = useHousehold();
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);

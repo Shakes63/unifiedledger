@@ -36,12 +36,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 690 (114 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 691 (115 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (114 total)
+## Fixed Bugs (115 total)
 
+115. ✅ **Tax Mappings Tab fetchWithHousehold Not a Function** [FIXED 2025-12-02] - Tax Category Mappings tab in Settings was throwing `TypeError: fetchWithHousehold is not a function` error on page load. The `tax-mapping-tab.tsx` component was incorrectly trying to destructure `fetchWithHousehold` from `useHousehold()` hook, which doesn't export that function. Fixed by adding import for `useHouseholdFetch()` hook and using it to get `fetchWithHousehold`.
 114. ✅ **Sales Tax Toggle Default for Income Transactions** [FIXED 2025-12-02] - When creating an income transaction with a sales-tax-enabled account, the "Subject to sales tax" toggle now defaults to ON (checked). Updated both the transaction form and quick entry modal to auto-enable sales tax when selecting an account with `enableSalesTax: true` or when changing the type to income with such an account selected.
 113. ✅ **Merchant Tax Exemption Not Applied on Transaction Update** [FIXED 2025-12-02] - When changing a merchant to a tax-exempt one, the transaction's `isSalesTaxable` flag was not being updated in the PUT route. Added check for new merchant tax exemption status and auto-updates `isSalesTaxable` to false + deletes any existing sales tax record.
 112. ✅ **TransactionForm formData Reference Before Initialization** [FIXED 2025-12-02] - Fixed `ReferenceError: Cannot access 'formData' before initialization` by moving the `selectedAccountIsBusinessAccount` useMemo hook to after the `formData` useState declaration. This was a JavaScript Temporal Dead Zone issue.
