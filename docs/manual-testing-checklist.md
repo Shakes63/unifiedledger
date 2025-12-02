@@ -1719,13 +1719,13 @@ The onboarding flow is comprehensive:
 
 ## 23. Developer Mode
 
-**Tested: 2025-12-02** | **Result: ISSUES FOUND - Persistence Bug (Re-verified)**
+**Tested: 2025-12-02** | **Result: PARTIAL PASS - Persists for client-side navigation only**
 
 ### Enable/Disable
 
 - [x] Developer mode toggle in Advanced settings - Toggle present and functional
 - [x] Toggle saves correctly - Immediately applies changes, DEV badge appears in sidebar
-- [!] Mode persists across sessions - **BUG CONFIRMED 2025-12-02**: Does NOT persist across page navigation. Enabled dev mode in Settings, navigated to Transactions page - DEV badge disappeared and Dev Tools button gone.
+- [!] Mode persists across sessions - **PARTIAL 2025-12-02**: Works for client-side navigation (Settings -> Transactions -> Bills -> Goals -> Debts - all showed ID badges). Does NOT persist across hard page reloads (F5/browser refresh). Server response overwrites localStorage cache.
 
 ### DEV Badge
 
@@ -1736,23 +1736,26 @@ The onboarding flow is comprehensive:
 ### Entity ID Badges
 
 - [x] ID badges show on entities when enabled:
-  - [x] Transactions - **TESTED 2025-11-30**: Shows TX, Cat, Mer, and Acc badges with truncated IDs and copy icons on each transaction row
+  - [x] Transactions - **VERIFIED 2025-12-02**: Shows TX, Cat, Mer, and Acc badges with truncated IDs and copy icons
   - [!] Accounts - **NOT IMPLEMENTED** (no ID badges on account cards) - 2025-12-01
-  - [!] Bills - **BLOCKED 2025-12-02**: Cannot test - Developer Mode resets when navigating to Bills page
+  - [x] Bills - **VERIFIED 2025-12-02**: Shows Bill and Instance ID badges with truncated IDs and copy icons (e.g., "Bill: G00zeCq9...sdgz", "Instance: bYKryEJT...Hcen")
   - [!] Categories - **NOT IMPLEMENTED** (needs investigation)
-  - [!] Merchants - **BLOCKED 2025-12-02**: Cannot test - Developer Mode resets when navigating to page
-  - [!] Goals - **BLOCKED 2025-12-02**: Cannot test - Developer Mode resets when navigating to page
-  - [!] Debts - **BLOCKED 2025-12-02**: Cannot test - Developer Mode resets when navigating to page
-  - [!] Budgets - **BLOCKED 2025-12-02**: Cannot test - Developer Mode resets when navigating to page
+  - [ ] Merchants - Not tested (empty page)
+  - [x] Goals - **VERIFIED 2025-12-02**: Shows Goal ID badges (e.g., "Goal: Z5mISC7E...lolm")
+  - [x] Debts - **VERIFIED 2025-12-02**: Shows Debt ID badges (e.g., "Debt: IsGW0w7t...7gHe")
+  - [ ] Budgets - Not tested (ID badges not visible on budget categories)
 - [ ] Click to copy ID works - Badge click navigates to detail page (may need fix to copy instead)
 - [ ] Toast notification confirms copy - N/A (copy not tested)
 - [x] Badges hidden when mode disabled - **VERIFIED**: Badges not shown when mode off
 
-**Note (2025-12-02):** Entity ID badge testing is blocked by Developer Mode persistence bug. All entity pages (Bills, Merchants, Goals, Debts, Budgets) cannot be tested for ID badges because Developer Mode resets when navigating away from Settings. Fix the persistence bug to unblock this testing.
+**Note (2025-12-02):** Developer Mode persistence is PARTIAL:
+- WORKS: Client-side navigation (within app using React Router) - DEV badge and ID badges persist
+- FAILS: Hard page reloads (F5, browser refresh, direct URL entry) - Server returns `developerMode: false`, overwriting localStorage cache
+- Root cause: The DeveloperModeProvider reads localStorage first but then syncs with server. If server returns false, it overwrites the cached value.
 
 **Note (2025-11-30):** Transaction list shows Entity ID badges correctly with TX/Cat/Mer/Acc prefixes and truncated IDs. Other entity pages (Accounts, Categories) don't show ID badges - may not be implemented for those pages yet.
 
-**BUG FOUND (2025-12-01):** Developer Mode does not persist across page navigation. Setting is lost when navigating away from Settings page. Added to bugs.md.
+**BUG REGRESSION (2025-12-02):** Developer Mode does not persist across hard page reloads. Bug #110 fix only works for client-side navigation. Server-side storage is not persisting the value correctly - either the POST fails silently or the test user's settings aren't being saved to the database.
 
 ### Developer Tools Panel
 
@@ -3666,9 +3669,53 @@ Manual testing is **95%+ complete**. All major features have been tested and ver
 - Section 13 (Sales Tax) - Multi-Level Configuration: 9 items marked [x], 1 item not tested
 - Section 13 (Sales Tax) - Quarterly Breakdown: 3 items marked [x], 3 items N/A, 1 item not visually verified
 
-**Last Updated:** 2025-12-02
-**Tested By:** AI Assistant (Browser automation via Playwright)
-**Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true
+---
+
+### Session 19 (2025-12-02) - Developer Mode Deep Testing
+
+**Sections Tested:** Developer Mode (Section 23)
+
+**Key Findings:**
+
+1. **Developer Mode Persistence - PARTIAL SUCCESS**
+   - Client-side navigation (React Router): WORKS - DEV badge and ID badges persist
+   - Hard page reload (F5/browser refresh): FAILS - Resets to OFF
+   - Root cause identified: DeveloperModeProvider reads localStorage first but server response overwrites it
+
+2. **Entity ID Badges - VERIFIED ON MULTIPLE PAGES**
+   - Transactions: TX, Cat, Mer, Acc badges visible (working)
+   - Bills: Bill and Instance badges visible (working)
+   - Goals: Goal ID badges visible (working)
+   - Debts: Debt ID badges visible (working)
+   - Accounts: NOT IMPLEMENTED
+   - Categories: NOT IMPLEMENTED
+   - Budgets: Not visible on budget category cards
+
+3. **Testing Methodology**
+   - Enabled Developer Mode in Settings > Advanced
+   - Verified DEV badge appeared in sidebar
+   - Navigated to Transactions, Bills, Goals, Debts via client-side routing
+   - Confirmed ID badges visible on all pages during single session
+   - Performed hard page reload - Developer Mode reset to OFF
+
+**Results Summary:**
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Developer Mode Toggle | PASS | Works immediately |
+| DEV Badge | PASS | Shows in sidebar |
+| Entity ID Badges | PARTIAL | 4/8 pages have badges |
+| Client-side Persistence | PASS | Works during session |
+| Hard Reload Persistence | FAIL (BUG) | Resets on F5/refresh |
+
+**Bug Documented:**
+- Added to bugs.md: Developer Mode Does Not Persist Across Hard Page Reloads
+
+**Checklist Updates:**
+- Section 23 (Developer Mode) - Updated status to "PARTIAL PASS"
+- Marked Goals and Debts ID badges as verified
+- Changed persistence item from [x] to [!]
+- Added regression note about Bug #110 incomplete fix
 
 **Last Updated:** 2025-12-02
 **Tested By:** AI Assistant (Browser automation via Playwright)

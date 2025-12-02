@@ -4,7 +4,7 @@
 
 ## New Bugs
 
-(None)
+- **Developer Mode Does Not Persist Across Hard Page Reloads** - Bug #110 fix is incomplete. Developer Mode persists during client-side navigation (React Router) but resets to OFF after hard page reloads (F5/browser refresh). Root cause: DeveloperModeProvider reads localStorage first, but then server GET /api/user/settings returns `developerMode: false`, overwriting the cached value. Either the POST save is failing silently or the test user's settings aren't being persisted to the database.
 
 
 ---
@@ -31,7 +31,7 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 0 |
+| Active Bugs | 1 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
