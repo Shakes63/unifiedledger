@@ -153,12 +153,6 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [saveMode, setSaveMode] = useState<'save' | 'saveAndAdd' | null>(null);
   const isEditMode = !!transactionId;
 
-  // Compute whether selected account is a business account for category filtering
-  const selectedAccountIsBusinessAccount = useMemo(() => {
-    const account = accounts.find(a => a.id === formData.accountId);
-    return account?.isBusinessAccount || false;
-  }, [accounts, formData.accountId]);
-
   // Helper function to get today's date in YYYY-MM-DD format
   const getTodaysDate = () => {
     const today = new Date();
@@ -177,6 +171,12 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     isPending: false,
     toAccountId: '', // For transfers
   });
+
+  // Compute whether selected account is a business account for category filtering
+  const selectedAccountIsBusinessAccount = useMemo(() => {
+    const account = accounts.find(a => a.id === formData.accountId);
+    return account?.isBusinessAccount || false;
+  }, [accounts, formData.accountId]);
 
   // Load tags and custom fields when component mounts
   useEffect(() => {
