@@ -102,12 +102,12 @@ export function QuickTransactionModal({
     return account?.isBusinessAccount || false;
   }, [accounts, accountId]);
 
-  // Handle account change - auto-enable sales tax for income with sales-tax-enabled accounts
+  // Handle account change - auto-enable/disable sales tax for income based on account's sales tax setting
   const handleAccountChange = (newAccountId: string) => {
     setAccountId(newAccountId);
-    const selectedAccount = accounts.find(a => a.id === newAccountId);
-    if (selectedAccount?.enableSalesTax && type === 'income') {
-      setSalesTaxEnabled(true);
+    if (type === 'income') {
+      const selectedAccount = accounts.find(a => a.id === newAccountId);
+      setSalesTaxEnabled(selectedAccount?.enableSalesTax || false);
     }
   };
 

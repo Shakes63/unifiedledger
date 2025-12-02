@@ -388,10 +388,10 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       accountId,
     }));
     
-    // Auto-enable sales tax for income transactions when selecting a sales-tax-enabled account
-    const selectedAccount = accounts.find(a => a.id === accountId);
-    if (selectedAccount?.enableSalesTax && formData.type === 'income') {
-      setSalesTaxEnabled(true);
+    // Auto-enable/disable sales tax for income transactions based on account's sales tax setting
+    if (formData.type === 'income') {
+      const selectedAccount = accounts.find(a => a.id === accountId);
+      setSalesTaxEnabled(selectedAccount?.enableSalesTax || false);
     }
   };
 
