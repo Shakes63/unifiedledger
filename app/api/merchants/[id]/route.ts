@@ -35,7 +35,7 @@ export async function PUT(
       );
     }
 
-    const { name, categoryId } = body;
+    const { name, categoryId, isSalesTaxExempt } = body;
 
     // Verify merchant belongs to user AND household
     const merchant = await db
@@ -92,6 +92,10 @@ export async function PUT(
 
     if (categoryId !== undefined) {
       updateData.categoryId = categoryId;
+    }
+
+    if (isSalesTaxExempt !== undefined) {
+      updateData.isSalesTaxExempt = isSalesTaxExempt;
     }
 
     await db

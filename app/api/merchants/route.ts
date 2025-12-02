@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, categoryId } = body;
+    const { name, categoryId, isSalesTaxExempt } = body;
 
     if (!name || name.trim() === '') {
       return Response.json(
@@ -119,6 +119,7 @@ export async function POST(request: Request) {
         name: name.trim(),
         normalizedName,
         categoryId: categoryId || null,
+        isSalesTaxExempt: isSalesTaxExempt || false,
         usageCount: 1,
         lastUsedAt: new Date().toISOString(),
       });

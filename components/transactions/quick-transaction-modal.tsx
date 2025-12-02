@@ -94,6 +94,7 @@ export function QuickTransactionModal({
   const [billsLoading, setBillsLoading] = useState(false);
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
   const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
+  const [merchantIsSalesTaxExempt, setMerchantIsSalesTaxExempt] = useState(false);
 
   // Compute whether selected account is a business account for category filtering
   const selectedAccountIsBusinessAccount = useMemo(() => {
@@ -306,6 +307,7 @@ export function QuickTransactionModal({
       setSelectedBillInstanceId('');
       setUnpaidBills([]);
       setSalesTaxEnabled(false);
+      setMerchantIsSalesTaxExempt(false);
     }
     onOpenChange(newOpen);
   };
@@ -471,6 +473,7 @@ export function QuickTransactionModal({
       setSelectedBillInstanceId('');
       setUnpaidBills([]);
       setSalesTaxEnabled(false);
+      setMerchantIsSalesTaxExempt(false);
       setTimeout(() => {
         onOpenChange(false);
       }, 300);
@@ -794,6 +797,7 @@ export function QuickTransactionModal({
             <MerchantSelector
               selectedMerchant={merchantId}
               onMerchantChange={setMerchantId}
+              onMerchantExemptChange={setMerchantIsSalesTaxExempt}
             />
           )}
 
@@ -836,25 +840,38 @@ export function QuickTransactionModal({
           {/* Sales Tax (Only for income transactions) */}
           {type === 'income' && (
             <div className="border-t border-border pt-4 space-y-2">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="quickSalesTax"
-                  checked={salesTaxEnabled}
-                  onChange={(e) => setSalesTaxEnabled(e.target.checked)}
-                  className="h-4 w-4 rounded border-border bg-input text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-0"
-                />
-                <label
-                  htmlFor="quickSalesTax"
-                  className="text-sm text-muted-foreground cursor-pointer"
-                >
-                  Subject to sales tax
-                </label>
-              </div>
-              {!salesTaxEnabled && (
-                <p className="text-xs text-muted-foreground ml-6">
-                  This income will be excluded from sales tax calculations (tax exempt)
-                </p>
+              {merchantIsSalesTaxExempt ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2 py-0.5 bg-[var(--color-success)]/10 text-[var(--color-success)] border border-[var(--color-success)]/30 rounded">
+                    Tax Exempt Merchant
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    Excluded from sales tax
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="quickSalesTax"
+                      checked={salesTaxEnabled}
+                      onChange={(e) => setSalesTaxEnabled(e.target.checked)}
+                      className="h-4 w-4 rounded border-border bg-input text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-0"
+                    />
+                    <label
+                      htmlFor="quickSalesTax"
+                      className="text-sm text-muted-foreground cursor-pointer"
+                    >
+                      Subject to sales tax
+                    </label>
+                  </div>
+                  {!salesTaxEnabled && (
+                    <p className="text-xs text-muted-foreground ml-6">
+                      This income will be excluded from sales tax calculations (tax exempt)
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}

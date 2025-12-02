@@ -91,6 +91,7 @@ export const merchants = sqliteTable(
     name: text('name').notNull(),
     normalizedName: text('normalized_name').notNull(),
     categoryId: text('category_id'),
+    isSalesTaxExempt: integer('is_sales_tax_exempt', { mode: 'boolean' }).default(false),
     usageCount: integer('usage_count').default(1),
     lastUsedAt: text('last_used_at').default(new Date().toISOString()),
     totalSpent: real('total_spent').default(0),

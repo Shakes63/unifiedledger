@@ -149,6 +149,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [billsLoading, setBillsLoading] = useState(false);
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
   const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
+  const [merchantIsSalesTaxExempt, setMerchantIsSalesTaxExempt] = useState(false);
   const [saveMode, setSaveMode] = useState<'save' | 'saveAndAdd' | null>(null);
   const isEditMode = !!transactionId;
 
@@ -778,6 +779,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           setSelectedTagIds([]);
           setCustomFieldValues({});
           setSalesTaxEnabled(false);
+          setMerchantIsSalesTaxExempt(false);
           setSelectedBillInstanceId('');
           setSuccess(false);
           setSaveMode(null);
@@ -1022,6 +1024,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         <MerchantSelector
           selectedMerchant={formData.merchantId}
           onMerchantChange={handleMerchantChange}
+          onMerchantExemptChange={setMerchantIsSalesTaxExempt}
         />
       )}
 
@@ -1106,25 +1109,38 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       {/* Sales Tax Section - Only for income transactions */}
       {formData.type === 'income' && (
         <div className="border-t border-border pt-4 space-y-2">
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="salesTax"
-              checked={salesTaxEnabled}
-              onChange={(e) => setSalesTaxEnabled(e.target.checked)}
-              className="h-4 w-4 rounded border-border bg-input text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-0"
-            />
-            <label
-              htmlFor="salesTax"
-              className="text-sm text-muted-foreground cursor-pointer"
-            >
-              Subject to sales tax
-            </label>
-          </div>
-          {!salesTaxEnabled && (
-            <p className="text-xs text-muted-foreground ml-6">
-              This income will be excluded from sales tax calculations (tax exempt)
-            </p>
+          {merchantIsSalesTaxExempt ? (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/30">
+                Tax Exempt Merchant
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                This income is excluded from sales tax calculations
+              </span>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="salesTax"
+                  checked={salesTaxEnabled}
+                  onChange={(e) => setSalesTaxEnabled(e.target.checked)}
+                  className="h-4 w-4 rounded border-border bg-input text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-0"
+                />
+                <label
+                  htmlFor="salesTax"
+                  className="text-sm text-muted-foreground cursor-pointer"
+                >
+                  Subject to sales tax
+                </label>
+              </div>
+              {!salesTaxEnabled && (
+                <p className="text-xs text-muted-foreground ml-6">
+                  This income will be excluded from sales tax calculations (tax exempt)
+                </p>
+              )}
+            </>
           )}
         </div>
       )}

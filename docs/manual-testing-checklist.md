@@ -1116,6 +1116,37 @@ Note: The calendar has full debt milestone support (verified in code), but test 
 - [ ] Toggling sales tax status updates badge visibility
 - [ ] Badge has warning color styling (orange/yellow)
 
+### Merchant Sales Tax Exemption (NEW - 2025-12-02)
+
+**Tested: NOT YET TESTED** | **Result: PENDING**
+
+#### Merchants Page (`/dashboard/merchants`)
+- [ ] Merchants table shows "Tax Exempt" column
+- [ ] Tax exempt merchants show green "Exempt" badge
+- [ ] Clicking badge removes tax exempt status
+- [ ] Non-exempt merchants show "Not exempt" text that can be clicked to toggle
+- [ ] Create/Edit merchant dialog shows "Sales Tax Exempt" checkbox
+- [ ] Help text explains: "Income transactions from this merchant will be excluded from sales tax calculations"
+
+#### Merchant Selector (Transaction Forms)
+- [ ] Tax exempt merchants show "Tax Exempt" badge in dropdown list
+- [ ] Badge is small with green styling (var(--color-success))
+
+#### Transaction Form Integration
+- [ ] Selecting a tax exempt merchant shows "Tax Exempt Merchant" indicator instead of checkbox
+- [ ] Indicator text: "This income is excluded from sales tax calculations"
+- [ ] Non-exempt merchants show the normal "Subject to sales tax" checkbox
+- [ ] Changing merchant updates the exemption display
+
+#### Quick Entry Modal Integration
+- [ ] Same behavior as transaction form for tax exempt merchants
+- [ ] Indicator replaces checkbox when exempt merchant selected
+
+#### Backend Auto-Exemption
+- [ ] Creating income transaction with exempt merchant automatically sets isSalesTaxable=false
+- [ ] Sales tax reports exclude transactions from exempt merchants
+- [ ] Exempt transactions don't count toward quarterly totals
+
 ### Quarterly Reporting
 
 - [x] Quarterly summary displays (Q1-Q4 with due dates and status)

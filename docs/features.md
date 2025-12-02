@@ -2,7 +2,7 @@
 
 ## New Features
 
-- **Merchant Sales Tax Exemption** - Mark merchants as sales tax exempt so all income transactions from that merchant are automatically excluded from sales tax calculations. Useful for wholesale customers, tax-exempt organizations, or out-of-state sales.
+_No new features at this time._
 
 ---
 
@@ -13,6 +13,8 @@ _No incomplete features at this time._
 ---
 
 ## Completed Features
+
+57. **Merchant Sales Tax Exemption** [COMPLETED] - Mark merchants as sales tax exempt so all income transactions from that merchant are automatically excluded from sales tax calculations. Includes badge display in merchant selector, toggle in merchants page, and auto-exemption indicator in transaction forms.
 
 56. **Sales Tax Exemption for Transactions** [COMPLETED] - Mark income transactions as tax exempt with visual badge indicators, help text in transaction form, and checkbox in quick entry modal.
 

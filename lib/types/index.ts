@@ -105,6 +105,7 @@ export interface Merchant {
   name: string;
   normalizedName: string;
   categoryId?: string | null;
+  isSalesTaxExempt: boolean;
   usageCount: number;
   lastUsedAt?: string | null;
   totalSpent: number;

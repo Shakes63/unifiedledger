@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
@@ -19,17 +20,20 @@ interface Merchant {
   id: string;
   name: string;
   usageCount: number;
+  isSalesTaxExempt?: boolean;
 }
 
 interface MerchantSelectorProps {
   selectedMerchant: string | null;
   onMerchantChange: (merchantId: string | null) => void;
+  onMerchantExemptChange?: (isExempt: boolean) => void;
   hideLabel?: boolean;
 }
 
 export function MerchantSelector({
   selectedMerchant,
   onMerchantChange,
+  onMerchantExemptChange,
   hideLabel = false,
 }: MerchantSelectorProps) {
   const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
@@ -62,6 +66,14 @@ export function MerchantSelector({
 
     fetchMerchants();
   }, [selectedHouseholdId, fetchWithHousehold]);
+
+  // Notify parent when merchant exemption status changes
+  useEffect(() => {
+    if (onMerchantExemptChange) {
+      const selected = merchants.find(m => m.id === selectedMerchant);
+      onMerchantExemptChange(selected?.isSalesTaxExempt || false);
+    }
+  }, [selectedMerchant, merchants, onMerchantExemptChange]);
 
   const handleCreateMerchant = async () => {
     if (!newMerchantName.trim()) {
@@ -123,7 +135,14 @@ export function MerchantSelector({
             <SelectItem value="none">Skip (No merchant)</SelectItem>
             {merchants.map((merchant) => (
               <SelectItem key={merchant.id} value={merchant.id}>
-                {merchant.name}
+                <div className="flex items-center gap-2">
+                  <span>{merchant.name}</span>
+                  {merchant.isSalesTaxExempt && (
+                    <Badge variant="outline" className="text-[10px] px-1 py-0 bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/30">
+                      Tax Exempt
+                    </Badge>
+                  )}
+                </div>
               </SelectItem>
             ))}
           </SelectContent>

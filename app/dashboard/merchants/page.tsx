@@ -21,12 +21,14 @@ import {
 import { Plus, Trash2, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
+import { Badge } from '@/components/ui/badge';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Merchant {
   id: string;
   name: string;
   categoryId?: string;
+  isSalesTaxExempt?: boolean;
   usageCount: number;
   lastUsedAt?: string;
   totalSpent: number;
@@ -54,7 +56,7 @@ export default function MerchantsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedMerchant, setSelectedMerchant] = useState<Merchant | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState({ name: '', categoryId: '' });
+  const [formData, setFormData] = useState({ name: '', categoryId: '', isSalesTaxExempt: false });
 
   // Fetch merchants and categories
   useEffect(() => {
@@ -109,6 +111,7 @@ export default function MerchantsPage() {
         const response = await putWithHousehold(`/api/merchants/${selectedMerchant.id}`, {
           name: formData.name,
           categoryId: formData.categoryId || null,
+          isSalesTaxExempt: formData.isSalesTaxExempt,
         });
 
         if (response.ok) {
@@ -123,7 +126,7 @@ export default function MerchantsPage() {
           );
           setIsDialogOpen(false);
           setSelectedMerchant(null);
-          setFormData({ name: '', categoryId: '' });
+          setFormData({ name: '', categoryId: '', isSalesTaxExempt: false });
         } else {
           const error = await response.json();
           toast.error(error.error || 'Failed to update merchant');
@@ -133,6 +136,7 @@ export default function MerchantsPage() {
         const response = await postWithHousehold('/api/merchants', {
           name: formData.name,
           categoryId: formData.categoryId || null,
+          isSalesTaxExempt: formData.isSalesTaxExempt,
         });
 
         if (response.ok) {
@@ -140,7 +144,7 @@ export default function MerchantsPage() {
           toast.success('Merchant created successfully');
           setMerchants([result, ...merchants]);
           setIsDialogOpen(false);
-          setFormData({ name: '', categoryId: '' });
+          setFormData({ name: '', categoryId: '', isSalesTaxExempt: false });
         } else {
           const error = await response.json();
           toast.error(error.error || 'Failed to create merchant');
@@ -179,15 +183,40 @@ export default function MerchantsPage() {
   // Handle edit
   const handleEdit = (merchant: Merchant) => {
     setSelectedMerchant(merchant);
-    setFormData({ name: merchant.name, categoryId: merchant.categoryId || '' });
+    setFormData({
+      name: merchant.name,
+      categoryId: merchant.categoryId || '',
+      isSalesTaxExempt: merchant.isSalesTaxExempt || false,
+    });
     setIsDialogOpen(true);
   };
 
   // Handle create
   const handleCreate = () => {
     setSelectedMerchant(null);
-    setFormData({ name: '', categoryId: '' });
+    setFormData({ name: '', categoryId: '', isSalesTaxExempt: false });
     setIsDialogOpen(true);
+  };
+
+  // Toggle tax exempt status
+  const handleToggleTaxExempt = async (merchantId: string, newExemptStatus: boolean) => {
+    try {
+      const response = await putWithHousehold(`/api/merchants/${merchantId}`, {
+        isSalesTaxExempt: newExemptStatus,
+      });
+
+      if (response.ok) {
+        const updatedMerchant = await response.json();
+        setMerchants(merchants.map((m) => m.id === merchantId ? updatedMerchant : m));
+        toast.success(newExemptStatus ? 'Merchant marked as tax exempt' : 'Tax exempt status removed');
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Failed to update tax exempt status');
+      }
+    } catch (error) {
+      console.error('Error updating tax exempt status:', error);
+      toast.error('Error updating tax exempt status');
+    }
   };
 
   // Get category name by ID
@@ -234,6 +263,7 @@ export default function MerchantsPage() {
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 px-4 font-semibold text-foreground">Name</th>
+                <th className="text-left py-3 px-4 font-semibold text-foreground">Tax Exempt</th>
                 <th className="text-left py-3 px-4 font-semibold text-foreground">Category</th>
                 <th className="text-left py-3 px-4 font-semibold text-foreground">Usage Count</th>
                 <th className="text-left py-3 px-4 font-semibold text-foreground">Total Spent</th>
@@ -255,6 +285,24 @@ export default function MerchantsPage() {
                         <EntityIdBadge id={merchant.categoryId} label="Cat" />
                       )}
                     </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    {merchant.isSalesTaxExempt ? (
+                      <Badge
+                        variant="outline"
+                        className="cursor-pointer bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/30 hover:bg-[var(--color-success)]/20"
+                        onClick={() => handleToggleTaxExempt(merchant.id, false)}
+                      >
+                        Exempt
+                      </Badge>
+                    ) : (
+                      <button
+                        onClick={() => handleToggleTaxExempt(merchant.id, true)}
+                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        Not exempt
+                      </button>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-muted-foreground">{getCategoryName(merchant.categoryId)}</td>
                   <td className="py-3 px-4 text-muted-foreground">{merchant.usageCount}</td>
@@ -355,6 +403,24 @@ export default function MerchantsPage() {
               </p>
             </div>
 
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isSalesTaxExempt"
+                  checked={formData.isSalesTaxExempt}
+                  onChange={(e) => setFormData({ ...formData, isSalesTaxExempt: e.target.checked })}
+                  className="h-4 w-4 rounded border-border bg-input text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-0"
+                />
+                <Label htmlFor="isSalesTaxExempt" className="text-sm font-medium text-foreground cursor-pointer">
+                  Sales Tax Exempt
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Income transactions from this merchant will be excluded from sales tax calculations. Useful for wholesale customers, tax-exempt organizations, or out-of-state sales.
+              </p>
+            </div>
+
             <div className="flex gap-2 justify-end">
               <Button
                 type="button"
@@ -362,7 +428,7 @@ export default function MerchantsPage() {
                 onClick={() => {
                   setIsDialogOpen(false);
                   setSelectedMerchant(null);
-                  setFormData({ name: '', categoryId: '' });
+                  setFormData({ name: '', categoryId: '', isSalesTaxExempt: false });
                 }}
                 className="bg-elevated border-border text-muted-foreground"
               >

@@ -409,6 +409,18 @@ export async function POST(request: Request) {
       }
     } else {
       // Non-transfer transaction (income or expense)
+      
+      // Check if merchant is sales tax exempt (for income transactions)
+      let merchantIsSalesTaxExempt = false;
+      if (type === 'income' && finalMerchantId) {
+        const merchantExemptCheck = await db
+          .select({ isSalesTaxExempt: merchants.isSalesTaxExempt })
+          .from(merchants)
+          .where(eq(merchants.id, finalMerchantId))
+          .limit(1);
+        merchantIsSalesTaxExempt = merchantExemptCheck[0]?.isSalesTaxExempt || false;
+      }
+      
       await db.insert(transactions).values({
         id: transactionId,
         userId,
@@ -430,7 +442,8 @@ export async function POST(request: Request) {
         taxDeductionType: (postCreationMutations?.isTaxDeductible) 
           ? ((account[0].enableTaxDeductions ?? account[0].isBusinessAccount) ? 'business' : 'personal')
           : 'none',
-        isSalesTaxable: (type === 'income' && (isSalesTaxable || postCreationMutations?.isSalesTaxable)) || false,
+        // Auto-exclude sales tax if merchant is tax exempt
+        isSalesTaxable: (type === 'income' && !merchantIsSalesTaxExempt && (isSalesTaxable || postCreationMutations?.isSalesTaxable)) || false,
         // Offline sync tracking
         offlineId: offlineId || null,
         syncStatus: syncStatus,
