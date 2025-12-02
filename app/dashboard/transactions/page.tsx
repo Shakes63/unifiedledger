@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload, Plus, Pencil } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload, Plus, Pencil, ShieldOff } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { AdvancedSearch } from '@/components/transactions/advanced-search';
 import { CSVImportModal } from '@/components/csv-import/csv-import-modal';
@@ -35,6 +36,7 @@ interface Transaction {
   transferId?: string;
   notes?: string;
   isSplit?: boolean;
+  isSalesTaxable?: boolean;
 }
 
 interface Category {
@@ -46,6 +48,7 @@ interface Category {
 interface Account {
   id: string;
   name: string;
+  enableSalesTax?: boolean;
 }
 
 interface Merchant {
@@ -354,6 +357,12 @@ function TransactionsContent() {
     if (!accountId) return 'Unknown';
     const account = accounts.find((a) => a.id === accountId);
     return account?.name || 'Unknown';
+  };
+
+  const isAccountSalesTaxEnabled = (accountId?: string): boolean => {
+    if (!accountId) return false;
+    const account = accounts.find((a) => a.id === accountId);
+    return account?.enableSalesTax ?? false;
   };
 
   const getCategoryName = (categoryId?: string): string | null => {
@@ -1018,6 +1027,19 @@ function TransactionsContent() {
                             <span className="text-xs text-muted-foreground flex items-center gap-0.5">
                               <Split className="w-3 h-3" /> Split
                             </span>
+                          )}
+                          {/* Tax Exempt badge for income transactions on sales-tax-enabled accounts */}
+                          {transaction.type === 'income' && 
+                           !transaction.isSalesTaxable && 
+                           isAccountSalesTaxEnabled(transaction.accountId) && (
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs border-[var(--color-warning)]/50 text-[var(--color-warning)] bg-[var(--color-warning)]/10 flex items-center gap-0.5 px-1.5 py-0"
+                              title="This income is excluded from sales tax calculations"
+                            >
+                              <ShieldOff className="w-3 h-3" />
+                              Tax Exempt
+                            </Badge>
                           )}
                         </div>
                       </div>

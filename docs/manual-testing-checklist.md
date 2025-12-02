@@ -1103,6 +1103,19 @@ Note: The calendar has full debt milestone support (verified in code), but test 
 - [ ] Can set sales tax categories - Not tested (requires editing)
 - [ ] Rates calculate correctly - Shows $0 with no data
 
+### Sales Tax Exemption for Transactions (NEW - 2025-12-02)
+
+**Tested: NOT YET TESTED** | **Result: PENDING**
+
+- [ ] Transaction form shows "Subject to sales tax" checkbox for income transactions
+- [ ] Help text displays when checkbox is unchecked: "This income will be excluded from sales tax calculations (tax exempt)"
+- [ ] Quick Entry modal shows "Subject to sales tax" checkbox for income type
+- [ ] Exempt income transactions show "Tax Exempt" badge with ShieldOff icon on transaction list
+- [ ] Badge only shows for income on sales-tax-enabled accounts
+- [ ] Exempt transactions excluded from quarterly sales tax totals
+- [ ] Toggling sales tax status updates badge visibility
+- [ ] Badge has warning color styling (orange/yellow)
+
 ### Quarterly Reporting
 
 - [x] Quarterly summary displays (Q1-Q4 with due dates and status)

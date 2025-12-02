@@ -1105,20 +1105,27 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       {/* Sales Tax Section - Only for income transactions */}
       {formData.type === 'income' && (
-        <div className="flex items-center space-x-2 border-t border-border pt-4">
-          <input
-            type="checkbox"
-            id="salesTax"
-            checked={salesTaxEnabled}
-            onChange={(e) => setSalesTaxEnabled(e.target.checked)}
-            className="h-4 w-4 rounded border-border bg-input text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-0"
-          />
-          <label
-            htmlFor="salesTax"
-            className="text-sm text-muted-foreground cursor-pointer"
-          >
-            Subject to sales tax
-          </label>
+        <div className="border-t border-border pt-4 space-y-2">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="salesTax"
+              checked={salesTaxEnabled}
+              onChange={(e) => setSalesTaxEnabled(e.target.checked)}
+              className="h-4 w-4 rounded border-border bg-input text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-0"
+            />
+            <label
+              htmlFor="salesTax"
+              className="text-sm text-muted-foreground cursor-pointer"
+            >
+              Subject to sales tax
+            </label>
+          </div>
+          {!salesTaxEnabled && (
+            <p className="text-xs text-muted-foreground ml-6">
+              This income will be excluded from sales tax calculations (tax exempt)
+            </p>
+          )}
         </div>
       )}
 

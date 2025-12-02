@@ -52,6 +52,14 @@ alwaysApply: false
 ## Recent Major Features
 
 **Latest (2025-12-02):**
+- Sales Tax Exemption for Transactions (✅ COMPLETE)
+  - ✅ Income transactions can be marked as tax exempt (not subject to sales tax)
+  - ✅ "Subject to sales tax" checkbox in transaction form with help text
+  - ✅ "Subject to sales tax" checkbox in Quick Entry modal
+  - ✅ "Tax Exempt" badge with ShieldOff icon on transaction cards for exempt income
+  - ✅ Badge only displays for income on sales-tax-enabled accounts
+  - ✅ Exempt transactions excluded from quarterly sales tax calculations
+  - ✅ All styling uses semantic theme variables
 - Category-to-Tax-Category Mapping UI (✅ COMPLETE)
   - ✅ Settings interface to link budget categories to IRS tax categories
   - ✅ API endpoints for tax categories and mappings (GET/POST/PUT/DELETE)
@@ -357,6 +365,7 @@ alwaysApply: false
 (None)
 
 ### Recently Completed
+- **Sales Tax Exemption for Transactions** [COMPLETED 2025-12-02] - Mark income transactions as tax exempt with visual badge indicators, help text in transaction form, and checkbox in quick entry modal.
 - **Business Features Visibility** [COMPLETED 2025-12-01] - Tax Dashboard and Sales Tax pages hidden from navigation unless at least one business account exists in the current household.
 - **Debt Budget Integration** [COMPLETED 2025-12-01] - Debts automatically appear in budgeting system with auto-populated minimum payments and recommended payments from payoff strategy. Focus debt highlighted with strategy-recommended amounts.
 - **Sidebar Reorganization** [COMPLETED 2025-12-01] - Reorganized navigation into 6 workflow-based sections (Overview, Track, Plan, Goals, Analyze, Configure), updated icons, fixed mobile nav CSS variables.

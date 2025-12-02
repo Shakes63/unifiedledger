@@ -56,6 +56,7 @@ interface QuickTransactionData {
   categoryId?: string;
   merchantId?: string;
   notes?: string;
+  isSalesTaxable?: boolean;
 }
 
 // Quick entry defaults
@@ -92,6 +93,7 @@ export function QuickTransactionModal({
   const [unpaidBills, setUnpaidBills] = useState<UnpaidBillWithInstance[]>([]);
   const [billsLoading, setBillsLoading] = useState(false);
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
+  const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
 
   // Compute whether selected account is a business account for category filtering
   const selectedAccountIsBusinessAccount = useMemo(() => {
@@ -303,6 +305,7 @@ export function QuickTransactionModal({
       setAccountsError(null);
       setSelectedBillInstanceId('');
       setUnpaidBills([]);
+      setSalesTaxEnabled(false);
     }
     onOpenChange(newOpen);
   };
@@ -380,6 +383,11 @@ export function QuickTransactionModal({
       }
       if (notes.trim()) {
         transactionData.notes = notes.trim();
+      }
+      
+      // Add sales tax status for income transactions
+      if (apiType === 'income') {
+        transactionData.isSalesTaxable = salesTaxEnabled;
       }
 
       const response = await postWithHousehold('/api/transactions', transactionData);
@@ -462,6 +470,7 @@ export function QuickTransactionModal({
       setShowNotes(false);
       setSelectedBillInstanceId('');
       setUnpaidBills([]);
+      setSalesTaxEnabled(false);
       setTimeout(() => {
         onOpenChange(false);
       }, 300);
@@ -823,6 +832,32 @@ export function QuickTransactionModal({
               />
             )}
           </div>
+
+          {/* Sales Tax (Only for income transactions) */}
+          {type === 'income' && (
+            <div className="border-t border-border pt-4 space-y-2">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="quickSalesTax"
+                  checked={salesTaxEnabled}
+                  onChange={(e) => setSalesTaxEnabled(e.target.checked)}
+                  className="h-4 w-4 rounded border-border bg-input text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-0"
+                />
+                <label
+                  htmlFor="quickSalesTax"
+                  className="text-sm text-muted-foreground cursor-pointer"
+                >
+                  Subject to sales tax
+                </label>
+              </div>
+              {!salesTaxEnabled && (
+                <p className="text-xs text-muted-foreground ml-6">
+                  This income will be excluded from sales tax calculations (tax exempt)
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Buttons */}
           <div className="flex gap-2 pt-4">
