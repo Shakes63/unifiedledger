@@ -16,6 +16,7 @@ import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
 import { batchUpdateMilestones } from '@/lib/debts/milestone-utils';
 import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
 import { logTransactionAudit, createTransactionSnapshot } from '@/lib/transactions/audit-logger';
+import { autoClassifyTransaction } from '@/lib/tax/auto-classify';
 // Sales tax now handled as boolean flag on transaction, no separate records needed
 
 export const dynamic = 'force-dynamic';
@@ -522,6 +523,28 @@ export async function POST(request: Request) {
 
       // Sales tax is now handled as a boolean flag on the transaction itself
       // No separate salesTaxTransactions records needed for simplified tracking
+
+      // Auto-classify transaction for tax purposes if marked as tax deductible
+      // Creates transactionTaxClassifications record if category has a tax mapping
+      const isTaxDeductible = postCreationMutations?.isTaxDeductible || false;
+      if (isTaxDeductible && appliedCategoryId) {
+        try {
+          const taxClassification = await autoClassifyTransaction(
+            userId,
+            transactionId,
+            appliedCategoryId,
+            decimalAmount.toNumber(),
+            date,
+            isTaxDeductible
+          );
+          if (taxClassification) {
+            console.log(`[TAX] Auto-classified transaction ${transactionId} to ${taxClassification.taxCategoryName}`);
+          }
+        } catch (error) {
+          // Non-fatal: don't fail transaction creation if tax classification fails
+          console.error('Error auto-classifying transaction for tax:', error);
+        }
+      }
     }
 
     // OPTIMIZATION: Batch usage analytics updates (Task 2: ~50-70% faster)

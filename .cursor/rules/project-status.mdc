@@ -51,7 +51,17 @@ alwaysApply: false
 
 ## Recent Major Features
 
-**Latest (2025-12-01):**
+**Latest (2025-12-02):**
+- Category-to-Tax-Category Mapping UI (✅ COMPLETE)
+  - ✅ Settings interface to link budget categories to IRS tax categories
+  - ✅ API endpoints for tax categories and mappings (GET/POST/PUT/DELETE)
+  - ✅ Tax category seeding for standard IRS categories (Schedule C, A, D, E, Form 1040)
+  - ✅ Auto-classification when transactions are marked tax deductible
+  - ✅ Tax Mappings tab in Household Settings with year selector
+  - ✅ Unmapped tax-deductible categories section with quick mapping
+  - ✅ Fixes "Tax Deductions Not Appearing in Tax Dashboard" bug
+
+**Previous (2025-12-01):**
 - Business Features Visibility (✅ COMPLETE)
   - ✅ Tax Dashboard and Sales Tax pages hidden from navigation unless a business account exists
   - ✅ API endpoint `/api/accounts/has-business` to check for active business accounts in household

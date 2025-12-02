@@ -6,8 +6,6 @@
 
 (None)
 
-
-
 ---
 
 ## Active Bugs
@@ -37,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 686 (110 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 687 (111 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (110 total)
+## Fixed Bugs (111 total)
 
+111. ✅ **Tax Deductions Not Appearing in Tax Dashboard** [FIXED 2025-12-02] - Added Category-to-Tax-Category Mapping UI in Settings and auto-classification logic. When transactions are marked tax deductible with a mapped category, `transactionTaxClassifications` records are now auto-created so deductions appear in Tax Dashboard.
 110. ✅ **Developer Mode Does Not Persist Across Navigation** [FIXED 2025-12-02] - Added localStorage caching to `DeveloperModeProvider` for instant persistence. Now reads from localStorage on mount for immediate state restoration, then syncs with server. Value persists across page navigation without waiting for API response.
 109. ✅ **Debt Budget Section React Hooks Order Error** [FIXED 2025-12-01] - Fixed "Rendered more hooks than during the previous render" error caused by `useMemo` being placed after early returns. Moved `statusCounts` useMemo and `needsAttention` calculation before the early return statements. Also fixed `isComplete` reference error in debt-budget-card.tsx by updating to `isPaid || isOverpaid`.
 108. ✅ **Avalanche Focus Debt Threshold Issue** [FIXED 2025-12-01] - Fixed focus debt determination to always use method-based selection (highest interest for avalanche, lowest balance for snowball) regardless of extra payment amount. Added `getMethodBasedFocusDebtId()` helper and updated `calculatePayoffStrategy` and `calculateRolldownPayments` in payoff-calculator.ts.
