@@ -1,10 +1,10 @@
-# Bugs Status (Updated 2025-11-30)
+# Bugs Status (Updated 2025-12-02)
 
 ---
 
 ## New Bugs
 
-- **Developer Mode Does Not Persist Across Navigation** - When Developer Mode is enabled in Settings > Advanced, navigating to another page (e.g., Accounts, Bills) causes the setting to reset. The DEV badge disappears and Dev Tools button is not visible on other pages. The setting should be stored in localStorage and persist across navigation. Found during manual testing 2025-12-01.
+(None)
 
 
 
@@ -32,17 +32,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 1 |
+| Active Bugs | 0 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 685 (109 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 686 (110 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (109 total)
+## Fixed Bugs (110 total)
 
+110. ✅ **Developer Mode Does Not Persist Across Navigation** [FIXED 2025-12-02] - Added localStorage caching to `DeveloperModeProvider` for instant persistence. Now reads from localStorage on mount for immediate state restoration, then syncs with server. Value persists across page navigation without waiting for API response.
 109. ✅ **Debt Budget Section React Hooks Order Error** [FIXED 2025-12-01] - Fixed "Rendered more hooks than during the previous render" error caused by `useMemo` being placed after early returns. Moved `statusCounts` useMemo and `needsAttention` calculation before the early return statements. Also fixed `isComplete` reference error in debt-budget-card.tsx by updating to `isPaid || isOverpaid`.
 108. ✅ **Avalanche Focus Debt Threshold Issue** [FIXED 2025-12-01] - Fixed focus debt determination to always use method-based selection (highest interest for avalanche, lowest balance for snowball) regardless of extra payment amount. Added `getMethodBasedFocusDebtId()` helper and updated `calculatePayoffStrategy` and `calculateRolldownPayments` in payoff-calculator.ts.
 107. ✅ **Debt Budget Individual Payment Status** [FIXED 2025-12-01] - Added individual payment status tracking to debt budget section. Cards now show "Unpaid", "Partial", "Paid", or "Overpaid" badges with color-coded warnings. Section header displays status breakdown (e.g., "2 paid, 1 unpaid") to clearly show which debts need attention instead of aggregate totals masking individual statuses.
