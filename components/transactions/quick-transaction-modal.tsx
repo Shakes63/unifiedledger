@@ -102,6 +102,26 @@ export function QuickTransactionModal({
     return account?.isBusinessAccount || false;
   }, [accounts, accountId]);
 
+  // Handle account change - auto-enable sales tax for income with sales-tax-enabled accounts
+  const handleAccountChange = (newAccountId: string) => {
+    setAccountId(newAccountId);
+    const selectedAccount = accounts.find(a => a.id === newAccountId);
+    if (selectedAccount?.enableSalesTax && type === 'income') {
+      setSalesTaxEnabled(true);
+    }
+  };
+
+  // Handle type change - auto-enable sales tax for income with sales-tax-enabled accounts
+  const handleTypeChange = (newType: TransactionType) => {
+    setType(newType);
+    if (newType === 'income') {
+      const selectedAccount = accounts.find(a => a.id === accountId);
+      if (selectedAccount?.enableSalesTax) {
+        setSalesTaxEnabled(true);
+      }
+    }
+  };
+
   // Fetch accounts and load smart defaults
   const fetchAccounts = async () => {
     if (!selectedHouseholdId || !householdId) {
@@ -143,10 +163,21 @@ export function QuickTransactionModal({
       const defaults = loadQuickEntryDefaults(selectedHouseholdId, type);
       
       // Apply account default (validate it exists in accounts list)
+      let selectedAccountId = '';
       if (defaults.accountId && data.some((acc: Account) => acc.id === defaults.accountId)) {
+        selectedAccountId = defaults.accountId;
         setAccountId(defaults.accountId);
       } else if (data.length > 0) {
+        selectedAccountId = data[0].id;
         setAccountId(data[0].id);
+      }
+      
+      // Auto-enable sales tax for income with sales-tax-enabled accounts
+      if (selectedAccountId && type === 'income') {
+        const selectedAccount = data.find((acc: Account) => acc.id === selectedAccountId);
+        if (selectedAccount?.enableSalesTax) {
+          setSalesTaxEnabled(true);
+        }
       }
       
       // Apply category default (if provided)
@@ -266,8 +297,18 @@ export function QuickTransactionModal({
     const defaults = loadQuickEntryDefaults(selectedHouseholdId, type);
     
     // Apply account default (validate it exists)
+    let effectiveAccountId = accountId; // Keep current if no default
     if (defaults.accountId && accounts.some((acc: Account) => acc.id === defaults.accountId)) {
+      effectiveAccountId = defaults.accountId;
       setAccountId(defaults.accountId);
+    }
+    
+    // Auto-enable sales tax for income with sales-tax-enabled accounts
+    if (type === 'income' && effectiveAccountId) {
+      const selectedAccount = accounts.find((acc: Account) => acc.id === effectiveAccountId);
+      if (selectedAccount?.enableSalesTax) {
+        setSalesTaxEnabled(true);
+      }
     }
     
     // Apply category default
@@ -606,7 +647,7 @@ export function QuickTransactionModal({
             <label className="text-sm font-medium text-foreground">
               Type <span className="text-[var(--color-error)]">*</span>
             </label>
-            <Select value={type} onValueChange={(value) => setType(value as TransactionType)}>
+            <Select value={type} onValueChange={(value) => handleTypeChange(value as TransactionType)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -669,7 +710,7 @@ export function QuickTransactionModal({
             )}
             <Select 
               value={accountId} 
-              onValueChange={setAccountId}
+              onValueChange={handleAccountChange}
               disabled={accountsLoading || !initialized || householdLoading || !selectedHouseholdId || !householdId}
             >
               <SelectTrigger>

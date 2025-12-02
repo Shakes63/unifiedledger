@@ -143,7 +143,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [_customFieldsLoading, setCustomFieldsLoading] = useState(true);
-  const [accounts, setAccounts] = useState<Array<{ id: string; name: string; currentBalance: number; isBusinessAccount?: boolean }>>([]);
+  const [accounts, setAccounts] = useState<Array<{ id: string; name: string; currentBalance: number; isBusinessAccount?: boolean; enableSalesTax?: boolean }>>([]);
   const [_accountsLoading, setAccountsLoading] = useState(false);
   const [unpaidBills, setUnpaidBills] = useState<UnpaidBillWithInstance[]>([]);
   const [billsLoading, setBillsLoading] = useState(false);
@@ -372,6 +372,14 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       ...prev,
       [name]: value,
     }));
+    
+    // Auto-enable sales tax when switching to income type with a sales-tax-enabled account
+    if (name === 'type' && value === 'income') {
+      const selectedAccount = accounts.find(a => a.id === formData.accountId);
+      if (selectedAccount?.enableSalesTax) {
+        setSalesTaxEnabled(true);
+      }
+    }
   };
 
   const handleAccountChange = (accountId: string) => {
@@ -379,6 +387,12 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       ...prev,
       accountId,
     }));
+    
+    // Auto-enable sales tax for income transactions when selecting a sales-tax-enabled account
+    const selectedAccount = accounts.find(a => a.id === accountId);
+    if (selectedAccount?.enableSalesTax && formData.type === 'income') {
+      setSalesTaxEnabled(true);
+    }
   };
 
   const handleCategoryChange = (categoryId: string | null) => {
@@ -778,7 +792,9 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           setSplits([]);
           setSelectedTagIds([]);
           setCustomFieldValues({});
-          setSalesTaxEnabled(false);
+          // Re-enable sales tax if preserved account has it enabled and type is income
+          const preservedAccountObj = accounts.find(a => a.id === preservedAccount);
+          setSalesTaxEnabled(preservedType === 'income' && (preservedAccountObj?.enableSalesTax || false));
           setMerchantIsSalesTaxExempt(false);
           setSelectedBillInstanceId('');
           setSuccess(false);
