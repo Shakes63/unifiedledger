@@ -21,7 +21,7 @@ export const accounts = sqliteTable(
     householdId: text('household_id').notNull(),
     name: text('name').notNull(),
     type: text('type', {
-      enum: ['checking', 'savings', 'credit', 'investment', 'cash'],
+      enum: ['checking', 'savings', 'credit', 'line_of_credit', 'investment', 'cash'],
     }).notNull(),
     bankName: text('bank_name'),
     accountNumberLast4: text('account_number_last4'),
@@ -37,6 +37,33 @@ export const accounts = sqliteTable(
     sortOrder: integer('sort_order').default(0),
     usageCount: integer('usage_count').default(0),
     lastUsedAt: text('last_used_at'),
+    // Statement tracking (for credit accounts)
+    statementBalance: real('statement_balance'),
+    statementDate: text('statement_date'),
+    statementDueDate: text('statement_due_date'),
+    minimumPaymentAmount: real('minimum_payment_amount'),
+    lastStatementUpdated: text('last_statement_updated'),
+    // Interest & payments (for credit accounts)
+    interestRate: real('interest_rate'),
+    minimumPaymentPercent: real('minimum_payment_percent'),
+    minimumPaymentFloor: real('minimum_payment_floor'),
+    additionalMonthlyPayment: real('additional_monthly_payment'),
+    // Line of credit specific fields
+    isSecured: integer('is_secured', { mode: 'boolean' }).default(false),
+    securedAsset: text('secured_asset'),
+    drawPeriodEndDate: text('draw_period_end_date'),
+    repaymentPeriodEndDate: text('repayment_period_end_date'),
+    interestType: text('interest_type', {
+      enum: ['fixed', 'variable'],
+    }).default('fixed'),
+    primeRateMargin: real('prime_rate_margin'),
+    // Annual fee fields (for credit cards)
+    annualFee: real('annual_fee'),
+    annualFeeMonth: integer('annual_fee_month'),
+    annualFeeBillId: text('annual_fee_bill_id'),
+    // Automation and strategy fields
+    autoCreatePaymentBill: integer('auto_create_payment_bill', { mode: 'boolean' }).default(true),
+    includeInPayoffStrategy: integer('include_in_payoff_strategy', { mode: 'boolean' }).default(true),
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   },
@@ -46,6 +73,61 @@ export const accounts = sqliteTable(
     userHouseholdIdx: index('idx_accounts_user_household').on(table.userId, table.householdId),
     userUsageIdx: index('idx_accounts_user_usage').on(table.userId, table.usageCount),
     userActiveIdx: index('idx_accounts_user_active').on(table.userId, table.isActive),
+    interestRateIdx: index('idx_accounts_interest_rate').on(table.interestRate),
+    includeInStrategyIdx: index('idx_accounts_include_in_strategy').on(table.includeInPayoffStrategy),
+  })
+);
+
+// Credit Limit History - Track credit limit changes over time
+export const creditLimitHistory = sqliteTable(
+  'credit_limit_history',
+  {
+    id: text('id').primaryKey(),
+    accountId: text('account_id').notNull(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
+    previousLimit: real('previous_limit'),
+    newLimit: real('new_limit').notNull(),
+    changeDate: text('change_date').notNull(),
+    changeReason: text('change_reason', {
+      enum: ['user_update', 'bank_increase', 'bank_decrease', 'initial'],
+    }).default('user_update'),
+    utilizationBefore: real('utilization_before'),
+    utilizationAfter: real('utilization_after'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    accountIdIdx: index('idx_credit_limit_history_account').on(table.accountId),
+    userIdIdx: index('idx_credit_limit_history_user').on(table.userId),
+    householdIdIdx: index('idx_credit_limit_history_household').on(table.householdId),
+    changeDateIdx: index('idx_credit_limit_history_change_date').on(table.changeDate),
+  })
+);
+
+// Account Balance History - Track balance for utilization trends
+export const accountBalanceHistory = sqliteTable(
+  'account_balance_history',
+  {
+    id: text('id').primaryKey(),
+    accountId: text('account_id').notNull(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
+    snapshotDate: text('snapshot_date').notNull(),
+    balance: real('balance').notNull(),
+    creditLimit: real('credit_limit'),
+    availableCredit: real('available_credit'),
+    utilizationPercent: real('utilization_percent'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    accountIdIdx: index('idx_account_balance_history_account').on(table.accountId),
+    userIdIdx: index('idx_account_balance_history_user').on(table.userId),
+    householdIdIdx: index('idx_account_balance_history_household').on(table.householdId),
+    snapshotDateIdx: index('idx_account_balance_history_date').on(table.snapshotDate),
+    accountDateIdx: index('idx_account_balance_history_account_date').on(
+      table.accountId,
+      table.snapshotDate
+    ),
   })
 );
 
@@ -1275,6 +1357,22 @@ export const accountsRelations = relations(accounts, ({ many }) => ({
   savingsGoals: many(savingsGoals),
   debts: many(debts),
   transfers: many(transfers),
+  creditLimitHistory: many(creditLimitHistory),
+  balanceHistory: many(accountBalanceHistory),
+}));
+
+export const creditLimitHistoryRelations = relations(creditLimitHistory, ({ one }) => ({
+  account: one(accounts, {
+    fields: [creditLimitHistory.accountId],
+    references: [accounts.id],
+  }),
+}));
+
+export const accountBalanceHistoryRelations = relations(accountBalanceHistory, ({ one }) => ({
+  account: one(accounts, {
+    fields: [accountBalanceHistory.accountId],
+    references: [accounts.id],
+  }),
 }));
 
 export const budgetCategoriesRelations = relations(budgetCategories, ({ many }) => ({
