@@ -10,7 +10,7 @@ _Add new feature ideas here_
 
 58. **Unified Debt, Bill & Credit Card Architecture** [IN PROGRESS] - Major refactor to simplify financial obligation tracking. 19 implementation phases. See [Architecture Document](./unified-debt-bill-credit-card-architecture.md) and [Phase 1 Plan](./phase-1-schema-changes-plan.md) for details.
     - **Phase 1.1: Accounts Enhancement** [COMPLETED 2025-12-03] - Added credit card fields, line of credit type, credit limit history, and balance history tracking tables.
-    - **Phase 1.2: Bills Enhancement** - _Not started_
+    - **Phase 1.2: Bills Enhancement** [COMPLETED 2025-12-03] - Added bill type/classification, account linking, autopay settings, debt extension fields, and tax deduction settings.
     - **Phase 1.3: Bill Instances & Payments** - _Not started_
     - **Phase 1.4: Categories & Household Settings** - _Not started_
     - **Phase 1.5: Transactions & Legacy Cleanup** - _Not started_

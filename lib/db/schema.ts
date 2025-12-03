@@ -343,6 +343,50 @@ export const bills = sqliteTable(
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
     autoMarkPaid: integer('auto_mark_paid', { mode: 'boolean' }).default(true),
     notes: text('notes'),
+    // Bill type and classification (Phase 1.2)
+    billType: text('bill_type', {
+      enum: ['expense', 'income', 'savings_transfer'],
+    }).default('expense'),
+    billClassification: text('bill_classification', {
+      enum: ['subscription', 'utility', 'housing', 'insurance', 'loan_payment', 'membership', 'service', 'other'],
+    }),
+    classificationSubcategory: text('classification_subcategory'),
+    // Account linking (for credit card payments)
+    linkedAccountId: text('linked_account_id'),
+    amountSource: text('amount_source', {
+      enum: ['fixed', 'minimum_payment', 'statement_balance', 'full_balance'],
+    }).default('fixed'),
+    chargedToAccountId: text('charged_to_account_id'),
+    // Autopay settings
+    isAutopayEnabled: integer('is_autopay_enabled', { mode: 'boolean' }).default(false),
+    autopayAccountId: text('autopay_account_id'),
+    autopayAmountType: text('autopay_amount_type', {
+      enum: ['fixed', 'minimum_payment', 'statement_balance', 'full_balance'],
+    }),
+    autopayFixedAmount: real('autopay_fixed_amount'),
+    autopayDaysBefore: integer('autopay_days_before').default(0),
+    // Debt extension fields (for non-account debts like loans)
+    isDebt: integer('is_debt', { mode: 'boolean' }).default(false),
+    originalBalance: real('original_balance'),
+    remainingBalance: real('remaining_balance'),
+    billInterestRate: real('bill_interest_rate'),
+    interestType: text('interest_type', {
+      enum: ['fixed', 'variable', 'none'],
+    }).default('none'),
+    minimumPayment: real('minimum_payment'),
+    billAdditionalMonthlyPayment: real('bill_additional_monthly_payment'),
+    debtType: text('debt_type', {
+      enum: ['personal_loan', 'student_loan', 'mortgage', 'auto_loan', 'medical', 'other'],
+    }),
+    billColor: text('bill_color'),
+    // Payoff strategy
+    includeInPayoffStrategy: integer('include_in_payoff_strategy', { mode: 'boolean' }).default(true),
+    // Tax deduction settings
+    isInterestTaxDeductible: integer('is_interest_tax_deductible', { mode: 'boolean' }).default(false),
+    taxDeductionType: text('tax_deduction_type', {
+      enum: ['mortgage', 'student_loan', 'business', 'heloc_home', 'none'],
+    }).default('none'),
+    taxDeductionLimit: real('tax_deduction_limit'),
     createdAt: text('created_at').default(new Date().toISOString()),
   },
   (table) => ({
@@ -350,6 +394,12 @@ export const bills = sqliteTable(
     householdIdIdx: index('idx_bills_household').on(table.householdId),
     userHouseholdIdx: index('idx_bills_user_household').on(table.userId, table.householdId),
     specificDueDateIdx: index('idx_bills_specific_due_date').on(table.specificDueDate),
+    billTypeIdx: index('idx_bills_bill_type').on(table.billType),
+    isDebtIdx: index('idx_bills_is_debt').on(table.isDebt),
+    linkedAccountIdx: index('idx_bills_linked_account').on(table.linkedAccountId),
+    chargedToAccountIdx: index('idx_bills_charged_to_account').on(table.chargedToAccountId),
+    classificationIdx: index('idx_bills_classification').on(table.billClassification),
+    includeInStrategyIdx: index('idx_bills_include_in_strategy').on(table.includeInPayoffStrategy),
   })
 );
 

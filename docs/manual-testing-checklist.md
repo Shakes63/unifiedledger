@@ -33,6 +33,7 @@ This document provides a comprehensive checklist for manually testing all featur
 23. [Developer Mode](#23-developer-mode)
 24. [Experimental Features](#24-experimental-features)
 25. [Unified Architecture (Phase 1.1)](#25-unified-architecture-phase-11)
+26. [Unified Architecture (Phase 1.2)](#26-unified-architecture-phase-12)
 
 ---
 
@@ -402,6 +403,32 @@ Document issues in `docs/bugs.md` with: Bug Title, Steps to Reproduce, Expected/
 
 ---
 
+## 26. Unified Architecture (Phase 1.2)
+
+**Added: 2025-12-03** | **Result: SCHEMA VERIFIED**
+
+Phase 1.2 Bills Enhancement - schema changes applied, build verified.
+
+### Bills Table Schema
+- [x] `bill_type` column added (expense/income/savings_transfer)
+- [x] `bill_classification` column added (subscription/utility/housing/etc.)
+- [x] `classification_subcategory` column added
+- [x] `linked_account_id` column added (for credit card payment bills)
+- [x] `amount_source` column added (fixed/minimum_payment/statement_balance/full_balance)
+- [x] `charged_to_account_id` column added (for subscriptions charged to card)
+- [x] Autopay columns: `is_autopay_enabled`, `autopay_account_id`, `autopay_amount_type`, `autopay_fixed_amount`, `autopay_days_before`
+- [x] Debt extension columns: `is_debt`, `original_balance`, `remaining_balance`, `bill_interest_rate`, `interest_type`, `minimum_payment`, `bill_additional_monthly_payment`, `debt_type`, `bill_color`
+- [x] Strategy columns: `include_in_payoff_strategy`
+- [x] Tax columns: `is_interest_tax_deductible`, `tax_deduction_type`, `tax_deduction_limit`
+- [x] All indexes created
+
+### Schema Integration
+- [x] `lib/db/schema.ts` updated with new fields
+- [x] Application builds without errors
+- [x] Existing bills retain default values
+
+---
+
 ## Testing Summary
 
 | Section | Status | Notes |
@@ -430,9 +457,10 @@ Document issues in `docs/bugs.md` with: Bug Title, Steps to Reproduce, Expected/
 | 22. Onboarding | CODE VERIFIED | New user test needed |
 | 23. Developer Mode | PARTIAL | Persistence bug |
 | 24. Experimental | PASSING | All features verified |
-| 25. Unified Architecture | SCHEMA VERIFIED | Phase 1.1 schema applied |
+| 25. Unified Architecture (1.1) | SCHEMA VERIFIED | Phase 1.1 schema applied |
+| 26. Unified Architecture (1.2) | SCHEMA VERIFIED | Phase 1.2 schema applied |
 
-**Overall: 22/25 browser-tested, 3/25 code/schema-reviewed**
+**Overall: 22/26 browser-tested, 4/26 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-03
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true

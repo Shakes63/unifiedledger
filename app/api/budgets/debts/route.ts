@@ -178,7 +178,11 @@ export async function GET(request: Request): Promise<Response> {
         remainingBalance: debt.remainingBalance,
         interestRate: debt.interestRate || 0,
         payoffMonth: rolldownInfo?.payoffMonth || 0,
-        payoffDate: rolldownInfo?.payoffDate || strategy.debtFreeDate.toISOString(),
+        payoffDate: rolldownInfo?.payoffDate 
+          ? (rolldownInfo.payoffDate instanceof Date 
+              ? rolldownInfo.payoffDate.toISOString() 
+              : String(rolldownInfo.payoffDate))
+          : strategy.debtFreeDate.toISOString(),
         color: debt.color || '#ef4444',
         type: debt.type || 'other',
       };

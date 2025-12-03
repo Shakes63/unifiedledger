@@ -265,7 +265,7 @@ export function DebtPayoffTracker({
               {(debt.additionalMonthlyPayment ?? 0) > 0 && (
                 <p className="text-xs text-[var(--color-income)] flex items-center justify-center gap-1 mt-0.5">
                   <TrendingUp className="w-3 h-3" />
-                  +${debt.additionalMonthlyPayment.toLocaleString('en-US', { maximumFractionDigits: 2 })} extra
+                  +${(debt.additionalMonthlyPayment ?? 0).toLocaleString('en-US', { maximumFractionDigits: 2 })} extra
                 </p>
               )}
             </div>

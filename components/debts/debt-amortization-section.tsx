@@ -88,6 +88,7 @@ export function DebtAmortizationSection({
                 totalInterest: debtSchedule.totalInterestPaid,
               },
           schedules: [debtSchedule],
+          rolldownPayments: data.rolldownPayments?.filter((r: { debtId: string }) => r.debtId === debt.id) || [],
         };
 
         setStrategy(singleDebtStrategy);
