@@ -9,7 +9,11 @@
 // CORE ENTITY TYPES
 // ============================================================================
 
-export type AccountType = 'checking' | 'savings' | 'credit' | 'investment' | 'cash';
+export type AccountType = 'checking' | 'savings' | 'credit' | 'line_of_credit' | 'investment' | 'cash';
+
+export type InterestType = 'fixed' | 'variable';
+
+export type PaymentAmountSource = 'minimum_payment' | 'statement_balance' | 'full_balance' | 'fixed';
 
 export interface Account {
   id: string;
@@ -31,6 +35,31 @@ export interface Account {
   sortOrder: number;
   usageCount: number;
   lastUsedAt?: string | null;
+  // Statement tracking (for credit accounts)
+  statementBalance?: number | null;
+  statementDate?: string | null;
+  statementDueDate?: string | null;
+  minimumPaymentAmount?: number | null;
+  lastStatementUpdated?: string | null;
+  // Interest & payments (for credit accounts)
+  interestRate?: number | null;
+  minimumPaymentPercent?: number | null;
+  minimumPaymentFloor?: number | null;
+  additionalMonthlyPayment?: number | null;
+  // Line of credit specific fields
+  isSecured?: boolean;
+  securedAsset?: string | null;
+  drawPeriodEndDate?: string | null;
+  repaymentPeriodEndDate?: string | null;
+  interestType?: InterestType | null;
+  primeRateMargin?: number | null;
+  // Annual fee fields (for credit cards)
+  annualFee?: number | null;
+  annualFeeMonth?: number | null;
+  annualFeeBillId?: string | null;
+  // Automation and strategy fields
+  autoCreatePaymentBill?: boolean;
+  includeInPayoffStrategy?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -409,6 +438,23 @@ export interface AccountFormData {
   isBusinessAccount: boolean;
   enableSalesTax: boolean;
   enableTaxDeductions: boolean;
+  // Credit/Line of Credit fields (Phase 2)
+  interestRate?: number | null;
+  minimumPaymentPercent?: number | null;
+  minimumPaymentFloor?: number | null;
+  statementDueDay?: number | null;
+  annualFee?: number | null;
+  annualFeeMonth?: number | null;
+  autoCreatePaymentBill?: boolean;
+  includeInPayoffStrategy?: boolean;
+  paymentAmountSource?: PaymentAmountSource;
+  // Line of Credit specific fields
+  isSecured?: boolean;
+  securedAsset?: string | null;
+  drawPeriodEndDate?: string | null;
+  repaymentPeriodEndDate?: string | null;
+  interestType?: InterestType;
+  primeRateMargin?: number | null;
 }
 
 /**

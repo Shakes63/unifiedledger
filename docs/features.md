@@ -14,7 +14,8 @@ _Add new feature ideas here_
     - **Phase 1.3: Bill Instances & Payments** [COMPLETED 2025-12-03] - Added partial payment tracking, principal/interest breakdown, bill_payments table, and bill_milestones table.
     - **Phase 1.4: Categories & Household Settings** [COMPLETED 2025-12-03] - Added system/interest category flags, budget rollover fields, and debt payoff strategy settings.
     - **Phase 1.5: Transactions Enhancement** [COMPLETED 2025-12-03] - Added savings goal link to transactions. Note: Debt-to-bill migration deferred to separate phase.
-    - **Phases 2-19** - _Not started_
+    - **Phase 2: Account Creation Flow** [COMPLETED 2025-12-03] - Enhanced account form for credit cards and lines of credit with APR, payment due day, minimum payment settings, annual fee tracking, auto-bill creation toggle, and payoff strategy inclusion. Auto-creates linked payment bills and annual fee bills.
+    - **Phases 3-19** - _Not started_
 
 ---
 

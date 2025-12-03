@@ -37,6 +37,7 @@ This document provides a comprehensive checklist for manually testing all featur
 27. [Unified Architecture (Phase 1.3)](#27-unified-architecture-phase-13)
 28. [Unified Architecture (Phase 1.4)](#28-unified-architecture-phase-14)
 29. [Unified Architecture (Phase 1.5)](#29-unified-architecture-phase-15)
+30. [Unified Architecture (Phase 2)](#30-unified-architecture-phase-2)
 
 ---
 
@@ -508,6 +509,65 @@ Debt-to-bill data migration and legacy table cleanup are deferred to a separate 
 
 ---
 
+## 30. Unified Architecture (Phase 2)
+
+**Added: 2025-12-03** | **Result: NEEDS TESTING**
+
+Phase 2 Account Creation Flow - UI and API updates for credit card and line of credit accounts.
+
+### Account Form Updates
+- [ ] Account type dropdown includes "Line of Credit" option
+- [ ] Credit card type shows Credit Card Details section
+- [ ] Line of Credit type shows Line of Credit Details section
+- [ ] APR field accepts 0-100% values
+- [ ] Payment Due Day field accepts 1-31
+- [ ] Minimum Payment % field works
+- [ ] Minimum Payment Floor ($) field works
+- [ ] Annual Fee field works
+- [ ] Fee Month dropdown populates correctly
+
+### Credit Card Specific
+- [ ] Credit Limit field displays for credit cards
+- [ ] Amount Owed label changes from "Current Balance"
+- [ ] Annual Fee fields show for credit cards
+
+### Line of Credit Specific
+- [ ] Interest Type toggle (Fixed/Variable) works
+- [ ] Prime + margin field shows for Variable rate
+- [ ] Secured toggle shows asset description field
+- [ ] Draw Period End Date picker works
+- [ ] Repayment Period End Date picker works
+
+### Payment Tracking Section
+- [ ] "Set up monthly payment tracking" toggle defaults to ON
+- [ ] Payment Amount Source dropdown (Statement Balance, Minimum Payment, Full Balance)
+- [ ] "Include in debt payoff strategy" toggle defaults to ON
+- [ ] Tooltips display helpful information
+
+### Auto-Bill Creation
+- [ ] Creating credit card with payment tracking ON creates linked payment bill
+- [ ] Payment bill appears on Bills page
+- [ ] Bill has correct due day
+- [ ] Bill has correct amount source type
+- [ ] Creating credit card with annual fee creates annual fee bill
+- [ ] Annual fee bill has correct month and amount
+
+### Credit Limit History
+- [ ] Creating credit card with credit limit creates initial history record
+- [ ] Editing credit limit creates change history record
+- [ ] History shows correct change reason
+
+### API Verification
+- [ ] POST /api/accounts accepts all new credit fields
+- [ ] POST creates payment bill when autoCreatePaymentBill is true
+- [ ] POST creates annual fee bill when annualFee > 0
+- [ ] POST creates credit limit history when creditLimit set
+- [ ] PUT /api/accounts/[id] updates all credit fields
+- [ ] PUT tracks credit limit changes in history
+- [ ] PUT handles payment tracking toggle changes
+
+---
+
 ## Testing Summary
 
 | Section | Status | Notes |
@@ -541,8 +601,9 @@ Debt-to-bill data migration and legacy table cleanup are deferred to a separate 
 | 27. Unified Architecture (1.3) | SCHEMA VERIFIED | Phase 1.3 schema applied |
 | 28. Unified Architecture (1.4) | SCHEMA VERIFIED | Phase 1.4 schema applied |
 | 29. Unified Architecture (1.5) | SCHEMA VERIFIED | Phase 1.5 schema applied |
+| 30. Unified Architecture (Phase 2) | NEEDS TESTING | Account creation flow |
 
-**Overall: 22/29 browser-tested, 7/29 code/schema-reviewed**
+**Overall: 22/30 browser-tested, 8/30 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-03
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true
