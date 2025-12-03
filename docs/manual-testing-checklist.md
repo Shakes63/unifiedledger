@@ -35,6 +35,7 @@ This document provides a comprehensive checklist for manually testing all featur
 25. [Unified Architecture (Phase 1.1)](#25-unified-architecture-phase-11)
 26. [Unified Architecture (Phase 1.2)](#26-unified-architecture-phase-12)
 27. [Unified Architecture (Phase 1.3)](#27-unified-architecture-phase-13)
+28. [Unified Architecture (Phase 1.4)](#28-unified-architecture-phase-14)
 
 ---
 
@@ -458,6 +459,35 @@ Phase 1.3 Bill Instances & Payments - schema changes applied, build verified.
 
 ---
 
+## 28. Unified Architecture (Phase 1.4)
+
+**Added: 2025-12-03** | **Result: SCHEMA VERIFIED**
+
+Phase 1.4 Categories & Household Settings - schema changes applied, build verified.
+
+### Budget Categories Table Enhancements
+- [x] `is_system_category` column added (for auto-created categories)
+- [x] `is_interest_category` column added (for interest expense categories)
+- [x] `rollover_enabled` column added (enable budget rollover)
+- [x] `rollover_balance` column added (current rollover amount)
+- [x] `rollover_limit` column added (max rollover cap, null = unlimited)
+- [x] System category and rollover indexes created
+
+### Household Settings Table Enhancements
+- [x] `debt_strategy_enabled` column added (enable debt payoff strategy)
+- [x] `debt_payoff_method` column added (snowball/avalanche)
+- [x] `extra_monthly_payment` column added (additional debt payment)
+- [x] `payment_frequency` column added (weekly/biweekly/monthly)
+
+### Schema Integration
+- [x] `lib/db/schema.ts` updated with new fields
+- [x] Application builds without errors
+
+### Note
+Category type simplification (6 types to 3) is deferred to avoid breaking existing code.
+
+---
+
 ## Testing Summary
 
 | Section | Status | Notes |
@@ -489,8 +519,9 @@ Phase 1.3 Bill Instances & Payments - schema changes applied, build verified.
 | 25. Unified Architecture (1.1) | SCHEMA VERIFIED | Phase 1.1 schema applied |
 | 26. Unified Architecture (1.2) | SCHEMA VERIFIED | Phase 1.2 schema applied |
 | 27. Unified Architecture (1.3) | SCHEMA VERIFIED | Phase 1.3 schema applied |
+| 28. Unified Architecture (1.4) | SCHEMA VERIFIED | Phase 1.4 schema applied |
 
-**Overall: 22/27 browser-tested, 5/27 code/schema-reviewed**
+**Overall: 22/28 browser-tested, 6/28 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-03
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true

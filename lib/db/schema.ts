@@ -152,6 +152,13 @@ export const budgetCategories = sqliteTable(
     incomeFrequency: text('income_frequency', {
       enum: ['weekly', 'biweekly', 'monthly', 'variable'],
     }).default('variable'),
+    // System category flags (Phase 1.4)
+    isSystemCategory: integer('is_system_category', { mode: 'boolean' }).default(false),
+    isInterestCategory: integer('is_interest_category', { mode: 'boolean' }).default(false),
+    // Budget rollover (Phase 1.4)
+    rolloverEnabled: integer('rollover_enabled', { mode: 'boolean' }).default(false),
+    rolloverBalance: real('rollover_balance').default(0),
+    rolloverLimit: real('rollover_limit'), // null = unlimited
     createdAt: text('created_at').default(new Date().toISOString()),
   },
   (table) => ({
@@ -161,6 +168,8 @@ export const budgetCategories = sqliteTable(
     userTypeIdx: index('idx_budget_categories_user_type').on(table.userId, table.type),
     userUsageIdx: index('idx_budget_categories_user_usage').on(table.userId, table.usageCount),
     userActiveIdx: index('idx_budget_categories_user_active').on(table.userId, table.isActive),
+    systemCategoryIdx: index('idx_budget_categories_system').on(table.isSystemCategory),
+    rolloverIdx: index('idx_budget_categories_rollover').on(table.rolloverEnabled),
   })
 );
 
@@ -1029,6 +1038,16 @@ export const householdSettings = sqliteTable(
     dataRetentionYears: integer('data_retention_years').default(7),
     autoCleanupEnabled: integer('auto_cleanup_enabled', { mode: 'boolean' }).default(false),
     cacheStrategy: text('cache_strategy').default('normal'),
+
+    // Debt Payoff Strategy Settings (Phase 1.4)
+    debtStrategyEnabled: integer('debt_strategy_enabled', { mode: 'boolean' }).default(false),
+    debtPayoffMethod: text('debt_payoff_method', {
+      enum: ['snowball', 'avalanche'],
+    }).default('avalanche'),
+    extraMonthlyPayment: real('extra_monthly_payment').default(0),
+    paymentFrequency: text('payment_frequency', {
+      enum: ['weekly', 'biweekly', 'monthly'],
+    }).default('monthly'),
 
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
