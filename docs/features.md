@@ -15,7 +15,8 @@ _Add new feature ideas here_
     - **Phase 1.4: Categories & Household Settings** [COMPLETED 2025-12-03] - Added system/interest category flags, budget rollover fields, and debt payoff strategy settings.
     - **Phase 1.5: Transactions Enhancement** [COMPLETED 2025-12-03] - Added savings goal link to transactions. Note: Debt-to-bill migration deferred to separate phase.
     - **Phase 2: Account Creation Flow** [COMPLETED 2025-12-03] - Enhanced account form for credit cards and lines of credit with APR, payment due day, minimum payment settings, annual fee tracking, auto-bill creation toggle, and payoff strategy inclusion. Auto-creates linked payment bills and annual fee bills.
-    - **Phases 3-19** - _Not started_
+    - **Phase 3: Bill Form Updates** [COMPLETED 2025-12-03] - Enhanced bill form with debt toggle (balance, interest, compounding, payoff strategy, tax deduction settings), credit card linking (linkedAccountId for card payments, chargedToAccountId for auto-charges), autopay configuration (account, amount type, days before due), and bill classification dropdown.
+    - **Phases 4-19** - _Not started_
 
 ---
 

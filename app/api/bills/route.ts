@@ -177,6 +177,34 @@ export async function POST(request: Request) {
       accountId,
       autoMarkPaid = true,
       notes,
+      // Bill classification
+      billType = 'expense',
+      billClassification = 'other',
+      classificationSubcategory,
+      // Account linking
+      linkedAccountId,
+      amountSource = 'fixed',
+      chargedToAccountId,
+      // Autopay configuration
+      isAutopayEnabled = false,
+      autopayAccountId,
+      autopayAmountType = 'fixed',
+      autopayFixedAmount,
+      autopayDaysBefore = 0,
+      // Debt extension fields
+      isDebt = false,
+      originalBalance,
+      remainingBalance,
+      billInterestRate,
+      compoundingPeriod = 'monthly',
+      debtStartDate,
+      billColor,
+      // Payoff strategy
+      includeInPayoffStrategy = true,
+      // Tax deduction settings
+      isInterestTaxDeductible = false,
+      taxDeductionType = 'none',
+      taxDeductionLimit,
     } = body;
 
     // Validate required fields
@@ -259,6 +287,30 @@ export async function POST(request: Request) {
       }
     }
 
+    // Validate debt fields
+    if (isDebt && !originalBalance) {
+      return Response.json(
+        { error: 'Original balance is required for debt bills' },
+        { status: 400 }
+      );
+    }
+
+    // Validate autopay fields
+    if (isAutopayEnabled && !autopayAccountId) {
+      return Response.json(
+        { error: 'Autopay source account is required when autopay is enabled' },
+        { status: 400 }
+      );
+    }
+
+    // Validate mutually exclusive account links
+    if (linkedAccountId && chargedToAccountId) {
+      return Response.json(
+        { error: 'A bill cannot be both a payment to a card and charged to a card' },
+        { status: 400 }
+      );
+    }
+
     // Batch validation queries in parallel for better performance
     // Verify all related entities belong to the same household
     const validationPromises = [];
@@ -331,6 +383,60 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate linkedAccountId if provided
+    if (linkedAccountId) {
+      validationPromises.push(
+        db
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.id, linkedAccountId),
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId)
+            )
+          )
+          .limit(1)
+          .then(result => ({ type: 'linkedAccount', found: result.length > 0 }))
+      );
+    }
+
+    // Validate chargedToAccountId if provided
+    if (chargedToAccountId) {
+      validationPromises.push(
+        db
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.id, chargedToAccountId),
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId)
+            )
+          )
+          .limit(1)
+          .then(result => ({ type: 'chargedToAccount', found: result.length > 0 }))
+      );
+    }
+
+    // Validate autopayAccountId if provided
+    if (autopayAccountId) {
+      validationPromises.push(
+        db
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.id, autopayAccountId),
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId)
+            )
+          )
+          .limit(1)
+          .then(result => ({ type: 'autopayAccount', found: result.length > 0 }))
+      );
+    }
+
     // Execute all validation queries in parallel
     if (validationPromises.length > 0) {
       const validationResults = await Promise.all(validationPromises);
@@ -367,6 +473,40 @@ export async function POST(request: Request) {
       accountId,
       autoMarkPaid,
       notes,
+      // Bill classification
+      billType: billType || 'expense',
+      billClassification: billClassification || 'other',
+      classificationSubcategory: classificationSubcategory || null,
+      // Account linking
+      linkedAccountId: linkedAccountId || null,
+      amountSource: linkedAccountId ? (amountSource || 'fixed') : 'fixed',
+      chargedToAccountId: chargedToAccountId || null,
+      // Autopay configuration
+      isAutopayEnabled: isAutopayEnabled || false,
+      autopayAccountId: isAutopayEnabled ? (autopayAccountId || null) : null,
+      autopayAmountType: isAutopayEnabled ? (autopayAmountType || 'fixed') : null,
+      autopayFixedAmount: isAutopayEnabled && autopayAmountType === 'fixed' && autopayFixedAmount 
+        ? parseFloat(autopayFixedAmount) 
+        : null,
+      autopayDaysBefore: isAutopayEnabled ? (autopayDaysBefore || 0) : 0,
+      // Debt extension fields
+      isDebt: isDebt || false,
+      originalBalance: isDebt && originalBalance ? parseFloat(originalBalance) : null,
+      remainingBalance: isDebt 
+        ? (remainingBalance ? parseFloat(remainingBalance) : (originalBalance ? parseFloat(originalBalance) : null))
+        : null,
+      billInterestRate: isDebt && billInterestRate ? parseFloat(billInterestRate) : null,
+      compoundingPeriod: isDebt ? (compoundingPeriod || 'monthly') : null,
+      debtStartDate: isDebt ? (debtStartDate || null) : null,
+      billColor: isDebt ? (billColor || null) : null,
+      // Payoff strategy
+      includeInPayoffStrategy: isDebt ? (includeInPayoffStrategy ?? true) : null,
+      // Tax deduction settings
+      isInterestTaxDeductible: isDebt ? (isInterestTaxDeductible || false) : false,
+      taxDeductionType: isDebt && isInterestTaxDeductible ? (taxDeductionType || 'none') : 'none',
+      taxDeductionLimit: isDebt && isInterestTaxDeductible && taxDeductionLimit 
+        ? parseFloat(taxDeductionLimit) 
+        : null,
     };
 
     // Generate bill instances using helper functions

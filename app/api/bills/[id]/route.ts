@@ -134,6 +134,34 @@ export async function PUT(
       autoMarkPaid,
       notes,
       isActive,
+      // Bill classification
+      billType,
+      billClassification,
+      classificationSubcategory,
+      // Account linking
+      linkedAccountId,
+      amountSource,
+      chargedToAccountId,
+      // Autopay configuration
+      isAutopayEnabled,
+      autopayAccountId,
+      autopayAmountType,
+      autopayFixedAmount,
+      autopayDaysBefore,
+      // Debt extension fields
+      isDebt,
+      originalBalance,
+      remainingBalance,
+      billInterestRate,
+      compoundingPeriod,
+      debtStartDate,
+      billColor,
+      // Payoff strategy
+      includeInPayoffStrategy,
+      // Tax deduction settings
+      isInterestTaxDeductible,
+      taxDeductionType,
+      taxDeductionLimit,
     } = body;
 
     // Verify bill exists and belongs to user and household
@@ -224,6 +252,102 @@ export async function PUT(
       }
     }
 
+    // Validate linkedAccountId if provided
+    if (linkedAccountId && linkedAccountId !== existingBill[0].linkedAccountId) {
+      const linkedAccount = await db
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, linkedAccountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        )
+        .limit(1);
+
+      if (linkedAccount.length === 0) {
+        return Response.json(
+          { error: 'Linked account not found' },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Validate chargedToAccountId if provided
+    if (chargedToAccountId && chargedToAccountId !== existingBill[0].chargedToAccountId) {
+      const chargedAccount = await db
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, chargedToAccountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        )
+        .limit(1);
+
+      if (chargedAccount.length === 0) {
+        return Response.json(
+          { error: 'Charged to account not found' },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Validate autopayAccountId if provided
+    if (autopayAccountId && autopayAccountId !== existingBill[0].autopayAccountId) {
+      const autopayAccount = await db
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, autopayAccountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        )
+        .limit(1);
+
+      if (autopayAccount.length === 0) {
+        return Response.json(
+          { error: 'Autopay account not found' },
+          { status: 404 }
+        );
+      }
+    }
+
+    // Validate mutually exclusive account links
+    const effectiveLinkedAccountId = linkedAccountId !== undefined ? linkedAccountId : existingBill[0].linkedAccountId;
+    const effectiveChargedToAccountId = chargedToAccountId !== undefined ? chargedToAccountId : existingBill[0].chargedToAccountId;
+    if (effectiveLinkedAccountId && effectiveChargedToAccountId) {
+      return Response.json(
+        { error: 'A bill cannot be both a payment to a card and charged to a card' },
+        { status: 400 }
+      );
+    }
+
+    // Validate debt fields
+    const effectiveIsDebt = isDebt !== undefined ? isDebt : existingBill[0].isDebt;
+    const effectiveOriginalBalance = originalBalance !== undefined ? originalBalance : existingBill[0].originalBalance;
+    if (effectiveIsDebt && !effectiveOriginalBalance) {
+      return Response.json(
+        { error: 'Original balance is required for debt bills' },
+        { status: 400 }
+      );
+    }
+
+    // Validate autopay fields
+    const effectiveIsAutopayEnabled = isAutopayEnabled !== undefined ? isAutopayEnabled : existingBill[0].isAutopayEnabled;
+    const effectiveAutopayAccountId = autopayAccountId !== undefined ? autopayAccountId : existingBill[0].autopayAccountId;
+    if (effectiveIsAutopayEnabled && !effectiveAutopayAccountId) {
+      return Response.json(
+        { error: 'Autopay source account is required when autopay is enabled' },
+        { status: 400 }
+      );
+    }
+
     // Validate startMonth if provided
     if (startMonth !== undefined) {
       // Get the bill's frequency to validate startMonth
@@ -246,7 +370,7 @@ export async function PUT(
     }
 
     // Build update object with only provided fields
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (name !== undefined) updateData.name = name;
     if (categoryId !== undefined) updateData.categoryId = categoryId;
     if (merchantId !== undefined) updateData.merchantId = merchantId || null;
@@ -268,6 +392,40 @@ export async function PUT(
     if (autoMarkPaid !== undefined) updateData.autoMarkPaid = autoMarkPaid;
     if (notes !== undefined) updateData.notes = notes;
     if (isActive !== undefined) updateData.isActive = isActive;
+    
+    // Bill classification
+    if (billType !== undefined) updateData.billType = billType;
+    if (billClassification !== undefined) updateData.billClassification = billClassification;
+    if (classificationSubcategory !== undefined) updateData.classificationSubcategory = classificationSubcategory || null;
+    
+    // Account linking
+    if (linkedAccountId !== undefined) updateData.linkedAccountId = linkedAccountId || null;
+    if (amountSource !== undefined) updateData.amountSource = amountSource;
+    if (chargedToAccountId !== undefined) updateData.chargedToAccountId = chargedToAccountId || null;
+    
+    // Autopay configuration
+    if (isAutopayEnabled !== undefined) updateData.isAutopayEnabled = isAutopayEnabled;
+    if (autopayAccountId !== undefined) updateData.autopayAccountId = autopayAccountId || null;
+    if (autopayAmountType !== undefined) updateData.autopayAmountType = autopayAmountType;
+    if (autopayFixedAmount !== undefined) updateData.autopayFixedAmount = autopayFixedAmount ? parseFloat(autopayFixedAmount) : null;
+    if (autopayDaysBefore !== undefined) updateData.autopayDaysBefore = autopayDaysBefore;
+    
+    // Debt extension fields
+    if (isDebt !== undefined) updateData.isDebt = isDebt;
+    if (originalBalance !== undefined) updateData.originalBalance = originalBalance ? parseFloat(originalBalance) : null;
+    if (remainingBalance !== undefined) updateData.remainingBalance = remainingBalance ? parseFloat(remainingBalance) : null;
+    if (billInterestRate !== undefined) updateData.billInterestRate = billInterestRate ? parseFloat(billInterestRate) : null;
+    if (compoundingPeriod !== undefined) updateData.compoundingPeriod = compoundingPeriod;
+    if (debtStartDate !== undefined) updateData.debtStartDate = debtStartDate || null;
+    if (billColor !== undefined) updateData.billColor = billColor || null;
+    
+    // Payoff strategy
+    if (includeInPayoffStrategy !== undefined) updateData.includeInPayoffStrategy = includeInPayoffStrategy;
+    
+    // Tax deduction settings
+    if (isInterestTaxDeductible !== undefined) updateData.isInterestTaxDeductible = isInterestTaxDeductible;
+    if (taxDeductionType !== undefined) updateData.taxDeductionType = taxDeductionType;
+    if (taxDeductionLimit !== undefined) updateData.taxDeductionLimit = taxDeductionLimit ? parseFloat(taxDeductionLimit) : null;
 
     await db
       .update(bills)

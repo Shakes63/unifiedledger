@@ -10,7 +10,7 @@
 | 1.4 | Categories & Household Settings | COMPLETED 2025-12-03 |
 | 1.5 | Transactions Enhancement | COMPLETED 2025-12-03 |
 | 2 | Account Creation Flow | COMPLETED 2025-12-03 |
-| 3 | Bill Form Updates | Not Started |
+| 3 | Bill Form Updates | COMPLETED 2025-12-03 |
 | 4 | Display Updates | Not Started |
 | 5 | Transaction Flow Updates | Not Started |
 | 6 | Autopay System | Not Started |

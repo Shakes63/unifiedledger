@@ -38,6 +38,7 @@ This document provides a comprehensive checklist for manually testing all featur
 28. [Unified Architecture (Phase 1.4)](#28-unified-architecture-phase-14)
 29. [Unified Architecture (Phase 1.5)](#29-unified-architecture-phase-15)
 30. [Unified Architecture (Phase 2)](#30-unified-architecture-phase-2)
+31. [Unified Architecture (Phase 3)](#31-unified-architecture-phase-3)
 
 ---
 
@@ -568,6 +569,70 @@ Phase 2 Account Creation Flow - UI and API updates for credit card and line of c
 
 ---
 
+## 31. Unified Architecture (Phase 3)
+
+**Added: 2025-12-03** | **Result: NEEDS TESTING**
+
+Phase 3 Bill Form Updates - Enhanced bill form with debt, autopay, and credit card linking features.
+
+### Bill Classification
+- [ ] Bill Classification dropdown shows all 7 options (Subscription, Utility, Insurance, Loan Payment, Credit Card Payment, Rent/Mortgage, Other)
+- [ ] Classification saves correctly to database
+- [ ] Classification loads correctly when editing bill
+
+### Credit Card Linking Section (only shows when credit accounts exist)
+- [ ] "Linked Credit Card/LOC" section appears when credit accounts exist
+- [ ] Dropdown shows only credit and line_of_credit accounts
+- [ ] Selecting linked account shows Amount Source dropdown
+- [ ] Amount Source options: Fixed, Minimum Payment, Statement Balance, Full Balance
+- [ ] Info box shows when linked account selected
+- [ ] "Charged to Credit Card" section shows when NO linked account selected
+- [ ] Cannot select both linkedAccountId AND chargedToAccountId (mutually exclusive)
+
+### Autopay Configuration
+- [ ] Autopay toggle expands configuration section
+- [ ] Pay From Account dropdown shows all accounts
+- [ ] Amount dropdown defaults to "Fixed Amount"
+- [ ] Amount dropdown shows credit-specific options when linkedAccountId is set
+- [ ] Fixed Amount input appears when amount type is "fixed"
+- [ ] Days Before Due dropdown shows 0, 1, 2, 3, 5, 7, 14 options
+- [ ] Warning message displays about automatic transactions
+- [ ] Validation: autopayAccountId required when autopay enabled
+
+### Debt Configuration
+- [ ] "This is a debt" toggle expands debt section
+- [ ] Original Balance field (required when isDebt=true)
+- [ ] Remaining Balance field (defaults to original if not set)
+- [ ] Interest Rate (APR %) field
+- [ ] Compounding dropdown (Daily, Monthly, Annually)
+- [ ] Debt Start Date picker
+- [ ] Color picker with 8 color options
+- [ ] "Include in payoff strategy" toggle (defaults ON)
+- [ ] Validation: originalBalance required when isDebt=true
+
+### Tax Deduction Settings (inside debt section)
+- [ ] "Interest is tax deductible" toggle
+- [ ] Deduction Type dropdown appears when enabled (None, Mortgage, Student Loan, Business, HELOC/Home Equity)
+- [ ] Annual Limit input field appears when enabled
+- [ ] All settings save correctly
+
+### Form Validation
+- [ ] Cannot submit with linkedAccountId AND chargedToAccountId both set
+- [ ] Cannot submit debt bill without original balance
+- [ ] Cannot enable autopay without selecting source account
+
+### API Integration
+- [ ] POST /api/bills accepts all new fields
+- [ ] PUT /api/bills/[id] updates all new fields
+- [ ] Validation returns proper error messages
+- [ ] Account ID references validated for household membership
+
+### Save & Add Another
+- [ ] All new fields reset properly after save & add another
+- [ ] Debt, autopay, and advanced sections collapse after reset
+
+---
+
 ## Testing Summary
 
 | Section | Status | Notes |
@@ -602,8 +667,9 @@ Phase 2 Account Creation Flow - UI and API updates for credit card and line of c
 | 28. Unified Architecture (1.4) | SCHEMA VERIFIED | Phase 1.4 schema applied |
 | 29. Unified Architecture (1.5) | SCHEMA VERIFIED | Phase 1.5 schema applied |
 | 30. Unified Architecture (Phase 2) | NEEDS TESTING | Account creation flow |
+| 31. Unified Architecture (Phase 3) | NEEDS TESTING | Bill form updates |
 
-**Overall: 22/30 browser-tested, 8/30 code/schema-reviewed**
+**Overall: 22/31 browser-tested, 9/31 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-03
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true
