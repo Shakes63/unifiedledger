@@ -422,6 +422,15 @@ export const billInstances = sqliteTable(
     lateFee: real('late_fee').default(0),
     isManualOverride: integer('is_manual_override', { mode: 'boolean' }).default(false),
     notes: text('notes'),
+    // Partial payment tracking (Phase 1.3)
+    paidAmount: real('paid_amount').default(0),
+    remainingAmount: real('remaining_amount'),
+    paymentStatus: text('payment_status', {
+      enum: ['unpaid', 'partial', 'paid', 'overpaid'],
+    }).default('unpaid'),
+    // Principal/interest breakdown for debt bills
+    principalPaid: real('principal_paid').default(0),
+    interestPaid: real('interest_paid').default(0),
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   },
@@ -430,6 +439,64 @@ export const billInstances = sqliteTable(
     userIdIdx: index('idx_bill_instances_user').on(table.userId),
     householdIdIdx: index('idx_bill_instances_household').on(table.householdId),
     userHouseholdIdx: index('idx_bill_instances_user_household').on(table.userId, table.householdId),
+    paymentStatusIdx: index('idx_bill_instances_payment_status').on(table.paymentStatus),
+  })
+);
+
+// Bill Payments - Track individual payments toward bill instances (Phase 1.3)
+export const billPayments = sqliteTable(
+  'bill_payments',
+  {
+    id: text('id').primaryKey(),
+    billId: text('bill_id').notNull(),
+    billInstanceId: text('bill_instance_id'),
+    transactionId: text('transaction_id'),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
+    amount: real('amount').notNull(),
+    principalAmount: real('principal_amount'),
+    interestAmount: real('interest_amount'),
+    paymentDate: text('payment_date').notNull(),
+    paymentMethod: text('payment_method', {
+      enum: ['manual', 'transfer', 'autopay'],
+    }).default('manual'),
+    linkedAccountId: text('linked_account_id'),
+    balanceBeforePayment: real('balance_before_payment'),
+    balanceAfterPayment: real('balance_after_payment'),
+    notes: text('notes'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    billIdIdx: index('idx_bill_payments_bill').on(table.billId),
+    billInstanceIdIdx: index('idx_bill_payments_instance').on(table.billInstanceId),
+    transactionIdIdx: index('idx_bill_payments_transaction').on(table.transactionId),
+    userIdIdx: index('idx_bill_payments_user').on(table.userId),
+    householdIdIdx: index('idx_bill_payments_household').on(table.householdId),
+    paymentDateIdx: index('idx_bill_payments_date').on(table.paymentDate),
+  })
+);
+
+// Bill Milestones - Track payoff milestones for debt bills and credit accounts (Phase 1.3)
+export const billMilestones = sqliteTable(
+  'bill_milestones',
+  {
+    id: text('id').primaryKey(),
+    billId: text('bill_id'), // For debt bills
+    accountId: text('account_id'), // For credit accounts
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
+    percentage: integer('percentage').notNull(), // 25, 50, 75, 100
+    milestoneBalance: real('milestone_balance').notNull(),
+    achievedAt: text('achieved_at'),
+    notificationSentAt: text('notification_sent_at'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    billIdIdx: index('idx_bill_milestones_bill').on(table.billId),
+    accountIdIdx: index('idx_bill_milestones_account').on(table.accountId),
+    userIdIdx: index('idx_bill_milestones_user').on(table.userId),
+    householdIdIdx: index('idx_bill_milestones_household').on(table.householdId),
+    percentageIdx: index('idx_bill_milestones_percentage').on(table.percentage),
   })
 );
 

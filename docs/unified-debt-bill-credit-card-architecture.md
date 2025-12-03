@@ -6,7 +6,7 @@
 |-------|-------------|--------|
 | 1.1 | Accounts Enhancement (Credit Cards & Lines of Credit) | COMPLETED 2025-12-03 |
 | 1.2 | Bills Enhancement (Debt Extension & Autopay) | COMPLETED 2025-12-03 |
-| 1.3 | Bill Instances & Payments | Not Started |
+| 1.3 | Bill Instances & Payments | COMPLETED 2025-12-03 |
 | 1.4 | Categories & Household Settings | Not Started |
 | 1.5 | Transactions & Legacy Cleanup | Not Started |
 | 2 | Account Creation Flow | Not Started |
