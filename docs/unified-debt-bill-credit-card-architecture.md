@@ -8,7 +8,7 @@
 | 1.2 | Bills Enhancement (Debt Extension & Autopay) | COMPLETED 2025-12-03 |
 | 1.3 | Bill Instances & Payments | COMPLETED 2025-12-03 |
 | 1.4 | Categories & Household Settings | COMPLETED 2025-12-03 |
-| 1.5 | Transactions & Legacy Cleanup | Not Started |
+| 1.5 | Transactions Enhancement | COMPLETED 2025-12-03 |
 | 2 | Account Creation Flow | Not Started |
 | 3 | Bill Form Updates | Not Started |
 | 4 | Display Updates | Not Started |

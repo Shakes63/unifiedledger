@@ -245,6 +245,7 @@ export const transactions = sqliteTable(
     merchantId: text('merchant_id'),
     billId: text('bill_id'),
     debtId: text('debt_id'), // Direct link to debt for manual/irregular payments
+    savingsGoalId: text('savings_goal_id'), // Link to savings goal for contributions (Phase 1.5)
     date: text('date').notNull(),
     amount: real('amount').notNull(),
     description: text('description').notNull(),
@@ -298,6 +299,8 @@ export const transactions = sqliteTable(
     // Sales tax indexes for efficient reporting
     salesTaxableIdx: index('idx_transactions_sales_taxable').on(table.isSalesTaxable),
     userSalesTaxableIdx: index('idx_transactions_user_sales_taxable').on(table.userId, table.isSalesTaxable),
+    // Savings goal index (Phase 1.5)
+    savingsGoalIdx: index('idx_transactions_savings_goal').on(table.savingsGoalId),
   })
 );
 

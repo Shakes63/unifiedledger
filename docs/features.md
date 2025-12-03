@@ -13,7 +13,7 @@ _Add new feature ideas here_
     - **Phase 1.2: Bills Enhancement** [COMPLETED 2025-12-03] - Added bill type/classification, account linking, autopay settings, debt extension fields, and tax deduction settings.
     - **Phase 1.3: Bill Instances & Payments** [COMPLETED 2025-12-03] - Added partial payment tracking, principal/interest breakdown, bill_payments table, and bill_milestones table.
     - **Phase 1.4: Categories & Household Settings** [COMPLETED 2025-12-03] - Added system/interest category flags, budget rollover fields, and debt payoff strategy settings.
-    - **Phase 1.5: Transactions & Legacy Cleanup** - _Not started_
+    - **Phase 1.5: Transactions Enhancement** [COMPLETED 2025-12-03] - Added savings goal link to transactions. Note: Debt-to-bill migration deferred to separate phase.
     - **Phases 2-19** - _Not started_
 
 ---
