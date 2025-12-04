@@ -47,6 +47,8 @@ This document provides a comprehensive checklist for manually testing all featur
 37. [Unified Architecture (Phase 9)](#37-unified-architecture-phase-9)
 38. [Unified Architecture (Phase 10)](#38-unified-architecture-phase-10)
 39. [Unified Architecture (Phase 11)](#39-unified-architecture-phase-11)
+40. [Unified Architecture (Phase 12)](#40-unified-architecture-phase-12)
+41. [Unified Architecture (Phase 13)](#41-unified-architecture-phase-13)
 
 ---
 
@@ -1029,8 +1031,9 @@ Phase 9 implements calendar integration with the unified debt architecture.
 | 38. Unified Architecture (Phase 10) | CODE COMPLETE | Notifications system |
 | 39. Unified Architecture (Phase 11) | CODE COMPLETE | Tax integration |
 | 40. Unified Architecture (Phase 12) | CODE COMPLETE | CSV import enhancements |
+| 41. Unified Architecture (Phase 13) | CODE COMPLETE | Dashboard widgets |
 
-**Overall: 22/40 browser-tested, 18/40 code/schema-reviewed**
+**Overall: 22/41 browser-tested, 19/41 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-04
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true
@@ -1203,3 +1206,63 @@ Phase 12 implements CSV import enhancements for credit card statements.
 - [ ] Response includes transferMatches count
 - [ ] Staging records include ccTransactionType, potentialTransferId
 - [ ] Credit card processing applied when sourceType=credit_card
+
+---
+
+## 41. Unified Architecture (Phase 13)
+
+**Added: 2025-12-04** | **Result: CODE COMPLETE**
+
+Phase 13 implements dashboard widget updates to use the unified debt architecture.
+
+### Debt-Free Countdown Widget
+- [ ] Uses unified debt sources (credit accounts + debt bills)
+- [ ] Credit accounts with type=credit or line_of_credit included
+- [ ] Debt bills with isDebt=true included
+- [ ] Only debts with balance > 0 counted
+- [ ] Only debts with includeInPayoffStrategy=true in payoff calculation
+- [ ] Focus debt shows source indicator (account vs bill)
+- [ ] Strategy settings read from householdSettings table
+- [ ] Response includes source breakdown (creditAccounts, debtBills counts)
+- [ ] Debt-free celebration shows when no unified debts exist
+
+### Credit Utilization Widget
+- [ ] Uses accounts table instead of debts table
+- [ ] Includes credit type accounts (credit cards)
+- [ ] Includes line_of_credit type accounts
+- [ ] Only active accounts included
+- [ ] Only accounts with creditLimit > 0 included
+- [ ] Uses Math.abs(currentBalance) for balance (negative = debt owed)
+- [ ] Response includes accountId alongside debtId for compatibility
+- [ ] Response includes accountType field
+- [ ] Summary includes creditCardCount and lineOfCreditCount
+- [ ] Utilization calculations match previous behavior
+
+### Next Payment Due Widget
+- [ ] Shows next 5 upcoming bill payments
+- [ ] Overdue bills highlighted with red indicator
+- [ ] Overdue bills sorted first (oldest first)
+- [ ] Pending bills sorted by due date (soonest first)
+- [ ] Credit card payment bills show credit card icon
+- [ ] Credit card payment bills show linked account name
+- [ ] Autopay-enabled bills show lightning bolt icon
+- [ ] Days until due label shows correctly (Today, Tomorrow, X days)
+- [ ] Overdue label shows correctly (X days overdue)
+- [ ] Summary shows overdue count and total
+- [ ] Summary shows next 7 days count and total
+- [ ] "View all bills" link appears when more bills exist
+- [ ] Empty state shows "All caught up!" message
+- [ ] Clicking row navigates to bills page
+
+### Dashboard Layout
+- [ ] Bills section uses responsive grid layout
+- [ ] EnhancedBillsWidget takes 2/3 width on large screens
+- [ ] NextPaymentDueWidget takes 1/3 width on large screens
+- [ ] Widgets stack vertically on mobile
+
+### API Endpoints
+- [ ] GET /api/debts/countdown returns unified debt data
+- [ ] GET /api/debts/credit-utilization uses accounts table
+- [ ] GET /api/bills/next-due returns upcoming bill instances
+- [ ] All endpoints filter by household correctly
+- [ ] All endpoints require authentication

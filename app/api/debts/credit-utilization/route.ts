@@ -1,8 +1,8 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { debts } from '@/lib/db/schema';
-import { eq, and, isNotNull } from 'drizzle-orm';
+import { accounts } from '@/lib/db/schema';
+import { eq, and, isNotNull, inArray } from 'drizzle-orm';
 import {
   getUtilizationLevel,
   getUtilizationColor,
@@ -18,22 +18,23 @@ export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
     const { householdId } = await getAndVerifyHousehold(request, userId);
-    // Get all active credit card debts with credit limits set for this household
-    const creditCards = await db
+    
+    // Get all active credit accounts (credit cards + lines of credit) with credit limits
+    // Now using the accounts table instead of debts table (Phase 13 unified architecture)
+    const creditAccounts = await db
       .select()
-      .from(debts)
+      .from(accounts)
       .where(
         and(
-          eq(debts.userId, userId),
-          eq(debts.householdId, householdId),
-          eq(debts.status, 'active'),
-          eq(debts.type, 'credit_card'),
-          isNotNull(debts.creditLimit)
+          eq(accounts.householdId, householdId),
+          inArray(accounts.type, ['credit', 'line_of_credit']),
+          eq(accounts.isActive, true),
+          isNotNull(accounts.creditLimit)
         )
       );
 
-    // If no credit cards with limits, return empty response
-    if (creditCards.length === 0) {
+    // If no credit accounts with limits, return empty response
+    if (creditAccounts.length === 0) {
       return new Response(
         JSON.stringify({
           cards: [],
@@ -53,12 +54,14 @@ export async function GET(request: Request) {
     }
 
     // Transform to the format expected by utility functions
-    const cardData = creditCards.map((card) => ({
-      id: card.id,
-      name: card.name || 'Unknown Card',
-      balance: card.remainingBalance || 0,
-      limit: card.creditLimit || 0,
-      color: card.color || undefined,
+    // Credit accounts store balance as negative (liability), so we use absolute value
+    const cardData = creditAccounts.map((acc) => ({
+      id: acc.id,
+      name: acc.name || 'Unknown Account',
+      balance: Math.abs(acc.currentBalance || 0),
+      limit: acc.creditLimit || 0,
+      color: acc.color || undefined,
+      type: acc.type, // Include type for UI differentiation
     }));
 
     // Calculate aggregate statistics
@@ -66,6 +69,7 @@ export async function GET(request: Request) {
 
     // Build detailed card information with recommendations
     const cardsWithDetails = stats.cards.map((card) => {
+      const originalAcc = creditAccounts.find(a => a.id === card.id);
       const recommendation = getUtilizationRecommendation(card.utilization);
       const paymentToTarget = calculatePaymentToTarget(card.balance, card.limit, 30);
       const currentUtilization = card.utilization;
@@ -76,7 +80,8 @@ export async function GET(request: Request) {
           : 0;
 
       return {
-        debtId: card.id,
+        debtId: card.id, // Keep as debtId for backwards compatibility
+        accountId: card.id, // Also include as accountId for new architecture
         name: card.name,
         balance: card.balance,
         creditLimit: card.limit,
@@ -84,6 +89,8 @@ export async function GET(request: Request) {
         utilization: card.utilization,
         level: card.level,
         color: getUtilizationColor(card.utilization),
+        accountColor: originalAcc?.color || undefined,
+        accountType: originalAcc?.type || 'credit',
         recommendation,
         paymentToTarget: paymentToTarget > 0 ? paymentToTarget : null,
         estimatedScoreImpact: scoreImpact,
@@ -110,6 +117,9 @@ export async function GET(request: Request) {
       level: getUtilizationLevel(stats.overallUtilization),
       cardsOverTarget: stats.cardsOverThreshold,
       healthScore: Math.round(healthScore),
+      // Include type breakdown for UI
+      creditCardCount: creditAccounts.filter(a => a.type === 'credit').length,
+      lineOfCreditCount: creditAccounts.filter(a => a.type === 'line_of_credit').length,
     };
 
     return new Response(

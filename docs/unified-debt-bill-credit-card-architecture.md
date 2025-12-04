@@ -3468,10 +3468,12 @@ Since there are no production users yet, we can do a clean slate:
 - Database schema updates: sourceType, issuer, amountSignConvention on import_templates; ccTransactionType, potentialTransferId on import_staging
 - New files: `lib/csv-import/credit-card-detection.ts`, `lib/csv-import/cc-templates.ts`
 
-### Phase 13: Dashboard Widgets
-- Update debt-free countdown widget for new architecture
-- Credit utilization widget (all cards overview)
-- Next payment due widget (across all bills)
+### Phase 13: Dashboard Widgets [COMPLETED 2025-12-04]
+- ✅ Updated debt-free countdown widget to use unified debt sources (credit accounts + debt bills)
+- ✅ Updated credit utilization widget to use accounts table instead of debts table
+- ✅ Created Next Payment Due widget with overdue highlighting, autopay indicators, and credit card linking
+- New files: `app/api/bills/next-due/route.ts`, `components/dashboard/next-payment-due-widget.tsx`
+- Modified: `app/api/debts/countdown/route.ts`, `app/api/debts/credit-utilization/route.ts`
 
 ### Phase 14: Balance History & Trends
 - Daily cron job to capture balance snapshots

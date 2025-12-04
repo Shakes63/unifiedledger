@@ -1,8 +1,8 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { debts, debtSettings, debtPayments } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { accounts, bills, householdSettings, billPayments } from '@/lib/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 import { calculatePayoffStrategy, type DebtInput, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
 import Decimal from 'decimal.js';
 
@@ -18,6 +18,7 @@ interface Milestone {
 interface FocusDebtInfo {
   id: string;
   name: string;
+  source: 'account' | 'bill';
   originalAmount: number;
   remainingBalance: number;
   percentagePaid: number;
@@ -32,25 +33,106 @@ interface FocusDebtInfo {
   icon: string | null;
 }
 
+// Unified debt structure for internal use
+interface UnifiedDebtData {
+  id: string;
+  name: string;
+  source: 'account' | 'bill';
+  remainingBalance: number;
+  originalBalance: number;
+  minimumPayment: number;
+  additionalMonthlyPayment: number;
+  interestRate: number;
+  type: string;
+  loanType: 'revolving' | 'installment';
+  includeInStrategy: boolean;
+  color: string | null;
+  icon: string | null;
+  createdAt: string;
+}
+
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
     const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // Fetch user's active debts for this household
-    const activeDebts = await db
+    // Fetch credit accounts (credit cards + lines of credit) for this household
+    const creditAccounts = await db
       .select()
-      .from(debts)
+      .from(accounts)
       .where(
         and(
-          eq(debts.userId, userId),
-          eq(debts.householdId, householdId),
-          eq(debts.status, 'active')
+          eq(accounts.householdId, householdId),
+          inArray(accounts.type, ['credit', 'line_of_credit']),
+          eq(accounts.isActive, true)
         )
       );
 
-    // If no active debts, user is debt-free!
-    if (activeDebts.length === 0) {
+    // Fetch debt bills for this household
+    const debtBills = await db
+      .select()
+      .from(bills)
+      .where(
+        and(
+          eq(bills.householdId, householdId),
+          eq(bills.isDebt, true),
+          eq(bills.isActive, true)
+        )
+      );
+
+    // Normalize to unified debt format
+    const unifiedDebts: UnifiedDebtData[] = [];
+
+    // Add credit accounts as debts
+    for (const acc of creditAccounts) {
+      const balance = Math.abs(acc.currentBalance || 0);
+      // Skip accounts with no balance
+      if (balance <= 0) continue;
+      
+      unifiedDebts.push({
+        id: acc.id,
+        name: acc.name,
+        source: 'account',
+        remainingBalance: balance,
+        originalBalance: acc.creditLimit || balance, // Use credit limit as "original" for credit cards
+        minimumPayment: acc.minimumPaymentAmount || 0,
+        additionalMonthlyPayment: acc.additionalMonthlyPayment || 0,
+        interestRate: acc.interestRate || 0,
+        type: acc.type === 'line_of_credit' ? 'line_of_credit' : 'credit_card',
+        loanType: 'revolving',
+        includeInStrategy: acc.includeInPayoffStrategy ?? true,
+        color: acc.color || null,
+        icon: acc.icon || null,
+        createdAt: acc.createdAt || new Date().toISOString(),
+      });
+    }
+
+    // Add debt bills
+    for (const bill of debtBills) {
+      const balance = bill.remainingBalance || 0;
+      // Skip bills with no balance
+      if (balance <= 0) continue;
+
+      unifiedDebts.push({
+        id: bill.id,
+        name: bill.name,
+        source: 'bill',
+        remainingBalance: balance,
+        originalBalance: bill.originalBalance || balance,
+        minimumPayment: bill.minimumPayment || 0,
+        additionalMonthlyPayment: bill.billAdditionalMonthlyPayment || 0,
+        interestRate: bill.billInterestRate || 0,
+        type: bill.debtType || 'other',
+        loanType: bill.debtType === 'mortgage' || bill.debtType === 'auto_loan' || bill.debtType === 'student_loan' ? 'installment' : 'revolving',
+        includeInStrategy: bill.includeInPayoffStrategy ?? true,
+        color: bill.billColor || null,
+        icon: null,
+        createdAt: bill.createdAt || new Date().toISOString(),
+      });
+    }
+
+    // If no unified debts, user is debt-free!
+    if (unifiedDebts.length === 0) {
       return Response.json({
         hasDebts: false,
         totalMonthsRemaining: 0,
@@ -63,33 +145,32 @@ export async function GET(request: Request) {
       });
     }
 
-    // Fetch user's debt settings for this household
+    // Fetch household settings for debt strategy preferences
     const settings = await db
       .select()
-      .from(debtSettings)
-      .where(
-        and(
-          eq(debtSettings.userId, userId),
-          eq(debtSettings.householdId, householdId)
-        )
-      )
+      .from(householdSettings)
+      .where(eq(householdSettings.householdId, householdId))
       .limit(1);
 
     const extraPayment = settings.length > 0 ? (settings[0].extraMonthlyPayment || 0) : 0;
-    const preferredMethod = settings.length > 0 ? (settings[0].preferredMethod || 'avalanche') : 'avalanche';
-    const paymentFrequency: PaymentFrequency = settings.length > 0 ? (settings[0].paymentFrequency as PaymentFrequency || 'monthly') : 'monthly';
+    const preferredMethod = settings.length > 0 ? (settings[0].debtPayoffMethod || 'avalanche') : 'avalanche';
+    const paymentFrequency: PaymentFrequency = settings.length > 0 
+      ? (settings[0].paymentFrequency as PaymentFrequency || 'monthly') 
+      : 'monthly';
 
-    // Transform debts to DebtInput format
-    const debtInputs: DebtInput[] = activeDebts.map(debt => ({
+    // Filter to only include debts in the payoff strategy
+    const strategyDebts = unifiedDebts.filter(d => d.includeInStrategy);
+
+    // Transform unified debts to DebtInput format for calculator
+    const debtInputs: DebtInput[] = strategyDebts.map(debt => ({
       id: debt.id,
       name: debt.name,
       remainingBalance: debt.remainingBalance,
-      minimumPayment: debt.minimumPayment || 0,
-      interestRate: debt.interestRate || 0,
-      type: debt.type || 'other',
-      loanType: debt.loanType as 'revolving' | 'installment' | undefined,
-      compoundingFrequency: debt.compoundingFrequency as 'daily' | 'monthly' | 'quarterly' | 'annually' | undefined,
-      billingCycleDays: debt.billingCycleDays || undefined,
+      minimumPayment: debt.minimumPayment,
+      additionalMonthlyPayment: debt.additionalMonthlyPayment || undefined,
+      interestRate: debt.interestRate,
+      type: debt.type,
+      loanType: debt.loanType,
       color: debt.color || undefined,
       icon: debt.icon || undefined,
     }));
@@ -102,8 +183,8 @@ export async function GET(request: Request) {
     let focusDebt: FocusDebtInfo | null = null;
 
     if (focusRolldown) {
-      // Find the original debt data
-      const originalDebt = activeDebts.find(d => d.id === focusRolldown.debtId);
+      // Find the original unified debt data
+      const originalDebt = unifiedDebts.find(d => d.id === focusRolldown.debtId);
       
       if (originalDebt) {
         // Calculate days remaining until payoff
@@ -116,18 +197,19 @@ export async function GET(request: Request) {
         const daysRemaining = totalDaysRemaining - (monthsRemaining * 30);
         
         // Calculate percentage paid for this specific debt
-        const paidOnDebt = new Decimal(originalDebt.originalAmount).minus(originalDebt.remainingBalance);
-        const percentagePaid = originalDebt.originalAmount > 0
-          ? paidOnDebt.dividedBy(originalDebt.originalAmount).times(100).toNumber()
+        const paidOnDebt = new Decimal(originalDebt.originalBalance).minus(originalDebt.remainingBalance);
+        const percentagePaid = originalDebt.originalBalance > 0
+          ? paidOnDebt.dividedBy(originalDebt.originalBalance).times(100).toNumber()
           : 0;
 
         focusDebt = {
           id: originalDebt.id,
           name: originalDebt.name,
-          originalAmount: originalDebt.originalAmount,
+          source: originalDebt.source,
+          originalAmount: originalDebt.originalBalance,
           remainingBalance: originalDebt.remainingBalance,
           percentagePaid: Math.round(percentagePaid * 10) / 10,
-          interestRate: originalDebt.interestRate || 0,
+          interestRate: originalDebt.interestRate,
           payoffDate: payoffDate.toISOString(),
           monthsRemaining,
           daysRemaining: Math.max(0, daysRemaining),
@@ -140,12 +222,12 @@ export async function GET(request: Request) {
       }
     }
 
-    // Calculate total original debt and total remaining
-    const totalOriginalDebt = activeDebts.reduce(
-      (sum, debt) => new Decimal(sum).plus(debt.originalAmount).toNumber(),
+    // Calculate total original debt and total remaining (from all debts, not just strategy)
+    const totalOriginalDebt = unifiedDebts.reduce(
+      (sum, debt) => new Decimal(sum).plus(debt.originalBalance).toNumber(),
       0
     );
-    const totalRemainingBalance = activeDebts.reduce(
+    const totalRemainingBalance = unifiedDebts.reduce(
       (sum, debt) => new Decimal(sum).plus(debt.remainingBalance).toNumber(),
       0
     );
@@ -156,19 +238,14 @@ export async function GET(request: Request) {
       ? new Decimal(totalPaid).dividedBy(totalOriginalDebt).times(100).toNumber()
       : 0;
 
-    // Fetch payment history to get earliest payment date (for elapsed time calculation)
+    // Fetch payment history from bill_payments to estimate elapsed time
     const paymentHistory = await db
       .select()
-      .from(debtPayments)
-      .where(
-        and(
-          eq(debtPayments.userId, userId),
-          eq(debtPayments.householdId, householdId)
-        )
-      )
-      .orderBy(debtPayments.paymentDate);
+      .from(billPayments)
+      .where(eq(billPayments.householdId, householdId))
+      .orderBy(billPayments.paymentDate);
 
-    // Calculate months elapsed based on payment history or debt start dates
+    // Calculate months elapsed based on payment history or debt creation dates
     let monthsElapsed = 0;
     if (paymentHistory.length > 0) {
       const earliestPayment = new Date(paymentHistory[0].paymentDate);
@@ -178,16 +255,16 @@ export async function GET(request: Request) {
         (now.getMonth() - earliestPayment.getMonth())
       );
     } else {
-      // Fallback: use earliest debt start date
-      const earliestStartDate = activeDebts.reduce((earliest, debt) => {
-        const debtStart = debt.startDate ? new Date(debt.startDate) : new Date();
+      // Fallback: use earliest debt creation date
+      const earliestCreatedAt = unifiedDebts.reduce((earliest, debt) => {
+        const debtStart = debt.createdAt ? new Date(debt.createdAt) : new Date();
         return debtStart < earliest ? debtStart : earliest;
       }, new Date());
 
       const now = new Date();
       monthsElapsed = Math.max(0,
-        (now.getFullYear() - earliestStartDate.getFullYear()) * 12 +
-        (now.getMonth() - earliestStartDate.getMonth())
+        (now.getFullYear() - earliestCreatedAt.getFullYear()) * 12 +
+        (now.getMonth() - earliestCreatedAt.getMonth())
       );
     }
 
@@ -242,6 +319,11 @@ export async function GET(request: Request) {
         monthsAway: nextMilestone.monthsAway,
       } : null,
       focusDebt,
+      // Include source breakdown for debugging/UI
+      sources: {
+        creditAccounts: unifiedDebts.filter(d => d.source === 'account').length,
+        debtBills: unifiedDebts.filter(d => d.source === 'bill').length,
+      },
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

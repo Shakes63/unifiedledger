@@ -12,6 +12,7 @@ import { DebtCountdownCard } from '@/components/dashboard/debt-countdown-card';
 import { BudgetSurplusCard } from '@/components/dashboard/budget-surplus-card';
 import { BudgetSummaryWidget } from '@/components/dashboard/budget-summary-widget';
 import { CreditUtilizationWidget } from '@/components/debts/credit-utilization-widget';
+import { NextPaymentDueWidget } from '@/components/dashboard/next-payment-due-widget';
 import { betterAuthClient } from '@/lib/better-auth-client';
 
 export default function DashboardPage() {
@@ -53,9 +54,19 @@ export default function DashboardPage() {
           </Link>
         </section>
 
-        {/* Enhanced Bills Widget */}
+        {/* Bills Section */}
         <section className="mb-8">
-          <EnhancedBillsWidget />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Enhanced Bills Widget - Takes 2 columns on large screens */}
+            <div className="lg:col-span-2">
+              <EnhancedBillsWidget />
+            </div>
+            
+            {/* Next Payment Due Widget - Compact sidebar widget */}
+            <div className="lg:col-span-1">
+              <NextPaymentDueWidget />
+            </div>
+          </div>
         </section>
 
         {/* Recent Transactions */}
