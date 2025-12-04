@@ -3,11 +3,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus } from 'lucide-react';
+import { Plus, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import Decimal from 'decimal.js';
 import { AccountForm } from '@/components/accounts/account-form';
 import { AccountGroupSection } from '@/components/accounts/account-group-section';
+import { UtilizationTrendsChart, BalanceHistoryChart } from '@/components/charts';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { useBusinessFeatures } from '@/contexts/business-features-context';
@@ -56,6 +57,8 @@ export default function AccountsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCharts, setShowCharts] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Fetch accounts
   useEffect(() => {
@@ -272,13 +275,34 @@ export default function AccountsPage() {
             <h1 className="text-4xl font-bold text-foreground mb-2">Accounts</h1>
             <p className="text-muted-foreground">Manage your financial accounts and track balances</p>
           </div>
-          <Button
-            onClick={handleNewAccount}
-            className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
-          >
-            <Plus className="mr-2 h-5 w-5" />
-            Add Account
-          </Button>
+          <div className="flex items-center gap-3">
+            {/* Show Charts Toggle - only visible if credit accounts exist */}
+            {creditAccounts.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCharts(!showCharts);
+                  if (!showCharts) setRefreshKey(prev => prev + 1);
+                }}
+                className="border-border hover:bg-elevated"
+              >
+                <BarChart3 className="mr-2 h-4 w-4" />
+                {showCharts ? 'Hide' : 'Show'} Trends
+                {showCharts ? (
+                  <ChevronUp className="ml-2 h-4 w-4" />
+                ) : (
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                )}
+              </Button>
+            )}
+            <Button
+              onClick={handleNewAccount}
+              className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
+            >
+              <Plus className="mr-2 h-5 w-5" />
+              Add Account
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
@@ -323,6 +347,16 @@ export default function AccountsPage() {
                 <p className="text-muted-foreground text-xs mt-2">of ${totalCreditLimit.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} limit</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Credit Utilization & Balance History Charts */}
+        {showCharts && creditAccounts.length > 0 && (
+          <div className="mb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <UtilizationTrendsChart key={`utilization-${refreshKey}`} />
+              <BalanceHistoryChart key={`balance-${refreshKey}`} />
+            </div>
           </div>
         )}
 

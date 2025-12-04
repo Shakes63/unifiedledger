@@ -49,6 +49,7 @@ This document provides a comprehensive checklist for manually testing all featur
 39. [Unified Architecture (Phase 11)](#39-unified-architecture-phase-11)
 40. [Unified Architecture (Phase 12)](#40-unified-architecture-phase-12)
 41. [Unified Architecture (Phase 13)](#41-unified-architecture-phase-13)
+42. [Unified Architecture (Phase 14)](#42-unified-architecture-phase-14)
 
 ---
 
@@ -1032,8 +1033,9 @@ Phase 9 implements calendar integration with the unified debt architecture.
 | 39. Unified Architecture (Phase 11) | CODE COMPLETE | Tax integration |
 | 40. Unified Architecture (Phase 12) | CODE COMPLETE | CSV import enhancements |
 | 41. Unified Architecture (Phase 13) | CODE COMPLETE | Dashboard widgets |
+| 42. Unified Architecture (Phase 14) | CODE COMPLETE | Balance history & trends |
 
-**Overall: 22/41 browser-tested, 19/41 code/schema-reviewed**
+**Overall: 22/42 browser-tested, 20/42 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-04
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true
@@ -1266,3 +1268,51 @@ Phase 13 implements dashboard widget updates to use the unified debt architectur
 - [ ] GET /api/bills/next-due returns upcoming bill instances
 - [ ] All endpoints filter by household correctly
 - [ ] All endpoints require authentication
+
+---
+
+## 42. Unified Architecture (Phase 14)
+
+**Added: 2025-12-04** | **Result: CODE COMPLETE**
+
+Phase 14 implements balance history tracking, utilization trends, and interest paid reporting.
+
+### Daily Balance Snapshot Cron Job
+- [ ] POST /api/cron/balance-snapshots creates snapshots for all credit accounts
+- [ ] Cron secret validation works in production mode
+- [ ] Only active credit accounts included (type=credit or line_of_credit)
+- [ ] Duplicate snapshots prevented (same account + same date)
+- [ ] Snapshot includes balance, creditLimit, availableCredit, utilizationPercent
+- [ ] GET endpoint returns preview of accounts needing snapshots
+- [ ] Response includes stats (total, created, skipped)
+
+### Accounts Page Charts
+- [ ] "Show Trends" button visible only when credit accounts exist
+- [ ] Button toggles chart visibility
+- [ ] Utilization Trends chart displays correctly
+- [ ] Balance History chart displays correctly
+- [ ] Time range selectors work (30/60/90 days)
+- [ ] Charts refresh when data changes
+
+### Interest Paid Report
+- [ ] GET /api/accounts/interest-paid returns interest data
+- [ ] Interest detected by description patterns (INTEREST CHARGE, FINANCE CHARGE, etc.)
+- [ ] Interest detected by category (isInterestCategory=true)
+- [ ] Summary includes totalInterestPaid, ytdInterestPaid, averageMonthly
+- [ ] Monthly breakdown shows per-account amounts
+- [ ] Account breakdown shows totals with APR
+- [ ] Transaction list includes all interest payments
+
+### Interest Paid Chart (on Debts page)
+- [ ] Chart displays in expandable Trends section
+- [ ] Summary stats show total, YTD, and average monthly
+- [ ] Time range selector works (6 months, 1 year, 2 years)
+- [ ] Monthly view shows stacked bars by account
+- [ ] By Account view shows horizontal bars
+- [ ] Account breakdown table shows details with APR
+- [ ] Empty state shows positive message
+
+### Database
+- [ ] accountBalanceHistory table being populated by cron
+- [ ] Snapshots have correct date format (YYYY-MM-DD)
+- [ ] All indexes working for efficient queries

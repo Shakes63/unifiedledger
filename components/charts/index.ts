@@ -14,6 +14,7 @@ export { HeatmapChart } from './heatmap-chart';
 // Credit utilization and balance history charts
 export { UtilizationTrendsChart } from './utilization-trends-chart';
 export { BalanceHistoryChart } from './balance-history-chart';
+export { InterestPaidChart } from './interest-paid-chart';
 
 // Type exports
 export type { ComponentProps } from 'react';

@@ -22,7 +22,7 @@ import { toast } from 'sonner';
 import { Plus, ChevronDown, ChevronUp, Target, BarChart3, Lightbulb, AlertTriangle, CreditCard, Wallet, FileText, Layers, TrendingUp } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
-import { UtilizationTrendsChart, BalanceHistoryChart } from '@/components/charts';
+import { UtilizationTrendsChart, BalanceHistoryChart, InterestPaidChart } from '@/components/charts';
 
 // Unified debt type from API
 interface UnifiedDebt {
@@ -739,9 +739,12 @@ export default function DebtsPage() {
           </button>
 
           {showCharts && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <UtilizationTrendsChart key={`utilization-${refreshKey}`} />
-              <BalanceHistoryChart key={`balance-${refreshKey}`} />
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <UtilizationTrendsChart key={`utilization-${refreshKey}`} />
+                <BalanceHistoryChart key={`balance-${refreshKey}`} />
+              </div>
+              <InterestPaidChart key={`interest-${refreshKey}`} />
             </div>
           )}
         </div>

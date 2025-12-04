@@ -20,8 +20,8 @@
 | 10 | Notifications | COMPLETED 2025-12-04 |
 | 11 | Tax Integration | COMPLETED 2025-12-04 |
 | 12 | CSV Import Enhancements | COMPLETED 2025-12-04 |
-| 13 | Dashboard Widgets | Not Started |
-| 14 | Balance History & Trends | Not Started |
+| 13 | Dashboard Widgets | COMPLETED 2025-12-04 |
+| 14 | Balance History & Trends | COMPLETED 2025-12-04 |
 | 15 | Category Simplification | Not Started |
 | 16 | Recurring Income | Not Started |
 | 17 | Budget Rollover | Not Started |
@@ -3475,12 +3475,14 @@ Since there are no production users yet, we can do a clean slate:
 - New files: `app/api/bills/next-due/route.ts`, `components/dashboard/next-payment-due-widget.tsx`
 - Modified: `app/api/debts/countdown/route.ts`, `app/api/debts/credit-utilization/route.ts`
 
-### Phase 14: Balance History & Trends
-- Daily cron job to capture balance snapshots
-- Utilization trend chart on accounts/dashboard
-- Balance over time chart per account
-- Credit limit history tracking
-- "Interest Paid" report with breakdown by account
+### Phase 14: Balance History & Trends [COMPLETED 2025-12-04]
+- ✅ Daily cron job to capture balance snapshots (`app/api/cron/balance-snapshots/route.ts`)
+- ✅ Utilization trend chart on Accounts page (toggle button to show/hide)
+- ✅ Balance over time chart on Accounts page (stacked area chart with per-account breakdown)
+- ✅ Credit limit history tracking (already implemented in Phase 1.1)
+- ✅ "Interest Paid" report with monthly breakdown and per-account analysis
+- New files: `app/api/cron/balance-snapshots/route.ts`, `app/api/accounts/interest-paid/route.ts`, `components/charts/interest-paid-chart.tsx`
+- Modified: `app/dashboard/accounts/page.tsx`, `app/dashboard/debts/page.tsx`, `components/charts/index.ts`
 
 ### Phase 15: Category Simplification
 - Migrate existing categories to new 3-type system
