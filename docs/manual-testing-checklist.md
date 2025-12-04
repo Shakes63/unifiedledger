@@ -52,6 +52,7 @@ This document provides a comprehensive checklist for manually testing all featur
 42. [Unified Architecture (Phase 14)](#42-unified-architecture-phase-14)
 43. [Unified Architecture (Phase 15)](#43-unified-architecture-phase-15)
 44. [Unified Architecture (Phase 16)](#44-unified-architecture-phase-16)
+45. [Unified Architecture (Phase 17)](#45-unified-architecture-phase-17)
 
 ---
 
@@ -1419,3 +1420,63 @@ Phase 16 adds recurring income tracking using the bills system, allowing users t
 - [ ] Enable/disable toggle for late income alerts works
 - [ ] Channel selector shows push/email options
 - [ ] Preferences save correctly to database
+
+---
+
+## 45. Unified Architecture (Phase 17)
+
+**Added: 2025-12-04** | **Result: CODE COMPLETE**
+
+Phase 17 adds budget rollover functionality, allowing unused budget to carry forward to the next month.
+
+### Rollover Settings per Category
+- [ ] Expense categories show rollover toggle in Rollover Summary
+- [ ] Toggle on/off updates category rolloverEnabled field
+- [ ] Rollover limit input appears when rollover enabled
+- [ ] Limit saves correctly (or null for unlimited)
+- [ ] Reset button clears rollover balance to 0
+- [ ] Reset records entry in rollover history
+
+### Rollover Display in Budget UI
+- [ ] Categories with rollover show badge (refresh icon)
+- [ ] Badge color: green for positive, red for negative, gray for zero
+- [ ] Effective budget shows base + rollover amount
+- [ ] Breakdown text shows "base + rollover" when applicable
+- [ ] Negative rollover shows deficit message
+
+### Rollover Summary Component
+- [ ] Collapsible section appears on Budgets page
+- [ ] Header shows total rollover balance and category count
+- [ ] Expanded view lists all expense categories
+- [ ] Each category shows rollover toggle and current balance
+- [ ] Settings button opens limit editor
+- [ ] Info banner explains rollover feature
+
+### Budget Overview API
+- [ ] GET /api/budgets/overview includes rolloverEnabled per category
+- [ ] Response includes rolloverBalance per category
+- [ ] Response includes rolloverLimit per category
+- [ ] Response includes effectiveBudget (base + rollover)
+- [ ] Remaining calculation uses effective budget when rollover enabled
+- [ ] Status determination uses effective budget
+
+### Rollover Management APIs
+- [ ] GET /api/budgets/rollover returns summary with all categories
+- [ ] GET /api/categories/[id]/rollover returns category settings and history
+- [ ] PUT /api/categories/[id]/rollover updates rollover settings
+- [ ] DELETE /api/categories/[id]/rollover resets balance to 0
+
+### Monthly Rollover Cron Job
+- [ ] GET /api/cron/budget-rollover processes all households
+- [ ] POST /api/cron/budget-rollover allows manual trigger
+- [ ] Rollover calculates: unused budget = monthlyBudget - actualSpent
+- [ ] Positive unused adds to rollover balance
+- [ ] Negative unused (overspent) respects allowNegativeRollover setting
+- [ ] Rollover limit caps the balance if set
+- [ ] History entry created for each calculation
+
+### Household Settings
+- [ ] allowNegativeRollover setting stored in household_settings
+- [ ] Setting displayed in Rollover Summary info banner
+- [ ] When disabled, overspending doesn't reduce next month's budget
+- [ ] When enabled, overspending creates negative rollover balance

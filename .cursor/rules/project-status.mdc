@@ -52,6 +52,15 @@ alwaysApply: false
 ## Recent Major Features
 
 **Latest (2025-12-04):**
+- Unified Architecture Phase 17: Budget Rollover (✅ COMPLETE)
+  - ✅ Budget rollover history table for audit trail
+  - ✅ Monthly cron job for rollover calculation (`/api/cron/budget-rollover`)
+  - ✅ API endpoints for rollover management (`/api/budgets/rollover`, `/api/categories/[id]/rollover`)
+  - ✅ Rollover toggle per expense category with limit settings
+  - ✅ Effective budget calculation (base + rollover) in budget overview
+  - ✅ CategoryBudgetProgress shows rollover badge and breakdown
+  - ✅ RolloverSummary component in budgets page
+  - ✅ Negative rollover option (household setting)
 - Unified Architecture Phase 6: Autopay System (✅ COMPLETE)
   - ✅ Autopay amount calculator utility (`lib/bills/autopay-calculator.ts`)
   - ✅ Autopay transaction creator (`lib/bills/autopay-transaction.ts`)

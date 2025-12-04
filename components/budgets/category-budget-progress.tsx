@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Decimal from 'decimal.js';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, RefreshCcw } from 'lucide-react';
 
 interface CategoryBudgetProgressProps {
   category: {
@@ -20,6 +20,11 @@ interface CategoryBudgetProgressProps {
     isOverBudget: boolean;
     incomeFrequency?: 'weekly' | 'biweekly' | 'monthly' | 'variable';
     shouldShowDailyAverage: boolean;
+    // Rollover fields (Phase 17)
+    rolloverEnabled?: boolean;
+    rolloverBalance?: number;
+    rolloverLimit?: number | null;
+    effectiveBudget?: number;
   };
   daysRemaining: number;
   onEdit: (categoryId: string, newBudget: number) => void;
@@ -85,6 +90,13 @@ export function CategoryBudgetProgress({
       ? category.projectedMonthEnd < category.monthlyBudget // Income shortfall
       : category.projectedMonthEnd > category.monthlyBudget); // Expense overage
 
+  // Rollover data
+  const rolloverEnabled = category.rolloverEnabled || false;
+  const rolloverBalance = category.rolloverBalance || 0;
+  const effectiveBudget = category.effectiveBudget || category.monthlyBudget;
+  const hasRolloverBonus = rolloverEnabled && rolloverBalance > 0 && category.type === 'expense';
+  const hasRolloverPenalty = rolloverEnabled && rolloverBalance < 0 && category.type === 'expense';
+
   return (
     <div className="bg-card border border-border rounded-xl p-4 hover:bg-elevated transition-colors">
       {/* Header */}
@@ -95,6 +107,23 @@ export function CategoryBudgetProgress({
             {category.incomeFrequency && category.incomeFrequency !== 'variable' && (
               <span className="px-2 py-0.5 text-xs rounded-full bg-[var(--color-income)]/20 text-[var(--color-income)] capitalize">
                 {category.incomeFrequency === 'biweekly' ? 'Bi-weekly' : category.incomeFrequency}
+              </span>
+            )}
+            {rolloverEnabled && (
+              <span 
+                className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded-full ${
+                  hasRolloverPenalty 
+                    ? 'bg-[var(--color-error)]/20 text-[var(--color-error)]' 
+                    : hasRolloverBonus 
+                    ? 'bg-[var(--color-success)]/20 text-[var(--color-success)]' 
+                    : 'bg-muted text-muted-foreground'
+                }`}
+                title={`Rollover ${rolloverBalance >= 0 ? '+' : ''}$${rolloverBalance.toFixed(2)}`}
+              >
+                <RefreshCcw className="w-3 h-3" />
+                {rolloverBalance !== 0 && (
+                  <span>{rolloverBalance >= 0 ? '+' : ''}${rolloverBalance.toFixed(0)}</span>
+                )}
               </span>
             )}
           </div>
@@ -141,14 +170,28 @@ export function CategoryBudgetProgress({
             </button>
           </div>
         ) : (
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-semibold text-foreground">
-              ${category.actualSpent.toFixed(2)}
-            </span>
-            <span className="text-sm text-muted-foreground">/</span>
-            <span className="text-sm text-muted-foreground">
-              ${category.monthlyBudget.toFixed(2)}
-            </span>
+          <div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg font-semibold text-foreground">
+                ${category.actualSpent.toFixed(2)}
+              </span>
+              <span className="text-sm text-muted-foreground">/</span>
+              <span className="text-sm text-muted-foreground">
+                ${hasRolloverBonus ? effectiveBudget.toFixed(2) : category.monthlyBudget.toFixed(2)}
+              </span>
+            </div>
+            {/* Effective budget breakdown when rollover adds to budget */}
+            {hasRolloverBonus && (
+              <div className="text-xs text-muted-foreground mt-0.5">
+                ${category.monthlyBudget.toFixed(2)} base + ${rolloverBalance.toFixed(2)} rollover
+              </div>
+            )}
+            {/* Show negative rollover penalty */}
+            {hasRolloverPenalty && (
+              <div className="text-xs text-[var(--color-error)] mt-0.5">
+                ${rolloverBalance.toFixed(2)} rollover deficit
+              </div>
+            )}
           </div>
         )}
       </div>

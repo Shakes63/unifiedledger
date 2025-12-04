@@ -8,6 +8,7 @@ import { BudgetExportModal } from '@/components/budgets/budget-export-modal';
 import { VariableBillTracker } from '@/components/budgets/variable-bill-tracker';
 import { BudgetAnalyticsSection } from '@/components/budgets/budget-analytics-section';
 import { UnifiedDebtBudgetSection } from '@/components/budgets/unified-debt-budget-section';
+import { RolloverSummary } from '@/components/budgets/rollover-summary';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
@@ -42,6 +43,11 @@ interface BudgetOverview {
     budgetedDailyAverage: number;
     projectedMonthEnd: number;
     isOverBudget: boolean;
+    // Rollover fields (Phase 17)
+    rolloverEnabled?: boolean;
+    rolloverBalance?: number;
+    rolloverLimit?: number | null;
+    effectiveBudget?: number;
   }>;
   groupedCategories: {
     income: Array<any>;
@@ -419,6 +425,11 @@ export default function BudgetsPage() {
         {/* Variable Bill Tracking */}
         <div className="pt-6 border-t border-border">
           <VariableBillTracker />
+        </div>
+
+        {/* Budget Rollover Summary */}
+        <div className="pt-6 border-t border-border">
+          <RolloverSummary />
         </div>
 
         {/* Budget Analytics & Insights */}

@@ -3499,13 +3499,16 @@ Since there are no production users yet, we can do a clean slate:
 - ✅ Bills page filter tabs (All/Expenses/Income) with income-specific statistics
 - ✅ Notification preferences for income late alerts
 
-### Phase 17: Budget Rollover
-- Add rollover fields to categories
-- Monthly cron job to calculate rollovers
-- Rollover display in budget UI
-- Negative rollover (overspending) option
-- Rollover limit settings
-- Rollover summary report
+### Phase 17: Budget Rollover [COMPLETED 2025-12-04]
+- ✅ Add rollover fields to categories (done in Phase 1.4)
+- ✅ Monthly cron job to calculate rollovers (`/api/cron/budget-rollover`)
+- ✅ Rollover display in budget UI (CategoryBudgetProgress with rollover badge)
+- ✅ Negative rollover (overspending) option (`allowNegativeRollover` in household settings)
+- ✅ Rollover limit settings per category
+- ✅ Rollover summary report component (RolloverSummary)
+- ✅ Budget rollover history table for audit trail
+- ✅ API endpoints for rollover management (`/api/budgets/rollover`, `/api/categories/[id]/rollover`)
+- ✅ Effective budget calculation (base + rollover) in budget overview API
 
 ### Phase 18: Savings-Goals Integration
 - Add savingsGoalId to transactions

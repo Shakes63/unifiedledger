@@ -22,6 +22,11 @@ interface CategoryBudgetStatus {
   isOverBudget: boolean;
   incomeFrequency?: 'weekly' | 'biweekly' | 'monthly' | 'variable';
   shouldShowDailyAverage: boolean;
+  // Rollover fields (Phase 17)
+  rolloverEnabled: boolean;
+  rolloverBalance: number;
+  rolloverLimit: number | null;
+  effectiveBudget: number; // monthlyBudget + rolloverBalance (for expense categories)
 }
 
 /**
@@ -128,6 +133,15 @@ export async function GET(request: Request) {
 
     for (const category of categories) {
       const monthlyBudget = category.monthlyBudget || 0;
+      const rolloverEnabled = category.rolloverEnabled || false;
+      const rolloverBalance = category.rolloverBalance || 0;
+      const rolloverLimit = category.rolloverLimit;
+
+      // Calculate effective budget (base + positive rollover for expense categories)
+      // Only positive rollover adds to effective budget to avoid showing negative budgets
+      const effectiveBudget = category.type === 'expense' && rolloverEnabled && rolloverBalance > 0
+        ? new Decimal(monthlyBudget).plus(rolloverBalance).toNumber()
+        : monthlyBudget;
 
       // Get actual spending/income for this category in this month
       const spendingResult = await db
@@ -148,18 +162,20 @@ export async function GET(request: Request) {
         ? new Decimal(spendingResult[0].total.toString()).toNumber()
         : 0;
 
-      const remaining = new Decimal(monthlyBudget).minus(actualSpent).toNumber();
-      const percentage = monthlyBudget > 0
-        ? new Decimal(actualSpent).div(monthlyBudget).times(100).toNumber()
+      // Use effective budget for remaining calculation when rollover is enabled
+      const budgetForCalculation = rolloverEnabled && category.type === 'expense' ? effectiveBudget : monthlyBudget;
+      const remaining = new Decimal(budgetForCalculation).minus(actualSpent).toNumber();
+      const percentage = budgetForCalculation > 0
+        ? new Decimal(actualSpent).div(budgetForCalculation).times(100).toNumber()
         : 0;
 
-      // Calculate daily averages
+      // Calculate daily averages (use effective budget for expense categories with rollover)
       const dailyAverage = daysElapsed > 0
         ? new Decimal(actualSpent).div(daysElapsed).toNumber()
         : 0;
 
       const budgetedDailyAverage = daysInMonth > 0
-        ? new Decimal(monthlyBudget).div(daysInMonth).toNumber()
+        ? new Decimal(budgetForCalculation).div(daysInMonth).toNumber()
         : 0;
 
       // Calculate projection based on category type and income frequency
@@ -190,7 +206,7 @@ export async function GET(request: Request) {
       // Determine status (logic differs for income vs expenses)
       let status: 'on_track' | 'warning' | 'exceeded' | 'unbudgeted' = 'unbudgeted';
 
-      if (monthlyBudget > 0) {
+      if (budgetForCalculation > 0) {
         if (category.type === 'income') {
           // For income: exceeding budget is good, falling short is bad
           if (percentage >= 100) {
@@ -204,12 +220,12 @@ export async function GET(request: Request) {
             status = 'exceeded';
           }
         } else {
-          // For expenses/savings: check if at or under budget
+          // For expenses/savings: check if at or under effective budget (includes rollover)
           // Use small tolerance for floating point comparison (within $0.01)
           const isAtBudget = Math.abs(remaining) < 0.01;
-          const isOverBudget = remaining < -0.01; // More than 1 cent over
+          const isOverBudgetCheck = remaining < -0.01; // More than 1 cent over
 
-          if (isOverBudget) {
+          if (isOverBudgetCheck) {
             status = 'exceeded'; // Over budget (bad)
           } else if (isAtBudget) {
             status = 'on_track'; // At budget (right on target)
@@ -221,7 +237,8 @@ export async function GET(request: Request) {
         }
       }
 
-      const isOverBudget = actualSpent > monthlyBudget && monthlyBudget > 0;
+      // Use effective budget to determine if over budget
+      const isOverBudget = actualSpent > budgetForCalculation && budgetForCalculation > 0;
 
       categoryStatuses.push({
         id: category.id,
@@ -238,6 +255,11 @@ export async function GET(request: Request) {
         isOverBudget,
         incomeFrequency: category.type === 'income' ? (category.incomeFrequency || undefined) : undefined,
         shouldShowDailyAverage,
+        // Rollover fields (Phase 17)
+        rolloverEnabled,
+        rolloverBalance,
+        rolloverLimit,
+        effectiveBudget,
       });
     }
 

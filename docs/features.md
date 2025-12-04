@@ -29,7 +29,8 @@ _Add new feature ideas here_
     - **Phase 14: Balance History & Trends** [COMPLETED 2025-12-04] - Daily cron job for balance snapshots (`/api/cron/balance-snapshots`). Utilization trends and balance history charts on Accounts page. Interest Paid report with monthly breakdown and per-account analysis on Debts page.
     - **Phase 15: Category Simplification** [COMPLETED 2025-12-04] - Simplified category types from 6 to 3 (income, expense, savings). Removed variable_expense, monthly_bill, non_monthly_bill, debt types - all consolidated to `expense`. Updated all category forms, APIs, budget displays, and selectors. Migration auto-converts existing categories.
     - **Phase 16: Recurring Income** [COMPLETED 2025-12-04] - Added billType='income' support with income bill creation form, income classification (salary, rental, investment, freelance, benefits, refund), bills page filter tabs (All/Expenses/Income), income-specific statistics cards, late income notifications with cron job, calendar integration with income styling, expected vs actual income tracking in budget overview, and notification preferences for income alerts.
-    - **Phases 17-19** - _Not started_
+    - **Phase 17: Budget Rollover** [COMPLETED 2025-12-04] - Monthly budget rollover system allowing unused budget to carry forward. Features include: rollover toggle per category, rollover limit settings, monthly cron job for automatic rollover calculation, rollover history audit trail, effective budget display (base + rollover), rollover summary component in budgets page, negative rollover option (household setting), and API endpoints for rollover management.
+    - **Phases 18-19** - _Not started_
 
 ---
 

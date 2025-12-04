@@ -49,6 +49,9 @@ interface UserHouseholdPreferences {
   // Credit limit change notifications (Phase 10)
   creditLimitChangeEnabled: boolean;
   creditLimitChangeChannels: string;
+  // Income late notifications (Phase 16)
+  incomeLateEnabled: boolean;
+  incomeLateChannels: string;
 }
 
 interface HouseholdContextType {

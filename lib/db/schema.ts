@@ -781,6 +781,9 @@ export const notifications = sqliteTable(
         'spending_summary',
         'reminder',
         'system',
+        'income_late',
+        'high_utilization',
+        'credit_limit_change',
       ],
     }).notNull(),
     priority: text('priority', {
@@ -1023,6 +1026,10 @@ export const userHouseholdPreferences = sqliteTable(
     creditLimitChangeEnabled: integer('credit_limit_change_enabled', { mode: 'boolean' }).default(true),
     creditLimitChangeChannels: text('credit_limit_change_channels').default('["push"]'),
 
+    // Notifications - Late Income Alerts (Phase 16)
+    incomeLateEnabled: integer('income_late_enabled', { mode: 'boolean' }).default(true),
+    incomeLateChannels: text('income_late_channels').default('["push"]'),
+
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   },
@@ -1106,11 +1113,42 @@ export const householdSettings = sqliteTable(
       enum: ['weekly', 'biweekly', 'monthly'],
     }).default('monthly'),
 
+    // Budget Rollover Settings (Phase 17)
+    allowNegativeRollover: integer('allow_negative_rollover', { mode: 'boolean' }).default(false),
+
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   },
   (table) => ({
     householdIdIdx: index('idx_household_settings_household').on(table.householdId),
+  })
+);
+
+// ============================================================================
+// BUDGET ROLLOVER HISTORY (Phase 17)
+// ============================================================================
+
+export const budgetRolloverHistory = sqliteTable(
+  'budget_rollover_history',
+  {
+    id: text('id').primaryKey(),
+    categoryId: text('category_id').notNull(),
+    householdId: text('household_id').notNull(),
+    month: text('month').notNull(), // YYYY-MM format
+    previousBalance: real('previous_balance').notNull().default(0),
+    monthlyBudget: real('monthly_budget').notNull().default(0),
+    actualSpent: real('actual_spent').notNull().default(0),
+    rolloverAmount: real('rollover_amount').notNull().default(0), // amount added/subtracted this period
+    newBalance: real('new_balance').notNull().default(0),
+    rolloverLimit: real('rollover_limit'), // NULL means unlimited
+    wasCapped: integer('was_capped', { mode: 'boolean' }).default(false),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    categoryIdx: index('idx_rollover_history_category').on(table.categoryId),
+    householdIdx: index('idx_rollover_history_household').on(table.householdId),
+    monthIdx: index('idx_rollover_history_month').on(table.month),
+    categoryMonthIdx: index('idx_rollover_history_category_month').on(table.categoryId, table.month),
   })
 );
 
