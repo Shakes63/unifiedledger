@@ -348,6 +348,29 @@ export async function PUT(
       );
     }
 
+    // Validate income bills don't have expense-specific fields
+    const effectiveBillType = billType !== undefined ? billType : existingBill[0].billType;
+    if (effectiveBillType === 'income') {
+      if (effectiveIsDebt) {
+        return Response.json(
+          { error: 'Income bills cannot be marked as debt' },
+          { status: 400 }
+        );
+      }
+      if (effectiveLinkedAccountId) {
+        return Response.json(
+          { error: 'Income bills cannot be linked to a credit card' },
+          { status: 400 }
+        );
+      }
+      if (effectiveChargedToAccountId) {
+        return Response.json(
+          { error: 'Income bills cannot be charged to a credit card' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Validate startMonth if provided
     if (startMonth !== undefined) {
       // Get the bill's frequency to validate startMonth

@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { TransactionIndicators } from './transaction-indicators';
-import { TrendingDown, TrendingUp, ArrowRightLeft, Plus, Target, CreditCard, Trophy, Clock, Wallet } from 'lucide-react';
+import { TrendingDown, TrendingUp, ArrowRightLeft, Plus, Target, CreditCard, Trophy, Clock, Wallet, ArrowDownCircle } from 'lucide-react';
 import Link from 'next/link';
 
 interface Transaction {
@@ -31,6 +31,7 @@ interface Bill {
   isDebt?: boolean;
   isAutopayEnabled?: boolean;
   linkedAccountName?: string;
+  billType?: 'expense' | 'income' | 'savings_transfer';
 }
 
 interface Goal {
@@ -346,45 +347,78 @@ export function CalendarDayModal({
           {bills.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold text-foreground mb-3">
-                Bills ({bills.length})
+                Bills & Income ({bills.length})
               </h3>
               <div className="space-y-2">
-                {bills.map((bill) => (
-                  <div
-                    key={bill.id}
-                    className="flex items-center justify-between p-3 bg-elevated rounded-lg border border-border"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground">
-                          {bill.description}
-                        </p>
-                        {bill.linkedAccountName && (
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <CreditCard className="w-3 h-3" />
-                            {bill.linkedAccountName}
-                          </span>
+                {bills.map((bill) => {
+                  const isIncomeBill = bill.billType === 'income';
+                  return (
+                    <div
+                      key={bill.id}
+                      className={`flex items-center justify-between p-3 bg-elevated rounded-lg border ${
+                        isIncomeBill ? 'border-[var(--color-income)]/30' : 'border-border'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        {isIncomeBill ? (
+                          <ArrowDownCircle className={`w-5 h-5 flex-shrink-0 ${
+                            bill.status === 'paid' 
+                              ? 'text-[var(--color-income)]' 
+                              : bill.status === 'overdue'
+                                ? 'text-[var(--color-warning)]'
+                                : 'text-[var(--color-income)]/50'
+                          }`} />
+                        ) : (
+                          <TrendingDown className="w-5 h-5 text-[var(--color-expense)] flex-shrink-0" />
                         )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-medium text-foreground">
+                              {bill.description}
+                            </p>
+                            {isIncomeBill && (
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-income)]/10 text-[var(--color-income)]">
+                                Income
+                              </span>
+                            )}
+                            {bill.linkedAccountName && (
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <CreditCard className="w-3 h-3" />
+                                {bill.linkedAccountName}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-muted-foreground text-sm">
+                            {isIncomeBill ? 'Expected' : 'Due'}: {format(parseISO(bill.dueDate), 'MMM d')}
+                            {bill.isDebt && <span className="ml-2 text-xs">(Debt Payment)</span>}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-muted-foreground text-sm">
-                        Due: {format(parseISO(bill.dueDate), 'MMM d')}
-                        {bill.isDebt && <span className="ml-2 text-xs">(Debt Payment)</span>}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        <p className={`font-semibold ${isIncomeBill ? 'text-[var(--color-income)]' : 'text-[var(--color-expense)]'}`}>
+                          {isIncomeBill ? '+' : ''}${bill.amount.toFixed(2)}
+                        </p>
+                        <span
+                          className={`px-2 py-1 rounded text-xs font-semibold ${
+                            isIncomeBill && bill.status === 'overdue'
+                              ? 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]' // "Late" for income
+                              : isIncomeBill && bill.status === 'paid'
+                                ? 'bg-[var(--color-income)]/10 text-[var(--color-income)]'
+                                : getBillStatusColor(bill.status)
+                          }`}
+                        >
+                          {isIncomeBill 
+                            ? bill.status === 'paid' 
+                              ? 'received' 
+                              : bill.status === 'overdue'
+                                ? 'late'
+                                : 'expected'
+                            : bill.status}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <p className="font-semibold text-[var(--color-expense)]">
-                        ${bill.amount.toFixed(2)}
-                      </p>
-                      <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${getBillStatusColor(
-                          bill.status
-                        )}`}
-                      >
-                        {bill.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

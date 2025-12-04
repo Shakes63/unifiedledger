@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, budgetCategories } from '@/lib/db/schema';
+import { transactions, budgetCategories, bills, billInstances } from '@/lib/db/schema';
 import { eq, and, gte, lte, sum } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
@@ -334,6 +334,73 @@ export async function GET(request: Request) {
       adherenceScore = Math.round(totalScore / categoriesWithBudgets.length);
     }
 
+    // ========== Recurring Income from Bills ==========
+    // Get income bills for the current household
+    const incomeBills = await db
+      .select()
+      .from(bills)
+      .where(
+        and(
+          eq(bills.userId, userId),
+          eq(bills.householdId, householdId),
+          eq(bills.billType, 'income'),
+          eq(bills.isActive, true)
+        )
+      );
+
+    // Get bill instances for income bills in this month
+    const incomeBillIds = incomeBills.map(b => b.id);
+    let incomeInstances: {
+      id: string;
+      billId: string;
+      dueDate: string;
+      expectedAmount: number;
+      status: string | null;
+      paidDate: string | null;
+    }[] = [];
+
+    if (incomeBillIds.length > 0) {
+      const instances = await db
+        .select({
+          id: billInstances.id,
+          billId: billInstances.billId,
+          dueDate: billInstances.dueDate,
+          expectedAmount: billInstances.expectedAmount,
+          status: billInstances.status,
+          paidDate: billInstances.paidDate,
+        })
+        .from(billInstances)
+        .where(
+          and(
+            eq(billInstances.userId, userId),
+            eq(billInstances.householdId, householdId),
+            gte(billInstances.dueDate, monthStart),
+            lte(billInstances.dueDate, monthEnd)
+          )
+        );
+
+      // Filter to only income bill instances
+      incomeInstances = instances.filter(inst => incomeBillIds.includes(inst.billId));
+    }
+
+    // Calculate recurring income stats
+    const recurringIncomeExpected = incomeInstances.reduce(
+      (sum, inst) => new Decimal(sum).plus(inst.expectedAmount).toNumber(),
+      0
+    );
+
+    const recurringIncomeReceived = incomeInstances
+      .filter(inst => inst.status === 'paid')
+      .reduce((sum, inst) => new Decimal(sum).plus(inst.expectedAmount).toNumber(), 0);
+
+    const recurringIncomePending = incomeInstances
+      .filter(inst => inst.status === 'pending')
+      .reduce((sum, inst) => new Decimal(sum).plus(inst.expectedAmount).toNumber(), 0);
+
+    const recurringIncomeLate = incomeInstances
+      .filter(inst => inst.status === 'overdue')
+      .reduce((sum, inst) => new Decimal(sum).plus(inst.expectedAmount).toNumber(), 0);
+
     // Group categories by type for organized display
     const groupedCategories = {
       income: incomeCategories.sort((a, b) => a.name.localeCompare(b.name)),
@@ -356,6 +423,12 @@ export async function GET(request: Request) {
         daysInMonth,
         daysRemaining,
         daysElapsed,
+        // Recurring income from bills
+        recurringIncomeExpected,
+        recurringIncomeReceived,
+        recurringIncomePending,
+        recurringIncomeLate,
+        recurringIncomeSourceCount: incomeBills.length,
       },
       categories: categoryStatuses,
       groupedCategories,

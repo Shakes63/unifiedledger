@@ -311,6 +311,28 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate income bills don't have expense-specific fields
+    if (billType === 'income') {
+      if (isDebt) {
+        return Response.json(
+          { error: 'Income bills cannot be marked as debt' },
+          { status: 400 }
+        );
+      }
+      if (linkedAccountId) {
+        return Response.json(
+          { error: 'Income bills cannot be linked to a credit card' },
+          { status: 400 }
+        );
+      }
+      if (chargedToAccountId) {
+        return Response.json(
+          { error: 'Income bills cannot be charged to a credit card' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Batch validation queries in parallel for better performance
     // Verify all related entities belong to the same household
     const validationPromises = [];

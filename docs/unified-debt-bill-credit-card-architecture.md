@@ -3490,12 +3490,14 @@ Since there are no production users yet, we can do a clean slate:
 - Update budget displays for new type groupings
 - Remove debt/monthly_bill/non_monthly_bill type handling
 
-### Phase 16: Recurring Income
-- Add billType='income' support to bills
-- Income bill creation form
-- Expected vs actual income tracking in budget
-- "Income not received" alerts
-- Income schedule on calendar
+### Phase 16: Recurring Income [COMPLETED 2025-12-04]
+- ✅ Add billType='income' support to bills
+- ✅ Income bill creation form with income classification (salary, rental, investment, freelance, benefits, refund)
+- ✅ Expected vs actual income tracking in budget overview API
+- ✅ "Income not received" late alerts with cron job `/api/cron/income-alerts`
+- ✅ Income schedule on calendar with distinct styling
+- ✅ Bills page filter tabs (All/Expenses/Income) with income-specific statistics
+- ✅ Notification preferences for income late alerts
 
 ### Phase 17: Budget Rollover
 - Add rollover fields to categories

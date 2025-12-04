@@ -14,7 +14,8 @@ export type NotificationType =
   | 'debt_milestone'
   | 'spending_summary'
   | 'reminder'
-  | 'system';
+  | 'system'
+  | 'income_late';
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
 
@@ -195,6 +196,8 @@ export async function getOrCreatePreferences(userId: string) {
       weeklySummaryDay: 'sunday',
       monthlySummaryEnabled: true,
       monthlySummaryDay: 1,
+      incomeLateAlertEnabled: true,
+      incomeLateAlertDays: 1,
       pushNotificationsEnabled: true,
       emailNotificationsEnabled: false,
     });

@@ -173,6 +173,7 @@ export async function GET(request: Request) {
           isDebt: bill[0]?.isDebt || false,
           isAutopayEnabled: bill[0]?.isAutopayEnabled || false,
           linkedAccountName,
+          billType: bill[0]?.billType || 'expense',
         };
       })
     );

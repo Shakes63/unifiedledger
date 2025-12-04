@@ -847,6 +847,10 @@ export const notificationPreferences = sqliteTable(
     monthlySummaryEnabled: integer('monthly_summary_enabled', { mode: 'boolean' }).default(true),
     monthlySummaryDay: integer('monthly_summary_day').default(1),
     monthlySummaryChannels: text('monthly_summary_channels').default('["push"]'),
+    // Income late alert settings (Phase 16)
+    incomeLateAlertEnabled: integer('income_late_alert_enabled', { mode: 'boolean' }).default(true),
+    incomeLateAlertDays: integer('income_late_alert_days').default(1), // Days after expected before alert
+    incomeLateChannels: text('income_late_channels').default('["push"]'),
     // Global settings (kept for backward compatibility and global email config)
     pushNotificationsEnabled: integer('push_notifications_enabled', { mode: 'boolean' }).default(true),
     emailNotificationsEnabled: integer('email_notifications_enabled', { mode: 'boolean' }).default(false),

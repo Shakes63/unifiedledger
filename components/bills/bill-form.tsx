@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { AlertCircle, Plus, X, ChevronDown, ChevronUp, CreditCard, Landmark, Info } from 'lucide-react';
+import { AlertCircle, Plus, X, ChevronDown, ChevronUp, CreditCard, Landmark, Info, DollarSign, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import {
   FREQUENCY_LABELS,
   DAY_OF_WEEK_OPTIONS,
@@ -27,14 +27,31 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { MerchantSelector } from '@/components/transactions/merchant-selector';
 
-// Bill classification options
-const BILL_CLASSIFICATION_OPTIONS = [
+// Bill type options
+const BILL_TYPE_OPTIONS = [
+  { value: 'expense', label: 'Expense', description: 'Money going out (bills, subscriptions, etc.)' },
+  { value: 'income', label: 'Income', description: 'Money coming in (salary, rent, dividends, etc.)' },
+] as const;
+
+// Bill classification options for expense bills
+const EXPENSE_CLASSIFICATION_OPTIONS = [
   { value: 'subscription', label: 'Subscription' },
   { value: 'utility', label: 'Utility' },
   { value: 'insurance', label: 'Insurance' },
   { value: 'loan_payment', label: 'Loan Payment' },
   { value: 'credit_card', label: 'Credit Card Payment' },
   { value: 'rent_mortgage', label: 'Rent/Mortgage' },
+  { value: 'other', label: 'Other' },
+] as const;
+
+// Bill classification options for income bills
+const INCOME_CLASSIFICATION_OPTIONS = [
+  { value: 'salary', label: 'Salary/Wages' },
+  { value: 'rental', label: 'Rental Income' },
+  { value: 'investment', label: 'Investment/Dividends' },
+  { value: 'freelance', label: 'Freelance/Contract' },
+  { value: 'benefits', label: 'Government Benefits' },
+  { value: 'refund', label: 'Refunds/Reimbursements' },
   { value: 'other', label: 'Other' },
 ] as const;
 
@@ -534,18 +551,84 @@ export function BillForm({
     }
   };
 
+  // Determine if this is an income bill
+  const isIncomeBill = formData.billType === 'income';
+  
+  // Get classification options based on bill type
+  const classificationOptions = isIncomeBill 
+    ? INCOME_CLASSIFICATION_OPTIONS 
+    : EXPENSE_CLASSIFICATION_OPTIONS;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Bill Type Selector */}
+      <div className="p-4 bg-card rounded-lg border border-border">
+        <Label className="text-muted-foreground text-sm mb-3 block">Bill Type*</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {BILL_TYPE_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                handleSelectChange('billType', option.value);
+                // Reset classification when switching types
+                handleSelectChange('billClassification', 'other');
+                // Clear income-incompatible fields when switching to income
+                if (option.value === 'income') {
+                  handleSelectChange('isDebt', 'false');
+                  handleSelectChange('linkedAccountId', '');
+                  handleSelectChange('chargedToAccountId', '');
+                  setShowDebtSection(false);
+                }
+              }}
+              className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
+                formData.billType === option.value
+                  ? option.value === 'income'
+                    ? 'border-[var(--color-income)] bg-[var(--color-income)]/10'
+                    : 'border-[var(--color-expense)] bg-[var(--color-expense)]/10'
+                  : 'border-border bg-elevated hover:bg-card'
+              }`}
+            >
+              {option.value === 'income' ? (
+                <ArrowDownCircle className={`w-6 h-6 ${
+                  formData.billType === option.value 
+                    ? 'text-[var(--color-income)]' 
+                    : 'text-muted-foreground'
+                }`} />
+              ) : (
+                <ArrowUpCircle className={`w-6 h-6 ${
+                  formData.billType === option.value 
+                    ? 'text-[var(--color-expense)]' 
+                    : 'text-muted-foreground'
+                }`} />
+              )}
+              <div className="text-left">
+                <p className={`font-medium ${
+                  formData.billType === option.value 
+                    ? 'text-foreground' 
+                    : 'text-muted-foreground'
+                }`}>
+                  {option.label}
+                </p>
+                <p className="text-xs text-muted-foreground">{option.description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Name and Amount */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Bill Name*</Label>
+          <Label className="text-muted-foreground text-sm mb-2 block">
+            {isIncomeBill ? 'Income Source Name*' : 'Bill Name*'}
+          </Label>
           <Input
             id="bill-name"
             name="name"
             value={formData.name}
             onChange={handleChange}
-            placeholder="e.g., Electric Bill"
+            placeholder={isIncomeBill ? "e.g., Monthly Salary" : "e.g., Electric Bill"}
             className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
@@ -583,7 +666,11 @@ export function BillForm({
           </Select>
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">{getDueDateLabel(formData.frequency)}*</Label>
+          <Label className="text-muted-foreground text-sm mb-2 block">
+            {isIncomeBill 
+              ? getDueDateLabel(formData.frequency).replace('Due', 'Expected')
+              : getDueDateLabel(formData.frequency)}*
+          </Label>
 
           {isOneTimeFrequency(formData.frequency) ? (
             // Date picker for one-time bills
@@ -596,7 +683,9 @@ export function BillForm({
                 className="bg-elevated border-border text-foreground"
                 required
               />
-              <p className="text-xs text-muted-foreground mt-1">Select the specific date for this bill</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {isIncomeBill ? 'Select the specific date you expect this income' : 'Select the specific date for this bill'}
+              </p>
             </>
           ) : isWeekBasedFrequency(formData.frequency) ? (
             // Day of week selector for weekly/biweekly
@@ -812,8 +901,14 @@ export function BillForm({
 
         <div className="flex items-center justify-between pt-2">
           <div>
-            <Label className="text-muted-foreground text-sm block">Auto-mark Paid</Label>
-            <p className="text-xs text-muted-foreground">Automatically mark as paid on match</p>
+            <Label className="text-muted-foreground text-sm block">
+              {isIncomeBill ? 'Auto-mark Received' : 'Auto-mark Paid'}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {isIncomeBill 
+                ? 'Automatically mark as received on matching transaction'
+                : 'Automatically mark as paid on match'}
+            </p>
           </div>
           <button
             type="button"
@@ -833,7 +928,9 @@ export function BillForm({
 
       {/* Bill Classification */}
       <div className="p-4 bg-card rounded-lg border border-border">
-        <Label className="text-muted-foreground text-sm mb-2 block">Bill Classification</Label>
+        <Label className="text-muted-foreground text-sm mb-2 block">
+          {isIncomeBill ? 'Income Classification' : 'Bill Classification'}
+        </Label>
         <Select 
           value={formData.billClassification} 
           onValueChange={(value) => handleSelectChange('billClassification', value)}
@@ -842,7 +939,7 @@ export function BillForm({
             <SelectValue placeholder="Select classification" />
           </SelectTrigger>
           <SelectContent className="bg-card border-border">
-            {BILL_CLASSIFICATION_OPTIONS.map((option) => (
+            {classificationOptions.map((option) => (
               <SelectItem key={option.value} value={option.value} className="text-foreground">
                 {option.label}
               </SelectItem>
@@ -850,12 +947,14 @@ export function BillForm({
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground mt-1">
-          Helps organize bills and provides better reports
+          {isIncomeBill 
+            ? 'Helps organize income sources and track expected vs actual'
+            : 'Helps organize bills and provides better reports'}
         </p>
       </div>
 
-      {/* Credit Card Linking - For credit card payment bills */}
-      {creditAccounts.length > 0 && (
+      {/* Credit Card Linking - For credit card payment bills (not for income bills) */}
+      {creditAccounts.length > 0 && !isIncomeBill && (
         <div className="p-4 bg-card rounded-lg border border-border space-y-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -1082,7 +1181,8 @@ export function BillForm({
         )}
       </div>
 
-      {/* Debt Configuration */}
+      {/* Debt Configuration - Not shown for income bills */}
+      {!isIncomeBill && (
       <div className="p-4 bg-card rounded-lg border border-border">
         <div 
           className="flex items-center justify-between cursor-pointer"
@@ -1302,6 +1402,7 @@ export function BillForm({
           </div>
         )}
       </div>
+      )}
 
       {/* Payee Patterns */}
       <div>
@@ -1363,14 +1464,24 @@ export function BillForm({
       </div>
 
       {/* Info Box */}
-      <div className="p-4 bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 rounded-lg flex gap-2">
-        <AlertCircle className="w-5 h-5 text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-[var(--color-primary)]/80">
-          <p className="font-medium mb-1">Category-Based Bill Matching</p>
+      <div className={`p-4 rounded-lg flex gap-2 ${
+        isIncomeBill 
+          ? 'bg-[var(--color-income)]/10 border border-[var(--color-income)]/20'
+          : 'bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20'
+      }`}>
+        <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+          isIncomeBill ? 'text-[var(--color-income)]' : 'text-[var(--color-primary)]'
+        }`} />
+        <div className={`text-sm ${
+          isIncomeBill ? 'text-[var(--color-income)]/80' : 'text-[var(--color-primary)]/80'
+        }`}>
+          <p className="font-medium mb-1">
+            {isIncomeBill ? 'Automatic Income Tracking' : 'Category-Based Bill Matching'}
+          </p>
           <p>
-            When you create an expense transaction with the selected category, the oldest unpaid bill instance
-            will be automatically marked as paid. This handles late payments, early payments, and multiple
-            payments intelligently.
+            {isIncomeBill
+              ? 'When you create an income transaction with the selected category, the oldest expected income instance will be automatically marked as received. This tracks salary, rent, dividends, and other recurring income.'
+              : 'When you create an expense transaction with the selected category, the oldest unpaid bill instance will be automatically marked as paid. This handles late payments, early payments, and multiple payments intelligently.'}
           </p>
         </div>
       </div>
@@ -1383,15 +1494,17 @@ export function BillForm({
             type="submit"
             onClick={() => setSaveMode('save')}
             disabled={isLoading}
-            className="flex-1 bg-[var(--color-primary)] text-white hover:opacity-90 font-medium"
+            className={`flex-1 text-white hover:opacity-90 font-medium ${
+              isIncomeBill ? 'bg-[var(--color-income)]' : 'bg-[var(--color-primary)]'
+            }`}
           >
             {bill
               ? isLoading && saveMode === 'save'
                 ? 'Updating...'
-                : 'Update Bill'
+                : isIncomeBill ? 'Update Income' : 'Update Bill'
               : isLoading && saveMode === 'save'
               ? 'Saving...'
-              : 'Save'}
+              : isIncomeBill ? 'Save Income' : 'Save'}
           </Button>
           {!bill && (
             <Button

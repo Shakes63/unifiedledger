@@ -24,6 +24,7 @@ import {
   Loader2,
   AlertCircle,
   CreditCard,
+  TrendingUp,
 } from 'lucide-react';
 import { useHousehold } from '@/contexts/household-context';
 
@@ -383,7 +384,48 @@ export function NotificationsTab() {
         </div>
       </Card>
 
-      {/* 4. Credit Utilization Alerts */}
+      {/* 4. Income Late Alerts */}
+      <Card className="border-border bg-card p-6 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-1 p-2 rounded-lg bg-elevated">
+            <TrendingUp className="h-5 w-5 text-[var(--color-income)]" />
+          </div>
+          <div className="flex-1 space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Income Alerts</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Track your recurring income and get notified when expected income is late
+              </p>
+            </div>
+
+            {/* Enable income late alerts */}
+            <div className="flex items-center justify-between py-2">
+              <div className="flex-1">
+                <Label htmlFor="income-late-enabled" className="text-sm font-medium">
+                  Enable late income alerts
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Get notified when expected recurring income hasn&apos;t arrived
+                </p>
+              </div>
+              <Switch
+                id="income-late-enabled"
+                checked={preferences.incomeLateEnabled}
+                onCheckedChange={(value) => updatePreference('incomeLateEnabled', value)}
+                aria-label="Toggle late income alerts"
+              />
+            </div>
+
+            {/* Channel selector */}
+            <ChannelSelector
+              channelField="incomeLateChannels"
+              enabled={preferences.incomeLateEnabled}
+            />
+          </div>
+        </div>
+      </Card>
+
+      {/* 5. Credit Utilization Alerts */}
       <Card className="border-border bg-card p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div className="mt-1 p-2 rounded-lg bg-elevated">
@@ -478,7 +520,7 @@ export function NotificationsTab() {
         </div>
       </Card>
 
-      {/* 5. Goals & Debt Milestones */}
+      {/* 6. Goals & Debt Milestones */}
       <Card className="border-border bg-card p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div className="mt-1 p-2 rounded-lg bg-elevated">
@@ -543,7 +585,7 @@ export function NotificationsTab() {
         </div>
       </Card>
 
-      {/* 6. Summary Reports */}
+      {/* 7. Summary Reports */}
       <Card className="border-border bg-card p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div className="mt-1 p-2 rounded-lg bg-elevated">

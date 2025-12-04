@@ -50,6 +50,8 @@ This document provides a comprehensive checklist for manually testing all featur
 40. [Unified Architecture (Phase 12)](#40-unified-architecture-phase-12)
 41. [Unified Architecture (Phase 13)](#41-unified-architecture-phase-13)
 42. [Unified Architecture (Phase 14)](#42-unified-architecture-phase-14)
+43. [Unified Architecture (Phase 15)](#43-unified-architecture-phase-15)
+44. [Unified Architecture (Phase 16)](#44-unified-architecture-phase-16)
 
 ---
 
@@ -1358,3 +1360,62 @@ Phase 15 simplifies the category system from 6 types to 3 types (income, expense
 - [ ] POST /api/categories accepts new type values
 - [ ] GET /api/budgets/overview uses simplified grouping
 - [ ] GET /api/budgets/allocation-summary uses simplified structure
+
+---
+
+## 44. Unified Architecture (Phase 16)
+
+**Added: 2025-12-04** | **Result: CODE COMPLETE**
+
+Phase 16 adds recurring income tracking using the bills system, allowing users to track expected income (salary, rent, dividends, etc.) and get alerts when expected income is late.
+
+### Bill Form - Income Bills
+- [ ] Bill Type selector appears at top of form (Income vs Expense)
+- [ ] Selecting Income hides debt configuration section
+- [ ] Selecting Income hides credit card linking section
+- [ ] Income-specific classification options shown (Salary, Rental, Investment, etc.)
+- [ ] Labels update for income context ("Expected Date" vs "Due Date")
+- [ ] Info box shows income-specific description
+- [ ] Save buttons show income-specific text ("Save Income", "Update Income")
+
+### Bills API Validation
+- [ ] POST /api/bills rejects isDebt=true for income bills
+- [ ] POST /api/bills rejects linkedAccountId for income bills
+- [ ] POST /api/bills rejects chargedToAccountId for income bills
+- [ ] PUT /api/bills/[id] validates income bill restrictions
+
+### Bills Page Display
+- [ ] Filter tabs visible: All, Expenses, Income
+- [ ] Clicking Income filter shows only income bills
+- [ ] Income statistics cards appear when Income filter selected
+- [ ] Income bills show green income icon and styling
+- [ ] Income bills show "Expected" instead of "Due"
+- [ ] Income bills show "Received" instead of "Paid"
+- [ ] Income bills show "Late" instead of "Overdue"
+- [ ] Income amounts show with + prefix
+
+### Income Late Notifications
+- [ ] Cron endpoint POST /api/cron/income-alerts runs successfully
+- [ ] Late income notifications created for overdue income bills
+- [ ] Upcoming income reminders created for expected income
+- [ ] Notification type 'income_late' used correctly
+
+### Calendar Integration
+- [ ] Income bills appear on calendar with distinct styling
+- [ ] Calendar day modal shows "Bills & Income" header
+- [ ] Income bills show income icon (ArrowDownCircle)
+- [ ] Income status shows "expected", "received", "late"
+- [ ] Income amounts shown in green with + prefix
+
+### Budget Overview
+- [ ] GET /api/budgets/overview includes recurringIncomeExpected
+- [ ] Response includes recurringIncomeReceived
+- [ ] Response includes recurringIncomePending
+- [ ] Response includes recurringIncomeLate
+- [ ] Response includes recurringIncomeSourceCount
+
+### Notification Preferences
+- [ ] Income Late Alerts section visible in Settings > Notifications
+- [ ] Enable/disable toggle for late income alerts works
+- [ ] Channel selector shows push/email options
+- [ ] Preferences save correctly to database

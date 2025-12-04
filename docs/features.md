@@ -28,7 +28,8 @@ _Add new feature ideas here_
     - **Phase 13: Dashboard Widgets** [COMPLETED 2025-12-04] - Updated debt-free countdown widget to use unified debt sources (credit accounts + debt bills). Updated credit utilization widget to use accounts table. Added new Next Payment Due widget showing upcoming bills with overdue highlighting, autopay indicators, and credit card payment linking.
     - **Phase 14: Balance History & Trends** [COMPLETED 2025-12-04] - Daily cron job for balance snapshots (`/api/cron/balance-snapshots`). Utilization trends and balance history charts on Accounts page. Interest Paid report with monthly breakdown and per-account analysis on Debts page.
     - **Phase 15: Category Simplification** [COMPLETED 2025-12-04] - Simplified category types from 6 to 3 (income, expense, savings). Removed variable_expense, monthly_bill, non_monthly_bill, debt types - all consolidated to `expense`. Updated all category forms, APIs, budget displays, and selectors. Migration auto-converts existing categories.
-    - **Phases 16-19** - _Not started_
+    - **Phase 16: Recurring Income** [COMPLETED 2025-12-04] - Added billType='income' support with income bill creation form, income classification (salary, rental, investment, freelance, benefits, refund), bills page filter tabs (All/Expenses/Income), income-specific statistics cards, late income notifications with cron job, calendar integration with income styling, expected vs actual income tracking in budget overview, and notification preferences for income alerts.
+    - **Phases 17-19** - _Not started_
 
 ---
 
