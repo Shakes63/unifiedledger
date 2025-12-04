@@ -1379,12 +1379,25 @@ export const importTemplates = sqliteTable(
     isFavorite: integer('is_favorite', { mode: 'boolean' }).default(false),
     usageCount: integer('usage_count').default(0),
     lastUsedAt: text('last_used_at'),
+    // Phase 12: Credit card import enhancements
+    sourceType: text('source_type', {
+      enum: ['bank', 'credit_card', 'auto'],
+    }).default('auto'),
+    issuer: text('issuer', {
+      enum: ['chase', 'amex', 'capital_one', 'discover', 'citi', 'bank_of_america', 'wells_fargo', 'other'],
+    }),
+    amountSignConvention: text('amount_sign_convention', {
+      enum: ['standard', 'credit_card'],
+    }).default('standard'),
+    transactionTypePatterns: text('transaction_type_patterns'), // JSON: custom patterns for detecting transaction types
+    statementInfoConfig: text('statement_info_config'), // JSON: config for extracting statement info
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   },
   (table) => ({
     userIdIdx: index('idx_import_templates_user').on(table.userId),
     userHouseholdIdx: index('idx_import_templates_user_household').on(table.userId, table.householdId),
+    sourceTypeIdx: index('idx_import_templates_source_type').on(table.sourceType),
   })
 );
 
@@ -1406,6 +1419,11 @@ export const importHistory = sqliteTable(
     }).notNull(),
     errorMessage: text('error_message'),
     importSettings: text('import_settings'), // JSON of import configuration
+    // Phase 12: Credit card import enhancements
+    sourceType: text('source_type', {
+      enum: ['bank', 'credit_card', 'auto'],
+    }),
+    statementInfo: text('statement_info'), // JSON: { statementBalance, statementDate, dueDate, minimumPayment, creditLimit }
     startedAt: text('started_at').default(new Date().toISOString()),
     completedAt: text('completed_at'),
     rolledBackAt: text('rolled_back_at'),
@@ -1430,10 +1448,18 @@ export const importStaging = sqliteTable(
       enum: ['pending', 'review', 'approved', 'skipped', 'imported'],
     }).notNull(),
     validationErrors: text('validation_errors'), // JSON array of validation errors
+    // Phase 12: Credit card import enhancements
+    ccTransactionType: text('cc_transaction_type', {
+      enum: ['purchase', 'payment', 'refund', 'interest', 'fee', 'cash_advance', 'balance_transfer', 'reward'],
+    }),
+    potentialTransferId: text('potential_transfer_id'), // ID of matching transfer transaction
+    transferMatchConfidence: real('transfer_match_confidence'), // Confidence score for transfer match
     createdAt: text('created_at').default(new Date().toISOString()),
   },
   (table) => ({
     importHistoryIdIdx: index('idx_import_staging_history').on(table.importHistoryId),
+    ccTransactionTypeIdx: index('idx_import_staging_cc_type').on(table.ccTransactionType),
+    transferIdx: index('idx_import_staging_transfer').on(table.potentialTransferId),
   })
 );
 

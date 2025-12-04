@@ -20,11 +20,24 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
-import { Upload, AlertCircle } from 'lucide-react';
+import { Upload, AlertCircle, CreditCard, Building2 } from 'lucide-react';
 import { ColumnMapper } from './column-mapper';
 import { ImportPreview, type StagingRecord } from './import-preview';
 import { autoDetectMappings, type ColumnMapping } from '@/lib/csv-import';
 import { toast } from 'sonner';
+import { 
+  detectCreditCard, 
+  detectIssuerFromFilename,
+  type CreditCardDetectionResult,
+  type CreditCardIssuer,
+  type SourceType,
+  type StatementInfo,
+} from '@/lib/csv-import/credit-card-detection';
+import { 
+  findBestMatchingTemplate, 
+  adaptTemplateMappings,
+  CREDIT_CARD_TEMPLATES,
+} from '@/lib/csv-import/cc-templates';
 
 type Step = 'upload' | 'settings' | 'mapping' | 'preview' | 'complete';
 
@@ -62,6 +75,14 @@ export function CSVImportModal({
   // Mappings
   const [mappings, setMappings] = useState<ColumnMapping[]>([]);
 
+  // Phase 12: Credit card detection state
+  const [sourceType, setSourceType] = useState<SourceType>('auto');
+  const [detectedSourceType, setDetectedSourceType] = useState<SourceType | null>(null);
+  const [detectedIssuer, setDetectedIssuer] = useState<CreditCardIssuer | null>(null);
+  const [detectionConfidence, setDetectionConfidence] = useState<number>(0);
+  const [statementInfo, setStatementInfo] = useState<StatementInfo | null>(null);
+  const [amountSignConvention, setAmountSignConvention] = useState<'standard' | 'credit_card'>('standard');
+
   // Preview data - contains staged transactions and import stats
   const [previewData, setPreviewData] = useState<{
     staging?: StagingRecord[];
@@ -70,6 +91,9 @@ export function CSVImportModal({
     reviewRows?: number;
     duplicateRows?: number;
     importId?: string;
+    sourceType?: SourceType;
+    detectedIssuer?: string;
+    statementInfo?: StatementInfo;
   } | null>(null);
   const [_importId, setImportId] = useState<string>('');
 
@@ -149,10 +173,51 @@ export function CSVImportModal({
 
       setHeaders(csvHeaders);
 
-      // Auto-detect mappings
-      const autoMappings = autoDetectMappings(csvHeaders);
-      setMappings(autoMappings);
+      // Phase 12: Detect credit card from headers and sample data
+      const sampleRows = (hasHeaderRow ? dataLines.slice(1) : dataLines)
+        .slice(0, 20)
+        .map(line => {
+          const values = line.split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+          const row: Record<string, string> = {};
+          csvHeaders.forEach((header, i) => {
+            row[header] = values[i] || '';
+          });
+          return row;
+        });
 
+      const detection = detectCreditCard(csvHeaders, sampleRows);
+      setDetectedSourceType(detection.sourceType);
+      setDetectedIssuer(detection.issuer || null);
+      setDetectionConfidence(detection.confidence);
+      setAmountSignConvention(detection.amountSignConvention);
+
+      // Also check filename for issuer hints
+      const filenameIssuer = detectIssuerFromFilename(selectedFile.name);
+      if (filenameIssuer && !detection.issuer) {
+        setDetectedIssuer(filenameIssuer);
+      }
+
+      // Try to find matching template for credit cards
+      const isCreditCard = detection.sourceType === 'credit_card';
+      let autoMappings: ColumnMapping[];
+
+      if (isCreditCard) {
+        const templateMatch = findBestMatchingTemplate(csvHeaders, detection.issuer || filenameIssuer);
+        if (templateMatch && templateMatch.matchScore >= 60) {
+          // Use template mappings adapted to actual headers
+          autoMappings = adaptTemplateMappings(templateMatch.template, csvHeaders);
+          setDateFormat(templateMatch.template.dateFormat);
+          setAmountSignConvention(templateMatch.template.amountSignConvention);
+          toast.success(`Detected ${templateMatch.template.name} format`);
+        } else {
+          // Use auto-detect with credit card flag
+          autoMappings = autoDetectMappings(csvHeaders, true);
+        }
+      } else {
+        autoMappings = autoDetectMappings(csvHeaders, false);
+      }
+
+      setMappings(autoMappings);
       setStep('settings');
     } catch (error) {
       const message =
@@ -183,10 +248,14 @@ export function CSVImportModal({
 
       console.log('Sending preview request with mappings:', mappings);
 
+      // Determine effective source type
+      const effectiveSourceType = sourceType === 'auto' ? detectedSourceType : sourceType;
+
       // Call preview API
       const response = await fetch('/api/csv-import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           file: base64,
           fileName,
@@ -197,6 +266,10 @@ export function CSVImportModal({
           skipRows,
           defaultAccountId,
           previewOnly: true,
+          // Phase 12: Credit card fields
+          sourceType: effectiveSourceType,
+          issuer: detectedIssuer,
+          amountSignConvention,
         }),
       });
 
@@ -242,10 +315,14 @@ export function CSVImportModal({
       const base64 = btoa(binaryString);
       console.log('File converted to base64, length:', base64.length);
 
+      // Determine effective source type
+      const effectiveSourceType = sourceType === 'auto' ? detectedSourceType : sourceType;
+
       // Call import API with previewOnly: false to save staging records
       const response = await fetch('/api/csv-import', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           file: base64,
           fileName,
@@ -256,6 +333,10 @@ export function CSVImportModal({
           skipRows,
           defaultAccountId,
           previewOnly: false,
+          // Phase 12: Credit card fields
+          sourceType: effectiveSourceType,
+          issuer: detectedIssuer,
+          amountSignConvention,
         }),
       });
 
@@ -356,6 +437,97 @@ export function CSVImportModal({
           {/* Settings Step */}
           {step === 'settings' && (
             <div className="space-y-4">
+              {/* Phase 12: Source type detection banner */}
+              {detectedSourceType && detectionConfidence >= 50 && (
+                <div className={`p-3 rounded-lg border ${
+                  detectedSourceType === 'credit_card' 
+                    ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30' 
+                    : 'bg-elevated border-border'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    {detectedSourceType === 'credit_card' ? (
+                      <CreditCard className="w-4 h-4 text-[var(--color-primary)]" />
+                    ) : (
+                      <Building2 className="w-4 h-4 text-muted-foreground" />
+                    )}
+                    <span className="text-sm font-medium text-foreground">
+                      {detectedSourceType === 'credit_card' ? 'Credit Card Statement' : 'Bank Statement'} Detected
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ({detectionConfidence}% confidence)
+                    </span>
+                  </div>
+                  {detectedIssuer && detectedIssuer !== 'other' && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Detected issuer: {detectedIssuer.replace('_', ' ')}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Source Type Selector */}
+              <div className="space-y-2">
+                <Label>Source Type</Label>
+                <Select 
+                  value={sourceType} 
+                  onValueChange={(value) => {
+                    setSourceType(value as SourceType);
+                    if (value === 'credit_card') {
+                      setAmountSignConvention('credit_card');
+                    } else if (value === 'bank') {
+                      setAmountSignConvention('standard');
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Auto-detect</SelectItem>
+                    <SelectItem value="bank">Bank Account</SelectItem>
+                    <SelectItem value="credit_card">Credit Card</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Credit Card Template (shown only for credit cards) */}
+              {(sourceType === 'credit_card' || (sourceType === 'auto' && detectedSourceType === 'credit_card')) && (
+                <div className="space-y-2">
+                  <Label>Card Issuer Template</Label>
+                  <Select 
+                    value={detectedIssuer || 'other'} 
+                    onValueChange={(value) => {
+                      setDetectedIssuer(value as CreditCardIssuer);
+                      // Apply template when selected
+                      const template = CREDIT_CARD_TEMPLATES.find(t => t.issuer === value);
+                      if (template) {
+                        const adapted = adaptTemplateMappings(template, headers);
+                        if (adapted.length > 0) {
+                          setMappings(adapted);
+                          setDateFormat(template.dateFormat);
+                          setAmountSignConvention(template.amountSignConvention);
+                          toast.success(`Applied ${template.name} template`);
+                        }
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select issuer..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="chase">Chase</SelectItem>
+                      <SelectItem value="amex">American Express</SelectItem>
+                      <SelectItem value="capital_one">Capital One</SelectItem>
+                      <SelectItem value="discover">Discover</SelectItem>
+                      <SelectItem value="citi">Citi</SelectItem>
+                      <SelectItem value="bank_of_america">Bank of America</SelectItem>
+                      <SelectItem value="wells_fargo">Wells Fargo</SelectItem>
+                      <SelectItem value="other">Other / Generic</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>Delimiter</Label>
                 <Select value={delimiter} onValueChange={setDelimiter}>
@@ -452,6 +624,9 @@ export function CSVImportModal({
                   onConfirm={handleConfirmImport}
                   onBack={() => setStep('mapping')}
                   isLoading={isLoading}
+                  sourceType={previewData.sourceType || (sourceType === 'auto' ? detectedSourceType || undefined : sourceType)}
+                  detectedIssuer={previewData.detectedIssuer || detectedIssuer || undefined}
+                  statementInfo={previewData.statementInfo || statementInfo || undefined}
                 />
               ) : (
                 <Card>

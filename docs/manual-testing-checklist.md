@@ -258,6 +258,21 @@ All features verified: Transfers list (empty state), new transfer modal (from/to
 - [ ] Import preview, duplicate detection, exclude rows
 - [ ] Import execution, success message, error handling, import history
 
+### Phase 12: Credit Card Import Enhancements (2025-12-04)
+- [ ] Credit card statement auto-detection from headers
+- [ ] Detection confidence badge displayed in settings step
+- [ ] Detected issuer name displayed
+- [ ] Source type selector (Auto-detect, Bank Account, Credit Card)
+- [ ] Card issuer template dropdown (Chase, Amex, Capital One, etc.)
+- [ ] Selecting template applies column mappings automatically
+- [ ] Transaction type auto-detection (purchase, payment, refund, interest, fee)
+- [ ] CC transaction type badges in preview
+- [ ] Statement info extraction from header rows (balance, due date, minimum)
+- [ ] Statement info card displayed in preview when available
+- [ ] Transfer duplicate detection warning in preview
+- [ ] Transfer match confidence score displayed
+- [ ] New column mapping fields (cc_transaction_type, reference_number, statement info)
+
 ---
 
 ## 17. Notifications
@@ -1013,8 +1028,9 @@ Phase 9 implements calendar integration with the unified debt architecture.
 | 37. Unified Architecture (Phase 9) | CODE COMPLETE | Calendar integration |
 | 38. Unified Architecture (Phase 10) | CODE COMPLETE | Notifications system |
 | 39. Unified Architecture (Phase 11) | CODE COMPLETE | Tax integration |
+| 40. Unified Architecture (Phase 12) | CODE COMPLETE | CSV import enhancements |
 
-**Overall: 22/39 browser-tested, 17/39 code/schema-reviewed**
+**Overall: 22/40 browser-tested, 18/40 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-04
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true
@@ -1112,3 +1128,78 @@ Phase 11 implements tax integration for debt bill interest deductions.
 - [ ] All indexes created (user, household, year, type, bill, payment)
 - [ ] Proper foreign keys to bills and bill_payments
 - [ ] Tax categories include "HELOC/Home Equity Interest" and "Business Interest Expense"
+
+---
+
+## 40. Unified Architecture (Phase 12)
+
+**Added: 2025-12-04** | **Result: CODE COMPLETE**
+
+Phase 12 implements CSV import enhancements for credit card statements.
+
+### Credit Card Statement Detection
+- [ ] Headers analyzed for credit card indicators (card number, limit, etc.)
+- [ ] Transaction patterns analyzed (purchases vs payments)
+- [ ] Detection confidence calculated and displayed
+- [ ] Filename checked for issuer hints
+
+### Auto-Detection UI
+- [ ] Detection banner shows source type (Credit Card / Bank)
+- [ ] Confidence percentage displayed
+- [ ] Detected issuer name shown (if detected)
+- [ ] Source Type selector allows override (Auto, Bank, Credit Card)
+
+### Card Issuer Templates
+- [ ] Template dropdown shows 8 issuers (Chase, Amex, etc.)
+- [ ] Selecting template auto-applies column mappings
+- [ ] Template date format applied
+- [ ] Template amount convention applied
+- [ ] Generic Credit Card template available
+
+### Transaction Type Detection
+- [ ] Payment transactions detected (payment, thank you, autopay)
+- [ ] Refund transactions detected (refund, return, credit)
+- [ ] Interest charges detected (interest charge, finance charge)
+- [ ] Fee transactions detected (annual fee, late fee)
+- [ ] Cash advances detected (cash advance, ATM)
+- [ ] Balance transfers detected (balance transfer, BT)
+- [ ] Rewards detected (reward, cashback, statement credit)
+- [ ] Default to purchase for unmatched transactions
+- [ ] Transaction type badges displayed in preview
+
+### Statement Info Extraction
+- [ ] Statement balance extracted from header rows
+- [ ] Due date extracted from header rows
+- [ ] Minimum payment extracted from header rows
+- [ ] Credit limit extracted from header rows
+- [ ] Statement info card displayed in preview
+
+### Transfer Duplicate Prevention
+- [ ] Existing transfers checked for matching amounts
+- [ ] Date proximity considered (±3 days)
+- [ ] Opposite transaction types matched
+- [ ] Transfer keywords boost confidence
+- [ ] High-confidence matches flagged for review
+- [ ] Transfer match banner in preview summary
+- [ ] Transfer match confidence on individual rows
+
+### Column Mapping Updates
+- [ ] New fields: cc_transaction_type, reference_number
+- [ ] New fields: statement_balance, statement_date, statement_due_date
+- [ ] New fields: minimum_payment, credit_limit, available_credit
+- [ ] Fields organized by group (Required, Amount, Optional, Credit Card, Statement Info)
+
+### Database Schema
+- [ ] import_templates: source_type, issuer, amount_sign_convention columns
+- [ ] import_templates: transaction_type_patterns, statement_info_config columns
+- [ ] import_history: source_type, statement_info columns
+- [ ] import_staging: cc_transaction_type, potential_transfer_id, transfer_match_confidence columns
+- [ ] Migration 0068 applied successfully
+- [ ] All new indexes created
+
+### API Updates
+- [ ] POST /api/csv-import accepts sourceType, issuer, amountSignConvention
+- [ ] Response includes sourceType, detectedIssuer, statementInfo
+- [ ] Response includes transferMatches count
+- [ ] Staging records include ccTransactionType, potentialTransferId
+- [ ] Credit card processing applied when sourceType=credit_card

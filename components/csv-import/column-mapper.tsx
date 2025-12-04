@@ -19,16 +19,25 @@ import {
 import { type ColumnMapping } from '@/lib/csv-import';
 
 const APP_FIELDS = [
-  { value: 'date', label: 'Date' },
-  { value: 'description', label: 'Description' },
-  { value: 'amount', label: 'Amount' },
-  { value: 'withdrawal', label: 'Withdrawal (Expense)' },
-  { value: 'deposit', label: 'Deposit (Income)' },
-  { value: 'category', label: 'Category' },
-  { value: 'merchant', label: 'Merchant' },
-  { value: 'notes', label: 'Notes' },
-  { value: 'account', label: 'Account' },
-  { value: 'type', label: 'Type' },
+  { value: 'date', label: 'Date', group: 'Required' },
+  { value: 'description', label: 'Description', group: 'Required' },
+  { value: 'amount', label: 'Amount', group: 'Amount' },
+  { value: 'withdrawal', label: 'Withdrawal (Expense)', group: 'Amount' },
+  { value: 'deposit', label: 'Deposit (Income)', group: 'Amount' },
+  { value: 'category', label: 'Category', group: 'Optional' },
+  { value: 'merchant', label: 'Merchant', group: 'Optional' },
+  { value: 'notes', label: 'Notes', group: 'Optional' },
+  { value: 'account', label: 'Account', group: 'Optional' },
+  { value: 'type', label: 'Type', group: 'Optional' },
+  // Phase 12: Credit card specific fields
+  { value: 'cc_transaction_type', label: 'CC Transaction Type', group: 'Credit Card' },
+  { value: 'reference_number', label: 'Reference Number', group: 'Credit Card' },
+  { value: 'statement_balance', label: 'Statement Balance', group: 'Statement Info' },
+  { value: 'statement_date', label: 'Statement Date', group: 'Statement Info' },
+  { value: 'statement_due_date', label: 'Due Date', group: 'Statement Info' },
+  { value: 'minimum_payment', label: 'Minimum Payment', group: 'Statement Info' },
+  { value: 'credit_limit', label: 'Credit Limit', group: 'Statement Info' },
+  { value: 'available_credit', label: 'Available Credit', group: 'Statement Info' },
 ];
 
 const TRANSFORMS = [

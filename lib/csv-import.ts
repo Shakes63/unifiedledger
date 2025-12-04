@@ -17,9 +17,18 @@ export interface ColumnMapping {
     | 'merchant'
     | 'notes'
     | 'account'
-    | 'type';
+    | 'type'
+    // Phase 12: Credit card specific fields
+    | 'cc_transaction_type'
+    | 'statement_balance'
+    | 'statement_date'
+    | 'statement_due_date'
+    | 'minimum_payment'
+    | 'credit_limit'
+    | 'available_credit'
+    | 'reference_number';
   transform?: 'none' | 'negate' | 'absolute' | 'trim' | 'uppercase' | 'lowercase';
-  defaultValue?: any;
+  defaultValue?: string | number;
 }
 
 /**
@@ -34,6 +43,23 @@ export interface ImportTemplate {
   hasHeaderRow: boolean;
   skipRows: number;
   defaultAccountId?: string;
+  // Phase 12: Credit card specific settings
+  sourceType?: 'bank' | 'credit_card' | 'auto';
+  issuer?: string;
+  amountSignConvention?: 'standard' | 'credit_card';
+  transactionTypePatterns?: Record<string, string>;
+  statementInfoConfig?: StatementInfoConfig;
+}
+
+/**
+ * Configuration for extracting statement info from header rows
+ */
+export interface StatementInfoConfig {
+  statementBalanceRow?: number; // Row number containing statement balance
+  statementDateRow?: number;
+  dueDateRow?: number;
+  minimumPaymentRow?: number;
+  creditLimitRow?: number;
 }
 
 /**
@@ -44,6 +70,19 @@ export interface ParsedCSVResult {
   rows: Record<string, string>[];
   totalRows: number;
 }
+
+/**
+ * Credit card transaction type
+ */
+export type CCTransactionType = 
+  | 'purchase' 
+  | 'payment' 
+  | 'refund' 
+  | 'interest' 
+  | 'fee' 
+  | 'cash_advance' 
+  | 'balance_transfer' 
+  | 'reward';
 
 /**
  * Mapped transaction data
@@ -57,6 +96,11 @@ export interface MappedTransaction {
   notes?: string;
   accountId?: string;
   type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+  // Phase 12: Credit card specific fields
+  ccTransactionType?: CCTransactionType;
+  referenceNumber?: string;
+  isRefund?: boolean;
+  isBalanceTransfer?: boolean;
 }
 
 /**
@@ -120,23 +164,32 @@ export const parseCSVFile = async (
 /**
  * Auto-detect column mappings based on header names
  */
-export const autoDetectMappings = (headers: string[]): ColumnMapping[] => {
+export const autoDetectMappings = (headers: string[], isCreditCard: boolean = false): ColumnMapping[] => {
   const mappings: ColumnMapping[] = [];
 
   const patterns: Record<string, RegExp> = {
     date: /date|posted|transaction.*date|trans.*date|trans_date/i,
-    description: /description|memo|detail|merchant|payee|name|transaction|trans|ref/i,
+    description: /description|memo|detail|merchant|payee|name|transaction|trans(?!_)|ref/i,
     withdrawal: /withdrawal|withdraw|debit|paid.*out|spent|expense/i,
     deposit: /deposit|credit|received|income/i,
     amount: /^amount$|^value$|^total$|^balance$/i, // More specific to avoid matching withdrawal/deposit
     category: /category|type|class|cat/i,
     merchant: /merchant|vendor|payee|store|retailer|supplier/i,
     notes: /note|comment|memo|description|reference/i,
+    // Phase 12: Credit card specific patterns
+    cc_transaction_type: /trans(action)?\s*type|payment\s*type|card\s*type/i,
+    reference_number: /reference\s*(number|#|no\.?)|ref\s*#|trans(action)?\s*id/i,
+    statement_balance: /statement\s*balance|new\s*balance|ending\s*balance/i,
+    minimum_payment: /minimum\s*(due|payment)|min\s*pay/i,
+    credit_limit: /credit\s*limit|available\s*credit/i,
   };
+
+  // Track which patterns have been matched to avoid duplicates
+  const matchedPatterns = new Set<string>();
 
   headers.forEach((header) => {
     for (const [field, pattern] of Object.entries(patterns)) {
-      if (pattern.test(header)) {
+      if (pattern.test(header) && !matchedPatterns.has(field)) {
         // Avoid duplicate categories
         if (field === 'category' && mappings.some((m) => m.appField === 'category')) {
           continue;
@@ -148,11 +201,16 @@ export const autoDetectMappings = (headers: string[]): ColumnMapping[] => {
         if (field === 'amount' && mappings.some((m) => m.appField === 'withdrawal' || m.appField === 'deposit')) {
           continue;
         }
+        // Skip credit card specific fields for bank accounts
+        if (!isCreditCard && ['cc_transaction_type', 'statement_balance', 'minimum_payment', 'credit_limit'].includes(field)) {
+          continue;
+        }
 
         mappings.push({
           csvColumn: header,
-          appField: field as any,
+          appField: field as ColumnMapping['appField'],
         });
+        matchedPatterns.add(field);
         break;
       }
     }
@@ -360,6 +418,44 @@ export const applyMappings = (
         case 'account':
           transaction.accountId = value;
           break;
+
+        // Phase 12: Credit card specific fields
+        case 'cc_transaction_type':
+          const ccType = value.toLowerCase().trim();
+          if (ccType.includes('payment') || ccType.includes('credit')) {
+            transaction.ccTransactionType = 'payment';
+          } else if (ccType.includes('refund') || ccType.includes('return')) {
+            transaction.ccTransactionType = 'refund';
+            transaction.isRefund = true;
+          } else if (ccType.includes('interest') || ccType.includes('finance')) {
+            transaction.ccTransactionType = 'interest';
+          } else if (ccType.includes('fee')) {
+            transaction.ccTransactionType = 'fee';
+          } else if (ccType.includes('cash') && ccType.includes('advance')) {
+            transaction.ccTransactionType = 'cash_advance';
+          } else if (ccType.includes('balance') && ccType.includes('transfer')) {
+            transaction.ccTransactionType = 'balance_transfer';
+            transaction.isBalanceTransfer = true;
+          } else if (ccType.includes('reward') || ccType.includes('cashback')) {
+            transaction.ccTransactionType = 'reward';
+          } else {
+            transaction.ccTransactionType = 'purchase';
+          }
+          break;
+
+        case 'reference_number':
+          transaction.referenceNumber = applyStringTransform(value, mapping.transform);
+          break;
+
+        // Statement info fields are captured but not stored on transaction
+        case 'statement_balance':
+        case 'statement_date':
+        case 'statement_due_date':
+        case 'minimum_payment':
+        case 'credit_limit':
+        case 'available_credit':
+          // These are captured at the import level, not per-transaction
+          break;
       }
     } catch (error) {
       console.error(
@@ -448,3 +544,300 @@ export const getFileInfo = (file: File): { size: number; name: string } => {
     name: file.name,
   };
 };
+
+// ============================================================================
+// Phase 12: Transfer Detection
+// ============================================================================
+
+/**
+ * Result of transfer match detection
+ */
+export interface TransferMatch {
+  transactionId: string;
+  matchType: 'exact_opposite' | 'likely_transfer';
+  confidence: number; // 0-100
+  matchedFields: string[];
+  existingTransaction: {
+    date: string;
+    description: string;
+    amount: number;
+    type: string;
+    accountId: string;
+  };
+}
+
+/**
+ * Detect potential transfer matches for a mapped transaction
+ * This helps prevent duplicate entries when importing both sides of a transfer
+ */
+export function detectPotentialTransfers(
+  mappedTransaction: MappedTransaction,
+  existingTransactions: Array<{
+    id: string;
+    date: string;
+    description: string;
+    amount: number;
+    type: string;
+    accountId: string;
+    transferId?: string | null;
+  }>,
+  options: {
+    dateRangeInDays?: number;
+    minConfidence?: number;
+  } = {}
+): TransferMatch[] {
+  const { dateRangeInDays = 3, minConfidence = 70 } = options;
+  const matches: TransferMatch[] = [];
+  
+  const transactionAmount = mappedTransaction.amount instanceof Decimal
+    ? mappedTransaction.amount.toNumber()
+    : mappedTransaction.amount;
+  const absAmount = Math.abs(transactionAmount);
+  
+  const transactionDate = new Date(mappedTransaction.date);
+  
+  for (const existing of existingTransactions) {
+    // Skip if same account (transfers go between different accounts)
+    if (existing.accountId === mappedTransaction.accountId) {
+      continue;
+    }
+    
+    // Skip if already part of a transfer
+    if (existing.transferId) {
+      continue;
+    }
+    
+    const matchedFields: string[] = [];
+    let confidence = 0;
+    
+    // Check amount match (same absolute value)
+    const existingAbsAmount = Math.abs(existing.amount);
+    const amountDiff = Math.abs(existingAbsAmount - absAmount);
+    const amountTolerance = absAmount * 0.01; // 1% tolerance
+    
+    if (amountDiff <= amountTolerance) {
+      matchedFields.push('amount');
+      confidence += 40;
+    } else {
+      // Amount must match for transfer detection
+      continue;
+    }
+    
+    // Check date proximity
+    const existingDate = new Date(existing.date);
+    const daysDiff = Math.abs(
+      (transactionDate.getTime() - existingDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    
+    if (daysDiff <= dateRangeInDays) {
+      matchedFields.push('date');
+      confidence += 30 - (daysDiff * 5); // Closer dates get higher score
+    } else {
+      // Date must be within range
+      continue;
+    }
+    
+    // Check for opposite transaction types or transfer indicators
+    const isOppositeType = 
+      (mappedTransaction.type === 'expense' && existing.type === 'income') ||
+      (mappedTransaction.type === 'income' && existing.type === 'expense') ||
+      (mappedTransaction.type === 'transfer_out' && existing.type === 'transfer_in') ||
+      (mappedTransaction.type === 'transfer_in' && existing.type === 'transfer_out');
+    
+    if (isOppositeType) {
+      matchedFields.push('opposite_type');
+      confidence += 15;
+    }
+    
+    // Check for transfer-related keywords in descriptions
+    const transferKeywords = /transfer|trf|xfer|from|to|payment/i;
+    const hasTransferKeyword = 
+      transferKeywords.test(mappedTransaction.description) ||
+      transferKeywords.test(existing.description);
+    
+    if (hasTransferKeyword) {
+      matchedFields.push('transfer_keywords');
+      confidence += 10;
+    }
+    
+    // Check for similar descriptions (might indicate same transfer)
+    const descSimilarity = calculateSimpleSimilarity(
+      mappedTransaction.description.toLowerCase(),
+      existing.description.toLowerCase()
+    );
+    
+    if (descSimilarity > 0.5) {
+      matchedFields.push('similar_description');
+      confidence += 5;
+    }
+    
+    // Only include if confidence meets threshold
+    if (confidence >= minConfidence) {
+      matches.push({
+        transactionId: existing.id,
+        matchType: confidence >= 85 ? 'exact_opposite' : 'likely_transfer',
+        confidence: Math.min(confidence, 100),
+        matchedFields,
+        existingTransaction: {
+          date: existing.date,
+          description: existing.description,
+          amount: existing.amount,
+          type: existing.type,
+          accountId: existing.accountId,
+        },
+      });
+    }
+  }
+  
+  // Sort by confidence descending
+  matches.sort((a, b) => b.confidence - a.confidence);
+  
+  return matches;
+}
+
+/**
+ * Simple string similarity calculation (0-1)
+ * Uses character overlap as a basic metric
+ */
+function calculateSimpleSimilarity(str1: string, str2: string): number {
+  if (str1 === str2) return 1;
+  if (!str1 || !str2) return 0;
+  
+  const set1 = new Set(str1.split(''));
+  const set2 = new Set(str2.split(''));
+  
+  let intersection = 0;
+  for (const char of set1) {
+    if (set2.has(char)) intersection++;
+  }
+  
+  const union = set1.size + set2.size - intersection;
+  return intersection / union;
+}
+
+// ============================================================================
+// Phase 12: Credit Card Transaction Type Detection
+// ============================================================================
+
+/**
+ * Patterns for detecting credit card transaction types from description
+ */
+export const CC_TYPE_DETECTION_PATTERNS: Record<CCTransactionType, RegExp> = {
+  payment: /payment|thank\s*you|autopay|automatic\s*payment|credit\s*card\s*payment|online\s*payment/i,
+  refund: /refund|return|credit|reversal|adjustment|chargeback|merchant\s*credit/i,
+  interest: /interest\s*charge|finance\s*charge|interest\s*payment|purchase\s*interest|periodic\s*interest/i,
+  fee: /annual\s*fee|late\s*fee|foreign\s*transaction|fee:|returned\s*payment\s*fee|over\s*limit\s*fee|cash\s*advance\s*fee/i,
+  cash_advance: /cash\s*advance|atm\s*withdraw|cash\s*disbursement|casino/i,
+  balance_transfer: /balance\s*transfer|bt\s*-|promo\s*transfer|promotional\s*transfer/i,
+  reward: /reward|cashback|statement\s*credit|bonus|points\s*redemption|rewards\s*credit/i,
+  purchase: /.*/, // Catch-all
+};
+
+/**
+ * Detect credit card transaction type from description and amount
+ */
+export function detectCCTransactionType(
+  description: string,
+  amount: number,
+  customPatterns?: Partial<Record<CCTransactionType, string>>
+): CCTransactionType {
+  // Build patterns with custom overrides
+  const patterns: Record<CCTransactionType, RegExp> = { ...CC_TYPE_DETECTION_PATTERNS };
+  
+  if (customPatterns) {
+    for (const [type, pattern] of Object.entries(customPatterns)) {
+      if (pattern) {
+        patterns[type as CCTransactionType] = new RegExp(pattern, 'i');
+      }
+    }
+  }
+  
+  // Check patterns in priority order (non-purchase first)
+  const orderedTypes: CCTransactionType[] = [
+    'payment',
+    'interest',
+    'fee',
+    'cash_advance',
+    'balance_transfer',
+    'reward',
+    'refund',
+  ];
+  
+  for (const type of orderedTypes) {
+    if (patterns[type].test(description)) {
+      return type;
+    }
+  }
+  
+  // For negative amounts on credit cards, likely a payment or credit
+  if (amount < 0) {
+    if (/refund|return|credit/i.test(description)) {
+      return 'refund';
+    }
+    return 'payment';
+  }
+  
+  // Default to purchase
+  return 'purchase';
+}
+
+/**
+ * Apply credit card specific processing to a mapped transaction
+ */
+export function applyCreditCardProcessing(
+  transaction: MappedTransaction,
+  amountSignConvention: 'standard' | 'credit_card',
+  customPatterns?: Partial<Record<CCTransactionType, string>>
+): MappedTransaction {
+  const amount = transaction.amount instanceof Decimal
+    ? transaction.amount.toNumber()
+    : transaction.amount;
+  
+  // Detect transaction type if not already set
+  if (!transaction.ccTransactionType) {
+    transaction.ccTransactionType = detectCCTransactionType(
+      transaction.description,
+      amount,
+      customPatterns
+    );
+  }
+  
+  // Set transaction type based on credit card transaction type
+  switch (transaction.ccTransactionType) {
+    case 'payment':
+      // Payments to credit cards are transfer_in to the card
+      transaction.type = 'transfer_in';
+      break;
+    case 'refund':
+      transaction.type = 'income';
+      transaction.isRefund = true;
+      break;
+    case 'balance_transfer':
+      transaction.type = 'transfer_in';
+      transaction.isBalanceTransfer = true;
+      break;
+    case 'reward':
+      transaction.type = 'income';
+      break;
+    default:
+      // Purchases, fees, interest, cash advances are expenses
+      transaction.type = 'expense';
+      break;
+  }
+  
+  // Handle amount sign convention
+  if (amountSignConvention === 'credit_card') {
+    // Credit card convention: positive = charge (expense), negative = credit/payment
+    // Ensure amount is positive for expenses, handle the type appropriately
+    if (amount < 0 && ['purchase', 'fee', 'interest', 'cash_advance'].includes(transaction.ccTransactionType || '')) {
+      // Negative amount but should be expense - this is actually a credit/refund
+      transaction.type = 'income';
+      transaction.amount = new Decimal(Math.abs(amount));
+    } else if (amount > 0 && ['payment', 'refund', 'reward'].includes(transaction.ccTransactionType || '')) {
+      // Positive amount but should be credit - this is a payment in wrong sign
+      transaction.amount = new Decimal(Math.abs(amount));
+    }
+  }
+  
+  return transaction;
+}

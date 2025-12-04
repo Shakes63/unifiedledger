@@ -24,7 +24,8 @@ _Add new feature ideas here_
     - **Phase 9: Calendar Integration** [COMPLETED 2025-12-04] - Bill due dates on calendar including credit card payment bills with linked account display. Autopay processing dates shown on calendar with scheduled payment details. Projected payoff dates from unified sources (credit accounts + debt bills). Bill milestones from unified architecture displayed with achievement celebration styling.
     - **Phase 10: Notifications** [COMPLETED 2025-12-04] - High utilization warnings at configurable thresholds (30%, 50%, 75%, 90%). Credit limit change notifications with utilization impact. Unified debt milestone notifications for credit accounts and debt bills. Notification settings UI with threshold selector and channel configuration.
     - **Phase 11: Tax Integration** [COMPLETED 2025-12-04] - Auto-classification of interest payments from tax-deductible debt bills. Annual limit tracking for student loan interest ($2,500). Interest deduction summary in tax dashboard with progress bars. Limit warning notifications at 80% and 100%. New tax categories for HELOC and business interest.
-    - **Phases 12-19** - _Not started_
+    - **Phase 12: CSV Import Enhancements** [COMPLETED 2025-12-04] - Credit card statement auto-detection (headers and transaction patterns). Transaction type classification (purchase, payment, refund, interest, fee, cash advance, balance transfer, reward). Statement info extraction (balance, due date, minimum payment). Transfer duplicate prevention (detects other side of existing transfers). Pre-built templates for 7 major card issuers (Chase, Amex, Capital One, Discover, Citi, BoA, Wells Fargo).
+    - **Phases 13-19** - _Not started_
 
 ---
 

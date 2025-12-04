@@ -7,10 +7,14 @@ import { eq } from 'drizzle-orm';
 import {
   applyMappings,
   validateMappedTransaction,
+  applyCreditCardProcessing,
+  detectPotentialTransfers,
   type ColumnMapping,
   type MappedTransaction,
+  type CCTransactionType,
 } from '@/lib/csv-import';
 import { detectDuplicateTransactions } from '@/lib/duplicate-detection';
+import { extractStatementInfoFromHeaders } from '@/lib/csv-import/credit-card-detection';
 import Decimal from 'decimal.js';
 
 interface CSVImportRequest {
@@ -25,6 +29,10 @@ interface CSVImportRequest {
   templateId?: string;
   householdId?: string;
   previewOnly?: boolean;
+  // Phase 12: Credit card specific fields
+  sourceType?: 'bank' | 'credit_card' | 'auto';
+  issuer?: string;
+  amountSignConvention?: 'standard' | 'credit_card';
 }
 
 interface StagingRecord {
@@ -36,6 +44,10 @@ interface StagingRecord {
   duplicateScore?: number;
   status: 'pending' | 'review' | 'approved' | 'skipped' | 'imported';
   validationErrors: string[];
+  // Phase 12: Credit card specific fields
+  ccTransactionType?: CCTransactionType;
+  potentialTransferId?: string;
+  transferMatchConfidence?: number;
 }
 
 export const dynamic = 'force-dynamic';
@@ -62,6 +74,10 @@ export async function POST(request: NextRequest) {
       templateId,
       householdId,
       previewOnly = true,
+      // Phase 12: Credit card fields
+      sourceType = 'auto',
+      issuer,
+      amountSignConvention = 'standard',
     } = body;
 
     // Validate required fields
@@ -165,6 +181,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Phase 12: Extract statement info from skipped rows (for credit cards)
+    let statementInfo = null;
+    if (sourceType === 'credit_card' && skipRows > 0) {
+      const preDataRows = lines.slice(0, skipRows);
+      statementInfo = extractStatementInfoFromHeaders(preDataRows, delimiter);
+    }
+
     // Create import history record
     const importHistoryId = nanoid();
     const now = new Date().toISOString();
@@ -189,7 +212,13 @@ export async function POST(request: NextRequest) {
         hasHeaderRow,
         skipRows,
         defaultAccountId,
+        sourceType,
+        issuer,
+        amountSignConvention,
       }),
+      // Phase 12: Credit card fields
+      sourceType: sourceType || null,
+      statementInfo: statementInfo ? JSON.stringify(statementInfo) : null,
       startedAt: now,
       completedAt: null,
       rolledBackAt: null,
@@ -203,6 +232,21 @@ export async function POST(request: NextRequest) {
     const stagingRecords: StagingRecord[] = [];
     const errors: string[] = [];
 
+    // Phase 12: Fetch existing transactions for transfer detection
+    const existingTransactionsForTransfer = await db
+      .select({
+        id: transactions.id,
+        description: transactions.description,
+        amount: transactions.amount,
+        date: transactions.date,
+        type: transactions.type,
+        accountId: transactions.accountId,
+        transferId: transactions.transferId,
+      })
+      .from(transactions)
+      .where(eq(transactions.userId, userId))
+      .limit(500);
+
     for (let i = 0; i < parsed.rows.length; i++) {
       const row = parsed.rows[i];
       const rowNumber = i + 1;
@@ -210,12 +254,17 @@ export async function POST(request: NextRequest) {
 
       try {
         // Apply mappings
-        const mappedData = applyMappings(
+        let mappedData = applyMappings(
           row,
           columnMappings,
           dateFormat,
           defaultAccountId
         );
+
+        // Phase 12: Apply credit card processing if this is a credit card import
+        if (sourceType === 'credit_card') {
+          mappedData = applyCreditCardProcessing(mappedData, amountSignConvention);
+        }
 
         // Debug: Log first 3 mapped rows
         if (i < 3) {
@@ -224,6 +273,7 @@ export async function POST(request: NextRequest) {
             amount: mappedData.amount?.toString(),
             type: mappedData.type,
             date: mappedData.date,
+            ccTransactionType: mappedData.ccTransactionType,
             rawRow: row
           });
         }
@@ -234,6 +284,8 @@ export async function POST(request: NextRequest) {
         // Check for duplicates
         let duplicateOf: string | undefined;
         let duplicateScore: number | undefined;
+        let potentialTransferId: string | undefined;
+        let transferMatchConfidence: number | undefined;
 
         if (validationErrors.length === 0) {
           // Get existing transactions for duplicate checking
@@ -270,6 +322,24 @@ export async function POST(request: NextRequest) {
             duplicateOf = topMatch.id;
             duplicateScore = topMatch.similarity;
           }
+
+          // Phase 12: Check for potential transfer matches
+          // This helps prevent duplicates when importing both sides of a transfer
+          if (!duplicateOf) {
+            const transferMatches = detectPotentialTransfers(
+              mappedData,
+              existingTransactionsForTransfer.map(t => ({
+                ...t,
+                type: t.type || 'expense',
+              })),
+              { dateRangeInDays: 3, minConfidence: 70 }
+            );
+
+            if (transferMatches.length > 0) {
+              potentialTransferId = transferMatches[0].transactionId;
+              transferMatchConfidence = transferMatches[0].confidence;
+            }
+          }
         }
 
         stagingRecords.push({
@@ -279,8 +349,15 @@ export async function POST(request: NextRequest) {
           mappedData,
           duplicateOf,
           duplicateScore,
-          status: validationErrors.length > 0 ? 'review' : duplicateOf ? 'review' : 'approved',
+          status: validationErrors.length > 0 ? 'review' : 
+                  duplicateOf ? 'review' : 
+                  (potentialTransferId && transferMatchConfidence && transferMatchConfidence >= 85) ? 'review' :
+                  'approved',
           validationErrors,
+          // Phase 12: Credit card fields
+          ccTransactionType: mappedData.ccTransactionType,
+          potentialTransferId,
+          transferMatchConfidence,
         });
       } catch (error) {
         const errorMessage =
@@ -313,6 +390,10 @@ export async function POST(request: NextRequest) {
             record.validationErrors.length > 0
               ? JSON.stringify(record.validationErrors)
               : null,
+          // Phase 12: Credit card fields
+          ccTransactionType: record.ccTransactionType || null,
+          potentialTransferId: record.potentialTransferId || null,
+          transferMatchConfidence: record.transferMatchConfidence || null,
           createdAt: now,
         });
       }
@@ -325,7 +406,12 @@ export async function POST(request: NextRequest) {
       validRows: stagingRecords.filter((r) => r.status === 'approved').length,
       reviewRows: stagingRecords.filter((r) => r.status === 'review').length,
       duplicateRows: stagingRecords.filter((r) => r.duplicateOf).length,
+      transferMatches: stagingRecords.filter((r) => r.potentialTransferId).length,
       errors: errors.length > 0 ? errors : undefined,
+      // Phase 12: Include credit card info in response
+      sourceType,
+      detectedIssuer: issuer,
+      statementInfo,
       staging: stagingRecords.map((r) => ({
         rowNumber: r.rowNumber,
         status: r.status,
@@ -333,6 +419,10 @@ export async function POST(request: NextRequest) {
         duplicateOf: r.duplicateOf,
         duplicateScore: r.duplicateScore,
         data: r.mappedData,
+        // Phase 12: Credit card fields
+        ccTransactionType: r.ccTransactionType,
+        potentialTransferId: r.potentialTransferId,
+        transferMatchConfidence: r.transferMatchConfidence,
       })),
     };
 

@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, AlertTriangle, CreditCard, ArrowLeftRight, RefreshCw, Receipt, DollarSign, Percent, Gift } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import type { CCTransactionType } from '@/lib/csv-import';
 
 export interface StagingRecord {
   rowNumber: number;
@@ -13,6 +14,10 @@ export interface StagingRecord {
   duplicateOf?: string;
   duplicateScore?: number;
   data?: Record<string, string | number | boolean | null>;
+  // Phase 12: Credit card specific fields
+  ccTransactionType?: CCTransactionType;
+  potentialTransferId?: string;
+  transferMatchConfidence?: number;
 }
 
 interface ImportPreviewProps {
@@ -25,6 +30,57 @@ interface ImportPreviewProps {
   onConfirm: (recordIds?: string[]) => Promise<void>;
   onBack?: () => void;
   isLoading?: boolean;
+  // Phase 12: Credit card detection info
+  sourceType?: 'bank' | 'credit_card' | 'auto';
+  detectedIssuer?: string;
+  statementInfo?: {
+    statementBalance?: number;
+    statementDate?: string;
+    dueDate?: string;
+    minimumPayment?: number;
+    creditLimit?: number;
+  };
+}
+
+/**
+ * Get icon for credit card transaction type
+ */
+function getCCTypeIcon(type: CCTransactionType | undefined): React.ReactNode {
+  switch (type) {
+    case 'payment':
+      return <DollarSign className="w-3 h-3 text-[var(--color-success)]" />;
+    case 'refund':
+      return <RefreshCw className="w-3 h-3 text-[var(--color-income)]" />;
+    case 'interest':
+      return <Percent className="w-3 h-3 text-[var(--color-warning)]" />;
+    case 'fee':
+      return <Receipt className="w-3 h-3 text-[var(--color-error)]" />;
+    case 'balance_transfer':
+      return <ArrowLeftRight className="w-3 h-3 text-[var(--color-primary)]" />;
+    case 'reward':
+      return <Gift className="w-3 h-3 text-[var(--color-success)]" />;
+    case 'cash_advance':
+      return <DollarSign className="w-3 h-3 text-[var(--color-warning)]" />;
+    default:
+      return <CreditCard className="w-3 h-3 text-muted-foreground" />;
+  }
+}
+
+/**
+ * Get display name for credit card transaction type
+ */
+function getCCTypeLabel(type: CCTransactionType | undefined): string {
+  switch (type) {
+    case 'payment': return 'Payment';
+    case 'refund': return 'Refund';
+    case 'interest': return 'Interest';
+    case 'fee': return 'Fee';
+    case 'balance_transfer': return 'Balance Transfer';
+    case 'reward': return 'Reward';
+    case 'cash_advance': return 'Cash Advance';
+    case 'purchase': return 'Purchase';
+    default: return '';
+  }
 }
 
 export function ImportPreview({
@@ -37,6 +93,9 @@ export function ImportPreview({
   onConfirm,
   onBack,
   isLoading = false,
+  sourceType,
+  detectedIssuer,
+  statementInfo,
 }: ImportPreviewProps) {
   const [selectedRows, setSelectedRows] = useState<Set<number>>(
     new Set(staging.filter((r) => r.status === 'approved').map((r) => r.rowNumber))
@@ -82,12 +141,28 @@ export function ImportPreview({
     );
   };
 
+  // Count transfer matches
+  const transferMatches = staging.filter(r => r.potentialTransferId).length;
+
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Import Summary</CardTitle>
-          <CardDescription>{fileName}</CardDescription>
+          <CardDescription className="flex items-center gap-2">
+            {fileName}
+            {sourceType === 'credit_card' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded-full">
+                <CreditCard className="w-3 h-3" />
+                Credit Card
+              </span>
+            )}
+            {detectedIssuer && detectedIssuer !== 'other' && (
+              <span className="text-xs text-muted-foreground">
+                ({detectedIssuer.replace('_', ' ')})
+              </span>
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="grid grid-cols-2 gap-4">
@@ -108,6 +183,53 @@ export function ImportPreview({
               <div className="text-lg font-semibold text-[var(--color-error)]">{duplicateRows}</div>
             </div>
           </div>
+
+          {/* Transfer matches warning */}
+          {transferMatches > 0 && (
+            <div className="p-3 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-[var(--color-warning)]">
+                <ArrowLeftRight className="w-4 h-4" />
+                <span className="font-medium">{transferMatches} potential transfer match{transferMatches > 1 ? 'es' : ''}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Some transactions may be the other side of existing transfers. 
+                Review these to avoid duplicates.
+              </p>
+            </div>
+          )}
+
+          {/* Statement info for credit cards */}
+          {statementInfo && (statementInfo.statementBalance !== undefined || statementInfo.minimumPayment !== undefined) && (
+            <div className="p-3 bg-card border border-border rounded-lg">
+              <div className="text-xs font-medium text-foreground mb-2">Statement Information</div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {statementInfo.statementBalance !== undefined && (
+                  <div>
+                    <span className="text-muted-foreground">Balance:</span>{' '}
+                    <span className="font-mono">${statementInfo.statementBalance.toFixed(2)}</span>
+                  </div>
+                )}
+                {statementInfo.minimumPayment !== undefined && (
+                  <div>
+                    <span className="text-muted-foreground">Min Payment:</span>{' '}
+                    <span className="font-mono">${statementInfo.minimumPayment.toFixed(2)}</span>
+                  </div>
+                )}
+                {statementInfo.dueDate && (
+                  <div>
+                    <span className="text-muted-foreground">Due Date:</span>{' '}
+                    <span>{statementInfo.dueDate}</span>
+                  </div>
+                )}
+                {statementInfo.creditLimit !== undefined && (
+                  <div>
+                    <span className="text-muted-foreground">Credit Limit:</span>{' '}
+                    <span className="font-mono">${statementInfo.creditLimit.toFixed(2)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -164,10 +286,17 @@ export function ImportPreview({
                             <div className="truncate">
                               <span className="text-muted-foreground">Description:</span> {record.data.description || 'N/A'}
                             </div>
-                            <div>
+                            <div className="flex items-center gap-2">
                               <span className="text-muted-foreground">Amount:</span> ${record.data.amount || '0.00'}
                               {record.data.type && (
                                 <span className="ml-2 text-muted-foreground">({record.data.type})</span>
+                              )}
+                              {/* Show CC transaction type badge */}
+                              {record.ccTransactionType && record.ccTransactionType !== 'purchase' && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded">
+                                  {getCCTypeIcon(record.ccTransactionType)}
+                                  {getCCTypeLabel(record.ccTransactionType)}
+                                </span>
                               )}
                             </div>
                             <div className="truncate">
@@ -187,6 +316,16 @@ export function ImportPreview({
                         {record.duplicateOf && (
                           <div className="text-xs text-[var(--color-warning)] mt-2">
                             Possible duplicate ({record.duplicateScore?.toFixed(0)}% match)
+                          </div>
+                        )}
+
+                        {/* Show transfer match warning */}
+                        {record.potentialTransferId && (
+                          <div className="flex items-center gap-2 text-xs text-[var(--color-primary)] mt-2">
+                            <ArrowLeftRight className="w-3 h-3" />
+                            <span>
+                              Potential transfer match ({record.transferMatchConfidence?.toFixed(0)}% confidence)
+                            </span>
                           </div>
                         )}
                       </div>

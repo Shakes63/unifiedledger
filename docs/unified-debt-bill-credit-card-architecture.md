@@ -16,10 +16,10 @@
 | 6 | Autopay System | COMPLETED 2025-12-04 |
 | 7 | Budget Integration | COMPLETED 2025-12-04 |
 | 8 | Payoff Strategy & Per-Debt Inclusion | COMPLETED 2025-12-04 |
-| 9 | Calendar Integration | Not Started |
-| 10 | Notifications | Not Started |
-| 11 | Tax Integration | Not Started |
-| 12 | CSV Import Enhancements | Not Started |
+| 9 | Calendar Integration | COMPLETED 2025-12-04 |
+| 10 | Notifications | COMPLETED 2025-12-04 |
+| 11 | Tax Integration | COMPLETED 2025-12-04 |
+| 12 | CSV Import Enhancements | COMPLETED 2025-12-04 |
 | 13 | Dashboard Widgets | Not Started |
 | 14 | Balance History & Trends | Not Started |
 | 15 | Category Simplification | Not Started |
@@ -3459,12 +3459,14 @@ Since there are no production users yet, we can do a clean slate:
 - ✅ Limit warning notifications at 80% (approaching) and 100% (reached)
 - ✅ Integration with bill payment flow in `processBillPayment()`
 
-### Phase 12: CSV Import Enhancements
-- Credit card statement detection
-- Transaction type auto-detection (purchase, payment, refund, interest, fee)
-- Statement info capture (balance, minimum, due date)
-- Double-entry prevention (duplicate transfer detection)
-- Credit card specific import templates
+### Phase 12: CSV Import Enhancements [COMPLETED 2025-12-04]
+- Credit card statement auto-detection from headers and transaction patterns
+- Transaction type auto-detection (purchase, payment, refund, interest, fee, cash advance, balance transfer, reward)
+- Statement info extraction from header rows (balance, due date, minimum payment, credit limit)
+- Transfer duplicate prevention - detects when importing the other side of an existing transfer
+- Pre-built templates for 7 major card issuers (Chase, Amex, Capital One, Discover, Citi, Bank of America, Wells Fargo)
+- Database schema updates: sourceType, issuer, amountSignConvention on import_templates; ccTransactionType, potentialTransferId on import_staging
+- New files: `lib/csv-import/credit-card-detection.ts`, `lib/csv-import/cc-templates.ts`
 
 ### Phase 13: Dashboard Widgets
 - Update debt-free countdown widget for new architecture
