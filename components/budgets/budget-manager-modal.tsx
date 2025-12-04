@@ -59,7 +59,7 @@ interface UnifiedDebtBudgetData {
 interface Category {
   id: string;
   name: string;
-  type: 'income' | 'variable_expense' | 'monthly_bill' | 'savings' | 'debt' | 'non_monthly_bill';
+  type: 'income' | 'expense' | 'savings';
   monthlyBudget: number;
   sortOrder: number;
   incomeFrequency?: 'weekly' | 'biweekly' | 'monthly' | 'variable';
@@ -279,12 +279,7 @@ export function BudgetManagerModal({
       }, 0);
 
     const expenseTotal = categories
-      .filter(
-        c =>
-          c.type === 'variable_expense' ||
-          c.type === 'monthly_bill' ||
-          c.type === 'non_monthly_bill'
-      )
+      .filter(c => c.type === 'expense')
       .reduce((sum, c) => {
         const value = parseFloat(budgetValues[c.id] || '0');
         return new Decimal(sum).plus(value || 0).toNumber();
@@ -334,12 +329,8 @@ export function BudgetManagerModal({
   // Group categories by type
   const groupedCategories = {
     income: categories.filter(c => c.type === 'income'),
-    bills: categories.filter(
-      c => c.type === 'monthly_bill' || c.type === 'non_monthly_bill'
-    ),
-    expenses: categories.filter(c => c.type === 'variable_expense'),
+    expenses: categories.filter(c => c.type === 'expense'),
     savings: categories.filter(c => c.type === 'savings'),
-    debt: categories.filter(c => c.type === 'debt'),
   };
 
   const renderCategoryInput = (category: Category) => (
@@ -426,23 +417,11 @@ export function BudgetManagerModal({
               </div>
             )}
 
-            {/* Fixed Expenses (Bills) */}
-            {groupedCategories.bills.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3">
-                  Fixed Expenses
-                </h3>
-                <div className="space-y-2">
-                  {groupedCategories.bills.map(renderCategoryInput)}
-                </div>
-              </div>
-            )}
-
-            {/* Variable Expenses */}
+            {/* Expenses */}
             {groupedCategories.expenses.length > 0 && (
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-3">
-                  Variable Expenses
+                  Expenses
                 </h3>
                 <div className="space-y-2">
                   {groupedCategories.expenses.map(renderCategoryInput)}

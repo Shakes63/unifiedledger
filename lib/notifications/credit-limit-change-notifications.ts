@@ -125,7 +125,7 @@ export async function recordCreditLimitChange(
       previousLimit: input.oldLimit,
       newLimit: input.newLimit,
       changeDate: now.split('T')[0],
-      changeSource: input.changeSource,
+      changeReason: input.changeSource,
       utilizationBefore,
       utilizationAfter,
       createdAt: now,
@@ -243,7 +243,7 @@ export async function getCreditLimitHistory(
       previousLimit: h.previousLimit || 0,
       newLimit: h.newLimit,
       changeDate: h.changeDate,
-      changeSource: h.changeSource as ChangeSource,
+      changeSource: h.changeReason as ChangeSource,
       utilizationBefore: h.utilizationBefore,
       utilizationAfter: h.utilizationAfter,
     }));
@@ -281,7 +281,7 @@ export async function getCreditLimitChangeSummary(
 
     // Filter by date in memory (SQLite date comparison can be tricky)
     const recentChanges = history.filter(
-      (h) => new Date(h.changeDate) >= cutoffDate && h.changeSource !== 'initial'
+      (h) => new Date(h.changeDate) >= cutoffDate && h.changeReason !== 'initial'
     );
 
     let totalIncreases = 0;

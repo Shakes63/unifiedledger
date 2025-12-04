@@ -121,8 +121,8 @@ export async function GET(request: NextRequest) {
 
     // Build comparison data
     const data = categories
-      .filter((c: any) => c.type === 'variable_expense' || c.type === 'monthly_bill')
-      .map((category: any) => {
+      .filter((c: typeof categories[0]) => c.type === 'expense')
+      .map((category: typeof categories[0]) => {
         const categoryTxns = grouped.get(category.id) || [];
         const actual = Math.abs(calculateSum(categoryTxns));
         const budget = category.monthlyBudget || 0;

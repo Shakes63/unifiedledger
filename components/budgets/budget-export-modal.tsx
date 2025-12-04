@@ -112,7 +112,7 @@ export function BudgetExportModal({
             types = ['income'];
             break;
           case 'expenses':
-            types = ['variable_expense', 'monthly_bill', 'non_monthly_bill', 'debt'];
+            types = ['expense'];
             break;
           case 'savings':
             types = ['savings'];

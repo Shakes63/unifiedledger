@@ -52,11 +52,7 @@ export async function GET(request: Request) {
       );
 
     const totalBudgetedExpenses = budgetCategoriesResult
-      .filter(cat =>
-        cat.type === 'variable_expense' ||
-        cat.type === 'monthly_bill' ||
-        cat.type === 'non_monthly_bill'
-      )
+      .filter(cat => cat.type === 'expense')
       .reduce((sum, cat) => new Decimal(sum).plus(cat.monthlyBudget || 0).toNumber(), 0);
 
     // 3. Calculate total actual expenses from transactions (current month)

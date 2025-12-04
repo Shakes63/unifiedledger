@@ -69,7 +69,7 @@ export function CategorySelector({
 
   const getCategoryType = (): string => {
     if (transactionType === 'income') return 'income';
-    return 'variable_expense'; // default for expenses
+    return 'expense'; // default for expenses
   };
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export function CategorySelector({
             if (transactionType === 'income') return cat.type === 'income';
             if (transactionType === 'transfer_in' || transactionType === 'transfer_out')
               return false;
-            return cat.type === 'variable_expense' || cat.type === 'monthly_bill';
+            return cat.type === 'expense';
           });
           setCategories(filteredCategories);
         }

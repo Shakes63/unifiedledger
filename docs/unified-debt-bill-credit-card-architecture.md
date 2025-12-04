@@ -22,7 +22,7 @@
 | 12 | CSV Import Enhancements | COMPLETED 2025-12-04 |
 | 13 | Dashboard Widgets | COMPLETED 2025-12-04 |
 | 14 | Balance History & Trends | COMPLETED 2025-12-04 |
-| 15 | Category Simplification | Not Started |
+| 15 | Category Simplification | COMPLETED 2025-12-04 |
 | 16 | Recurring Income | Not Started |
 | 17 | Budget Rollover | Not Started |
 | 18 | Savings-Goals Integration | Not Started |

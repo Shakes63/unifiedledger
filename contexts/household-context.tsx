@@ -42,6 +42,13 @@ interface UserHouseholdPreferences {
   weeklySummariesChannels: string;
   monthlySummariesEnabled: boolean;
   monthlySummariesChannels: string;
+  // High utilization notifications (Phase 10)
+  highUtilizationEnabled: boolean;
+  highUtilizationThreshold: number;
+  highUtilizationChannels: string;
+  // Credit limit change notifications (Phase 10)
+  creditLimitChangeEnabled: boolean;
+  creditLimitChangeChannels: string;
 }
 
 interface HouseholdContextType {

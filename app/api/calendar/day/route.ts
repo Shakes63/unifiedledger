@@ -455,7 +455,7 @@ export async function GET(request: Request) {
       const balance = bill.remainingBalance || 0;
       if (balance <= 0) continue;
 
-      const monthlyPayment = bill.budgetedMonthlyPayment || bill.minimumPayment || bill.amount;
+      const monthlyPayment = bill.budgetedMonthlyPayment || bill.minimumPayment || bill.expectedAmount;
       if (monthlyPayment <= 0) continue;
 
       const monthsToPayoff = Math.ceil(balance / monthlyPayment);

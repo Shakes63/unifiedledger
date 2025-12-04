@@ -27,30 +27,23 @@ const DEFAULT_CATEGORIES = [
   { name: 'Investment', type: 'income' },
   { name: 'Other Income', type: 'income' },
 
-  // Variable expenses
-  { name: 'Groceries', type: 'variable_expense' },
-  { name: 'Gas', type: 'variable_expense' },
-  { name: 'Dining Out', type: 'variable_expense' },
-  { name: 'Entertainment', type: 'variable_expense' },
-  { name: 'Shopping', type: 'variable_expense' },
-  { name: 'Healthcare', type: 'variable_expense' },
-  { name: 'Other Expenses', type: 'variable_expense' },
-
-  // Monthly bills
-  { name: 'Rent/Mortgage', type: 'monthly_bill', dueDate: 1 },
-  { name: 'Electric Bill', type: 'monthly_bill', dueDate: 15 },
-  { name: 'Water Bill', type: 'monthly_bill', dueDate: 15 },
-  { name: 'Internet', type: 'monthly_bill', dueDate: 1 },
-  { name: 'Phone Bill', type: 'monthly_bill', dueDate: 1 },
-  { name: 'Insurance', type: 'monthly_bill', dueDate: 1 },
+  // Expense categories
+  { name: 'Groceries', type: 'expense' },
+  { name: 'Gas', type: 'expense' },
+  { name: 'Dining Out', type: 'expense' },
+  { name: 'Entertainment', type: 'expense' },
+  { name: 'Shopping', type: 'expense' },
+  { name: 'Healthcare', type: 'expense' },
+  { name: 'Rent/Mortgage', type: 'expense' },
+  { name: 'Utilities', type: 'expense' },
+  { name: 'Insurance', type: 'expense' },
+  { name: 'Transportation', type: 'expense' },
+  { name: 'Other Expenses', type: 'expense' },
 
   // Savings
   { name: 'Emergency Fund', type: 'savings' },
   { name: 'Vacation Fund', type: 'savings' },
-
-  // Debt
-  { name: 'Credit Card Payment', type: 'debt' },
-  { name: 'Loan Payment', type: 'debt' },
+  { name: 'Retirement', type: 'savings' },
 ];
 
 export async function POST(_request: Request) {

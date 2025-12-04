@@ -250,30 +250,26 @@ async function generateTestData() {
     { name: 'Freelance', type: 'income' as const, monthlyBudget: 2000, incomeFrequency: 'variable' as const },
     { name: 'Investment Returns', type: 'income' as const, monthlyBudget: 500, incomeFrequency: 'variable' as const },
     
-    // Variable Expenses
-    { name: 'Groceries', type: 'variable_expense' as const, monthlyBudget: 800 },
-    { name: 'Gas & Fuel', type: 'variable_expense' as const, monthlyBudget: 300 },
-    { name: 'Dining Out', type: 'variable_expense' as const, monthlyBudget: 400 },
-    { name: 'Entertainment', type: 'variable_expense' as const, monthlyBudget: 200 },
-    { name: 'Shopping', type: 'variable_expense' as const, monthlyBudget: 500 },
-    { name: 'Healthcare', type: 'variable_expense' as const, monthlyBudget: 300 },
-    
-    // Monthly Bills
-    { name: 'Mortgage', type: 'monthly_bill' as const, monthlyBudget: 2200, dueDate: 1 },
-    { name: 'Electric Bill', type: 'monthly_bill' as const, monthlyBudget: 150, dueDate: 15 },
-    { name: 'Water Bill', type: 'monthly_bill' as const, monthlyBudget: 80, dueDate: 15 },
-    { name: 'Internet', type: 'monthly_bill' as const, monthlyBudget: 75, dueDate: 1 },
-    { name: 'Phone Bill', type: 'monthly_bill' as const, monthlyBudget: 120, dueDate: 1 },
-    { name: 'Car Insurance', type: 'monthly_bill' as const, monthlyBudget: 150, dueDate: 5 },
+    // Expenses
+    { name: 'Groceries', type: 'expense' as const, monthlyBudget: 800 },
+    { name: 'Gas & Fuel', type: 'expense' as const, monthlyBudget: 300 },
+    { name: 'Dining Out', type: 'expense' as const, monthlyBudget: 400 },
+    { name: 'Entertainment', type: 'expense' as const, monthlyBudget: 200 },
+    { name: 'Shopping', type: 'expense' as const, monthlyBudget: 500 },
+    { name: 'Healthcare', type: 'expense' as const, monthlyBudget: 300 },
+    { name: 'Mortgage', type: 'expense' as const, monthlyBudget: 2200 },
+    { name: 'Electric Bill', type: 'expense' as const, monthlyBudget: 150 },
+    { name: 'Water Bill', type: 'expense' as const, monthlyBudget: 80 },
+    { name: 'Internet', type: 'expense' as const, monthlyBudget: 75 },
+    { name: 'Phone Bill', type: 'expense' as const, monthlyBudget: 120 },
+    { name: 'Car Insurance', type: 'expense' as const, monthlyBudget: 150 },
+    { name: 'Credit Card Payment', type: 'expense' as const, monthlyBudget: 500 },
+    { name: 'Car Loan', type: 'expense' as const, monthlyBudget: 350 },
     
     // Savings
     { name: 'Emergency Fund', type: 'savings' as const, monthlyBudget: 500 },
     { name: 'Vacation Fund', type: 'savings' as const, monthlyBudget: 300 },
     { name: 'Retirement', type: 'savings' as const, monthlyBudget: 1000 },
-    
-    // Debt
-    { name: 'Credit Card Payment', type: 'debt' as const, monthlyBudget: 500 },
-    { name: 'Car Loan', type: 'debt' as const, monthlyBudget: 350, dueDate: 10 },
   ];
 
   const categoryIds1: Record<string, string> = {};
@@ -288,8 +284,8 @@ async function generateTestData() {
       name: cat.name,
       type: cat.type,
       monthlyBudget: cat.monthlyBudget || 0,
-      dueDate: cat.dueDate || null,
-      incomeFrequency: cat.incomeFrequency || 'variable',
+      dueDate: null,
+      incomeFrequency: (cat as { incomeFrequency?: 'weekly' | 'biweekly' | 'monthly' | 'variable' }).incomeFrequency || 'variable',
       isActive: true,
       sortOrder: i,
       createdAt: sixMonthsAgo.toISOString(),
@@ -1140,11 +1136,11 @@ async function generateTestData() {
   // Categories for Household 2
   const categories2 = [
     { name: 'Salary', type: 'income' as const, monthlyBudget: 4500, incomeFrequency: 'monthly' as const },
-    { name: 'Groceries', type: 'variable_expense' as const, monthlyBudget: 600 },
-    { name: 'Rent', type: 'monthly_bill' as const, monthlyBudget: 1800, dueDate: 1 },
-    { name: 'Utilities', type: 'monthly_bill' as const, monthlyBudget: 200, dueDate: 10 },
+    { name: 'Groceries', type: 'expense' as const, monthlyBudget: 600 },
+    { name: 'Rent', type: 'expense' as const, monthlyBudget: 1800 },
+    { name: 'Utilities', type: 'expense' as const, monthlyBudget: 200 },
+    { name: 'Credit Card Payment', type: 'expense' as const, monthlyBudget: 300 },
     { name: 'Emergency Fund', type: 'savings' as const, monthlyBudget: 400 },
-    { name: 'Credit Card Payment', type: 'debt' as const, monthlyBudget: 300 },
   ];
 
   const categoryIds2: Record<string, string> = {};
@@ -1159,8 +1155,8 @@ async function generateTestData() {
       name: cat.name,
       type: cat.type,
       monthlyBudget: cat.monthlyBudget || 0,
-      dueDate: cat.dueDate || null,
-      incomeFrequency: cat.incomeFrequency || 'variable',
+      dueDate: null,
+      incomeFrequency: (cat as { incomeFrequency?: 'weekly' | 'biweekly' | 'monthly' | 'variable' }).incomeFrequency || 'variable',
       isActive: true,
       sortOrder: i,
       createdAt: threeMonthsAgo.toISOString(),

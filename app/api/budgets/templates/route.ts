@@ -147,21 +147,22 @@ export async function POST(request: Request) {
     }
 
     // Categorize user's categories into template buckets
+    // "Needs" are essential expenses (based on name patterns)
     const needs = categories.filter(
       c =>
-        c.type === 'monthly_bill' ||
-        c.type === 'non_monthly_bill' ||
-        c.name.toLowerCase().includes('rent') ||
+        c.type === 'expense' &&
+        (c.name.toLowerCase().includes('rent') ||
         c.name.toLowerCase().includes('mortgage') ||
         c.name.toLowerCase().includes('utilities') ||
         c.name.toLowerCase().includes('insurance') ||
         c.name.toLowerCase().includes('groceries') ||
-        c.name.toLowerCase().includes('transportation')
+        c.name.toLowerCase().includes('transportation'))
     );
 
+    // "Wants" are discretionary expenses (based on name patterns, excluding needs)
     const wants = categories.filter(
       c =>
-        c.type === 'variable_expense' &&
+        c.type === 'expense' &&
         !needs.some(n => n.id === c.id) &&
         (c.name.toLowerCase().includes('entertainment') ||
           c.name.toLowerCase().includes('dining') ||
@@ -172,7 +173,8 @@ export async function POST(request: Request) {
 
     const savings = categories.filter(c => c.type === 'savings');
 
-    const debt = categories.filter(c => c.type === 'debt');
+    // For backwards compatibility, debt category still used in templates (from debts module)
+    const debt: typeof categories = [];
 
     // Apply template rules
     const suggestedBudgets: Array<{

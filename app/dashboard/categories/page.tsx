@@ -15,28 +15,18 @@ import { NoHouseholdError } from '@/components/household/no-household-error';
 interface Category {
   id: string;
   name: string;
-  type: 'income' | 'variable_expense' | 'monthly_bill' | 'savings' | 'debt' | 'non_monthly_bill';
+  type: 'income' | 'expense' | 'savings';
   monthlyBudget: number;
   dueDate?: number | null;
   usageCount: number;
 }
 
-const CATEGORY_TYPES = [
-  'income',
-  'variable_expense',
-  'monthly_bill',
-  'savings',
-  'debt',
-  'non_monthly_bill',
-];
+const CATEGORY_TYPES = ['income', 'expense', 'savings'];
 
 const CATEGORY_TYPE_LABELS: Record<string, string> = {
   income: 'Income',
-  variable_expense: 'Variable Expense',
-  monthly_bill: 'Monthly Bill',
+  expense: 'Expense',
   savings: 'Savings',
-  debt: 'Debt',
-  non_monthly_bill: 'Non-Monthly Bill',
 };
 
 export default function CategoriesPage() {

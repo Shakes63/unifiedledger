@@ -39,17 +39,7 @@ interface AllocationSummary {
       actual: number;
       categories: CategoryDetail[];
     };
-    variableExpenses: {
-      budgeted: number;
-      actual: number;
-      categories: CategoryDetail[];
-    };
-    monthlyBills: {
-      budgeted: number;
-      actual: number;
-      categories: CategoryDetail[];
-    };
-    nonMonthlyBills: {
+    expenses: {
       budgeted: number;
       actual: number;
       categories: CategoryDetail[];
@@ -78,9 +68,7 @@ interface AllocationSummary {
     budgetedSurplus: number;
     actualSurplus: number;
     allocationPercentages: {
-      variableExpenses: number;
-      monthlyBills: number;
-      nonMonthlyBills: number;
+      expenses: number;
       savings: number;
       debtPayments: number;
     };
@@ -164,9 +152,7 @@ export async function GET(request: Request) {
 
     // Process categories by type
     const incomeCategories = categories.filter(c => c.type === 'income');
-    const variableExpenseCategories = categories.filter(c => c.type === 'variable_expense');
-    const monthlyBillCategories = categories.filter(c => c.type === 'monthly_bill');
-    const nonMonthlyBillCategories = categories.filter(c => c.type === 'non_monthly_bill');
+    const expenseCategories = categories.filter(c => c.type === 'expense');
     const savingsCategories = categories.filter(c => c.type === 'savings');
 
     // Build category details with actuals
@@ -194,9 +180,7 @@ export async function GET(request: Request) {
 
     // Build all category details
     const incomeDetails = await buildCategoryDetails(incomeCategories, 'income');
-    const variableExpenseDetails = await buildCategoryDetails(variableExpenseCategories, 'expense');
-    const monthlyBillDetails = await buildCategoryDetails(monthlyBillCategories, 'expense');
-    const nonMonthlyBillDetails = await buildCategoryDetails(nonMonthlyBillCategories, 'expense');
+    const expenseDetails = await buildCategoryDetails(expenseCategories, 'expense');
     const savingsDetails = await buildCategoryDetails(savingsCategories, 'expense');
 
     // Calculate totals for each category type
@@ -208,14 +192,8 @@ export async function GET(request: Request) {
     const incomeBudgeted = sumBudgeted(incomeDetails);
     const incomeActual = sumActual(incomeDetails);
 
-    const variableExpensesBudgeted = sumBudgeted(variableExpenseDetails);
-    const variableExpensesActual = sumActual(variableExpenseDetails);
-
-    const monthlyBillsBudgeted = sumBudgeted(monthlyBillDetails);
-    const monthlyBillsActual = sumActual(monthlyBillDetails);
-
-    const nonMonthlyBillsBudgeted = sumBudgeted(nonMonthlyBillDetails);
-    const nonMonthlyBillsActual = sumActual(nonMonthlyBillDetails);
+    const expensesBudgeted = sumBudgeted(expenseDetails);
+    const expensesActual = sumActual(expenseDetails);
 
     const savingsBudgeted = sumBudgeted(savingsDetails);
     const savingsActual = sumActual(savingsDetails);
@@ -290,16 +268,9 @@ export async function GET(request: Request) {
     // Calculate total debt payments budgeted
     const totalDebtPaymentsBudgeted = totalMinimumPayments.plus(extraMonthlyPayment).toNumber();
 
-    // Calculate total expenses (all expense types)
-    const totalExpensesBudgeted = new Decimal(variableExpensesBudgeted)
-      .plus(monthlyBillsBudgeted)
-      .plus(nonMonthlyBillsBudgeted)
-      .toNumber();
-
-    const totalExpensesActual = new Decimal(variableExpensesActual)
-      .plus(monthlyBillsActual)
-      .plus(nonMonthlyBillsActual)
-      .toNumber();
+    // Total expenses
+    const totalExpensesBudgeted = expensesBudgeted;
+    const totalExpensesActual = expensesActual;
 
     // Calculate surplus (Income - Expenses - Savings - Debt Payments)
     const budgetedSurplus = new Decimal(incomeBudgeted)
@@ -321,9 +292,7 @@ export async function GET(request: Request) {
     };
 
     const allocationPercentages = {
-      variableExpenses: Math.round(calculatePercentage(variableExpensesBudgeted) * 10) / 10,
-      monthlyBills: Math.round(calculatePercentage(monthlyBillsBudgeted) * 10) / 10,
-      nonMonthlyBills: Math.round(calculatePercentage(nonMonthlyBillsBudgeted) * 10) / 10,
+      expenses: Math.round(calculatePercentage(expensesBudgeted) * 10) / 10,
       savings: Math.round(calculatePercentage(savingsBudgeted) * 10) / 10,
       debtPayments: Math.round(calculatePercentage(totalDebtPaymentsBudgeted) * 10) / 10,
     };
@@ -337,20 +306,10 @@ export async function GET(request: Request) {
           actual: incomeActual,
           categories: incomeDetails,
         },
-        variableExpenses: {
-          budgeted: variableExpensesBudgeted,
-          actual: variableExpensesActual,
-          categories: variableExpenseDetails,
-        },
-        monthlyBills: {
-          budgeted: monthlyBillsBudgeted,
-          actual: monthlyBillsActual,
-          categories: monthlyBillDetails,
-        },
-        nonMonthlyBills: {
-          budgeted: nonMonthlyBillsBudgeted,
-          actual: nonMonthlyBillsActual,
-          categories: nonMonthlyBillDetails,
+        expenses: {
+          budgeted: expensesBudgeted,
+          actual: expensesActual,
+          categories: expenseDetails,
         },
         savings: {
           budgeted: savingsBudgeted,

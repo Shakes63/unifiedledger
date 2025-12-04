@@ -14,7 +14,7 @@ import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 interface CategoryData {
   id: string;
   name: string;
-  type: 'income' | 'variable_expense' | 'monthly_bill' | 'savings' | 'debt' | 'non_monthly_bill';
+  type: 'income' | 'expense' | 'savings';
   monthlyBudget: number;
   dueDate?: number | null;
   usageCount: number;
@@ -29,20 +29,14 @@ interface CategoryCardProps {
 
 const CATEGORY_TYPE_LABELS: Record<string, string> = {
   income: 'Income',
-  variable_expense: 'Variable Expense',
-  monthly_bill: 'Monthly Bill',
+  expense: 'Expense',
   savings: 'Savings',
-  debt: 'Debt',
-  non_monthly_bill: 'Non-Monthly Bill',
 };
 
 const CATEGORY_TYPE_COLORS: Record<string, string> = {
   income: 'bg-[var(--color-income)]/10 text-[var(--color-income)]',
-  variable_expense: 'bg-[var(--color-expense)]/10 text-[var(--color-expense)]',
-  monthly_bill: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]',
+  expense: 'bg-[var(--color-expense)]/10 text-[var(--color-expense)]',
   savings: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
-  debt: 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]',
-  non_monthly_bill: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
 };
 
 export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) {

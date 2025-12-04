@@ -141,7 +141,7 @@ export const budgetCategories = sqliteTable(
     householdId: text('household_id').notNull(),
     name: text('name').notNull(),
     type: text('type', {
-      enum: ['income', 'variable_expense', 'monthly_bill', 'savings', 'debt', 'non_monthly_bill'],
+      enum: ['income', 'expense', 'savings'],
     }).notNull(),
     monthlyBudget: real('monthly_budget').default(0),
     dueDate: integer('due_date'),

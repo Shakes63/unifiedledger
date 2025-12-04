@@ -260,11 +260,12 @@ export function NextPaymentDueWidget() {
                   
                   {/* Autopay indicator */}
                   {bill.isAutopay && (
-                    <Zap 
-                      className="w-3 h-3 flex-shrink-0" 
-                      style={{ color: 'var(--color-income)' }}
-                      title="Autopay enabled"
-                    />
+                    <span title="Autopay enabled">
+                      <Zap 
+                        className="w-3 h-3 flex-shrink-0" 
+                        style={{ color: 'var(--color-income)' }}
+                      />
+                    </span>
                   )}
                 </div>
                 

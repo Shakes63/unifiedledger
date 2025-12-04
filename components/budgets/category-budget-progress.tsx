@@ -207,11 +207,9 @@ export function CategoryBudgetProgress({
         <div className="text-xs text-muted-foreground italic">No budget set</div>
       )}
 
-      {/* Daily Spending & Projections - Hide for bills and non-variable income */}
+      {/* Daily Spending & Projections */}
       {category.monthlyBudget > 0 &&
         daysRemaining > 0 &&
-        category.type !== 'monthly_bill' &&
-        category.type !== 'non_monthly_bill' &&
         category.shouldShowDailyAverage && (
         <div className="mt-3 pt-3 border-t border-border space-y-1">
           <div className="flex items-center justify-between text-xs">

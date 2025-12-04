@@ -127,7 +127,7 @@ export function CreateCategoryStep({
         <CategoryForm
           category={{
             name: 'Groceries',
-            type: 'variable_expense',
+            type: 'expense',
             monthlyBudget: 500,
             isTaxDeductible: false,
             isActive: true,

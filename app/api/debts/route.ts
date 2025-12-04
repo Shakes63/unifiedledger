@@ -111,7 +111,7 @@ export async function POST(request: Request) {
         userId,
         householdId,
         name: `Debt: ${name}`,
-        type: 'debt',
+        type: 'expense', // Debt payments are expenses
         isActive: true,
         createdAt: now,
       });

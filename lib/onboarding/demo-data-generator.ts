@@ -98,25 +98,23 @@ export async function generateDemoData(
   const demoCategories = [
     {
       name: 'Demo Groceries',
-      type: 'variable_expense' as const,
+      type: 'expense' as const,
       monthlyBudget: new Decimal(800),
     },
     {
       name: 'Demo Utilities',
-      type: 'monthly_bill' as const,
+      type: 'expense' as const,
       monthlyBudget: new Decimal(200),
-      dueDate: 15,
     },
     {
       name: 'Demo Entertainment',
-      type: 'variable_expense' as const,
+      type: 'expense' as const,
       monthlyBudget: new Decimal(300),
     },
     {
       name: 'Demo Rent',
-      type: 'monthly_bill' as const,
+      type: 'expense' as const,
       monthlyBudget: new Decimal(1200),
-      dueDate: 1,
     },
     {
       name: 'Demo Income',
@@ -138,7 +136,7 @@ export async function generateDemoData(
       name: cat.name,
       type: cat.type,
       monthlyBudget: cat.monthlyBudget.toNumber(),
-      dueDate: cat.dueDate || null,
+      dueDate: null,
       incomeFrequency: cat.type === 'income' ? (cat as any).incomeFrequency : 'variable',
       isActive: true,
       sortOrder: i,

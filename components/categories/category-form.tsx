@@ -16,11 +16,8 @@ import type { CategoryFormData } from '@/lib/types';
 
 const CATEGORY_TYPES = [
   { value: 'income', label: 'Income' },
-  { value: 'variable_expense', label: 'Variable Expense' },
-  { value: 'monthly_bill', label: 'Monthly Bill' },
+  { value: 'expense', label: 'Expense' },
   { value: 'savings', label: 'Savings' },
-  { value: 'debt', label: 'Debt' },
-  { value: 'non_monthly_bill', label: 'Non-Monthly Bill' },
 ];
 
 interface CategoryFormProps {
@@ -40,9 +37,8 @@ export function CategoryForm({
 }: CategoryFormProps) {
   const [formData, setFormData] = useState({
     name: category?.name || '',
-    type: category?.type || 'variable_expense',
+    type: category?.type || 'expense',
     monthlyBudget: category?.monthlyBudget || 0,
-    dueDate: category?.dueDate || '',
     isTaxDeductible: category?.isTaxDeductible || false,
     isBusinessCategory: category?.isBusinessCategory ?? defaultBusinessCategory,
     isActive: category?.isActive !== undefined ? category.isActive : true,
@@ -88,7 +84,6 @@ export function CategoryForm({
       name: formData.name,
       type: formData.type,
       monthlyBudget: parseFloat(String(formData.monthlyBudget)) || 0,
-      dueDate: formData.dueDate ? parseInt(String(formData.dueDate)) : null,
       isTaxDeductible: formData.isTaxDeductible,
       isBusinessCategory: formData.isBusinessCategory,
       isActive: formData.isActive,
@@ -97,8 +92,6 @@ export function CategoryForm({
 
     onSubmit(submitData);
   };
-
-  const isBillType = formData.type === 'monthly_bill' || formData.type === 'non_monthly_bill';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -168,27 +161,6 @@ export function CategoryForm({
           <p className="text-xs text-muted-foreground mt-1">
             How often do you receive this income? This helps budget tracking provide accurate projections.
           </p>
-        </div>
-      )}
-
-      {/* Due Date (for bill categories) */}
-      {isBillType && (
-        <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Due Date (Optional)</Label>
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-sm">Day</span>
-            <Input
-              name="dueDate"
-              type="number"
-              value={formData.dueDate}
-              onChange={handleChange}
-              placeholder="1-31"
-              min="1"
-              max="31"
-              className="bg-elevated border-border text-foreground placeholder:text-muted-foreground w-20"
-            />
-            <span className="text-muted-foreground text-sm">of month</span>
-          </div>
         </div>
       )}
 

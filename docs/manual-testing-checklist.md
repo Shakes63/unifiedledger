@@ -1316,3 +1316,45 @@ Phase 14 implements balance history tracking, utilization trends, and interest p
 - [ ] accountBalanceHistory table being populated by cron
 - [ ] Snapshots have correct date format (YYYY-MM-DD)
 - [ ] All indexes working for efficient queries
+
+---
+
+## 43. Unified Architecture (Phase 15)
+
+**Added: 2025-12-04** | **Result: CODE COMPLETE**
+
+Phase 15 simplifies the category system from 6 types to 3 types (income, expense, savings).
+
+### Category Type Migration
+- [ ] Existing categories with variable_expense type migrated to expense
+- [ ] Existing categories with monthly_bill type migrated to expense
+- [ ] Existing categories with non_monthly_bill type migrated to expense
+- [ ] Existing categories with debt type migrated to expense
+- [ ] Income and savings categories unchanged
+
+### Category Form
+- [ ] Type dropdown shows only 3 options: Income, Expense, Savings
+- [ ] New categories default to "Expense" type
+- [ ] Due date field removed (bills module handles due dates)
+- [ ] Form saves correctly with new types
+
+### Categories Page
+- [ ] Filter buttons show 3 types plus "All"
+- [ ] Filter correctly shows categories by type
+- [ ] Category cards display correct type labels
+
+### Budget Manager
+- [ ] Grouped categories show Income, Expenses, Savings sections
+- [ ] Variable bills and fixed bills sections merged into Expenses
+- [ ] Budget totals calculate correctly
+
+### Transaction Category Selector
+- [ ] Expense transactions show expense categories
+- [ ] Income transactions show income categories
+- [ ] New categories created with correct type
+
+### API Endpoints
+- [ ] GET /api/categories returns simplified types
+- [ ] POST /api/categories accepts new type values
+- [ ] GET /api/budgets/overview uses simplified grouping
+- [ ] GET /api/budgets/allocation-summary uses simplified structure

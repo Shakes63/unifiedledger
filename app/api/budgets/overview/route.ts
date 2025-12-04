@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 interface CategoryBudgetStatus {
   id: string;
   name: string;
-  type: 'income' | 'variable_expense' | 'monthly_bill' | 'savings' | 'debt' | 'non_monthly_bill';
+  type: 'income' | 'expense' | 'savings';
   monthlyBudget: number;
   actualSpent: number;
   remaining: number;
@@ -243,15 +243,8 @@ export async function GET(request: Request) {
 
     // Calculate summary statistics
     const incomeCategories = categoryStatuses.filter(c => c.type === 'income');
-    const expenseCategories = categoryStatuses.filter(c =>
-      c.type === 'variable_expense' ||
-      c.type === 'monthly_bill' ||
-      c.type === 'non_monthly_bill'
-    );
+    const expenseCategories = categoryStatuses.filter(c => c.type === 'expense');
     const savingsCategories = categoryStatuses.filter(c => c.type === 'savings');
-    // Separate discretionary expenses from bill categories for display grouping
-    // (expenseCategories still includes bills for total expense calculations)
-    const discretionaryCategories = categoryStatuses.filter(c => c.type === 'variable_expense');
 
     const totalIncome = incomeCategories.reduce(
       (sum, c) => new Decimal(sum).plus(c.monthlyBudget).toNumber(),
@@ -342,15 +335,10 @@ export async function GET(request: Request) {
     }
 
     // Group categories by type for organized display
-    // Note: expenses uses discretionaryCategories (variable_expense only) to avoid
-    // duplicate display of bill categories which have their own "bills" section
     const groupedCategories = {
       income: incomeCategories.sort((a, b) => a.name.localeCompare(b.name)),
-      expenses: discretionaryCategories.sort((a, b) => a.name.localeCompare(b.name)),
+      expenses: expenseCategories.sort((a, b) => a.name.localeCompare(b.name)),
       savings: savingsCategories.sort((a, b) => a.name.localeCompare(b.name)),
-      bills: categoryStatuses
-        .filter(c => c.type === 'monthly_bill' || c.type === 'non_monthly_bill')
-        .sort((a, b) => a.name.localeCompare(b.name)),
     };
 
     return Response.json({

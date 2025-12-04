@@ -66,7 +66,7 @@ export function InlineTransactionDropdown({
   const filteredOptions = type === 'category'
     ? options.filter(opt => {
         if (transactionType === 'income') return opt.type === 'income';
-        return opt.type === 'variable_expense' || opt.type === 'monthly_bill' || opt.type === 'income';
+        return opt.type === 'expense' || opt.type === 'income';
       })
     : options;
 

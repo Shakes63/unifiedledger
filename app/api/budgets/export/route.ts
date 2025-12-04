@@ -72,11 +72,11 @@ export async function GET(request: Request) {
     }
 
     // Parse category types
-    let categoryTypes: Array<'income' | 'variable_expense' | 'monthly_bill' | 'savings' | 'debt' | 'non_monthly_bill'> | undefined;
+    let categoryTypes: Array<'income' | 'expense' | 'savings'> | undefined;
 
     if (categoryTypesParam) {
       const types = categoryTypesParam.split(',').map(t => t.trim());
-      const validTypes = ['income', 'variable_expense', 'monthly_bill', 'savings', 'debt', 'non_monthly_bill'];
+      const validTypes = ['income', 'expense', 'savings'];
 
       // Validate all types
       for (const type of types) {
@@ -88,7 +88,7 @@ export async function GET(request: Request) {
         }
       }
 
-      categoryTypes = types as Array<'income' | 'variable_expense' | 'monthly_bill' | 'savings' | 'debt' | 'non_monthly_bill'>;
+      categoryTypes = types as Array<'income' | 'expense' | 'savings'>;
     }
 
     // Only CSV format is supported for now

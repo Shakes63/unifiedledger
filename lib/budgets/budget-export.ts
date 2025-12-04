@@ -8,7 +8,7 @@ export interface BudgetExportOptions {
   endMonth: string; // 'YYYY-MM'
   includeSummary?: boolean;
   includeVariableBills?: boolean;
-  categoryTypes?: Array<'income' | 'variable_expense' | 'monthly_bill' | 'savings' | 'debt' | 'non_monthly_bill'>;
+  categoryTypes?: Array<'income' | 'expense' | 'savings'>;
 }
 
 export interface BudgetExportRow {
@@ -177,16 +177,10 @@ function formatCategoryType(type: string): string {
   switch (type) {
     case 'income':
       return 'Income';
-    case 'variable_expense':
-      return 'Variable Expense';
-    case 'monthly_bill':
-      return 'Monthly Bill';
-    case 'non_monthly_bill':
-      return 'Non-Monthly Bill';
+    case 'expense':
+      return 'Expense';
     case 'savings':
       return 'Savings';
-    case 'debt':
-      return 'Debt';
     default:
       return type;
   }

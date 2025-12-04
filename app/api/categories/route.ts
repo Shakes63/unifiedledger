@@ -7,6 +7,8 @@ import { nanoid } from 'nanoid';
 export const dynamic = 'force-dynamic';
 
 // Default categories to create for new users
+// Note: Category types are simplified to income, expense, savings
+// Bills and debts are handled by their respective modules
 const DEFAULT_CATEGORIES = [
   // Income categories (with sensible frequency defaults)
   { name: 'Salary', type: 'income', incomeFrequency: 'monthly' },
@@ -14,31 +16,25 @@ const DEFAULT_CATEGORIES = [
   { name: 'Investment', type: 'income', incomeFrequency: 'variable' },
   { name: 'Other Income', type: 'income', incomeFrequency: 'variable' },
 
-  // Variable expenses
-  { name: 'Groceries', type: 'variable_expense' },
-  { name: 'Gas', type: 'variable_expense' },
-  { name: 'Dining Out', type: 'variable_expense' },
-  { name: 'Entertainment', type: 'variable_expense' },
-  { name: 'Shopping', type: 'variable_expense' },
-  { name: 'Utilities', type: 'variable_expense' },
-  { name: 'Healthcare', type: 'variable_expense' },
-  { name: 'Other Expenses', type: 'variable_expense' },
-
-  // Monthly bills
-  { name: 'Rent/Mortgage', type: 'monthly_bill', dueDate: 1 },
-  { name: 'Electric Bill', type: 'monthly_bill', dueDate: 15 },
-  { name: 'Water Bill', type: 'monthly_bill', dueDate: 15 },
-  { name: 'Internet', type: 'monthly_bill', dueDate: 1 },
-  { name: 'Phone Bill', type: 'monthly_bill', dueDate: 1 },
-  { name: 'Insurance', type: 'monthly_bill', dueDate: 1 },
+  // Expense categories
+  { name: 'Groceries', type: 'expense' },
+  { name: 'Gas', type: 'expense' },
+  { name: 'Dining Out', type: 'expense' },
+  { name: 'Entertainment', type: 'expense' },
+  { name: 'Shopping', type: 'expense' },
+  { name: 'Utilities', type: 'expense' },
+  { name: 'Healthcare', type: 'expense' },
+  { name: 'Rent/Mortgage', type: 'expense' },
+  { name: 'Insurance', type: 'expense' },
+  { name: 'Transportation', type: 'expense' },
+  { name: 'Subscriptions', type: 'expense' },
+  { name: 'Personal Care', type: 'expense' },
+  { name: 'Other Expenses', type: 'expense' },
 
   // Savings
   { name: 'Emergency Fund', type: 'savings' },
   { name: 'Vacation Fund', type: 'savings' },
-
-  // Debt
-  { name: 'Credit Card Payment', type: 'debt' },
-  { name: 'Loan Payment', type: 'debt' },
+  { name: 'Retirement', type: 'savings' },
 ];
 
 export async function GET(request: Request) {

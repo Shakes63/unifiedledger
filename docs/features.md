@@ -27,7 +27,8 @@ _Add new feature ideas here_
     - **Phase 12: CSV Import Enhancements** [COMPLETED 2025-12-04] - Credit card statement auto-detection (headers and transaction patterns). Transaction type classification (purchase, payment, refund, interest, fee, cash advance, balance transfer, reward). Statement info extraction (balance, due date, minimum payment). Transfer duplicate prevention (detects other side of existing transfers). Pre-built templates for 7 major card issuers (Chase, Amex, Capital One, Discover, Citi, BoA, Wells Fargo).
     - **Phase 13: Dashboard Widgets** [COMPLETED 2025-12-04] - Updated debt-free countdown widget to use unified debt sources (credit accounts + debt bills). Updated credit utilization widget to use accounts table. Added new Next Payment Due widget showing upcoming bills with overdue highlighting, autopay indicators, and credit card payment linking.
     - **Phase 14: Balance History & Trends** [COMPLETED 2025-12-04] - Daily cron job for balance snapshots (`/api/cron/balance-snapshots`). Utilization trends and balance history charts on Accounts page. Interest Paid report with monthly breakdown and per-account analysis on Debts page.
-    - **Phases 15-19** - _Not started_
+    - **Phase 15: Category Simplification** [COMPLETED 2025-12-04] - Simplified category types from 6 to 3 (income, expense, savings). Removed variable_expense, monthly_bill, non_monthly_bill, debt types - all consolidated to `expense`. Updated all category forms, APIs, budget displays, and selectors. Migration auto-converts existing categories.
+    - **Phases 16-19** - _Not started_
 
 ---
 

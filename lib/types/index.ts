@@ -64,13 +64,7 @@ export interface Account {
   updatedAt: string;
 }
 
-export type CategoryType =
-  | 'income'
-  | 'variable_expense'
-  | 'monthly_bill'
-  | 'savings'
-  | 'debt'
-  | 'non_monthly_bill';
+export type CategoryType = 'income' | 'expense' | 'savings';
 
 export type IncomeFrequency = 'weekly' | 'biweekly' | 'monthly' | 'variable';
 
