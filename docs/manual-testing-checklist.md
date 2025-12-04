@@ -45,6 +45,7 @@ This document provides a comprehensive checklist for manually testing all featur
 35. [Unified Architecture (Phase 7)](#35-unified-architecture-phase-7)
 36. [Unified Architecture (Phase 8)](#36-unified-architecture-phase-8)
 37. [Unified Architecture (Phase 9)](#37-unified-architecture-phase-9)
+38. [Unified Architecture (Phase 10)](#38-unified-architecture-phase-10)
 
 ---
 
@@ -1009,8 +1010,60 @@ Phase 9 implements calendar integration with the unified debt architecture.
 | 35. Unified Architecture (Phase 7) | CODE VERIFIED | Budget integration |
 | 36. Unified Architecture (Phase 8) | CODE VERIFIED | Payoff strategy & per-debt inclusion |
 | 37. Unified Architecture (Phase 9) | CODE COMPLETE | Calendar integration |
+| 38. Unified Architecture (Phase 10) | CODE COMPLETE | Notifications system |
 
-**Overall: 22/37 browser-tested, 15/37 code/schema-reviewed**
+**Overall: 22/38 browser-tested, 16/38 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-04
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true
+
+---
+
+## 38. Unified Architecture (Phase 10)
+
+**Added: 2025-12-04** | **Result: CODE COMPLETE**
+
+Phase 10 implements notification enhancements for the unified debt architecture.
+
+### High Utilization Alerts
+- [ ] Setting toggle in Notifications tab works
+- [ ] Threshold dropdown (30%, 50%, 75%, 90%) saves correctly
+- [ ] Notifications created when utilization exceeds threshold
+- [ ] No duplicate notifications for same threshold crossing
+- [ ] Notification resets when utilization drops below threshold
+- [ ] Alert state tracked in utilizationAlertState table
+
+### Credit Limit Change Notifications
+- [ ] Setting toggle in Notifications tab works
+- [ ] Channel selector saves correctly
+- [ ] Notification created when credit limit increases
+- [ ] Notification created when credit limit decreases
+- [ ] Notification shows utilization impact
+- [ ] Initial limit setting (account creation) does not notify
+
+### Unified Debt Milestones
+- [ ] Milestones checked for credit accounts (type=credit, line_of_credit)
+- [ ] Milestones checked for debt bills (isDebt=true)
+- [ ] Notifications created at 25%, 50%, 75%, 100% milestones
+- [ ] Milestone state tracked in billMilestones table
+- [ ] No duplicate notifications for same milestone
+- [ ] Special "Debt Paid Off" message at 100%
+
+### Notification Settings UI
+- [ ] Credit Utilization Alerts card displays correctly
+- [ ] All toggles and selectors accessible
+- [ ] Channel selectors work for both notification types
+- [ ] Settings save via API correctly
+- [ ] UI shows loading state during save
+
+### API Endpoints
+- [ ] GET /api/notifications/utilization-alerts checks current user's household
+- [ ] POST /api/notifications/utilization-alerts processes all households (cron)
+- [ ] GET /api/notifications/debt-milestones returns stats in unified mode
+- [ ] POST /api/notifications/debt-milestones creates notifications for unified sources
+
+### Database Schema
+- [ ] userHouseholdPreferences has highUtilization* columns
+- [ ] userHouseholdPreferences has creditLimitChange* columns
+- [ ] utilizationAlertState table created with threshold tracking
+- [ ] All indexes created

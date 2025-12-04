@@ -36,6 +36,12 @@ const DEFAULT_PREFERENCES = {
   weeklySummariesChannels: '["email"]',
   monthlySummariesEnabled: true,
   monthlySummariesChannels: '["email"]',
+  // Phase 10: Credit Utilization Notifications
+  highUtilizationEnabled: true,
+  highUtilizationThreshold: 75,
+  highUtilizationChannels: '["push"]',
+  creditLimitChangeEnabled: true,
+  creditLimitChangeChannels: '["push"]',
 };
 
 /**

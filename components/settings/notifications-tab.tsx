@@ -5,6 +5,13 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 import {
   Receipt,
@@ -16,6 +23,7 @@ import {
   Mail,
   Loader2,
   AlertCircle,
+  CreditCard,
 } from 'lucide-react';
 import { useHousehold } from '@/contexts/household-context';
 
@@ -375,7 +383,102 @@ export function NotificationsTab() {
         </div>
       </Card>
 
-      {/* 4. Goals & Debts */}
+      {/* 4. Credit Utilization Alerts */}
+      <Card className="border-border bg-card p-6 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-1 p-2 rounded-lg bg-elevated">
+            <CreditCard className="h-5 w-5 text-[var(--color-warning)]" />
+          </div>
+          <div className="flex-1 space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Credit Utilization Alerts</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Monitor your credit card usage and get alerts about high utilization
+              </p>
+            </div>
+
+            {/* Enable high utilization alerts */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2">
+                <div className="flex-1">
+                  <Label htmlFor="high-utilization-enabled" className="text-sm font-medium">
+                    High utilization warnings
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Get notified when credit utilization exceeds your threshold
+                  </p>
+                </div>
+                <Switch
+                  id="high-utilization-enabled"
+                  checked={preferences.highUtilizationEnabled}
+                  onCheckedChange={(value) => updatePreference('highUtilizationEnabled', value)}
+                  aria-label="Toggle high utilization alerts"
+                />
+              </div>
+
+              {/* Threshold selector */}
+              {preferences.highUtilizationEnabled && (
+                <div className="pl-6 border-l-2 border-border space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">Alert threshold</Label>
+                  <Select
+                    value={String(preferences.highUtilizationThreshold || 75)}
+                    onValueChange={(value) => updatePreference('highUtilizationThreshold', parseInt(value))}
+                  >
+                    <SelectTrigger 
+                      id="high-utilization-threshold"
+                      name="high-utilization-threshold"
+                      className="w-full bg-elevated"
+                      aria-label="Select utilization threshold"
+                    >
+                      <SelectValue placeholder="Select threshold" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">30% - Early warning</SelectItem>
+                      <SelectItem value="50">50% - Moderate usage</SelectItem>
+                      <SelectItem value="75">75% - High usage</SelectItem>
+                      <SelectItem value="90">90% - Critical</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    You&apos;ll be notified when any credit account exceeds this utilization
+                  </p>
+                </div>
+              )}
+
+              <ChannelSelector
+                channelField="highUtilizationChannels"
+                enabled={preferences.highUtilizationEnabled}
+              />
+            </div>
+
+            {/* Credit limit change notifications */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2">
+                <div className="flex-1">
+                  <Label htmlFor="credit-limit-change" className="text-sm font-medium">
+                    Credit limit changes
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Get notified when your credit limit changes (increases or decreases)
+                  </p>
+                </div>
+                <Switch
+                  id="credit-limit-change"
+                  checked={preferences.creditLimitChangeEnabled}
+                  onCheckedChange={(value) => updatePreference('creditLimitChangeEnabled', value)}
+                  aria-label="Toggle credit limit change notifications"
+                />
+              </div>
+              <ChannelSelector
+                channelField="creditLimitChangeChannels"
+                enabled={preferences.creditLimitChangeEnabled}
+              />
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* 5. Goals & Debt Milestones */}
       <Card className="border-border bg-card p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div className="mt-1 p-2 rounded-lg bg-elevated">
@@ -440,7 +543,7 @@ export function NotificationsTab() {
         </div>
       </Card>
 
-      {/* 5. Summary Reports */}
+      {/* 6. Summary Reports */}
       <Card className="border-border bg-card p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div className="mt-1 p-2 rounded-lg bg-elevated">

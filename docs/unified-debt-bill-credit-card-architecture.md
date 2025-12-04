@@ -3438,11 +3438,14 @@ Since there are no production users yet, we can do a clean slate:
 - Projected payoff dates calculated as balance / monthlyPayment months from now
 - Bill milestones from `billMilestones` table displayed with achievement dates and progress
 
-### Phase 10: Notifications
-- High utilization warnings (30%, 50%, 75%, 90% thresholds)
-- Credit limit change notifications
-- Payoff milestone celebrations
-- Autopay success/failure notifications
+### Phase 10: Notifications [COMPLETED 2025-12-04]
+- ✅ High utilization warnings at configurable thresholds (30%, 50%, 75%, 90%)
+- ✅ Credit limit change notifications with utilization impact
+- ✅ Unified debt milestone notifications (credit accounts + debt bills)
+- ✅ Autopay success/failure notifications (completed in Phase 6)
+- ✅ Notification settings UI with threshold selector and channel configuration
+- ✅ API endpoint for cron job integration (`/api/notifications/utilization-alerts`)
+- ✅ State tracking to prevent duplicate notifications (`utilizationAlertState` table)
 
 ### Phase 11: Tax Integration
 - Tax deduction settings on debt bills

@@ -1010,6 +1010,15 @@ export const userHouseholdPreferences = sqliteTable(
     monthlySummariesEnabled: integer('monthly_summaries_enabled', { mode: 'boolean' }).default(true),
     monthlySummariesChannels: text('monthly_summaries_channels').default('["email"]'),
 
+    // Notifications - High Utilization Alerts (Phase 10)
+    highUtilizationEnabled: integer('high_utilization_enabled', { mode: 'boolean' }).default(true),
+    highUtilizationThreshold: integer('high_utilization_threshold').default(75),
+    highUtilizationChannels: text('high_utilization_channels').default('["push"]'),
+
+    // Notifications - Credit Limit Changes (Phase 10)
+    creditLimitChangeEnabled: integer('credit_limit_change_enabled', { mode: 'boolean' }).default(true),
+    creditLimitChangeChannels: text('credit_limit_change_channels').default('["push"]'),
+
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   },
@@ -1021,6 +1030,37 @@ export const userHouseholdPreferences = sqliteTable(
     ),
     userIdIdx: index('idx_user_household_prefs_user').on(table.userId),
     householdIdIdx: index('idx_user_household_prefs_household').on(table.householdId),
+  })
+);
+
+// ============================================================================
+// UTILIZATION ALERT STATE (Phase 10)
+// Tracks which utilization thresholds have been notified to prevent duplicates
+// ============================================================================
+
+export const utilizationAlertState = sqliteTable(
+  'utilization_alert_state',
+  {
+    id: text('id').primaryKey(),
+    accountId: text('account_id').notNull(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
+    // Track which thresholds have been notified (reset when utilization drops below)
+    threshold30Notified: integer('threshold_30_notified', { mode: 'boolean' }).default(false),
+    threshold50Notified: integer('threshold_50_notified', { mode: 'boolean' }).default(false),
+    threshold75Notified: integer('threshold_75_notified', { mode: 'boolean' }).default(false),
+    threshold90Notified: integer('threshold_90_notified', { mode: 'boolean' }).default(false),
+    // Last known utilization for comparison
+    lastUtilization: real('last_utilization'),
+    lastCheckedAt: text('last_checked_at'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    accountIdIdx: index('idx_utilization_alert_account').on(table.accountId),
+    userIdIdx: index('idx_utilization_alert_user').on(table.userId),
+    householdIdIdx: index('idx_utilization_alert_household').on(table.householdId),
+    accountUserUnique: uniqueIndex('idx_utilization_alert_unique').on(table.accountId, table.userId),
   })
 );
 

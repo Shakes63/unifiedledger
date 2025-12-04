@@ -22,7 +22,8 @@ _Add new feature ideas here_
     - **Phase 7: Budget Integration** [COMPLETED 2025-12-04] - Debt strategy toggle in household settings. Strategy mode shows single "Debt Payments" line managed by snowball/avalanche. Manual mode shows individual editable debt lines. Mixed mode supports strategy debts grouped with excluded debts as manual lines. Unified debt budget API combines credit accounts and debt bills.
     - **Phase 8: Payoff Strategy & Per-Debt Inclusion** [COMPLETED 2025-12-04] - Updated payoff strategy calculations to use unified debt sources (credit accounts + debt bills). Added strategy toggle API for per-debt inclusion/exclusion. Migrated settings from debtSettings to householdSettings. Updated debt stats API to support unified mode. UI shows excluded debts separately with toggle buttons.
     - **Phase 9: Calendar Integration** [COMPLETED 2025-12-04] - Bill due dates on calendar including credit card payment bills with linked account display. Autopay processing dates shown on calendar with scheduled payment details. Projected payoff dates from unified sources (credit accounts + debt bills). Bill milestones from unified architecture displayed with achievement celebration styling.
-    - **Phases 10-19** - _Not started_
+    - **Phase 10: Notifications** [COMPLETED 2025-12-04] - High utilization warnings at configurable thresholds (30%, 50%, 75%, 90%). Credit limit change notifications with utilization impact. Unified debt milestone notifications for credit accounts and debt bills. Notification settings UI with threshold selector and channel configuration.
+    - **Phases 11-19** - _Not started_
 
 ---
 
