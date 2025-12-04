@@ -53,6 +53,7 @@ This document provides a comprehensive checklist for manually testing all featur
 43. [Unified Architecture (Phase 15)](#43-unified-architecture-phase-15)
 44. [Unified Architecture (Phase 16)](#44-unified-architecture-phase-16)
 45. [Unified Architecture (Phase 17)](#45-unified-architecture-phase-17)
+46. [Unified Architecture (Phase 18)](#46-unified-architecture-phase-18)
 
 ---
 
@@ -1037,8 +1038,12 @@ Phase 9 implements calendar integration with the unified debt architecture.
 | 40. Unified Architecture (Phase 12) | CODE COMPLETE | CSV import enhancements |
 | 41. Unified Architecture (Phase 13) | CODE COMPLETE | Dashboard widgets |
 | 42. Unified Architecture (Phase 14) | CODE COMPLETE | Balance history & trends |
+| 43. Unified Architecture (Phase 15) | CODE COMPLETE | Category simplification |
+| 44. Unified Architecture (Phase 16) | CODE COMPLETE | Recurring income |
+| 45. Unified Architecture (Phase 17) | CODE COMPLETE | Budget rollover |
+| 46. Unified Architecture (Phase 18) | IN PROGRESS | Savings-goals integration |
 
-**Overall: 22/42 browser-tested, 20/42 code/schema-reviewed**
+**Overall: 22/46 browser-tested, 24/46 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-04
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true
@@ -1480,3 +1485,62 @@ Phase 17 adds budget rollover functionality, allowing unused budget to carry for
 - [ ] Setting displayed in Rollover Summary info banner
 - [ ] When disabled, overspending doesn't reduce next month's budget
 - [ ] When enabled, overspending creates negative rollover balance
+
+---
+
+## 46. Unified Architecture (Phase 18)
+
+**Added: 2025-12-04** | **Result: IN PROGRESS**
+
+Phase 18 adds savings-goals integration with the transaction system, allowing users to link transfers to savings goals and track contributions.
+
+### Goal Selector Component
+- [ ] Goal selector appears when creating transfer to savings account
+- [ ] Dropdown shows all active savings goals sorted by account link
+- [ ] Goals linked to the destination account appear first with label
+- [ ] Each goal shows progress bar and percentage
+- [ ] Single goal selection works correctly
+- [ ] Multi-select (split) mode toggle works
+- [ ] Split mode allows adding multiple goals
+- [ ] Split amounts can be edited per goal
+- [ ] "Split Equally" button distributes amount evenly
+- [ ] Total allocated shows and highlights match/mismatch
+
+### Transaction Form Integration
+- [ ] Goal selector shows for transfer type transactions
+- [ ] Goal selector shows when destination account is selected
+- [ ] Selected goal(s) included in transaction submission
+- [ ] Form resets goal selection after successful save
+- [ ] Form resets goal selection on "Save & Add Another"
+
+### Transaction API Updates
+- [ ] POST /api/transactions accepts savingsGoalId
+- [ ] POST /api/transactions accepts goalContributions array
+- [ ] savingsGoalId saved to transaction record
+- [ ] Single goal contribution updates goal currentAmount
+- [ ] Split contributions update multiple goals
+- [ ] Milestone notifications created when thresholds crossed
+- [ ] Goal progress update is non-blocking (errors logged, not thrown)
+
+### Savings Goal Contributions Table
+- [ ] Migration 0075 applied successfully
+- [ ] savings_goal_contributions table created
+- [ ] Proper indexes created for transaction, goal, and user/household
+
+### Contribution Handler Library
+- [ ] handleGoalContribution updates goal currentAmount
+- [ ] handleGoalContribution creates contribution record
+- [ ] handleGoalContribution checks milestones (25%, 50%, 75%, 100%)
+- [ ] handleGoalContribution creates milestone notifications
+- [ ] handleMultipleContributions processes array of contributions
+- [ ] revertGoalContribution reduces goal amount
+- [ ] revertAllContributions handles transaction deletion
+- [ ] getGoalContributions returns contribution history
+- [ ] getTotalContributions calculates sum
+
+### Remaining Tasks (Not Yet Implemented)
+- [ ] Auto-detection for savings account transfers
+- [ ] Savings rate tracking API
+- [ ] Savings rate widget on dashboard
+- [ ] Contribution history view in goals page
+- [ ] Enhanced savings goals widget with recent contributions

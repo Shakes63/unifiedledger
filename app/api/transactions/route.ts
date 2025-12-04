@@ -18,7 +18,14 @@ import { processBillPayment, findCreditPaymentBillInstance } from '@/lib/bills/b
 import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
 import { logTransactionAudit, createTransactionSnapshot } from '@/lib/transactions/audit-logger';
 import { autoClassifyTransaction } from '@/lib/tax/auto-classify';
+import { handleGoalContribution, handleMultipleContributions } from '@/lib/goals/contribution-handler';
 // Sales tax now handled as boolean flag on transaction, no separate records needed
+
+// Type for goal contributions in split mode
+interface GoalContribution {
+  goalId: string;
+  amount: number;
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -59,6 +66,9 @@ export async function POST(request: Request) {
       // Offline sync tracking fields
       offlineId,
       syncStatus = 'synced',
+      // Phase 18: Savings goal linking
+      savingsGoalId, // Single goal link
+      goalContributions, // Split across multiple goals: { goalId: string, amount: number }[]
     } = body;
 
     // Validate required fields
@@ -329,6 +339,7 @@ export async function POST(request: Request) {
           accountId: toAccountId, // Destination account
           categoryId: null,
           merchantId: null,
+          savingsGoalId: savingsGoalId || null, // Phase 18: Link to savings goal
           date,
           amount: decimalAmount.toNumber(),
           description,
@@ -455,6 +466,41 @@ export async function POST(request: Request) {
           console.error('Error auto-linking credit card payment to bill:', error);
         }
       }
+
+      // Phase 18: Handle savings goal contributions for transfers
+      // Use transferInId for the contribution since it's the transfer_in that goes to the savings account
+      if (transferInId && (savingsGoalId || (goalContributions && goalContributions.length > 0))) {
+        try {
+          if (goalContributions && goalContributions.length > 0) {
+            // Split contributions across multiple goals
+            const contributionResults = await handleMultipleContributions(
+              goalContributions as GoalContribution[],
+              transferInId,
+              userId,
+              householdId
+            );
+            const achievedMilestones = contributionResults.flatMap(r => r.milestonesAchieved);
+            if (achievedMilestones.length > 0) {
+              console.log(`Transfer ${transferInId}: Milestones achieved: ${achievedMilestones.join(', ')}%`);
+            }
+          } else if (savingsGoalId) {
+            // Single goal contribution
+            const result = await handleGoalContribution(
+              savingsGoalId,
+              decimalAmount.toNumber(),
+              transferInId,
+              userId,
+              householdId
+            );
+            if (result.milestonesAchieved.length > 0) {
+              console.log(`Transfer ${transferInId}: Milestones achieved: ${result.milestonesAchieved.join(', ')}%`);
+            }
+          }
+        } catch (error) {
+          // Non-blocking: Don't fail the transfer if goal contribution fails
+          console.error('Error handling savings goal contribution:', error);
+        }
+      }
     } else {
       // Non-transfer transaction (income or expense)
       
@@ -482,6 +528,7 @@ export async function POST(request: Request) {
         categoryId: appliedCategoryId || null,
         merchantId: finalMerchantId || null,
         debtId: debtId || null,
+        savingsGoalId: savingsGoalId || null, // Phase 18: Link to savings goal
         date,
         amount: decimalAmount.toNumber(),
         description: finalDescription,
@@ -610,6 +657,40 @@ export async function POST(request: Request) {
         } catch (error) {
           // Non-fatal: don't fail transaction creation if tax classification fails
           console.error('Error auto-classifying transaction for tax:', error);
+        }
+      }
+
+      // Phase 18: Handle savings goal contributions for non-transfer transactions
+      if (savingsGoalId || (goalContributions && goalContributions.length > 0)) {
+        try {
+          if (goalContributions && goalContributions.length > 0) {
+            // Split contributions across multiple goals
+            const contributionResults = await handleMultipleContributions(
+              goalContributions as GoalContribution[],
+              transactionId,
+              userId,
+              householdId
+            );
+            const achievedMilestones = contributionResults.flatMap(r => r.milestonesAchieved);
+            if (achievedMilestones.length > 0) {
+              console.log(`Transaction ${transactionId}: Milestones achieved: ${achievedMilestones.join(', ')}%`);
+            }
+          } else if (savingsGoalId) {
+            // Single goal contribution
+            const result = await handleGoalContribution(
+              savingsGoalId,
+              decimalAmount.toNumber(),
+              transactionId,
+              userId,
+              householdId
+            );
+            if (result.milestonesAchieved.length > 0) {
+              console.log(`Transaction ${transactionId}: Milestones achieved: ${result.milestonesAchieved.join(', ')}%`);
+            }
+          }
+        } catch (error) {
+          // Non-blocking: Don't fail the transaction if goal contribution fails
+          console.error('Error handling savings goal contribution:', error);
         }
       }
     }

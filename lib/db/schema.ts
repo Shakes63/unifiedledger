@@ -1917,11 +1917,43 @@ export const savingsMilestones = sqliteTable(
 
 export const savingsGoalsRelations = relations(savingsGoals, ({ many }) => ({
   milestones: many(savingsMilestones),
+  contributions: many(savingsGoalContributions),
 }));
 
 export const savingsMilestonesRelations = relations(savingsMilestones, ({ one }) => ({
   goal: one(savingsGoals, {
     fields: [savingsMilestones.goalId],
+    references: [savingsGoals.id],
+  }),
+}));
+
+// Savings Goal Contributions - for tracking transaction contributions to goals (Phase 18)
+export const savingsGoalContributions = sqliteTable(
+  'savings_goal_contributions',
+  {
+    id: text('id').primaryKey(),
+    transactionId: text('transaction_id').notNull(),
+    goalId: text('goal_id').notNull(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
+    amount: real('amount').notNull(),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    transactionIdx: index('idx_goal_contributions_transaction').on(table.transactionId),
+    goalIdx: index('idx_goal_contributions_goal').on(table.goalId),
+    userHouseholdIdx: index('idx_goal_contributions_user_household').on(table.userId, table.householdId),
+    goalCreatedIdx: index('idx_goal_contributions_goal_created').on(table.goalId, table.createdAt),
+  })
+);
+
+export const savingsGoalContributionsRelations = relations(savingsGoalContributions, ({ one }) => ({
+  transaction: one(transactions, {
+    fields: [savingsGoalContributions.transactionId],
+    references: [transactions.id],
+  }),
+  goal: one(savingsGoals, {
+    fields: [savingsGoalContributions.goalId],
     references: [savingsGoals.id],
   }),
 }));

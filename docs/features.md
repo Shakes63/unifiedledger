@@ -30,7 +30,14 @@ _Add new feature ideas here_
     - **Phase 15: Category Simplification** [COMPLETED 2025-12-04] - Simplified category types from 6 to 3 (income, expense, savings). Removed variable_expense, monthly_bill, non_monthly_bill, debt types - all consolidated to `expense`. Updated all category forms, APIs, budget displays, and selectors. Migration auto-converts existing categories.
     - **Phase 16: Recurring Income** [COMPLETED 2025-12-04] - Added billType='income' support with income bill creation form, income classification (salary, rental, investment, freelance, benefits, refund), bills page filter tabs (All/Expenses/Income), income-specific statistics cards, late income notifications with cron job, calendar integration with income styling, expected vs actual income tracking in budget overview, and notification preferences for income alerts.
     - **Phase 17: Budget Rollover** [COMPLETED 2025-12-04] - Monthly budget rollover system allowing unused budget to carry forward. Features include: rollover toggle per category, rollover limit settings, monthly cron job for automatic rollover calculation, rollover history audit trail, effective budget display (base + rollover), rollover summary component in budgets page, negative rollover option (household setting), and API endpoints for rollover management.
-    - **Phases 18-19** - _Not started_
+    - **Phase 18: Savings-Goals Integration** [IN PROGRESS 2025-12-04] - Integration of savings goals with transaction system. See `docs/phase-18-savings-goals-integration-plan.md` for full plan.
+      - **Task 4: Database Schema** [COMPLETED] - Added `savings_goal_contributions` table for tracking split contributions across multiple goals.
+      - **Task 1: Goal Selector Component** [COMPLETED] - Reusable `GoalSelector` component for selecting savings goals in transaction forms with single/multi-select support.
+      - **Task 3: Transaction API Updates** [COMPLETED] - Transaction API now accepts `savingsGoalId` and `goalContributions` for goal linking.
+      - **Task 6: Contribution Handler** [COMPLETED] - Library for handling goal contributions with milestone checking and notifications.
+      - **Task 2: Transaction Form Updates** [COMPLETED] - Goal selector integrated into transaction form for transfers to savings accounts.
+      - _Remaining: Auto-detection, savings rate tracking, contribution history view, enhanced widget_
+    - **Phase 19: Bill Classification & Subscription Management** - _Not started_
 
 ---
 

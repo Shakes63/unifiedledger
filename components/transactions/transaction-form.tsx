@@ -28,6 +28,13 @@ import { MerchantSelector } from './merchant-selector';
 import { TransactionTemplatesManager } from './transaction-templates-manager';
 import { SplitBuilder, type Split } from './split-builder';
 import { BudgetWarning } from './budget-warning';
+import { GoalSelector } from './goal-selector';
+
+// Type for goal contributions in split mode
+interface GoalContribution {
+  goalId: string;
+  amount: number;
+}
 import { Plus, X, Save, Split as SplitIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -151,6 +158,9 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
   const [merchantIsSalesTaxExempt, setMerchantIsSalesTaxExempt] = useState(false);
   const [saveMode, setSaveMode] = useState<'save' | 'saveAndAdd' | null>(null);
+  // Phase 18: Savings goal linking
+  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
+  const [goalContributions, setGoalContributions] = useState<GoalContribution[]>([]);
   const isEditMode = !!transactionId;
 
   // Helper function to get today's date in YYYY-MM-DD format
@@ -587,6 +597,10 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         billInstanceId: formData.type === 'bill' && selectedBillInstanceId && selectedBillInstanceId !== 'none' ? selectedBillInstanceId : undefined,
         // Include sales tax boolean for income transactions
         isSalesTaxable: formData.type === 'income' ? salesTaxEnabled : false,
+        // Phase 18: Include savings goal link for transfers
+        savingsGoalId: formData.type === 'transfer' && selectedGoalId ? selectedGoalId : undefined,
+        // Phase 18: Include goal contributions for split contributions
+        goalContributions: formData.type === 'transfer' && goalContributions.length > 0 ? goalContributions : undefined,
       };
 
       const response = isEditMode
@@ -797,6 +811,9 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           setSalesTaxEnabled(preservedType === 'income' && (preservedAccountObj?.enableSalesTax || false));
           setMerchantIsSalesTaxExempt(false);
           setSelectedBillInstanceId('');
+          // Phase 18: Reset savings goal selection
+          setSelectedGoalId(null);
+          setGoalContributions([]);
           setSuccess(false);
           setSaveMode(null);
 
@@ -820,6 +837,9 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           });
           setUseSplits(false);
           setSplits([]);
+          // Phase 18: Reset savings goal selection
+          setSelectedGoalId(null);
+          setGoalContributions([]);
 
           if (formRef.current) {
             formRef.current.reset();
@@ -977,6 +997,36 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        )}
+
+        {/* Phase 18: Savings Goal Selector for transfers to savings accounts */}
+        {formData.type === 'transfer' && formData.toAccountId && (
+          <div className="mt-4">
+            <GoalSelector
+              selectedGoalId={selectedGoalId}
+              selectedContributions={goalContributions}
+              multiSelect={true}
+              accountId={formData.toAccountId}
+              transactionAmount={parseFloat(formData.amount) || 0}
+              onChange={(goalId) => {
+                setSelectedGoalId(goalId);
+                // Clear split contributions when switching to single goal
+                if (goalId) {
+                  setGoalContributions([]);
+                }
+              }}
+              onContributionsChange={(contributions) => {
+                setGoalContributions(contributions);
+                // Clear single goal selection when using split
+                if (contributions.length > 1) {
+                  setSelectedGoalId(null);
+                } else if (contributions.length === 1) {
+                  setSelectedGoalId(contributions[0].goalId);
+                }
+              }}
+              disabled={loading}
+            />
           </div>
         )}
       </div>
