@@ -197,6 +197,7 @@ export async function POST(request: Request) {
       remainingBalance,
       billInterestRate,
       interestType = 'fixed',
+      debtStartDate,
       billColor,
       // Payoff strategy
       includeInPayoffStrategy = true,
@@ -496,6 +497,7 @@ export async function POST(request: Request) {
         : null,
       billInterestRate: isDebt && billInterestRate ? parseFloat(billInterestRate) : null,
       interestType: isDebt ? (interestType || 'fixed') : 'none',
+      debtStartDate: isDebt ? (debtStartDate || null) : null,
       billColor: isDebt ? (billColor || null) : null,
       // Payoff strategy
       includeInPayoffStrategy: isDebt ? (includeInPayoffStrategy ?? true) : null,

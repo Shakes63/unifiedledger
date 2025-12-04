@@ -154,6 +154,7 @@ export async function PUT(
       remainingBalance,
       billInterestRate,
       interestType,
+      debtStartDate,
       billColor,
       // Payoff strategy
       includeInPayoffStrategy,
@@ -415,6 +416,7 @@ export async function PUT(
     if (remainingBalance !== undefined) updateData.remainingBalance = remainingBalance ? parseFloat(remainingBalance) : null;
     if (billInterestRate !== undefined) updateData.billInterestRate = billInterestRate ? parseFloat(billInterestRate) : null;
     if (interestType !== undefined) updateData.interestType = interestType;
+    if (debtStartDate !== undefined) updateData.debtStartDate = debtStartDate || null;
     if (billColor !== undefined) updateData.billColor = billColor || null;
     
     // Payoff strategy

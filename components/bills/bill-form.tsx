@@ -27,15 +27,14 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { MerchantSelector } from '@/components/transactions/merchant-selector';
 
-// Bill classification options - must match schema enum
+// Bill classification options
 const BILL_CLASSIFICATION_OPTIONS = [
   { value: 'subscription', label: 'Subscription' },
   { value: 'utility', label: 'Utility' },
-  { value: 'housing', label: 'Housing/Rent/Mortgage' },
   { value: 'insurance', label: 'Insurance' },
   { value: 'loan_payment', label: 'Loan Payment' },
-  { value: 'membership', label: 'Membership' },
-  { value: 'service', label: 'Service' },
+  { value: 'credit_card', label: 'Credit Card Payment' },
+  { value: 'rent_mortgage', label: 'Rent/Mortgage' },
   { value: 'other', label: 'Other' },
 ] as const;
 
@@ -81,7 +80,7 @@ export interface BillData {
   
   // Bill type and classification
   billType?: 'expense' | 'income' | 'savings_transfer';
-  billClassification?: 'subscription' | 'utility' | 'housing' | 'insurance' | 'loan_payment' | 'membership' | 'service' | 'other';
+  billClassification?: 'subscription' | 'utility' | 'insurance' | 'loan_payment' | 'credit_card' | 'rent_mortgage' | 'other';
   classificationSubcategory?: string | null;
   
   // Account linking
@@ -102,6 +101,7 @@ export interface BillData {
   remainingBalance?: number | string;
   billInterestRate?: number | string;
   interestType?: 'fixed' | 'variable' | 'none';
+  debtStartDate?: string | null;
   estimatedPayoffDate?: string | null;
   billColor?: string | null;
   
@@ -180,6 +180,7 @@ export function BillForm({
     remainingBalance: bill?.remainingBalance || '',
     billInterestRate: bill?.billInterestRate || '',
     interestType: bill?.interestType || 'fixed',
+    debtStartDate: bill?.debtStartDate || '',
     billColor: bill?.billColor || '',
     
     // Payoff strategy
@@ -434,7 +435,7 @@ export function BillForm({
       
       // Bill classification
       billType: formData.billType as 'expense' | 'income' | 'savings_transfer',
-      billClassification: formData.billClassification as 'subscription' | 'utility' | 'housing' | 'insurance' | 'loan_payment' | 'membership' | 'service' | 'other',
+      billClassification: formData.billClassification as 'subscription' | 'utility' | 'insurance' | 'loan_payment' | 'credit_card' | 'rent_mortgage' | 'other',
       
       // Account linking
       linkedAccountId: formData.linkedAccountId || null,
@@ -460,6 +461,7 @@ export function BillForm({
           : undefined,
       billInterestRate: formData.isDebt && formData.billInterestRate ? parseFloat(String(formData.billInterestRate)) : undefined,
       interestType: formData.isDebt ? formData.interestType as 'fixed' | 'variable' | 'none' : undefined,
+      debtStartDate: formData.isDebt && formData.debtStartDate ? formData.debtStartDate : null,
       billColor: formData.isDebt && formData.billColor ? formData.billColor : null,
       
       // Payoff strategy
@@ -510,6 +512,7 @@ export function BillForm({
         remainingBalance: '',
         billInterestRate: '',
         interestType: 'fixed',
+        debtStartDate: '',
         billColor: '',
         includeInPayoffStrategy: true,
         isInterestTaxDeductible: false,
@@ -1175,8 +1178,18 @@ export function BillForm({
               </div>
             </div>
 
-            {/* Color */}
+            {/* Date and Color */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-muted-foreground text-sm mb-2 block">Debt Start Date</Label>
+                <Input
+                  name="debtStartDate"
+                  type="date"
+                  value={formData.debtStartDate}
+                  onChange={handleChange}
+                  className="bg-elevated border-border text-foreground"
+                />
+              </div>
               <div>
                 <Label className="text-muted-foreground text-sm mb-2 block">Color</Label>
                 <Select 
