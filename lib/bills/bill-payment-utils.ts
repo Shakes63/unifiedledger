@@ -15,6 +15,7 @@ import { db } from '@/lib/db';
 import { bills, billInstances, billPayments } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { calculatePaymentBreakdown, PaymentBreakdown } from '@/lib/debts/payment-calculator';
+import { classifyInterestPayment } from '@/lib/tax/interest-tax-utils';
 
 export interface ProcessBillPaymentParams {
   billId: string;
@@ -38,6 +39,13 @@ export interface BillPaymentResult {
   principalAmount?: number;
   interestAmount?: number;
   newDebtBalance?: number;
+  // Tax deduction info (Phase 11)
+  taxDeductionInfo?: {
+    deductionId: string;
+    deductibleAmount: number;
+    limitApplied?: number;
+    warningMessage?: string;
+  };
   error?: string;
 }
 
@@ -204,6 +212,39 @@ export async function processBillPayment({
     // Execute all operations in parallel
     await Promise.all(dbOperations);
 
+    // Phase 11: Auto-classify interest for tax deduction if applicable
+    let taxDeductionInfo: BillPaymentResult['taxDeductionInfo'];
+    if (
+      bill.isDebt &&
+      bill.isInterestTaxDeductible &&
+      bill.taxDeductionType !== 'none' &&
+      breakdown?.interestAmount &&
+      breakdown.interestAmount > 0
+    ) {
+      try {
+        const taxResult = await classifyInterestPayment(
+          userId,
+          householdId,
+          billId,
+          paymentId,
+          breakdown.interestAmount,
+          paymentDate
+        );
+
+        if (taxResult.success && taxResult.deductionId) {
+          taxDeductionInfo = {
+            deductionId: taxResult.deductionId,
+            deductibleAmount: taxResult.deductibleAmount,
+            limitApplied: taxResult.limitApplied,
+            warningMessage: taxResult.warningMessage,
+          };
+        }
+      } catch (taxError) {
+        // Log but don't fail the payment if tax classification fails
+        console.warn('Failed to classify interest for tax:', taxError);
+      }
+    }
+
     return {
       success: true,
       paymentId,
@@ -213,6 +254,7 @@ export async function processBillPayment({
       principalAmount: breakdown?.principalAmount,
       interestAmount: breakdown?.interestAmount,
       newDebtBalance,
+      taxDeductionInfo,
     };
   } catch (error) {
     console.error('Error processing bill payment:', error);

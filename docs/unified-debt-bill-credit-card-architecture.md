@@ -3447,11 +3447,17 @@ Since there are no production users yet, we can do a clean slate:
 - ✅ API endpoint for cron job integration (`/api/notifications/utilization-alerts`)
 - ✅ State tracking to prevent duplicate notifications (`utilizationAlertState` table)
 
-### Phase 11: Tax Integration
-- Tax deduction settings on debt bills
-- Flag interest charges as tax deductible
-- Tax report: Deductible interest by type
-- Respect annual limits (e.g., $2,500 student loan)
+### Phase 11: Tax Integration [COMPLETED 2025-12-04]
+- ✅ Tax deduction settings on debt bills (already in place from Phase 3)
+- ✅ Auto-classify interest payments from tax-deductible debt bills via `classifyInterestPayment()`
+- ✅ Interest deduction summary in tax dashboard with progress bars for limits
+- ✅ Annual limit tracking ($2,500 for student loan interest)
+- ✅ Bill-level custom limits supported via `taxDeductionLimit` field
+- ✅ New tax categories added: "HELOC/Home Equity Interest" and "Business Interest Expense"
+- ✅ `interest_deductions` table for tracking interest deduction records
+- ✅ API endpoint `/api/tax/interest-deductions` for fetching interest summary
+- ✅ Limit warning notifications at 80% (approaching) and 100% (reached)
+- ✅ Integration with bill payment flow in `processBillPayment()`
 
 ### Phase 12: CSV Import Enhancements
 - Credit card statement detection

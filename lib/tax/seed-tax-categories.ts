@@ -285,6 +285,24 @@ export const STANDARD_TAX_CATEGORIES = [
     deductible: true,
     description: 'Interest paid on student loans (up to $2,500)',
   },
+
+  // Interest Deductions - Additional Categories for Unified Debt Architecture
+  {
+    name: 'HELOC/Home Equity Interest',
+    formType: 'schedule_a' as const,
+    lineNumber: '8b',
+    category: 'personal_deduction' as const,
+    deductible: true,
+    description: 'Interest on home equity loans used for home improvement',
+  },
+  {
+    name: 'Business Interest Expense',
+    formType: 'schedule_c' as const,
+    lineNumber: '16b',
+    category: 'business_expense' as const,
+    deductible: true,
+    description: 'Interest on business loans and credit lines',
+  },
 ];
 
 /**

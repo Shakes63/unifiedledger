@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart } from '@/components/charts';
-import { FileText, DollarSign, TrendingUp, AlertCircle, Building2, User, Download, Loader2 } from 'lucide-react';
+import { FileText, DollarSign, TrendingUp, AlertCircle, Building2, User, Download, Loader2, Landmark, GraduationCap, Home, Briefcase } from 'lucide-react';
 import { exportTaxToPDF, TaxExportData } from '@/lib/tax/tax-pdf-export';
 import { toast } from 'sonner';
 
@@ -48,6 +48,40 @@ interface TaxData {
   };
 }
 
+// Interest deduction types from Phase 11
+interface InterestDeductionByType {
+  type: string;
+  displayName: string;
+  totalInterestPaid: number;
+  totalDeductible: number;
+  annualLimit: number | null;
+  remainingCapacity: number | null;
+  percentUsed: number | null;
+  paymentCount: number;
+}
+
+interface InterestDeductionData {
+  year: number;
+  summary: {
+    taxYear: number;
+    byType: InterestDeductionByType[];
+    totals: {
+      totalInterestPaid: number;
+      totalDeductible: number;
+      totalLimitReductions: number;
+    };
+  };
+  limitStatuses: Array<{
+    type: string;
+    limit: number | null;
+    used: number;
+    remaining: number | null;
+    percentUsed: number | null;
+    isAtLimit: boolean;
+    isApproachingLimit: boolean;
+  }>;
+}
+
 /**
  * Tax Dashboard Page
  * Comprehensive tax reporting and deduction tracking with business/personal separation
@@ -56,6 +90,7 @@ export default function TaxPage() {
   const [year, setYear] = useState<string>(new Date().getFullYear().toString());
   const [typeFilter, setTypeFilter] = useState<DeductionTypeFilter>('all');
   const [data, setData] = useState<TaxData | null>(null);
+  const [interestData, setInterestData] = useState<InterestDeductionData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -69,19 +104,61 @@ export default function TaxPage() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/tax/summary?year=${year}&type=${typeFilter}`, { credentials: 'include' });
+      // Fetch both tax data and interest deduction data in parallel
+      const [taxResponse, interestResponse] = await Promise.all([
+        fetch(`/api/tax/summary?year=${year}&type=${typeFilter}`, { credentials: 'include' }),
+        fetch(`/api/tax/interest-deductions?year=${year}`, { credentials: 'include' }),
+      ]);
 
-      if (!response.ok) {
+      if (!taxResponse.ok) {
         throw new Error('Failed to load tax data');
       }
 
-      const result = await response.json();
-      setData(result);
+      const taxResult = await taxResponse.json();
+      setData(taxResult);
+
+      // Interest data is optional - don't fail if it errors
+      if (interestResponse.ok) {
+        const interestResult = await interestResponse.json();
+        setInterestData(interestResult);
+      }
     } catch (err) {
       setError('Failed to load tax data. Please try again.');
       console.error('Error fetching tax data:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Get icon for interest deduction type
+  const getInterestTypeIcon = (type: string) => {
+    switch (type) {
+      case 'mortgage':
+        return <Home className="w-4 h-4" />;
+      case 'student_loan':
+        return <GraduationCap className="w-4 h-4" />;
+      case 'business':
+        return <Briefcase className="w-4 h-4" />;
+      case 'heloc_home':
+        return <Landmark className="w-4 h-4" />;
+      default:
+        return <DollarSign className="w-4 h-4" />;
+    }
+  };
+
+  // Format interest type for display
+  const formatInterestType = (type: string) => {
+    switch (type) {
+      case 'mortgage':
+        return 'Mortgage Interest';
+      case 'student_loan':
+        return 'Student Loan Interest';
+      case 'business':
+        return 'Business Interest';
+      case 'heloc_home':
+        return 'HELOC/Home Equity';
+      default:
+        return type;
     }
   };
 
@@ -349,6 +426,116 @@ export default function TaxPage() {
               </CardContent>
             </Card>
           </div>
+        )}
+
+        {/* Interest Deductions Section (Phase 11) */}
+        {interestData && interestData.summary.byType.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Landmark className="w-5 h-5" />
+                Deductible Interest Payments
+              </CardTitle>
+              <CardDescription>
+                Interest from debt bills marked as tax deductible
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {interestData.summary.byType.map((item) => {
+                  const limitStatus = interestData.limitStatuses.find(s => s.type === item.type);
+                  const hasLimit = item.annualLimit !== null;
+                  const percentUsed = item.percentUsed || 0;
+                  
+                  return (
+                    <div 
+                      key={item.type} 
+                      className={`p-4 rounded-lg border ${
+                        limitStatus?.isAtLimit 
+                          ? 'bg-[var(--color-error)]/10 border-[var(--color-error)]/30' 
+                          : limitStatus?.isApproachingLimit 
+                            ? 'bg-[var(--color-warning)]/10 border-[var(--color-warning)]/30'
+                            : 'bg-elevated border-border'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        {getInterestTypeIcon(item.type)}
+                        <span className="text-sm font-medium text-foreground">
+                          {formatInterestType(item.type)}
+                        </span>
+                      </div>
+                      <p className="text-2xl font-bold text-[var(--color-income)] font-mono">
+                        ${item.totalDeductible.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {item.paymentCount} payment{item.paymentCount !== 1 ? 's' : ''}
+                      </p>
+                      
+                      {hasLimit && (
+                        <div className="mt-3">
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-muted-foreground">Annual Limit</span>
+                            <span className={`font-medium ${
+                              limitStatus?.isAtLimit 
+                                ? 'text-[var(--color-error)]' 
+                                : limitStatus?.isApproachingLimit 
+                                  ? 'text-[var(--color-warning)]'
+                                  : 'text-foreground'
+                            }`}>
+                              {percentUsed.toFixed(0)}% used
+                            </span>
+                          </div>
+                          <div className="h-2 bg-border rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full transition-all ${
+                                limitStatus?.isAtLimit 
+                                  ? 'bg-[var(--color-error)]' 
+                                  : limitStatus?.isApproachingLimit 
+                                    ? 'bg-[var(--color-warning)]'
+                                    : 'bg-[var(--color-income)]'
+                              }`}
+                              style={{ width: `${Math.min(100, percentUsed)}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            ${item.remainingCapacity?.toLocaleString('en-US', { minimumFractionDigits: 2 })} remaining of ${item.annualLimit?.toLocaleString('en-US')}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {!hasLimit && (
+                        <p className="text-xs text-muted-foreground mt-3">
+                          No annual limit
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Interest Totals Summary */}
+              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Total Interest Paid</p>
+                  <p className="text-xl font-bold text-foreground font-mono">
+                    ${interestData.summary.totals.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Total Deductible</p>
+                  <p className="text-xl font-bold text-[var(--color-income)] font-mono">
+                    ${interestData.summary.totals.totalDeductible.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Limited by Caps</p>
+                  <p className="text-xl font-bold text-[var(--color-warning)] font-mono">
+                    ${interestData.summary.totals.totalLimitReductions.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Top Deductions Chart */}

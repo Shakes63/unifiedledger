@@ -2386,3 +2386,43 @@ export const transactionAuditLogRelations = relations(transactionAuditLog, ({ on
     references: [transactions.id],
   }),
 }));
+
+// ============================================================================
+// INTEREST DEDUCTION TRACKING (Phase 11: Tax Integration)
+// ============================================================================
+
+export const interestDeductions = sqliteTable(
+  'interest_deductions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
+    billId: text('bill_id').notNull(),
+    billPaymentId: text('bill_payment_id').notNull(),
+    taxYear: integer('tax_year').notNull(),
+    deductionType: text('deduction_type', {
+      enum: ['mortgage', 'student_loan', 'business', 'heloc_home'],
+    }).notNull(),
+    interestAmount: real('interest_amount').notNull(), // Total interest in payment
+    deductibleAmount: real('deductible_amount').notNull(), // Amount after limits applied
+    limitApplied: real('limit_applied'), // If a limit was enforced
+    billLimitApplied: integer('bill_limit_applied', { mode: 'boolean' }).default(false), // Per-bill limit
+    annualLimitApplied: integer('annual_limit_applied', { mode: 'boolean' }).default(false), // IRS annual limit
+    paymentDate: text('payment_date').notNull(),
+    taxCategoryId: text('tax_category_id'), // Link to tax_categories for reporting
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_interest_deductions_user').on(table.userId),
+    householdIdIdx: index('idx_interest_deductions_household').on(table.householdId),
+    yearIdx: index('idx_interest_deductions_year').on(table.taxYear),
+    typeIdx: index('idx_interest_deductions_type').on(table.deductionType),
+    billIdIdx: index('idx_interest_deductions_bill').on(table.billId),
+    billPaymentIdIdx: index('idx_interest_deductions_payment').on(table.billPaymentId),
+    userYearTypeIdx: index('idx_interest_deductions_user_year_type').on(
+      table.userId,
+      table.taxYear,
+      table.deductionType
+    ),
+  })
+);

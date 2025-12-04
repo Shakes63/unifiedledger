@@ -46,6 +46,7 @@ This document provides a comprehensive checklist for manually testing all featur
 36. [Unified Architecture (Phase 8)](#36-unified-architecture-phase-8)
 37. [Unified Architecture (Phase 9)](#37-unified-architecture-phase-9)
 38. [Unified Architecture (Phase 10)](#38-unified-architecture-phase-10)
+39. [Unified Architecture (Phase 11)](#39-unified-architecture-phase-11)
 
 ---
 
@@ -1011,8 +1012,9 @@ Phase 9 implements calendar integration with the unified debt architecture.
 | 36. Unified Architecture (Phase 8) | CODE VERIFIED | Payoff strategy & per-debt inclusion |
 | 37. Unified Architecture (Phase 9) | CODE COMPLETE | Calendar integration |
 | 38. Unified Architecture (Phase 10) | CODE COMPLETE | Notifications system |
+| 39. Unified Architecture (Phase 11) | CODE COMPLETE | Tax integration |
 
-**Overall: 22/38 browser-tested, 16/38 code/schema-reviewed**
+**Overall: 22/39 browser-tested, 17/39 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-04
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true
@@ -1067,3 +1069,46 @@ Phase 10 implements notification enhancements for the unified debt architecture.
 - [ ] userHouseholdPreferences has creditLimitChange* columns
 - [ ] utilizationAlertState table created with threshold tracking
 - [ ] All indexes created
+
+---
+
+## 39. Unified Architecture (Phase 11)
+
+**Added: 2025-12-04** | **Result: CODE COMPLETE**
+
+Phase 11 implements tax integration for debt bill interest deductions.
+
+### Interest Deduction Classification
+- [ ] Interest from tax-deductible debt bills auto-classified on payment
+- [ ] Classification respects bill's `taxDeductionType` setting
+- [ ] Classification respects bill's `taxDeductionLimit` if set
+- [ ] Student loan interest respects $2,500 annual limit
+- [ ] Mortgage interest tracked (no annual dollar limit)
+- [ ] Business interest tracked (no annual limit)
+- [ ] HELOC interest tracked (no annual limit)
+
+### Tax Dashboard Interest Section
+- [ ] Interest Deductions card displays when interest payments exist
+- [ ] Shows summary by type (mortgage, student loan, business, HELOC)
+- [ ] Progress bars show percentage of annual limit used
+- [ ] Warning colors at 80% (approaching) and 100% (reached)
+- [ ] Totals section shows total paid, deductible, and limited amounts
+- [ ] Data fetches correctly with year filter
+
+### Limit Warnings
+- [ ] Notification created when annual limit approaches (80%)
+- [ ] Notification created when annual limit reached (100%)
+- [ ] No duplicate notifications within 7 days
+- [ ] Notification links to Tax Dashboard
+- [ ] Warning message includes limit amount and percentage
+
+### API Endpoints
+- [ ] GET /api/tax/interest-deductions returns summary by type
+- [ ] GET /api/tax/interest-deductions returns limit statuses
+- [ ] Optional includePayments query param returns payment details
+
+### Database Schema
+- [ ] interest_deductions table created
+- [ ] All indexes created (user, household, year, type, bill, payment)
+- [ ] Proper foreign keys to bills and bill_payments
+- [ ] Tax categories include "HELOC/Home Equity Interest" and "Business Interest Expense"
