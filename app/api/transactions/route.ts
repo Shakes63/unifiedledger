@@ -14,6 +14,7 @@ import { handleAccountChange } from '@/lib/rules/account-action-handler';
 import { findMatchingBillInstance } from '@/lib/bills/bill-matching-helpers';
 import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
 import { batchUpdateMilestones } from '@/lib/debts/milestone-utils';
+import { processBillPayment, findCreditPaymentBillInstance } from '@/lib/bills/bill-payment-utils';
 import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
 import { logTransactionAudit, createTransactionSnapshot } from '@/lib/transactions/audit-logger';
 import { autoClassifyTransaction } from '@/lib/tax/auto-classify';
@@ -406,6 +407,45 @@ export async function POST(request: Request) {
         }
       } catch (error) {
         console.error('Error tracking transfer pair usage:', error);
+      }
+
+      // PHASE 5: Auto-detect credit card payments
+      // When transferring TO a credit card or line of credit, auto-mark linked bill instance as paid
+      if (toAccount && (toAccount.type === 'credit' || toAccount.type === 'line_of_credit')) {
+        try {
+          // Find linked payment bill for this credit account
+          const billMatch = await findCreditPaymentBillInstance(
+            toAccountId,
+            decimalAmount.toNumber(),
+            date,
+            userId,
+            householdId,
+            7 // Date tolerance: 7 days
+          );
+
+          if (billMatch) {
+            // Process the payment using the new bill payment utility
+            const paymentResult = await processBillPayment({
+              billId: billMatch.billId,
+              instanceId: billMatch.instanceId,
+              transactionId: transferInId!, // Use the transfer_in transaction as the linked transaction
+              paymentAmount: decimalAmount.toNumber(),
+              paymentDate: date,
+              userId,
+              householdId,
+              paymentMethod: 'transfer',
+              linkedAccountId: accountId, // The source account (where payment came from)
+              notes: `Auto-linked from transfer: ${description}`,
+            });
+
+            if (paymentResult.success) {
+              console.log(`Credit card payment auto-linked: Bill ${billMatch.billId}, Instance ${billMatch.instanceId}, Status: ${paymentResult.paymentStatus}`);
+            }
+          }
+        } catch (error) {
+          // Non-blocking: Don't fail the transfer if bill matching fails
+          console.error('Error auto-linking credit card payment to bill:', error);
+        }
       }
     } else {
       // Non-transfer transaction (income or expense)

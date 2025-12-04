@@ -11,8 +11,8 @@
 | 1.5 | Transactions Enhancement | COMPLETED 2025-12-03 |
 | 2 | Account Creation Flow | COMPLETED 2025-12-03 |
 | 3 | Bill Form Updates | COMPLETED 2025-12-03 |
-| 4 | Display Updates | Not Started |
-| 5 | Transaction Flow Updates | Not Started |
+| 4 | Display Updates | COMPLETED 2025-12-03 |
+| 5 | Transaction Flow Updates | IN PROGRESS 2025-12-04 |
 | 6 | Autopay System | Not Started |
 | 7 | Budget Integration | Not Started |
 | 8 | Payoff Strategy & Per-Debt Inclusion | Not Started |
@@ -28,7 +28,9 @@
 | 18 | Savings-Goals Integration | Not Started |
 | 19 | Bill Classification & Subscription Management | Not Started |
 
-**Detailed Implementation Plan:** See [Phase 1 Plan](./phase-1-schema-changes-plan.md)
+**Implementation Plans:**
+- [Phase 1 Plan](./phase-1-schema-changes-plan.md)
+- [Phase 5 Plan](./phase-5-transaction-flow-plan.md)
 
 ---
 
@@ -3371,16 +3373,16 @@ Since there are no production users yet, we can do a clean slate:
 - [x] Show strategy inclusion status on debt cards
 - [x] Handle overpayment/credit balance display
 
-### Phase 5: Transaction Flow Updates
-- Credit card payments via transfer with auto bill instance marking
-- Credit card purchases as expenses (not double-counted)
-- Balance transfers between credit cards
-- Refunds on credit cards (negative expense)
-- Partial payment handling with shortfall tracking
-- Loan payments via expense + bill selection
-- Payment history recording for all bill payments
-- Remove debt linking (use bill linking)
-- Auto-match transactions for bills with chargedToAccountId
+### Phase 5: Transaction Flow Updates [IN PROGRESS 2025-12-04]
+- [x] Partial payment handling with shortfall tracking (bill-payment-utils.ts)
+- [x] Payment history recording for all bill payments (bill_payments table, API endpoints)
+- [x] Credit card payments via transfer with auto bill instance marking
+- [ ] Credit card purchases as expenses (not double-counted)
+- [ ] Balance transfers between credit cards (needs isBalanceTransfer field - migration created)
+- [ ] Refunds on credit cards (negative expense) (needs isRefund field - migration created)
+- [ ] Loan payments via expense + bill selection
+- [ ] Remove debt linking (use bill linking)
+- [ ] Auto-match transactions for bills with chargedToAccountId
 
 ### Phase 6: Autopay System
 - Implement autopay fields on bills

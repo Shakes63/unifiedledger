@@ -40,6 +40,7 @@ This document provides a comprehensive checklist for manually testing all featur
 30. [Unified Architecture (Phase 2)](#30-unified-architecture-phase-2)
 31. [Unified Architecture (Phase 3)](#31-unified-architecture-phase-3)
 32. [Unified Architecture (Phase 4)](#32-unified-architecture-phase-4)
+33. [Unified Architecture (Phase 5)](#33-unified-architecture-phase-5)
 
 ---
 
@@ -692,6 +693,52 @@ Phase 4 implements display updates for credit accounts and unified debt views.
 
 ---
 
+## 33. Unified Architecture (Phase 5)
+
+**Status:** IN PROGRESS  
+**Implemented:** 2025-12-04  
+
+Phase 5 implements transaction flow updates for credit card payments and bill payment tracking.
+
+### Credit Card Payments via Transfer
+- [ ] Transfer TO credit card auto-detects linked payment bill
+- [ ] Payment within 7-day tolerance matches bill instance
+- [ ] Bill instance status updates to 'paid' on full payment
+- [ ] Bill instance status updates to 'partial' on partial payment
+- [ ] Bill payment record created in `bill_payments` table
+- [ ] Credit card balance decreases correctly after payment
+
+### Partial Payment Handling
+- [ ] Partial payment updates `paidAmount` on bill instance
+- [ ] `remainingAmount` calculated correctly
+- [ ] `paymentStatus` shows 'partial' for incomplete payments
+- [ ] Multiple partial payments accumulate correctly
+- [ ] Full payment after partial marks instance as 'paid'
+- [ ] Overpayment marks instance as 'overpaid'
+
+### Payment History Recording
+- [ ] All bill payments create `bill_payments` records
+- [ ] Records include principal/interest breakdown for debt bills
+- [ ] Records link to source transaction
+- [ ] GET /api/bills/[id]/payments returns payment history
+- [ ] GET /api/bills/instances/[id]/payments returns instance payments
+- [ ] Payment summary includes totals and breakdown
+
+### Database Schema
+- [ ] `is_balance_transfer` column added to transactions
+- [ ] `is_refund` column added to transactions
+- [ ] Migration 0044 applied successfully
+- [ ] Indexes created for new columns
+
+### Not Yet Implemented (Future Tasks)
+- [ ] Balance transfers between credit cards (isBalanceTransfer flag)
+- [ ] Refunds on credit cards (isRefund flag)
+- [ ] Loan payments via expense with bill selection
+- [ ] Auto-match for chargedToAccountId bills
+- [ ] Legacy debt linking deprecation
+
+---
+
 ## Testing Summary
 
 | Section | Status | Notes |
@@ -728,8 +775,9 @@ Phase 4 implements display updates for credit accounts and unified debt views.
 | 30. Unified Architecture (Phase 2) | NEEDS TESTING | Account creation flow |
 | 31. Unified Architecture (Phase 3) | NEEDS TESTING | Bill form updates |
 | 32. Unified Architecture (Phase 4) | NEEDS TESTING | Display updates |
+| 33. Unified Architecture (Phase 5) | IN PROGRESS | Transaction flow updates |
 
-**Overall: 22/32 browser-tested, 10/32 code/schema-reviewed**
+**Overall: 22/33 browser-tested, 11/33 code/schema-reviewed**
 
-**Last Comprehensive Test:** 2025-12-03
+**Last Comprehensive Test:** 2025-12-04
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true

@@ -265,6 +265,9 @@ export const transactions = sqliteTable(
       enum: ['business', 'personal', 'none'],
     }).default('none'),
     isSalesTaxable: integer('is_sales_taxable', { mode: 'boolean' }).default(false),
+    // Phase 5: Transaction flow fields
+    isBalanceTransfer: integer('is_balance_transfer', { mode: 'boolean' }).default(false),
+    isRefund: integer('is_refund', { mode: 'boolean' }).default(false),
     importHistoryId: text('import_history_id'),
     importRowNumber: integer('import_row_number'),
     // Offline sync tracking fields
@@ -301,6 +304,9 @@ export const transactions = sqliteTable(
     userSalesTaxableIdx: index('idx_transactions_user_sales_taxable').on(table.userId, table.isSalesTaxable),
     // Savings goal index (Phase 1.5)
     savingsGoalIdx: index('idx_transactions_savings_goal').on(table.savingsGoalId),
+    // Phase 5: Balance transfer and refund indexes
+    balanceTransferIdx: index('idx_transactions_balance_transfer').on(table.isBalanceTransfer),
+    refundIdx: index('idx_transactions_refund').on(table.isRefund),
   })
 );
 
