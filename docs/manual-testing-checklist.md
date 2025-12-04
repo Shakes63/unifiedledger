@@ -1041,7 +1041,7 @@ Phase 9 implements calendar integration with the unified debt architecture.
 | 43. Unified Architecture (Phase 15) | CODE COMPLETE | Category simplification |
 | 44. Unified Architecture (Phase 16) | CODE COMPLETE | Recurring income |
 | 45. Unified Architecture (Phase 17) | CODE COMPLETE | Budget rollover |
-| 46. Unified Architecture (Phase 18) | IN PROGRESS | Savings-goals integration |
+| 46. Unified Architecture (Phase 18) | CODE COMPLETE | Savings-goals integration with auto-detection, savings rate tracking, contribution history |
 
 **Overall: 22/46 browser-tested, 24/46 code/schema-reviewed**
 
@@ -1490,9 +1490,9 @@ Phase 17 adds budget rollover functionality, allowing unused budget to carry for
 
 ## 46. Unified Architecture (Phase 18)
 
-**Added: 2025-12-04** | **Result: IN PROGRESS**
+**Added: 2025-12-04** | **Result: CODE COMPLETE**
 
-Phase 18 adds savings-goals integration with the transaction system, allowing users to link transfers to savings goals and track contributions.
+Phase 18 adds savings-goals integration with the transaction system, allowing users to link transfers to savings goals, track contributions, view savings rate analytics, and see contribution history.
 
 ### Goal Selector Component
 - [ ] Goal selector appears when creating transfer to savings account
@@ -1513,6 +1513,49 @@ Phase 18 adds savings-goals integration with the transaction system, allowing us
 - [ ] Form resets goal selection after successful save
 - [ ] Form resets goal selection on "Save & Add Another"
 
+### Auto-Detection for Savings Transfers
+- [ ] Detection banner shows when transferring to savings account
+- [ ] Single linked goal auto-selected with "high" confidence message
+- [ ] Multiple linked goals show "medium" confidence message
+- [ ] Savings account without linked goals shows "low" confidence message
+- [ ] Non-savings accounts show no detection message
+- [ ] Auto-detection API endpoint works correctly
+
+### Transaction Display with Goal Badges
+- [ ] Goal badge appears on transactions linked to savings goals
+- [ ] Badge shows goal name and uses goal color
+- [ ] Badge appears in transactions list page
+- [ ] Badge appears in recent transactions widget
+- [ ] "Savings Contributions Only" filter works in advanced search
+- [ ] Filter correctly shows only transactions with savingsGoalId
+
+### Savings Rate Tracking
+- [ ] GET /api/reports/savings-rate returns monthly/quarterly/yearly data
+- [ ] API calculates savings rate as (savings/income) percentage
+- [ ] Summary includes average rate, total saved, trend indicator
+- [ ] Savings rate chart displays data correctly
+- [ ] Reference line at target rate (20%) shown
+- [ ] Savings rate widget shows current month rate
+- [ ] Widget shows 3-month average and trend icon
+
+### Contribution History
+- [ ] GET /api/savings-goals/[id]/contributions returns contribution list
+- [ ] Contributions include transaction details (description, date, account)
+- [ ] Pagination works correctly (limit, offset, hasMore)
+- [ ] Running total calculated correctly
+- [ ] Contributions list component displays timeline view
+- [ ] "Load More" button works for pagination
+- [ ] View History button in goal tracker opens contributions list
+
+### Enhanced Savings Goals Widget
+- [ ] Widget shows recent contribution for each goal
+- [ ] Quick-contribute button opens dialog
+- [ ] Preset amounts ($25, $50, $100, $200) work
+- [ ] Custom amount entry works
+- [ ] Contribution success updates goal progress
+- [ ] Savings rate mini-indicator displays
+- [ ] Trend icon shows up/down/stable
+
 ### Transaction API Updates
 - [ ] POST /api/transactions accepts savingsGoalId
 - [ ] POST /api/transactions accepts goalContributions array
@@ -1521,9 +1564,9 @@ Phase 18 adds savings-goals integration with the transaction system, allowing us
 - [ ] Split contributions update multiple goals
 - [ ] Milestone notifications created when thresholds crossed
 - [ ] Goal progress update is non-blocking (errors logged, not thrown)
+- [ ] GET /api/transactions includes savingsGoalName and savingsGoalColor
 
 ### Savings Goal Contributions Table
-- [ ] Migration 0075 applied successfully
 - [ ] savings_goal_contributions table created
 - [ ] Proper indexes created for transaction, goal, and user/household
 
@@ -1537,10 +1580,3 @@ Phase 18 adds savings-goals integration with the transaction system, allowing us
 - [ ] revertAllContributions handles transaction deletion
 - [ ] getGoalContributions returns contribution history
 - [ ] getTotalContributions calculates sum
-
-### Remaining Tasks (Not Yet Implemented)
-- [ ] Auto-detection for savings account transfers
-- [ ] Savings rate tracking API
-- [ ] Savings rate widget on dashboard
-- [ ] Contribution history view in goals page
-- [ ] Enhanced savings goals widget with recent contributions

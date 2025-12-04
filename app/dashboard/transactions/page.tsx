@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload, Plus, Pencil, ShieldOff } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload, Plus, Pencil, ShieldOff, Target } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
@@ -37,6 +37,10 @@ interface Transaction {
   notes?: string;
   isSplit?: boolean;
   isSalesTaxable?: boolean;
+  // Phase 18: Savings goal info
+  savingsGoalId?: string | null;
+  savingsGoalName?: string | null;
+  savingsGoalColor?: string | null;
 }
 
 interface Category {
@@ -204,6 +208,7 @@ function TransactionsContent() {
       if (filters.isPending) params.append('isPending', 'true');
       if (filters.isSplit) params.append('isSplit', 'true');
       if (filters.hasNotes) params.append('hasNotes', 'true');
+      if (filters.hasSavingsGoal) params.append('hasSavingsGoal', 'true'); // Phase 18
       if (filters.sortBy) params.append('sortBy', filters.sortBy);
       if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
       params.append('limit', pageSize.toString());
@@ -1039,6 +1044,22 @@ function TransactionsContent() {
                             >
                               <ShieldOff className="w-3 h-3" />
                               Tax Exempt
+                            </Badge>
+                          )}
+                          {/* Phase 18: Savings Goal badge */}
+                          {transaction.savingsGoalId && transaction.savingsGoalName && (
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs flex items-center gap-1 px-1.5 py-0"
+                              style={{
+                                borderColor: `color-mix(in oklch, ${transaction.savingsGoalColor || 'var(--color-primary)'} 50%, transparent)`,
+                                color: transaction.savingsGoalColor || 'var(--color-primary)',
+                                backgroundColor: `color-mix(in oklch, ${transaction.savingsGoalColor || 'var(--color-primary)'} 15%, transparent)`,
+                              }}
+                              title={`Contributing to: ${transaction.savingsGoalName}`}
+                            >
+                              <Target className="w-3 h-3" />
+                              {transaction.savingsGoalName}
                             </Badge>
                           )}
                         </div>

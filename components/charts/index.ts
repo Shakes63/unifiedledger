@@ -16,5 +16,8 @@ export { UtilizationTrendsChart } from './utilization-trends-chart';
 export { BalanceHistoryChart } from './balance-history-chart';
 export { InterestPaidChart } from './interest-paid-chart';
 
+// Phase 18: Savings rate chart
+export { SavingsRateChart } from './savings-rate-chart';
+
 // Type exports
 export type { ComponentProps } from 'react';

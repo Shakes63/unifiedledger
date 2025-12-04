@@ -3510,17 +3510,20 @@ Since there are no production users yet, we can do a clean slate:
 - ✅ API endpoints for rollover management (`/api/budgets/rollover`, `/api/categories/[id]/rollover`)
 - ✅ Effective budget calculation (base + rollover) in budget overview API
 
-### Phase 18: Savings-Goals Integration [IN PROGRESS]
+### Phase 18: Savings-Goals Integration [COMPLETED 2025-12-04]
 - ✅ Database schema: `savings_goal_contributions` table for tracking split contributions
 - ✅ GoalSelector component: Reusable goal selector with single/multi-select and progress display
 - ✅ Transaction API: Accepts `savingsGoalId` and `goalContributions` for goal linking
 - ✅ Contribution handler: Library for goal contributions with milestone checking and notifications
 - ✅ Transaction form: Goal selector integrated for transfers to savings accounts
-- Auto-categorize transfers to savings accounts (planned)
-- Savings rate tracking API and widget (planned)
-- Contribution history view (planned)
-
-See `docs/phase-18-savings-goals-integration-plan.md` for detailed implementation plan.
+- ✅ Auto-detection: Savings account transfer detection with confidence levels and suggestion banners
+- ✅ Transaction display: Goal badges on transactions, "Savings Contributions Only" filter
+- ✅ Savings rate API: Monthly/quarterly/yearly rate calculation with trend analysis
+- ✅ Savings rate chart: Line chart with target reference line and summary stats
+- ✅ Savings rate widget: Compact dashboard widget with current rate and trend
+- ✅ Contribution history API: Paginated contribution list with transaction details
+- ✅ Contributions list component: Timeline view with running totals
+- ✅ Enhanced goals widget: Recent contributions, quick-contribute dialog, savings rate indicator
 
 ### Phase 19: Bill Classification & Subscription Management
 - Add billClassification field to bills table

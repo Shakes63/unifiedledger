@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ChevronDown, ChevronUp, Edit2, Trash2, Check, Lightbulb } from 'lucide-react';
+import { ChevronDown, ChevronUp, Edit2, Trash2, Check, Lightbulb, History } from 'lucide-react';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
@@ -13,6 +13,7 @@ import {
   calculateRecommendedMonthlySavings,
   formatCurrency,
 } from '@/lib/goals/calculate-recommended-savings';
+import { GoalContributionsList } from './goal-contributions-list';
 
 interface Milestone {
   id: string;
@@ -54,6 +55,7 @@ export function GoalTracker({
   const [showMilestones, setShowMilestones] = useState(false);
   const [showContribute, setShowContribute] = useState(false);
   const [contributeAmount, setContributeAmount] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
 
   const progressPercent = Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
   const remaining = Math.max(goal.targetAmount - goal.currentAmount, 0);
@@ -276,12 +278,22 @@ export function GoalTracker({
         {goal.status !== 'completed' && (
           <div className="border-t border-border pt-3">
             {!showContribute ? (
-              <Button
-                onClick={() => setShowContribute(true)}
-                className="w-full bg-[var(--color-primary)] hover:opacity-90 text-white"
-              >
-                Add Contribution
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setShowContribute(true)}
+                  className="flex-1 bg-[var(--color-primary)] hover:opacity-90 text-white"
+                >
+                  Add Contribution
+                </Button>
+                <Button
+                  onClick={() => setShowHistory(!showHistory)}
+                  variant="outline"
+                  className="border-border text-muted-foreground hover:text-foreground"
+                  title="View contribution history"
+                >
+                  <History className="w-4 h-4" />
+                </Button>
+              </div>
             ) : (
               <div className="flex gap-2">
                 <input
@@ -308,6 +320,17 @@ export function GoalTracker({
                 </Button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Phase 18: Contribution History */}
+        {showHistory && (
+          <div className="border-t border-border pt-3 mt-3">
+            <GoalContributionsList
+              goalId={goal.id}
+              showHeader={false}
+              maxHeight="300px"
+            />
           </div>
         )}
       </div>

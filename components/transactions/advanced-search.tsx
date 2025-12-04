@@ -26,6 +26,7 @@ interface SearchFilters {
   isPending?: boolean;
   isSplit?: boolean;
   hasNotes?: boolean;
+  hasSavingsGoal?: boolean; // Phase 18: Filter for savings contributions
   sortBy?: 'date' | 'amount' | 'description';
   sortOrder?: 'asc' | 'desc';
   [key: string]: unknown; // Allow index access for compatibility with SavedSearches
@@ -591,6 +592,23 @@ export function AdvancedSearch({
               setFilters({
                 ...filters,
                 hasNotes: checked || undefined,
+              })
+            }
+          />
+        </div>
+
+        {/* Phase 18: Savings Contributions filter */}
+        <div className="flex items-center justify-between p-3 bg-elevated rounded-lg">
+          <Label htmlFor="hasSavingsGoal" className="text-foreground cursor-pointer">
+            Savings Contributions Only
+          </Label>
+          <Switch
+            id="hasSavingsGoal"
+            checked={filters.hasSavingsGoal || false}
+            onCheckedChange={(checked) =>
+              setFilters({
+                ...filters,
+                hasSavingsGoal: checked || undefined,
               })
             }
           />

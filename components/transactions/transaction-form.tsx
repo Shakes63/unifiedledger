@@ -29,13 +29,14 @@ import { TransactionTemplatesManager } from './transaction-templates-manager';
 import { SplitBuilder, type Split } from './split-builder';
 import { BudgetWarning } from './budget-warning';
 import { GoalSelector } from './goal-selector';
+import type { SavingsDetectionResult } from '@/lib/transactions/savings-detection';
 
 // Type for goal contributions in split mode
 interface GoalContribution {
   goalId: string;
   amount: number;
 }
-import { Plus, X, Save, Split as SplitIcon } from 'lucide-react';
+import { Plus, X, Save, Split as SplitIcon, Target, Info, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { HapticFeedbackTypes } from '@/hooks/useHapticFeedback';
@@ -161,6 +162,9 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   // Phase 18: Savings goal linking
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
   const [goalContributions, setGoalContributions] = useState<GoalContribution[]>([]);
+  // Phase 18: Auto-detection for savings transfers
+  const [detectionResult, setDetectionResult] = useState<SavingsDetectionResult | null>(null);
+  const [detectionLoading, setDetectionLoading] = useState(false);
   const isEditMode = !!transactionId;
 
   // Helper function to get today's date in YYYY-MM-DD format
@@ -365,6 +369,51 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
     fetchUnpaidBills();
   }, [formData.type, selectedHouseholdId, fetchWithHousehold]);
+
+  // Phase 18: Auto-detect savings goals when destination account changes
+  useEffect(() => {
+    const detectGoals = async () => {
+      // Only run for transfers with a destination account
+      if (formData.type !== 'transfer' || !formData.toAccountId || !selectedHouseholdId) {
+        setDetectionResult(null);
+        return;
+      }
+
+      try {
+        setDetectionLoading(true);
+        
+        // Call API endpoint for detection (server-side query)
+        const response = await fetchWithHousehold(
+          `/api/savings-goals/detect?accountId=${formData.toAccountId}`
+        );
+        
+        if (!response.ok) {
+          setDetectionResult(null);
+          return;
+        }
+        
+        const result: SavingsDetectionResult = await response.json();
+        setDetectionResult(result);
+        
+        // Auto-select goal if confidence is high
+        if (result.confidence === 'high' && result.suggestedGoalId) {
+          setSelectedGoalId(result.suggestedGoalId);
+          // Also set contributions for full amount if available
+          const amount = parseFloat(formData.amount);
+          if (amount > 0) {
+            setGoalContributions([{ goalId: result.suggestedGoalId, amount }]);
+          }
+        }
+      } catch (error) {
+        console.error('Error detecting savings goals:', error);
+        setDetectionResult(null);
+      } finally {
+        setDetectionLoading(false);
+      }
+    };
+
+    detectGoals();
+  }, [formData.type, formData.toAccountId, selectedHouseholdId, fetchWithHousehold]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -1000,6 +1049,40 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           </div>
         )}
 
+        {/* Phase 18: Savings Goal Auto-Detection Banner */}
+        {formData.type === 'transfer' && formData.toAccountId && detectionResult && detectionResult.confidence !== 'none' && (
+          <div className={`mt-4 p-3 rounded-lg border flex items-start gap-3 ${
+            detectionResult.confidence === 'high'
+              ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30'
+              : detectionResult.confidence === 'medium'
+                ? 'bg-[var(--color-primary)]/5 border-[var(--color-primary)]/20'
+                : 'bg-elevated border-border'
+          }`}>
+            {detectionResult.confidence === 'high' ? (
+              <Target className="w-5 h-5 text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
+            ) : (
+              <Info className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm ${
+                detectionResult.confidence === 'high' ? 'text-[var(--color-primary)]' : 'text-foreground'
+              }`}>
+                {detectionResult.reason}
+              </p>
+              {detectionResult.confidence === 'low' && (
+                <a
+                  href="/dashboard/goals"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline mt-1"
+                >
+                  Create a goal <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Phase 18: Savings Goal Selector for transfers to savings accounts */}
         {formData.type === 'transfer' && formData.toAccountId && (
           <div className="mt-4">
@@ -1025,7 +1108,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   setSelectedGoalId(contributions[0].goalId);
                 }
               }}
-              disabled={loading}
+              disabled={loading || detectionLoading}
             />
           </div>
         )}

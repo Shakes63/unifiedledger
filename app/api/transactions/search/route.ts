@@ -22,6 +22,7 @@ interface SearchFilters {
   isPending?: boolean;
   isSplit?: boolean;
   hasNotes?: boolean;
+  hasSavingsGoal?: boolean; // Phase 18: Filter for savings contributions
   sortBy?: 'date' | 'amount' | 'description';
   sortOrder?: 'asc' | 'desc';
 }
@@ -59,6 +60,7 @@ export async function GET(request: Request) {
     const isPending = url.searchParams.get('isPending');
     const isSplit = url.searchParams.get('isSplit');
     const hasNotes = url.searchParams.get('hasNotes');
+    const hasSavingsGoal = url.searchParams.get('hasSavingsGoal'); // Phase 18
     const sortBy = (url.searchParams.get('sortBy') || 'date') as 'date' | 'amount' | 'description';
     const sortOrder = (url.searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc';
 
@@ -83,6 +85,7 @@ export async function GET(request: Request) {
     if (isPending !== null && isPending !== undefined) filters.isPending = isPending === 'true';
     if (isSplit !== null && isSplit !== undefined) filters.isSplit = isSplit === 'true';
     if (hasNotes !== null && hasNotes !== undefined) filters.hasNotes = hasNotes === 'true';
+    if (hasSavingsGoal !== null && hasSavingsGoal !== undefined) filters.hasSavingsGoal = hasSavingsGoal === 'true'; // Phase 18
     filters.sortBy = sortBy;
     filters.sortOrder = sortOrder;
 
@@ -204,6 +207,15 @@ export async function GET(request: Request) {
         conditions.push(sql`${transactions.notes} IS NOT NULL AND ${transactions.notes} != ''`);
       } else {
         conditions.push(sql`${transactions.notes} IS NULL OR ${transactions.notes} = ''`);
+      }
+    }
+
+    // Phase 18: Savings goal filter - show only transactions linked to savings goals
+    if (filters.hasSavingsGoal !== undefined) {
+      if (filters.hasSavingsGoal) {
+        conditions.push(sql`${transactions.savingsGoalId} IS NOT NULL`);
+      } else {
+        conditions.push(sql`${transactions.savingsGoalId} IS NULL`);
       }
     }
 

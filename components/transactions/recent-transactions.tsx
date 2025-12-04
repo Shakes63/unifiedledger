@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Target } from 'lucide-react';
 import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,10 @@ interface Transaction {
   accountId: string;
   categoryId?: string;
   notes?: string;
+  // Phase 18: Savings goal info
+  savingsGoalId?: string | null;
+  savingsGoalName?: string | null;
+  savingsGoalColor?: string | null;
 }
 
 interface RecentTransactionsProps {
@@ -182,6 +186,21 @@ export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTran
                 <Badge className={`${getTypeColor(transaction.type)} text-xs`} variant="secondary">
                   {transaction.type.replace('_', ' ')}
                 </Badge>
+                {/* Phase 18: Savings Goal badge */}
+                {transaction.savingsGoalId && transaction.savingsGoalName && (
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs flex items-center gap-0.5 px-1.5 py-0 ml-1"
+                    style={{
+                      borderColor: `color-mix(in oklch, ${transaction.savingsGoalColor || 'var(--color-primary)'} 50%, transparent)`,
+                      color: transaction.savingsGoalColor || 'var(--color-primary)',
+                      backgroundColor: `color-mix(in oklch, ${transaction.savingsGoalColor || 'var(--color-primary)'} 15%, transparent)`,
+                    }}
+                    title={`Contributing to: ${transaction.savingsGoalName}`}
+                  >
+                    <Target className="w-3 h-3" />
+                  </Badge>
+                )}
               </div>
               <Button
                 variant="ghost"

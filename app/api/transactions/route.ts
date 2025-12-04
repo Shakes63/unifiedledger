@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances, debts, debtPayments, betterAuthUser } from '@/lib/db/schema';
+import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances, debts, debtPayments, betterAuthUser, savingsGoals } from '@/lib/db/schema';
 import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
@@ -1632,9 +1632,43 @@ export async function GET(request: Request) {
     const offset = parseInt(url.searchParams.get('offset') || '0');
     const accountId = url.searchParams.get('accountId');
 
-    const userTransactions = await db
-      .select()
+    // Phase 18: Join with savings goals to include goal info
+    const userTransactionsWithGoals = await db
+      .select({
+        id: transactions.id,
+        userId: transactions.userId,
+        householdId: transactions.householdId,
+        accountId: transactions.accountId,
+        categoryId: transactions.categoryId,
+        merchantId: transactions.merchantId,
+        debtId: transactions.debtId,
+        savingsGoalId: transactions.savingsGoalId,
+        date: transactions.date,
+        amount: transactions.amount,
+        description: transactions.description,
+        notes: transactions.notes,
+        type: transactions.type,
+        transferId: transactions.transferId,
+        isPending: transactions.isPending,
+        isRefund: transactions.isRefund,
+        isBalanceTransfer: transactions.isBalanceTransfer,
+        isSplit: transactions.isSplit,
+        isTaxDeductible: transactions.isTaxDeductible,
+        taxDeductionType: transactions.taxDeductionType,
+        isSalesTaxable: transactions.isSalesTaxable,
+        offlineId: transactions.offlineId,
+        syncStatus: transactions.syncStatus,
+        syncedAt: transactions.syncedAt,
+        syncAttempts: transactions.syncAttempts,
+        syncError: transactions.syncError,
+        createdAt: transactions.createdAt,
+        updatedAt: transactions.updatedAt,
+        // Savings goal info
+        savingsGoalName: savingsGoals.name,
+        savingsGoalColor: savingsGoals.color,
+      })
       .from(transactions)
+      .leftJoin(savingsGoals, eq(transactions.savingsGoalId, savingsGoals.id))
       .where(
         and(
           eq(transactions.userId, userId),
@@ -1647,8 +1681,11 @@ export async function GET(request: Request) {
 
     // If accountId filter is present, return all transactions (including both transfer sides)
     if (accountId) {
-      return Response.json(userTransactions);
+      return Response.json(userTransactionsWithGoals);
     }
+    
+    // Use userTransactionsWithGoals for processing
+    const userTransactions = userTransactionsWithGoals;
 
     // Main view (no account filter): Respect user's transfer view preference
     const combinedTransferView = await getCombinedTransferViewPreference(userId, householdId);
