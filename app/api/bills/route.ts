@@ -196,8 +196,7 @@ export async function POST(request: Request) {
       originalBalance,
       remainingBalance,
       billInterestRate,
-      compoundingPeriod = 'monthly',
-      debtStartDate,
+      interestType = 'fixed',
       billColor,
       // Payoff strategy
       includeInPayoffStrategy = true,
@@ -496,8 +495,7 @@ export async function POST(request: Request) {
         ? (remainingBalance ? parseFloat(remainingBalance) : (originalBalance ? parseFloat(originalBalance) : null))
         : null,
       billInterestRate: isDebt && billInterestRate ? parseFloat(billInterestRate) : null,
-      compoundingPeriod: isDebt ? (compoundingPeriod || 'monthly') : null,
-      debtStartDate: isDebt ? (debtStartDate || null) : null,
+      interestType: isDebt ? (interestType || 'fixed') : 'none',
       billColor: isDebt ? (billColor || null) : null,
       // Payoff strategy
       includeInPayoffStrategy: isDebt ? (includeInPayoffStrategy ?? true) : null,

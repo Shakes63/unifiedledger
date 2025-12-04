@@ -153,8 +153,7 @@ export async function PUT(
       originalBalance,
       remainingBalance,
       billInterestRate,
-      compoundingPeriod,
-      debtStartDate,
+      interestType,
       billColor,
       // Payoff strategy
       includeInPayoffStrategy,
@@ -415,8 +414,7 @@ export async function PUT(
     if (originalBalance !== undefined) updateData.originalBalance = originalBalance ? parseFloat(originalBalance) : null;
     if (remainingBalance !== undefined) updateData.remainingBalance = remainingBalance ? parseFloat(remainingBalance) : null;
     if (billInterestRate !== undefined) updateData.billInterestRate = billInterestRate ? parseFloat(billInterestRate) : null;
-    if (compoundingPeriod !== undefined) updateData.compoundingPeriod = compoundingPeriod;
-    if (debtStartDate !== undefined) updateData.debtStartDate = debtStartDate || null;
+    if (interestType !== undefined) updateData.interestType = interestType;
     if (billColor !== undefined) updateData.billColor = billColor || null;
     
     // Payoff strategy

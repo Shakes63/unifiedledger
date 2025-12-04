@@ -27,14 +27,15 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { MerchantSelector } from '@/components/transactions/merchant-selector';
 
-// Bill classification options
+// Bill classification options - must match schema enum
 const BILL_CLASSIFICATION_OPTIONS = [
   { value: 'subscription', label: 'Subscription' },
   { value: 'utility', label: 'Utility' },
+  { value: 'housing', label: 'Housing/Rent/Mortgage' },
   { value: 'insurance', label: 'Insurance' },
   { value: 'loan_payment', label: 'Loan Payment' },
-  { value: 'credit_card', label: 'Credit Card Payment' },
-  { value: 'rent_mortgage', label: 'Rent/Mortgage' },
+  { value: 'membership', label: 'Membership' },
+  { value: 'service', label: 'Service' },
   { value: 'other', label: 'Other' },
 ] as const;
 
@@ -80,7 +81,7 @@ export interface BillData {
   
   // Bill type and classification
   billType?: 'expense' | 'income' | 'savings_transfer';
-  billClassification?: 'subscription' | 'utility' | 'insurance' | 'loan_payment' | 'credit_card' | 'rent_mortgage' | 'other';
+  billClassification?: 'subscription' | 'utility' | 'housing' | 'insurance' | 'loan_payment' | 'membership' | 'service' | 'other';
   classificationSubcategory?: string | null;
   
   // Account linking
@@ -100,8 +101,7 @@ export interface BillData {
   originalBalance?: number | string;
   remainingBalance?: number | string;
   billInterestRate?: number | string;
-  compoundingPeriod?: 'daily' | 'monthly' | 'annually';
-  debtStartDate?: string | null;
+  interestType?: 'fixed' | 'variable' | 'none';
   estimatedPayoffDate?: string | null;
   billColor?: string | null;
   
@@ -179,8 +179,7 @@ export function BillForm({
     originalBalance: bill?.originalBalance || '',
     remainingBalance: bill?.remainingBalance || '',
     billInterestRate: bill?.billInterestRate || '',
-    compoundingPeriod: bill?.compoundingPeriod || 'monthly',
-    debtStartDate: bill?.debtStartDate || '',
+    interestType: bill?.interestType || 'fixed',
     billColor: bill?.billColor || '',
     
     // Payoff strategy
@@ -435,7 +434,7 @@ export function BillForm({
       
       // Bill classification
       billType: formData.billType as 'expense' | 'income' | 'savings_transfer',
-      billClassification: formData.billClassification as 'subscription' | 'utility' | 'insurance' | 'loan_payment' | 'credit_card' | 'rent_mortgage' | 'other',
+      billClassification: formData.billClassification as 'subscription' | 'utility' | 'housing' | 'insurance' | 'loan_payment' | 'membership' | 'service' | 'other',
       
       // Account linking
       linkedAccountId: formData.linkedAccountId || null,
@@ -460,8 +459,7 @@ export function BillForm({
           ? parseFloat(String(formData.originalBalance)) 
           : undefined,
       billInterestRate: formData.isDebt && formData.billInterestRate ? parseFloat(String(formData.billInterestRate)) : undefined,
-      compoundingPeriod: formData.isDebt ? formData.compoundingPeriod as 'daily' | 'monthly' | 'annually' : undefined,
-      debtStartDate: formData.isDebt && formData.debtStartDate ? formData.debtStartDate : null,
+      interestType: formData.isDebt ? formData.interestType as 'fixed' | 'variable' | 'none' : undefined,
       billColor: formData.isDebt && formData.billColor ? formData.billColor : null,
       
       // Payoff strategy
@@ -511,8 +509,7 @@ export function BillForm({
         originalBalance: '',
         remainingBalance: '',
         billInterestRate: '',
-        compoundingPeriod: 'monthly',
-        debtStartDate: '',
+        interestType: 'fixed',
         billColor: '',
         includeInPayoffStrategy: true,
         isInterestTaxDeductible: false,
@@ -1161,35 +1158,25 @@ export function BillForm({
                 />
               </div>
               <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">Compounding</Label>
+                <Label className="text-muted-foreground text-sm mb-2 block">Interest Type</Label>
                 <Select 
-                  value={formData.compoundingPeriod} 
-                  onValueChange={(value) => handleSelectChange('compoundingPeriod', value)}
+                  value={formData.interestType} 
+                  onValueChange={(value) => handleSelectChange('interestType', value)}
                 >
                   <SelectTrigger className="bg-elevated border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-card border-border">
-                    <SelectItem value="daily" className="text-foreground">Daily</SelectItem>
-                    <SelectItem value="monthly" className="text-foreground">Monthly</SelectItem>
-                    <SelectItem value="annually" className="text-foreground">Annually</SelectItem>
+                    <SelectItem value="fixed" className="text-foreground">Fixed</SelectItem>
+                    <SelectItem value="variable" className="text-foreground">Variable</SelectItem>
+                    <SelectItem value="none" className="text-foreground">None (0% APR)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* Date and Color */}
+            {/* Color */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-muted-foreground text-sm mb-2 block">Debt Start Date</Label>
-                <Input
-                  name="debtStartDate"
-                  type="date"
-                  value={formData.debtStartDate}
-                  onChange={handleChange}
-                  className="bg-elevated border-border text-foreground"
-                />
-              </div>
               <div>
                 <Label className="text-muted-foreground text-sm mb-2 block">Color</Label>
                 <Select 
