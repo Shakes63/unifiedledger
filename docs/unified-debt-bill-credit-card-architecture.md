@@ -3323,7 +3323,7 @@ Since there are no production users yet, we can do a clean slate:
 
 ## Implementation Phases
 
-### Phase 1: Schema Changes
+### Phase 1: Schema Changes [COMPLETED 2025-12-03]
 - Simplify category types to: income, expense, savings
 - Add rollover fields to categories (rolloverEnabled, rolloverBalance, rolloverLimit)
 - Add billType to bills (expense, income, savings_transfer)
@@ -3346,7 +3346,7 @@ Since there are no production users yet, we can do a clean slate:
 - Remove debtId from transactions
 - Drop deprecated tables (debts, debtPayments, debtPayoffMilestones, debtSettings)
 
-### Phase 2: Account Creation Flow
+### Phase 2: Account Creation Flow [COMPLETED 2025-12-03]
 - Update account form with credit card fields
 - Add line of credit account type option
 - Add annual fee fields with auto-bill creation
@@ -3356,7 +3356,7 @@ Since there are no production users yet, we can do a clean slate:
 - Auto-create annual fee bill if annual fee > 0
 - Track credit limit changes in history
 
-### Phase 3: Bill Form Updates
+### Phase 3: Bill Form Updates [COMPLETED 2025-12-03]
 - Add "This is a debt" toggle
 - Show/hide debt fields based on toggle
 - Add linkedAccountId selector for credit card payment bills
@@ -3484,7 +3484,7 @@ Since there are no production users yet, we can do a clean slate:
 - New files: `app/api/cron/balance-snapshots/route.ts`, `app/api/accounts/interest-paid/route.ts`, `components/charts/interest-paid-chart.tsx`
 - Modified: `app/dashboard/accounts/page.tsx`, `app/dashboard/debts/page.tsx`, `components/charts/index.ts`
 
-### Phase 15: Category Simplification
+### Phase 15: Category Simplification [COMPLETED 2025-12-04]
 - Migrate existing categories to new 3-type system
 - Update category forms to use simplified types
 - Update budget displays for new type groupings

@@ -52,23 +52,10 @@ alwaysApply: false
 ## Recent Major Features
 
 **Latest (2025-12-04):**
-- Unified Architecture Phase 17: Budget Rollover (✅ COMPLETE)
-  - ✅ Budget rollover history table for audit trail
-  - ✅ Monthly cron job for rollover calculation (`/api/cron/budget-rollover`)
-  - ✅ API endpoints for rollover management (`/api/budgets/rollover`, `/api/categories/[id]/rollover`)
-  - ✅ Rollover toggle per expense category with limit settings
-  - ✅ Effective budget calculation (base + rollover) in budget overview
-  - ✅ CategoryBudgetProgress shows rollover badge and breakdown
-  - ✅ RolloverSummary component in budgets page
-  - ✅ Negative rollover option (household setting)
-- Unified Architecture Phase 6: Autopay System (✅ COMPLETE)
-  - ✅ Autopay amount calculator utility (`lib/bills/autopay-calculator.ts`)
-  - ✅ Autopay transaction creator (`lib/bills/autopay-transaction.ts`)
-  - ✅ Autopay batch processor (`lib/bills/autopay-processor.ts`)
-  - ✅ Daily cron job endpoint (`app/api/cron/autopay/route.ts`)
-  - ✅ Autopay notifications for success/failure
-  - ✅ Bill reminders suppressed for autopay-enabled bills
-  - ✅ Supports fixed, minimum payment, statement balance, and full balance amounts
+- **Unified Debt, Bill & Credit Card Architecture** (✅ ALL 19 PHASES COMPLETE)
+  - Major refactor unifying credit cards, lines of credit, and debt bills into a single financial obligation tracking system
+  - See `docs/unified-debt-bill-credit-card-architecture.md` for full implementation details
+  - Key features: Enhanced schemas, account/bill forms, autopay system, budget integration with debt strategy toggle, payoff strategies (snowball/avalanche), calendar integration, notifications (utilization warnings, milestones), tax integration (interest deductions), CSV import improvements (credit card detection), dashboard widgets (next payment due, debt-free countdown), balance history/trends, category simplification (3 types), recurring income tracking, budget rollover, savings goals integration, bill classification & subscription management
 
 **Previous (2025-12-02):**
 - Sales Tax Exemption for Transactions (✅ COMPLETE)
@@ -384,7 +371,7 @@ alwaysApply: false
 (None)
 
 ### Recently Completed
-- **Unified Architecture Phase 5 & 6** [COMPLETED 2025-12-04] - Transaction flow updates (credit card payments, balance transfers, refunds, partial payments, payment history) and Autopay System (daily cron, amount calculator, notifications).
+- **Unified Debt, Bill & Credit Card Architecture** [COMPLETED 2025-12-04] - All 19 phases complete. Major refactor unifying credit cards, lines of credit, and debt bills with: enhanced schemas, account/bill forms, autopay, budget integration, payoff strategies, calendar, notifications, tax integration, CSV import, dashboard widgets, balance history, category simplification, recurring income, budget rollover, savings goals integration, and bill classification.
 - **Sales Tax Exemption for Transactions** [COMPLETED 2025-12-02] - Mark income transactions as tax exempt with visual badge indicators, help text in transaction form, and checkbox in quick entry modal.
 - **Business Features Visibility** [COMPLETED 2025-12-01] - Tax Dashboard and Sales Tax pages hidden from navigation unless at least one business account exists in the current household.
 - **Debt Budget Integration** [COMPLETED 2025-12-01] - Debts automatically appear in budgeting system with auto-populated minimum payments and recommended payments from payoff strategy. Focus debt highlighted with strategy-recommended amounts.
