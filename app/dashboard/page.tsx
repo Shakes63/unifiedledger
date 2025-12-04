@@ -13,6 +13,7 @@ import { BudgetSurplusCard } from '@/components/dashboard/budget-surplus-card';
 import { BudgetSummaryWidget } from '@/components/dashboard/budget-summary-widget';
 import { CreditUtilizationWidget } from '@/components/debts/credit-utilization-widget';
 import { NextPaymentDueWidget } from '@/components/dashboard/next-payment-due-widget';
+import { BillsByClassificationWidget } from '@/components/dashboard/bills-by-classification-widget';
 import { betterAuthClient } from '@/lib/better-auth-client';
 
 export default function DashboardPage() {
@@ -62,9 +63,10 @@ export default function DashboardPage() {
               <EnhancedBillsWidget />
             </div>
             
-            {/* Next Payment Due Widget - Compact sidebar widget */}
-            <div className="lg:col-span-1">
+            {/* Sidebar widgets - stacked */}
+            <div className="lg:col-span-1 space-y-6">
               <NextPaymentDueWidget />
+              <BillsByClassificationWidget />
             </div>
           </div>
         </section>

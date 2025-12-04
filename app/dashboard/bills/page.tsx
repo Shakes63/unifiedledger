@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { format, parseISO, differenceInDays, addDays, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
-import { AlertCircle, CheckCircle2, Clock, DollarSign, Plus, ChevronLeft, ChevronRight, CalendarRange, ArrowDownCircle, TrendingUp } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, DollarSign, Plus, ChevronLeft, ChevronRight, CalendarRange, ArrowDownCircle, TrendingUp, CreditCard, Zap, Home, Shield, Banknote, Users, Wrench, MoreHorizontal } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -11,6 +11,7 @@ import { EntityIdBadge } from '@/components/dev/entity-id-badge';
 import { FREQUENCY_LABELS } from '@/lib/bills/bill-utils';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { type BillClassification, CLASSIFICATION_META } from '@/lib/bills/bill-classification';
 
 interface BillInstance {
   id: string;
@@ -49,9 +50,30 @@ interface Bill {
   notes?: string;
   createdAt: string;
   billType?: 'expense' | 'income' | 'savings_transfer';
+  billClassification?: BillClassification;
+  classificationSubcategory?: string | null;
 }
 
 type BillTypeFilter = 'all' | 'expense' | 'income';
+type ClassificationFilter = 'all' | BillClassification;
+
+// Classification filter options with icons
+const CLASSIFICATION_FILTER_OPTIONS: Array<{
+  value: ClassificationFilter;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+}> = [
+  { value: 'all', label: 'All', icon: MoreHorizontal, color: '#6b7280' },
+  { value: 'subscription', label: 'Subscriptions', icon: CreditCard, color: CLASSIFICATION_META.subscription.color },
+  { value: 'utility', label: 'Utilities', icon: Zap, color: CLASSIFICATION_META.utility.color },
+  { value: 'housing', label: 'Housing', icon: Home, color: CLASSIFICATION_META.housing.color },
+  { value: 'insurance', label: 'Insurance', icon: Shield, color: CLASSIFICATION_META.insurance.color },
+  { value: 'loan_payment', label: 'Loans', icon: Banknote, color: CLASSIFICATION_META.loan_payment.color },
+  { value: 'membership', label: 'Memberships', icon: Users, color: CLASSIFICATION_META.membership.color },
+  { value: 'service', label: 'Services', icon: Wrench, color: CLASSIFICATION_META.service.color },
+  { value: 'other', label: 'Other', icon: MoreHorizontal, color: CLASSIFICATION_META.other.color },
+];
 
 interface BillWithInstance extends Bill {
   upcomingInstances?: BillInstance[];
@@ -66,6 +88,8 @@ export default function BillsDashboard() {
   const [pendingMonth, setPendingMonth] = useState<Date>(new Date());
   const [paidMonth, setPaidMonth] = useState<Date>(new Date());
   const [billTypeFilter, setBillTypeFilter] = useState<BillTypeFilter>('all');
+  const [classificationFilter, setClassificationFilter] = useState<ClassificationFilter>('all');
+  const classificationScrollRef = useRef<HTMLDivElement>(null);
   const [stats, setStats] = useState({
     totalUpcoming: 0,
     totalOverdue: 0,
@@ -81,6 +105,8 @@ export default function BillsDashboard() {
     // Bill counts by type
     expenseBillCount: 0,
     incomeBillCount: 0,
+    // Bill counts by classification
+    classificationCounts: {} as Record<string, number>,
   });
 
   useEffect(() => {
@@ -261,6 +287,13 @@ export default function BillsDashboard() {
     const expenseBillCount = billsList.filter(b => b.billType !== 'income').length;
     const incomeBillCount = billsList.filter(b => b.billType === 'income').length;
 
+    // Count bills by classification
+    const classificationCounts: Record<string, number> = {};
+    billsList.forEach(bill => {
+      const classification = bill.billClassification || 'other';
+      classificationCounts[classification] = (classificationCounts[classification] || 0) + 1;
+    });
+
     setStats({
       totalUpcoming,
       totalOverdue,
@@ -274,17 +307,29 @@ export default function BillsDashboard() {
       receivedThisMonth,
       expenseBillCount,
       incomeBillCount,
+      classificationCounts,
     });
   };
 
-  // Filter instances by bill type
+  // Filter instances by bill type and classification
   const filterByBillType = (instance: BillInstance) => {
-    if (billTypeFilter === 'all') return true;
     const bill = bills.find(b => b.id === instance.billId);
     if (!bill) return true;
-    const billType = bill.billType || 'expense';
-    if (billTypeFilter === 'income') return billType === 'income';
-    return billType !== 'income'; // 'expense' filter includes all non-income
+
+    // Filter by bill type
+    if (billTypeFilter !== 'all') {
+      const billType = bill.billType || 'expense';
+      if (billTypeFilter === 'income' && billType !== 'income') return false;
+      if (billTypeFilter === 'expense' && billType === 'income') return false;
+    }
+
+    // Filter by classification
+    if (classificationFilter !== 'all') {
+      const classification = bill.billClassification || 'other';
+      if (classification !== classificationFilter) return false;
+    }
+
+    return true;
   };
 
   const getUpcomingBills = () => {
@@ -380,6 +425,18 @@ export default function BillsDashboard() {
                     Income
                   </span>
                 )}
+                {bill?.billClassification && bill.billClassification !== 'other' && (
+                  <span 
+                    className="text-xs px-2 py-0.5 rounded-full border"
+                    style={{ 
+                      backgroundColor: `${CLASSIFICATION_META[bill.billClassification].color}15`,
+                      color: CLASSIFICATION_META[bill.billClassification].color,
+                      borderColor: `${CLASSIFICATION_META[bill.billClassification].color}30`
+                    }}
+                  >
+                    {CLASSIFICATION_META[bill.billClassification].label}
+                  </span>
+                )}
                 <EntityIdBadge id={instance.billId} label="Bill" />
                 <EntityIdBadge id={instance.id} label="Instance" />
               </div>
@@ -455,7 +512,7 @@ export default function BillsDashboard() {
           </div>
         </div>
 
-        {/* Filter Tabs */}
+        {/* Filter Tabs - Bill Type */}
         <div className="flex items-center gap-2">
           <button
             onClick={() => setBillTypeFilter('all')}
@@ -489,6 +546,45 @@ export default function BillsDashboard() {
             <TrendingUp className="w-4 h-4" />
             Income ({stats.incomeBillCount})
           </button>
+        </div>
+
+        {/* Filter Tabs - Classification */}
+        <div className="relative">
+          <div 
+            ref={classificationScrollRef}
+            className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent"
+          >
+            {CLASSIFICATION_FILTER_OPTIONS.map((option) => {
+              const Icon = option.icon;
+              const count = option.value === 'all' 
+                ? bills.length 
+                : (stats.classificationCounts[option.value] || 0);
+              const isActive = classificationFilter === option.value;
+              
+              return (
+                <button
+                  key={option.value}
+                  onClick={() => setClassificationFilter(option.value)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
+                    isActive
+                      ? 'text-white'
+                      : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-[var(--color-border)]'
+                  }`}
+                  style={isActive ? { backgroundColor: option.color } : undefined}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{option.label}</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                    isActive 
+                      ? 'bg-white/20 text-white' 
+                      : 'bg-elevated text-muted-foreground'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
       {/* Statistics Cards */}

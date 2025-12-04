@@ -54,6 +54,7 @@ This document provides a comprehensive checklist for manually testing all featur
 44. [Unified Architecture (Phase 16)](#44-unified-architecture-phase-16)
 45. [Unified Architecture (Phase 17)](#45-unified-architecture-phase-17)
 46. [Unified Architecture (Phase 18)](#46-unified-architecture-phase-18)
+47. [Unified Architecture (Phase 19)](#47-unified-architecture-phase-19)
 
 ---
 
@@ -1580,3 +1581,70 @@ Phase 18 adds savings-goals integration with the transaction system, allowing us
 - [ ] revertAllContributions handles transaction deletion
 - [ ] getGoalContributions returns contribution history
 - [ ] getTotalContributions calculates sum
+
+---
+
+## 47. Unified Architecture (Phase 19)
+
+**Bill Classification & Subscription Management**
+
+### Auto-Suggestion Logic
+- [ ] Typing "Netflix" suggests "Subscription" classification
+- [ ] Typing "Electric" suggests "Utility" classification
+- [ ] Typing "Rent" suggests "Housing" classification
+- [ ] Typing "Geico" suggests "Insurance" classification
+- [ ] Typing "Student Loan" suggests "Loan Payment" classification
+- [ ] Typing "Gym" or "Costco" suggests "Membership" classification
+- [ ] Typing "Lawn Service" suggests "Service" classification
+- [ ] Suggestion appears after 3+ characters typed
+- [ ] Suggestion shows confidence-based styling
+- [ ] Subcategory shown when detected (e.g., "streaming", "electric")
+
+### Suggestion UI in Bill Form
+- [ ] Suggestion banner appears below bill name field
+- [ ] Banner shows classification name with icon and color
+- [ ] "Apply" button sets the classification
+- [ ] "X" (dismiss) button hides suggestion
+- [ ] Suggestion not shown when editing existing bills
+- [ ] Suggestion not shown after manually selecting classification
+- [ ] Toast notification confirms classification applied
+
+### Classification Filter Bar (Bills Page)
+- [ ] Filter bar appears below bill type filter
+- [ ] All 8 classification buttons visible (scrollable on mobile)
+- [ ] Each button shows icon, label, and count badge
+- [ ] "All" filter shows total bill count
+- [ ] Active filter has colored background matching classification
+- [ ] Clicking filter updates bill lists
+- [ ] Type filter (All/Expenses/Income) and classification filter work together
+- [ ] Counts update when bills are added/removed
+
+### Classification Badges on Bills
+- [ ] Classification badge appears on bill items (not "other")
+- [ ] Badge uses appropriate classification color
+- [ ] Badge appears in pending bills list
+- [ ] Badge appears in paid bills list
+- [ ] Badge appears in overdue bills list
+
+### Bills by Classification Widget (Dashboard)
+- [ ] Widget appears in sidebar on dashboard
+- [ ] Pie/donut chart shows monthly spend by classification
+- [ ] Category list shows up to 5 classifications
+- [ ] Each category shows icon, label, count, monthly total, percentage
+- [ ] Upcoming bills count shown for each classification
+- [ ] Footer shows 30-day upcoming totals
+- [ ] Click-through navigation works to filtered bills page
+- [ ] Empty state shown when no active bills
+- [ ] Loading skeleton displays while fetching
+
+### Classification Summary API
+- [ ] GET /api/bills/classification-summary returns summary data
+- [ ] Response includes all non-empty classifications
+- [ ] Monthly amounts correctly normalized from different frequencies
+- [ ] Weekly bills multiplied by ~4.33
+- [ ] Quarterly bills divided by 3
+- [ ] Annual bills divided by 12
+- [ ] One-time bills not included in monthly totals
+- [ ] Upcoming counts reflect next 30 days
+- [ ] Totals calculated correctly
+- [ ] Results sorted by monthly total descending

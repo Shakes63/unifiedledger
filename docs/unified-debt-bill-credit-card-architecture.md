@@ -3525,12 +3525,14 @@ Since there are no production users yet, we can do a clean slate:
 - ✅ Contributions list component: Timeline view with running totals
 - ✅ Enhanced goals widget: Recent contributions, quick-contribute dialog, savings rate indicator
 
-### Phase 19: Bill Classification & Subscription Management
-- Add billClassification field to bills table
-- Add classificationSubcategory field for grouping
-- Implement auto-suggestion logic based on bill name
-- Subscription management view (filtered by classification)
-- Other classification views (utilities, insurance, housing)
-- Bills by type summary widget
-- Filter controls on bills page
+### Phase 19: Bill Classification & Subscription Management [COMPLETED 2025-12-04]
+- ✅ billClassification field: Already existed from Phase 1.2 (8 types: subscription, utility, housing, insurance, loan_payment, membership, service, other)
+- ✅ classificationSubcategory field: Already existed from Phase 1.2 for sub-grouping
+- ✅ Auto-suggestion logic: `lib/bills/bill-classification.ts` with pattern matching for 100+ common services
+- ✅ Suggestion UI in bill form: Inline suggestion banner with Apply/Dismiss buttons, confidence threshold
+- ✅ Classification filter bar: Horizontal scrollable filter on Bills page with icons, counts, color badges
+- ✅ Combined filtering: Type filter (All/Expenses/Income) + Classification filter work together
+- ✅ Classification badges: Bills display classification badge with appropriate color
+- ✅ Bills by Classification widget: Dashboard widget with pie chart, category breakdown, click-through to filtered bills
+- ✅ Classification summary API: `/api/bills/classification-summary` with monthly normalization and upcoming counts
 

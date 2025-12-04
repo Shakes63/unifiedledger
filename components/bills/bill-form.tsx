@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { AlertCircle, Plus, X, ChevronDown, ChevronUp, CreditCard, Landmark, Info, DollarSign, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { AlertCircle, Plus, X, ChevronDown, ChevronUp, CreditCard, Landmark, Info, DollarSign, ArrowDownCircle, ArrowUpCircle, Sparkles, Check } from 'lucide-react';
 import {
   FREQUENCY_LABELS,
   DAY_OF_WEEK_OPTIONS,
@@ -26,6 +26,12 @@ import {
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { MerchantSelector } from '@/components/transactions/merchant-selector';
+import { 
+  suggestClassification, 
+  type ClassificationSuggestion, 
+  CLASSIFICATION_META,
+  formatSubcategory 
+} from '@/lib/bills/bill-classification';
 
 // Bill type options
 const BILL_TYPE_OPTIONS = [
@@ -33,14 +39,15 @@ const BILL_TYPE_OPTIONS = [
   { value: 'income', label: 'Income', description: 'Money coming in (salary, rent, dividends, etc.)' },
 ] as const;
 
-// Bill classification options for expense bills
+// Bill classification options for expense bills (matches database enum)
 const EXPENSE_CLASSIFICATION_OPTIONS = [
   { value: 'subscription', label: 'Subscription' },
   { value: 'utility', label: 'Utility' },
+  { value: 'housing', label: 'Housing (Rent/Mortgage)' },
   { value: 'insurance', label: 'Insurance' },
   { value: 'loan_payment', label: 'Loan Payment' },
-  { value: 'credit_card', label: 'Credit Card Payment' },
-  { value: 'rent_mortgage', label: 'Rent/Mortgage' },
+  { value: 'membership', label: 'Membership' },
+  { value: 'service', label: 'Service' },
   { value: 'other', label: 'Other' },
 ] as const;
 
@@ -97,7 +104,7 @@ export interface BillData {
   
   // Bill type and classification
   billType?: 'expense' | 'income' | 'savings_transfer';
-  billClassification?: 'subscription' | 'utility' | 'insurance' | 'loan_payment' | 'credit_card' | 'rent_mortgage' | 'other';
+  billClassification?: 'subscription' | 'utility' | 'housing' | 'insurance' | 'loan_payment' | 'membership' | 'service' | 'other';
   classificationSubcategory?: string | null;
   
   // Account linking
@@ -213,6 +220,10 @@ export function BillForm({
   const [showDebtSection, setShowDebtSection] = useState(bill?.isDebt || false);
   const [showAutopaySection, setShowAutopaySection] = useState(bill?.isAutopayEnabled || false);
   const [showAdvancedSection, setShowAdvancedSection] = useState(false);
+  
+  // Classification suggestion state
+  const [classificationSuggestion, setClassificationSuggestion] = useState<ClassificationSuggestion | null>(null);
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false);
 
   const [categories, setCategories] = useState<Array<{ id: string; name: string; type: string }>>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -226,6 +237,43 @@ export function BillForm({
   
   // Filter accounts to get only credit cards and lines of credit
   const creditAccounts = accounts.filter(a => a.type === 'credit' || a.type === 'line_of_credit');
+
+  // Auto-suggest classification based on bill name (debounced)
+  useEffect(() => {
+    // Only suggest if not editing existing bill and classification hasn't been manually set
+    if (bill?.id || suggestionDismissed) {
+      return;
+    }
+    
+    const timer = setTimeout(() => {
+      if (formData.name.length >= 3 && formData.billClassification === 'other') {
+        const suggestion = suggestClassification(formData.name);
+        setClassificationSuggestion(suggestion);
+      } else {
+        setClassificationSuggestion(null);
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [formData.name, formData.billClassification, bill?.id, suggestionDismissed]);
+
+  // Apply suggested classification
+  const applySuggestion = useCallback(() => {
+    if (classificationSuggestion) {
+      setFormData(prev => ({
+        ...prev,
+        billClassification: classificationSuggestion.classification,
+      }));
+      setClassificationSuggestion(null);
+      toast.success(`Classification set to ${CLASSIFICATION_META[classificationSuggestion.classification].label}`);
+    }
+  }, [classificationSuggestion]);
+
+  // Dismiss suggestion
+  const dismissSuggestion = useCallback(() => {
+    setClassificationSuggestion(null);
+    setSuggestionDismissed(true);
+  }, []);
 
   // Fetch categories, accounts, and debts on mount
   useEffect(() => {
@@ -452,7 +500,7 @@ export function BillForm({
       
       // Bill classification
       billType: formData.billType as 'expense' | 'income' | 'savings_transfer',
-      billClassification: formData.billClassification as 'subscription' | 'utility' | 'insurance' | 'loan_payment' | 'credit_card' | 'rent_mortgage' | 'other',
+      billClassification: formData.billClassification as 'subscription' | 'utility' | 'housing' | 'insurance' | 'loan_payment' | 'membership' | 'service' | 'other',
       
       // Account linking
       linkedAccountId: formData.linkedAccountId || null,
@@ -631,6 +679,56 @@ export function BillForm({
             placeholder={isIncomeBill ? "e.g., Monthly Salary" : "e.g., Electric Bill"}
             className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
+          {/* Classification Suggestion Banner */}
+          {classificationSuggestion && classificationSuggestion.confidence >= 0.7 && (
+            <div 
+              className="mt-2 p-2.5 rounded-lg border flex items-center justify-between gap-2"
+              style={{ 
+                backgroundColor: `${CLASSIFICATION_META[classificationSuggestion.classification].color}10`,
+                borderColor: `${CLASSIFICATION_META[classificationSuggestion.classification].color}30`
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles 
+                  className="w-4 h-4 flex-shrink-0" 
+                  style={{ color: CLASSIFICATION_META[classificationSuggestion.classification].color }}
+                />
+                <span 
+                  className="text-sm"
+                  style={{ color: CLASSIFICATION_META[classificationSuggestion.classification].color }}
+                >
+                  Suggested: <strong>{CLASSIFICATION_META[classificationSuggestion.classification].label}</strong>
+                  {classificationSuggestion.subcategory && (
+                    <span className="text-xs opacity-80"> ({formatSubcategory(classificationSuggestion.subcategory)})</span>
+                  )}
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={applySuggestion}
+                  className="h-7 px-2 text-xs"
+                  style={{ 
+                    backgroundColor: CLASSIFICATION_META[classificationSuggestion.classification].color,
+                    color: 'white'
+                  }}
+                >
+                  <Check className="w-3 h-3 mr-1" />
+                  Apply
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={dismissSuggestion}
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
         <div>
           <Label className="text-muted-foreground text-sm mb-2 block">Expected Amount*</Label>
