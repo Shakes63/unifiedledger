@@ -42,7 +42,8 @@ export async function GET(request: Request) {
     startDate.setDate(startDate.getDate() - days);
 
     // Build account type filter
-    const typeFilter = accountType === 'credit' 
+    type AccountType = 'checking' | 'savings' | 'credit' | 'line_of_credit' | 'investment' | 'cash';
+    const typeFilter: AccountType[] = accountType === 'credit' 
       ? ['credit'] 
       : accountType === 'line_of_credit' 
       ? ['line_of_credit']

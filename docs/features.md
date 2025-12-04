@@ -8,7 +8,7 @@ _Add new feature ideas here_
 
 ## Incomplete Features
 
-58. **Unified Debt, Bill & Credit Card Architecture** [IN PROGRESS] - Major refactor to simplify financial obligation tracking. 19 implementation phases. See [Architecture Document](./unified-debt-bill-credit-card-architecture.md) and [Phase 5 Plan](./phase-5-transaction-flow-plan.md) for details.
+58. **Unified Debt, Bill & Credit Card Architecture** [IN PROGRESS] - Major refactor to simplify financial obligation tracking. 19 implementation phases. See [Architecture Document](./unified-debt-bill-credit-card-architecture.md) for details.
     - **Phase 1.1: Accounts Enhancement** [COMPLETED 2025-12-03] - Added credit card fields, line of credit type, credit limit history, and balance history tracking tables.
     - **Phase 1.2: Bills Enhancement** [COMPLETED 2025-12-03] - Added bill type/classification, account linking, autopay settings, debt extension fields, and tax deduction settings.
     - **Phase 1.3: Bill Instances & Payments** [COMPLETED 2025-12-03] - Added partial payment tracking, principal/interest breakdown, bill_payments table, and bill_milestones table.
@@ -17,8 +17,9 @@ _Add new feature ideas here_
     - **Phase 2: Account Creation Flow** [COMPLETED 2025-12-03] - Enhanced account form for credit cards and lines of credit with APR, payment due day, minimum payment settings, annual fee tracking, auto-bill creation toggle, and payoff strategy inclusion. Auto-creates linked payment bills and annual fee bills.
     - **Phase 3: Bill Form Updates** [COMPLETED 2025-12-03] - Enhanced bill form with debt toggle (balance, interest, compounding, payoff strategy, tax deduction settings), credit card linking (linkedAccountId for card payments, chargedToAccountId for auto-charges), autopay configuration (account, amount type, days before due), and bill classification dropdown.
     - **Phase 4: Display Updates** [COMPLETED 2025-12-03] - Accounts page grouped by Cash vs Credit with section totals. Debts page unified view combining credit accounts and debt bills with filter tabs. Dashboard shows cash vs credit separation. Enhanced AccountCard with line of credit support, APR display, overpayment handling, strategy inclusion status. Utilization trends and balance history charts added.
-    - **Phase 5: Transaction Flow Updates** [IN PROGRESS - 2025-12-04] - Credit card payments via transfers with auto-detection of linked bills. Partial payment handling with shortfall tracking. Payment history recording in bill_payments table. Balance transfers between credit cards (isBalanceTransfer flag). Credit card refunds detection (isRefund flag). Debt bill payments with principal/interest breakdown. Auto-match for chargedToAccountId bills. See [Phase 5 Plan](./phase-5-transaction-flow-plan.md).
-    - **Phases 6-19** - _Not started_
+    - **Phase 5: Transaction Flow Updates** [COMPLETED 2025-12-04] - Credit card payments via transfers with auto-detection of linked bills. Partial payment handling with shortfall tracking. Payment history recording in bill_payments table. Balance transfers between credit cards (isBalanceTransfer flag). Credit card refunds detection (isRefund flag). Debt bill payments with principal/interest breakdown. Auto-match for chargedToAccountId bills.
+    - **Phase 6: Autopay System** [COMPLETED 2025-12-04] - Automatic bill payment processing via daily cron job. Supports fixed, minimum payment, statement balance, and full balance amounts. Creates transfers for credit card payments, expenses for regular bills. Records all payments in bill_payments table. Sends success/failure notifications. Suppresses reminders for autopay bills.
+    - **Phases 7-19** - _Not started_
 
 ---
 

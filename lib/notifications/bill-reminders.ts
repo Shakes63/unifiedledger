@@ -19,9 +19,17 @@ export async function checkAndCreateBillReminders() {
       .where(eq(billInstances.status, 'pending'));
 
     let createdNotifications = 0;
+    let skippedAutopay = 0;
 
     for (const { instance, bill } of pendingInstances) {
       if (!bill) continue; // Skip if bill not found
+
+      // Skip autopay-enabled bills - they're handled by the autopay processor
+      // Users don't need reminders for bills that will be paid automatically
+      if (bill.isAutopayEnabled && bill.autopayAccountId) {
+        skippedAutopay++;
+        continue;
+      }
 
       const dueDate = parseISO(instance.dueDate);
       const daysUntilDue = differenceInDays(dueDate, startOfDay(today));
@@ -53,6 +61,7 @@ export async function checkAndCreateBillReminders() {
       success: true,
       notificationsCreated: createdNotifications,
       checkedInstances: pendingInstances.length,
+      skippedAutopay,
     };
   } catch (error) {
     console.error('Error checking bill reminders:', error);

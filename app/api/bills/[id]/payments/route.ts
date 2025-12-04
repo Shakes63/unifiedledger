@@ -23,7 +23,7 @@ export async function GET(
     // Get household from query params
     const url = new URL(request.url);
     const householdId = getHouseholdIdFromRequest(request, {
-      householdId: url.searchParams.get('householdId'),
+      householdId: url.searchParams.get('householdId') ?? undefined,
     });
     await requireHouseholdAuth(userId, householdId);
 

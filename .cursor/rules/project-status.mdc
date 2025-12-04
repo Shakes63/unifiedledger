@@ -51,7 +51,17 @@ alwaysApply: false
 
 ## Recent Major Features
 
-**Latest (2025-12-02):**
+**Latest (2025-12-04):**
+- Unified Architecture Phase 6: Autopay System (✅ COMPLETE)
+  - ✅ Autopay amount calculator utility (`lib/bills/autopay-calculator.ts`)
+  - ✅ Autopay transaction creator (`lib/bills/autopay-transaction.ts`)
+  - ✅ Autopay batch processor (`lib/bills/autopay-processor.ts`)
+  - ✅ Daily cron job endpoint (`app/api/cron/autopay/route.ts`)
+  - ✅ Autopay notifications for success/failure
+  - ✅ Bill reminders suppressed for autopay-enabled bills
+  - ✅ Supports fixed, minimum payment, statement balance, and full balance amounts
+
+**Previous (2025-12-02):**
 - Sales Tax Exemption for Transactions (✅ COMPLETE)
   - ✅ Income transactions can be marked as tax exempt (not subject to sales tax)
   - ✅ "Subject to sales tax" checkbox in transaction form with help text
@@ -365,6 +375,7 @@ alwaysApply: false
 (None)
 
 ### Recently Completed
+- **Unified Architecture Phase 5 & 6** [COMPLETED 2025-12-04] - Transaction flow updates (credit card payments, balance transfers, refunds, partial payments, payment history) and Autopay System (daily cron, amount calculator, notifications).
 - **Sales Tax Exemption for Transactions** [COMPLETED 2025-12-02] - Mark income transactions as tax exempt with visual badge indicators, help text in transaction form, and checkbox in quick entry modal.
 - **Business Features Visibility** [COMPLETED 2025-12-01] - Tax Dashboard and Sales Tax pages hidden from navigation unless at least one business account exists in the current household.
 - **Debt Budget Integration** [COMPLETED 2025-12-01] - Debts automatically appear in budgeting system with auto-populated minimum payments and recommended payments from payoff strategy. Focus debt highlighted with strategy-recommended amounts.

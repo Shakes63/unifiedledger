@@ -95,6 +95,32 @@ alwaysApply: false
 4. If confidence ≥90% → auto-link and mark paid
 5. Update bill instance status
 
+## Autopay System
+**Daily Cron Job:** Runs at 6:00 AM UTC (before bill reminders at 9:00 AM)
+
+**Bill Processing Logic:**
+1. Find all bills with `isAutopayEnabled=true` and `autopayAccountId` set
+2. Filter pending instances where (dueDate - autopayDaysBefore) = today
+3. Calculate payment amount based on `autopayAmountType`:
+   - `fixed`: Use `autopayFixedAmount`
+   - `minimum_payment`: Use linked credit account's `minimumPaymentAmount`
+   - `statement_balance`: Use linked credit account's `statementBalance`
+   - `full_balance`: Use absolute value of credit account's `currentBalance`
+4. Create transaction:
+   - **Credit card payments:** Create transfer from autopayAccount to linkedAccountId
+   - **Regular bills:** Create expense from autopayAccount
+5. Call `processBillPayment()` to update instance and create payment record
+6. Send notification (success or failure)
+
+**Files:**
+- `lib/bills/autopay-calculator.ts` - Amount calculation utility
+- `lib/bills/autopay-transaction.ts` - Transaction creator
+- `lib/bills/autopay-processor.ts` - Batch processor
+- `app/api/cron/autopay/route.ts` - Cron endpoint
+- `lib/notifications/autopay-notifications.ts` - Notification handlers
+
+**Bill Reminders:** Autopay-enabled bills are skipped by bill reminder system
+
 ## Budget Warning System
 - Real-time calculation during transaction entry
 - Color-coded indicators (0-80% blue, 80-100% amber, 100%+ red)

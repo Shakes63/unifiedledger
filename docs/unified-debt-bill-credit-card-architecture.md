@@ -12,8 +12,8 @@
 | 2 | Account Creation Flow | COMPLETED 2025-12-03 |
 | 3 | Bill Form Updates | COMPLETED 2025-12-03 |
 | 4 | Display Updates | COMPLETED 2025-12-03 |
-| 5 | Transaction Flow Updates | IN PROGRESS 2025-12-04 |
-| 6 | Autopay System | Not Started |
+| 5 | Transaction Flow Updates | COMPLETED 2025-12-04 |
+| 6 | Autopay System | COMPLETED 2025-12-04 |
 | 7 | Budget Integration | Not Started |
 | 8 | Payoff Strategy & Per-Debt Inclusion | Not Started |
 | 9 | Calendar Integration | Not Started |
@@ -31,6 +31,7 @@
 **Implementation Plans:**
 - [Phase 1 Plan](./phase-1-schema-changes-plan.md)
 - [Phase 5 Plan](./phase-5-transaction-flow-plan.md)
+- [Phase 6 Plan](./phase-6-autopay-system-plan.md)
 
 ---
 
@@ -3373,7 +3374,7 @@ Since there are no production users yet, we can do a clean slate:
 - [x] Show strategy inclusion status on debt cards
 - [x] Handle overpayment/credit balance display
 
-### Phase 5: Transaction Flow Updates [IN PROGRESS 2025-12-04]
+### Phase 5: Transaction Flow Updates [COMPLETED 2025-12-04]
 - [x] Partial payment handling with shortfall tracking (bill-payment-utils.ts)
 - [x] Payment history recording for all bill payments (bill_payments table, API endpoints)
 - [x] Credit card payments via transfer with auto bill instance marking
@@ -3384,13 +3385,13 @@ Since there are no production users yet, we can do a clean slate:
 - [x] Credit card purchases as expenses (works correctly - no changes needed)
 - [ ] Remove debt linking (use bill linking) - Deferred for gradual migration
 
-### Phase 6: Autopay System
-- Implement autopay fields on bills
-- Create daily cron job for autopay processing
-- Auto-create transactions for bills due
-- Create payment history records
-- Send notifications (processed, failed)
-- Suppress payment due reminders for autopay bills
+### Phase 6: Autopay System [COMPLETED 2025-12-04]
+- [x] Autopay amount calculator utility (lib/bills/autopay-calculator.ts)
+- [x] Autopay transaction creator (lib/bills/autopay-transaction.ts)
+- [x] Autopay batch processor (lib/bills/autopay-processor.ts)
+- [x] Daily cron job endpoint (app/api/cron/autopay/route.ts)
+- [x] Autopay notifications (lib/notifications/autopay-notifications.ts)
+- [x] Suppress bill reminders for autopay-enabled bills
 
 ### Phase 7: Budget Integration
 - Add debt strategy toggle to household settings

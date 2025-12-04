@@ -41,6 +41,7 @@ This document provides a comprehensive checklist for manually testing all featur
 31. [Unified Architecture (Phase 3)](#31-unified-architecture-phase-3)
 32. [Unified Architecture (Phase 4)](#32-unified-architecture-phase-4)
 33. [Unified Architecture (Phase 5)](#33-unified-architecture-phase-5)
+34. [Unified Architecture (Phase 6)](#34-unified-architecture-phase-6)
 
 ---
 
@@ -755,6 +756,59 @@ Phase 5 implements transaction flow updates for credit card payments and bill pa
 
 ---
 
+## 34. Unified Architecture (Phase 6)
+
+**Tested: Not Yet** | **Result: PENDING**
+
+Phase 6 implements the Autopay System for automatic bill payments.
+
+### Autopay Amount Calculator (`lib/bills/autopay-calculator.ts`)
+- [ ] Fixed amount returns configured `autopayFixedAmount`
+- [ ] Minimum payment pulls from linked credit account's `minimumPaymentAmount`
+- [ ] Statement balance uses linked account's `statementBalance`
+- [ ] Full balance uses absolute value of credit account's `currentBalance`
+- [ ] Falls back to expected amount when account data unavailable
+- [ ] Zero/negative amounts return "Nothing Owed" status
+- [ ] Insufficient funds detection works correctly
+
+### Autopay Transaction Creator (`lib/bills/autopay-transaction.ts`)
+- [ ] Creates transfer for credit card payments (linkedAccountId set)
+- [ ] Creates expense for regular bills (no linkedAccountId)
+- [ ] Updates source account balance correctly (decreases)
+- [ ] Updates credit account balance correctly (reduces debt)
+- [ ] Calls `processBillPayment()` to update bill instance
+- [ ] Returns error for already-paid instances
+- [ ] Returns error for invalid autopay configuration
+- [ ] Returns error for insufficient funds
+
+### Autopay Processor (`lib/bills/autopay-processor.ts`)
+- [ ] Finds all autopay-enabled, active bills
+- [ ] Filters instances by due date and `autopayDaysBefore`
+- [ ] Only processes pending/overdue instances
+- [ ] Skips bills without `autopayAccountId`
+- [ ] Processes multiple bills across different users
+- [ ] Returns accurate success/failure/skipped counts
+- [ ] Handles errors gracefully without stopping other bills
+
+### Cron Job Endpoint (`app/api/cron/autopay/route.ts`)
+- [ ] POST processes all autopay bills
+- [ ] GET returns preview of bills due today
+- [ ] Cron secret validation works in production mode
+- [ ] Returns detailed result with successes and errors
+
+### Autopay Notifications (`lib/notifications/autopay-notifications.ts`)
+- [ ] Success notification created with correct amount and details
+- [ ] Failure notification created with error message
+- [ ] Priority levels appropriate (low for success, high for failure)
+- [ ] Metadata includes bill and transaction references
+
+### Bill Reminder Suppression (`lib/notifications/bill-reminders.ts`)
+- [ ] Autopay-enabled bills skip due reminders
+- [ ] Non-autopay bills still receive reminders
+- [ ] `skippedAutopay` count returned in result
+
+---
+
 ## Testing Summary
 
 | Section | Status | Notes |
@@ -791,9 +845,10 @@ Phase 5 implements transaction flow updates for credit card payments and bill pa
 | 30. Unified Architecture (Phase 2) | NEEDS TESTING | Account creation flow |
 | 31. Unified Architecture (Phase 3) | NEEDS TESTING | Bill form updates |
 | 32. Unified Architecture (Phase 4) | NEEDS TESTING | Display updates |
-| 33. Unified Architecture (Phase 5) | IN PROGRESS | Transaction flow updates |
+| 33. Unified Architecture (Phase 5) | CODE VERIFIED | Transaction flow updates |
+| 34. Unified Architecture (Phase 6) | CODE VERIFIED | Autopay system |
 
-**Overall: 22/33 browser-tested, 11/33 code/schema-reviewed**
+**Overall: 22/34 browser-tested, 12/34 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-04
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true
