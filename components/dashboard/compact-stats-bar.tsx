@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Wallet, TrendingUp, Calendar, Target, TrendingDown, HelpCircle } from 'lucide-react';
+import { Wallet, TrendingUp, Calendar, Target, TrendingDown, HelpCircle, CreditCard } from 'lucide-react';
 import Decimal from 'decimal.js';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
@@ -11,6 +11,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+
+// Account type groupings
+const CASH_ACCOUNT_TYPES = ['checking', 'savings', 'cash', 'investment'];
+const CREDIT_ACCOUNT_TYPES = ['credit', 'line_of_credit'];
 
 interface StatCardData {
   label: string;
@@ -24,7 +28,10 @@ interface StatCardData {
 export function CompactStatsBar() {
   const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
   const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
-  const [totalBalance, setTotalBalance] = useState<number>(0);
+  const [cashBalance, setCashBalance] = useState<number>(0);
+  const [creditUsed, setCreditUsed] = useState<number>(0);
+  const [availableCredit, setAvailableCredit] = useState<number>(0);
+  const [hasCreditAccounts, setHasCreditAccounts] = useState(false);
   const [monthlySpending, setMonthlySpending] = useState<number>(0);
   const [billsDueCount, setBillsDueCount] = useState<number>(0);
   const [budgetAdherence, setBudgetAdherence] = useState<number | null>(null);
@@ -48,14 +55,39 @@ export function CompactStatsBar() {
       try {
         setLoading(true);
 
-        // Fetch accounts for total balance
+        // Fetch accounts and split by type
         const accountsResponse = await fetchWithHousehold('/api/accounts');
         if (accountsResponse.ok) {
           const accountsData = await accountsResponse.json();
-          const total = accountsData.reduce((sum: number, account: { currentBalance?: number }) => {
-            return new Decimal(sum).plus(new Decimal(account.currentBalance || 0)).toNumber();
+          
+          // Filter accounts by type
+          const cashAccounts = accountsData.filter((acc: { type: string }) => 
+            CASH_ACCOUNT_TYPES.includes(acc.type)
+          );
+          const creditAccounts = accountsData.filter((acc: { type: string }) => 
+            CREDIT_ACCOUNT_TYPES.includes(acc.type)
+          );
+          
+          // Calculate cash balance
+          const cashSum = cashAccounts.reduce((sum: number, acc: { currentBalance?: number }) => {
+            return new Decimal(sum).plus(new Decimal(acc.currentBalance || 0)).toNumber();
           }, 0);
-          setTotalBalance(total);
+          setCashBalance(cashSum);
+          
+          // Calculate credit used and available
+          if (creditAccounts.length > 0) {
+            setHasCreditAccounts(true);
+            const creditSum = creditAccounts.reduce((sum: number, acc: { currentBalance?: number }) => {
+              return new Decimal(sum).plus(new Decimal(Math.abs(acc.currentBalance || 0))).toNumber();
+            }, 0);
+            const limitSum = creditAccounts.reduce((sum: number, acc: { creditLimit?: number }) => {
+              return new Decimal(sum).plus(new Decimal(acc.creditLimit || 0)).toNumber();
+            }, 0);
+            setCreditUsed(creditSum);
+            setAvailableCredit(new Decimal(limitSum).minus(creditSum).toNumber());
+          } else {
+            setHasCreditAccounts(false);
+          }
         }
 
         // Fetch transactions for monthly spending
@@ -171,15 +203,31 @@ export function CompactStatsBar() {
 
   const stats: StatCardData[] = [
     {
-      label: 'Total Balance',
-      value: loading ? '...' : `$${totalBalance.toFixed(2)}`,
+      label: 'Cash Balance',
+      value: loading ? '...' : `$${cashBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icon: <Wallet className="w-5 h-5" />,
       color: 'var(--color-income)',
       loading,
+      tooltip: 'Total balance across checking, savings, cash, and investment accounts',
     },
+  ];
+
+  // Add credit stats only if user has credit accounts
+  if (hasCreditAccounts) {
+    stats.push({
+      label: 'Credit Used',
+      value: loading ? '...' : `$${creditUsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: <CreditCard className="w-5 h-5" />,
+      color: 'var(--color-error)',
+      loading,
+      tooltip: `Available: $${availableCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    });
+  }
+
+  stats.push(
     {
       label: 'Monthly Spending',
-      value: loading ? '...' : `$${monthlySpending.toFixed(2)}`,
+      value: loading ? '...' : `$${monthlySpending.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icon: <TrendingUp className="w-5 h-5" />,
       color: 'var(--color-expense)',
       loading,
@@ -190,8 +238,8 @@ export function CompactStatsBar() {
       icon: <Calendar className="w-5 h-5" />,
       color: 'var(--color-warning)',
       loading,
-    },
-  ];
+    }
+  );
 
   // Add budget adherence if available
   if (budgetAdherence !== null) {

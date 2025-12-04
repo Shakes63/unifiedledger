@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import Decimal from 'decimal.js';
 import { AccountForm } from '@/components/accounts/account-form';
-import { AccountCard } from '@/components/accounts/account-card';
+import { AccountGroupSection } from '@/components/accounts/account-group-section';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { useBusinessFeatures } from '@/contexts/business-features-context';
@@ -23,7 +24,21 @@ interface Account {
   creditLimit?: number;
   color: string;
   icon: string;
+  // Credit-specific fields
+  interestRate?: number;
+  interestType?: 'fixed' | 'variable';
+  includeInPayoffStrategy?: boolean;
+  statementBalance?: number;
+  statementDueDate?: string;
+  minimumPaymentAmount?: number;
+  // Line of credit fields
+  drawPeriodEndDate?: string;
+  repaymentPeriodEndDate?: string;
 }
+
+// Account type groupings
+const CASH_ACCOUNT_TYPES = ['checking', 'savings', 'cash', 'investment'];
+const CREDIT_ACCOUNT_TYPES = ['credit', 'line_of_credit'];
 
 export default function AccountsPage() {
   const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
@@ -179,10 +194,47 @@ export default function AccountsPage() {
     setSelectedAccount(null);
   };
 
-  // Calculate totals
-  const totalBalance = accounts.reduce((sum, acc) => sum + acc.currentBalance, 0);
-  const savingsAccounts = accounts.filter((acc) => acc.type === 'savings');
-  const savingsTotal = savingsAccounts.reduce((sum, acc) => sum + acc.currentBalance, 0);
+  // Group accounts by type
+  const { cashAccounts, creditAccounts } = useMemo(() => {
+    const cash = accounts.filter((acc) => CASH_ACCOUNT_TYPES.includes(acc.type));
+    const credit = accounts.filter((acc) => CREDIT_ACCOUNT_TYPES.includes(acc.type));
+    return { cashAccounts: cash, creditAccounts: credit };
+  }, [accounts]);
+
+  // Calculate totals using Decimal.js
+  const { 
+    totalBalance, 
+    cashTotal, 
+    creditBalance, 
+    totalCreditLimit, 
+    availableCredit,
+    overallUtilization 
+  } = useMemo(() => {
+    const cashSum = cashAccounts.reduce(
+      (sum, acc) => new Decimal(sum).plus(new Decimal(acc.currentBalance || 0)).toNumber(),
+      0
+    );
+    const creditSum = creditAccounts.reduce(
+      (sum, acc) => new Decimal(sum).plus(new Decimal(Math.abs(acc.currentBalance || 0))).toNumber(),
+      0
+    );
+    const limitSum = creditAccounts.reduce(
+      (sum, acc) => new Decimal(sum).plus(new Decimal(acc.creditLimit || 0)).toNumber(),
+      0
+    );
+    const available = new Decimal(limitSum).minus(new Decimal(creditSum)).toNumber();
+    const utilization = limitSum > 0 ? new Decimal(creditSum).div(limitSum).times(100).toNumber() : 0;
+    const total = new Decimal(cashSum).minus(new Decimal(creditSum)).toNumber();
+
+    return {
+      totalBalance: total,
+      cashTotal: cashSum,
+      creditBalance: creditSum,
+      totalCreditLimit: limitSum,
+      availableCredit: available,
+      overallUtilization: utilization,
+    };
+  }, [cashAccounts, creditAccounts]);
 
   // Show loading state while household context initializes
   if (!initialized || householdLoading) {
@@ -231,49 +283,51 @@ export default function AccountsPage() {
 
         {/* Summary Cards */}
         {accounts.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            {/* Total Balance */}
-            <div className="p-6 border border-border bg-card rounded-xl">
-              <p className="text-muted-foreground text-sm mb-2">Total Balance</p>
-              <h3 className="text-3xl font-bold text-foreground">
-                ${totalBalance.toFixed(2)}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+            {/* Net Worth */}
+            <div className="p-5 border border-border bg-card rounded-xl">
+              <p className="text-muted-foreground text-sm mb-2">Net Worth</p>
+              <h3 className={`text-2xl font-bold font-mono ${totalBalance >= 0 ? 'text-[var(--color-income)]' : 'text-[var(--color-error)]'}`}>
+                ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </h3>
-              <p className="text-muted-foreground text-xs mt-3">Across all accounts</p>
+              <p className="text-muted-foreground text-xs mt-2">Cash minus credit used</p>
             </div>
 
-            {/* Accounts Count */}
-            <div className="p-6 border border-border bg-card rounded-xl">
-              <p className="text-muted-foreground text-sm mb-2">Total Accounts</p>
-              <h3 className="text-3xl font-bold text-foreground">{accounts.length}</h3>
-              <p className="text-muted-foreground text-xs mt-3">Active accounts</p>
+            {/* Cash Balance */}
+            <div className="p-5 border border-border bg-card rounded-xl">
+              <p className="text-muted-foreground text-sm mb-2">Cash Balance</p>
+              <h3 className="text-2xl font-bold font-mono text-[var(--color-income)]">
+                ${cashTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </h3>
+              <p className="text-muted-foreground text-xs mt-2">{cashAccounts.length} account{cashAccounts.length !== 1 ? 's' : ''}</p>
             </div>
 
-            {/* Savings Total */}
-            {savingsAccounts.length > 0 && (
-              <div className="p-6 border border-border bg-card rounded-xl">
-                <p className="text-muted-foreground text-sm mb-2">Savings Total</p>
-                <h3 className="text-3xl font-bold text-[var(--color-income)]">
-                  ${savingsTotal.toFixed(2)}
+            {/* Credit Used */}
+            {creditAccounts.length > 0 && (
+              <div className="p-5 border border-border bg-card rounded-xl">
+                <p className="text-muted-foreground text-sm mb-2">Credit Used</p>
+                <h3 className="text-2xl font-bold font-mono text-[var(--color-error)]">
+                  ${creditBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h3>
-                <p className="text-muted-foreground text-xs mt-3">{savingsAccounts.length} savings account(s)</p>
+                <p className="text-muted-foreground text-xs mt-2">{overallUtilization.toFixed(0)}% utilization</p>
+              </div>
+            )}
+
+            {/* Available Credit */}
+            {creditAccounts.length > 0 && (
+              <div className="p-5 border border-border bg-card rounded-xl">
+                <p className="text-muted-foreground text-sm mb-2">Available Credit</p>
+                <h3 className={`text-2xl font-bold font-mono ${availableCredit >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}>
+                  ${availableCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </h3>
+                <p className="text-muted-foreground text-xs mt-2">of ${totalCreditLimit.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} limit</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Accounts Grid */}
-        {accounts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {accounts.map((account) => (
-              <AccountCard
-                key={account.id}
-                account={account}
-                onEdit={handleEditAccount}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
-        ) : (
+        {/* Empty State */}
+        {accounts.length === 0 && (
           <div className="p-12 border border-border bg-card rounded-xl text-center">
             <p className="text-muted-foreground mb-4">No accounts yet. Create your first account to get started.</p>
             <Button
@@ -285,6 +339,35 @@ export default function AccountsPage() {
             </Button>
           </div>
         )}
+
+        {/* Cash & Debit Accounts Section */}
+        <AccountGroupSection
+          title="Cash & Debit Accounts"
+          subtitle="Checking, savings, cash, and investment accounts"
+          accounts={cashAccounts}
+          totalLabel="Total Cash"
+          totalValue={`$${cashTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          totalColor="var(--color-income)"
+          onEdit={handleEditAccount}
+          onDelete={handleDelete}
+        />
+
+        {/* Credit Accounts Section */}
+        <AccountGroupSection
+          title="Credit Accounts"
+          subtitle="Credit cards and lines of credit"
+          accounts={creditAccounts}
+          totalLabel="Balance Owed"
+          totalValue={`$${creditBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          totalColor="var(--color-error)"
+          secondaryTotal={{
+            label: 'Available Credit',
+            value: `$${availableCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            color: availableCredit >= 0 ? 'var(--color-success)' : 'var(--color-error)',
+          }}
+          onEdit={handleEditAccount}
+          onDelete={handleDelete}
+        />
 
         {/* Create/Edit Account Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

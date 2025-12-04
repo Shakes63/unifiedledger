@@ -11,5 +11,9 @@ export { ChartTooltip } from './chart-tooltip';
 export { TreemapChart } from './treemap-chart';
 export { HeatmapChart } from './heatmap-chart';
 
+// Credit utilization and balance history charts
+export { UtilizationTrendsChart } from './utilization-trends-chart';
+export { BalanceHistoryChart } from './balance-history-chart';
+
 // Type exports
 export type { ComponentProps } from 'react';

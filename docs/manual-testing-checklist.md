@@ -39,6 +39,7 @@ This document provides a comprehensive checklist for manually testing all featur
 29. [Unified Architecture (Phase 1.5)](#29-unified-architecture-phase-15)
 30. [Unified Architecture (Phase 2)](#30-unified-architecture-phase-2)
 31. [Unified Architecture (Phase 3)](#31-unified-architecture-phase-3)
+32. [Unified Architecture (Phase 4)](#32-unified-architecture-phase-4)
 
 ---
 
@@ -633,6 +634,64 @@ Phase 3 Bill Form Updates - Enhanced bill form with debt, autopay, and credit ca
 
 ---
 
+## 32. Unified Architecture (Phase 4)
+
+**Status:** NEEDS TESTING  
+**Implemented:** 2025-12-03  
+
+Phase 4 implements display updates for credit accounts and unified debt views.
+
+### Accounts Page - Grouped View
+- [ ] Accounts grouped by type (Cash & Debit vs Credit)
+- [ ] Section headers show group totals
+- [ ] Cash section shows: Checking, Savings, Cash, Investment accounts
+- [ ] Credit section shows: Credit Cards, Lines of Credit
+- [ ] Summary cards show: Net Worth, Cash Balance, Credit Used, Available Credit
+- [ ] Empty sections hidden gracefully
+
+### Account Card Enhancements
+- [ ] Credit cards show APR with fixed/variable indicator
+- [ ] Credit cards show utilization bar with color coding
+- [ ] Lines of credit show draw period status
+- [ ] Overpayment (negative balance) shows as "Credit Balance" in green
+- [ ] Strategy inclusion status displayed ("Included" / "Excluded")
+
+### Dashboard Stats
+- [ ] Cash Balance stat shows only checking/savings/cash/investment
+- [ ] Credit Used stat appears only when credit accounts exist
+- [ ] Credit Used tooltip shows available credit
+
+### Debts Page - Unified View
+- [ ] View mode toggle (Unified View / Debt Bills Only)
+- [ ] Unified view shows credit accounts + debt bills together
+- [ ] Filter tabs: All, Credit Cards, Lines of Credit, Loans
+- [ ] Summary stats show combined totals
+- [ ] Strategy inclusion count displayed
+- [ ] UnifiedDebtCard shows source indicator (Credit Account / Debt Bill)
+
+### Utilization Trends Chart
+- [ ] Chart appears in collapsible "Utilization & Balance Trends" section
+- [ ] Time range selector (30/60/90 days)
+- [ ] Reference lines at 30% and 80% thresholds
+- [ ] Gradient color based on current utilization
+- [ ] Tooltip shows date, utilization %, balance, and limit
+- [ ] Legend explains color zones
+
+### Balance History Chart
+- [ ] Stacked area chart shows all credit accounts
+- [ ] Individual view toggle (when multiple accounts)
+- [ ] Each account has distinct color
+- [ ] Tooltip shows breakdown by account
+- [ ] Current balances shown in footer legend
+
+### API Endpoints
+- [ ] GET /api/debts/unified returns combined credit accounts and debt bills
+- [ ] GET /api/accounts/utilization-history returns historical utilization data
+- [ ] GET /api/accounts/balance-history returns historical balance data
+- [ ] All endpoints filter by household correctly
+
+---
+
 ## Testing Summary
 
 | Section | Status | Notes |
@@ -668,8 +727,9 @@ Phase 3 Bill Form Updates - Enhanced bill form with debt, autopay, and credit ca
 | 29. Unified Architecture (1.5) | SCHEMA VERIFIED | Phase 1.5 schema applied |
 | 30. Unified Architecture (Phase 2) | NEEDS TESTING | Account creation flow |
 | 31. Unified Architecture (Phase 3) | NEEDS TESTING | Bill form updates |
+| 32. Unified Architecture (Phase 4) | NEEDS TESTING | Display updates |
 
-**Overall: 22/31 browser-tested, 9/31 code/schema-reviewed**
+**Overall: 22/32 browser-tested, 10/32 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-03
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true

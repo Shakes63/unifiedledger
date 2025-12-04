@@ -16,7 +16,8 @@ _Add new feature ideas here_
     - **Phase 1.5: Transactions Enhancement** [COMPLETED 2025-12-03] - Added savings goal link to transactions. Note: Debt-to-bill migration deferred to separate phase.
     - **Phase 2: Account Creation Flow** [COMPLETED 2025-12-03] - Enhanced account form for credit cards and lines of credit with APR, payment due day, minimum payment settings, annual fee tracking, auto-bill creation toggle, and payoff strategy inclusion. Auto-creates linked payment bills and annual fee bills.
     - **Phase 3: Bill Form Updates** [COMPLETED 2025-12-03] - Enhanced bill form with debt toggle (balance, interest, compounding, payoff strategy, tax deduction settings), credit card linking (linkedAccountId for card payments, chargedToAccountId for auto-charges), autopay configuration (account, amount type, days before due), and bill classification dropdown.
-    - **Phases 4-19** - _Not started_
+    - **Phase 4: Display Updates** [COMPLETED 2025-12-03] - Accounts page grouped by Cash vs Credit with section totals. Debts page unified view combining credit accounts and debt bills with filter tabs. Dashboard shows cash vs credit separation. Enhanced AccountCard with line of credit support, APR display, overpayment handling, strategy inclusion status. Utilization trends and balance history charts added.
+    - **Phases 5-19** - _Not started_
 
 ---
 

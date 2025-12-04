@@ -3361,15 +3361,15 @@ Since there are no production users yet, we can do a clean slate:
 - Add "Include in payoff strategy" toggle for debt bills
 - Add tax deduction settings for debt bills
 
-### Phase 4: Display Updates
-- Accounts page: Group by Cash vs Credit/Line of Credit
-- Show available credit for credit cards and lines of credit
-- Debts page: Show credit card balances + debt bills unified
-- Dashboard: Separate cash totals from credit availability
-- Add utilization trends chart
-- Add balance history chart
-- Show strategy inclusion status on debt cards
-- Handle overpayment/credit balance display
+### Phase 4: Display Updates [COMPLETED 2025-12-03]
+- [x] Accounts page: Group by Cash vs Credit/Line of Credit
+- [x] Show available credit for credit cards and lines of credit
+- [x] Debts page: Show credit card balances + debt bills unified
+- [x] Dashboard: Separate cash totals from credit availability
+- [x] Add utilization trends chart
+- [x] Add balance history chart
+- [x] Show strategy inclusion status on debt cards
+- [x] Handle overpayment/credit balance display
 
 ### Phase 5: Transaction Flow Updates
 - Credit card payments via transfer with auto bill instance marking
