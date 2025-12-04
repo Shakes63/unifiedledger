@@ -695,7 +695,7 @@ Phase 4 implements display updates for credit accounts and unified debt views.
 
 ## 33. Unified Architecture (Phase 5)
 
-**Status:** IN PROGRESS  
+**Status:** MOSTLY COMPLETE  
 **Implemented:** 2025-12-04  
 
 Phase 5 implements transaction flow updates for credit card payments and bill payment tracking.
@@ -707,6 +707,7 @@ Phase 5 implements transaction flow updates for credit card payments and bill pa
 - [ ] Bill instance status updates to 'partial' on partial payment
 - [ ] Bill payment record created in `bill_payments` table
 - [ ] Credit card balance decreases correctly after payment
+- [ ] Balance transfers (credit-to-credit) skip bill marking
 
 ### Partial Payment Handling
 - [ ] Partial payment updates `paidAmount` on bill instance
@@ -724,18 +725,33 @@ Phase 5 implements transaction flow updates for credit card payments and bill pa
 - [ ] GET /api/bills/instances/[id]/payments returns instance payments
 - [ ] Payment summary includes totals and breakdown
 
+### Balance Transfers (Credit-to-Credit)
+- [ ] Transfer between two credit accounts sets `isBalanceTransfer=true`
+- [ ] Both transfer_out and transfer_in transactions marked
+- [ ] Balance transfers do NOT auto-mark bill instances
+- [ ] Source credit card balance decreases (debt reduced)
+- [ ] Destination credit card balance increases (debt increased)
+
+### Credit Card Refunds
+- [ ] Income on credit account sets `isRefund=true`
+- [ ] Refund correctly reduces credit card balance
+- [ ] Refunds do NOT auto-mark bill instances
+
+### chargedToAccountId Auto-Matching
+- [ ] Expenses match bills with `chargedToAccountId` = expense account
+- [ ] Description similarity (Levenshtein) contributes 40% to match score
+- [ ] Amount within tolerance contributes 30% to match score
+- [ ] Date proximity (±3 days) contributes 30% to match score
+- [ ] Only matches with confidence >= 85% are auto-linked
+
 ### Database Schema
 - [ ] `is_balance_transfer` column added to transactions
 - [ ] `is_refund` column added to transactions
 - [ ] Migration 0044 applied successfully
 - [ ] Indexes created for new columns
 
-### Not Yet Implemented (Future Tasks)
-- [ ] Balance transfers between credit cards (isBalanceTransfer flag)
-- [ ] Refunds on credit cards (isRefund flag)
-- [ ] Loan payments via expense with bill selection
-- [ ] Auto-match for chargedToAccountId bills
-- [ ] Legacy debt linking deprecation
+### Remaining (Deferred)
+- [ ] Legacy debt linking deprecation (gradual migration)
 
 ---
 

@@ -240,15 +240,15 @@ CREATE INDEX IF NOT EXISTS idx_transactions_refund ON transactions(is_refund);
 
 ## Implementation Order
 
-1. **Task 5.5** - Partial Payment Handling (foundation for other tasks)
-2. **Task 5.9** - Payment History Recording (used by all payment flows)
-3. **Task 5.1** - Credit Card Payment Detection (core feature)
-4. **Task 5.6** - Loan/Debt Bill Payments (leverages 5.5)
-5. **Task 5.8** - Auto-Match for chargedToAccountId (leverages existing matching)
-6. **Task 5.3** - Balance Transfers (needs schema change)
-7. **Task 5.4** - Credit Card Refunds (needs schema change)
-8. **Task 5.2** - Credit Card Purchase Display (polish)
-9. **Task 5.7** - Remove Legacy Debt Linking (final cleanup)
+1. **Task 5.5** - Partial Payment Handling (foundation for other tasks) - **COMPLETED**
+2. **Task 5.9** - Payment History Recording (used by all payment flows) - **COMPLETED**
+3. **Task 5.1** - Credit Card Payment Detection (core feature) - **COMPLETED**
+4. **Task 5.6** - Loan/Debt Bill Payments (leverages 5.5) - **COMPLETED**
+5. **Task 5.8** - Auto-Match for chargedToAccountId (leverages existing matching) - **COMPLETED**
+6. **Task 5.3** - Balance Transfers (needs schema change) - **COMPLETED**
+7. **Task 5.4** - Credit Card Refunds (needs schema change) - **COMPLETED**
+8. **Task 5.2** - Credit Card Purchase Display (polish) - **NO CHANGES NEEDED** (works correctly)
+9. **Task 5.7** - Remove Legacy Debt Linking (final cleanup) - **DEFERRED** (gradual migration)
 
 ---
 

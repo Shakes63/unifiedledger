@@ -3377,12 +3377,12 @@ Since there are no production users yet, we can do a clean slate:
 - [x] Partial payment handling with shortfall tracking (bill-payment-utils.ts)
 - [x] Payment history recording for all bill payments (bill_payments table, API endpoints)
 - [x] Credit card payments via transfer with auto bill instance marking
-- [ ] Credit card purchases as expenses (not double-counted)
-- [ ] Balance transfers between credit cards (needs isBalanceTransfer field - migration created)
-- [ ] Refunds on credit cards (negative expense) (needs isRefund field - migration created)
-- [ ] Loan payments via expense + bill selection
-- [ ] Remove debt linking (use bill linking)
-- [ ] Auto-match transactions for bills with chargedToAccountId
+- [x] Balance transfers between credit cards (isBalanceTransfer field, skips bill marking)
+- [x] Refunds on credit cards (isRefund field for income on credit accounts)
+- [x] Loan/debt bill payments via expense with bill selection (uses processBillPayment)
+- [x] Auto-match transactions for bills with chargedToAccountId (Levenshtein + amount/date)
+- [x] Credit card purchases as expenses (works correctly - no changes needed)
+- [ ] Remove debt linking (use bill linking) - Deferred for gradual migration
 
 ### Phase 6: Autopay System
 - Implement autopay fields on bills
