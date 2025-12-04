@@ -43,6 +43,7 @@ This document provides a comprehensive checklist for manually testing all featur
 33. [Unified Architecture (Phase 5)](#33-unified-architecture-phase-5)
 34. [Unified Architecture (Phase 6)](#34-unified-architecture-phase-6)
 35. [Unified Architecture (Phase 7)](#35-unified-architecture-phase-7)
+36. [Unified Architecture (Phase 8)](#36-unified-architecture-phase-8)
 
 ---
 
@@ -863,6 +864,55 @@ Phase 7 implements budget integration with debt payoff strategy.
 
 ---
 
+## 36. Unified Architecture (Phase 8)
+
+**Added: 2025-12-04** | **Result: CODE VERIFIED**
+
+Phase 8 implements payoff strategy updates to use unified debt sources and per-debt inclusion toggles.
+
+### Payoff Strategy API Updates
+- [ ] GET /api/debts/payoff-strategy uses unified sources (accounts + bills)
+- [ ] Response includes `source` and `sourceType` for each debt
+- [ ] Response includes `excludedDebts` section
+- [ ] `inStrategyOnly` query param filters correctly
+- [ ] Uses householdSettings for strategy configuration
+- [ ] Falls back to debtSettings for backward compatibility
+
+### Strategy Toggle API
+- [ ] POST /api/debts/strategy-toggle validates source (account/bill)
+- [ ] Toggle updates account `includeInPayoffStrategy` correctly
+- [ ] Toggle updates bill `includeInPayoffStrategy` correctly
+- [ ] Returns error for non-credit accounts
+- [ ] Returns error for non-debt bills
+- [ ] Returns updated debt in unified format
+
+### Settings Migration
+- [ ] GET /api/debts/settings reads from householdSettings first
+- [ ] Falls back to legacy debtSettings if householdSettings missing
+- [ ] Returns `debtStrategyEnabled` field
+- [ ] PUT /api/debts/settings updates both householdSettings and debtSettings
+- [ ] Creates settings if none exist
+
+### Stats API Updates
+- [ ] GET /api/debts/stats uses unified mode by default
+- [ ] Response includes `inStrategyCount` and `inStrategyBalance`
+- [ ] Response includes `creditAccountCount` and `debtBillCount`
+- [ ] `?unified=false` uses legacy debts table
+
+### Debts Page UI
+- [ ] Strategy toggle button works on UnifiedDebtCard
+- [ ] Toggling updates local state optimistically
+- [ ] Toast shows success/error message
+- [ ] Summary stats update on toggle
+- [ ] Strategy refresh triggered after toggle
+
+### Visual Indicators
+- [ ] Debts in strategy show green "In Strategy" badge
+- [ ] Excluded debts show gray "Excluded" badge
+- [ ] Excluded debt cards have reduced opacity
+
+---
+
 ## Testing Summary
 
 | Section | Status | Notes |
@@ -902,8 +952,9 @@ Phase 7 implements budget integration with debt payoff strategy.
 | 33. Unified Architecture (Phase 5) | CODE VERIFIED | Transaction flow updates |
 | 34. Unified Architecture (Phase 6) | CODE VERIFIED | Autopay system |
 | 35. Unified Architecture (Phase 7) | CODE VERIFIED | Budget integration |
+| 36. Unified Architecture (Phase 8) | CODE VERIFIED | Payoff strategy & per-debt inclusion |
 
-**Overall: 22/35 browser-tested, 13/35 code/schema-reviewed**
+**Overall: 22/36 browser-tested, 14/36 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-04
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true

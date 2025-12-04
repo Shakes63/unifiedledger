@@ -526,8 +526,47 @@ export default function DebtsPage() {
                     debt={debt}
                     defaultExpanded={allExpanded ?? false}
                     onToggleStrategy={async (debtId, include) => {
-                      // TODO: Implement strategy toggle API
-                      toast.info('Strategy toggle coming soon');
+                      try {
+                        const response = await postWithHousehold('/api/debts/strategy-toggle', {
+                          source: debt.source,
+                          id: debtId,
+                          include,
+                        });
+                        
+                        if (!response.ok) {
+                          const error = await response.json();
+                          throw new Error(error.error || 'Failed to update');
+                        }
+                        
+                        // Update local state optimistically
+                        setUnifiedDebts(prev => 
+                          prev.map(d => 
+                            d.id === debtId 
+                              ? { ...d, includeInPayoffStrategy: include }
+                              : d
+                          )
+                        );
+                        
+                        // Update summary counts
+                        if (unifiedSummary) {
+                          setUnifiedSummary({
+                            ...unifiedSummary,
+                            inStrategyCount: include 
+                              ? unifiedSummary.inStrategyCount + 1 
+                              : unifiedSummary.inStrategyCount - 1,
+                          });
+                        }
+                        
+                        toast.success(include 
+                          ? `${debt.name} added to payoff strategy` 
+                          : `${debt.name} excluded from payoff strategy`
+                        );
+                        
+                        // Refresh strategy data
+                        triggerRefresh();
+                      } catch (error) {
+                        toast.error(error instanceof Error ? error.message : 'Failed to update strategy');
+                      }
                     }}
                   />
                 ))}

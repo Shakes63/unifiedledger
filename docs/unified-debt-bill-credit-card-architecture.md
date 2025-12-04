@@ -15,7 +15,7 @@
 | 5 | Transaction Flow Updates | COMPLETED 2025-12-04 |
 | 6 | Autopay System | COMPLETED 2025-12-04 |
 | 7 | Budget Integration | COMPLETED 2025-12-04 |
-| 8 | Payoff Strategy & Per-Debt Inclusion | Not Started |
+| 8 | Payoff Strategy & Per-Debt Inclusion | COMPLETED 2025-12-04 |
 | 9 | Calendar Integration | Not Started |
 | 10 | Notifications | Not Started |
 | 11 | Tax Integration | Not Started |
@@ -32,6 +32,7 @@
 - [Phase 1 Plan](./phase-1-schema-changes-plan.md)
 - [Phase 5 Plan](./phase-5-transaction-flow-plan.md)
 - [Phase 6 Plan](./phase-6-autopay-system-plan.md)
+- [Phase 8 Plan](./phase-8-payoff-strategy-plan.md)
 
 ---
 
@@ -3404,14 +3405,22 @@ Since there are no production users yet, we can do a clean slate:
 - [x] Updated budget manager modal with editable manual debt budgets
 - [x] Added `budgetedMonthlyPayment` field to accounts and bills tables
 
-### Phase 8: Payoff Strategy & Per-Debt Inclusion
-- Update calculations to pull from accounts (credit) + bills (isDebt)
-- Filter by `includeInPayoffStrategy` flag
-- Unified debt list from both sources
-- Move payoff settings to household settings
-- Milestones on bills and accounts
-- Handle debts excluded from strategy separately
-- Recalculate when debt paid off or toggled
+### Phase 8: Payoff Strategy & Per-Debt Inclusion [COMPLETED 2025-12-04]
+- [x] Update calculations to pull from accounts (credit) + bills (isDebt)
+- [x] Filter by `includeInPayoffStrategy` flag
+- [x] Unified debt list from both sources
+- [x] Move payoff settings to household settings (with backward compatibility)
+- [x] Milestones on bills and accounts (uses existing `billMilestones` table from Phase 1.3)
+- [x] Handle debts excluded from strategy separately
+- [x] Recalculate when debt paid off or toggled (strategy toggle API)
+
+**Implementation Details:**
+- Updated `/api/debts/payoff-strategy` to use unified debt sources (credit accounts + debt bills)
+- Created `/api/debts/strategy-toggle` endpoint for per-debt inclusion/exclusion
+- Updated `/api/debts/settings` to use `householdSettings` with `debtSettings` fallback
+- Updated `/api/debts/stats` to support unified mode with `?unified=true` (default)
+- Updated debts page UI with working strategy toggle buttons
+- Response includes `excludedDebts` section for debts not in strategy
 
 ### Phase 9: Calendar Integration
 - Bill due dates on calendar (including credit card payment bills)

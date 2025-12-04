@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { debtSettings } from '@/lib/db/schema';
+import { householdSettings, debtSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { syncAllDebtPayoffDates } from '@/lib/debts/payoff-date-utils';
@@ -13,7 +13,24 @@ export async function GET(request: Request) {
     const { userId } = await requireAuth();
     const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    const settings = await db
+    // Try to fetch from householdSettings first (new location)
+    const [settings] = await db
+      .select()
+      .from(householdSettings)
+      .where(eq(householdSettings.householdId, householdId))
+      .limit(1);
+
+    if (settings) {
+      return Response.json({
+        extraMonthlyPayment: settings.extraMonthlyPayment || 0,
+        preferredMethod: settings.debtPayoffMethod || 'avalanche',
+        paymentFrequency: settings.paymentFrequency || 'monthly',
+        debtStrategyEnabled: settings.debtStrategyEnabled ?? false,
+      });
+    }
+
+    // Fallback to legacy debtSettings table
+    const [legacySettings] = await db
       .select()
       .from(debtSettings)
       .where(
@@ -24,19 +41,21 @@ export async function GET(request: Request) {
       )
       .limit(1);
 
-    if (settings.length === 0) {
-      // Return default settings if none exist for this household
+    if (legacySettings) {
       return Response.json({
-        extraMonthlyPayment: 0,
-        preferredMethod: 'avalanche',
-        paymentFrequency: 'monthly',
+        extraMonthlyPayment: legacySettings.extraMonthlyPayment || 0,
+        preferredMethod: legacySettings.preferredMethod || 'avalanche',
+        paymentFrequency: legacySettings.paymentFrequency || 'monthly',
+        debtStrategyEnabled: false, // Legacy doesn't have this field
       });
     }
 
+    // Return default settings if none exist
     return Response.json({
-      extraMonthlyPayment: settings[0].extraMonthlyPayment || 0,
-      preferredMethod: settings[0].preferredMethod || 'avalanche',
-      paymentFrequency: settings[0].paymentFrequency || 'monthly',
+      extraMonthlyPayment: 0,
+      preferredMethod: 'avalanche',
+      paymentFrequency: 'monthly',
+      debtStrategyEnabled: false,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -56,15 +75,59 @@ export async function PUT(request: Request) {
     const body = await request.json();
     const { householdId } = await getAndVerifyHousehold(request, userId, body);
 
-    const { extraMonthlyPayment, preferredMethod, paymentFrequency } = body;
+    const { extraMonthlyPayment, preferredMethod, paymentFrequency, debtStrategyEnabled } = body;
 
     // Validate payment frequency
-    if (paymentFrequency && !['weekly', 'biweekly', 'monthly', 'quarterly'].includes(paymentFrequency)) {
-      return Response.json({ error: 'Invalid payment frequency. Must be "weekly", "biweekly", "monthly", or "quarterly"' }, { status: 400 });
+    if (paymentFrequency && !['weekly', 'biweekly', 'monthly'].includes(paymentFrequency)) {
+      return Response.json({ 
+        error: 'Invalid payment frequency. Must be "weekly", "biweekly", or "monthly"' 
+      }, { status: 400 });
     }
 
-    // Check if settings exist for this household
-    const existingSettings = await db
+    // Validate preferred method
+    if (preferredMethod && !['snowball', 'avalanche'].includes(preferredMethod)) {
+      return Response.json({ 
+        error: 'Invalid preferred method. Must be "snowball" or "avalanche"' 
+      }, { status: 400 });
+    }
+
+    // Check if householdSettings exists
+    const [existingSettings] = await db
+      .select()
+      .from(householdSettings)
+      .where(eq(householdSettings.householdId, householdId))
+      .limit(1);
+
+    if (existingSettings) {
+      // Update existing household settings
+      await db
+        .update(householdSettings)
+        .set({
+          extraMonthlyPayment: extraMonthlyPayment !== undefined 
+            ? extraMonthlyPayment 
+            : existingSettings.extraMonthlyPayment,
+          debtPayoffMethod: preferredMethod || existingSettings.debtPayoffMethod,
+          paymentFrequency: paymentFrequency || existingSettings.paymentFrequency,
+          debtStrategyEnabled: debtStrategyEnabled !== undefined 
+            ? debtStrategyEnabled 
+            : existingSettings.debtStrategyEnabled,
+        })
+        .where(eq(householdSettings.householdId, householdId));
+    } else {
+      // Create new household settings
+      await db.insert(householdSettings).values({
+        id: nanoid(),
+        householdId,
+        extraMonthlyPayment: extraMonthlyPayment || 0,
+        debtPayoffMethod: preferredMethod || 'avalanche',
+        paymentFrequency: paymentFrequency || 'monthly',
+        debtStrategyEnabled: debtStrategyEnabled ?? false,
+      });
+    }
+
+    // Also update legacy debtSettings for backwards compatibility
+    // This ensures components still using the old table work correctly
+    const [legacySettings] = await db
       .select()
       .from(debtSettings)
       .where(
@@ -75,8 +138,25 @@ export async function PUT(request: Request) {
       )
       .limit(1);
 
-    if (existingSettings.length === 0) {
-      // Create new settings for this household
+    if (legacySettings) {
+      await db
+        .update(debtSettings)
+        .set({
+          extraMonthlyPayment: extraMonthlyPayment !== undefined 
+            ? extraMonthlyPayment 
+            : legacySettings.extraMonthlyPayment,
+          preferredMethod: preferredMethod || legacySettings.preferredMethod,
+          paymentFrequency: paymentFrequency || legacySettings.paymentFrequency,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(
+          and(
+            eq(debtSettings.userId, userId),
+            eq(debtSettings.householdId, householdId)
+          )
+        );
+    } else {
+      // Create legacy settings for backwards compatibility
       await db.insert(debtSettings).values({
         id: nanoid(),
         userId,
@@ -87,26 +167,11 @@ export async function PUT(request: Request) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
-    } else {
-      // Update existing settings for this household
-      await db
-        .update(debtSettings)
-        .set({
-          extraMonthlyPayment: extraMonthlyPayment !== undefined ? extraMonthlyPayment : existingSettings[0].extraMonthlyPayment,
-          preferredMethod: preferredMethod || existingSettings[0].preferredMethod,
-          paymentFrequency: paymentFrequency || existingSettings[0].paymentFrequency,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(debtSettings.userId, userId),
-            eq(debtSettings.householdId, householdId)
-          )
-        );
     }
 
     // Recalculate payoff dates for all active debts when settings change
-    // These settings affect payoff projections (extra payment, method, frequency)
+    // Note: This function still uses the legacy debts table
+    // TODO: Update to use unified debt sources in a future phase
     await syncAllDebtPayoffDates(userId, householdId);
 
     return Response.json({ success: true });
