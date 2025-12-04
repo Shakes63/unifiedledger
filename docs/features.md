@@ -19,7 +19,8 @@ _Add new feature ideas here_
     - **Phase 4: Display Updates** [COMPLETED 2025-12-03] - Accounts page grouped by Cash vs Credit with section totals. Debts page unified view combining credit accounts and debt bills with filter tabs. Dashboard shows cash vs credit separation. Enhanced AccountCard with line of credit support, APR display, overpayment handling, strategy inclusion status. Utilization trends and balance history charts added.
     - **Phase 5: Transaction Flow Updates** [COMPLETED 2025-12-04] - Credit card payments via transfers with auto-detection of linked bills. Partial payment handling with shortfall tracking. Payment history recording in bill_payments table. Balance transfers between credit cards (isBalanceTransfer flag). Credit card refunds detection (isRefund flag). Debt bill payments with principal/interest breakdown. Auto-match for chargedToAccountId bills.
     - **Phase 6: Autopay System** [COMPLETED 2025-12-04] - Automatic bill payment processing via daily cron job. Supports fixed, minimum payment, statement balance, and full balance amounts. Creates transfers for credit card payments, expenses for regular bills. Records all payments in bill_payments table. Sends success/failure notifications. Suppresses reminders for autopay bills.
-    - **Phases 7-19** - _Not started_
+    - **Phase 7: Budget Integration** [COMPLETED 2025-12-04] - Debt strategy toggle in household settings. Strategy mode shows single "Debt Payments" line managed by snowball/avalanche. Manual mode shows individual editable debt lines. Mixed mode supports strategy debts grouped with excluded debts as manual lines. Unified debt budget API combines credit accounts and debt bills.
+    - **Phases 8-19** - _Not started_
 
 ---
 

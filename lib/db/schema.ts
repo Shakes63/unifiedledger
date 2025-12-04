@@ -64,6 +64,8 @@ export const accounts = sqliteTable(
     // Automation and strategy fields
     autoCreatePaymentBill: integer('auto_create_payment_bill', { mode: 'boolean' }).default(true),
     includeInPayoffStrategy: integer('include_in_payoff_strategy', { mode: 'boolean' }).default(true),
+    // Budget integration (Phase 7)
+    budgetedMonthlyPayment: real('budgeted_monthly_payment'),
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   },
@@ -399,6 +401,8 @@ export const bills = sqliteTable(
     billColor: text('bill_color'),
     // Payoff strategy
     includeInPayoffStrategy: integer('include_in_payoff_strategy', { mode: 'boolean' }).default(true),
+    // Budget integration (Phase 7)
+    budgetedMonthlyPayment: real('budgeted_monthly_payment'),
     // Tax deduction settings
     isInterestTaxDeductible: integer('is_interest_tax_deductible', { mode: 'boolean' }).default(false),
     taxDeductionType: text('tax_deduction_type', {

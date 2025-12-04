@@ -21,26 +21,39 @@ import { useHousehold } from '@/contexts/household-context';
 import { Info, Star, ExternalLink, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 
-interface DebtBudgetItem {
-  debtId: string;
-  debtName: string;
-  creditorName: string;
+// Types for unified debt budget
+interface UnifiedDebtItem {
+  id: string;
+  name: string;
+  source: 'account' | 'bill';
+  sourceType: string;
+  balance: number;
   minimumPayment: number;
-  additionalMonthlyPayment: number;
   recommendedPayment: number;
+  budgetedPayment: number | null;
+  actualPaid: number;
   isFocusDebt: boolean;
-  remainingBalance: number;
-  interestRate: number;
-  color: string;
+  includeInPayoffStrategy: boolean;
+  interestRate?: number;
+  color?: string;
 }
 
-interface DebtBudgetData {
-  debts: DebtBudgetItem[];
-  totalMinimumPayments: number;
-  totalRecommendedPayments: number;
-  focusDebt: DebtBudgetItem | null;
-  extraPaymentAmount: number;
+interface UnifiedDebtBudgetData {
+  strategyEnabled: boolean;
   payoffMethod: 'snowball' | 'avalanche';
+  extraMonthlyPayment: number;
+  paymentFrequency: 'weekly' | 'biweekly' | 'monthly';
+  strategyDebts: {
+    items: UnifiedDebtItem[];
+    totalMinimum: number;
+    totalRecommended: number;
+    totalPaid: number;
+  };
+  manualDebts: UnifiedDebtItem[];
+  totalMinimumPayments: number;
+  totalBudgetedPayments: number;
+  totalActualPaid: number;
+  debtCount: number;
 }
 
 interface Category {
@@ -66,13 +79,14 @@ export function BudgetManagerModal({
   month,
 }: BudgetManagerModalProps) {
   const { selectedHouseholdId } = useHousehold();
-  const { fetchWithHousehold, postWithHousehold } = useHouseholdFetch();
+  const { fetchWithHousehold, postWithHousehold, putWithHousehold } = useHouseholdFetch();
   const [categories, setCategories] = useState<Category[]>([]);
   const [budgetValues, setBudgetValues] = useState<Record<string, string>>({});
   const [frequencies, setFrequencies] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [debtBudgetData, setDebtBudgetData] = useState<DebtBudgetData | null>(null);
+  const [debtBudgetData, setDebtBudgetData] = useState<UnifiedDebtBudgetData | null>(null);
+  const [manualDebtBudgets, setManualDebtBudgets] = useState<Record<string, string>>({});
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -111,10 +125,29 @@ export function BudgetManagerModal({
 
   const fetchDebtBudgetData = useCallback(async () => {
     try {
-      const response = await fetchWithHousehold(`/api/budgets/debts?month=${month}`);
+      const response = await fetchWithHousehold(`/api/budgets/debts-unified?month=${month}`);
       if (response.ok) {
-        const data = await response.json();
+        const data: UnifiedDebtBudgetData = await response.json();
         setDebtBudgetData(data);
+        
+        // Initialize manual debt budget values
+        const initialManualBudgets: Record<string, string> = {};
+        
+        // For strategy mode: manual debts are editable
+        data.manualDebts.forEach(debt => {
+          const value = debt.budgetedPayment ?? debt.minimumPayment;
+          initialManualBudgets[debt.id] = value.toFixed(2);
+        });
+        
+        // For manual mode: all debts are editable
+        if (!data.strategyEnabled) {
+          data.strategyDebts.items.forEach(debt => {
+            const value = debt.budgetedPayment ?? debt.minimumPayment;
+            initialManualBudgets[debt.id] = value.toFixed(2);
+          });
+        }
+        
+        setManualDebtBudgets(initialManualBudgets);
       }
     } catch (error) {
       console.error('Error fetching debt budget data:', error);
@@ -163,6 +196,40 @@ export function BudgetManagerModal({
 
       if (!response.ok) {
         throw new Error('Failed to save budgets');
+      }
+
+      // Save manual debt budget values
+      if (Object.keys(manualDebtBudgets).length > 0) {
+        const debtBudgetUpdates = Object.entries(manualDebtBudgets).map(([debtId, value]) => ({
+          id: debtId,
+          budgetedMonthlyPayment: parseFloat(value) || 0,
+        }));
+
+        // Update account budgets
+        const accountUpdates = debtBudgetUpdates.filter(d => 
+          debtBudgetData?.strategyDebts.items.find(item => item.id === d.id && item.source === 'account') ||
+          debtBudgetData?.manualDebts.find(item => item.id === d.id && item.source === 'account')
+        );
+
+        // Update bill budgets
+        const billUpdates = debtBudgetUpdates.filter(d => 
+          debtBudgetData?.strategyDebts.items.find(item => item.id === d.id && item.source === 'bill') ||
+          debtBudgetData?.manualDebts.find(item => item.id === d.id && item.source === 'bill')
+        );
+
+        // Save account budget updates
+        for (const update of accountUpdates) {
+          await putWithHousehold(`/api/accounts/${update.id}`, {
+            budgetedMonthlyPayment: update.budgetedMonthlyPayment,
+          });
+        }
+
+        // Save bill budget updates
+        for (const update of billUpdates) {
+          await putWithHousehold(`/api/bills/${update.id}`, {
+            budgetedMonthlyPayment: update.budgetedMonthlyPayment,
+          });
+        }
       }
 
       toast.success('Budgets saved successfully');
@@ -230,8 +297,28 @@ export function BudgetManagerModal({
         return new Decimal(sum).plus(value || 0).toNumber();
       }, 0);
 
-    // Include debt payments from the debt system
-    const debtTotal = debtBudgetData?.totalRecommendedPayments || 0;
+    // Calculate debt total based on strategy mode
+    let debtTotal = 0;
+    if (debtBudgetData) {
+      if (debtBudgetData.strategyEnabled) {
+        // Strategy debts: use recommended payments
+        debtTotal = new Decimal(debtBudgetData.strategyDebts.totalRecommended)
+          .plus(
+            debtBudgetData.manualDebts.reduce((sum, d) => {
+              const value = parseFloat(manualDebtBudgets[d.id] || '0');
+              return new Decimal(sum).plus(value || d.minimumPayment).toNumber();
+            }, 0)
+          )
+          .toNumber();
+      } else {
+        // Manual mode: use editable values
+        const allDebts = [...debtBudgetData.strategyDebts.items, ...debtBudgetData.manualDebts];
+        debtTotal = allDebts.reduce((sum, d) => {
+          const value = parseFloat(manualDebtBudgets[d.id] || '0');
+          return new Decimal(sum).plus(value || d.minimumPayment).toNumber();
+        }, 0);
+      }
+    }
 
     const surplus = new Decimal(incomeTotal)
       .minus(expenseTotal)
@@ -375,15 +462,19 @@ export function BudgetManagerModal({
               </div>
             )}
 
-            {/* Debt Payments (Auto-calculated from Debt System) */}
-            {debtBudgetData && debtBudgetData.debts.length > 0 && (
+            {/* Debt Payments */}
+            {debtBudgetData && debtBudgetData.debtCount > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <CreditCard className="w-4 h-4 text-[var(--color-expense)]" />
                   <h3 className="text-sm font-semibold text-foreground">
                     Debt Payments
                   </h3>
-                  <span className="text-xs text-muted-foreground">(Auto-calculated)</span>
+                  {debtBudgetData.strategyEnabled && (
+                    <span className="text-xs px-2 py-0.5 bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded">
+                      {debtBudgetData.payoffMethod} strategy
+                    </span>
+                  )}
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -393,54 +484,130 @@ export function BudgetManagerModal({
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p>
-                          Debt payments are automatically calculated from your debt payoff strategy.
-                          Edit them on the Debts page.
+                          {debtBudgetData.strategyEnabled
+                            ? 'Strategy debts are auto-calculated. Excluded debts can be edited below.'
+                            : 'Set custom payment amounts for each debt.'}
                         </p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </div>
-                <div className="space-y-2 bg-elevated/50 rounded-lg p-3 border border-border">
-                  {debtBudgetData.debts.map(debt => (
-                    <div key={debt.debtId} className="flex items-center justify-between py-1">
+                <div className="space-y-3 bg-elevated/50 rounded-lg p-3 border border-border">
+                  {/* Strategy-managed debts (read-only when strategy is enabled) */}
+                  {debtBudgetData.strategyEnabled && debtBudgetData.strategyDebts.items.length > 0 && (
+                    <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: debt.color }}
-                        />
-                        <span className="text-sm text-foreground">{debt.debtName}</span>
-                        {debt.isFocusDebt && (
-                          <span className="inline-flex items-center gap-0.5 text-xs text-[var(--color-primary)]">
-                            <Star className="w-3 h-3" />
-                            Focus
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <span className="text-sm font-mono text-foreground">
-                          ${debt.recommendedPayment.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        <Star className="w-3 h-3 text-[var(--color-primary)]" />
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Managed by Strategy
                         </span>
-                        {debt.isFocusDebt && debt.recommendedPayment > debt.minimumPayment && (
-                          <span className="text-xs text-muted-foreground ml-1">
-                            (min: ${debt.minimumPayment.toFixed(2)})
-                          </span>
-                        )}
                       </div>
+                      {debtBudgetData.strategyDebts.items.map(debt => (
+                        <div key={debt.id} className="flex items-center justify-between py-1">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: debt.color || '#6b7280' }}
+                            />
+                            <span className="text-sm text-foreground">{debt.name}</span>
+                            {debt.isFocusDebt && (
+                              <span className="inline-flex items-center gap-0.5 text-xs text-[var(--color-primary)]">
+                                <Star className="w-3 h-3" />
+                                Focus
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm font-mono text-foreground">
+                              ${debt.recommendedPayment.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            </span>
+                            {debt.isFocusDebt && debt.recommendedPayment > debt.minimumPayment && (
+                              <span className="text-xs text-muted-foreground ml-1">
+                                (min: ${debt.minimumPayment.toFixed(2)})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+
+                  {/* Manual/Excluded debts (editable) */}
+                  {((!debtBudgetData.strategyEnabled && debtBudgetData.strategyDebts.items.length > 0) ||
+                    debtBudgetData.manualDebts.length > 0) && (
+                    <div className="space-y-2">
+                      {debtBudgetData.strategyEnabled && debtBudgetData.manualDebts.length > 0 && (
+                        <div className="flex items-center gap-2 pt-2 border-t border-border">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Excluded from Strategy (Editable)
+                          </span>
+                        </div>
+                      )}
+                      {(!debtBudgetData.strategyEnabled && debtBudgetData.strategyDebts.items.length > 0) && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Set payment amounts
+                          </span>
+                        </div>
+                      )}
+                      {/* Render editable debts */}
+                      {(!debtBudgetData.strategyEnabled
+                        ? debtBudgetData.strategyDebts.items
+                        : debtBudgetData.manualDebts
+                      ).map(debt => (
+                        <div key={debt.id} className="flex items-center justify-between py-1">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-3 h-3 rounded-full flex-shrink-0"
+                              style={{ backgroundColor: debt.color || '#6b7280' }}
+                            />
+                            <span className="text-sm text-foreground">{debt.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              (min: ${debt.minimumPayment.toFixed(2)})
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-sm text-muted-foreground">$</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={manualDebtBudgets[debt.id] || debt.minimumPayment.toFixed(2)}
+                              onChange={e =>
+                                setManualDebtBudgets(prev => ({
+                                  ...prev,
+                                  [debt.id]: e.target.value,
+                                }))
+                              }
+                              className="w-28 bg-input border border-border rounded-lg px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between pt-2 mt-2 border-t border-border">
                     <span className="text-sm font-medium text-muted-foreground">Total Debt Payments:</span>
                     <span className="text-sm font-mono font-semibold text-[var(--color-expense)]">
-                      ${debtBudgetData.totalRecommendedPayments.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      ${totals.debtTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
-                  <Link
-                    href="/dashboard/debts"
-                    className="flex items-center justify-center gap-1 mt-2 text-xs text-[var(--color-primary)] hover:underline"
-                  >
-                    Adjust Debt Strategy
-                    <ExternalLink className="w-3 h-3" />
-                  </Link>
+                  <div className="flex items-center justify-center gap-4 mt-2">
+                    <Link
+                      href="/dashboard/debts"
+                      className="flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline"
+                    >
+                      Manage Debts
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                    <Link
+                      href="/dashboard/settings?tab=household-financial"
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Strategy Settings
+                    </Link>
+                  </div>
                 </div>
               </div>
             )}

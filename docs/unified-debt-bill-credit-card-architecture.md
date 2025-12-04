@@ -14,7 +14,7 @@
 | 4 | Display Updates | COMPLETED 2025-12-03 |
 | 5 | Transaction Flow Updates | COMPLETED 2025-12-04 |
 | 6 | Autopay System | COMPLETED 2025-12-04 |
-| 7 | Budget Integration | Not Started |
+| 7 | Budget Integration | COMPLETED 2025-12-04 |
 | 8 | Payoff Strategy & Per-Debt Inclusion | Not Started |
 | 9 | Calendar Integration | Not Started |
 | 10 | Notifications | Not Started |
@@ -3393,12 +3393,16 @@ Since there are no production users yet, we can do a clean slate:
 - [x] Autopay notifications (lib/notifications/autopay-notifications.ts)
 - [x] Suppress bill reminders for autopay-enabled bills
 
-### Phase 7: Budget Integration
-- Add debt strategy toggle to household settings
-- Strategy ENABLED: Single "Debt Payments" line in budget linking to strategy
-- Strategy DISABLED: Each debt as individual editable budget line
-- Mixed mode: Strategy debts grouped, excluded debts as manual lines
-- Ensure credit card purchases are expenses, payments are transfers
+### Phase 7: Budget Integration [COMPLETED 2025-12-04]
+- [x] Add debt strategy toggle to household settings
+- [x] Strategy ENABLED: Single "Debt Payments" line in budget linking to strategy
+- [x] Strategy DISABLED: Each debt as individual editable budget line
+- [x] Mixed mode: Strategy debts grouped, excluded debts as manual lines
+- [x] Ensure credit card purchases are expenses, payments are transfers
+- [x] Created `/api/budgets/debts-unified` endpoint combining credit accounts and debt bills
+- [x] Created `UnifiedDebtBudgetSection` component with strategy/manual modes
+- [x] Updated budget manager modal with editable manual debt budgets
+- [x] Added `budgetedMonthlyPayment` field to accounts and bills tables
 
 ### Phase 8: Payoff Strategy & Per-Debt Inclusion
 - Update calculations to pull from accounts (credit) + bills (isDebt)

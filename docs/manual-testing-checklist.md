@@ -42,6 +42,7 @@ This document provides a comprehensive checklist for manually testing all featur
 32. [Unified Architecture (Phase 4)](#32-unified-architecture-phase-4)
 33. [Unified Architecture (Phase 5)](#33-unified-architecture-phase-5)
 34. [Unified Architecture (Phase 6)](#34-unified-architecture-phase-6)
+35. [Unified Architecture (Phase 7)](#35-unified-architecture-phase-7)
 
 ---
 
@@ -809,6 +810,59 @@ Phase 6 implements the Autopay System for automatic bill payments.
 
 ---
 
+## 35. Unified Architecture (Phase 7)
+
+**Added: 2025-12-04** | **Result: CODE VERIFIED**
+
+Phase 7 implements budget integration with debt payoff strategy.
+
+### Debt Strategy Toggle in Settings
+- [ ] Household Financial Settings shows "Debt Payoff Strategy" section
+- [ ] Toggle enables/disables strategy mode
+- [ ] Payoff Method dropdown (Avalanche/Snowball) appears when enabled
+- [ ] Extra Monthly Payment input works
+- [ ] Payment Frequency dropdown works
+- [ ] Settings save correctly to household settings table
+
+### Budget Page - Strategy Mode (debtStrategyEnabled=true)
+- [ ] Debt section shows "Managed by Strategy" header with method name
+- [ ] Focus debt highlighted with star icon
+- [ ] Extra payment amount displayed on focus debt
+- [ ] All strategy debts shown with recommended payments (read-only)
+- [ ] Excluded debts shown in separate "Manual" section (editable)
+- [ ] Total calculated from strategy + manual debts
+
+### Budget Page - Manual Mode (debtStrategyEnabled=false)
+- [ ] All debts shown as individual editable lines
+- [ ] Each debt shows minimum payment reference
+- [ ] Custom budgeted payment amounts can be entered
+- [ ] "Enable Payoff Strategy" link shown
+- [ ] Total calculated from all custom amounts
+
+### Budget Manager Modal
+- [ ] Strategy debts section shows when strategy enabled (read-only)
+- [ ] Manual/excluded debts section shows as editable inputs
+- [ ] Manual mode shows all debts as editable
+- [ ] Debt budget amounts save correctly to accounts/bills tables
+- [ ] Summary totals include debt payments
+- [ ] Links to Debts page and Strategy Settings work
+
+### API Endpoints
+- [ ] GET /api/budgets/debts-unified returns correct structure
+- [ ] Response includes strategyEnabled, payoffMethod, extraMonthlyPayment
+- [ ] strategyDebts items have isFocusDebt flag set correctly
+- [ ] manualDebts populated correctly based on includeInPayoffStrategy
+- [ ] Actual payments calculated from transactions correctly
+- [ ] PUT /api/accounts/[id] accepts budgetedMonthlyPayment
+- [ ] PUT /api/bills/[id] accepts budgetedMonthlyPayment
+
+### Database
+- [ ] budgeted_monthly_payment column exists on accounts table
+- [ ] budgeted_monthly_payment column exists on bills table
+- [ ] Migration 0065 applied successfully
+
+---
+
 ## Testing Summary
 
 | Section | Status | Notes |
@@ -847,8 +901,9 @@ Phase 6 implements the Autopay System for automatic bill payments.
 | 32. Unified Architecture (Phase 4) | NEEDS TESTING | Display updates |
 | 33. Unified Architecture (Phase 5) | CODE VERIFIED | Transaction flow updates |
 | 34. Unified Architecture (Phase 6) | CODE VERIFIED | Autopay system |
+| 35. Unified Architecture (Phase 7) | CODE VERIFIED | Budget integration |
 
-**Overall: 22/34 browser-tested, 12/34 code/schema-reviewed**
+**Overall: 22/35 browser-tested, 13/35 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-04
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true
