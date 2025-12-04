@@ -1,14 +1,14 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { transactions, budgetCategories, billInstances, bills, accounts, merchants, savingsGoals, debts, debtPayoffMilestones } from '@/lib/db/schema';
-import { eq, and, lt, isNotNull, gte, lte } from 'drizzle-orm';
-import { format } from 'date-fns';
+import { transactions, budgetCategories, billInstances, bills, accounts, merchants, savingsGoals, debts, debtPayoffMilestones, billMilestones } from '@/lib/db/schema';
+import { eq, and, lt, isNotNull, gte, lte, inArray } from 'drizzle-orm';
+import { format, addMonths, subDays } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/calendar/day
- * Get detailed transaction and bill information for a specific day
+ * Get detailed transaction, bill, autopay, and payoff information for a specific day
  * Query params: date (ISO string)
  */
 export async function GET(request: Request) {
@@ -153,15 +153,117 @@ export async function GET(request: Request) {
           )
           .limit(1);
 
+        let linkedAccountName: string | undefined;
+        if (bill[0]?.linkedAccountId) {
+          const linkedAccount = await db
+            .select()
+            .from(accounts)
+            .where(eq(accounts.id, bill[0].linkedAccountId))
+            .limit(1);
+          linkedAccountName = linkedAccount[0]?.name;
+        }
+
         return {
           id: instance.id,
+          billId: bill[0]?.id,
           description: bill[0]?.name || 'Unknown Bill',
           amount: instance.expectedAmount,
           dueDate: instance.dueDate,
           status: instance.status as 'pending' | 'paid' | 'overdue',
+          isDebt: bill[0]?.isDebt || false,
+          isAutopayEnabled: bill[0]?.isAutopayEnabled || false,
+          linkedAccountName,
         };
       })
     );
+
+    // ========== NEW: Autopay Events for this day ==========
+    // Find bills where (dueDate - autopayDaysBefore) = this day
+    const allAutopayBills = await db
+      .select()
+      .from(bills)
+      .where(
+        and(
+          eq(bills.userId, userId),
+          eq(bills.isAutopayEnabled, true),
+          eq(bills.isActive, true)
+        )
+      );
+
+    // Get pending bill instances for autopay bills to find their due dates
+    const autopayBillIds = allAutopayBills.map(b => b.id);
+    const pendingAutopayInstances = autopayBillIds.length > 0
+      ? await db
+          .select()
+          .from(billInstances)
+          .where(
+            and(
+              eq(billInstances.userId, userId),
+              eq(billInstances.status, 'pending'),
+              inArray(billInstances.billId, autopayBillIds)
+            )
+          )
+      : [];
+
+    // Calculate which autopay events fall on this day
+    interface AutopayEvent {
+      id: string;
+      billId: string;
+      billInstanceId: string;
+      billName: string;
+      amount: number;
+      autopayAmountType: string;
+      sourceAccountId: string;
+      sourceAccountName: string;
+      linkedAccountId?: string;
+      linkedAccountName?: string;
+      dueDate: string;
+    }
+    
+    const autopayEvents: AutopayEvent[] = [];
+    
+    for (const instance of pendingAutopayInstances) {
+      const bill = allAutopayBills.find(b => b.id === instance.billId);
+      if (!bill || !bill.autopayAccountId) continue;
+
+      const autopayDaysBefore = bill.autopayDaysBefore || 0;
+      const autopayDate = format(subDays(new Date(instance.dueDate), autopayDaysBefore), 'yyyy-MM-dd');
+
+      if (autopayDate === dateKey) {
+        // Get account names
+        const sourceAccount = await db
+          .select()
+          .from(accounts)
+          .where(eq(accounts.id, bill.autopayAccountId))
+          .limit(1);
+
+        let linkedAccountName: string | undefined;
+        if (bill.linkedAccountId) {
+          const linkedAccount = await db
+            .select()
+            .from(accounts)
+            .where(eq(accounts.id, bill.linkedAccountId))
+            .limit(1);
+          linkedAccountName = linkedAccount[0]?.name;
+        }
+
+        autopayEvents.push({
+          id: `autopay-${instance.id}`,
+          billId: bill.id,
+          billInstanceId: instance.id,
+          billName: bill.name,
+          amount: bill.autopayAmountType === 'fixed' 
+            ? (bill.autopayFixedAmount || instance.expectedAmount)
+            : instance.expectedAmount,
+          autopayAmountType: bill.autopayAmountType || 'fixed',
+          sourceAccountId: bill.autopayAccountId,
+          sourceAccountName: sourceAccount[0]?.name || 'Unknown Account',
+          linkedAccountId: bill.linkedAccountId || undefined,
+          linkedAccountName,
+          dueDate: instance.dueDate,
+        });
+      }
+    }
 
     // Get all savings goals with target date on this day
     const dayGoals = await db
@@ -194,7 +296,7 @@ export async function GET(request: Request) {
       };
     });
 
-    // Get all debts with target payoff date on this day
+    // Get all debts with target payoff date on this day (legacy)
     const dayDebts = await db
       .select()
       .from(debts)
@@ -220,6 +322,7 @@ export async function GET(request: Request) {
       status: string;
       debtType: 'target' | 'milestone';
       milestonePercentage?: number;
+      source?: 'legacy' | 'account' | 'bill';
     }> = dayDebts.map((debt) => {
       const originalAmount = debt.originalAmount || 0;
       const remainingBalance = debt.remainingBalance || 0;
@@ -240,11 +343,11 @@ export async function GET(request: Request) {
         type: debt.type || 'other',
         status: debt.status || 'active',
         debtType: 'target' as const,
+        source: 'legacy' as const,
       };
     });
 
-    // Get milestones achieved on this day
-    // Match the date part of achievedAt (which is an ISO string)
+    // Get milestones achieved on this day (legacy)
     const dayStart = dateKey;
     const dayEnd = dateKey + 'T23:59:59';
     
@@ -264,7 +367,7 @@ export async function GET(request: Request) {
         )
       );
 
-    // Add milestones to enriched debts array
+    // Add legacy milestones to enriched debts array
     for (const { milestone, debt } of dayMilestones) {
       enrichedDebts.push({
         id: `${debt.id}-milestone-${milestone.percentage}`,
@@ -280,6 +383,165 @@ export async function GET(request: Request) {
         status: debt.status || 'active',
         debtType: 'milestone' as const,
         milestonePercentage: milestone.percentage,
+        source: 'legacy' as const,
+      });
+    }
+
+    // ========== NEW: Unified Payoff Dates ==========
+    interface UnifiedPayoffDate {
+      id: string;
+      name: string;
+      source: 'account' | 'bill';
+      sourceType: string;
+      remainingBalance: number;
+      monthlyPayment: number;
+      projectedPayoffDate: string;
+      color?: string;
+      interestRate?: number;
+    }
+    
+    const payoffDates: UnifiedPayoffDate[] = [];
+
+    // Check if any credit accounts have projected payoff on this day
+    const creditAccounts = await db
+      .select()
+      .from(accounts)
+      .where(
+        and(
+          eq(accounts.userId, userId),
+          inArray(accounts.type, ['credit', 'line_of_credit']),
+          eq(accounts.isActive, true)
+        )
+      );
+
+    for (const acc of creditAccounts) {
+      const balance = Math.abs(acc.currentBalance || 0);
+      if (balance <= 0) continue;
+
+      const monthlyPayment = acc.budgetedMonthlyPayment || acc.minimumPaymentAmount || 0;
+      if (monthlyPayment <= 0) continue;
+
+      const monthsToPayoff = Math.ceil(balance / monthlyPayment);
+      const payoffDate = format(addMonths(new Date(), monthsToPayoff), 'yyyy-MM-dd');
+
+      if (payoffDate === dateKey) {
+        payoffDates.push({
+          id: acc.id,
+          name: acc.name,
+          source: 'account',
+          sourceType: acc.type,
+          remainingBalance: balance,
+          monthlyPayment,
+          projectedPayoffDate: payoffDate,
+          color: acc.color || undefined,
+          interestRate: acc.interestRate || undefined,
+        });
+      }
+    }
+
+    // Check if any debt bills have projected payoff on this day
+    const debtBills = await db
+      .select()
+      .from(bills)
+      .where(
+        and(
+          eq(bills.userId, userId),
+          eq(bills.isDebt, true),
+          eq(bills.isActive, true)
+        )
+      );
+
+    for (const bill of debtBills) {
+      const balance = bill.remainingBalance || 0;
+      if (balance <= 0) continue;
+
+      const monthlyPayment = bill.budgetedMonthlyPayment || bill.minimumPayment || bill.amount;
+      if (monthlyPayment <= 0) continue;
+
+      const monthsToPayoff = Math.ceil(balance / monthlyPayment);
+      const payoffDate = format(addMonths(new Date(), monthsToPayoff), 'yyyy-MM-dd');
+
+      if (payoffDate === dateKey) {
+        payoffDates.push({
+          id: bill.id,
+          name: bill.name,
+          source: 'bill',
+          sourceType: bill.debtType || 'other',
+          remainingBalance: balance,
+          monthlyPayment,
+          projectedPayoffDate: payoffDate,
+          color: bill.billColor || undefined,
+          interestRate: bill.billInterestRate || undefined,
+        });
+      }
+    }
+
+    // ========== NEW: Bill Milestones (unified architecture) ==========
+    interface BillMilestoneEvent {
+      id: string;
+      billId?: string;
+      accountId?: string;
+      name: string;
+      percentage: number;
+      achievedAt: string;
+      color?: string;
+      milestoneBalance: number;
+      source: 'account' | 'bill';
+    }
+    
+    const billMilestoneEvents: BillMilestoneEvent[] = [];
+
+    const dayBillMilestones = await db
+      .select()
+      .from(billMilestones)
+      .where(
+        and(
+          eq(billMilestones.userId, userId),
+          isNotNull(billMilestones.achievedAt),
+          gte(billMilestones.achievedAt, dayStart),
+          lte(billMilestones.achievedAt, dayEnd)
+        )
+      );
+
+    for (const milestone of dayBillMilestones) {
+      let name = 'Unknown';
+      let color: string | undefined;
+      let source: 'account' | 'bill' = 'bill';
+
+      if (milestone.billId) {
+        const bill = await db
+          .select()
+          .from(bills)
+          .where(eq(bills.id, milestone.billId))
+          .limit(1);
+        if (bill[0]) {
+          name = bill[0].name;
+          color = bill[0].billColor || undefined;
+        }
+        source = 'bill';
+      } else if (milestone.accountId) {
+        const account = await db
+          .select()
+          .from(accounts)
+          .where(eq(accounts.id, milestone.accountId))
+          .limit(1);
+        if (account[0]) {
+          name = account[0].name;
+          color = account[0].color || undefined;
+        }
+        source = 'account';
+      }
+
+      billMilestoneEvents.push({
+        id: milestone.id,
+        billId: milestone.billId || undefined,
+        accountId: milestone.accountId || undefined,
+        name,
+        percentage: milestone.percentage,
+        achievedAt: milestone.achievedAt!,
+        color,
+        milestoneBalance: milestone.milestoneBalance,
+        source,
       });
     }
 
@@ -309,6 +571,9 @@ export async function GET(request: Request) {
       billOverdueCount,
       goalCount: enrichedGoals.length,
       debtCount: enrichedDebts.length,
+      autopayCount: autopayEvents.length,
+      payoffDateCount: payoffDates.length,
+      billMilestoneCount: billMilestoneEvents.length,
     };
 
     return Response.json({
@@ -317,6 +582,9 @@ export async function GET(request: Request) {
       bills: enrichedBills,
       goals: enrichedGoals,
       debts: enrichedDebts,
+      autopayEvents,
+      payoffDates,
+      billMilestones: billMilestoneEvents,
       summary,
     });
   } catch (error) {

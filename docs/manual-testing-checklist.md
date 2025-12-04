@@ -44,6 +44,7 @@ This document provides a comprehensive checklist for manually testing all featur
 34. [Unified Architecture (Phase 6)](#34-unified-architecture-phase-6)
 35. [Unified Architecture (Phase 7)](#35-unified-architecture-phase-7)
 36. [Unified Architecture (Phase 8)](#36-unified-architecture-phase-8)
+37. [Unified Architecture (Phase 9)](#37-unified-architecture-phase-9)
 
 ---
 
@@ -913,6 +914,60 @@ Phase 8 implements payoff strategy updates to use unified debt sources and per-d
 
 ---
 
+## 37. Unified Architecture (Phase 9)
+
+**Added: 2025-12-04** | **Result: NEEDS TESTING**
+
+Phase 9 implements calendar integration with the unified debt architecture.
+
+### Bill Due Dates on Calendar
+- [ ] Credit card payment bills show with credit card icon
+- [ ] Bills with linkedAccountName show linked account info
+- [ ] Bill tooltip shows linked account name
+- [ ] Overdue bills appear first in day cell
+
+### Autopay Processing Dates on Calendar
+- [ ] Autopay events show on date = dueDate - autopayDaysBefore
+- [ ] Autopay indicator uses Clock icon
+- [ ] Autopay tooltip shows bill name, amount, source account
+- [ ] Autopay shows "To: [Account]" for credit card payments
+- [ ] Day modal shows Scheduled Autopay section with full details
+- [ ] Amount type label displays correctly (Fixed, Minimum, etc.)
+
+### Projected Payoff Dates on Calendar
+- [ ] Credit accounts with balance > 0 show projected payoff date
+- [ ] Debt bills with remainingBalance > 0 show projected payoff date
+- [ ] Payoff date calculated as: balance / monthlyPayment months from now
+- [ ] Payoff date uses TrendingDown icon
+- [ ] Color matches debt/account color
+- [ ] Day modal shows Projected Payoff Dates section
+- [ ] "Debt Free!" message displays with 100% progress bar
+
+### Bill Milestones on Calendar
+- [ ] Achieved milestones from billMilestones table appear on calendar
+- [ ] Milestones show Trophy icon
+- [ ] Milestone percentage displayed (25%, 50%, 75%, 100%)
+- [ ] Day modal shows Payoff Milestones section with details
+- [ ] Milestone balance shown in modal
+- [ ] Source type displayed (Credit Account / Loan)
+
+### Day Cell Display Priority
+- [ ] Overdue bills shown first (red)
+- [ ] Pending bills shown (orange/yellow)
+- [ ] Autopay events shown (primary color)
+- [ ] Goals shown (goal color)
+- [ ] Payoff dates shown (debt color)
+- [ ] Bill milestones shown (success color)
+- [ ] Transaction indicators at bottom
+
+### API Responses
+- [ ] GET /api/calendar/month includes autopayEvents, payoffDates, billMilestones
+- [ ] GET /api/calendar/day includes detailed autopay, payoff, and milestone data
+- [ ] Summary counts include autopayCount, payoffDateCount, billMilestoneCount
+- [ ] Bill objects include isDebt, isAutopayEnabled, linkedAccountName
+
+---
+
 ## Testing Summary
 
 | Section | Status | Notes |
@@ -953,8 +1008,9 @@ Phase 8 implements payoff strategy updates to use unified debt sources and per-d
 | 34. Unified Architecture (Phase 6) | CODE VERIFIED | Autopay system |
 | 35. Unified Architecture (Phase 7) | CODE VERIFIED | Budget integration |
 | 36. Unified Architecture (Phase 8) | CODE VERIFIED | Payoff strategy & per-debt inclusion |
+| 37. Unified Architecture (Phase 9) | CODE COMPLETE | Calendar integration |
 
-**Overall: 22/36 browser-tested, 14/36 code/schema-reviewed**
+**Overall: 22/37 browser-tested, 15/37 code/schema-reviewed**
 
 **Last Comprehensive Test:** 2025-12-04
 **Test Environment:** Chrome via Playwright, macOS, localhost:3000, TEST_MODE=true

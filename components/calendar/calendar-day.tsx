@@ -2,7 +2,7 @@
 
 import { isToday, isSameMonth, format } from 'date-fns';
 import { TransactionIndicators } from './transaction-indicators';
-import { Check, Target, CreditCard, Trophy } from 'lucide-react';
+import { Check, Target, CreditCard, Trophy, Clock, TrendingDown } from 'lucide-react';
 
 interface GoalSummary {
   id: string;
@@ -26,6 +26,37 @@ interface DebtSummary {
   status: string;
 }
 
+interface AutopayEvent {
+  id: string;
+  billId: string;
+  billName: string;
+  amount: number;
+  autopayAmountType: 'fixed' | 'minimum_payment' | 'statement_balance' | 'full_balance';
+  sourceAccountId: string;
+  sourceAccountName: string;
+  linkedAccountName?: string;
+}
+
+interface UnifiedPayoffDate {
+  id: string;
+  name: string;
+  source: 'account' | 'bill';
+  sourceType: string;
+  remainingBalance: number;
+  monthlyPayment: number;
+  color?: string;
+}
+
+interface BillMilestone {
+  id: string;
+  billId?: string;
+  accountId?: string;
+  name: string;
+  percentage: number;
+  achievedAt?: string;
+  color?: string;
+}
+
 interface DayTransactionSummary {
   incomeCount: number;
   expenseCount: number;
@@ -33,11 +64,24 @@ interface DayTransactionSummary {
   totalSpent: number;
   billDueCount: number;
   billOverdueCount: number;
-  bills?: Array<{ name: string; status: string; amount: number }>;
+  bills?: Array<{ 
+    name: string; 
+    status: string; 
+    amount: number;
+    isDebt?: boolean;
+    isAutopayEnabled?: boolean;
+    linkedAccountName?: string;
+  }>;
   goalCount: number;
   goals?: GoalSummary[];
   debtCount: number;
   debts?: DebtSummary[];
+  autopayCount: number;
+  autopayEvents?: AutopayEvent[];
+  payoffDateCount: number;
+  payoffDates?: UnifiedPayoffDate[];
+  billMilestoneCount: number;
+  billMilestones?: BillMilestone[];
 }
 
 interface CalendarDayProps {
@@ -65,7 +109,13 @@ export function CalendarDay({
     summary.goalCount > 0 ||
     (summary.goals && summary.goals.length > 0) ||
     summary.debtCount > 0 ||
-    (summary.debts && summary.debts.length > 0)
+    (summary.debts && summary.debts.length > 0) ||
+    summary.autopayCount > 0 ||
+    (summary.autopayEvents && summary.autopayEvents.length > 0) ||
+    summary.payoffDateCount > 0 ||
+    (summary.payoffDates && summary.payoffDates.length > 0) ||
+    summary.billMilestoneCount > 0 ||
+    (summary.billMilestones && summary.billMilestones.length > 0)
   );
 
   return (
@@ -95,10 +145,17 @@ export function CalendarDay({
       {/* Bills, Goals, and Indicators */}
       {hasActivity && summary && (
         <div className="flex-1 overflow-hidden flex flex-col gap-1">
-          {/* Bill Names */}
+          {/* Bill Names - Overdue first, then pending */}
           {summary.bills && summary.bills.length > 0 && (
             <div className="space-y-0.5">
-              {summary.bills.map((bill, idx) => (
+              {summary.bills
+                .sort((a, b) => {
+                  // Overdue first, then pending, then paid
+                  const statusOrder = { overdue: 0, pending: 1, paid: 2 };
+                  return (statusOrder[a.status as keyof typeof statusOrder] || 2) - 
+                         (statusOrder[b.status as keyof typeof statusOrder] || 2);
+                })
+                .map((bill, idx) => (
                 <div
                   key={`${bill.name}-${bill.amount}-${idx}`}
                   className={`text-[10px] px-1.5 py-0.5 rounded truncate flex items-center gap-0.5 ${
@@ -108,10 +165,27 @@ export function CalendarDay({
                       ? 'bg-[var(--color-income)]/20 text-[var(--color-income)]'
                       : 'bg-[var(--color-warning)]/20 text-[var(--color-warning)]'
                   }`}
-                  title={`${bill.name} - $${bill.amount.toFixed(2)}${bill.status === 'paid' ? ' (Paid)' : ''}`}
+                  title={`${bill.name} - $${bill.amount.toFixed(2)}${bill.status === 'paid' ? ' (Paid)' : ''}${bill.linkedAccountName ? ` (for ${bill.linkedAccountName})` : ''}${bill.isAutopayEnabled ? ' - Autopay' : ''}`}
                 >
                   {bill.status === 'paid' && <Check className="w-2.5 h-2.5 shrink-0" />}
+                  {bill.linkedAccountName && <CreditCard className="w-2.5 h-2.5 shrink-0" />}
                   <span className="truncate">{bill.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Autopay Events */}
+          {summary.autopayEvents && summary.autopayEvents.length > 0 && (
+            <div className="space-y-0.5">
+              {summary.autopayEvents.map((autopay) => (
+                <div
+                  key={autopay.id}
+                  className="text-[10px] px-1.5 py-0.5 rounded truncate flex items-center gap-0.5 bg-[var(--color-primary)]/20 text-[var(--color-primary)]"
+                  title={`Autopay: ${autopay.billName} - $${autopay.amount.toFixed(2)} from ${autopay.sourceAccountName}${autopay.linkedAccountName ? ` to ${autopay.linkedAccountName}` : ''}`}
+                >
+                  <Clock className="w-2.5 h-2.5 shrink-0" />
+                  <span className="truncate">{autopay.billName}</span>
                 </div>
               ))}
             </div>
@@ -138,7 +212,27 @@ export function CalendarDay({
             </div>
           )}
 
-          {/* Debt Milestones */}
+          {/* Projected Payoff Dates */}
+          {summary.payoffDates && summary.payoffDates.length > 0 && (
+            <div className="space-y-0.5">
+              {summary.payoffDates.map((payoff) => (
+                <div
+                  key={payoff.id}
+                  className="text-[10px] px-1.5 py-0.5 rounded truncate flex items-center gap-0.5"
+                  style={{
+                    backgroundColor: payoff.color ? `${payoff.color}20` : 'rgba(239, 68, 68, 0.2)',
+                    color: payoff.color || '#ef4444',
+                  }}
+                  title={`${payoff.name} projected payoff - $${payoff.remainingBalance.toLocaleString()} remaining at $${payoff.monthlyPayment.toLocaleString()}/mo`}
+                >
+                  <TrendingDown className="w-2.5 h-2.5 shrink-0" />
+                  <span className="truncate">{payoff.name} Payoff</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Debt Milestones (legacy) */}
           {summary.debts && summary.debts.length > 0 && (
             <div className="space-y-0.5">
               {summary.debts.map((debt) => (
@@ -158,6 +252,27 @@ export function CalendarDay({
                   )}
                   <span className="truncate">{debt.name}</span>
                   <span className="text-[9px] ml-auto shrink-0">{debt.progress}%</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Bill Milestones (unified architecture) */}
+          {summary.billMilestones && summary.billMilestones.length > 0 && (
+            <div className="space-y-0.5">
+              {summary.billMilestones.map((milestone) => (
+                <div
+                  key={milestone.id}
+                  className="text-[10px] px-1.5 py-0.5 rounded truncate flex items-center gap-0.5"
+                  style={{
+                    backgroundColor: milestone.color ? `${milestone.color}20` : 'rgba(34, 197, 94, 0.2)',
+                    color: milestone.color || '#22c55e',
+                  }}
+                  title={`${milestone.name} - ${milestone.percentage}% milestone achieved!`}
+                >
+                  <Trophy className="w-2.5 h-2.5 shrink-0" />
+                  <span className="truncate">{milestone.name}</span>
+                  <span className="text-[9px] ml-auto shrink-0">{milestone.percentage}%</span>
                 </div>
               ))}
             </div>

@@ -3422,11 +3422,21 @@ Since there are no production users yet, we can do a clean slate:
 - Updated debts page UI with working strategy toggle buttons
 - Response includes `excludedDebts` section for debts not in strategy
 
-### Phase 9: Calendar Integration
-- Bill due dates on calendar (including credit card payment bills)
-- Autopay processing dates on calendar
-- Projected payoff dates on calendar
-- Payoff milestone celebrations on calendar
+### Phase 9: Calendar Integration [COMPLETED 2025-12-04]
+- [x] Bill due dates on calendar (including credit card payment bills)
+- [x] Autopay processing dates on calendar
+- [x] Projected payoff dates on calendar
+- [x] Payoff milestone celebrations on calendar
+
+**Implementation Details:**
+- Updated `/api/calendar/month` to include autopayEvents, payoffDates, and billMilestones
+- Updated `/api/calendar/day` to include detailed autopay, payoff, and milestone information
+- Enhanced `calendar-day.tsx` with new visual elements for autopay (Clock icon), payoff dates (TrendingDown icon), and milestones (Trophy icon)
+- Enhanced `calendar-day-modal.tsx` with new sections: Scheduled Autopay, Projected Payoff Dates, Payoff Milestones
+- Bill objects now include isDebt, isAutopayEnabled, linkedAccountName for rich display
+- Autopay dates calculated as dueDate - autopayDaysBefore days
+- Projected payoff dates calculated as balance / monthlyPayment months from now
+- Bill milestones from `billMilestones` table displayed with achievement dates and progress
 
 ### Phase 10: Notifications
 - High utilization warnings (30%, 50%, 75%, 90% thresholds)

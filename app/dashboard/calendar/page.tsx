@@ -30,6 +30,37 @@ interface DebtSummary {
   status: string;
 }
 
+interface AutopayEventSummary {
+  id: string;
+  billId: string;
+  billName: string;
+  amount: number;
+  autopayAmountType: 'fixed' | 'minimum_payment' | 'statement_balance' | 'full_balance';
+  sourceAccountId: string;
+  sourceAccountName: string;
+  linkedAccountName?: string;
+}
+
+interface UnifiedPayoffDateSummary {
+  id: string;
+  name: string;
+  source: 'account' | 'bill';
+  sourceType: string;
+  remainingBalance: number;
+  monthlyPayment: number;
+  color?: string;
+}
+
+interface BillMilestoneSummary {
+  id: string;
+  billId?: string;
+  accountId?: string;
+  name: string;
+  percentage: number;
+  achievedAt?: string;
+  color?: string;
+}
+
 interface DayTransactionSummary {
   incomeCount: number;
   expenseCount: number;
@@ -37,11 +68,24 @@ interface DayTransactionSummary {
   totalSpent: number;
   billDueCount: number;
   billOverdueCount: number;
-  bills?: Array<{ name: string; status: string; amount: number }>;
+  bills?: Array<{ 
+    name: string; 
+    status: string; 
+    amount: number;
+    isDebt?: boolean;
+    isAutopayEnabled?: boolean;
+    linkedAccountName?: string;
+  }>;
   goalCount: number;
   goals?: GoalSummary[];
   debtCount: number;
   debts?: DebtSummary[];
+  autopayCount: number;
+  autopayEvents?: AutopayEventSummary[];
+  payoffDateCount: number;
+  payoffDates?: UnifiedPayoffDateSummary[];
+  billMilestoneCount: number;
+  billMilestones?: BillMilestoneSummary[];
 }
 
 interface Transaction {
@@ -54,10 +98,14 @@ interface Transaction {
 
 interface Bill {
   id: string;
+  billId?: string;
   description: string;
   amount: number;
   dueDate: string;
   status: 'pending' | 'paid' | 'overdue';
+  isDebt?: boolean;
+  isAutopayEnabled?: boolean;
+  linkedAccountName?: string;
 }
 
 interface Goal {
@@ -87,6 +135,45 @@ interface Debt {
   status: string;
   debtType: 'target' | 'milestone';
   milestonePercentage?: number;
+  source?: 'legacy' | 'account' | 'bill';
+}
+
+interface AutopayEvent {
+  id: string;
+  billId: string;
+  billInstanceId: string;
+  billName: string;
+  amount: number;
+  autopayAmountType: string;
+  sourceAccountId: string;
+  sourceAccountName: string;
+  linkedAccountId?: string;
+  linkedAccountName?: string;
+  dueDate: string;
+}
+
+interface UnifiedPayoffDate {
+  id: string;
+  name: string;
+  source: 'account' | 'bill';
+  sourceType: string;
+  remainingBalance: number;
+  monthlyPayment: number;
+  projectedPayoffDate: string;
+  color?: string;
+  interestRate?: number;
+}
+
+interface BillMilestone {
+  id: string;
+  billId?: string;
+  accountId?: string;
+  name: string;
+  percentage: number;
+  achievedAt: string;
+  color?: string;
+  milestoneBalance: number;
+  source: 'account' | 'bill';
 }
 
 export default function CalendarPage() {
@@ -102,6 +189,9 @@ export default function CalendarPage() {
   const [selectedDayBills, setSelectedDayBills] = useState<Bill[]>([]);
   const [selectedDayGoals, setSelectedDayGoals] = useState<Goal[]>([]);
   const [selectedDayDebts, setSelectedDayDebts] = useState<Debt[]>([]);
+  const [selectedDayAutopay, setSelectedDayAutopay] = useState<AutopayEvent[]>([]);
+  const [selectedDayPayoffDates, setSelectedDayPayoffDates] = useState<UnifiedPayoffDate[]>([]);
+  const [selectedDayBillMilestones, setSelectedDayBillMilestones] = useState<BillMilestone[]>([]);
   const [selectedDayInfo, setSelectedDayInfo] = useState<DayTransactionSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -145,6 +235,9 @@ export default function CalendarPage() {
         setSelectedDayBills(data.bills || []);
         setSelectedDayGoals(data.goals || []);
         setSelectedDayDebts(data.debts || []);
+        setSelectedDayAutopay(data.autopayEvents || []);
+        setSelectedDayPayoffDates(data.payoffDates || []);
+        setSelectedDayBillMilestones(data.billMilestones || []);
         setSelectedDayInfo(data.summary);
         setIsModalOpen(true);
       }
@@ -202,6 +295,9 @@ export default function CalendarPage() {
           bills={selectedDayBills}
           goals={selectedDayGoals}
           debts={selectedDayDebts}
+          autopayEvents={selectedDayAutopay}
+          payoffDates={selectedDayPayoffDates}
+          billMilestones={selectedDayBillMilestones}
           transactionCounts={selectedDayInfo || undefined}
         />
       )}

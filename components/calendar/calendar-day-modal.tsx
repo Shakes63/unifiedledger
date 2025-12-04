@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { TransactionIndicators } from './transaction-indicators';
-import { TrendingDown, TrendingUp, ArrowRightLeft, Plus, Target, CreditCard, Trophy } from 'lucide-react';
+import { TrendingDown, TrendingUp, ArrowRightLeft, Plus, Target, CreditCard, Trophy, Clock, Wallet } from 'lucide-react';
 import Link from 'next/link';
 
 interface Transaction {
@@ -23,10 +23,14 @@ interface Transaction {
 
 interface Bill {
   id: string;
+  billId?: string;
   description: string;
   amount: number;
   dueDate: string;
   status: 'pending' | 'paid' | 'overdue';
+  isDebt?: boolean;
+  isAutopayEnabled?: boolean;
+  linkedAccountName?: string;
 }
 
 interface Goal {
@@ -56,6 +60,45 @@ interface Debt {
   status: string;
   debtType: 'target' | 'milestone';
   milestonePercentage?: number;
+  source?: 'legacy' | 'account' | 'bill';
+}
+
+interface AutopayEvent {
+  id: string;
+  billId: string;
+  billInstanceId: string;
+  billName: string;
+  amount: number;
+  autopayAmountType: string;
+  sourceAccountId: string;
+  sourceAccountName: string;
+  linkedAccountId?: string;
+  linkedAccountName?: string;
+  dueDate: string;
+}
+
+interface UnifiedPayoffDate {
+  id: string;
+  name: string;
+  source: 'account' | 'bill';
+  sourceType: string;
+  remainingBalance: number;
+  monthlyPayment: number;
+  projectedPayoffDate: string;
+  color?: string;
+  interestRate?: number;
+}
+
+interface BillMilestone {
+  id: string;
+  billId?: string;
+  accountId?: string;
+  name: string;
+  percentage: number;
+  achievedAt: string;
+  color?: string;
+  milestoneBalance: number;
+  source: 'account' | 'bill';
 }
 
 interface CalendarDayModalProps {
@@ -66,6 +109,9 @@ interface CalendarDayModalProps {
   bills?: Bill[];
   goals?: Goal[];
   debts?: Debt[];
+  autopayEvents?: AutopayEvent[];
+  payoffDates?: UnifiedPayoffDate[];
+  billMilestones?: BillMilestone[];
   transactionCounts?: {
     incomeCount: number;
     expenseCount: number;
@@ -75,6 +121,9 @@ interface CalendarDayModalProps {
     billOverdueCount: number;
     goalCount?: number;
     debtCount?: number;
+    autopayCount?: number;
+    payoffDateCount?: number;
+    billMilestoneCount?: number;
   };
 }
 
@@ -86,6 +135,9 @@ export function CalendarDayModal({
   bills = [],
   goals = [],
   debts = [],
+  autopayEvents = [],
+  payoffDates = [],
+  billMilestones = [],
   transactionCounts,
 }: CalendarDayModalProps) {
   const getTransactionIcon = (type: string) => {
@@ -129,15 +181,32 @@ export function CalendarDayModal({
     }
   };
 
+  const getAutopayAmountLabel = (type: string) => {
+    switch (type) {
+      case 'minimum_payment':
+        return 'Minimum Payment';
+      case 'statement_balance':
+        return 'Statement Balance';
+      case 'full_balance':
+        return 'Full Balance';
+      case 'fixed':
+      default:
+        return 'Fixed Amount';
+    }
+  };
+
+  const hasAnyContent = transactions.length > 0 || bills.length > 0 || goals.length > 0 || 
+    debts.length > 0 || autopayEvents.length > 0 || payoffDates.length > 0 || billMilestones.length > 0;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border text-foreground max-w-2xl">
+      <DialogContent className="bg-card border-border text-foreground max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">
             {format(date, 'EEEE, MMMM d, yyyy')}
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            View and manage transactions and bills for this day
+            View and manage transactions, bills, and scheduled events for this day
           </DialogDescription>
         </DialogHeader>
 
@@ -155,6 +224,69 @@ export function CalendarDayModal({
               totalSpent={transactionCounts.totalSpent}
               compact={false}
             />
+          )}
+
+          {/* Autopay Events */}
+          {autopayEvents.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-[var(--color-primary)]" />
+                  Scheduled Autopay ({autopayEvents.length})
+                </h3>
+                <Link href="/dashboard/bills">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-border hover:bg-elevated"
+                  >
+                    View Bills
+                  </Button>
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {autopayEvents.map((autopay) => (
+                  <div
+                    key={autopay.id}
+                    className="p-3 bg-[var(--color-primary)]/5 rounded-lg border border-[var(--color-primary)]/30"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 rounded-lg shrink-0 bg-[var(--color-primary)]/20">
+                        <Clock className="w-5 h-5 text-[var(--color-primary)]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium text-foreground truncate">
+                            {autopay.billName}
+                          </p>
+                          <span className="px-2 py-0.5 rounded text-xs font-semibold shrink-0 bg-[var(--color-primary)]/20 text-[var(--color-primary)]">
+                            Autopay
+                          </span>
+                        </div>
+                        <div className="mt-1 text-sm text-muted-foreground">
+                          <p className="flex items-center gap-1">
+                            <Wallet className="w-3.5 h-3.5" />
+                            From: {autopay.sourceAccountName}
+                          </p>
+                          {autopay.linkedAccountName && (
+                            <p className="flex items-center gap-1">
+                              <CreditCard className="w-3.5 h-3.5" />
+                              To: {autopay.linkedAccountName}
+                            </p>
+                          )}
+                          <p className="text-xs mt-1 text-muted-foreground">
+                            {getAutopayAmountLabel(autopay.autopayAmountType)} - Due {format(parseISO(autopay.dueDate), 'MMM d')}
+                          </p>
+                        </div>
+                        <p className="text-lg font-semibold text-[var(--color-primary)] mt-2">
+                          ${autopay.amount.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Transactions */}
@@ -223,11 +355,20 @@ export function CalendarDayModal({
                     className="flex items-center justify-between p-3 bg-elevated rounded-lg border border-border"
                   >
                     <div className="flex-1">
-                      <p className="font-medium text-foreground">
-                        {bill.description}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-foreground">
+                          {bill.description}
+                        </p>
+                        {bill.linkedAccountName && (
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <CreditCard className="w-3 h-3" />
+                            {bill.linkedAccountName}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-muted-foreground text-sm">
                         Due: {format(parseISO(bill.dueDate), 'MMM d')}
+                        {bill.isDebt && <span className="ml-2 text-xs">(Debt Payment)</span>}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -241,6 +382,85 @@ export function CalendarDayModal({
                       >
                         {bill.status}
                       </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Projected Payoff Dates */}
+          {payoffDates.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <TrendingDown className="w-5 h-5 text-[var(--color-success)]" />
+                  Projected Payoff Dates ({payoffDates.length})
+                </h3>
+                <Link href="/dashboard/debts">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-border hover:bg-elevated"
+                  >
+                    View Debts
+                  </Button>
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {payoffDates.map((payoff) => (
+                  <div
+                    key={payoff.id}
+                    className="p-3 bg-elevated rounded-lg border border-border"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="p-2 rounded-lg shrink-0"
+                        style={{ backgroundColor: payoff.color ? `${payoff.color}20` : 'rgba(34, 197, 94, 0.2)' }}
+                      >
+                        <TrendingDown
+                          className="w-5 h-5"
+                          style={{ color: payoff.color || '#22c55e' }}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium text-foreground truncate">
+                            {payoff.name}
+                          </p>
+                          <span
+                            className="px-2 py-0.5 rounded text-xs font-semibold capitalize shrink-0"
+                            style={{
+                              backgroundColor: payoff.color ? `${payoff.color}20` : 'rgba(34, 197, 94, 0.2)',
+                              color: payoff.color || '#22c55e',
+                            }}
+                          >
+                            {payoff.source === 'account' ? payoff.sourceType : 'Loan'}
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground text-sm mt-1">
+                          Remaining: ${payoff.remainingBalance.toLocaleString()}
+                          {payoff.interestRate !== undefined && payoff.interestRate > 0 && (
+                            <span className="ml-2">@ {payoff.interestRate.toFixed(1)}% APR</span>
+                          )}
+                        </p>
+                        <p className="text-muted-foreground text-xs mt-1">
+                          Payment: ${payoff.monthlyPayment.toLocaleString()}/month
+                        </p>
+                        {/* Progress bar - 100% on payoff date */}
+                        <div className="mt-2 h-2 bg-border rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: '100%',
+                              backgroundColor: payoff.color || '#22c55e',
+                            }}
+                          />
+                        </div>
+                        <p className="text-sm font-semibold mt-1" style={{ color: payoff.color || '#22c55e' }}>
+                          Debt Free!
+                        </p>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -330,7 +550,81 @@ export function CalendarDayModal({
             </div>
           )}
 
-          {/* Debts */}
+          {/* Bill Milestones (unified architecture) */}
+          {billMilestones.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-[var(--color-success)]" />
+                  Payoff Milestones ({billMilestones.length})
+                </h3>
+                <Link href="/dashboard/debts">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-border hover:bg-elevated"
+                  >
+                    View Debts
+                  </Button>
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {billMilestones.map((milestone) => (
+                  <div
+                    key={milestone.id}
+                    className="p-3 rounded-lg border"
+                    style={{
+                      backgroundColor: milestone.color ? `${milestone.color}10` : 'rgba(34, 197, 94, 0.1)',
+                      borderColor: milestone.color ? `${milestone.color}40` : 'rgba(34, 197, 94, 0.4)',
+                    }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="p-2 rounded-lg shrink-0"
+                        style={{ backgroundColor: milestone.color ? `${milestone.color}30` : 'rgba(34, 197, 94, 0.3)' }}
+                      >
+                        <Trophy
+                          className="w-5 h-5"
+                          style={{ color: milestone.color || '#22c55e' }}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium text-foreground truncate">
+                            {milestone.name}
+                          </p>
+                          <span
+                            className="px-2 py-0.5 rounded text-xs font-bold shrink-0"
+                            style={{
+                              backgroundColor: milestone.color ? `${milestone.color}30` : 'rgba(34, 197, 94, 0.3)',
+                              color: milestone.color || '#22c55e',
+                            }}
+                          >
+                            {milestone.percentage}% Milestone!
+                          </span>
+                        </div>
+                        <p className="text-muted-foreground text-sm mt-1">
+                          {milestone.source === 'account' ? 'Credit Account' : 'Loan'} - Balance at milestone: ${milestone.milestoneBalance.toLocaleString()}
+                        </p>
+                        {/* Progress bar showing milestone percentage */}
+                        <div className="mt-2 h-2 bg-border rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${milestone.percentage}%`,
+                              backgroundColor: milestone.color || '#22c55e',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Debts (legacy) */}
           {debts.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
@@ -424,7 +718,7 @@ export function CalendarDayModal({
             </div>
           )}
 
-          {transactions.length === 0 && bills.length === 0 && goals.length === 0 && debts.length === 0 && (
+          {!hasAnyContent && (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">
                 No activity on this day
