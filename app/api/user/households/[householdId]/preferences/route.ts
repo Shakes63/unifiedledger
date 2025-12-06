@@ -4,6 +4,7 @@ import { userHouseholdPreferences } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { isMemberOfHousehold } from '@/lib/household/permissions';
 import { v4 as uuidv4 } from 'uuid';
+import { isTestMode, TEST_USER_ID, TEST_HOUSEHOLD_ID, logTestModeWarning } from '@/lib/test-mode';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,6 +43,9 @@ const DEFAULT_PREFERENCES = {
   highUtilizationChannels: '["push"]',
   creditLimitChangeEnabled: true,
   creditLimitChangeChannels: '["push"]',
+  // Phase 16: Late Income Alerts
+  incomeLateEnabled: true,
+  incomeLateChannels: '["push"]',
 };
 
 /**
@@ -49,12 +53,18 @@ const DEFAULT_PREFERENCES = {
  * Get user's preferences for a specific household
  */
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ householdId: string }> }
 ) {
   try {
     const { userId } = await requireAuth();
     const { householdId } = await params;
+
+    // Test mode bypass - return default preferences for test user
+    if (isTestMode() && userId === TEST_USER_ID && householdId === TEST_HOUSEHOLD_ID) {
+      logTestModeWarning('user/households/preferences GET');
+      return Response.json(DEFAULT_PREFERENCES);
+    }
 
     // Verify user is a member of this household
     if (!(await isMemberOfHousehold(householdId, userId))) {

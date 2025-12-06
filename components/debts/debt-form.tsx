@@ -65,6 +65,7 @@ interface DebtFormProps {
 
 export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFormProps) {
   const [saveMode, setSaveMode] = useState<'save' | 'saveAndAdd' | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     name: debt?.name || '',
     description: debt?.description || '',
@@ -134,34 +135,26 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const newErrors: Record<string, string> = {};
+
     if (!formData.name.trim()) {
-      toast.error('Debt name is required');
-      setSaveMode(null);
-      return;
+      newErrors.name = 'Debt name is required';
     }
 
     if (!formData.creditorName.trim()) {
-      toast.error('Creditor name is required');
-      setSaveMode(null);
-      return;
+      newErrors.creditorName = 'Creditor name is required';
     }
 
     if (!formData.originalAmount || parseFloat(String(formData.originalAmount)) <= 0) {
-      toast.error('Original amount must be greater than 0');
-      setSaveMode(null);
-      return;
+      newErrors.originalAmount = 'Original amount must be greater than 0';
     }
 
     if (formData.remainingBalance === '' || parseFloat(String(formData.remainingBalance)) < 0) {
-      toast.error('Remaining balance is required and must be >= 0');
-      setSaveMode(null);
-      return;
+      newErrors.remainingBalance = 'Remaining balance is required and must be >= 0';
     }
 
     if (!formData.startDate) {
-      toast.error('Start date is required');
-      setSaveMode(null);
-      return;
+      newErrors.startDate = 'Start date is required';
     }
 
     // Validate credit limit for credit cards
@@ -170,17 +163,20 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       const balance = parseFloat(String(formData.remainingBalance));
 
       if (creditLimit < balance) {
-        toast.error('Credit limit must be greater than or equal to remaining balance');
-        setSaveMode(null);
-        return;
-      }
-
-      if (creditLimit <= 0) {
-        toast.error('Credit limit must be greater than 0');
-        setSaveMode(null);
-        return;
+        newErrors.creditLimit = 'Credit limit must be >= remaining balance';
+      } else if (creditLimit <= 0) {
+        newErrors.creditLimit = 'Credit limit must be greater than 0';
       }
     }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setSaveMode(null);
+      toast.error(Object.values(newErrors)[0]);
+      return;
+    }
+
+    setErrors({});
 
     onSubmit({
       ...formData,
@@ -249,67 +245,95 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {/* Name and Creditor */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-1">
+          <Label className={`text-sm mb-1 ${errors.name ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
             Debt Name <span className="text-[var(--color-error)]">*</span>
           </Label>
           <Input
             id="debt-name"
             name="name"
             value={formData.name}
-            onChange={handleChange}
+            onChange={(e) => {
+              handleChange(e);
+              if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
+            }}
             placeholder="e.g., Credit Card Debt"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-            required
+            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
+              errors.name ? 'border-[var(--color-error)]' : 'border-border'
+            }`}
           />
+          {errors.name && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.name}</p>
+          )}
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-1">
+          <Label className={`text-sm mb-1 ${errors.creditorName ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
             Creditor Name <span className="text-[var(--color-error)]">*</span>
           </Label>
           <Input
             name="creditorName"
             value={formData.creditorName}
-            onChange={handleChange}
+            onChange={(e) => {
+              handleChange(e);
+              if (errors.creditorName) setErrors(prev => ({ ...prev, creditorName: '' }));
+            }}
             placeholder="e.g., Capital One"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-            required
+            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
+              errors.creditorName ? 'border-[var(--color-error)]' : 'border-border'
+            }`}
           />
+          {errors.creditorName && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.creditorName}</p>
+          )}
         </div>
       </div>
 
       {/* Amounts */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-1">
+          <Label className={`text-sm mb-1 ${errors.originalAmount ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
             Original Amount <span className="text-[var(--color-error)]">*</span>
           </Label>
           <Input
             name="originalAmount"
             type="number"
             value={formData.originalAmount}
-            onChange={handleChange}
-            placeholder="0.00"
+            onChange={(e) => {
+              handleChange(e);
+              if (errors.originalAmount) setErrors(prev => ({ ...prev, originalAmount: '' }));
+            }}
+            placeholder="Enter amount"
             step="0.01"
             min="0.01"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-            required
+            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
+              errors.originalAmount ? 'border-[var(--color-error)]' : 'border-border'
+            }`}
           />
+          {errors.originalAmount && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.originalAmount}</p>
+          )}
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-1">
+          <Label className={`text-sm mb-1 ${errors.remainingBalance ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
             Remaining Balance <span className="text-[var(--color-error)]">*</span>
           </Label>
           <Input
             name="remainingBalance"
             type="number"
             value={formData.remainingBalance}
-            onChange={handleChange}
-            placeholder="0.00"
+            onChange={(e) => {
+              handleChange(e);
+              if (errors.remainingBalance) setErrors(prev => ({ ...prev, remainingBalance: '' }));
+            }}
+            placeholder="Enter balance"
             step="0.01"
             min="0"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-            required
+            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
+              errors.remainingBalance ? 'border-[var(--color-error)]' : 'border-border'
+            }`}
           />
+          {errors.remainingBalance && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.remainingBalance}</p>
+          )}
         </div>
       </div>
 
@@ -602,17 +626,24 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {/* Dates */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-1">
+          <Label className={`text-sm mb-1 ${errors.startDate ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
             Start Date <span className="text-[var(--color-error)]">*</span>
           </Label>
           <Input
             name="startDate"
             type="date"
             value={formData.startDate}
-            onChange={handleChange}
-            className="bg-elevated border-border text-foreground"
-            required
+            onChange={(e) => {
+              handleChange(e);
+              if (errors.startDate) setErrors(prev => ({ ...prev, startDate: '' }));
+            }}
+            className={`bg-elevated text-foreground ${
+              errors.startDate ? 'border-[var(--color-error)]' : 'border-border'
+            }`}
           />
+          {errors.startDate && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.startDate}</p>
+          )}
         </div>
         <div>
           <Label className="text-muted-foreground text-sm mb-1">Target Payoff Date (Optional)</Label>

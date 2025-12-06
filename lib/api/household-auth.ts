@@ -22,6 +22,7 @@
 import { db } from '@/lib/db';
 import { householdMembers } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { isTestMode, TEST_USER_ID, TEST_HOUSEHOLD_ID, logTestModeWarning } from '@/lib/test-mode';
 
 /**
  * Extracts household ID from request headers or body
@@ -67,6 +68,22 @@ export async function requireHouseholdAuth(
   if (!householdId) {
     console.error('[HouseholdAuth] Missing household ID', { userId });
     throw new Error('Household ID is required');
+  }
+
+  // Test mode bypass - return mock membership for test user and household
+  if (isTestMode() && userId === TEST_USER_ID && householdId === TEST_HOUSEHOLD_ID) {
+    logTestModeWarning('requireHouseholdAuth');
+    return {
+      id: 'test-membership-001',
+      householdId: TEST_HOUSEHOLD_ID,
+      userId: TEST_USER_ID,
+      userEmail: 'test@unifiedledger.local',
+      userName: 'Test Admin',
+      role: 'owner',
+      joinedAt: new Date().toISOString(),
+      isActive: true,
+      isFavorite: true,
+    };
   }
 
   const membership = await db

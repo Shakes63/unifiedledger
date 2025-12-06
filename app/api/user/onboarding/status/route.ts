@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { userSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { isTestMode, TEST_USER_ID, logTestModeWarning } from '@/lib/test-mode';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +14,12 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const { userId } = await requireAuth();
+
+    // Test mode bypass - return completed onboarding for test user
+    if (isTestMode() && userId === TEST_USER_ID) {
+      logTestModeWarning('user/onboarding/status');
+      return NextResponse.json({ onboardingCompleted: true });
+    }
 
     // Fetch user settings
     const settings = await db

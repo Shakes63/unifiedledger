@@ -44,6 +44,7 @@ export function CategoryForm({
     isActive: category?.isActive !== undefined ? category.isActive : true,
     incomeFrequency: category?.incomeFrequency || 'variable',
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -70,15 +71,23 @@ export function CategoryForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const newErrors: Record<string, string> = {};
+
     if (!formData.name.trim()) {
-      toast.error('Category name is required');
-      return;
+      newErrors.name = 'Category name is required';
     }
 
     if (!formData.type) {
-      toast.error('Category type is required');
+      newErrors.type = 'Category type is required';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error(Object.values(newErrors)[0]);
       return;
     }
+
+    setErrors({});
 
     const submitData = {
       name: formData.name,
@@ -98,19 +107,39 @@ export function CategoryForm({
       {/* Name and Type */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Category Name</Label>
+          <Label className={`text-sm mb-2 block ${errors.name ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+            Category Name
+          </Label>
           <Input
             name="name"
             value={formData.name}
-            onChange={handleChange}
+            onChange={(e) => {
+              handleChange(e);
+              if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
+            }}
             placeholder="e.g., Groceries"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
+              errors.name ? 'border-[var(--color-error)]' : 'border-border'
+            }`}
           />
+          {errors.name && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.name}</p>
+          )}
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Category Type</Label>
-          <Select value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}>
-            <SelectTrigger className="bg-elevated border-border text-foreground">
+          <Label className={`text-sm mb-2 block ${errors.type ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+            Category Type
+          </Label>
+          <Select 
+            value={formData.type} 
+            onValueChange={(value) => {
+              handleSelectChange('type', value);
+              if (errors.type) setErrors(prev => ({ ...prev, type: '' }));
+            }}
+          >
+            <SelectTrigger className={`bg-elevated text-foreground ${
+              errors.type ? 'border-[var(--color-error)]' : 'border-border'
+            }`}>
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
@@ -121,6 +150,9 @@ export function CategoryForm({
               ))}
             </SelectContent>
           </Select>
+          {errors.type && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.type}</p>
+          )}
         </div>
       </div>
 
@@ -132,10 +164,10 @@ export function CategoryForm({
           type="number"
           value={formData.monthlyBudget}
           onChange={handleChange}
-          placeholder="0.00"
+          placeholder="Enter budget"
           step="0.01"
           min="0"
-          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
         />
         <p className="text-xs text-muted-foreground mt-1">Set to 0 for no budget limit</p>
       </div>

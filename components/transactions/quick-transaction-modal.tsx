@@ -95,6 +95,7 @@ export function QuickTransactionModal({
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
   const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
   const [merchantIsSalesTaxExempt, setMerchantIsSalesTaxExempt] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Compute whether selected account is a business account for category filtering
   const selectedAccountIsBusinessAccount = useMemo(() => {
@@ -344,6 +345,7 @@ export function QuickTransactionModal({
       setNotes('');
       setShowNotes(false);
       setError(null);
+      setFieldErrors({});
       setAccountsError(null);
       setSelectedBillInstanceId('');
       setUnpaidBills([]);
@@ -372,25 +374,39 @@ export function QuickTransactionModal({
         return;
       }
 
-      if (!amount || !description || !accountId) {
-        setError('Please fill in all required fields');
-        setLoading(false);
-        return;
+      // Field-level validation
+      const newFieldErrors: Record<string, string> = {};
+
+      if (!accountId) {
+        newFieldErrors.accountId = 'Account is required';
+      }
+
+      if (!amount) {
+        newFieldErrors.amount = 'Amount is required';
+      }
+
+      if (!description) {
+        newFieldErrors.description = 'Description is required';
       }
 
       // Validate transfer fields
       const isTransfer = type === 'transfer_out' || type === 'transfer_in';
       if (isTransfer && !toAccountId) {
-        setError('Please select a destination account for the transfer');
+        newFieldErrors.toAccountId = 'Destination account is required for transfers';
+      }
+
+      if (isTransfer && accountId === toAccountId) {
+        newFieldErrors.toAccountId = 'Cannot transfer to the same account';
+      }
+
+      if (Object.keys(newFieldErrors).length > 0) {
+        setFieldErrors(newFieldErrors);
+        setError(Object.values(newFieldErrors)[0]);
         setLoading(false);
         return;
       }
 
-      if (isTransfer && accountId === toAccountId) {
-        setError('Cannot transfer to the same account');
-        setLoading(false);
-        return;
-      }
+      setFieldErrors({});
 
       // Determine API transaction type (API uses 'transfer' not 'transfer_out'/'transfer_in')
       // Bill payments are submitted as 'expense' (API auto-matches to bill)
@@ -699,7 +715,7 @@ export function QuickTransactionModal({
 
           {/* Account */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
+            <label className={`text-sm font-medium ${fieldErrors.accountId ? 'text-[var(--color-error)]' : 'text-foreground'}`}>
               {type === 'transfer_out' || type === 'transfer_in' ? 'From Account' : 'Account'}
               <span className="text-[var(--color-error)]">*</span>
             </label>
@@ -710,10 +726,13 @@ export function QuickTransactionModal({
             )}
             <Select 
               value={accountId} 
-              onValueChange={handleAccountChange}
+              onValueChange={(value) => {
+                handleAccountChange(value);
+                if (fieldErrors.accountId) setFieldErrors(prev => ({ ...prev, accountId: '' }));
+              }}
               disabled={accountsLoading || !initialized || householdLoading || !selectedHouseholdId || !householdId}
             >
-              <SelectTrigger>
+              <SelectTrigger className={fieldErrors.accountId ? 'border-[var(--color-error)]' : ''}>
                 <SelectValue 
                   placeholder={
                     accountsLoading 
@@ -743,20 +762,26 @@ export function QuickTransactionModal({
                 )}
               </SelectContent>
             </Select>
+            {fieldErrors.accountId && (
+              <p className="text-[var(--color-error)] text-xs">{fieldErrors.accountId}</p>
+            )}
           </div>
 
           {/* To Account (for transfers) */}
           {(type === 'transfer_out' || type === 'transfer_in') && (
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">
+              <label className={`text-sm font-medium ${fieldErrors.toAccountId ? 'text-[var(--color-error)]' : 'text-foreground'}`}>
                 To Account <span className="text-[var(--color-error)]">*</span>
               </label>
               <Select 
                 value={toAccountId} 
-                onValueChange={setToAccountId}
+                onValueChange={(value) => {
+                  setToAccountId(value);
+                  if (fieldErrors.toAccountId) setFieldErrors(prev => ({ ...prev, toAccountId: '' }));
+                }}
                 disabled={accountsLoading || !initialized || householdLoading || !selectedHouseholdId || !householdId || accounts.length === 0}
               >
-                <SelectTrigger>
+                <SelectTrigger className={fieldErrors.toAccountId ? 'border-[var(--color-error)]' : ''}>
                   <SelectValue 
                     placeholder={
                       accountsLoading 
@@ -788,12 +813,15 @@ export function QuickTransactionModal({
                   )}
                 </SelectContent>
               </Select>
+              {fieldErrors.toAccountId && (
+                <p className="text-[var(--color-error)] text-xs">{fieldErrors.toAccountId}</p>
+              )}
             </div>
           )}
 
           {/* Amount */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
+            <label className={`text-sm font-medium ${fieldErrors.amount ? 'text-[var(--color-error)]' : 'text-foreground'}`}>
               Amount <span className="text-[var(--color-error)]">*</span>
             </label>
             <div className="relative">
@@ -802,25 +830,42 @@ export function QuickTransactionModal({
                 type="number"
                 step="0.01"
                 min="0"
-                placeholder="0.00"
+                placeholder="Enter amount"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="pl-7"
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  if (fieldErrors.amount) setFieldErrors(prev => ({ ...prev, amount: '' }));
+                }}
+                className={`pl-7 placeholder:text-muted-foreground/50 placeholder:italic ${
+                  fieldErrors.amount ? 'border-[var(--color-error)]' : ''
+                }`}
                 autoFocus
               />
             </div>
+            {fieldErrors.amount && (
+              <p className="text-[var(--color-error)] text-xs">{fieldErrors.amount}</p>
+            )}
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
+            <label className={`text-sm font-medium ${fieldErrors.description ? 'text-[var(--color-error)]' : 'text-foreground'}`}>
               Description <span className="text-[var(--color-error)]">*</span>
             </label>
             <Input
               placeholder="e.g., Coffee, Gas, Salary"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                if (fieldErrors.description) setFieldErrors(prev => ({ ...prev, description: '' }));
+              }}
+              className={`placeholder:text-muted-foreground/50 placeholder:italic ${
+                fieldErrors.description ? 'border-[var(--color-error)]' : ''
+              }`}
             />
+            {fieldErrors.description && (
+              <p className="text-[var(--color-error)] text-xs">{fieldErrors.description}</p>
+            )}
           </div>
 
           {/* Category */}

@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { householdMembers } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { isTestMode, TEST_USER_ID, TEST_HOUSEHOLD_ID } from '@/lib/test-mode';
 
 export type HouseholdRole = 'owner' | 'admin' | 'member' | 'viewer';
 
@@ -340,6 +341,11 @@ export async function isMemberOfHousehold(
   householdId: string,
   userId: string
 ): Promise<boolean> {
+  // Test mode bypass - always return true for test user and household
+  if (isTestMode() && userId === TEST_USER_ID && householdId === TEST_HOUSEHOLD_ID) {
+    return true;
+  }
+
   const member = await db
     .select({ id: householdMembers.id })
     .from(householdMembers)

@@ -114,6 +114,7 @@ export function AccountForm({
   isLoading = false,
 }: AccountFormProps) {
   const [saveMode, setSaveMode] = useState<'save' | 'saveAndAdd' | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     name: account?.name || '',
     type: account?.type || 'checking',
@@ -189,32 +190,40 @@ export function AccountForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Clear previous errors
+    const newErrors: Record<string, string> = {};
+
     if (!formData.name.trim()) {
-      toast.error('Account name is required');
-      setSaveMode(null);
-      return;
+      newErrors.name = 'Account name is required';
     }
 
     if (!formData.type) {
-      toast.error('Account type is required');
-      setSaveMode(null);
-      return;
+      newErrors.type = 'Account type is required';
     }
 
     // Validation for credit accounts
     const isCreditAccount = formData.type === 'credit' || formData.type === 'line_of_credit';
     
     if (isCreditAccount && formData.autoCreatePaymentBill && !formData.statementDueDay) {
-      toast.error('Payment due day is required when payment tracking is enabled');
-      setSaveMode(null);
-      return;
+      newErrors.statementDueDay = 'Payment due day is required when payment tracking is enabled';
     }
 
     if (formData.annualFee && parseFloat(String(formData.annualFee)) > 0 && !formData.annualFeeMonth) {
-      toast.error('Annual fee month is required when annual fee is set');
+      newErrors.annualFeeMonth = 'Fee month is required when annual fee is set';
+    }
+
+    // If there are any errors, show them and stop
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       setSaveMode(null);
+      // Show first error as toast
+      const firstError = Object.values(newErrors)[0];
+      toast.error(firstError);
       return;
     }
+
+    // Clear errors if validation passed
+    setErrors({});
 
     const submitData: Partial<AccountFormData> = {
       name: formData.name,
@@ -300,20 +309,40 @@ export function AccountForm({
       {/* Name and Type */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Account Name</Label>
+          <Label className={`text-sm mb-2 block ${errors.name ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+            Account Name
+          </Label>
           <Input
             id="account-name"
             name="name"
             value={formData.name}
-            onChange={handleChange}
+            onChange={(e) => {
+              handleChange(e);
+              if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
+            }}
             placeholder="e.g., My Checking"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+            className={`bg-elevated text-foreground placeholder:text-muted-foreground ${
+              errors.name ? 'border-[var(--color-error)] focus:border-[var(--color-error)]' : 'border-border'
+            }`}
           />
+          {errors.name && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.name}</p>
+          )}
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Account Type</Label>
-          <Select value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}>
-            <SelectTrigger className="bg-elevated border-border text-foreground">
+          <Label className={`text-sm mb-2 block ${errors.type ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+            Account Type
+          </Label>
+          <Select 
+            value={formData.type} 
+            onValueChange={(value) => {
+              handleSelectChange('type', value);
+              if (errors.type) setErrors(prev => ({ ...prev, type: '' }));
+            }}
+          >
+            <SelectTrigger className={`bg-elevated text-foreground ${
+              errors.type ? 'border-[var(--color-error)]' : 'border-border'
+            }`}>
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
             <SelectContent>
@@ -324,6 +353,9 @@ export function AccountForm({
               ))}
             </SelectContent>
           </Select>
+          {errors.type && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.type}</p>
+          )}
         </div>
       </div>
 
@@ -363,9 +395,9 @@ export function AccountForm({
             type="number"
             value={formData.currentBalance}
             onChange={handleChange}
-            placeholder="0.00"
+            placeholder="Enter amount"
             step="0.01"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
           />
           {isCreditType && (
             <p className="text-xs text-muted-foreground mt-1">Enter the current balance owed on this account</p>
@@ -379,9 +411,9 @@ export function AccountForm({
               type="number"
               value={formData.creditLimit}
               onChange={handleChange}
-              placeholder="0.00"
+              placeholder="Enter limit"
               step="0.01"
-              className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+              className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
             />
           </div>
         )}
@@ -404,25 +436,35 @@ export function AccountForm({
                 type="number"
                 value={formData.interestRate}
                 onChange={handleChange}
-                placeholder="19.99"
+                placeholder="Enter rate"
                 step="0.01"
                 min="0"
                 max="100"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
               />
             </div>
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Payment Due Day (1-31)</Label>
+              <Label className={`text-sm mb-2 block ${errors.statementDueDay ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+                Payment Due Day (1-31)
+              </Label>
               <Input
                 name="statementDueDay"
                 type="number"
                 value={formData.statementDueDay}
-                onChange={handleChange}
-                placeholder="15"
+                onChange={(e) => {
+                  handleChange(e);
+                  if (errors.statementDueDay) setErrors(prev => ({ ...prev, statementDueDay: '' }));
+                }}
+                placeholder="Enter day"
                 min="1"
                 max="31"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+                className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
+                  errors.statementDueDay ? 'border-[var(--color-error)] focus:border-[var(--color-error)]' : 'border-border'
+                }`}
               />
+              {errors.statementDueDay && (
+                <p className="text-[var(--color-error)] text-xs mt-1">{errors.statementDueDay}</p>
+              )}
             </div>
           </div>
           
@@ -435,11 +477,11 @@ export function AccountForm({
                 type="number"
                 value={formData.minimumPaymentPercent}
                 onChange={handleChange}
-                placeholder="2"
+                placeholder="Enter %"
                 step="0.1"
                 min="0"
                 max="100"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
               />
             </div>
             <div>
@@ -449,10 +491,10 @@ export function AccountForm({
                 type="number"
                 value={formData.minimumPaymentFloor}
                 onChange={handleChange}
-                placeholder="25"
+                placeholder="Enter amount"
                 step="1"
                 min="0"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
               />
             </div>
           </div>
@@ -466,19 +508,26 @@ export function AccountForm({
                 type="number"
                 value={formData.annualFee}
                 onChange={handleChange}
-                placeholder="0"
+                placeholder="Enter fee"
                 step="1"
                 min="0"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
               />
             </div>
             <div>
-              <Label className="text-muted-foreground text-sm mb-2 block">Fee Month</Label>
+              <Label className={`text-sm mb-2 block ${errors.annualFeeMonth ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+                Fee Month
+              </Label>
               <Select 
                 value={formData.annualFeeMonth ? String(formData.annualFeeMonth) : ''} 
-                onValueChange={(value) => handleSelectChange('annualFeeMonth', value)}
+                onValueChange={(value) => {
+                  handleSelectChange('annualFeeMonth', value);
+                  if (errors.annualFeeMonth) setErrors(prev => ({ ...prev, annualFeeMonth: '' }));
+                }}
               >
-                <SelectTrigger className="bg-elevated border-border text-foreground">
+                <SelectTrigger className={`bg-elevated text-foreground ${
+                  errors.annualFeeMonth ? 'border-[var(--color-error)]' : 'border-border'
+                }`}>
                   <SelectValue placeholder="Select month" />
                 </SelectTrigger>
                 <SelectContent>
@@ -489,6 +538,9 @@ export function AccountForm({
                   ))}
                 </SelectContent>
               </Select>
+              {errors.annualFeeMonth && (
+                <p className="text-[var(--color-error)] text-xs mt-1">{errors.annualFeeMonth}</p>
+              )}
             </div>
           </div>
         </div>
@@ -527,11 +579,11 @@ export function AccountForm({
                   type="number"
                   value={formData.interestRate}
                   onChange={handleChange}
-                  placeholder="8.99"
+                  placeholder="Enter rate"
                   step="0.01"
                   min="0"
                   max="100"
-                  className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+                  className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
                 />
               </div>
             ) : (
@@ -542,10 +594,10 @@ export function AccountForm({
                   type="number"
                   value={formData.primeRateMargin}
                   onChange={handleChange}
-                  placeholder="1.5"
+                  placeholder="Enter margin"
                   step="0.01"
                   min="0"
-                  className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+                  className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
                 />
               </div>
             )}
@@ -553,17 +605,27 @@ export function AccountForm({
 
           {/* Payment Due Day */}
           <div>
-            <Label className="text-muted-foreground text-sm mb-2 block">Payment Due Day (1-31)</Label>
+            <Label className={`text-sm mb-2 block ${errors.statementDueDay ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+              Payment Due Day (1-31)
+            </Label>
             <Input
               name="statementDueDay"
               type="number"
               value={formData.statementDueDay}
-              onChange={handleChange}
-              placeholder="15"
+              onChange={(e) => {
+                handleChange(e);
+                if (errors.statementDueDay) setErrors(prev => ({ ...prev, statementDueDay: '' }));
+              }}
+              placeholder="Enter day"
               min="1"
               max="31"
-              className="bg-elevated border-border text-foreground placeholder:text-muted-foreground w-1/2"
+              className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic w-1/2 ${
+                errors.statementDueDay ? 'border-[var(--color-error)] focus:border-[var(--color-error)]' : 'border-border'
+              }`}
             />
+            {errors.statementDueDay && (
+              <p className="text-[var(--color-error)] text-xs mt-1">{errors.statementDueDay}</p>
+            )}
           </div>
           
           {/* Minimum Payment Settings */}
@@ -575,11 +637,11 @@ export function AccountForm({
                 type="number"
                 value={formData.minimumPaymentPercent}
                 onChange={handleChange}
-                placeholder="2"
+                placeholder="Enter %"
                 step="0.1"
                 min="0"
                 max="100"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
               />
             </div>
             <div>
@@ -589,10 +651,10 @@ export function AccountForm({
                 type="number"
                 value={formData.minimumPaymentFloor}
                 onChange={handleChange}
-                placeholder="25"
+                placeholder="Enter amount"
                 step="1"
                 min="0"
-                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
               />
             </div>
           </div>

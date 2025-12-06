@@ -63,6 +63,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
     monthlyContribution: goal?.monthlyContribution || '',
     notes: goal?.notes || '',
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Calculate recommended monthly savings based on current form values
   const recommendation = useMemo(() => {
@@ -119,15 +120,23 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const newErrors: Record<string, string> = {};
+
     if (!formData.name.trim()) {
-      toast.error('Goal name is required');
-      return;
+      newErrors.name = 'Goal name is required';
     }
 
     if (!formData.targetAmount || parseFloat(String(formData.targetAmount)) <= 0) {
-      toast.error('Target amount must be greater than 0');
+      newErrors.targetAmount = 'Target amount must be greater than 0';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast.error(Object.values(newErrors)[0]);
       return;
     }
+
+    setErrors({});
 
     onSubmit({
       ...formData,
@@ -142,27 +151,47 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
       {/* Name and Target Amount */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-1">Goal Name</Label>
+          <Label className={`text-sm mb-1 ${errors.name ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+            Goal Name
+          </Label>
           <Input
             name="name"
             value={formData.name}
-            onChange={handleChange}
+            onChange={(e) => {
+              handleChange(e);
+              if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
+            }}
             placeholder="e.g., Vacation Fund"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
+              errors.name ? 'border-[var(--color-error)]' : 'border-border'
+            }`}
           />
+          {errors.name && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.name}</p>
+          )}
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-1">Target Amount</Label>
+          <Label className={`text-sm mb-1 ${errors.targetAmount ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+            Target Amount
+          </Label>
           <Input
             name="targetAmount"
             type="number"
             value={formData.targetAmount}
-            onChange={handleChange}
-            placeholder="0.00"
+            onChange={(e) => {
+              handleChange(e);
+              if (errors.targetAmount) setErrors(prev => ({ ...prev, targetAmount: '' }));
+            }}
+            placeholder="Enter amount"
             step="0.01"
             min="0"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
+              errors.targetAmount ? 'border-[var(--color-error)]' : 'border-border'
+            }`}
           />
+          {errors.targetAmount && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.targetAmount}</p>
+          )}
         </div>
       </div>
 

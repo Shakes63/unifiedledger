@@ -4,11 +4,26 @@ import { households, householdMembers } from '@/lib/db/schema';
 import { user as betterAuthUser } from '@/auth-schema';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { isTestMode, TEST_USER_ID, TEST_HOUSEHOLD_ID, TEST_HOUSEHOLD_NAME, logTestModeWarning } from '@/lib/test-mode';
+
 export const dynamic = 'force-dynamic';
 
 export async function GET(_request: Request) {
   try {
     const { userId } = await requireAuth();
+
+    // Test mode bypass - return test household directly
+    if (isTestMode() && userId === TEST_USER_ID) {
+      logTestModeWarning('households GET');
+      return Response.json([{
+        id: TEST_HOUSEHOLD_ID,
+        name: TEST_HOUSEHOLD_NAME,
+        createdBy: TEST_USER_ID,
+        createdAt: new Date().toISOString(),
+        joinedAt: new Date().toISOString(),
+        isFavorite: true,
+      }]);
+    }
 
     // Get all households the user is a member of, including when they joined and favorite status
     const result = await db

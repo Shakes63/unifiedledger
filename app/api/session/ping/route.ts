@@ -10,11 +10,23 @@ import { updateSessionActivity, validateSession } from '@/lib/session-utils';
 import * as authSchema from '@/auth-schema';
 import { db } from '@/lib/db';
 import { eq } from 'drizzle-orm';
+import { isTestMode, getTestUser, logTestModeWarning } from '@/lib/test-mode';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(_request: Request) {
   try {
+    // Test mode bypass - return success without real session validation
+    if (isTestMode()) {
+      logTestModeWarning('session/ping');
+      const testUser = getTestUser();
+      return NextResponse.json({
+        success: true,
+        expiresAt: testUser.session.expiresAt,
+        lastActivityAt: testUser.session.lastActivityAt,
+      });
+    }
+
     // Get session using Better Auth API
     const session = await auth.api.getSession({
       headers: await headers(),

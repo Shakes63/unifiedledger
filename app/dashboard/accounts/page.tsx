@@ -405,7 +405,7 @@ export default function AccountsPage() {
 
         {/* Create/Edit Account Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="bg-card border border-border max-w-2xl">
+          <DialogContent className="bg-card border border-border max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-foreground">
                 {selectedAccount ? 'Edit Account' : 'Create New Account'}

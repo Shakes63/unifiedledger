@@ -163,6 +163,7 @@ export function BillForm({
   isLoading = false,
 }: BillFormProps) {
   const [saveMode, setSaveMode] = useState<'save' | 'saveAndAdd' | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     name: bill?.name || '',
     expectedAmount: bill?.expectedAmount || '',
@@ -411,75 +412,69 @@ export function BillForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const newErrors: Record<string, string> = {};
+
     if (!formData.name.trim()) {
-      toast.error('Bill name is required');
-      setSaveMode(null);
-      return;
+      newErrors.name = 'Bill name is required';
     }
 
     if (!formData.expectedAmount || parseFloat(String(formData.expectedAmount)) <= 0) {
-      toast.error('Expected amount must be greater than 0');
-      setSaveMode(null);
-      return;
+      newErrors.expectedAmount = 'Expected amount must be greater than 0';
     }
 
     // Frequency-specific validation
     if (isOneTimeFrequency(formData.frequency)) {
       if (!formData.specificDueDate) {
-        toast.error('Specific due date is required for one-time bills');
-        setSaveMode(null);
-        return;
-      }
-      // Validate date is not in the past
-      const selectedDate = new Date(formData.specificDueDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      selectedDate.setHours(0, 0, 0, 0);
-      if (selectedDate < today) {
-        toast.error('Due date cannot be in the past');
-        setSaveMode(null);
-        return;
+        newErrors.specificDueDate = 'Due date is required for one-time bills';
+      } else {
+        // Validate date is not in the past
+        const selectedDate = new Date(formData.specificDueDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        selectedDate.setHours(0, 0, 0, 0);
+        if (selectedDate < today) {
+          newErrors.specificDueDate = 'Due date cannot be in the past';
+        }
       }
     } else if (isWeekBasedFrequency(formData.frequency)) {
       const dayOfWeek = parseInt(formData.dueDate);
       if (isNaN(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
-        toast.error('Day of week must be between 0 (Sunday) and 6 (Saturday)');
-        setSaveMode(null);
-        return;
+        newErrors.dueDate = 'Day of week must be between 0-6';
       }
     } else {
       const dueDate = parseInt(formData.dueDate);
       if (isNaN(dueDate) || dueDate < 1 || dueDate > 31) {
-        toast.error('Due date must be between 1 and 31');
-        setSaveMode(null);
-        return;
+        newErrors.dueDate = 'Due date must be between 1 and 31';
       }
     }
 
     // Debt-specific validation
     if (formData.isDebt) {
       if (!formData.originalBalance || parseFloat(String(formData.originalBalance)) <= 0) {
-        toast.error('Original balance is required for debt bills');
-        setSaveMode(null);
-        return;
+        newErrors.originalBalance = 'Original balance is required for debt bills';
       }
     }
 
     // Autopay validation
     if (formData.isAutopayEnabled) {
       if (!formData.autopayAccountId) {
-        toast.error('Source account is required for autopay');
-        setSaveMode(null);
-        return;
+        newErrors.autopayAccountId = 'Source account is required for autopay';
       }
     }
 
     // Validate linkedAccountId and chargedToAccountId are mutually exclusive
     if (formData.linkedAccountId && formData.chargedToAccountId) {
-      toast.error('A bill cannot be both a payment to a card and charged to a card');
+      newErrors.linkedAccountId = 'Cannot be both a payment to a card and charged to a card';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       setSaveMode(null);
+      toast.error(Object.values(newErrors)[0]);
       return;
     }
+
+    setErrors({});
 
     onSubmit({
       name: formData.name,
@@ -668,17 +663,25 @@ export function BillForm({
       {/* Name and Amount */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">
+          <Label className={`text-sm mb-2 block ${errors.name ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
             {isIncomeBill ? 'Income Source Name*' : 'Bill Name*'}
           </Label>
           <Input
             id="bill-name"
             name="name"
             value={formData.name}
-            onChange={handleChange}
+            onChange={(e) => {
+              handleChange(e);
+              if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
+            }}
             placeholder={isIncomeBill ? "e.g., Monthly Salary" : "e.g., Electric Bill"}
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
+              errors.name ? 'border-[var(--color-error)]' : 'border-border'
+            }`}
           />
+          {errors.name && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.name}</p>
+          )}
           {/* Classification Suggestion Banner */}
           {classificationSuggestion && classificationSuggestion.confidence >= 0.7 && (
             <div 
@@ -731,16 +734,26 @@ export function BillForm({
           )}
         </div>
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Expected Amount*</Label>
+          <Label className={`text-sm mb-2 block ${errors.expectedAmount ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+            Expected Amount*
+          </Label>
           <Input
             name="expectedAmount"
             type="number"
             value={formData.expectedAmount}
-            onChange={handleChange}
-            placeholder="0.00"
+            onChange={(e) => {
+              handleChange(e);
+              if (errors.expectedAmount) setErrors(prev => ({ ...prev, expectedAmount: '' }));
+            }}
+            placeholder="Enter amount"
             step="0.01"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+            className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
+              errors.expectedAmount ? 'border-[var(--color-error)]' : 'border-border'
+            }`}
           />
+          {errors.expectedAmount && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.expectedAmount}</p>
+          )}
         </div>
       </div>
 

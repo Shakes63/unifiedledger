@@ -24,6 +24,7 @@ import {
   getHouseholdIdFromRequest,
   requireHouseholdAuth,
 } from '@/lib/api/household-auth';
+import { isTestMode, TEST_USER_ID, TEST_HOUSEHOLD_ID, logTestModeWarning } from '@/lib/test-mode';
 
 export async function GET(request: Request) {
   try {
@@ -32,6 +33,17 @@ export async function GET(request: Request) {
 
     // Get and verify household access
     const householdId = getHouseholdIdFromRequest(request);
+
+    // Test mode bypass - return no business accounts for test user
+    if (isTestMode() && userId === TEST_USER_ID && householdId === TEST_HOUSEHOLD_ID) {
+      logTestModeWarning('accounts/has-business');
+      return NextResponse.json({
+        hasBusinessAccounts: false,
+        hasSalesTaxAccounts: false,
+        hasTaxDeductionAccounts: false,
+      });
+    }
+
     if (!householdId) {
       return NextResponse.json(
         { error: 'Household ID is required' },
