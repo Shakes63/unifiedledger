@@ -35,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 695 (119 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 696 (120 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (119 total)
+## Fixed Bugs (120 total)
 
+120. ✅ **Test Mode Initialization Partial State Failure** [FIXED 2025-12-06] - Made test mode initialization endpoint more resilient by checking each record (user, account, session, household, membership, settings) individually before inserting. Handles partial state gracefully when previous initialization failed midway. Inner try-catch blocks handle duplicate key errors without failing the entire request.
 119. ✅ **Test Mode API 500 Errors - Onboarding Status** [FIXED 2025-12-06] - Added test mode bypass to `/api/user/onboarding/status` endpoint to return `onboardingCompleted: true` for test user, preventing 500 error during app initialization.
 118. ✅ **Test Mode API 500 Errors - Business Features** [FIXED 2025-12-06] - Added test mode bypass to `/api/accounts/has-business` endpoint to return default business account status for test user, preventing 500 error from BusinessFeaturesContext.
 117. ✅ **Test Mode API 500 Errors - Household Preferences** [FIXED 2025-12-06] - Added test mode bypass to `/api/user/households/[id]/preferences` endpoint to return default preferences for test user. Also added missing `incomeLateEnabled` and `incomeLateChannels` fields to DEFAULT_PREFERENCES.

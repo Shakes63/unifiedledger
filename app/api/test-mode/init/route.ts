@@ -41,7 +41,10 @@ export async function POST() {
   logTestModeWarning('test-mode/init endpoint');
 
   try {
-    // Check if test user already exists
+    const now = new Date();
+    let alreadyExists = false;
+
+    // Check and create test user if needed
     const existingUser = await db
       .select()
       .from(authSchema.user)
@@ -49,83 +52,125 @@ export async function POST() {
       .get();
 
     if (existingUser) {
-      // User already exists, just ensure session is valid
-      await ensureTestSession();
-
-      return NextResponse.json({
-        message: 'Test mode already initialized',
-        userId: TEST_USER_ID,
-        householdId: TEST_HOUSEHOLD_ID,
-        alreadyExists: true,
-      });
+      alreadyExists = true;
+    } else {
+      try {
+        await db.insert(authSchema.user).values({
+          id: TEST_USER_ID,
+          name: TEST_USER_NAME,
+          email: TEST_USER_EMAIL,
+          emailVerified: true,
+          isApplicationOwner: true,
+          createdAt: now,
+          updatedAt: now,
+        });
+      } catch (err) {
+        // Ignore duplicate key errors - another request may have created it
+        console.log('[Test Mode] User insert error (may be duplicate):', err);
+      }
     }
 
-    // Create test user
-    const now = new Date();
+    // Check and create account record if needed
+    const existingAccount = await db
+      .select()
+      .from(authSchema.account)
+      .where(eq(authSchema.account.id, 'test-account-001'))
+      .get();
 
-    await db.insert(authSchema.user).values({
-      id: TEST_USER_ID,
-      name: TEST_USER_NAME,
-      email: TEST_USER_EMAIL,
-      emailVerified: true,
-      isApplicationOwner: true,
-      createdAt: now,
-      updatedAt: now,
-    });
+    if (!existingAccount) {
+      try {
+        await db.insert(authSchema.account).values({
+          id: 'test-account-001',
+          accountId: TEST_USER_ID,
+          providerId: 'credential',
+          userId: TEST_USER_ID,
+          password: null,
+          createdAt: now,
+          updatedAt: now,
+        });
+      } catch (err) {
+        console.log('[Test Mode] Account insert error (may be duplicate):', err);
+      }
+    }
 
-    // Create account record for credential provider
-    await db.insert(authSchema.account).values({
-      id: 'test-account-001',
-      accountId: TEST_USER_ID,
-      providerId: 'credential',
-      userId: TEST_USER_ID,
-      password: null, // No password needed for test mode
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // Create test session
+    // Ensure test session exists and is valid
     await ensureTestSession();
 
-    // Create test household
-    await db.insert(households).values({
-      id: TEST_HOUSEHOLD_ID,
-      name: TEST_HOUSEHOLD_NAME,
-      createdBy: TEST_USER_ID,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    });
+    // Check and create test household if needed
+    const existingHousehold = await db
+      .select()
+      .from(households)
+      .where(eq(households.id, TEST_HOUSEHOLD_ID))
+      .get();
 
-    // Add test user as owner of household
-    await db.insert(householdMembers).values({
-      id: 'test-membership-001',
-      householdId: TEST_HOUSEHOLD_ID,
-      userId: TEST_USER_ID,
-      userEmail: TEST_USER_EMAIL,
-      userName: TEST_USER_NAME,
-      role: 'owner',
-      joinedAt: now.toISOString(),
-      isActive: true,
-      isFavorite: true,
-    });
+    if (!existingHousehold) {
+      try {
+        await db.insert(households).values({
+          id: TEST_HOUSEHOLD_ID,
+          name: TEST_HOUSEHOLD_NAME,
+          createdBy: TEST_USER_ID,
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+        });
+      } catch (err) {
+        console.log('[Test Mode] Household insert error (may be duplicate):', err);
+      }
+    }
 
-    // Create user settings
-    await db.insert(userSettings).values({
-      id: 'test-settings-001',
-      userId: TEST_USER_ID,
-      displayName: TEST_USER_NAME,
-      defaultHouseholdId: TEST_HOUSEHOLD_ID,
-      onboardingCompleted: true, // Skip onboarding in test mode
-      developerMode: true, // Enable dev mode for testing
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
-    });
+    // Check and create household membership if needed
+    const existingMembership = await db
+      .select()
+      .from(householdMembers)
+      .where(eq(householdMembers.id, 'test-membership-001'))
+      .get();
+
+    if (!existingMembership) {
+      try {
+        await db.insert(householdMembers).values({
+          id: 'test-membership-001',
+          householdId: TEST_HOUSEHOLD_ID,
+          userId: TEST_USER_ID,
+          userEmail: TEST_USER_EMAIL,
+          userName: TEST_USER_NAME,
+          role: 'owner',
+          joinedAt: now.toISOString(),
+          isActive: true,
+          isFavorite: true,
+        });
+      } catch (err) {
+        console.log('[Test Mode] Membership insert error (may be duplicate):', err);
+      }
+    }
+
+    // Check and create user settings if needed
+    const existingSettings = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.id, 'test-settings-001'))
+      .get();
+
+    if (!existingSettings) {
+      try {
+        await db.insert(userSettings).values({
+          id: 'test-settings-001',
+          userId: TEST_USER_ID,
+          displayName: TEST_USER_NAME,
+          defaultHouseholdId: TEST_HOUSEHOLD_ID,
+          onboardingCompleted: true,
+          developerMode: true,
+          createdAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+        });
+      } catch (err) {
+        console.log('[Test Mode] Settings insert error (may be duplicate):', err);
+      }
+    }
 
     return NextResponse.json({
-      message: 'Test mode initialized successfully',
+      message: alreadyExists ? 'Test mode already initialized' : 'Test mode initialized successfully',
       userId: TEST_USER_ID,
       householdId: TEST_HOUSEHOLD_ID,
-      alreadyExists: false,
+      alreadyExists,
     });
   } catch (error) {
     console.error('[Test Mode] Failed to initialize:', error);
