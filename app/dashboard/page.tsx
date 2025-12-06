@@ -14,6 +14,7 @@ import { BudgetSummaryWidget } from '@/components/dashboard/budget-summary-widge
 import { CreditUtilizationWidget } from '@/components/debts/credit-utilization-widget';
 import { NextPaymentDueWidget } from '@/components/dashboard/next-payment-due-widget';
 import { BillsByClassificationWidget } from '@/components/dashboard/bills-by-classification-widget';
+import { BudgetPeriodWidget } from '@/components/dashboard/budget-period-widget';
 import { betterAuthClient } from '@/lib/better-auth-client';
 
 export default function DashboardPage() {
@@ -65,6 +66,8 @@ export default function DashboardPage() {
             
             {/* Sidebar widgets - stacked */}
             <div className="lg:col-span-1 space-y-6">
+              {/* Budget Period Widget - shows when user has non-monthly budget cycle */}
+              <BudgetPeriodWidget />
               <NextPaymentDueWidget />
               <BillsByClassificationWidget />
             </div>

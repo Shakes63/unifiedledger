@@ -1030,6 +1030,16 @@ export const userHouseholdPreferences = sqliteTable(
     incomeLateEnabled: integer('income_late_enabled', { mode: 'boolean' }).default(true),
     incomeLateChannels: text('income_late_channels').default('["push"]'),
 
+    // Budget Schedule Settings
+    budgetCycleFrequency: text('budget_cycle_frequency', {
+      enum: ['weekly', 'biweekly', 'semi-monthly', 'monthly'],
+    }).default('monthly'),
+    budgetCycleStartDay: integer('budget_cycle_start_day'), // 0-6 for weekly/biweekly day of week
+    budgetCycleReferenceDate: text('budget_cycle_reference_date'), // ISO date for biweekly (e.g., a known Friday)
+    budgetCycleSemiMonthlyDays: text('budget_cycle_semi_monthly_days').default('[1, 15]'), // JSON array for semi-monthly
+    budgetPeriodRollover: integer('budget_period_rollover', { mode: 'boolean' }).default(false),
+    budgetPeriodManualAmount: real('budget_period_manual_amount'), // Optional override per period
+
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   },

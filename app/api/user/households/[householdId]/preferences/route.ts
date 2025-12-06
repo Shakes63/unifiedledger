@@ -46,6 +46,13 @@ const DEFAULT_PREFERENCES = {
   // Phase 16: Late Income Alerts
   incomeLateEnabled: true,
   incomeLateChannels: '["push"]',
+  // Budget Schedule Settings
+  budgetCycleFrequency: 'monthly' as const,
+  budgetCycleStartDay: null,
+  budgetCycleReferenceDate: null,
+  budgetCycleSemiMonthlyDays: '[1, 15]',
+  budgetPeriodRollover: false,
+  budgetPeriodManualAmount: null,
 };
 
 /**

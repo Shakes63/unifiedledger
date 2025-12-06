@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Wallet, TrendingUp, Calendar, Target, TrendingDown, HelpCircle, CreditCard } from 'lucide-react';
+import { Wallet, TrendingUp, Calendar, Target, TrendingDown, HelpCircle, CreditCard, DollarSign } from 'lucide-react';
 import Decimal from 'decimal.js';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
@@ -25,6 +25,13 @@ interface StatCardData {
   tooltip?: string;
 }
 
+interface BudgetPeriodData {
+  available: number;
+  periodLabel: string;
+  daysRemaining: number;
+  frequency: string;
+}
+
 export function CompactStatsBar() {
   const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
   const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
@@ -37,6 +44,7 @@ export function CompactStatsBar() {
   const [budgetAdherence, setBudgetAdherence] = useState<number | null>(null);
   const [debtProgress, setDebtProgress] = useState<number | null>(null);
   const [goalsProgress, setGoalsProgress] = useState<number | null>(null);
+  const [budgetPeriodData, setBudgetPeriodData] = useState<BudgetPeriodData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -191,6 +199,28 @@ export function CompactStatsBar() {
         } catch (_err) {
           // Goals data not available, skip
         }
+
+        // Fetch budget period available amount
+        try {
+          const periodResponse = await fetch(
+            `/api/budget-schedule/available?householdId=${selectedHouseholdId}`,
+            { credentials: 'include' }
+          );
+          if (periodResponse.ok) {
+            const periodData = await periodResponse.json();
+            // Only show if not using monthly (default) budget cycle
+            if (periodData.settings?.frequency && periodData.settings.frequency !== 'monthly') {
+              setBudgetPeriodData({
+                available: periodData.available,
+                periodLabel: periodData.currentPeriod?.label || 'This Period',
+                daysRemaining: periodData.currentPeriod?.daysRemaining || 0,
+                frequency: periodData.settings.frequency,
+              });
+            }
+          }
+        } catch (_err) {
+          // Budget period data not available, skip
+        }
       } catch (error) {
         console.error('Failed to fetch dashboard stats:', error);
       } finally {
@@ -272,6 +302,22 @@ export function CompactStatsBar() {
       icon: <Target className="w-5 h-5" />,
       color: goalsProgress >= 70 ? 'var(--color-success)' : goalsProgress >= 30 ? 'var(--color-warning)' : 'var(--color-error)',
       loading,
+    });
+  }
+
+  // Add budget period available amount if user has a non-monthly budget cycle
+  if (budgetPeriodData !== null) {
+    const availableColor = budgetPeriodData.available >= 0
+      ? 'var(--color-success)'
+      : 'var(--color-error)';
+    
+    stats.unshift({
+      label: 'Available This Period',
+      value: loading ? '...' : `$${Math.abs(budgetPeriodData.available).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: <DollarSign className="w-5 h-5" />,
+      color: availableColor,
+      loading,
+      tooltip: `${budgetPeriodData.periodLabel}\n${budgetPeriodData.daysRemaining} days remaining\n\nCash balance minus paid expenses and upcoming bills due before your next budget period.`,
     });
   }
 
