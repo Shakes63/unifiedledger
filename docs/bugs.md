@@ -4,7 +4,6 @@
 
 ## New Bugs
 
-
 (None)
 
 ---
@@ -36,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 710 (134 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 711 (135 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (134 total)
+## Fixed Bugs (135 total)
 
+135. ✅ **Budget Save 400 Bad Request** [FIXED 2025-12-06] - Added frontend validation to prevent saving empty budgets array, empty state message when no categories exist, and improved error parsing in budget-manager-modal.tsx.
 134. ✅ **Preferences Tab Accounts 403 Forbidden** [FIXED 2025-12-06] - Added useHouseholdFetch hook to preferences-tab.tsx to include x-household-id header when fetching accounts.
 133. ✅ **OAuth & Sessions API 401 in TEST_MODE** [FIXED 2025-12-06] - Replaced auth.api.getSession() with requireAuth() in 7 API routes: sessions (list, delete, revoke-all), oauth (providers, set-primary, unlink, link).
 132. ✅ **Two-Factor API 401 in TEST_MODE** [FIXED 2025-12-06] - Replaced auth.api.getSession() with requireAuth() in all 5 two-factor API routes (status, enable, disable, verify, backup-codes) for TEST_MODE bypass.

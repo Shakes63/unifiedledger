@@ -189,13 +189,21 @@ export function BudgetManagerModal({
         })
         .filter(b => !isNaN(b.monthlyBudget) && b.monthlyBudget >= 0);
 
+      // Validate before sending - can't save empty budgets
+      if (budgets.length === 0) {
+        toast.error('No budget categories to save. Add categories first.');
+        setSaving(false);
+        return;
+      }
+
       const response = await postWithHousehold('/api/budgets', {
         month,
         budgets,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save budgets');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to save budgets');
       }
 
       // Save manual debt budget values
@@ -389,6 +397,19 @@ export function BudgetManagerModal({
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-muted-foreground">Loading categories...</div>
+          </div>
+        ) : categories.length === 0 && (!debtBudgetData || debtBudgetData.debtCount === 0) ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground mb-4">
+              No budget categories found. Create categories first to set up your budget.
+            </p>
+            <Link
+              href="/dashboard/categories"
+              className="text-[var(--color-primary)] hover:underline"
+              onClick={onClose}
+            >
+              Manage Categories
+            </Link>
           </div>
         ) : (
           <div className="space-y-6">
@@ -648,7 +669,7 @@ export function BudgetManagerModal({
               </button>
               <button
                 onClick={handleSave}
-                disabled={saving}
+                disabled={saving || categories.length === 0}
                 className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Budget'}
