@@ -303,6 +303,9 @@ export async function GET(request: Request) {
     // Find next milestone
     const nextMilestone = milestones.find(m => !m.achieved);
 
+    // Get strategy enabled state from settings
+    const strategyEnabled = settings.length > 0 ? (settings[0].debtStrategyEnabled ?? false) : false;
+
     return Response.json({
       hasDebts: true,
       totalMonthsRemaining: strategy.totalMonths,
@@ -319,6 +322,9 @@ export async function GET(request: Request) {
         monthsAway: nextMilestone.monthsAway,
       } : null,
       focusDebt,
+      // Strategy settings
+      strategyEnabled,
+      payoffMethod: preferredMethod,
       // Include source breakdown for debugging/UI
       sources: {
         creditAccounts: unifiedDebts.filter(d => d.source === 'account').length,

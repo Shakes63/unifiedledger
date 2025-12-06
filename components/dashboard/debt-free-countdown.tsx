@@ -46,14 +46,25 @@ interface CountdownData {
     monthsAway: number;
   } | null;
   focusDebt: FocusDebt | null;
+  strategyEnabled?: boolean;
+  payoffMethod?: string;
 }
 
-export function DebtFreeCountdown() {
+interface DebtFreeCountdownProps {
+  strategyEnabled?: boolean;
+  payoffMethod?: string;
+}
+
+export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoffMethod: propPayoffMethod }: DebtFreeCountdownProps) {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
   const [data, setData] = useState<CountdownData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  
+  // Use props if provided, otherwise fall back to data from API
+  const strategyEnabled = propStrategyEnabled ?? data?.strategyEnabled ?? false;
+  const payoffMethod = propPayoffMethod ?? data?.payoffMethod ?? 'avalanche';
 
   const fetchCountdownData = useCallback(async () => {
     if (!selectedHouseholdId) {
@@ -168,15 +179,27 @@ export function DebtFreeCountdown() {
     <div className="bg-gradient-to-br from-card to-elevated border border-border rounded-xl p-6 md:p-8">
       {/* Header */}
       <div className="text-center mb-6">
-        <div className="flex items-center justify-center gap-2 mb-2">
+        <div className="flex items-center justify-center gap-2 mb-2 flex-wrap">
           <Target className="w-6 h-6 md:w-8 md:h-8 text-foreground" />
           <h2 className="text-2xl md:text-3xl font-bold text-foreground">
             Debt-Free Countdown
           </h2>
+          <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${
+            strategyEnabled 
+              ? 'bg-[var(--color-income)]/20 text-[var(--color-income)]'
+              : 'bg-muted text-muted-foreground'
+          }`}>
+            {strategyEnabled ? `${payoffMethod} Strategy` : 'Manual Mode'}
+          </span>
         </div>
         <p className="text-muted-foreground text-sm md:text-base">
           {getMotivationalMessage(data.percentageComplete)}
         </p>
+        {!strategyEnabled && (
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            Enable strategy mode for optimized debt payoff recommendations
+          </p>
+        )}
       </div>
 
       {/* Focus Debt Card */}
@@ -265,12 +288,25 @@ export function DebtFreeCountdown() {
                 <TrendingDown className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Strategy</span>
               </div>
-              <div className="text-sm font-semibold text-foreground capitalize">
-                {data.focusDebt.strategyMethod}
-              </div>
-              <div className="text-xs text-muted-foreground mt-0.5">
-                {getStrategyLabel(data.focusDebt.strategyMethod)}
-              </div>
+              {strategyEnabled ? (
+                <>
+                  <div className="text-sm font-semibold text-foreground capitalize">
+                    {payoffMethod}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {getStrategyLabel(payoffMethod)}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="text-sm font-semibold text-muted-foreground">
+                    Manual Mode
+                  </div>
+                  <div className="text-xs text-muted-foreground/70 mt-0.5">
+                    Individual tracking
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

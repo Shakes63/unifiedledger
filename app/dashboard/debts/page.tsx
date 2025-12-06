@@ -19,7 +19,15 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Plus, ChevronDown, ChevronUp, Target, BarChart3, Lightbulb, AlertTriangle, CreditCard, Wallet, FileText, Layers, TrendingUp } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, Target, BarChart3, Lightbulb, AlertTriangle, CreditCard, Wallet, FileText, Layers, TrendingUp, Info, Loader2, Settings } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import Link from 'next/link';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { UtilizationTrendsChart, BalanceHistoryChart, InterestPaidChart } from '@/components/charts';
@@ -80,6 +88,8 @@ export default function DebtsPage() {
   const [allExpanded, setAllExpanded] = useState<boolean | null>(null);
   // Refresh key forces child components to remount and re-fetch their data
   const [refreshKey, setRefreshKey] = useState(0);
+  // Track strategy toggle saving state
+  const [savingStrategy, setSavingStrategy] = useState(false);
   // Strategy data for payoff timelines on individual debt cards
   const [strategyData, setStrategyData] = useState<any>(null);
   // Unified view state
@@ -302,6 +312,45 @@ export default function DebtsPage() {
     triggerRefresh();
   };
 
+  const handleToggleStrategy = async (enabled: boolean) => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household');
+      return;
+    }
+    
+    setSavingStrategy(true);
+    try {
+      const response = await putWithHousehold('/api/debts/settings', {
+        ...debtSettings,
+        debtStrategyEnabled: enabled,
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update strategy');
+      }
+      
+      // Update local state
+      setDebtSettings((prev: typeof debtSettings) => ({
+        ...prev,
+        debtStrategyEnabled: enabled,
+      }));
+      
+      toast.success(enabled 
+        ? 'Debt payoff strategy enabled' 
+        : 'Debt payoff strategy disabled'
+      );
+      
+      // Refresh related components
+      triggerRefresh();
+      loadUnifiedDebts();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update strategy');
+    } finally {
+      setSavingStrategy(false);
+    }
+  };
+
   if (loading && !stats) {
     return (
       <div className="text-center py-12">
@@ -331,10 +380,75 @@ export default function DebtsPage() {
         </Button>
       </div>
 
+      {/* Strategy Toggle Card */}
+      {stats && stats.activeDebtCount > 0 && debtSettings && (
+        <div className="bg-card border border-border rounded-xl p-4 md:p-5">
+          <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className={`p-2 rounded-lg ${debtSettings.debtStrategyEnabled ? 'bg-[var(--color-income)]/10' : 'bg-muted/50'}`}>
+                <Target className={`w-5 h-5 ${debtSettings.debtStrategyEnabled ? 'text-[var(--color-income)]' : 'text-muted-foreground'}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-semibold text-foreground">Debt Payoff Strategy</h3>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button className="text-muted-foreground hover:text-foreground transition-colors">
+                          <Info className="w-4 h-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>
+                          When enabled, your debts are managed with a centralized payoff strategy 
+                          that prioritizes payments based on your chosen method (Avalanche or Snowball).
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <p className="text-sm text-muted-foreground truncate">
+                  {debtSettings.debtStrategyEnabled
+                    ? `${debtSettings.preferredMethod === 'avalanche' ? 'Avalanche' : 'Snowball'} method with centralized management`
+                    : 'Each debt is tracked individually'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {debtSettings.debtStrategyEnabled && (
+                <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-[var(--color-income)]/10 text-[var(--color-income)] capitalize">
+                  {debtSettings.preferredMethod}
+                </span>
+              )}
+              <Link
+                href="/dashboard/settings?tab=household-financial"
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                title="Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </Link>
+              {savingStrategy ? (
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              ) : (
+                <Switch
+                  checked={debtSettings.debtStrategyEnabled ?? false}
+                  onCheckedChange={handleToggleStrategy}
+                  aria-label="Toggle debt payoff strategy"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Debt-Free Countdown */}
       {stats && stats.activeDebtCount > 0 && (
         <div className="mb-6">
-          <DebtFreeCountdown key={`countdown-${refreshKey}`} />
+          <DebtFreeCountdown 
+            key={`countdown-${refreshKey}`}
+            strategyEnabled={debtSettings?.debtStrategyEnabled ?? false}
+            payoffMethod={debtSettings?.preferredMethod ?? 'avalanche'}
+          />
         </div>
       )}
 
