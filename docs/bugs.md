@@ -35,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 703 (127 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 704 (128 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (127 total)
+## Fixed Bugs (128 total)
 
+128. ✅ **Font Preload Not Used Warning** [FIXED 2025-12-06] - Added explicit font-family rules in globals.css base layer to use Inter font immediately after preload.
 127. ✅ **Session Ping 401 Errors in TEST MODE** [FIXED 2025-12-06] - Expected behavior in TEST_MODE since session management is disabled. Non-blocking.
 126. ✅ **Bill Instance Operations** [FIXED 2025-12-06] - Full BillInstanceActionsModal with Mark as Paid/Skip/Pending, Link Transaction tab, and smart match scoring.
 125. ✅ **Edit Transaction Success Message** [FIXED 2025-11-30] - Updated success toast to show "updated" vs "created" based on isEditMode.
