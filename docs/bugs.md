@@ -35,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 696 (120 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 697 (121 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (120 total)
+## Fixed Bugs (121 total)
 
+121. ✅ **Font Preloading Warnings** [FIXED 2025-12-06] - Fixed browser console warnings about fonts being preloaded but not used within a few seconds. Added explicit `display: "swap"` to Inter font and set `preload: false` for JetBrains Mono (monospace) font since it's only used for amounts and not needed on initial render.
 120. ✅ **Test Mode Initialization Partial State Failure** [FIXED 2025-12-06] - Made test mode initialization endpoint more resilient by checking each record (user, account, session, household, membership, settings) individually before inserting. Handles partial state gracefully when previous initialization failed midway. Inner try-catch blocks handle duplicate key errors without failing the entire request.
 119. ✅ **Test Mode API 500 Errors - Onboarding Status** [FIXED 2025-12-06] - Added test mode bypass to `/api/user/onboarding/status` endpoint to return `onboardingCompleted: true` for test user, preventing 500 error during app initialization.
 118. ✅ **Test Mode API 500 Errors - Business Features** [FIXED 2025-12-06] - Added test mode bypass to `/api/accounts/has-business` endpoint to return default business account status for test user, preventing 500 error from BusinessFeaturesContext.

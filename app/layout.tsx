@@ -13,11 +13,15 @@ import "./globals.css";
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
+  preload: true,
 });
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
+  display: "swap",
+  preload: false, // Only preload the primary font, load mono on demand
 });
 
 export const metadata: Metadata = {
