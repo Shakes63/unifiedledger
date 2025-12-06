@@ -35,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 706 (130 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 707 (131 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (130 total)
+## Fixed Bugs (131 total)
 
+131. ✅ **Household Settings Tabs Overflow** [FIXED 2025-12-06] - Added `overflow-x-auto`, `flex-wrap`, and `gap-1` to household settings tabs container, and reduced tab padding from `px-4` to `px-3` for consistency.
 130. ✅ **Credit Card Account Deletion Not Deleting Bills** [FIXED 2025-12-06] - Added bill cleanup to DELETE handler: finds bills linked via `linkedAccountId` or `chargedToAccountId`, deletes their instances, then deletes the bills before deleting the account.
 129. ✅ **Credit Card Minimum Payment $0 Bug** [FIXED 2025-12-06] - Added calculateMinimumPayment utility that calculates MAX(floor, balance * percent / 100). Used in account creation/update APIs to set minimumPaymentAmount and bill expectedAmount.
 128. ✅ **Font Preload Not Used Warning** [FIXED 2025-12-06] - Added explicit font-family rules in globals.css base layer to use Inter font immediately after preload.

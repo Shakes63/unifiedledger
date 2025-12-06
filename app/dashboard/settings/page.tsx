@@ -543,7 +543,7 @@ function SettingsPageContent() {
                     <div
                       role="tablist"
                       aria-label="Household settings tabs"
-                      className="hidden lg:flex w-full justify-start bg-elevated border border-border h-auto p-2 rounded-md"
+                      className="hidden lg:flex w-full justify-start bg-elevated border border-border overflow-x-auto h-auto flex-wrap gap-1 p-2 rounded-md"
                     >
                       {HOUSEHOLD_TABS.map((t) => (
                         <button
@@ -556,7 +556,7 @@ function SettingsPageContent() {
                           onClick={() => handleTabChange(t.id)}
                           onKeyDown={(e) => handleTabKeyDown(e, tab, HOUSEHOLD_TABS)}
                           className={cn(
-                            "flex items-center gap-2 px-4 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                            "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                             tab === t.id
                               ? "bg-card text-[var(--color-primary)] shadow-sm"
                               : "text-foreground hover:bg-card/50"
