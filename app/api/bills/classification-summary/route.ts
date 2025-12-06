@@ -5,7 +5,8 @@ import { eq, and, gte, lte } from 'drizzle-orm';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { CLASSIFICATION_META, type BillClassification } from '@/lib/bills/bill-classification';
 import { addDays, startOfDay } from 'date-fns';
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/auth-helpers';
+import { isTestMode, TEST_USER_ID, TEST_HOUSEHOLD_ID, logTestModeWarning } from '@/lib/test-mode';
 
 interface ClassificationSummaryItem {
   classification: string;
@@ -52,18 +53,30 @@ function normalizeToMonthly(amount: number, frequency: string): number {
 export async function GET(request: NextRequest) {
   try {
     // Authenticate user
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
 
     // Get and verify household
     const householdId = getHouseholdIdFromRequest(request);
+
+    // Test mode bypass - return empty data for test user
+    if (isTestMode() && userId === TEST_USER_ID && householdId === TEST_HOUSEHOLD_ID) {
+      logTestModeWarning('bills/classification-summary');
+      return NextResponse.json({
+        data: [],
+        totals: {
+          totalCount: 0,
+          totalMonthly: 0,
+          totalUpcomingCount: 0,
+          totalUpcomingAmount: 0,
+        },
+      } as ClassificationSummaryResponse);
+    }
+
     if (!householdId) {
       return NextResponse.json({ error: 'Household ID required' }, { status: 400 });
     }
 
-    await requireHouseholdAuth(session.user.id, householdId);
+    await requireHouseholdAuth(userId, householdId);
 
     // Get all active bills for the household
     const activeBills = await db
