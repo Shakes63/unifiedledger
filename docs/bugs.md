@@ -36,12 +36,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 709 (133 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 710 (134 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (133 total)
+## Fixed Bugs (134 total)
 
+134. ✅ **Preferences Tab Accounts 403 Forbidden** [FIXED 2025-12-06] - Added useHouseholdFetch hook to preferences-tab.tsx to include x-household-id header when fetching accounts.
 133. ✅ **OAuth & Sessions API 401 in TEST_MODE** [FIXED 2025-12-06] - Replaced auth.api.getSession() with requireAuth() in 7 API routes: sessions (list, delete, revoke-all), oauth (providers, set-primary, unlink, link).
 132. ✅ **Two-Factor API 401 in TEST_MODE** [FIXED 2025-12-06] - Replaced auth.api.getSession() with requireAuth() in all 5 two-factor API routes (status, enable, disable, verify, backup-codes) for TEST_MODE bypass.
 131. ✅ **Household Settings Tabs Overflow** [FIXED 2025-12-06] - Added `overflow-x-auto`, `flex-wrap`, and `gap-1` to household settings tabs container, and reduced tab padding from `px-4` to `px-3` for consistency.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface Account {
   id: string;
@@ -60,14 +61,11 @@ export function PreferencesTab() {
     defaultAccountId: null,
     firstDayOfWeek: 'sunday',
   });
+  const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      // Fetch settings
+      // Fetch settings (user-level, doesn't need household)
       const settingsResponse = await fetch('/api/user/settings', { credentials: 'include' });
       if (settingsResponse.ok) {
         const settingsData = await settingsResponse.json();
@@ -80,19 +78,30 @@ export function PreferencesTab() {
         });
       }
 
-      // Fetch accounts
-      const accountsResponse = await fetch('/api/accounts', { credentials: 'include' });
-      if (accountsResponse.ok) {
-        const accountsData = await accountsResponse.json();
-        setAccounts(accountsData.accounts || []);
+      // Fetch accounts (requires household context)
+      if (selectedHouseholdId) {
+        const accountsResponse = await fetchWithHousehold('/api/accounts');
+        if (accountsResponse.ok) {
+          const accountsData = await accountsResponse.json();
+          // Handle both array response and { accounts: [] } response
+          const accountsList = Array.isArray(accountsData) ? accountsData : (accountsData.accounts || []);
+          setAccounts(accountsList);
+        }
       }
     } catch (error) {
       console.error('Error fetching preferences:', error);
-      toast.error('Failed to load preferences');
+      // Don't show error toast for household fetch issues
+      if (!(error instanceof Error && error.message === 'No household selected')) {
+        toast.error('Failed to load preferences');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchWithHousehold, selectedHouseholdId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleSave = async () => {
     setSaving(true);
