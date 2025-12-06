@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { user } from '@/auth-schema';
 import { eq } from 'drizzle-orm';
@@ -8,10 +8,8 @@ import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const authUser = await requireAuth();
+    const userId = authUser.userId;
 
     const { token } = await request.json();
 
@@ -21,8 +19,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const userId = session.user.id;
 
     // Get user
     const [currentUser] = await db
@@ -97,6 +93,9 @@ export async function POST(request: NextRequest) {
       message: 'Two-factor authentication disabled successfully',
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('[2FA Disable] Error:', error);
     return NextResponse.json(
       { error: 'Failed to disable two-factor authentication' },

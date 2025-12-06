@@ -1,18 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { user } from '@/auth-schema';
 import { eq } from 'drizzle-orm';
 import { generateTwoFactorSecret, generateQRCode } from '@/lib/auth/two-factor-utils';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = session.user.id;
+    const authUser = await requireAuth();
+    const userId = authUser.userId;
 
     // Check if 2FA is already enabled
     const [currentUser] = await db
@@ -52,6 +48,9 @@ export async function POST(request: NextRequest) {
       otpauthUrl,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('[2FA Enable] Error:', error);
     return NextResponse.json(
       { error: 'Failed to enable two-factor authentication' },

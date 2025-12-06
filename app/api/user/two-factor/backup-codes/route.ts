@@ -1,18 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { user } from '@/auth-schema';
 import { eq } from 'drizzle-orm';
 import { generateBackupCodes } from '@/lib/auth/two-factor-utils';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = session.user.id;
+    const authUser = await requireAuth();
+    const userId = authUser.userId;
 
     // Get user
     const [currentUser] = await db
@@ -45,6 +41,9 @@ export async function GET(request: NextRequest) {
       message: 'New backup codes generated. Old codes are no longer valid.',
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('[2FA Backup Codes] Error:', error);
     return NextResponse.json(
       { error: 'Failed to generate backup codes' },
