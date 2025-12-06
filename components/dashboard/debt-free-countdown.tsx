@@ -174,7 +174,63 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
     return 'Highest rate first';
   };
 
-  // Has debts - show countdown
+  // Has debts but strategy disabled - show simplified view
+  if (!strategyEnabled) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-6 md:p-8">
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center gap-2 mb-2 flex-wrap">
+            <Target className="w-6 h-6 md:w-8 md:h-8 text-muted-foreground" />
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+              Debt Overview
+            </h2>
+            <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-muted text-muted-foreground">
+              Manual Mode
+            </span>
+          </div>
+          <p className="text-muted-foreground text-sm md:text-base">
+            Track your debts individually
+          </p>
+        </div>
+
+        {/* Simple Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Total Debt */}
+          <div className="bg-elevated rounded-lg p-4">
+            <div className="text-sm text-muted-foreground mb-1">Total Debt</div>
+            <div className="text-2xl font-bold font-mono text-[var(--color-error)]">
+              ${data.totalRemainingBalance.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </div>
+          </div>
+
+          {/* Amount Paid */}
+          <div className="bg-elevated rounded-lg p-4">
+            <div className="text-sm text-muted-foreground mb-1">Total Paid</div>
+            <div className="text-2xl font-bold font-mono text-[var(--color-income)]">
+              ${data.totalPaid.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Enable Strategy Prompt */}
+        <div className="mt-6 p-4 bg-muted/30 border border-border rounded-lg text-center">
+          <p className="text-sm text-muted-foreground">
+            Enable the debt payoff strategy to see your projected debt-free date, 
+            progress milestones, and optimized payment recommendations.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Has debts with strategy enabled - show full countdown
   return (
     <div className="bg-gradient-to-br from-card to-elevated border border-border rounded-xl p-6 md:p-8">
       {/* Header */}
@@ -184,22 +240,13 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
           <h2 className="text-2xl md:text-3xl font-bold text-foreground">
             Debt-Free Countdown
           </h2>
-          <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${
-            strategyEnabled 
-              ? 'bg-[var(--color-income)]/20 text-[var(--color-income)]'
-              : 'bg-muted text-muted-foreground'
-          }`}>
-            {strategyEnabled ? `${payoffMethod} Strategy` : 'Manual Mode'}
+          <span className="text-xs px-2.5 py-1 rounded-full font-medium capitalize bg-[var(--color-income)]/20 text-[var(--color-income)]">
+            {payoffMethod} Strategy
           </span>
         </div>
         <p className="text-muted-foreground text-sm md:text-base">
           {getMotivationalMessage(data.percentageComplete)}
         </p>
-        {!strategyEnabled && (
-          <p className="text-xs text-muted-foreground/70 mt-1">
-            Enable strategy mode for optimized debt payoff recommendations
-          </p>
-        )}
       </div>
 
       {/* Focus Debt Card */}
@@ -288,25 +335,12 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
                 <TrendingDown className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Strategy</span>
               </div>
-              {strategyEnabled ? (
-                <>
-                  <div className="text-sm font-semibold text-foreground capitalize">
-                    {payoffMethod}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {getStrategyLabel(payoffMethod)}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="text-sm font-semibold text-muted-foreground">
-                    Manual Mode
-                  </div>
-                  <div className="text-xs text-muted-foreground/70 mt-0.5">
-                    Individual tracking
-                  </div>
-                </>
-              )}
+              <div className="text-sm font-semibold text-foreground capitalize">
+                {payoffMethod}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {getStrategyLabel(payoffMethod)}
+              </div>
             </div>
           </div>
         </div>
