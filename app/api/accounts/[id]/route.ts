@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { accounts } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { accounts, bills, billInstances } from '@/lib/db/schema';
+import { eq, and, or, inArray } from 'drizzle-orm';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { trackCreditLimitChange, determineChangeReason, calculateMinimumPayment } from '@/lib/accounts';
 import { createPaymentBill, createAnnualFeeBill, deactivateBill } from '@/lib/bills/auto-bill-creation';
@@ -337,6 +337,26 @@ export async function DELETE(
         { error: 'Account not found' },
         { status: 404 }
       );
+    }
+
+    // Find all bills linked to this account (payment bills and annual fee bills)
+    const linkedBills = await db
+      .select({ id: bills.id })
+      .from(bills)
+      .where(
+        or(
+          eq(bills.linkedAccountId, id),
+          eq(bills.chargedToAccountId, id)
+        )
+      );
+
+    const billIds = linkedBills.map(b => b.id);
+
+    // Delete bill instances and bills if any exist
+    if (billIds.length > 0) {
+      // Delete bill instances first (child records), then bills
+      await db.delete(billInstances).where(inArray(billInstances.billId, billIds));
+      await db.delete(bills).where(inArray(bills.id, billIds));
     }
 
     // Delete the account
