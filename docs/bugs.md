@@ -35,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 704 (128 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 705 (129 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (128 total)
+## Fixed Bugs (129 total)
 
+129. ✅ **Credit Card Minimum Payment $0 Bug** [FIXED 2025-12-06] - Added calculateMinimumPayment utility that calculates MAX(floor, balance * percent / 100). Used in account creation/update APIs to set minimumPaymentAmount and bill expectedAmount.
 128. ✅ **Font Preload Not Used Warning** [FIXED 2025-12-06] - Added explicit font-family rules in globals.css base layer to use Inter font immediately after preload.
 127. ✅ **Session Ping 401 Errors in TEST MODE** [FIXED 2025-12-06] - Expected behavior in TEST_MODE since session management is disabled. Non-blocking.
 126. ✅ **Bill Instance Operations** [FIXED 2025-12-06] - Full BillInstanceActionsModal with Mark as Paid/Skip/Pending, Link Transaction tab, and smart match scoring.

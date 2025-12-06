@@ -5,7 +5,7 @@ import { eq, desc, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { createPaymentBill, createAnnualFeeBill } from '@/lib/bills/auto-bill-creation';
-import { trackInitialCreditLimit } from '@/lib/accounts/credit-limit-history';
+import { trackInitialCreditLimit, calculateMinimumPayment } from '@/lib/accounts';
 import type { PaymentAmountSource } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -112,6 +112,17 @@ export async function POST(request: Request) {
     const now = new Date().toISOString();
     const isCreditType = type === 'credit' || type === 'line_of_credit';
 
+    // Calculate minimum payment for credit accounts
+    let calculatedMinimumPayment = 0;
+    if (isCreditType && currentBalance) {
+      const { minimumPaymentAmount } = calculateMinimumPayment({
+        currentBalance,
+        minimumPaymentPercent: minimumPaymentPercent || null,
+        minimumPaymentFloor: minimumPaymentFloor || null,
+      });
+      calculatedMinimumPayment = minimumPaymentAmount;
+    }
+
     try {
       // Compute isBusinessAccount from toggles if not explicitly set
       const computedIsBusinessAccount = isBusinessAccount || enableSalesTax || enableTaxDeductions;
@@ -138,6 +149,7 @@ export async function POST(request: Request) {
         interestRate: isCreditType ? (interestRate || null) : null,
         minimumPaymentPercent: isCreditType ? (minimumPaymentPercent || null) : null,
         minimumPaymentFloor: isCreditType ? (minimumPaymentFloor || null) : null,
+        minimumPaymentAmount: isCreditType ? calculatedMinimumPayment : null,
         statementDueDate: isCreditType && statementDueDay ? String(statementDueDay) : null,
         annualFee: isCreditType ? (annualFee || null) : null,
         annualFeeMonth: isCreditType ? (annualFeeMonth || null) : null,
@@ -167,7 +179,7 @@ export async function POST(request: Request) {
               householdId,
               amountSource: paymentAmountSource as PaymentAmountSource,
               dueDay: statementDueDay,
-              expectedAmount: 0, // Variable based on balance
+              expectedAmount: calculatedMinimumPayment, // Use calculated minimum payment
             })
           );
         }

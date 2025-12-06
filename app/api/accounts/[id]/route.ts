@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
-import { trackCreditLimitChange, determineChangeReason } from '@/lib/accounts/credit-limit-history';
+import { trackCreditLimitChange, determineChangeReason, calculateMinimumPayment } from '@/lib/accounts';
 import { createPaymentBill, createAnnualFeeBill, deactivateBill } from '@/lib/bills/auto-bill-creation';
 import type { PaymentAmountSource } from '@/lib/types';
 
@@ -107,6 +107,22 @@ export async function PUT(
     const isCreditType = type === 'credit' || type === 'line_of_credit';
     const isLineOfCredit = type === 'line_of_credit';
     
+    // Calculate minimum payment for credit accounts
+    // Use new values if provided, otherwise fall back to existing values
+    let calculatedMinimumPayment: number | null = null;
+    if (isCreditType) {
+      const finalBalance = currentBalance !== undefined ? currentBalance : existing.currentBalance ?? 0;
+      const finalPercent = minimumPaymentPercent !== undefined ? minimumPaymentPercent : existing.minimumPaymentPercent;
+      const finalFloor = minimumPaymentFloor !== undefined ? minimumPaymentFloor : existing.minimumPaymentFloor;
+      
+      const { minimumPaymentAmount } = calculateMinimumPayment({
+        currentBalance: finalBalance,
+        minimumPaymentPercent: finalPercent || null,
+        minimumPaymentFloor: finalFloor || null,
+      });
+      calculatedMinimumPayment = minimumPaymentAmount;
+    }
+    
     // Update the account with all fields inline
     await db
       .update(accounts)
@@ -133,6 +149,7 @@ export async function PUT(
         minimumPaymentFloor: isCreditType 
           ? (minimumPaymentFloor !== undefined ? (minimumPaymentFloor || null) : existing.minimumPaymentFloor)
           : existing.minimumPaymentFloor,
+        minimumPaymentAmount: isCreditType ? calculatedMinimumPayment : existing.minimumPaymentAmount,
         statementDueDate: isCreditType 
           ? (statementDueDay !== undefined ? (statementDueDay ? String(statementDueDay) : null) : existing.statementDueDate)
           : existing.statementDueDate,
@@ -213,7 +230,7 @@ export async function PUT(
             householdId,
             amountSource: (paymentAmountSource || 'statement_balance') as PaymentAmountSource,
             dueDay,
-            expectedAmount: 0,
+            expectedAmount: calculatedMinimumPayment || 0,
           })
         );
       }
