@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { headers } from 'next/headers';
+import { requireAuth } from '@/lib/auth-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,17 +10,11 @@ export const dynamic = 'force-dynamic';
  * Frontend should call: betterAuthClient.oauth2.link({ providerId, callbackURL })
  */
 export async function POST(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ provider: string }> }
 ) {
   try {
-    const authResult = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!authResult?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    await requireAuth();
 
     const { provider } = await params;
 
@@ -61,6 +54,9 @@ export async function POST(
       message: 'Provider is configured. Use Better Auth client to initiate OAuth flow.',
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error validating OAuth provider:', error);
     return NextResponse.json(
       { error: 'Failed to validate OAuth provider' },

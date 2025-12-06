@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { account } from '@/auth-schema';
 import { userSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,19 +13,12 @@ export const dynamic = 'force-dynamic';
  * Prevents unlinking if it's the last login method
  */
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ provider: string }> }
 ) {
   try {
-    const authResult = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!authResult?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = authResult.user.id;
+    const authUser = await requireAuth();
+    const userId = authUser.userId;
     const { provider } = await params;
 
     // Validate provider
@@ -120,6 +112,9 @@ export async function DELETE(
       message: `${provider} account unlinked successfully`,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error unlinking OAuth provider:', error);
     return NextResponse.json(
       { error: 'Failed to unlink OAuth provider' },

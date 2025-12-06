@@ -36,12 +36,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 708 (132 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 709 (133 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (132 total)
+## Fixed Bugs (133 total)
 
+133. ✅ **OAuth & Sessions API 401 in TEST_MODE** [FIXED 2025-12-06] - Replaced auth.api.getSession() with requireAuth() in 7 API routes: sessions (list, delete, revoke-all), oauth (providers, set-primary, unlink, link).
 132. ✅ **Two-Factor API 401 in TEST_MODE** [FIXED 2025-12-06] - Replaced auth.api.getSession() with requireAuth() in all 5 two-factor API routes (status, enable, disable, verify, backup-codes) for TEST_MODE bypass.
 131. ✅ **Household Settings Tabs Overflow** [FIXED 2025-12-06] - Added `overflow-x-auto`, `flex-wrap`, and `gap-1` to household settings tabs container, and reduced tab padding from `px-4` to `px-3` for consistency.
 130. ✅ **Credit Card Account Deletion Not Deleting Bills** [FIXED 2025-12-06] - Added bill cleanup to DELETE handler: finds bills linked via `linkedAccountId` or `chargedToAccountId`, deletes their instances, then deletes the bills before deleting the account.

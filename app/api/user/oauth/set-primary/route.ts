@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { account } from '@/auth-schema';
 import { userSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,15 +14,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!authResult?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = authResult.user.id;
+    const authUser = await requireAuth();
+    const userId = authUser.userId;
     const body = await request.json();
     const { providerId } = body;
 
@@ -86,6 +78,9 @@ export async function POST(request: NextRequest) {
       message: `Primary login method set to ${providerId}`,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error setting primary login method:', error);
     return NextResponse.json(
       { error: 'Failed to set primary login method' },

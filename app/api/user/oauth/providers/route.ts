@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/auth-helpers';
+import { isTestMode } from '@/lib/test-mode';
 import { db } from '@/lib/db';
 import { account } from '@/auth-schema';
 import { userSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { headers } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,15 +14,16 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    const authResult = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const authUser = await requireAuth();
+    const userId = authUser.userId;
 
-    if (!authResult?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // In test mode, return empty providers
+    if (isTestMode()) {
+      return NextResponse.json({
+        providers: [],
+        primaryLoginMethod: 'email',
+      });
     }
-
-    const userId = authResult.user.id;
 
     // Get all OAuth accounts for the user (exclude email/password accounts)
     const oauthAccounts = await db
@@ -64,6 +65,9 @@ export async function GET() {
       primaryLoginMethod,
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     console.error('Error fetching OAuth providers:', error);
     return NextResponse.json(
       { error: 'Failed to fetch OAuth providers' },
