@@ -35,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 716 (140 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 717 (141 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (140 total)
+## Fixed Bugs (141 total)
 
+141. ✅ **Bill Period Assignment Shows Next Month's Instances** [FIXED 2025-12-07] - Fixed bills-by-period API to verify manual period assignments are for the correct month. Prevents "Always Period 2" from showing January's instance in December's Period 2 view.
 140. ✅ **Budget Period Dropdown Shows Wrong Options** [FIXED 2025-12-07] - Made budget period assignment dropdown dynamic based on budget schedule. Monthly hides dropdown, semi-monthly/biweekly shows 2 options, weekly shows 4 options. Auto-resets invalid assignments when schedule changes.
 139. ✅ **Select.Item Empty Value Error in BillForm** [FIXED 2025-12-07] - Changed budgetPeriodAssignment SelectItem from `value=""` to `value="auto"` since Radix UI reserves empty string for "no selection" state.
 138. ✅ **Budget Period Semi-Monthly Option Missing** [FIXED 2025-12-07] - Not a bug; semi-monthly ("first and fifteenth") is already supported via Settings → Financial → Budget Schedule → "Twice a Month" option.
