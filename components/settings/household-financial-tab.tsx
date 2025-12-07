@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, CreditCard, ExternalLink, Info } from 'lucide-react';
+import { Loader2, CreditCard, ExternalLink, Info, Calendar } from 'lucide-react';
 import { useHousehold } from '@/contexts/household-context';
 import Link from 'next/link';
 import {
@@ -25,7 +25,6 @@ import {
 
 interface HouseholdFinancialSettings {
   defaultBudgetMethod: string;
-  budgetPeriod: string;
   autoCategorization: boolean;
 }
 
@@ -43,7 +42,6 @@ export function HouseholdFinancialTab() {
   const [savingDebt, setSavingDebt] = useState(false);
   const [settings, setSettings] = useState<HouseholdFinancialSettings>({
     defaultBudgetMethod: 'monthly',
-    budgetPeriod: 'monthly',
     autoCategorization: true,
   });
   const [debtSettings, setDebtSettings] = useState<DebtStrategySettings>({
@@ -69,7 +67,6 @@ export function HouseholdFinancialTab() {
         const data = await userResponse.json();
         setSettings({
           defaultBudgetMethod: data.settings.defaultBudgetMethod || 'monthly',
-          budgetPeriod: data.settings.budgetPeriod || 'monthly',
           autoCategorization: data.settings.autoCategorization !== false,
         });
       }
@@ -193,30 +190,25 @@ export function HouseholdFinancialTab() {
           </p>
         </div>
 
-        {/* Budget Period */}
-        <div className="space-y-2">
-          <Label htmlFor="budgetPeriod" className="text-foreground">Budget Period</Label>
-          <Select
-            value={settings.budgetPeriod}
-            onValueChange={(value) => setSettings({ ...settings, budgetPeriod: value })}
-          >
-            <SelectTrigger
-              id="budgetPeriod"
-              name="budgetPeriod"
-              aria-label="Select budget period"
-              className="bg-background border-border text-foreground"
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="monthly">Monthly</SelectItem>
-              <SelectItem value="bi-weekly">Bi-Weekly</SelectItem>
-              <SelectItem value="weekly">Weekly</SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            Budget tracking period for all household members
-          </p>
+        {/* Budget Schedule Info */}
+        <div className="p-4 bg-card border border-border rounded-xl">
+          <div className="flex items-start gap-3">
+            <Calendar className="w-5 h-5 text-[var(--color-primary)] mt-0.5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground">Budget Schedule</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                To configure your budget cycle (weekly, bi-weekly, semi-monthly, or monthly), 
+                go to the Budget Schedule section in your personal Financial settings.
+              </p>
+              <Link
+                href="/dashboard/settings?tab=my-settings&subtab=financial"
+                className="inline-flex items-center gap-1 text-sm text-[var(--color-primary)] hover:opacity-80 transition-opacity mt-2"
+              >
+                Configure Budget Schedule
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* Auto-categorization */}

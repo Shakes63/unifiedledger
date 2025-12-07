@@ -1,4 +1,4 @@
-# Bugs Status (Updated 2025-12-06)
+# Bugs Status (Updated 2025-12-07)
 
 ---
 
@@ -35,12 +35,14 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 712 (136 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 714 (138 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (136 total)
+## Fixed Bugs (138 total)
 
+138. ✅ **Budget Period Semi-Monthly Option Missing** [FIXED 2025-12-07] - Not a bug; semi-monthly ("first and fifteenth") is already supported via Settings → Financial → Budget Schedule → "Twice a Month" option.
+137. ✅ **Budget Period Setting Not Applied** [FIXED 2025-12-07] - Removed redundant "Budget Period" dropdown from Household Financial Settings that wasn't connected to budget display. Added info card pointing users to the correct Budget Schedule section in Financial settings.
 136. ✅ **Debt Strategy Toggle Missing from Debts Page** [FIXED 2025-12-06] - Added strategy toggle card to debts page synced with settings, updated Debt-Free Countdown to show strategy status badge ("Avalanche Strategy" / "Manual Mode"), and added strategyEnabled to countdown API response.
 135. ✅ **Budget Save 400 Bad Request** [FIXED 2025-12-06] - Added frontend validation to prevent saving empty budgets array, empty state message when no categories exist, and improved error parsing in budget-manager-modal.tsx.
 134. ✅ **Preferences Tab Accounts 403 Forbidden** [FIXED 2025-12-06] - Added useHouseholdFetch hook to preferences-tab.tsx to include x-household-id header when fetching accounts.
