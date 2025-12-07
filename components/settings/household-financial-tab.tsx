@@ -198,10 +198,10 @@ export function HouseholdFinancialTab() {
               <p className="text-sm font-medium text-foreground">Budget Schedule</p>
               <p className="text-sm text-muted-foreground mt-1">
                 To configure your budget cycle (weekly, bi-weekly, semi-monthly, or monthly), 
-                go to the Budget Schedule section in your personal Financial settings.
+                go to the Personal Preferences tab.
               </p>
               <Link
-                href="/dashboard/settings?tab=my-settings&subtab=financial"
+                href="/dashboard/settings?section=households&tab=personal"
                 className="inline-flex items-center gap-1 text-sm text-[var(--color-primary)] hover:opacity-80 transition-opacity mt-2"
               >
                 Configure Budget Schedule
