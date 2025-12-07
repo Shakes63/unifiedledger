@@ -10,7 +10,8 @@
 
 ## Active Bugs
 
-When test mode is enabled it should make the test user the owner and able to set up the OAuth.
+(None)
+
 
 ---
 
@@ -35,12 +36,14 @@ When test mode is enabled it should make the test user the owner and able to set
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 717 (141 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 719 (143 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (141 total)
+## Fixed Bugs (143 total)
 
+143. ✅ **TickTick OAuth UI Configuration** [FIXED 2025-12-07] - Added TickTick OAuth configuration to Admin tab in Settings. Credentials are stored encrypted in database with fallback to environment variables for backwards compatibility.
+142. ✅ **Test Mode Owner Access** [FIXED 2025-12-07] - Added TEST_MODE bypass to requireOwner() helper so the test user can access owner-only features like OAuth configuration.
 141. ✅ **Bill Period Assignment Shows Next Month's Instances** [FIXED 2025-12-07] - Fixed bills-by-period API to verify manual period assignments are for the correct month. Prevents "Always Period 2" from showing January's instance in December's Period 2 view.
 140. ✅ **Budget Period Dropdown Shows Wrong Options** [FIXED 2025-12-07] - Made budget period assignment dropdown dynamic based on budget schedule. Monthly hides dropdown, semi-monthly/biweekly shows 2 options, weekly shows 4 options. Auto-resets invalid assignments when schedule changes.
 139. ✅ **Select.Item Empty Value Error in BillForm** [FIXED 2025-12-07] - Changed budgetPeriodAssignment SelectItem from `value=""` to `value="auto"` since Radix UI reserves empty string for "no selection" state.

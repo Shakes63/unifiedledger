@@ -25,7 +25,8 @@ export async function GET(request: Request) {
     }
 
     // Check if TickTick is configured
-    if (!isTickTickConfigured()) {
+    const isConfigured = await isTickTickConfigured();
+    if (!isConfigured) {
       return Response.json(
         { error: 'TickTick integration is not configured' },
         { status: 503 }
@@ -47,7 +48,7 @@ export async function GET(request: Request) {
     });
 
     // Generate the TickTick OAuth URL
-    const authUrl = getTickTickAuthUrl(state);
+    const authUrl = await getTickTickAuthUrl(state);
 
     return Response.json({ authUrl });
   } catch (error) {

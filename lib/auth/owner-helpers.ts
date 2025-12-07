@@ -3,6 +3,7 @@ import { user as betterAuthUser } from '@/auth-schema';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { auth } from '@/auth';
+import { isTestMode, TEST_USER_ID, logTestModeWarning } from '@/lib/test-mode';
 
 /**
  * Check if the database has any users (first startup)
@@ -64,6 +65,12 @@ export async function markAsOwner(userId: string): Promise<void> {
  * Use in API routes to protect admin endpoints
  */
 export async function requireOwner(): Promise<{ userId: string; isOwner: boolean }> {
+  // Test mode bypass - test user is always owner
+  if (isTestMode()) {
+    logTestModeWarning('requireOwner');
+    return { userId: TEST_USER_ID, isOwner: true };
+  }
+
   try {
     const authResult = await auth.api.getSession({
       headers: await headers(),
@@ -97,6 +104,11 @@ export async function requireOwner(): Promise<{ userId: string; isOwner: boolean
  * Returns null if not authenticated
  */
 export async function getCurrentUserOwnerStatus(): Promise<boolean | null> {
+  // Test mode bypass - test user is always owner
+  if (isTestMode()) {
+    return true;
+  }
+
   try {
     const authResult = await auth.api.getSession({
       headers: await headers(),

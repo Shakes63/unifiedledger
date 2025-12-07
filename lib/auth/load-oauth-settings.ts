@@ -17,6 +17,7 @@ export interface OAuthProviderConfig {
 export interface DatabaseOAuthSettings {
   google?: OAuthProviderConfig;
   github?: OAuthProviderConfig;
+  ticktick?: OAuthProviderConfig;
 }
 
 /**
@@ -56,6 +57,11 @@ export async function loadOAuthSettingsFromDatabase(): Promise<DatabaseOAuthSett
           };
         } else if (setting.providerId === 'github') {
           result.github = {
+            clientId: setting.clientId,
+            clientSecret: decryptedSecret,
+          };
+        } else if (setting.providerId === 'ticktick') {
+          result.ticktick = {
             clientId: setting.clientId,
             clientSecret: decryptedSecret,
           };

@@ -93,9 +93,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!['google', 'github'].includes(providerId)) {
+    if (!['google', 'github', 'ticktick'].includes(providerId)) {
       return NextResponse.json(
-        { error: 'providerId must be "google" or "github"' },
+        { error: 'providerId must be "google", "github", or "ticktick"' },
         { status: 400 }
       );
     }

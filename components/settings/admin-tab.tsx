@@ -24,7 +24,7 @@ import { AdminUsersTab } from './admin-users-tab';
 
 interface OAuthProvider {
   id: string;
-  providerId: 'google' | 'github';
+  providerId: 'google' | 'github' | 'ticktick';
   clientId: string;
   clientSecret: string;
   enabled: boolean;
@@ -58,10 +58,16 @@ export function AdminTab() {
     clientSecret: '',
     enabled: false,
   });
+  const [ticktickSettings, setTicktickSettings] = useState<OAuthFormState>({
+    clientId: '',
+    clientSecret: '',
+    enabled: false,
+  });
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingGoogle, setSavingGoogle] = useState(false);
   const [savingGithub, setSavingGithub] = useState(false);
+  const [savingTicktick, setSavingTicktick] = useState(false);
   const [refreshingSystemInfo, setRefreshingSystemInfo] = useState(false);
 
   useEffect(() => {
@@ -86,9 +92,10 @@ export function AdminTab() {
       const data = await response.json();
       const providers = data.providers || [];
 
-      // Find Google and GitHub settings
+      // Find Google, GitHub, and TickTick settings
       const google = providers.find((p: OAuthProvider) => p.providerId === 'google');
       const github = providers.find((p: OAuthProvider) => p.providerId === 'github');
+      const ticktick = providers.find((p: OAuthProvider) => p.providerId === 'ticktick');
 
       if (google) {
         setGoogleSettings({
@@ -103,6 +110,14 @@ export function AdminTab() {
           clientId: github.clientId || '',
           clientSecret: github.clientSecret || '',
           enabled: github.enabled !== false,
+        });
+      }
+
+      if (ticktick) {
+        setTicktickSettings({
+          clientId: ticktick.clientId || '',
+          clientSecret: ticktick.clientSecret || '',
+          enabled: ticktick.enabled !== false,
         });
       }
     } catch (error) {
@@ -134,13 +149,23 @@ export function AdminTab() {
     }
   }
 
-  async function saveOAuthSettings(providerId: 'google' | 'github', settings: OAuthFormState) {
+  async function saveOAuthSettings(providerId: 'google' | 'github' | 'ticktick', settings: OAuthFormState) {
     if (!settings.clientId || !settings.clientSecret) {
       toast.error('Client ID and Client Secret are required');
       return;
     }
 
-    const setSaving = providerId === 'google' ? setSavingGoogle : setSavingGithub;
+    const setSaving = providerId === 'google' 
+      ? setSavingGoogle 
+      : providerId === 'github' 
+        ? setSavingGithub 
+        : setSavingTicktick;
+
+    const providerName = providerId === 'google' 
+      ? 'Google' 
+      : providerId === 'github' 
+        ? 'GitHub' 
+        : 'TickTick';
 
     setSaving(true);
     try {
@@ -165,18 +190,20 @@ export function AdminTab() {
         throw new Error(errorData.error || 'Failed to save OAuth settings');
       }
 
-      toast.success(`${providerId === 'google' ? 'Google' : 'GitHub'} OAuth settings saved successfully`);
+      toast.success(`${providerName} OAuth settings saved successfully`);
       
-      // Note: Server restart required for changes to take effect
-      toast.info('Note: Server restart required for OAuth changes to take effect', {
-        duration: 5000,
-      });
+      // Note for Google/GitHub (login providers)
+      if (providerId === 'google' || providerId === 'github') {
+        toast.info('Note: Server restart required for OAuth login changes to take effect', {
+          duration: 5000,
+        });
+      }
     } catch (error) {
       console.error(`Error saving ${providerId} OAuth settings:`, error);
       toast.error(
         error instanceof Error
           ? error.message
-          : `Failed to save ${providerId === 'google' ? 'Google' : 'GitHub'} OAuth settings`
+          : `Failed to save ${providerName} OAuth settings`
       );
     } finally {
       setSaving(false);
@@ -373,6 +400,87 @@ export function AdminTab() {
             </div>
           </div>
 
+          {/* TickTick OAuth */}
+          <div className="space-y-4 p-4 bg-elevated rounded-lg border border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded bg-[#4772FA] flex items-center justify-center text-white font-bold text-xs">
+                  TT
+                </div>
+                <div>
+                  <Label className="text-foreground font-medium">TickTick OAuth</Label>
+                  <p className="text-xs text-muted-foreground">For calendar sync integration</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {ticktickSettings.enabled ? (
+                  <Badge className="bg-[var(--color-success)] text-white">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    Enabled
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-muted text-muted-foreground">
+                    <XCircle className="w-3 h-3 mr-1" />
+                    Disabled
+                  </Badge>
+                )}
+                <Switch
+                  checked={ticktickSettings.enabled}
+                  onCheckedChange={(checked) =>
+                    setTicktickSettings((prev) => ({ ...prev, enabled: checked }))
+                  }
+                />
+              </div>
+            </div>
+            <Separator className="bg-border" />
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ticktick-client-id" className="text-foreground">
+                  Client ID
+                </Label>
+                <Input
+                  id="ticktick-client-id"
+                  type="text"
+                  value={ticktickSettings.clientId}
+                  onChange={(e) =>
+                    setTicktickSettings((prev) => ({ ...prev, clientId: e.target.value }))
+                  }
+                  placeholder="Enter TickTick Client ID"
+                  className="bg-background border-border text-foreground"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ticktick-client-secret" className="text-foreground">
+                  Client Secret
+                </Label>
+                <Input
+                  id="ticktick-client-secret"
+                  type="password"
+                  value={ticktickSettings.clientSecret}
+                  onChange={(e) =>
+                    setTicktickSettings((prev) => ({ ...prev, clientSecret: e.target.value }))
+                  }
+                  placeholder="Enter TickTick Client Secret"
+                  className="bg-background border-border text-foreground"
+                />
+              </div>
+              <Button
+                onClick={() => saveOAuthSettings('ticktick', ticktickSettings)}
+                disabled={savingTicktick || !ticktickSettings.clientId || !ticktickSettings.clientSecret}
+                className="bg-[var(--color-primary)] hover:opacity-90 text-white"
+              >
+                {savingTicktick ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save TickTick Settings'
+                )}
+              </Button>
+            </div>
+          </div>
+
           {/* Info Alert */}
           <div className="p-4 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 rounded-lg">
             <div className="flex items-start gap-2">
@@ -381,7 +489,8 @@ export function AdminTab() {
                 <p className="font-medium mb-1">Important:</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
                   <li>OAuth client secrets are encrypted before storage</li>
-                  <li>Server restart is required for OAuth configuration changes to take effect</li>
+                  <li>Server restart is required for Google/GitHub OAuth login changes to take effect</li>
+                  <li>TickTick settings take effect immediately (no restart needed)</li>
                   <li>Ensure your OAuth redirect URLs are configured correctly in the provider settings</li>
                 </ul>
               </div>

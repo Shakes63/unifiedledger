@@ -6,9 +6,10 @@
  */
 
 import { db } from '@/lib/db';
-import { calendarConnections } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { calendarConnections, oauthSettings } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { CalendarEvent } from './google-calendar';
+import { decryptOAuthSecret } from '@/lib/encryption/oauth-encryption';
 
 // TickTick OAuth configuration
 const TICKTICK_AUTH_URL = 'https://ticktick.com/oauth/authorize';
@@ -17,6 +18,12 @@ const TICKTICK_API_URL = 'https://api.ticktick.com/open/v1';
 
 // Required scopes for task access
 const SCOPES = ['tasks:read', 'tasks:write'];
+
+interface TickTickCredentials {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+}
 
 export interface TickTickProject {
   id: string;
@@ -75,36 +82,93 @@ export interface TickTickTokens {
 }
 
 /**
- * Get the TickTick OAuth client credentials
+ * Get TickTick credentials from database
  */
-function getClientCredentials() {
+async function getClientCredentialsFromDatabase(): Promise<TickTickCredentials | null> {
+  try {
+    const settings = await db
+      .select()
+      .from(oauthSettings)
+      .where(and(
+        eq(oauthSettings.providerId, 'ticktick'),
+        eq(oauthSettings.enabled, true)
+      ))
+      .limit(1);
+
+    if (settings.length === 0) {
+      return null;
+    }
+
+    const setting = settings[0];
+    const decryptedSecret = decryptOAuthSecret(setting.clientSecret);
+    const redirectUri = process.env.TICKTICK_REDIRECT_URI || 
+      `${process.env.APP_URL || 'http://localhost:3000'}/api/calendar-sync/ticktick/callback`;
+
+    return {
+      clientId: setting.clientId,
+      clientSecret: decryptedSecret,
+      redirectUri,
+    };
+  } catch (error) {
+    console.error('[TickTick] Error loading credentials from database:', error);
+    return null;
+  }
+}
+
+/**
+ * Get TickTick credentials from environment variables
+ */
+function getClientCredentialsFromEnv(): TickTickCredentials | null {
   const clientId = process.env.TICKTICK_CLIENT_ID;
   const clientSecret = process.env.TICKTICK_CLIENT_SECRET;
   const redirectUri = process.env.TICKTICK_REDIRECT_URI || 
     `${process.env.APP_URL || 'http://localhost:3000'}/api/calendar-sync/ticktick/callback`;
 
   if (!clientId || !clientSecret) {
-    throw new Error('TickTick credentials not configured');
+    return null;
   }
 
   return { clientId, clientSecret, redirectUri };
 }
 
 /**
- * Check if TickTick integration is configured
+ * Get the TickTick OAuth client credentials
+ * Tries database first, then falls back to environment variables
  */
-export function isTickTickConfigured(): boolean {
-  return !!(
-    process.env.TICKTICK_CLIENT_ID &&
-    process.env.TICKTICK_CLIENT_SECRET
-  );
+async function getClientCredentials(): Promise<TickTickCredentials> {
+  // Try database first
+  const dbCredentials = await getClientCredentialsFromDatabase();
+  if (dbCredentials) {
+    return dbCredentials;
+  }
+
+  // Fallback to environment variables
+  const envCredentials = getClientCredentialsFromEnv();
+  if (envCredentials) {
+    return envCredentials;
+  }
+
+  throw new Error('TickTick credentials not configured');
+}
+
+/**
+ * Check if TickTick integration is configured
+ * Checks both database and environment variables
+ */
+export async function isTickTickConfigured(): Promise<boolean> {
+  try {
+    await getClientCredentials();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Generate TickTick OAuth authorization URL
  */
-export function getTickTickAuthUrl(state: string): string {
-  const { clientId, redirectUri } = getClientCredentials();
+export async function getTickTickAuthUrl(state: string): Promise<string> {
+  const { clientId, redirectUri } = await getClientCredentials();
   
   const params = new URLSearchParams({
     client_id: clientId,
@@ -121,7 +185,7 @@ export function getTickTickAuthUrl(state: string): string {
  * Exchange authorization code for tokens
  */
 export async function exchangeTickTickCodeForTokens(code: string): Promise<TickTickTokens> {
-  const { clientId, clientSecret, redirectUri } = getClientCredentials();
+  const { clientId, clientSecret, redirectUri } = await getClientCredentials();
 
   const response = await fetch(TICKTICK_TOKEN_URL, {
     method: 'POST',
@@ -160,7 +224,7 @@ export async function exchangeTickTickCodeForTokens(code: string): Promise<TickT
  * Refresh an expired access token
  */
 export async function refreshTickTickToken(refreshToken: string): Promise<TickTickTokens> {
-  const { clientId, clientSecret } = getClientCredentials();
+  const { clientId, clientSecret } = await getClientCredentials();
 
   const response = await fetch(TICKTICK_TOKEN_URL, {
     method: 'POST',
