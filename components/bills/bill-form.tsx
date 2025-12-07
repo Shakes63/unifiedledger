@@ -244,6 +244,12 @@ export function BillForm({
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
   
+  // Budget schedule state for dynamic period options
+  const [budgetSchedule, setBudgetSchedule] = useState<{
+    frequency: string;
+    periodsInMonth: number;
+  } | null>(null);
+  
   // Filter accounts to get only credit cards and lines of credit
   const creditAccounts = accounts.filter(a => a.type === 'credit' || a.type === 'line_of_credit');
 
@@ -320,6 +326,45 @@ export function BillForm({
 
     fetchData();
   }, [selectedHouseholdId, fetchWithHousehold]);
+
+  // Fetch budget schedule settings for dynamic period options
+  useEffect(() => {
+    const fetchBudgetSchedule = async () => {
+      if (!selectedHouseholdId) return;
+      try {
+        const response = await fetchWithHousehold(`/api/budget-schedule?householdId=${selectedHouseholdId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setBudgetSchedule({
+            frequency: data.settings.budgetCycleFrequency,
+            periodsInMonth: data.currentPeriod.periodsInMonth,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch budget schedule:', error);
+        // Default to showing all options if fetch fails
+        setBudgetSchedule({ frequency: 'weekly', periodsInMonth: 4 });
+      }
+    };
+    fetchBudgetSchedule();
+  }, [selectedHouseholdId, fetchWithHousehold]);
+
+  // Reset budget period assignment if it's invalid for the current schedule
+  useEffect(() => {
+    if (!budgetSchedule) return;
+    
+    const currentAssignment = formData.budgetPeriodAssignment;
+    // If assignment is 'auto' or empty, it's always valid
+    if (currentAssignment === 'auto' || !currentAssignment) return;
+    
+    // Check if the numeric assignment exceeds available periods
+    const assignmentNum = parseInt(currentAssignment, 10);
+    if (!isNaN(assignmentNum) && assignmentNum > budgetSchedule.periodsInMonth) {
+      // Reset to automatic since the selected period no longer exists
+      setFormData(prev => ({ ...prev, budgetPeriodAssignment: 'auto' }));
+      toast.info('Budget period assignment reset to Automatic (schedule changed)');
+    }
+  }, [budgetSchedule, formData.budgetPeriodAssignment]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -1078,30 +1123,48 @@ export function BillForm({
         </p>
       </div>
 
-      {/* Budget Period Assignment */}
-      <div className="p-4 bg-card rounded-lg border border-border">
-        <Label className="text-muted-foreground text-sm mb-2 block">
-          Budget Period Assignment (Optional)
-        </Label>
-        <Select 
-          value={formData.budgetPeriodAssignment} 
-          onValueChange={(value) => handleSelectChange('budgetPeriodAssignment', value)}
-        >
-          <SelectTrigger className="bg-elevated border-border text-foreground">
-            <SelectValue placeholder="Automatic (based on due date)" />
-          </SelectTrigger>
-          <SelectContent className="bg-card border-border">
-            <SelectItem value="auto" className="text-foreground">Automatic (based on due date)</SelectItem>
-            <SelectItem value="1" className="text-foreground">Always Period 1 (first half)</SelectItem>
-            <SelectItem value="2" className="text-foreground">Always Period 2 (second half)</SelectItem>
-            <SelectItem value="3" className="text-foreground">Always Period 3</SelectItem>
-            <SelectItem value="4" className="text-foreground">Always Period 4</SelectItem>
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground mt-1">
-          Override which budget period this bill appears in for Bill Pay. Useful when you want to pay a bill before its due date.
-        </p>
-      </div>
+      {/* Budget Period Assignment - only show if more than 1 period per month */}
+      {budgetSchedule && budgetSchedule.periodsInMonth > 1 && (
+        <div className="p-4 bg-card rounded-lg border border-border">
+          <Label className="text-muted-foreground text-sm mb-2 block">
+            Budget Period Assignment (Optional)
+          </Label>
+          <Select 
+            value={formData.budgetPeriodAssignment} 
+            onValueChange={(value) => handleSelectChange('budgetPeriodAssignment', value)}
+          >
+            <SelectTrigger className="bg-elevated border-border text-foreground">
+              <SelectValue placeholder="Automatic (based on due date)" />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border">
+              <SelectItem value="auto" className="text-foreground">Automatic (based on due date)</SelectItem>
+              {budgetSchedule.periodsInMonth === 2 && budgetSchedule.frequency === 'semi-monthly' && (
+                <>
+                  <SelectItem value="1" className="text-foreground">Always First Half (1st-14th)</SelectItem>
+                  <SelectItem value="2" className="text-foreground">Always Second Half (15th-end)</SelectItem>
+                </>
+              )}
+              {budgetSchedule.periodsInMonth === 2 && budgetSchedule.frequency === 'biweekly' && (
+                <>
+                  <SelectItem value="1" className="text-foreground">Always Period 1 (Week 1-2)</SelectItem>
+                  <SelectItem value="2" className="text-foreground">Always Period 2 (Week 3-4)</SelectItem>
+                </>
+              )}
+              {budgetSchedule.periodsInMonth === 4 && (
+                <>
+                  <SelectItem value="1" className="text-foreground">Always Week 1</SelectItem>
+                  <SelectItem value="2" className="text-foreground">Always Week 2</SelectItem>
+                  <SelectItem value="3" className="text-foreground">Always Week 3</SelectItem>
+                  <SelectItem value="4" className="text-foreground">Always Week 4</SelectItem>
+                </>
+              )}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Override which budget period this bill appears in for Bill Pay. Useful when you want to pay a bill before its due date.
+          </p>
+        </div>
+      )}
 
       {/* Credit Card Linking - For credit card payment bills (not for income bills) */}
       {creditAccounts.length > 0 && !isIncomeBill && (
