@@ -35,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 714 (138 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 715 (139 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (138 total)
+## Fixed Bugs (139 total)
 
+139. ✅ **Select.Item Empty Value Error in BillForm** [FIXED 2025-12-07] - Changed budgetPeriodAssignment SelectItem from `value=""` to `value="auto"` since Radix UI reserves empty string for "no selection" state.
 138. ✅ **Budget Period Semi-Monthly Option Missing** [FIXED 2025-12-07] - Not a bug; semi-monthly ("first and fifteenth") is already supported via Settings → Financial → Budget Schedule → "Twice a Month" option.
 137. ✅ **Budget Period Setting Not Applied** [FIXED 2025-12-07] - Removed redundant "Budget Period" dropdown from Household Financial Settings that wasn't connected to budget display. Added info card pointing users to the correct Budget Schedule section in Financial settings.
 136. ✅ **Debt Strategy Toggle Missing from Debts Page** [FIXED 2025-12-06] - Added strategy toggle card to debts page synced with settings, updated Debt-Free Countdown to show strategy status badge ("Avalanche Strategy" / "Manual Mode"), and added strategyEnabled to countdown API response.

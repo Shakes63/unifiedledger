@@ -137,6 +137,9 @@ export interface BillData {
   taxDeductionType?: 'mortgage' | 'student_loan' | 'business' | 'heloc_home' | 'none';
   taxDeductionLimit?: number | string;
   
+  // Budget period assignment (for bill pay feature)
+  budgetPeriodAssignment?: number | null;
+  
   [key: string]: unknown; // Allow additional properties
 }
 
@@ -215,6 +218,11 @@ export function BillForm({
     isInterestTaxDeductible: bill?.isInterestTaxDeductible || false,
     taxDeductionType: bill?.taxDeductionType || 'none',
     taxDeductionLimit: bill?.taxDeductionLimit || '',
+    
+    // Budget period assignment
+    budgetPeriodAssignment: bill?.budgetPeriodAssignment !== undefined && bill?.budgetPeriodAssignment !== null
+      ? String(bill.budgetPeriodAssignment)
+      : 'auto',
   });
 
   // Collapsible sections state
@@ -535,6 +543,11 @@ export function BillForm({
       taxDeductionLimit: formData.isDebt && formData.isInterestTaxDeductible && formData.taxDeductionLimit 
         ? parseFloat(String(formData.taxDeductionLimit)) 
         : undefined,
+      
+      // Budget period assignment
+      budgetPeriodAssignment: formData.budgetPeriodAssignment && formData.budgetPeriodAssignment !== 'auto'
+        ? parseInt(formData.budgetPeriodAssignment)
+        : null,
     }, saveMode || 'save');
 
     // If save & add another, reset form
@@ -578,6 +591,7 @@ export function BillForm({
         isInterestTaxDeductible: false,
         taxDeductionType: 'none',
         taxDeductionLimit: '',
+        budgetPeriodAssignment: 'auto',
       });
       setNewPayeePattern('');
       setIsCreatingCategory(false);
@@ -1061,6 +1075,31 @@ export function BillForm({
           {isIncomeBill 
             ? 'Helps organize income sources and track expected vs actual'
             : 'Helps organize bills and provides better reports'}
+        </p>
+      </div>
+
+      {/* Budget Period Assignment */}
+      <div className="p-4 bg-card rounded-lg border border-border">
+        <Label className="text-muted-foreground text-sm mb-2 block">
+          Budget Period Assignment (Optional)
+        </Label>
+        <Select 
+          value={formData.budgetPeriodAssignment} 
+          onValueChange={(value) => handleSelectChange('budgetPeriodAssignment', value)}
+        >
+          <SelectTrigger className="bg-elevated border-border text-foreground">
+            <SelectValue placeholder="Automatic (based on due date)" />
+          </SelectTrigger>
+          <SelectContent className="bg-card border-border">
+            <SelectItem value="auto" className="text-foreground">Automatic (based on due date)</SelectItem>
+            <SelectItem value="1" className="text-foreground">Always Period 1 (first half)</SelectItem>
+            <SelectItem value="2" className="text-foreground">Always Period 2 (second half)</SelectItem>
+            <SelectItem value="3" className="text-foreground">Always Period 3</SelectItem>
+            <SelectItem value="4" className="text-foreground">Always Period 4</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground mt-1">
+          Override which budget period this bill appears in for Bill Pay. Useful when you want to pay a bill before its due date.
         </p>
       </div>
 
