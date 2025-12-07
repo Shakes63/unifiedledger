@@ -3,6 +3,7 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { billInstances, bills } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { queueSync } from '@/lib/calendar/sync-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,6 +73,8 @@ export async function PUT(
       lateFee,
       isManualOverride,
       notes,
+      // Budget period override (for bill pay feature)
+      budgetPeriodOverride,
     } = body;
 
     // Verify instance exists and belongs to user and household
@@ -112,6 +115,7 @@ export async function PUT(
     if (lateFee !== undefined) updateData.lateFee = parseFloat(lateFee);
     if (isManualOverride !== undefined) updateData.isManualOverride = isManualOverride;
     if (notes !== undefined) updateData.notes = notes;
+    if (budgetPeriodOverride !== undefined) updateData.budgetPeriodOverride = budgetPeriodOverride;
     updateData.updatedAt = new Date().toISOString();
 
     await db
@@ -168,6 +172,9 @@ export async function PUT(
       )
       .limit(1);
 
+    // Queue calendar sync (non-blocking)
+    queueSync(userId, householdId, 'bill_instance', id, 'update');
+
     return Response.json(updatedInstance[0]);
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -223,6 +230,9 @@ export async function DELETE(
           eq(billInstances.householdId, householdId)
         )
       );
+
+    // Queue calendar sync (non-blocking)
+    queueSync(userId, householdId, 'bill_instance', id, 'delete');
 
     return Response.json({ success: true });
   } catch (error) {

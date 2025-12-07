@@ -3,11 +3,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, AlertCircle, ArrowRight, Calendar as CalendarIcon } from 'lucide-react';
+import { CheckCircle2, Clock, AlertCircle, ArrowRight, Calendar as CalendarIcon, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import Decimal from 'decimal.js';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { BillPayModal } from '@/components/bills/bill-pay-modal';
 
 interface BillInstance {
   id: string;
@@ -31,6 +32,7 @@ export function EnhancedBillsWidget() {
   const [allBills, setAllBills] = useState<BillInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<SortOption>('date');
+  const [billPayModalOpen, setBillPayModalOpen] = useState(false);
 
   const fetchBills = useCallback(async () => {
     try {
@@ -224,16 +226,33 @@ export function EnhancedBillsWidget() {
           <CalendarIcon className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
           <h3 className="text-lg font-semibold text-foreground">This Month&apos;s Bills</h3>
         </div>
-        <Link href="/dashboard/bills">
+        <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
             size="sm"
-            className="hover:bg-elevated text-[var(--color-primary)]"
+            onClick={() => setBillPayModalOpen(true)}
+            className="bg-[var(--color-income)] hover:opacity-90 text-white"
           >
-            View All <ArrowRight className="w-4 h-4 ml-1" />
+            <Wallet className="w-4 h-4 mr-1" />
+            Pay Bills
           </Button>
-        </Link>
+          <Link href="/dashboard/bills">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hover:bg-elevated text-[var(--color-primary)]"
+            >
+              View All <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      {/* Bill Pay Modal */}
+      <BillPayModal
+        open={billPayModalOpen}
+        onOpenChange={setBillPayModalOpen}
+        onBillPaid={fetchBills}
+      />
 
       {bills.length > 0 ? (
         <>

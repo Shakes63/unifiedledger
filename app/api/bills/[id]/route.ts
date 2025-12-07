@@ -162,6 +162,8 @@ export async function PUT(
       isInterestTaxDeductible,
       taxDeductionType,
       taxDeductionLimit,
+      // Budget period assignment (for bill pay feature)
+      budgetPeriodAssignment,
     } = body;
 
     // Verify bill exists and belongs to user and household
@@ -449,6 +451,9 @@ export async function PUT(
     if (isInterestTaxDeductible !== undefined) updateData.isInterestTaxDeductible = isInterestTaxDeductible;
     if (taxDeductionType !== undefined) updateData.taxDeductionType = taxDeductionType;
     if (taxDeductionLimit !== undefined) updateData.taxDeductionLimit = taxDeductionLimit ? parseFloat(taxDeductionLimit) : null;
+    
+    // Budget period assignment
+    if (budgetPeriodAssignment !== undefined) updateData.budgetPeriodAssignment = budgetPeriodAssignment;
 
     await db
       .update(bills)

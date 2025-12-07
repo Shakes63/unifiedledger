@@ -23,10 +23,11 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Database, Trash2, AlertTriangle, Loader2, Shield, FileSpreadsheet, History } from 'lucide-react';
+import { Database, Trash2, AlertTriangle, Loader2, Shield, FileSpreadsheet, History, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { BackupSettingsForm } from './backup-settings-form';
 import { BackupHistory } from './backup-history';
+import { CalendarSyncSection } from './calendar-sync-section';
 
 interface ImportTemplate {
   id: string;
@@ -396,6 +397,21 @@ export function DataTab() {
             </div>
           )}
         </Card>
+      </div>
+
+      <Separator className="bg-border" />
+
+      {/* Calendar Sync Section */}
+      <div>
+        <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
+          <Calendar className="w-5 h-5" />
+          Calendar Sync
+        </h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Sync bills, milestones, and payoff dates to your external calendar
+        </p>
+
+        <CalendarSyncSection />
       </div>
 
       <Separator className="bg-border" />

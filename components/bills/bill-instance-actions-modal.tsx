@@ -18,6 +18,13 @@ import { TransactionLinkSelector } from './transaction-link-selector';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { toast } from 'sonner';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   CheckCircle2,
   Clock,
   SkipForward,
@@ -25,6 +32,7 @@ import {
   Loader2,
   Calendar,
   DollarSign,
+  CalendarClock,
 } from 'lucide-react';
 import type { Bill, BillInstance, Transaction } from '@/lib/types';
 
@@ -44,8 +52,13 @@ export function BillInstanceActionsModal({
   onSuccess,
 }: BillInstanceActionsModalProps) {
   const { fetchWithHousehold } = useHouseholdFetch();
-  const [activeTab, setActiveTab] = useState<'actions' | 'link'>('actions');
+  const [activeTab, setActiveTab] = useState<'actions' | 'link' | 'period'>('actions');
   const [loading, setLoading] = useState(false);
+  const [periodOverride, setPeriodOverride] = useState<string>(
+    instance.budgetPeriodOverride !== undefined && instance.budgetPeriodOverride !== null
+      ? String(instance.budgetPeriodOverride)
+      : ''
+  );
   const [actualAmount, setActualAmount] = useState<string>(
     instance.actualAmount?.toString() || instance.expectedAmount.toString()
   );
@@ -156,6 +169,36 @@ export function BillInstanceActionsModal({
     setSelectedTransaction(transaction);
   };
 
+  const handlePeriodOverride = async () => {
+    try {
+      setLoading(true);
+
+      const updateData: Record<string, unknown> = {
+        budgetPeriodOverride: periodOverride ? parseInt(periodOverride) : null,
+      };
+
+      const response = await fetchWithHousehold(`/api/bills/instances/${instance.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update period assignment');
+      }
+
+      toast.success(periodOverride ? 'Period assignment updated' : 'Period assignment cleared');
+      onSuccess();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error updating period assignment:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update period assignment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const isPending = instance.status === 'pending';
   const isOverdue = instance.status === 'overdue';
   const isPaid = instance.status === 'paid';
@@ -171,10 +214,11 @@ export function BillInstanceActionsModal({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'actions' | 'link')}>
-          <TabsList className="grid w-full grid-cols-2 bg-elevated">
-            <TabsTrigger value="actions">Quick Actions</TabsTrigger>
-            <TabsTrigger value="link">Link Transaction</TabsTrigger>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'actions' | 'link' | 'period')}>
+          <TabsList className="grid w-full grid-cols-3 bg-elevated">
+            <TabsTrigger value="actions">Actions</TabsTrigger>
+            <TabsTrigger value="link">Link</TabsTrigger>
+            <TabsTrigger value="period">Period</TabsTrigger>
           </TabsList>
 
           <TabsContent value="actions" className="space-y-4 mt-4">
@@ -328,6 +372,47 @@ export function BillInstanceActionsModal({
                 <Link2 className="w-4 h-4 mr-2" />
               )}
               {selectedTransactionId ? 'Link & Mark as Paid' : 'Unlink Transaction'}
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="period" className="space-y-4 mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CalendarClock className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Override which budget period this instance appears in for Bill Pay.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-foreground">Period Assignment</Label>
+              <Select value={periodOverride} onValueChange={setPeriodOverride}>
+                <SelectTrigger className="bg-background border-border">
+                  <SelectValue placeholder="Use bill default or due date" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="">Use bill default or due date</SelectItem>
+                  <SelectItem value="1">Period 1 (first half)</SelectItem>
+                  <SelectItem value="2">Period 2 (second half)</SelectItem>
+                  <SelectItem value="3">Period 3</SelectItem>
+                  <SelectItem value="4">Period 4</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                This override only affects this specific instance, not the bill itself.
+              </p>
+            </div>
+
+            <Button
+              onClick={handlePeriodOverride}
+              disabled={loading}
+              className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CalendarClock className="w-4 h-4 mr-2" />
+              )}
+              Save Period Assignment
             </Button>
           </TabsContent>
         </Tabs>

@@ -166,6 +166,7 @@ export interface Bill {
   isActive: boolean;
   autoMarkPaid: boolean;
   notes?: string | null;
+  budgetPeriodAssignment?: number | null;
   createdAt: string;
 }
 
@@ -186,6 +187,7 @@ export interface BillInstance {
   lateFee: number;
   isManualOverride: boolean;
   notes?: string | null;
+  budgetPeriodOverride?: number | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -3,6 +3,7 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { savingsGoals, savingsMilestones } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { queueSync } from '@/lib/calendar/sync-service';
 
 export async function GET(
   request: Request,
@@ -128,6 +129,9 @@ export async function PUT(
       .where(eq(savingsGoals.id, id))
       .then((res) => res[0]);
 
+    // Queue calendar sync for goal target date (non-blocking)
+    queueSync(userId, householdId, 'goal_target', id, 'update');
+
     return new Response(JSON.stringify(updatedGoal), { status: 200 });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -179,6 +183,9 @@ export async function DELETE(
 
     // Delete goal
     await db.delete(savingsGoals).where(eq(savingsGoals.id, id));
+
+    // Queue calendar sync for goal deletion (non-blocking)
+    queueSync(userId, householdId, 'goal_target', id, 'delete');
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (error) {

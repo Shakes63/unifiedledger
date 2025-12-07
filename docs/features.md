@@ -8,11 +8,13 @@ _Add new feature ideas here_
 
 ## Incomplete Features
 
-_No incomplete features at this time_
+- **TickTick Calendar Sync** - Integration with TickTick for syncing bills, milestones, and payoff dates. Stubbed in `lib/calendar/ticktick-calendar.ts` API Documentation is at https://developer.ticktick.com/docs#/openapi. See [Calendar Sync Feature Plan](/Users/jacobneudorf/.cursor/plans/calendar_sync_feature_3e166b11.plan.md for implementation details.
 
 ---
 
 ## Completed Features
+
+59. **Google Calendar Sync** [COMPLETED 2025-12-07] - Sync bill due dates, savings milestones, debt milestones, and payoff dates to Google Calendar. Features two sync modes: Direct (events on actual dates) and Budget Period (grouped by pay period). Includes OAuth integration, auto-sync triggers when data changes, deep links back to app, and reminder configuration. See [Calendar Sync Feature Plan](../.cursor/plans/calendar_sync_feature_3e166b11.plan.md).
 
 58. **Unified Debt, Bill & Credit Card Architecture** [COMPLETED 2025-12-04] - Major refactor unifying credit cards, lines of credit, and debt bills into a single financial obligation tracking system with 19 phases: enhanced schemas, account/bill forms, autopay, budget integration, payoff strategies, calendar, notifications, tax integration, CSV import improvements, dashboard widgets, balance history, category simplification, recurring income, budget rollover, savings goals integration, and bill classification.
 

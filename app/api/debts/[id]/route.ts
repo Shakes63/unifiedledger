@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { debts, debtPayments, debtPayoffMilestones } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { syncDebtPayoffDate } from '@/lib/debts/payoff-date-utils';
+import { queueSync } from '@/lib/calendar/sync-service';
 
 export async function GET(
   request: Request,
@@ -191,6 +192,9 @@ export async function PUT(
       .where(eq(debts.id, id))
       .then((res) => res[0]);
 
+    // Queue calendar sync for payoff date (non-blocking)
+    queueSync(userId, householdId, 'payoff_date', `debt-${id}`, 'update');
+
     return new Response(JSON.stringify(updatedDebt), { status: 200 });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -252,6 +256,9 @@ export async function DELETE(
 
     // Delete debt
     await db.delete(debts).where(eq(debts.id, id));
+
+    // Queue calendar sync for debt deletion (non-blocking)
+    queueSync(userId, householdId, 'payoff_date', `debt-${id}`, 'delete');
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (error) {

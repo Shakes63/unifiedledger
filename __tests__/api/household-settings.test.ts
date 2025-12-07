@@ -61,6 +61,11 @@ const DEFAULT_SETTINGS = {
   dataRetentionYears: 7,
   autoCleanupEnabled: false,
   cacheStrategy: 'normal',
+  // Debt Payoff Strategy Settings (Phase 7)
+  debtStrategyEnabled: false,
+  debtPayoffMethod: 'avalanche',
+  extraMonthlyPayment: 0,
+  paymentFrequency: 'monthly',
 };
 
 const EXISTING_SETTINGS = {

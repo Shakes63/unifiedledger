@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { format, parseISO, differenceInDays, addDays, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
-import { AlertCircle, CheckCircle2, Clock, DollarSign, Plus, ChevronLeft, ChevronRight, CalendarRange, ArrowDownCircle, TrendingUp, CreditCard, Zap, Home, Shield, Banknote, Users, Wrench, MoreHorizontal } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, DollarSign, Plus, ChevronLeft, ChevronRight, CalendarRange, ArrowDownCircle, TrendingUp, CreditCard, Zap, Home, Shield, Banknote, Users, Wrench, MoreHorizontal, Wallet } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -12,6 +13,7 @@ import { FREQUENCY_LABELS } from '@/lib/bills/bill-utils';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { type BillClassification, CLASSIFICATION_META } from '@/lib/bills/bill-classification';
+import { BillPayModal } from '@/components/bills/bill-pay-modal';
 
 interface BillInstance {
   id: string;
@@ -80,6 +82,7 @@ interface BillWithInstance extends Bill {
 }
 
 export default function BillsDashboard() {
+  const searchParams = useSearchParams();
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
   const [bills, setBills] = useState<BillWithInstance[]>([]);
@@ -90,6 +93,7 @@ export default function BillsDashboard() {
   const [billTypeFilter, setBillTypeFilter] = useState<BillTypeFilter>('all');
   const [classificationFilter, setClassificationFilter] = useState<ClassificationFilter>('all');
   const classificationScrollRef = useRef<HTMLDivElement>(null);
+  const [billPayModalOpen, setBillPayModalOpen] = useState(false);
   const [stats, setStats] = useState({
     totalUpcoming: 0,
     totalOverdue: 0,
@@ -108,6 +112,17 @@ export default function BillsDashboard() {
     // Bill counts by classification
     classificationCounts: {} as Record<string, number>,
   });
+
+  // Handle deep links from calendar events
+  useEffect(() => {
+    const billPay = searchParams.get('billPay');
+    const payBill = searchParams.get('payBill');
+    
+    if (billPay === '1' || payBill) {
+      // Open the bill pay modal when coming from calendar deep link
+      setBillPayModalOpen(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!selectedHouseholdId) {
@@ -497,6 +512,13 @@ export default function BillsDashboard() {
             <p className="text-muted-foreground mt-2">Track your recurring expenses and expected income</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button 
+              onClick={() => setBillPayModalOpen(true)}
+              className="bg-[var(--color-income)] hover:opacity-90 text-white"
+            >
+              <Wallet className="w-4 h-4 mr-2" />
+              Bill Pay
+            </Button>
             <Link href="/dashboard/bills/annual-planning">
               <Button variant="outline" className="bg-elevated border-border text-foreground hover:bg-elevated">
                 <CalendarRange className="w-4 h-4 mr-2" />
@@ -857,6 +879,16 @@ export default function BillsDashboard() {
         </CardContent>
       </Card>
       </div>
+
+      {/* Bill Pay Modal */}
+      <BillPayModal
+        open={billPayModalOpen}
+        onOpenChange={setBillPayModalOpen}
+        onBillPaid={() => {
+          // Trigger refresh of bill data
+          window.dispatchEvent(new CustomEvent('bills-refresh'));
+        }}
+      />
     </div>
   );
 }

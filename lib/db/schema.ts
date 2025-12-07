@@ -409,6 +409,9 @@ export const bills = sqliteTable(
       enum: ['mortgage', 'student_loan', 'business', 'heloc_home', 'none'],
     }).default('none'),
     taxDeductionLimit: real('tax_deduction_limit'),
+    // Budget period assignment (for bill pay feature)
+    // NULL = auto (based on due date), 1 = always period 1, 2 = always period 2, etc.
+    budgetPeriodAssignment: integer('budget_period_assignment'),
     createdAt: text('created_at').default(new Date().toISOString()),
   },
   (table) => ({
@@ -453,6 +456,9 @@ export const billInstances = sqliteTable(
     // Principal/interest breakdown for debt bills
     principalPaid: real('principal_paid').default(0),
     interestPaid: real('interest_paid').default(0),
+    // Budget period override (for bill pay feature)
+    // NULL = use bill default, otherwise specific period number
+    budgetPeriodOverride: integer('budget_period_override'),
     createdAt: text('created_at').default(new Date().toISOString()),
     updatedAt: text('updated_at').default(new Date().toISOString()),
   },
@@ -2536,3 +2542,101 @@ export const interestDeductions = sqliteTable(
     ),
   })
 );
+
+// ============================================================================
+// CALENDAR SYNC TABLES
+// ============================================================================
+
+export const calendarConnections = sqliteTable(
+  'calendar_connections',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
+    provider: text('provider', {
+      enum: ['google', 'ticktick'],
+    }).notNull(),
+    calendarId: text('calendar_id'), // External calendar ID to sync to
+    calendarName: text('calendar_name'), // Display name of the calendar
+    accessToken: text('access_token').notNull(),
+    refreshToken: text('refresh_token'),
+    tokenExpiresAt: text('token_expires_at'),
+    isActive: integer('is_active', { mode: 'boolean' }).default(true),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_calendar_connections_user').on(table.userId),
+    householdIdIdx: index('idx_calendar_connections_household').on(table.householdId),
+    userHouseholdIdx: index('idx_calendar_connections_user_household').on(table.userId, table.householdId),
+    providerIdx: index('idx_calendar_connections_provider').on(table.provider),
+  })
+);
+
+export const calendarSyncSettings = sqliteTable(
+  'calendar_sync_settings',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
+    syncMode: text('sync_mode', {
+      enum: ['direct', 'budget_period'],
+    }).default('direct'),
+    syncBills: integer('sync_bills', { mode: 'boolean' }).default(true),
+    syncSavingsMilestones: integer('sync_savings_milestones', { mode: 'boolean' }).default(true),
+    syncDebtMilestones: integer('sync_debt_milestones', { mode: 'boolean' }).default(true),
+    syncPayoffDates: integer('sync_payoff_dates', { mode: 'boolean' }).default(true),
+    syncGoalTargetDates: integer('sync_goal_target_dates', { mode: 'boolean' }).default(true),
+    reminderMinutes: integer('reminder_minutes').default(1440), // 1 day before (null = no reminder)
+    lastFullSyncAt: text('last_full_sync_at'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+    updatedAt: text('updated_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_calendar_sync_settings_user').on(table.userId),
+    householdIdIdx: index('idx_calendar_sync_settings_household').on(table.householdId),
+    userHouseholdIdx: index('idx_calendar_sync_settings_user_household').on(table.userId, table.householdId),
+  })
+);
+
+export const calendarEvents = sqliteTable(
+  'calendar_events',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
+    connectionId: text('connection_id').notNull(),
+    externalEventId: text('external_event_id').notNull(),
+    sourceType: text('source_type', {
+      enum: ['bill_instance', 'savings_milestone', 'debt_milestone', 'goal_target', 'payoff_date', 'budget_period_bills'],
+    }).notNull(),
+    sourceId: text('source_id').notNull(), // ID of the source entity or period key for budget_period_bills
+    eventDate: text('event_date').notNull(), // Actual date on calendar (may differ from source in budget period mode)
+    syncMode: text('sync_mode', {
+      enum: ['direct', 'budget_period'],
+    }).notNull(),
+    eventTitle: text('event_title'), // Cached title for display
+    lastSyncedAt: text('last_synced_at'),
+    createdAt: text('created_at').default(new Date().toISOString()),
+  },
+  (table) => ({
+    userIdIdx: index('idx_calendar_events_user').on(table.userId),
+    householdIdIdx: index('idx_calendar_events_household').on(table.householdId),
+    connectionIdx: index('idx_calendar_events_connection').on(table.connectionId),
+    sourceIdx: index('idx_calendar_events_source').on(table.sourceType, table.sourceId),
+    externalIdx: index('idx_calendar_events_external').on(table.externalEventId),
+    dateIdx: index('idx_calendar_events_date').on(table.eventDate),
+  })
+);
+
+// Calendar Sync Relations
+export const calendarConnectionsRelations = relations(calendarConnections, ({ many }) => ({
+  events: many(calendarEvents),
+}));
+
+export const calendarEventsRelations = relations(calendarEvents, ({ one }) => ({
+  connection: one(calendarConnections, {
+    fields: [calendarEvents.connectionId],
+    references: [calendarConnections.id],
+  }),
+}));

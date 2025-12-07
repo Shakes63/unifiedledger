@@ -75,6 +75,23 @@ const DEFAULT_PREFERENCES = {
   weeklySummariesChannels: '["email"]',
   monthlySummariesEnabled: true,
   monthlySummariesChannels: '["email"]',
+  // High Utilization Alerts (Phase 10)
+  highUtilizationEnabled: true,
+  highUtilizationThreshold: 75,
+  highUtilizationChannels: '["push"]',
+  // Credit Limit Changes (Phase 10)
+  creditLimitChangeEnabled: true,
+  creditLimitChangeChannels: '["push"]',
+  // Late Income Alerts (Phase 16)
+  incomeLateEnabled: true,
+  incomeLateChannels: '["push"]',
+  // Budget Schedule Settings
+  budgetCycleFrequency: 'monthly',
+  budgetCycleStartDay: null,
+  budgetCycleReferenceDate: null,
+  budgetCycleSemiMonthlyDays: '[1, 15]',
+  budgetPeriodRollover: false,
+  budgetPeriodManualAmount: null,
 };
 
 const EXISTING_PREFERENCES = {
