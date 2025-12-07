@@ -993,6 +993,55 @@ Phase 9 implements calendar integration with the unified debt architecture.
 
 ---
 
+## 48. Calendar Sync (External)
+
+**Added: 2025-12-07** | **Result: NEEDS TESTING**
+
+External calendar sync for syncing bills, milestones, and payoff dates to Google Calendar and TickTick.
+
+### Google Calendar Integration
+- [ ] Connect button initiates OAuth flow
+- [ ] OAuth callback creates calendar connection
+- [ ] Primary calendar auto-selected on connect
+- [ ] Calendar selector dialog shows user's calendars
+- [ ] Changing calendar updates connection
+- [ ] Disconnect button removes connection and optionally deletes remote events
+- [ ] Connection status displays correctly (connected/not connected)
+
+### TickTick Integration
+- [ ] Connect button initiates OAuth flow
+- [ ] OAuth callback creates connection and auto-creates "Unified Ledger" project
+- [ ] Project selector dialog shows user's projects
+- [ ] Changing project updates connection
+- [ ] Disconnect button removes connection
+- [ ] Connection status displays correctly
+
+### Sync Settings
+- [ ] Sync Mode selector (Direct dates vs Budget periods)
+- [ ] What to Sync toggles (Bills, Milestones, Goals, Payoff Dates)
+- [ ] Reminder timing selector works
+- [ ] Settings auto-save on change
+- [ ] Manual "Sync Now" button triggers full sync
+- [ ] Last synced timestamp updates after sync
+
+### Sync Behavior
+- [ ] Bills create calendar events/tasks on due dates
+- [ ] Milestones create events on projected achievement dates
+- [ ] Payoff dates create events
+- [ ] Budget period mode groups events by pay period start
+- [ ] Events include deep links back to app
+- [ ] Reminders set according to user preference
+- [ ] Auto-sync triggers when source data changes
+
+### Environment Variables
+- [ ] GOOGLE_CALENDAR_CLIENT_ID required for Google
+- [ ] GOOGLE_CALENDAR_CLIENT_SECRET required for Google
+- [ ] TICKTICK_CLIENT_ID required for TickTick
+- [ ] TICKTICK_CLIENT_SECRET required for TickTick
+- [ ] Missing credentials show appropriate error message
+
+---
+
 ## Testing Summary
 
 | Section | Status | Notes |

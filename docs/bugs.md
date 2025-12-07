@@ -10,7 +10,7 @@
 
 ## Active Bugs
 
-(None)
+When test mode is enabled it should make the test user the owner and able to set up the OAuth.
 
 ---
 

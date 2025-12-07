@@ -1,22 +1,16 @@
 /**
  * Google Calendar API Client
- * Handles OAuth token management and calendar event operations
+ * Uses Better Auth OAuth tokens for authentication
  */
 
 import { db } from '@/lib/db';
 import { calendarConnections } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import * as authSchema from '@/auth-schema';
+import { eq, and } from 'drizzle-orm';
 
-// Google OAuth configuration
-const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
+// Google API URLs
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
-
-// Required scopes for calendar access
-const SCOPES = [
-  'https://www.googleapis.com/auth/calendar.events',
-  'https://www.googleapis.com/auth/calendar.readonly',
-];
 
 export interface GoogleCalendar {
   id: string;
@@ -40,85 +34,63 @@ export interface CalendarEvent {
 export interface GoogleTokens {
   accessToken: string;
   refreshToken?: string;
-  expiresAt: string;
+  expiresAt: Date | null;
 }
 
 /**
- * Get the Google OAuth client credentials
+ * Check if the user has Google OAuth linked via Better Auth
  */
-function getClientCredentials() {
-  const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_CALENDAR_REDIRECT_URI || 
-    `${process.env.APP_URL || 'http://localhost:3000'}/api/calendar-sync/google/callback`;
+export async function hasGoogleOAuthLinked(userId: string): Promise<boolean> {
+  const account = await db
+    .select()
+    .from(authSchema.account)
+    .where(
+      and(
+        eq(authSchema.account.userId, userId),
+        eq(authSchema.account.providerId, 'google')
+      )
+    )
+    .limit(1);
 
-  if (!clientId || !clientSecret) {
-    throw new Error('Google Calendar credentials not configured');
+  return account.length > 0 && !!account[0].accessToken;
+}
+
+/**
+ * Get Google OAuth tokens from Better Auth account table
+ */
+async function getGoogleOAuthTokens(userId: string): Promise<GoogleTokens | null> {
+  const account = await db
+    .select()
+    .from(authSchema.account)
+    .where(
+      and(
+        eq(authSchema.account.userId, userId),
+        eq(authSchema.account.providerId, 'google')
+      )
+    )
+    .limit(1);
+
+  if (!account[0] || !account[0].accessToken) {
+    return null;
   }
-
-  return { clientId, clientSecret, redirectUri };
-}
-
-/**
- * Generate Google OAuth authorization URL
- */
-export function getGoogleAuthUrl(state: string): string {
-  const { clientId, redirectUri } = getClientCredentials();
-  
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: 'code',
-    scope: SCOPES.join(' '),
-    access_type: 'offline',
-    prompt: 'consent', // Force consent to get refresh token
-    state,
-  });
-
-  return `${GOOGLE_AUTH_URL}?${params.toString()}`;
-}
-
-/**
- * Exchange authorization code for tokens
- */
-export async function exchangeCodeForTokens(code: string): Promise<GoogleTokens> {
-  const { clientId, clientSecret, redirectUri } = getClientCredentials();
-
-  const response = await fetch(GOOGLE_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      code,
-      client_id: clientId,
-      client_secret: clientSecret,
-      redirect_uri: redirectUri,
-      grant_type: 'authorization_code',
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to exchange code for tokens: ${error}`);
-  }
-
-  const data = await response.json();
-  
-  const expiresAt = new Date(Date.now() + data.expires_in * 1000).toISOString();
 
   return {
-    accessToken: data.access_token,
-    refreshToken: data.refresh_token,
-    expiresAt,
+    accessToken: account[0].accessToken,
+    refreshToken: account[0].refreshToken || undefined,
+    expiresAt: account[0].accessTokenExpiresAt,
   };
 }
 
 /**
- * Refresh an expired access token
+ * Refresh an expired access token using Google's token endpoint
  */
-export async function refreshAccessToken(refreshToken: string): Promise<GoogleTokens> {
-  const { clientId, clientSecret } = getClientCredentials();
+async function refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; expiresAt: Date }> {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Google OAuth credentials not configured');
+  }
 
   const response = await fetch(GOOGLE_TOKEN_URL, {
     method: 'POST',
@@ -139,17 +111,61 @@ export async function refreshAccessToken(refreshToken: string): Promise<GoogleTo
   }
 
   const data = await response.json();
-  const expiresAt = new Date(Date.now() + data.expires_in * 1000).toISOString();
+  const expiresAt = new Date(Date.now() + data.expires_in * 1000);
 
   return {
     accessToken: data.access_token,
-    refreshToken: data.refresh_token || refreshToken, // Google may not return a new refresh token
     expiresAt,
   };
 }
 
 /**
- * Get a valid access token, refreshing if necessary
+ * Get a valid access token for a user, refreshing if necessary
+ * Uses Better Auth's account table for token storage
+ */
+export async function getValidAccessTokenForUser(userId: string): Promise<string> {
+  const tokens = await getGoogleOAuthTokens(userId);
+
+  if (!tokens) {
+    throw new Error('Google account not linked. Please link your Google account in Settings.');
+  }
+
+  // Check if token is expired (with 5 minute buffer)
+  const isExpired = tokens.expiresAt && 
+    tokens.expiresAt.getTime() < Date.now() + 5 * 60 * 1000;
+
+  if (!isExpired) {
+    return tokens.accessToken;
+  }
+
+  if (!tokens.refreshToken) {
+    throw new Error('Token expired and no refresh token available. Please re-link your Google account.');
+  }
+
+  // Refresh the token
+  const newTokens = await refreshAccessToken(tokens.refreshToken);
+
+  // Update the Better Auth account table
+  await db
+    .update(authSchema.account)
+    .set({
+      accessToken: newTokens.accessToken,
+      accessTokenExpiresAt: newTokens.expiresAt,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(authSchema.account.userId, userId),
+        eq(authSchema.account.providerId, 'google')
+      )
+    );
+
+  return newTokens.accessToken;
+}
+
+/**
+ * Get a valid access token from a calendar connection
+ * This is a wrapper that gets the userId from the connection and uses Better Auth tokens
  */
 export async function getValidAccessToken(connectionId: string): Promise<string> {
   const connection = await db
@@ -162,35 +178,7 @@ export async function getValidAccessToken(connectionId: string): Promise<string>
     throw new Error('Calendar connection not found');
   }
 
-  const { accessToken, refreshToken, tokenExpiresAt } = connection[0];
-
-  // Check if token is expired (with 5 minute buffer)
-  const isExpired = tokenExpiresAt && 
-    new Date(tokenExpiresAt).getTime() < Date.now() + 5 * 60 * 1000;
-
-  if (!isExpired) {
-    return accessToken;
-  }
-
-  if (!refreshToken) {
-    throw new Error('Token expired and no refresh token available');
-  }
-
-  // Refresh the token
-  const newTokens = await refreshAccessToken(refreshToken);
-
-  // Update the database
-  await db
-    .update(calendarConnections)
-    .set({
-      accessToken: newTokens.accessToken,
-      refreshToken: newTokens.refreshToken,
-      tokenExpiresAt: newTokens.expiresAt,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(calendarConnections.id, connectionId));
-
-  return newTokens.accessToken;
+  return getValidAccessTokenForUser(connection[0].userId);
 }
 
 /**
@@ -198,6 +186,42 @@ export async function getValidAccessToken(connectionId: string): Promise<string>
  */
 export async function listCalendars(connectionId: string): Promise<GoogleCalendar[]> {
   const accessToken = await getValidAccessToken(connectionId);
+
+  const response = await fetch(`${GOOGLE_CALENDAR_API}/users/me/calendarList`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to list calendars: ${error}`);
+  }
+
+  const data = await response.json();
+  
+  return data.items.map((cal: {
+    id: string;
+    summary: string;
+    description?: string;
+    primary?: boolean;
+    accessRole: string;
+    backgroundColor?: string;
+  }) => ({
+    id: cal.id,
+    summary: cal.summary,
+    description: cal.description,
+    primary: cal.primary,
+    accessRole: cal.accessRole,
+    backgroundColor: cal.backgroundColor,
+  }));
+}
+
+/**
+ * List calendars directly for a user (without requiring a connection)
+ */
+export async function listCalendarsForUser(userId: string): Promise<GoogleCalendar[]> {
+  const accessToken = await getValidAccessTokenForUser(userId);
 
   const response = await fetch(`${GOOGLE_CALENDAR_API}/users/me/calendarList`, {
     headers: {
@@ -435,11 +459,12 @@ export async function deleteEvents(
 }
 
 /**
- * Check if the Google Calendar API is configured
+ * Check if Google Calendar sync is available
+ * Requires Google OAuth to be configured in the app
  */
 export function isGoogleCalendarConfigured(): boolean {
   return !!(
-    process.env.GOOGLE_CALENDAR_CLIENT_ID &&
-    process.env.GOOGLE_CALENDAR_CLIENT_SECRET
+    process.env.GOOGLE_CLIENT_ID &&
+    process.env.GOOGLE_CLIENT_SECRET
   );
 }

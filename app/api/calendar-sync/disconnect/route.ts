@@ -2,7 +2,8 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { calendarConnections, calendarEvents } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { deleteEvents } from '@/lib/calendar/google-calendar';
+import { deleteEvents as deleteGoogleEvents } from '@/lib/calendar/google-calendar';
+import { deleteTickTickTasks } from '@/lib/calendar/ticktick-calendar';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,11 +57,20 @@ export async function POST(request: Request) {
         const eventIds = events.map((e) => e.externalEventId);
 
         if (eventIds.length > 0) {
-          await deleteEvents(
-            connectionId,
-            connection[0].calendarId,
-            eventIds
-          );
+          // Use appropriate delete function based on provider
+          if (connection[0].provider === 'ticktick') {
+            await deleteTickTickTasks(
+              connectionId,
+              connection[0].calendarId,
+              eventIds
+            );
+          } else {
+            await deleteGoogleEvents(
+              connectionId,
+              connection[0].calendarId,
+              eventIds
+            );
+          }
         }
       } catch (deleteError) {
         console.error('Error deleting remote events:', deleteError);

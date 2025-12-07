@@ -108,8 +108,20 @@ export const auth = betterAuth({
                 authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth",
                 tokenUrl: "https://oauth2.googleapis.com/token",
                 userInfoUrl: "https://www.googleapis.com/oauth2/v2/userinfo",
-                scopes: ["openid", "profile", "email"],
+                scopes: [
+                  "openid",
+                  "profile",
+                  "email",
+                  // Calendar scopes for Google Calendar sync feature
+                  "https://www.googleapis.com/auth/calendar.events",
+                  "https://www.googleapis.com/auth/calendar.readonly",
+                ],
                 pkce: true,
+                // Request offline access to get refresh token
+                authorizationUrlParams: {
+                  access_type: "offline",
+                  prompt: "consent", // Force consent to ensure refresh token is provided
+                },
               },
             ]
           : []),

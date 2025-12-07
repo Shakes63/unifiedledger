@@ -14,17 +14,88 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { format, addMonths } from 'date-fns';
 import {
-  createEvent,
-  updateEvent,
-  deleteEvent,
-  deleteEvents,
+  createEvent as createGoogleEvent,
+  updateEvent as updateGoogleEvent,
+  deleteEvent as deleteGoogleEvent,
+  deleteEvents as deleteGoogleEvents,
+  CalendarEvent,
 } from './google-calendar';
+import {
+  createTickTickTask,
+  updateTickTickTask,
+  deleteTickTickTask,
+  deleteTickTickTasks,
+} from './ticktick-calendar';
 import {
   generateAllEvents,
   getSyncSettings,
   GeneratedEvent,
 } from './event-generator';
 import { BudgetScheduleSettings } from '@/lib/budgets/budget-schedule';
+
+// Provider type
+type Provider = 'google' | 'ticktick';
+
+/**
+ * Create an event using the appropriate provider
+ */
+async function createEvent(
+  connectionId: string,
+  calendarId: string,
+  event: CalendarEvent,
+  provider: Provider
+): Promise<string> {
+  if (provider === 'ticktick') {
+    return createTickTickTask(connectionId, calendarId, event);
+  }
+  return createGoogleEvent(connectionId, calendarId, event);
+}
+
+/**
+ * Update an event using the appropriate provider
+ */
+async function updateEvent(
+  connectionId: string,
+  calendarId: string,
+  eventId: string,
+  event: CalendarEvent,
+  provider: Provider
+): Promise<void> {
+  if (provider === 'ticktick') {
+    return updateTickTickTask(connectionId, calendarId, eventId, event);
+  }
+  return updateGoogleEvent(connectionId, calendarId, eventId, event);
+}
+
+/**
+ * Delete an event using the appropriate provider
+ */
+async function deleteEvent(
+  connectionId: string,
+  calendarId: string,
+  eventId: string,
+  provider: Provider
+): Promise<void> {
+  if (provider === 'ticktick') {
+    return deleteTickTickTask(connectionId, calendarId, eventId);
+  }
+  return deleteGoogleEvent(connectionId, calendarId, eventId);
+}
+
+/**
+ * Delete multiple events using the appropriate provider
+ */
+async function deleteEvents(
+  connectionId: string,
+  calendarId: string,
+  eventIds: string[],
+  provider: Provider
+): Promise<void> {
+  if (provider === 'ticktick') {
+    return deleteTickTickTasks(connectionId, calendarId, eventIds);
+  }
+  return deleteGoogleEvents(connectionId, calendarId, eventIds);
+}
 
 // Types
 export interface SyncResult {
@@ -154,7 +225,8 @@ export async function fullSync(
             await deleteEvents(
               connection.id,
               connection.calendarId,
-              existingEvents.map((e) => e.externalEventId)
+              existingEvents.map((e) => e.externalEventId),
+              connection.provider as Provider
             );
             result.deleted += existingEvents.length;
           } catch (deleteError) {
@@ -174,7 +246,8 @@ export async function fullSync(
             const externalEventId = await createEvent(
               connection.id,
               connection.calendarId,
-              event
+              event,
+              connection.provider as Provider
             );
 
             // Track the event
@@ -292,7 +365,8 @@ export async function syncEntity(
               await deleteEvent(
                 connection.id,
                 connection.calendarId,
-                trackedEvent[0].externalEventId
+                trackedEvent[0].externalEventId,
+                connection.provider as Provider
               );
             } catch (deleteError) {
               console.error('Error deleting event:', deleteError);
@@ -345,7 +419,8 @@ export async function syncEntity(
                 await deleteEvent(
                   connection.id,
                   connection.calendarId,
-                  trackedEvent[0].externalEventId
+                  trackedEvent[0].externalEventId,
+                  connection.provider as Provider
                 );
               } catch (e) {
                 // Ignore deletion errors
@@ -377,7 +452,8 @@ export async function syncEntity(
                 connection.id,
                 connection.calendarId,
                 existingEvent[0].externalEventId,
-                event
+                event,
+                connection.provider as Provider
               );
 
               await db
@@ -394,7 +470,8 @@ export async function syncEntity(
               const newExternalId = await createEvent(
                 connection.id,
                 connection.calendarId,
-                event
+                event,
+                connection.provider as Provider
               );
 
               await db
@@ -412,7 +489,8 @@ export async function syncEntity(
             const externalEventId = await createEvent(
               connection.id,
               connection.calendarId,
-              event
+              event,
+              connection.provider as Provider
             );
 
             await db.insert(calendarEvents).values({

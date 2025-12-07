@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHousehold } from '@/contexts/household-context';
+import { signIn } from '@/lib/better-auth-client';
 
 interface CalendarConnection {
   id: string;
@@ -61,6 +62,23 @@ interface GoogleCalendar {
   primary?: boolean;
 }
 
+interface GoogleStatus {
+  configured: boolean;
+  linked: boolean;
+  calendars: GoogleCalendar[];
+  selectedCalendarId: string | null;
+  selectedCalendarName: string | null;
+  connectionId: string | null;
+  error?: string;
+  message?: string;
+}
+
+interface TickTickProject {
+  id: string;
+  name: string;
+  color?: string;
+}
+
 export function CalendarSyncSection() {
   const { selectedHouseholdId } = useHousehold();
   
@@ -79,13 +97,49 @@ export function CalendarSyncSection() {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [enabling, setEnabling] = useState(false);
   
-  // Calendar selection state
+  // Google OAuth status
+  const [googleStatus, setGoogleStatus] = useState<GoogleStatus>({
+    configured: false,
+    linked: false,
+    calendars: [],
+    selectedCalendarId: null,
+    selectedCalendarName: null,
+    connectionId: null,
+  });
+  
+  // Calendar selection state (for Google)
   const [calendars, setCalendars] = useState<GoogleCalendar[]>([]);
   const [loadingCalendars, setLoadingCalendars] = useState(false);
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false);
   const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(null);
   const [selectedCalendarId, setSelectedCalendarId] = useState<string>('');
+  
+  // Project selection state (for TickTick)
+  const [projects, setProjects] = useState<TickTickProject[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [projectDialogOpen, setProjectDialogOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+
+  const fetchGoogleStatus = useCallback(async () => {
+    if (!selectedHouseholdId) return;
+    
+    try {
+      const response = await fetch(
+        `/api/calendar-sync/google/status?householdId=${selectedHouseholdId}`,
+        { credentials: 'include' }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        setGoogleStatus(data);
+        setCalendars(data.calendars || []);
+      }
+    } catch (error) {
+      console.error('Failed to load Google status:', error);
+    }
+  }, [selectedHouseholdId]);
 
   const fetchSettings = useCallback(async () => {
     if (!selectedHouseholdId) return;
@@ -100,7 +154,9 @@ export function CalendarSyncSection() {
       if (response.ok) {
         const data = await response.json();
         setConnections(data.connections || []);
-        setSettings(data.settings);
+        if (data.settings) {
+          setSettings(data.settings);
+        }
       }
     } catch (error) {
       console.error('Failed to load calendar sync settings:', error);
@@ -110,23 +166,61 @@ export function CalendarSyncSection() {
   }, [selectedHouseholdId]);
 
   useEffect(() => {
+    fetchGoogleStatus();
     fetchSettings();
-  }, [fetchSettings]);
+  }, [fetchGoogleStatus, fetchSettings]);
 
-  const handleConnect = async (provider: 'google' | 'ticktick') => {
+  // Handle linking Google account via Better Auth
+  const handleLinkGoogle = () => {
+    // Redirect to Better Auth Google OAuth
+    signIn.social({
+      provider: 'google',
+      callbackURL: window.location.href,
+    });
+  };
+
+  // Handle enabling Google Calendar sync (after Google is already linked)
+  const handleEnableGoogleSync = async () => {
     if (!selectedHouseholdId) {
       toast.error('Please select a household first');
       return;
     }
 
-    if (provider === 'ticktick') {
-      toast.info('TickTick integration coming soon!');
+    try {
+      setEnabling(true);
+      const response = await fetch('/api/calendar-sync/google/enable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ householdId: selectedHouseholdId }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to enable calendar sync');
+      }
+
+      toast.success('Google Calendar sync enabled');
+      fetchGoogleStatus();
+      fetchSettings();
+    } catch (error) {
+      console.error('Error enabling Google Calendar:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to enable');
+    } finally {
+      setEnabling(false);
+    }
+  };
+
+  // Handle TickTick connection (still uses separate OAuth)
+  const handleConnectTickTick = async () => {
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household first');
       return;
     }
 
     try {
       const response = await fetch(
-        `/api/calendar-sync/google/connect?householdId=${selectedHouseholdId}`,
+        `/api/calendar-sync/ticktick/connect?householdId=${selectedHouseholdId}`,
         { credentials: 'include' }
       );
       
@@ -136,11 +230,9 @@ export function CalendarSyncSection() {
       }
 
       const data = await response.json();
-      
-      // Redirect to Google OAuth
       window.location.href = data.authUrl;
     } catch (error) {
-      console.error('Error connecting to Google Calendar:', error);
+      console.error('Error connecting to TickTick:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to connect');
     }
   };
@@ -159,7 +251,8 @@ export function CalendarSyncSection() {
         throw new Error('Failed to disconnect');
       }
 
-      toast.success('Calendar disconnected');
+      toast.success('Calendar sync disabled');
+      fetchGoogleStatus();
       fetchSettings();
     } catch (error) {
       console.error('Error disconnecting:', error);
@@ -169,27 +262,70 @@ export function CalendarSyncSection() {
     }
   };
 
-  const handleSelectCalendar = async (connectionId: string) => {
-    setSelectedConnectionId(connectionId);
+  const handleSelectCalendar = async () => {
+    if (!googleStatus.connectionId) return;
+    
+    setSelectedConnectionId(googleStatus.connectionId);
     setLoadingCalendars(true);
     setCalendarDialogOpen(true);
+    setSelectedCalendarId(googleStatus.selectedCalendarId || '');
+
+    // Calendars are already loaded from status
+    setCalendars(googleStatus.calendars);
+    setLoadingCalendars(false);
+  };
+
+  const handleSelectProject = async (connectionId: string) => {
+    setSelectedConnectionId(connectionId);
+    setLoadingProjects(true);
+    setProjectDialogOpen(true);
 
     try {
       const response = await fetch(
-        `/api/calendar-sync/calendars?connectionId=${connectionId}`,
+        `/api/calendar-sync/projects?connectionId=${connectionId}`,
         { credentials: 'include' }
       );
 
       if (response.ok) {
         const data = await response.json();
-        setCalendars(data.calendars || []);
-        setSelectedCalendarId(data.selectedCalendarId || '');
+        setProjects(data.projects || []);
+        setSelectedProjectId(data.selectedProjectId || '');
       }
     } catch (error) {
-      console.error('Error loading calendars:', error);
-      toast.error('Failed to load calendars');
+      console.error('Error loading projects:', error);
+      toast.error('Failed to load projects');
     } finally {
-      setLoadingCalendars(false);
+      setLoadingProjects(false);
+    }
+  };
+
+  const handleSaveProjectSelection = async () => {
+    if (!selectedConnectionId || !selectedProjectId) return;
+
+    try {
+      setSaving(true);
+      const response = await fetch('/api/calendar-sync/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          connectionId: selectedConnectionId,
+          projectId: selectedProjectId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save project selection');
+      }
+
+      toast.success('Project selected');
+      setProjectDialogOpen(false);
+      fetchSettings();
+    } catch (error) {
+      console.error('Error saving project:', error);
+      toast.error('Failed to save project selection');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -214,6 +350,7 @@ export function CalendarSyncSection() {
 
       toast.success('Calendar selected');
       setCalendarDialogOpen(false);
+      fetchGoogleStatus();
       fetchSettings();
     } catch (error) {
       console.error('Error saving calendar:', error);
@@ -249,7 +386,6 @@ export function CalendarSyncSection() {
     } catch (error) {
       console.error('Error saving setting:', error);
       toast.error('Failed to save setting');
-      // Revert on error
       fetchSettings();
     } finally {
       setSaving(false);
@@ -288,6 +424,7 @@ export function CalendarSyncSection() {
 
   const googleConnection = connections.find((c) => c.provider === 'google');
   const ticktickConnection = connections.find((c) => c.provider === 'ticktick');
+  const hasActiveSync = connections.length > 0 && connections.some((c) => c.calendarId);
 
   if (loading) {
     return (
@@ -311,26 +448,45 @@ export function CalendarSyncSection() {
               </div>
               <div>
                 <h4 className="font-medium text-foreground">Google Calendar</h4>
-                {googleConnection ? (
+                {!googleStatus.configured ? (
+                  <span className="text-xs text-muted-foreground">Not configured</span>
+                ) : !googleStatus.linked ? (
+                  <span className="text-xs text-muted-foreground">Link your Google account to enable</span>
+                ) : googleConnection ? (
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3 h-3 text-[var(--color-success)]" />
                     <span className="text-xs text-muted-foreground">
-                      {googleConnection.calendarName || 'Connected - Select a calendar'}
+                      {googleConnection.calendarName || 'Enabled - Select a calendar'}
                     </span>
                   </div>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Not connected</span>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3 h-3 text-[var(--color-success)]" />
+                    <span className="text-xs text-muted-foreground">Google account linked</span>
+                  </div>
                 )}
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {googleConnection ? (
+              {!googleStatus.configured ? (
+                <Badge variant="secondary">Setup Required</Badge>
+              ) : !googleStatus.linked ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLinkGoogle}
+                  className="border-border"
+                >
+                  <Link2 className="w-4 h-4 mr-2" />
+                  Link Google
+                </Button>
+              ) : googleConnection ? (
                 <>
                   {!googleConnection.calendarId && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleSelectCalendar(googleConnection.id)}
+                      onClick={handleSelectCalendar}
                       className="border-border"
                     >
                       Select Calendar
@@ -340,7 +496,7 @@ export function CalendarSyncSection() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleSelectCalendar(googleConnection.id)}
+                      onClick={handleSelectCalendar}
                       className="text-muted-foreground"
                     >
                       Change
@@ -360,7 +516,81 @@ export function CalendarSyncSection() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => handleConnect('google')}
+                  onClick={handleEnableGoogleSync}
+                  disabled={enabling}
+                  className="border-border"
+                >
+                  {enabling ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Calendar className="w-4 h-4 mr-2" />
+                  )}
+                  Enable Sync
+                </Button>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {/* TickTick */}
+        <Card className="p-4 bg-card border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[#4772FA]/10 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-[#4772FA]" />
+              </div>
+              <div>
+                <h4 className="font-medium text-foreground">TickTick</h4>
+                {ticktickConnection ? (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-3 h-3 text-[var(--color-success)]" />
+                    <span className="text-xs text-muted-foreground">
+                      {ticktickConnection.calendarName || 'Connected - Select a project'}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Sync to TickTick tasks</span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {ticktickConnection ? (
+                <>
+                  {!ticktickConnection.calendarId && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSelectProject(ticktickConnection.id)}
+                      className="border-border"
+                    >
+                      Select Project
+                    </Button>
+                  )}
+                  {ticktickConnection.calendarId && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSelectProject(ticktickConnection.id)}
+                      className="text-muted-foreground"
+                    >
+                      Change
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDisconnect(ticktickConnection.id)}
+                    disabled={disconnecting}
+                    className="text-[var(--color-error)] hover:text-[var(--color-error)]"
+                  >
+                    <Unlink className="w-4 h-4" />
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleConnectTickTick}
                   className="border-border"
                 >
                   <Link2 className="w-4 h-4 mr-2" />
@@ -370,26 +600,10 @@ export function CalendarSyncSection() {
             </div>
           </div>
         </Card>
-
-        {/* TickTick */}
-        <Card className="p-4 bg-card border-border opacity-60">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[#4772FA]/10 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-[#4772FA]" />
-              </div>
-              <div>
-                <h4 className="font-medium text-foreground">TickTick</h4>
-                <span className="text-xs text-muted-foreground">Coming soon</span>
-              </div>
-            </div>
-            <Badge variant="secondary">Coming Soon</Badge>
-          </div>
-        </Card>
       </div>
 
       {/* Sync Settings - Only show if connected */}
-      {connections.length > 0 && connections.some((c) => c.calendarId) && (
+      {hasActiveSync && (
         <>
           <Separator className="bg-border" />
 
@@ -572,15 +786,16 @@ export function CalendarSyncSection() {
       )}
 
       {/* No Connection Info */}
-      {connections.length === 0 && (
+      {!hasActiveSync && (
         <Card className="p-4 bg-elevated border-border">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-muted-foreground mt-0.5" />
             <div>
-              <h4 className="font-medium text-foreground mb-1">Connect a Calendar</h4>
+              <h4 className="font-medium text-foreground mb-1">Sync Your Calendar</h4>
               <p className="text-sm text-muted-foreground">
-                Connect your Google Calendar to sync bill due dates, milestones, and payoff dates. 
-                Events include links back to Unified Ledger for quick access.
+                {googleStatus.linked 
+                  ? 'Enable Google Calendar sync to see bill due dates, milestones, and payoff dates on your calendar.'
+                  : 'Link your Google account to sync bill due dates, milestones, and payoff dates to your calendar. Events include links back to Unified Ledger for quick access.'}
               </p>
             </div>
           </div>
@@ -656,6 +871,82 @@ export function CalendarSyncSection() {
                 </>
               ) : (
                 'Select Calendar'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Project Selection Dialog (TickTick) */}
+      <Dialog open={projectDialogOpen} onOpenChange={setProjectDialogOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Select Project</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Choose which TickTick project to sync your financial events to
+            </DialogDescription>
+          </DialogHeader>
+
+          {loadingProjects ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[300px] overflow-y-auto py-2">
+              {projects.map((project) => (
+                <Card
+                  key={project.id}
+                  className={`p-3 cursor-pointer transition-colors ${
+                    selectedProjectId === project.id
+                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
+                      : 'border-border bg-card hover:bg-elevated'
+                  }`}
+                  onClick={() => setSelectedProjectId(project.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        checked={selectedProjectId === project.id}
+                        onChange={() => setSelectedProjectId(project.id)}
+                      />
+                      <div className="flex items-center gap-2">
+                        {project.color && (
+                          <div 
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: project.color }}
+                          />
+                        )}
+                        <span className="text-sm font-medium text-foreground">
+                          {project.name}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setProjectDialogOpen(false)}
+              className="border-border"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveProjectSelection}
+              disabled={!selectedProjectId || saving}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Select Project'
               )}
             </Button>
           </DialogFooter>
