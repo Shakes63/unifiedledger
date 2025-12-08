@@ -1,4 +1,4 @@
-# Bugs Status (Updated 2025-12-07)
+# Bugs Status (Updated 2025-12-08)
 
 ---
 
@@ -36,12 +36,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 719 (143 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 720 (144 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (143 total)
+## Fixed Bugs (144 total)
 
+144. ✅ **Dashboard Cards 500 Error on Empty Data** [FIXED 2025-12-08] - Fixed API error handling in `/api/debts/countdown` and `/api/budgets/summary` to properly catch household membership errors (403) instead of falling through to 500. Updated components to handle error responses gracefully without logging expected errors.
 143. ✅ **TickTick OAuth UI Configuration** [FIXED 2025-12-07] - Added TickTick OAuth configuration to Admin tab in Settings. Credentials are stored encrypted in database with fallback to environment variables for backwards compatibility.
 142. ✅ **Test Mode Owner Access** [FIXED 2025-12-07] - Added TEST_MODE bypass to requireOwner() helper so the test user can access owner-only features like OAuth configuration.
 141. ✅ **Bill Period Assignment Shows Next Month's Instances** [FIXED 2025-12-07] - Fixed bills-by-period API to verify manual period assignments are for the correct month. Prevents "Always Period 2" from showing January's instance in December's Period 2 view.

@@ -31,14 +31,31 @@ export function DebtCountdownCard() {
       setLoading(true);
       const response = await fetchWithHousehold('/api/debts/countdown');
 
+      // Handle expected error responses gracefully (don't log as errors)
+      if (response.status === 400 || response.status === 401 || response.status === 403) {
+        // Auth/household issues - just show no data state
+        setData(null);
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error('Failed to fetch countdown data');
+        // Only log unexpected errors (5xx)
+        console.error('Error fetching debt countdown: HTTP', response.status);
+        setData(null);
+        return;
       }
 
       const result = await response.json();
       setData(result);
     } catch (err) {
+      // Network errors or "No household selected" from the hook
+      if (err instanceof Error && err.message === 'No household selected') {
+        // Expected case - silently handle
+        setData(null);
+        return;
+      }
       console.error('Error fetching debt countdown:', err);
+      setData(null);
     } finally {
       setLoading(false);
     }

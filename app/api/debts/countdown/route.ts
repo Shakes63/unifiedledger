@@ -332,9 +332,15 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
+    // Auth errors (requireAuth throws "Unauthorized")
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    // Household membership errors (requireHouseholdAuth throws "Unauthorized: Not a member...")
+    if (error instanceof Error && error.message.includes('Unauthorized:')) {
+      return Response.json({ error: error.message }, { status: 403 });
+    }
+    // Household ID missing
     if (error instanceof Error && error.message.includes('Household ID')) {
       return Response.json({ error: error.message }, { status: 400 });
     }

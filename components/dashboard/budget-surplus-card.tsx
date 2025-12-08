@@ -42,25 +42,37 @@ export function BudgetSurplusCard() {
       setAuthError(false);
       const response = await fetchWithHousehold('/api/budgets/summary');
 
-      if (response.status === 401) {
-        console.error('Budget summary: Unauthorized');
+      // Handle auth errors (401, 403)
+      if (response.status === 401 || response.status === 403) {
         setAuthError(true);
-        setLoading(false);
+        setData(null);
+        return;
+      }
+
+      // Handle expected error responses gracefully (400 = no household)
+      if (response.status === 400) {
+        setData(null);
         return;
       }
 
       if (!response.ok) {
-        throw new Error('Failed to fetch budget summary');
+        // Only log unexpected errors (5xx)
+        console.error('Error fetching budget summary: HTTP', response.status);
+        setData(null);
+        return;
       }
 
       const result = await response.json();
       setData(result);
     } catch (err) {
-      console.error('Error fetching budget summary:', err);
+      // Network errors or "No household selected" from the hook
       if (err instanceof Error && err.message === 'No household selected') {
-        setLoading(false);
+        // Expected case - silently handle
+        setData(null);
         return;
       }
+      console.error('Error fetching budget summary:', err);
+      setData(null);
     } finally {
       setLoading(false);
     }
