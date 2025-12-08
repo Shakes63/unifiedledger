@@ -4,7 +4,15 @@
 
 ## New Bugs
 
-(None)
+- **Phase 5: Missing Auto-Detection UI for Credit Card Payments** - When creating a transfer to a credit card (e.g., Test Chase Sapphire) that has a linked payment bill (Test Chase Sapphire Payment), no auto-detection banner appears in the transaction form. The bill is due Dec 14 (within 7-day tolerance of Dec 8), but no UI indicator shows that this transfer could be linked to the payment bill. Detection may be backend-only on save, or the UI component was not implemented.
+  - **Steps to reproduce:** 
+    1. Go to New Transaction
+    2. Select "Transfer" type
+    3. Set "From Account" to checking account
+    4. Set "To Account" to credit card with linked payment bill
+  - **Expected:** A banner/indicator showing the linked payment bill was detected
+  - **Actual:** No detection banner appears; form looks identical to any other transfer
+  - **File:** `components/transactions/transaction-form.tsx` (likely location for UI)
 
 ---
 
@@ -31,7 +39,7 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 0 |
+| Active Bugs | 1 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
