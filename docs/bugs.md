@@ -4,7 +4,7 @@
 
 ## New Bugs
 
-(None)
+- **Next 7 Days Bill Count Off-By-One** - The "Next Payments" widget on the dashboard shows "Next 7 days: $0.00 | 0 bills" but there IS a bill (Test Chase Sapphire Payment) due in exactly 7 days (Dec 14 from Dec 8). The API `/api/bills/next-due` returns `next7DaysCount: 0` but `daysUntilDue: 7` for that bill. Appears to be a <= vs < comparison issue where day 7 is excluded from "next 7 days" count.
 
 ---
 
@@ -31,7 +31,7 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 0 |
+| Active Bugs | 1 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
