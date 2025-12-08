@@ -214,11 +214,11 @@ async function generateTestData() {
 
   // Accounts for Household 1
   const accounts1 = [
-    { name: 'Primary Checking', type: 'checking' as const, startingBalance: 5000, color: '#3b82f6', icon: 'wallet' },
-    { name: 'Emergency Savings', type: 'savings' as const, startingBalance: 10000, color: '#10b981', icon: 'piggy-bank' },
-    { name: 'Chase Credit Card', type: 'credit' as const, startingBalance: 0, creditLimit: 10000, color: '#ef4444', icon: 'credit-card' },
-    { name: 'Investment Account', type: 'investment' as const, startingBalance: 40000, color: '#8b5cf6', icon: 'trending-up' },
-    { name: 'Cash', type: 'cash' as const, startingBalance: 200, color: '#f59e0b', icon: 'dollar-sign' },
+    { name: 'Primary Checking', type: 'checking' as const, bankName: 'Wells Fargo', startingBalance: 5000, color: '#3b82f6', icon: 'wallet' },
+    { name: 'Emergency Savings', type: 'savings' as const, bankName: 'Wells Fargo', startingBalance: 10000, color: '#10b981', icon: 'piggy-bank' },
+    { name: 'Chase Credit Card', type: 'credit' as const, bankName: 'Chase', startingBalance: 0, creditLimit: 10000, color: '#ef4444', icon: 'credit-card' },
+    { name: 'Investment Account', type: 'investment' as const, bankName: 'Fidelity', startingBalance: 40000, color: '#8b5cf6', icon: 'trending-up' },
+    { name: 'Cash', type: 'cash' as const, bankName: 'Cash', startingBalance: 200, color: '#f59e0b', icon: 'dollar-sign' },
   ];
 
   const accountIds1: Record<string, string> = {};
@@ -233,6 +233,7 @@ async function generateTestData() {
       householdId: household1Id,
       name: acc.name,
       type: acc.type,
+      bankName: acc.bankName,
       currentBalance: acc.startingBalance,
       creditLimit: acc.type === 'credit' ? acc.creditLimit : null,
       color: acc.color,
@@ -1106,9 +1107,9 @@ async function generateTestData() {
 
   // Accounts for Household 2
   const accounts2 = [
-    { name: 'Main Checking', type: 'checking' as const, startingBalance: 3000, color: '#3b82f6', icon: 'wallet' },
-    { name: 'Savings Account', type: 'savings' as const, startingBalance: 8000, color: '#10b981', icon: 'piggy-bank' },
-    { name: 'Discover Credit Card', type: 'credit' as const, startingBalance: 0, creditLimit: 5000, color: '#ef4444', icon: 'credit-card' },
+    { name: 'Main Checking', type: 'checking' as const, bankName: 'Bank of America', startingBalance: 3000, color: '#3b82f6', icon: 'wallet' },
+    { name: 'Savings Account', type: 'savings' as const, bankName: 'Bank of America', startingBalance: 8000, color: '#10b981', icon: 'piggy-bank' },
+    { name: 'Discover Credit Card', type: 'credit' as const, bankName: 'Discover', startingBalance: 0, creditLimit: 5000, color: '#ef4444', icon: 'credit-card' },
   ];
 
   const accountIds2: Record<string, string> = {};
@@ -1123,6 +1124,7 @@ async function generateTestData() {
       householdId: household2Id,
       name: acc.name,
       type: acc.type,
+      bankName: acc.bankName,
       currentBalance: acc.startingBalance,
       creditLimit: acc.type === 'credit' ? acc.creditLimit : null,
       color: acc.color,

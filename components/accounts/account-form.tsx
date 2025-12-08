@@ -201,6 +201,10 @@ export function AccountForm({
       newErrors.type = 'Account type is required';
     }
 
+    if (!formData.bankName.trim()) {
+      newErrors.bankName = 'Bank name is required';
+    }
+
     // Validation for credit accounts
     const isCreditAccount = formData.type === 'credit' || formData.type === 'line_of_credit';
     
@@ -362,14 +366,24 @@ export function AccountForm({
       {/* Bank Name and Account Number */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Bank Name (Optional)</Label>
+          <Label className={`text-sm mb-2 block ${errors.bankName ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+            Bank Name
+          </Label>
           <Input
             name="bankName"
             value={formData.bankName}
-            onChange={handleChange}
+            onChange={(e) => {
+              handleChange(e);
+              if (errors.bankName) setErrors(prev => ({ ...prev, bankName: '' }));
+            }}
             placeholder="e.g., Chase Bank"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+            className={`bg-elevated text-foreground placeholder:text-muted-foreground ${
+              errors.bankName ? 'border-[var(--color-error)] focus:border-[var(--color-error)]' : 'border-border'
+            }`}
           />
+          {errors.bankName && (
+            <p className="text-[var(--color-error)] text-xs mt-1">{errors.bankName}</p>
+          )}
         </div>
         <div>
           <Label className="text-muted-foreground text-sm mb-2 block">Last 4 Digits (Optional)</Label>

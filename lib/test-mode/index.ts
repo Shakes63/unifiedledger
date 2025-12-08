@@ -91,10 +91,7 @@ export function getTestUser() {
  * @param context - Description of where the bypass occurred (e.g., "middleware", "requireAuth")
  */
 export function logTestModeWarning(context: string): void {
-  console.warn(
-    `[TEST MODE] Authentication bypassed in ${context}. ` +
-      'This should only happen in development/testing environments!'
-  );
+  console.warn(`[TEST MODE] Auth bypassed in ${context}`);
 }
 
 /**

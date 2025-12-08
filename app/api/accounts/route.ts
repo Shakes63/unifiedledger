@@ -6,6 +6,7 @@ import { nanoid } from 'nanoid';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { createPaymentBill, createAnnualFeeBill } from '@/lib/bills/auto-bill-creation';
 import { trackInitialCreditLimit, calculateMinimumPayment } from '@/lib/accounts';
+import { createMerchantForBank } from '@/lib/merchants/auto-create';
 import type { PaymentAmountSource } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -89,9 +90,9 @@ export async function POST(request: Request) {
       primeRateMargin,
     } = body;
 
-    if (!name || !type) {
+    if (!name || !type || !bankName) {
       return Response.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields (name, type, and bankName are required)' },
         { status: 400 }
       );
     }
@@ -134,7 +135,7 @@ export async function POST(request: Request) {
         householdId,
         name,
         type,
-        bankName: bankName || null,
+        bankName: bankName.trim(),
         accountNumberLast4: accountNumberLast4 || null,
         currentBalance,
         creditLimit: creditLimit || null,
@@ -166,6 +167,11 @@ export async function POST(request: Request) {
 
       // Track promises for parallel execution
       const postCreationTasks: Promise<unknown>[] = [];
+
+      // Auto-create merchant for the bank (for all account types)
+      postCreationTasks.push(
+        createMerchantForBank(userId, householdId, bankName)
+      );
 
       // Auto-create linked bills for credit accounts
       if (isCreditType) {

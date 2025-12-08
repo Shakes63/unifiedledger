@@ -5,6 +5,7 @@ import { debts, debtPayoffMilestones, budgetCategories, accounts } from '@/lib/d
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { syncDebtPayoffDate } from '@/lib/debts/payoff-date-utils';
+import { createMerchantForBank } from '@/lib/merchants/auto-create';
 
 export async function GET(request: Request) {
   try {
@@ -165,6 +166,9 @@ export async function POST(request: Request) {
         createdAt: now,
       });
     }
+
+    // Auto-create merchant for the creditor
+    await createMerchantForBank(userId, householdId, creditorName);
 
     // Calculate and set the projected payoff date
     // This enables the debt to appear on the calendar at its target date

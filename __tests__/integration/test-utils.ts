@@ -86,6 +86,7 @@ export interface TestAccount {
   householdId: string;
   name: string;
   type: 'checking' | 'savings' | 'credit_card' | 'credit' | 'investment' | 'cash' | 'other';
+  bankName: string;
   currentBalance: number;
   color?: string;
   icon?: string;
@@ -245,6 +246,7 @@ export function createTestAccount(
     householdId,
     name: "Test Checking",
     type: "checking",
+    bankName: "Test Bank",
     currentBalance: 1000.00,
     color: "#10b981",
     icon: "wallet",

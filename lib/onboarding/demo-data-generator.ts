@@ -49,6 +49,7 @@ export async function generateDemoData(
     {
       name: 'Demo Checking',
       type: 'checking' as const,
+      bankName: 'Demo Bank',
       balance: new Decimal(5000),
       color: '#3b82f6',
       icon: 'wallet',
@@ -56,6 +57,7 @@ export async function generateDemoData(
     {
       name: 'Demo Savings',
       type: 'savings' as const,
+      bankName: 'Demo Bank',
       balance: new Decimal(10000),
       color: '#10b981',
       icon: 'piggy-bank',
@@ -63,6 +65,7 @@ export async function generateDemoData(
     {
       name: 'Demo Credit Card',
       type: 'credit' as const,
+      bankName: 'Demo Credit Union',
       balance: new Decimal(500), // Owed amount
       creditLimit: new Decimal(5000),
       color: '#ef4444',
@@ -81,6 +84,7 @@ export async function generateDemoData(
       householdId,
       name: acc.name,
       type: acc.type,
+      bankName: acc.bankName,
       currentBalance: acc.balance.toNumber(),
       creditLimit: acc.type === 'credit' ? (acc as any).creditLimit.toNumber() : null,
       color: acc.color,

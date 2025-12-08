@@ -9,12 +9,14 @@ const DEFAULT_ACCOUNTS = [
   {
     name: 'Checking Account',
     type: 'checking',
+    bankName: 'My Bank',
     icon: 'wallet',
     color: '#3b82f6',
   },
   {
     name: 'Savings Account',
     type: 'savings',
+    bankName: 'My Bank',
     icon: 'piggy-bank',
     color: '#10b981',
   },
@@ -88,6 +90,7 @@ export async function POST(_request: Request) {
       householdId,
       name: acc.name,
       type: acc.type as any,
+      bankName: acc.bankName,
       icon: acc.icon,
       color: acc.color,
       sortOrder: index,

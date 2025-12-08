@@ -36,8 +36,8 @@ export async function getAuthUser() {
  */
 export async function requireAuth() {
   // Test mode bypass - return test user without session validation
+  // Note: More specific auth functions (like requireHouseholdAuth) log their own warnings
   if (isTestMode()) {
-    logTestModeWarning('requireAuth');
     return getTestUser();
   }
 

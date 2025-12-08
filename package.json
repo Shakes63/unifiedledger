@@ -86,6 +86,7 @@
     "@typescript-eslint/eslint-plugin": "^8.46.3",
     "@typescript-eslint/parser": "^8.46.3",
     "@vitejs/plugin-react": "^5.1.0",
+    "baseline-browser-mapping": "^2.9.4",
     "bcryptjs": "^3.0.3",
     "drizzle-kit": "^0.31.6",
     "eslint": "^9",
