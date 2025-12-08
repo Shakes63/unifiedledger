@@ -51,7 +51,20 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 - Drizzle ORM for type-safe queries
 - SQLite for local storage
 - Schema: `lib/db/schema.ts`
-- Migrations: `drizzle-kit generate` and `drizzle-kit migrate`
+- **Push-based workflow** (no migration files)
+
+**Schema Change Workflow:**
+```bash
+# 1. Edit lib/db/schema.ts
+# 2. Push changes directly to database
+pnpm drizzle-kit push
+```
+
+**Important:** 
+- We use `push` instead of `generate`/`migrate` for simplicity
+- `push` syncs schema directly to database without migration files
+- May require interactive input for table renames - run in terminal manually if needed
+- Always backup database before major schema changes
 
 ## Development Commands
 ```bash
@@ -60,8 +73,8 @@ pnpm build                  # Build for production
 pnpm test                   # Run tests
 pnpm test:watch             # Watch mode for tests
 pnpm test:coverage          # Generate coverage report
-pnpm drizzle-kit generate   # Generate database migration
-pnpm drizzle-kit migrate    # Apply database migration
+pnpm drizzle-kit push       # Sync schema changes to database
+pnpm drizzle-kit studio     # Open Drizzle Studio (database GUI)
 ```
 
 ## Route Protection (Proxy)
@@ -71,21 +84,23 @@ pnpm drizzle-kit migrate    # Apply database migration
 - **Runtime:** Always Node.js (no `export const runtime` needed)
 
 ## Never Do
-- ❌ Never use floating-point arithmetic for money (use Decimal.js)
-- ❌ Never commit without meaningful message
-- ❌ Never skip user authentication checks in API routes
-- ❌ Never start dev servers to leave running for user
-- ❌ Never use hardcoded colors (use CSS variables)
-- ❌ Never use emojis unless explicitly requested
-- ❌ Never create `middleware.ts` (use `proxy.ts` per Next.js 16 convention)
+- Never use floating-point arithmetic for money (use Decimal.js)
+- Never commit without meaningful message
+- Never skip user authentication checks in API routes
+- Never start dev servers to leave running for user
+- Never use hardcoded colors (use CSS variables)
+- Never use emojis unless explicitly requested
+- Never create `middleware.ts` (use `proxy.ts` per Next.js 16 convention)
+- Never use `drizzle-kit generate` or `drizzle-kit migrate` (use `push` workflow)
 
 ## Always Do
-- ✅ Always use pnpm (not npm or yarn)
-- ✅ Always verify user owns data before returning
-- ✅ Always use Decimal.js for financial calculations
-- ✅ Always include toast notifications for user actions
-- ✅ Always use semantic color tokens (CSS variables)
-- ✅ Always commit meaningful changes
+- Always use pnpm (not npm or yarn)
+- Always verify user owns data before returning
+- Always use Decimal.js for financial calculations
+- Always include toast notifications for user actions
+- Always use semantic color tokens (CSS variables)
+- Always commit meaningful changes
+- Always use `drizzle-kit push` for schema changes
 
 ## Bug Tracking Guidelines
 
@@ -108,7 +123,7 @@ pnpm drizzle-kit migrate    # Apply database migration
 
 **Completed Bugs:**
 1. Move to "Fixed Bugs" section with next sequential number
-2. Format: `N. ✅ **Bug Name** [FIXED YYYY-MM-DD] - 1-2 line description of the fix`
+2. Format: `N. **Bug Name** [FIXED YYYY-MM-DD] - 1-2 line description of the fix`
 3. Update metrics table (decrement Active Bugs, increment Fixed count)
 4. Delete the associated plan file from `docs/`
 5. Commit and push changes
