@@ -4,7 +4,7 @@
 
 ## New Bugs
 
-- **Next 7 Days Bill Count Off-By-One** - The "Next Payments" widget on the dashboard shows "Next 7 days: $0.00 | 0 bills" but there IS a bill (Test Chase Sapphire Payment) due in exactly 7 days (Dec 14 from Dec 8). The API `/api/bills/next-due` returns `next7DaysCount: 0` but `daysUntilDue: 7` for that bill. Appears to be a <= vs < comparison issue where day 7 is excluded from "next 7 days" count.
+(None)
 
 ---
 
@@ -31,17 +31,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 1 |
+| Active Bugs | 0 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 720 (144 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 721 (145 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (144 total)
+## Fixed Bugs (145 total)
 
+145. ✅ **Next 7 Days Bill Count Off-By-One** [FIXED 2025-12-08] - Fixed inconsistent date comparison in `/api/bills/next-due`. Changed from string comparison to `differenceInDays` arithmetic to match `daysUntilDue` calculation, ensuring bills exactly 7 days away are included in "Next 7 days" count.
 144. ✅ **Dashboard Cards 500 Error on Empty Data** [FIXED 2025-12-08] - Fixed API error handling in `/api/debts/countdown` and `/api/budgets/summary` to properly catch household membership errors (403) instead of falling through to 500. Updated components to handle error responses gracefully without logging expected errors.
 143. ✅ **TickTick OAuth UI Configuration** [FIXED 2025-12-07] - Added TickTick OAuth configuration to Admin tab in Settings. Credentials are stored encrypted in database with fallback to environment variables for backwards compatibility.
 142. ✅ **Test Mode Owner Access** [FIXED 2025-12-07] - Added TEST_MODE bypass to requireOwner() helper so the test user can access owner-only features like OAuth configuration.

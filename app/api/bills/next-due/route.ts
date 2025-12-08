@@ -23,11 +23,6 @@ export async function GET(request: Request) {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayDate = new Date();
     todayDate.setHours(0, 0, 0, 0);
-    
-    // Calculate date 7 days from now for summary
-    const sevenDaysFromNow = new Date(todayDate);
-    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-    const sevenDaysDate = format(sevenDaysFromNow, 'yyyy-MM-dd');
 
     // Update bill instance statuses based on due dates
     // Update pending bills with past due dates to overdue
@@ -195,10 +190,13 @@ export async function GET(request: Request) {
       )[0];
     const nextDueDate = nextPending?.instance.dueDate || null;
 
-    // Calculate next 7 days totals
+    // Calculate next 7 days totals using consistent date arithmetic
+    // Use differenceInDays to match daysUntilDue calculation and avoid string comparison issues
     const next7DaysInstances = allOverdueAndPending.filter(r => {
-      const dueDate = r.instance.dueDate;
-      return dueDate >= today && dueDate <= sevenDaysDate;
+      const dueDate = new Date(r.instance.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      const daysUntil = differenceInDays(dueDate, todayDate);
+      return daysUntil >= 0 && daysUntil <= 7;
     });
     const next7DaysTotal = next7DaysInstances.reduce(
       (sum, r) => new Decimal(sum).plus(r.instance.expectedAmount || 0).toNumber(),
