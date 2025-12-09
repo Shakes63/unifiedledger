@@ -4,15 +4,7 @@
 
 ## New Bugs
 
-- **Phase 5: Missing Auto-Detection UI for Credit Card Payments** - When creating a transfer to a credit card (e.g., Test Chase Sapphire) that has a linked payment bill (Test Chase Sapphire Payment), no auto-detection banner appears in the transaction form. The bill is due Dec 14 (within 7-day tolerance of Dec 8), but no UI indicator shows that this transfer could be linked to the payment bill. Detection may be backend-only on save, or the UI component was not implemented.
-  - **Steps to reproduce:** 
-    1. Go to New Transaction
-    2. Select "Transfer" type
-    3. Set "From Account" to checking account
-    4. Set "To Account" to credit card with linked payment bill
-  - **Expected:** A banner/indicator showing the linked payment bill was detected
-  - **Actual:** No detection banner appears; form looks identical to any other transfer
-  - **File:** `components/transactions/transaction-form.tsx` (likely location for UI)
+(None)
 
 ---
 
@@ -39,17 +31,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 1 |
+| Active Bugs | 0 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 721 (145 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 722 (146 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (145 total)
+## Fixed Bugs (146 total)
 
+146. ✅ **Credit Card Payment Auto-Detection UI** [FIXED 2025-12-09] - Added auto-detection banner when creating transfers to credit card accounts with linked payment bills. Shows bill name, due date, expected amount, and status (overdue/partial) using theme variables.
 145. ✅ **Next 7 Days Bill Count Off-By-One** [FIXED 2025-12-08] - Fixed inconsistent date comparison in `/api/bills/next-due`. Changed from string comparison to `differenceInDays` arithmetic to match `daysUntilDue` calculation, ensuring bills exactly 7 days away are included in "Next 7 days" count.
 144. ✅ **Dashboard Cards 500 Error on Empty Data** [FIXED 2025-12-08] - Fixed API error handling in `/api/debts/countdown` and `/api/budgets/summary` to properly catch household membership errors (403) instead of falling through to 500. Updated components to handle error responses gracefully without logging expected errors.
 143. ✅ **TickTick OAuth UI Configuration** [FIXED 2025-12-07] - Added TickTick OAuth configuration to Admin tab in Settings. Credentials are stored encrypted in database with fallback to environment variables for backwards compatibility.
