@@ -4,11 +4,6 @@
 
 ## New Bugs
 
-- **What-If Calculator API Error** - The What-If Scenario Calculator UI on the Debts page opens and displays correctly (quick scenarios, custom scenarios, lump sum options), but clicking any option results in a 400 Bad Request error from the API.
-  - **Repro:** Go to /dashboard/debts > Click "What-If Scenario Calculator" section > UI expands but toast shows "Failed to calculate scenarios"
-  - **Location:** API endpoint called by `WhatIfCalculator` component
-  - **Note:** UI works, API returns 400 error when calculating scenarios
-
 - **Budget Templates Dropdown Opens Modal** - On the budget page when you click "Use Template," it opens up the "Set budget" modal instead of pulling up a dropdown. When there's no templates, the dropdown should show an entry to create a template
   - **Repro:** Go to /dashboard/budgets > Click "Use Template ▼" > Modal opens instead of dropdown
 ---
@@ -36,17 +31,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 2 |
+| Active Bugs | 1 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 726 (150 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 727 (151 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (150 total)
+## Fixed Bugs (151 total)
 
+151. ✅ **What-If Calculator API Error** [FIXED 2025-12-10] - Added missing `name` field to scenarios payload in `what-if-calculator.tsx`. The API requires scenario names but the component was not including them in the POST request.
 150. ✅ **Transfer Form Missing Credit Card Detection** [FIXED 2025-12-10] - Ported Phase 5 auto-detection logic from `transaction-form.tsx` to `transfer-form.tsx`. Added useEffect hook to detect payment bills when selecting destination credit card accounts, and banner UI showing bill status (overdue/partial), due date, and expected amount.
 149. ✅ **Dashboard Bill Due Date Off-By-One** [FIXED 2025-12-10] - Replaced `new Date(dateString)` with `parseISO` from date-fns in EnhancedBillsWidget and NextPaymentDueWidget. Date-only strings were parsed as UTC midnight and shifted backward in local timezones.
 148. ✅ **Phase 10 NotificationsTab Not Rendered** [FIXED 2025-12-10] - Added Notifications tab to Household settings that renders the comprehensive NotificationsTab component with all Phase 10 features (High Utilization Alerts with threshold selector, Credit Limit Change notifications, Income Late Alerts). Removed duplicate condensed notifications from HouseholdPersonalTab.

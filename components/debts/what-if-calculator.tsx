@@ -43,6 +43,7 @@ export function WhatIfCalculator({
       setLoading(true);
       const response = await postWithHousehold('/api/debts/scenarios', {
         scenarios: scenarios.map(s => ({
+          name: s.name,
           extraMonthlyPayment: s.extraMonthlyPayment,
           lumpSumPayments: s.lumpSumPayments,
           method: s.method,
