@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { parseISO, format } from 'date-fns';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import Decimal from 'decimal.js';
@@ -166,8 +167,8 @@ export function NextPaymentDueWidget() {
   const { bills, summary } = data;
 
   const formatDueDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const date = parseISO(dateString);
+    return format(date, 'MMM d');
   };
 
   const getDaysLabel = (days: number, isOverdue: boolean) => {

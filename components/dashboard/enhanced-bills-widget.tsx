@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, Clock, AlertCircle, ArrowRight, Calendar as CalendarIcon, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import Decimal from 'decimal.js';
+import { parseISO, format } from 'date-fns';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { BillPayModal } from '@/components/bills/bill-pay-modal';
@@ -80,7 +81,7 @@ export function EnhancedBillsWidget() {
 
         // Filter pending and paid bills by current month
         const filteredCurrentMonthBills = currentMonthBills.filter((bill: BillInstance) => {
-          const dueDate = new Date(bill.dueDate);
+          const dueDate = parseISO(bill.dueDate);
           return dueDate >= startOfMonth && dueDate <= endOfMonth;
         });
         
@@ -334,11 +335,8 @@ export function EnhancedBillsWidget() {
           {/* Bills List */}
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
             {bills.map((bill) => {
-              const dueDate = new Date(bill.dueDate);
-              const formattedDate = dueDate.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-              });
+              const dueDate = parseISO(bill.dueDate);
+              const formattedDate = format(dueDate, 'MMM d');
 
               const today = new Date();
               today.setHours(0, 0, 0, 0);

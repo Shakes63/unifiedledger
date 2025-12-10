@@ -4,10 +4,6 @@
 
 ## New Bugs
 
-- **Dashboard Bill Due Date Off-By-One** - Dashboard widgets (This Month's Bills, Next Payments) show bill due dates 1 day earlier than actual. Example: Bill is due Dec 15 (confirmed on Bills page and Calendar), but Dashboard shows "Due Dec 14". The "X days" countdown is correct. Affects: `EnhancedBillsWidget`, `NextPaymentDueWidget`.
-  - **Repro:** View dashboard with a monthly bill (e.g., credit card payment). Compare due date shown vs Bills page / Calendar.
-  - **Location:** Likely in dashboard widget date formatting, possibly using local timezone vs UTC
-
 - **Transfer Form Missing Credit Card Detection** - The `/dashboard/transfers` page uses `transfer-form.tsx` which does NOT have the Phase 5 credit card payment detection banner. The banner only exists in `transaction-form.tsx`. Bug #146 fix was incomplete - added to wrong component.
   - **Repro:** Go to /dashboard/transfers > New Transfer > Select credit card as destination. No payment bill detection banner appears.
   - **Fix:** Port the Phase 5 auto-detection logic from `transaction-form.tsx` to `transfer-form.tsx`, including the API call to detect linked payment bills and the banner UI.
@@ -44,17 +40,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 4 |
+| Active Bugs | 3 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 724 (148 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 725 (149 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (148 total)
+## Fixed Bugs (149 total)
 
+149. ✅ **Dashboard Bill Due Date Off-By-One** [FIXED 2025-12-10] - Replaced `new Date(dateString)` with `parseISO` from date-fns in EnhancedBillsWidget and NextPaymentDueWidget. Date-only strings were parsed as UTC midnight and shifted backward in local timezones.
 148. ✅ **Phase 10 NotificationsTab Not Rendered** [FIXED 2025-12-10] - Added Notifications tab to Household settings that renders the comprehensive NotificationsTab component with all Phase 10 features (High Utilization Alerts with threshold selector, Credit Limit Change notifications, Income Late Alerts). Removed duplicate condensed notifications from HouseholdPersonalTab.
 147. ✅ **Toast Notifications Not Rendering** [FIXED 2025-12-10] - Added Sonner `<Toaster />` component to `app/layout.tsx`. Toast notifications (success, error, etc.) throughout the entire application were previously invisible because the Toaster container was missing.
 146. ✅ **Credit Card Payment Auto-Detection UI** [FIXED 2025-12-09] - Added auto-detection banner when creating transfers to credit card accounts with linked payment bills. Shows bill name, due date, expected amount, and status (overdue/partial) using theme variables.
