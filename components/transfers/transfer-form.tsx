@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,8 +12,10 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, CreditCard, ExternalLink } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
+import type { PaymentBillDetectionResult } from '@/lib/bills/payment-bill-detection';
 
 const transferSchema = z.object({
   fromAccountId: z.string().min(1, 'From account is required'),
@@ -58,8 +61,12 @@ export function TransferForm({
   onSuccess,
   onCancel,
 }: TransferFormProps) {
-  const { postWithHousehold } = useHouseholdFetch();
+  const { postWithHousehold, fetchWithHousehold } = useHouseholdFetch();
+  const { selectedHouseholdId } = useHousehold();
   const [isLoading, setIsLoading] = useState(false);
+  // Phase 5: Credit card payment bill detection
+  const [paymentBillDetection, setPaymentBillDetection] = useState<PaymentBillDetectionResult | null>(null);
+  const [_paymentBillLoading, setPaymentBillLoading] = useState(false);
 
   const {
     control,
@@ -80,6 +87,7 @@ export function TransferForm({
   });
 
   const fromAccountId = watch('fromAccountId');
+  const toAccountId = watch('toAccountId');
 
   // Get balance of from account
   const fromAccount = accounts.find((a) => a.id === fromAccountId);
@@ -91,6 +99,38 @@ export function TransferForm({
       setValue('fromAccountId', accounts[0].id);
     }
   }, [accounts, fromAccountId, setValue]);
+
+  // Phase 5: Auto-detect payment bills when destination account changes
+  useEffect(() => {
+    const detectPaymentBill = async () => {
+      if (!toAccountId || !selectedHouseholdId) {
+        setPaymentBillDetection(null);
+        return;
+      }
+
+      try {
+        setPaymentBillLoading(true);
+        const response = await fetchWithHousehold(
+          `/api/bills/detect-payment?accountId=${toAccountId}`
+        );
+        
+        if (!response.ok) {
+          setPaymentBillDetection(null);
+          return;
+        }
+        
+        const result: PaymentBillDetectionResult = await response.json();
+        setPaymentBillDetection(result);
+      } catch (error) {
+        console.error('Error detecting payment bills:', error);
+        setPaymentBillDetection(null);
+      } finally {
+        setPaymentBillLoading(false);
+      }
+    };
+
+    detectPaymentBill();
+  }, [toAccountId, selectedHouseholdId, fetchWithHousehold]);
 
   const onSubmit = async (data: TransferFormData) => {
     try {
@@ -239,6 +279,77 @@ export function TransferForm({
             <p className="text-[var(--color-error)] text-sm mt-1">
               {errors.toAccountId.message}
             </p>
+          )}
+
+          {/* Phase 5: Credit Card Payment Bill Auto-Detection Banner */}
+          {toAccountId && paymentBillDetection && paymentBillDetection.confidence !== 'none' && (
+            <div className={`mt-3 p-3 rounded-lg border flex items-start gap-3 ${
+              paymentBillDetection.detectedBill?.status === 'overdue'
+                ? 'bg-[var(--color-error)]/10 border-[var(--color-error)]/30'
+                : paymentBillDetection.confidence === 'high'
+                  ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30'
+                  : paymentBillDetection.confidence === 'medium'
+                    ? 'bg-[var(--color-primary)]/5 border-[var(--color-primary)]/20'
+                    : 'bg-elevated border-border'
+            }`}>
+              <CreditCard className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                paymentBillDetection.detectedBill?.status === 'overdue'
+                  ? 'text-[var(--color-error)]'
+                  : 'text-[var(--color-primary)]'
+              }`} />
+              <div className="flex-1 min-w-0">
+                {paymentBillDetection.detectedBill ? (
+                  <>
+                    <p className={`text-sm font-medium ${
+                      paymentBillDetection.detectedBill.status === 'overdue' 
+                        ? 'text-[var(--color-error)]' 
+                        : 'text-foreground'
+                    }`}>
+                      {paymentBillDetection.detectedBill.billName}
+                      {paymentBillDetection.detectedBill.status === 'overdue' && (
+                        <span className="ml-2 text-xs font-normal bg-[var(--color-error)]/20 px-1.5 py-0.5 rounded">
+                          OVERDUE
+                        </span>
+                      )}
+                      {paymentBillDetection.detectedBill.status === 'partial' && (
+                        <span className="ml-2 text-xs font-normal bg-[var(--color-warning)]/20 text-[var(--color-warning)] px-1.5 py-0.5 rounded">
+                          PARTIAL
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Due: {format(parseISO(paymentBillDetection.detectedBill.dueDate), 'MMM d, yyyy')}
+                      {' '}&middot;{' '}
+                      ${paymentBillDetection.detectedBill.expectedAmount.toFixed(2)}
+                      {paymentBillDetection.detectedBill.status === 'partial' && (
+                        <span className="text-[var(--color-warning)]">
+                          {' '}(${paymentBillDetection.detectedBill.remainingAmount.toFixed(2)} remaining)
+                        </span>
+                      )}
+                    </p>
+                  </>
+                ) : null}
+                <p className={`text-xs mt-1 ${
+                  paymentBillDetection.detectedBill?.status === 'overdue'
+                    ? 'text-[var(--color-error)]'
+                    : paymentBillDetection.confidence === 'high'
+                      ? 'text-[var(--color-primary)]'
+                      : 'text-muted-foreground'
+                }`}>
+                  {paymentBillDetection.reason}
+                </p>
+                {paymentBillDetection.confidence === 'low' && !paymentBillDetection.detectedBill && (
+                  <a
+                    href="/dashboard/bills"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline mt-1"
+                  >
+                    Set up payment bill <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            </div>
           )}
         </div>
 

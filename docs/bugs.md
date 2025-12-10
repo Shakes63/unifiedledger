@@ -4,10 +4,6 @@
 
 ## New Bugs
 
-- **Transfer Form Missing Credit Card Detection** - The `/dashboard/transfers` page uses `transfer-form.tsx` which does NOT have the Phase 5 credit card payment detection banner. The banner only exists in `transaction-form.tsx`. Bug #146 fix was incomplete - added to wrong component.
-  - **Repro:** Go to /dashboard/transfers > New Transfer > Select credit card as destination. No payment bill detection banner appears.
-  - **Fix:** Port the Phase 5 auto-detection logic from `transaction-form.tsx` to `transfer-form.tsx`, including the API call to detect linked payment bills and the banner UI.
-
 - **What-If Calculator API Error** - The What-If Scenario Calculator UI on the Debts page opens and displays correctly (quick scenarios, custom scenarios, lump sum options), but clicking any option results in a 400 Bad Request error from the API.
   - **Repro:** Go to /dashboard/debts > Click "What-If Scenario Calculator" section > UI expands but toast shows "Failed to calculate scenarios"
   - **Location:** API endpoint called by `WhatIfCalculator` component
@@ -40,17 +36,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 3 |
+| Active Bugs | 2 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 725 (149 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 726 (150 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (149 total)
+## Fixed Bugs (150 total)
 
+150. ✅ **Transfer Form Missing Credit Card Detection** [FIXED 2025-12-10] - Ported Phase 5 auto-detection logic from `transaction-form.tsx` to `transfer-form.tsx`. Added useEffect hook to detect payment bills when selecting destination credit card accounts, and banner UI showing bill status (overdue/partial), due date, and expected amount.
 149. ✅ **Dashboard Bill Due Date Off-By-One** [FIXED 2025-12-10] - Replaced `new Date(dateString)` with `parseISO` from date-fns in EnhancedBillsWidget and NextPaymentDueWidget. Date-only strings were parsed as UTC midnight and shifted backward in local timezones.
 148. ✅ **Phase 10 NotificationsTab Not Rendered** [FIXED 2025-12-10] - Added Notifications tab to Household settings that renders the comprehensive NotificationsTab component with all Phase 10 features (High Utilization Alerts with threshold selector, Credit Limit Change notifications, Income Late Alerts). Removed duplicate condensed notifications from HouseholdPersonalTab.
 147. ✅ **Toast Notifications Not Rendering** [FIXED 2025-12-10] - Added Sonner `<Toaster />` component to `app/layout.tsx`. Toast notifications (success, error, etc.) throughout the entire application were previously invisible because the Toaster container was missing.
