@@ -14,24 +14,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Check, Loader2, Palette, Bell, DollarSign, Mail, Calendar, HelpCircle } from 'lucide-react';
+import { Check, Loader2, Palette, DollarSign, Calendar, HelpCircle } from 'lucide-react';
 import { type Theme } from '@/lib/themes/theme-config';
 import { getAllThemes, getTheme, applyTheme } from '@/lib/themes/theme-utils';
 import { toast } from 'sonner';
 import { useHousehold } from '@/contexts/household-context';
 
-type NotificationChannel = 'push' | 'email';
 type BudgetCycleFrequency = 'weekly' | 'biweekly' | 'semi-monthly' | 'monthly';
-
-// Preference value type - can be boolean, number, string, or channel array
-type PreferenceValue = boolean | number | string | NotificationChannel[];
 
 interface BudgetScheduleSettings {
   budgetCycleFrequency: BudgetCycleFrequency;
@@ -52,17 +47,6 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 // User household preferences shape - API returns flexible structure
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type UserHouseholdPreferences = Record<string, any>;
-
-const CHANNELS: Array<{
-  id: NotificationChannel;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  available: boolean;
-  description: string;
-}> = [
-  { id: 'push', label: 'Push', icon: Bell, available: true, description: 'Browser notifications' },
-  { id: 'email', label: 'Email', icon: Mail, available: false, description: 'Coming soon' },
-];
 
 interface HouseholdPersonalTabProps {
   householdId: string;
@@ -86,9 +70,8 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
     combinedTransferView: true,
   });
   
-  // Notifications state
+  // Preferences state (for loading indicator)
   const [preferences, setPreferences] = useState<UserHouseholdPreferences | null>(null);
-  const [isSavingNotifications, setIsSavingNotifications] = useState(false);
 
   // Budget schedule state
   const [scheduleSettings, setScheduleSettings] = useState<BudgetScheduleSettings>({
@@ -305,117 +288,6 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
       ...scheduleSettings,
       budgetCycleSemiMonthlyDays: JSON.stringify(newDays),
     });
-  };
-
-  const parseChannels = (channelString: string | null | undefined): NotificationChannel[] => {
-    if (!channelString) return ['push'];
-    try {
-      return JSON.parse(channelString);
-    } catch {
-      return ['push'];
-    }
-  };
-
-  const updatePreference = useCallback(
-    async (key: string, value: PreferenceValue) => {
-      if (!preferences) return;
-
-      setIsSavingNotifications(true);
-
-      try {
-        const response = await fetch(`/api/user/households/${householdId}/preferences`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ [key]: value }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to update preference');
-        }
-
-        await refreshPreferences();
-        const updatedData = await response.json();
-        setPreferences(updatedData.preferences || updatedData);
-        toast.success('Preference updated');
-      } catch (err) {
-        console.error('Error updating preference:', err);
-        toast.error(err instanceof Error ? err.message : 'Failed to update preference');
-      } finally {
-        setIsSavingNotifications(false);
-      }
-    },
-    [householdId, preferences, refreshPreferences]
-  );
-
-  const toggleChannel = useCallback(
-    (channelField: string, channel: NotificationChannel) => {
-      if (!preferences) return;
-
-      const currentChannels = parseChannels(preferences[channelField as keyof typeof preferences] as string);
-      const newChannels = currentChannels.includes(channel)
-        ? currentChannels.filter((ch) => ch !== channel)
-        : [...currentChannels, channel];
-
-      if (newChannels.length === 0) {
-        toast.error('At least one notification channel must be selected');
-        return;
-      }
-
-      updatePreference(channelField, JSON.stringify(newChannels));
-    },
-    [preferences, updatePreference]
-  );
-
-  const ChannelSelector = ({
-    channelField,
-    enabled,
-  }: {
-    channelField: string;
-    enabled: boolean;
-  }) => {
-    if (!preferences) return null;
-
-    const selectedChannels = parseChannels(preferences[channelField as keyof typeof preferences] as string);
-
-    return (
-      <div className="space-y-2 pl-6 border-l-2 border-border">
-        <Label className="text-xs font-medium text-muted-foreground">Delivery channels</Label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {CHANNELS.map((channel) => (
-            <div
-              key={channel.id}
-              className="flex items-center space-x-2 p-2 rounded-md bg-elevated/50 border border-border"
-            >
-              <Checkbox
-                id={`${channelField}-${channel.id}`}
-                checked={selectedChannels.includes(channel.id)}
-                onCheckedChange={() => toggleChannel(channelField, channel.id)}
-                disabled={!enabled || !channel.available}
-                aria-label={`Toggle ${channel.label} for ${channelField}`}
-              />
-              <div className="flex items-center gap-2 flex-1">
-                <channel.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                <Label
-                  htmlFor={`${channelField}-${channel.id}`}
-                  className={`text-xs cursor-pointer ${
-                    !enabled || !channel.available ? 'opacity-50' : ''
-                  }`}
-                >
-                  {channel.label}
-                </Label>
-                {!channel.available && (
-                  <span className="text-[10px] text-[var(--color-warning)] ml-auto">
-                    {channel.description}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
   };
 
   if (loading || !currentTheme || !preferences) {
@@ -864,207 +736,6 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
         </Card>
       </div>
 
-      <Separator className="bg-border" />
-
-      {/* Notifications Section */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Bell className="w-5 h-5 text-[var(--color-primary)]" />
-          <h3 className="text-lg font-semibold text-foreground">Notifications</h3>
-          {isSavingNotifications && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground ml-auto">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Saving...</span>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          {/* Bill Reminders */}
-          <Card className="border-border bg-card p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <Label htmlFor="bill-reminder-enabled" className="text-sm font-medium">
-                  Bill Reminders
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Get notified when bills are due
-                </p>
-              </div>
-              <Switch
-                id="bill-reminder-enabled"
-                checked={preferences.billRemindersEnabled}
-                onCheckedChange={(value) => updatePreference('billRemindersEnabled', value)}
-              />
-            </div>
-            <ChannelSelector
-              channelField="billRemindersChannels"
-              enabled={preferences.billRemindersEnabled ?? false}
-            />
-          </Card>
-
-          {/* Budget Warnings */}
-          <Card className="border-border bg-card p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex-1">
-                <Label htmlFor="budget-warning-enabled" className="text-sm font-medium">
-                  Budget Warnings
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Get notified when approaching budget limits
-                </p>
-              </div>
-              <Switch
-                id="budget-warning-enabled"
-                checked={preferences.budgetWarningsEnabled}
-                onCheckedChange={(value) => updatePreference('budgetWarningsEnabled', value)}
-              />
-            </div>
-            <ChannelSelector
-              channelField="budgetWarningsChannels"
-              enabled={preferences.budgetWarningsEnabled}
-            />
-          </Card>
-
-          {/* Budget Exceeded */}
-          <Card className="border-border bg-card p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex-1">
-                <Label htmlFor="budget-exceeded" className="text-sm font-medium">
-                  Budget Exceeded Alerts
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Get immediate notification when you go over budget
-                </p>
-              </div>
-              <Switch
-                id="budget-exceeded"
-                checked={preferences.budgetExceededEnabled}
-                onCheckedChange={(value) => updatePreference('budgetExceededEnabled', value)}
-              />
-            </div>
-            <ChannelSelector
-              channelField="budgetExceededChannels"
-              enabled={preferences.budgetExceededEnabled}
-            />
-          </Card>
-
-          {/* Low Balance */}
-          <Card className="border-border bg-card p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex-1">
-                <Label htmlFor="low-balance-enabled" className="text-sm font-medium">
-                  Low Balance Alerts
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Get notified when account balances fall below threshold
-                </p>
-              </div>
-              <Switch
-                id="low-balance-enabled"
-                checked={preferences.lowBalanceEnabled}
-                onCheckedChange={(value) => updatePreference('lowBalanceEnabled', value)}
-              />
-            </div>
-            <ChannelSelector
-              channelField="lowBalanceChannels"
-              enabled={preferences.lowBalanceEnabled}
-            />
-          </Card>
-
-          {/* Savings Milestones */}
-          <Card className="border-border bg-card p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex-1">
-                <Label htmlFor="savings-milestones" className="text-sm font-medium">
-                  Savings Goal Milestones
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Get notified when you reach goal milestones
-                </p>
-              </div>
-              <Switch
-                id="savings-milestones"
-                checked={preferences.savingsMilestonesEnabled}
-                onCheckedChange={(value) => updatePreference('savingsMilestonesEnabled', value)}
-              />
-            </div>
-            <ChannelSelector
-              channelField="savingsMilestonesChannels"
-              enabled={preferences.savingsMilestonesEnabled}
-            />
-          </Card>
-
-          {/* Debt Milestones */}
-          <Card className="border-border bg-card p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex-1">
-                <Label htmlFor="debt-milestones" className="text-sm font-medium">
-                  Debt Payoff Milestones
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Get notified as you pay down debts at key milestones
-                </p>
-              </div>
-              <Switch
-                id="debt-milestones"
-                checked={preferences.debtMilestonesEnabled}
-                onCheckedChange={(value) => updatePreference('debtMilestonesEnabled', value)}
-              />
-            </div>
-            <ChannelSelector
-              channelField="debtMilestonesChannels"
-              enabled={preferences.debtMilestonesEnabled}
-            />
-          </Card>
-
-          {/* Weekly Summary */}
-          <Card className="border-border bg-card p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex-1">
-                <Label htmlFor="weekly-summary" className="text-sm font-medium">
-                  Weekly Summary
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Get a weekly overview of your financial activity
-                </p>
-              </div>
-              <Switch
-                id="weekly-summary"
-                checked={preferences.weeklySummariesEnabled}
-                onCheckedChange={(value) => updatePreference('weeklySummariesEnabled', value)}
-              />
-            </div>
-            <ChannelSelector
-              channelField="weeklySummariesChannels"
-              enabled={preferences.weeklySummariesEnabled}
-            />
-          </Card>
-
-          {/* Monthly Summary */}
-          <Card className="border-border bg-card p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex-1">
-                <Label htmlFor="monthly-summary" className="text-sm font-medium">
-                  Monthly Summary
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Get a monthly overview of your financial activity
-                </p>
-              </div>
-              <Switch
-                id="monthly-summary"
-                checked={preferences.monthlySummariesEnabled}
-                onCheckedChange={(value) => updatePreference('monthlySummariesEnabled', value)}
-              />
-            </div>
-            <ChannelSelector
-              channelField="monthlySummariesChannels"
-              enabled={preferences.monthlySummariesEnabled}
-            />
-          </Card>
-        </div>
-      </div>
     </div>
   );
 }

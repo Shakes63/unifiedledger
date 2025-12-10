@@ -38,6 +38,7 @@ import {
   Star,
   Loader2,
   Receipt,
+  Bell,
 } from 'lucide-react';
 
 // Import existing tab components
@@ -52,6 +53,7 @@ import { HouseholdPreferencesTab } from '@/components/settings/household-prefere
 import { HouseholdFinancialTab } from '@/components/settings/household-financial-tab';
 import { HouseholdPersonalTab } from '@/components/settings/household-personal-tab';
 import { TaxMappingTab } from '@/components/settings/tax-mapping-tab';
+import { NotificationsTab } from '@/components/settings/notifications-tab';
 
 // Account Settings tabs (global user settings)
 const ACCOUNT_TABS = [
@@ -69,6 +71,7 @@ const HOUSEHOLD_TABS = [
   { id: 'household-financial', label: 'Financial Settings', icon: DollarSign },
   { id: 'tax-mappings', label: 'Tax Mappings', icon: Receipt },
   { id: 'personal', label: 'Personal Preferences', icon: User },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
 
 function SettingsPageContent() {
@@ -642,6 +645,16 @@ function SettingsPageContent() {
                           className="mt-0"
                         >
                           <HouseholdPersonalTab householdId={householdId} />
+                        </div>
+                      )}
+                      {tab === 'notifications' && (
+                        <div
+                          role="tabpanel"
+                          id="household-tab-content-notifications"
+                          aria-labelledby="household-tab-notifications"
+                          className="mt-0"
+                        >
+                          <NotificationsTab />
                         </div>
                       )}
                     </Card>

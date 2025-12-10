@@ -1,11 +1,24 @@
-# Bugs Status (Updated 2025-12-08)
+# Bugs Status (Updated 2025-12-10)
 
 ---
 
 ## New Bugs
 
-(None)
+- **Dashboard Bill Due Date Off-By-One** - Dashboard widgets (This Month's Bills, Next Payments) show bill due dates 1 day earlier than actual. Example: Bill is due Dec 15 (confirmed on Bills page and Calendar), but Dashboard shows "Due Dec 14". The "X days" countdown is correct. Affects: `EnhancedBillsWidget`, `NextPaymentDueWidget`.
+  - **Repro:** View dashboard with a monthly bill (e.g., credit card payment). Compare due date shown vs Bills page / Calendar.
+  - **Location:** Likely in dashboard widget date formatting, possibly using local timezone vs UTC
 
+- **Transfer Form Missing Credit Card Detection** - The `/dashboard/transfers` page uses `transfer-form.tsx` which does NOT have the Phase 5 credit card payment detection banner. The banner only exists in `transaction-form.tsx`. Bug #146 fix was incomplete - added to wrong component.
+  - **Repro:** Go to /dashboard/transfers > New Transfer > Select credit card as destination. No payment bill detection banner appears.
+  - **Fix:** Port the Phase 5 auto-detection logic from `transaction-form.tsx` to `transfer-form.tsx`, including the API call to detect linked payment bills and the banner UI.
+
+- **What-If Calculator API Error** - The What-If Scenario Calculator UI on the Debts page opens and displays correctly (quick scenarios, custom scenarios, lump sum options), but clicking any option results in a 400 Bad Request error from the API.
+  - **Repro:** Go to /dashboard/debts > Click "What-If Scenario Calculator" section > UI expands but toast shows "Failed to calculate scenarios"
+  - **Location:** API endpoint called by `WhatIfCalculator` component
+  - **Note:** UI works, API returns 400 error when calculating scenarios
+
+- **Budget Templates Dropdown Opens Modal** - On the budget page when you click "Use Template," it opens up the "Set budget" modal instead of pulling up a dropdown. When there's no templates, the dropdown should show an entry to create a template
+  - **Repro:** Go to /dashboard/budgets > Click "Use Template ▼" > Modal opens instead of dropdown
 ---
 
 ## Active Bugs
@@ -31,17 +44,19 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 0 |
+| Active Bugs | 4 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 722 (146 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 724 (148 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (146 total)
+## Fixed Bugs (148 total)
 
+148. ✅ **Phase 10 NotificationsTab Not Rendered** [FIXED 2025-12-10] - Added Notifications tab to Household settings that renders the comprehensive NotificationsTab component with all Phase 10 features (High Utilization Alerts with threshold selector, Credit Limit Change notifications, Income Late Alerts). Removed duplicate condensed notifications from HouseholdPersonalTab.
+147. ✅ **Toast Notifications Not Rendering** [FIXED 2025-12-10] - Added Sonner `<Toaster />` component to `app/layout.tsx`. Toast notifications (success, error, etc.) throughout the entire application were previously invisible because the Toaster container was missing.
 146. ✅ **Credit Card Payment Auto-Detection UI** [FIXED 2025-12-09] - Added auto-detection banner when creating transfers to credit card accounts with linked payment bills. Shows bill name, due date, expected amount, and status (overdue/partial) using theme variables.
 145. ✅ **Next 7 Days Bill Count Off-By-One** [FIXED 2025-12-08] - Fixed inconsistent date comparison in `/api/bills/next-due`. Changed from string comparison to `differenceInDays` arithmetic to match `daysUntilDue` calculation, ensuring bills exactly 7 days away are included in "Next 7 days" count.
 144. ✅ **Dashboard Cards 500 Error on Empty Data** [FIXED 2025-12-08] - Fixed API error handling in `/api/debts/countdown` and `/api/budgets/summary` to properly catch household membership errors (403) instead of falling through to 500. Updated components to handle error responses gracefully without logging expected errors.
