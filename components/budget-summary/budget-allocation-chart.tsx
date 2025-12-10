@@ -34,7 +34,7 @@ interface TooltipPayload {
   payload: { name: string; value: number; color: string };
 }
 
-function AllocationTooltip({ active, payload, total }: { active?: boolean; payload?: TooltipPayload[]; total: number }) {
+function AllocationTooltip({ active, payload, total }: { active?: boolean; payload?: readonly TooltipPayload[]; total: number }) {
   if (active && payload && payload.length) {
     const item = payload[0].payload;
     const percentage = total > 0 
@@ -131,7 +131,7 @@ export function BudgetAllocationChart({
 
   // Memoize tooltip component with total
   const tooltipContent = useMemo(() => 
-    function AllocationTooltipWrapper(props: { active?: boolean; payload?: TooltipPayload[] }) {
+    function AllocationTooltipWrapper(props: { active?: boolean; payload?: readonly TooltipPayload[] }) {
       return <AllocationTooltip {...props} total={total} />;
     }, [total]);
 

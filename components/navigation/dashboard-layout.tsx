@@ -24,7 +24,10 @@ function DashboardLayoutContent({ children }: DashboardLayoutProps) {
         <MobileNav />
 
         {/* Main Content */}
-        <main className="flex-1 w-full max-w-full overflow-y-auto overflow-x-hidden">
+        <main 
+          className="flex-1 w-full max-w-full overflow-y-auto overflow-x-hidden"
+          tabIndex={0}
+        >
           {children}
         </main>
       </div>

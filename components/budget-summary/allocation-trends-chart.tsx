@@ -49,7 +49,7 @@ function TrendsTooltip({
   chartData 
 }: { 
   active?: boolean; 
-  payload?: TrendsTooltipPayloadItem[]; 
+  payload?: readonly TrendsTooltipPayloadItem[]; 
   label?: string | number;
   chartData: ChartDataPoint[];
 }) {
@@ -140,7 +140,7 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
 
   // Memoize tooltip with chartData
   const tooltipContent = useMemo(() => 
-    function TrendsTooltipWrapper(props: { active?: boolean; payload?: TrendsTooltipPayloadItem[]; label?: string | number }) {
+    function TrendsTooltipWrapper(props: { active?: boolean; payload?: readonly TrendsTooltipPayloadItem[]; label?: string | number }) {
       return <TrendsTooltip {...props} chartData={chartData} />;
     }, [chartData]);
 
