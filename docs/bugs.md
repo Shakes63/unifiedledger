@@ -4,8 +4,8 @@
 
 ## New Bugs
 
-- **Budget Templates Dropdown Opens Modal** - On the budget page when you click "Use Template," it opens up the "Set budget" modal instead of pulling up a dropdown. When there's no templates, the dropdown should show an entry to create a template
-  - **Repro:** Go to /dashboard/budgets > Click "Use Template ▼" > Modal opens instead of dropdown
+(None)
+
 ---
 
 ## Active Bugs
@@ -31,17 +31,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 1 |
+| Active Bugs | 0 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 727 (151 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 728 (152 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (151 total)
+## Fixed Bugs (152 total)
 
+152. ✅ **Budget Templates Dropdown Opens Modal** [FIXED 2025-12-11] - Created `BudgetTemplateSelector` component with dropdown menu showing 3 predefined templates (50/30/20, Zero-Based, 60% Solution). Replaced non-functional buttons in budget page and modal with the new component. Template selection prompts for monthly income and applies calculated budget allocations.
 151. ✅ **What-If Calculator API Error** [FIXED 2025-12-10] - Added missing `name` field to scenarios payload in `what-if-calculator.tsx`. The API requires scenario names but the component was not including them in the POST request.
 150. ✅ **Transfer Form Missing Credit Card Detection** [FIXED 2025-12-10] - Ported Phase 5 auto-detection logic from `transaction-form.tsx` to `transfer-form.tsx`. Added useEffect hook to detect payment bills when selecting destination credit card accounts, and banner UI showing bill status (overdue/partial), due date, and expected amount.
 149. ✅ **Dashboard Bill Due Date Off-By-One** [FIXED 2025-12-10] - Replaced `new Date(dateString)` with `parseISO` from date-fns in EnhancedBillsWidget and NextPaymentDueWidget. Date-only strings were parsed as UTC midnight and shifted backward in local timezones.

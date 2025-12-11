@@ -20,6 +20,7 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { Info, Star, ExternalLink, CreditCard } from 'lucide-react';
 import Link from 'next/link';
+import { BudgetTemplateSelector } from './budget-template-selector';
 
 // Types for unified debt budget
 interface UnifiedDebtItem {
@@ -65,11 +66,19 @@ interface Category {
   incomeFrequency?: 'weekly' | 'biweekly' | 'monthly' | 'variable';
 }
 
+interface SuggestedBudget {
+  categoryId: string;
+  categoryName: string;
+  monthlyBudget: number;
+  allocation: string;
+}
+
 interface BudgetManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
   month: string;
+  initialBudgets?: SuggestedBudget[];
 }
 
 export function BudgetManagerModal({
@@ -77,6 +86,7 @@ export function BudgetManagerModal({
   onClose,
   onSave,
   month,
+  initialBudgets,
 }: BudgetManagerModalProps) {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, postWithHousehold, putWithHousehold } = useHouseholdFetch();
@@ -164,6 +174,17 @@ export function BudgetManagerModal({
       setLoading(false);
     }
   }, [isOpen, selectedHouseholdId, fetchCategories, fetchDebtBudgetData]);
+
+  // Apply initial budgets when provided (from page-level template selector)
+  useEffect(() => {
+    if (isOpen && initialBudgets && initialBudgets.length > 0 && categories.length > 0) {
+      const newBudgetValues: Record<string, string> = { ...budgetValues };
+      initialBudgets.forEach(budget => {
+        newBudgetValues[budget.categoryId] = budget.monthlyBudget.toFixed(2);
+      });
+      setBudgetValues(newBudgetValues);
+    }
+  }, [isOpen, initialBudgets, categories.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleValueChange = (categoryId: string, value: string) => {
     setBudgetValues(prev => ({ ...prev, [categoryId]: value }));
@@ -275,6 +296,22 @@ export function BudgetManagerModal({
       console.error('Error copying budgets:', error);
       toast.error('Failed to copy budgets');
     }
+  };
+
+  const handleApplyTemplate = (
+    suggestedBudgets: Array<{
+      categoryId: string;
+      categoryName: string;
+      monthlyBudget: number;
+      allocation: string;
+    }>
+  ) => {
+    // Update budget values with template suggestions
+    const newBudgetValues: Record<string, string> = { ...budgetValues };
+    suggestedBudgets.forEach(budget => {
+      newBudgetValues[budget.categoryId] = budget.monthlyBudget.toFixed(2);
+    });
+    setBudgetValues(newBudgetValues);
   };
 
   // Calculate totals
@@ -421,9 +458,10 @@ export function BudgetManagerModal({
               >
                 Copy Last Month
               </button>
-              <button className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors text-sm">
-                Use Template ▼
-              </button>
+              <BudgetTemplateSelector
+                onApplyTemplate={handleApplyTemplate}
+                variant="modal"
+              />
             </div>
 
             {/* Income Categories */}

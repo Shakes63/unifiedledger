@@ -13,6 +13,7 @@ import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { BudgetTemplateSelector } from '@/components/budgets/budget-template-selector';
 
 interface BudgetOverview {
   month: string;
@@ -66,6 +67,9 @@ export default function BudgetsPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [isManagerModalOpen, setIsManagerModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [templateBudgets, setTemplateBudgets] = useState<
+    Array<{ categoryId: string; categoryName: string; monthlyBudget: number; allocation: string }>
+  >([]);
 
   // Initialize selected month to current month
   useEffect(() => {
@@ -166,6 +170,19 @@ export default function BudgetsPage() {
       console.error('Error updating budget:', err);
       toast.error('Failed to update budget');
     }
+  };
+
+  // Handle template applied from page dropdown
+  const handlePageTemplateApply = (
+    suggestedBudgets: Array<{
+      categoryId: string;
+      categoryName: string;
+      monthlyBudget: number;
+      allocation: string;
+    }>
+  ) => {
+    setTemplateBudgets(suggestedBudgets);
+    setIsManagerModalOpen(true);
   };
 
   // Handle copy last month
@@ -304,12 +321,10 @@ export default function BudgetsPage() {
           >
             Copy Last Month
           </button>
-          <button
-            onClick={() => setIsManagerModalOpen(true)}
-            className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors"
-          >
-            Use Template ▼
-          </button>
+          <BudgetTemplateSelector
+            onApplyTemplate={handlePageTemplateApply}
+            variant="page"
+          />
           <button
             onClick={() => setIsExportModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors"
@@ -440,9 +455,13 @@ export default function BudgetsPage() {
         {/* Budget Manager Modal */}
         <BudgetManagerModal
           isOpen={isManagerModalOpen}
-          onClose={() => setIsManagerModalOpen(false)}
+          onClose={() => {
+            setIsManagerModalOpen(false);
+            setTemplateBudgets([]); // Clear template budgets when modal closes
+          }}
           onSave={refreshBudgetData}
           month={selectedMonth}
+          initialBudgets={templateBudgets}
         />
 
         {/* Budget Export Modal */}
