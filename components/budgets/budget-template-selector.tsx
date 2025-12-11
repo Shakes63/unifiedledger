@@ -104,7 +104,7 @@ export function BudgetTemplateSelector({
 
     try {
       setApplying(true);
-      const response = await postWithHousehold('/api/budgets/templates/apply', {
+      const response = await postWithHousehold('/api/budgets/templates', {
         templateId: selectedTemplate.id,
         monthlyIncome: income,
       });
