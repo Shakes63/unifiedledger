@@ -161,6 +161,10 @@ export const budgetCategories = sqliteTable(
     rolloverEnabled: integer('rollover_enabled', { mode: 'boolean' }).default(false),
     rolloverBalance: real('rollover_balance').default(0),
     rolloverLimit: real('rollover_limit'), // null = unlimited
+    // Budget groups / subcategories
+    parentId: text('parent_id'), // null = top-level category, id = child of a budget group
+    isBudgetGroup: integer('is_budget_group', { mode: 'boolean' }).default(false), // true = parent group (Needs, Wants, Savings)
+    targetAllocation: real('target_allocation'), // percentage allocation for budget groups (e.g., 50 for 50%)
     createdAt: text('created_at').default(new Date().toISOString()),
   },
   (table) => ({
@@ -172,6 +176,8 @@ export const budgetCategories = sqliteTable(
     userActiveIdx: index('idx_budget_categories_user_active').on(table.userId, table.isActive),
     systemCategoryIdx: index('idx_budget_categories_system').on(table.isSystemCategory),
     rolloverIdx: index('idx_budget_categories_rollover').on(table.rolloverEnabled),
+    parentIdIdx: index('idx_budget_categories_parent').on(table.parentId),
+    budgetGroupIdx: index('idx_budget_categories_budget_group').on(table.isBudgetGroup),
   })
 );
 
@@ -1648,11 +1654,20 @@ export const accountBalanceHistoryRelations = relations(accountBalanceHistory, (
   }),
 }));
 
-export const budgetCategoriesRelations = relations(budgetCategories, ({ many }) => ({
+export const budgetCategoriesRelations = relations(budgetCategories, ({ one, many }) => ({
   transactions: many(transactions),
   transactionSplits: many(transactionSplits),
   merchants: many(merchants),
   bills: many(bills),
+  // Self-referential relations for budget groups / subcategories
+  parent: one(budgetCategories, {
+    fields: [budgetCategories.parentId],
+    references: [budgetCategories.id],
+    relationName: 'parentChild',
+  }),
+  children: many(budgetCategories, {
+    relationName: 'parentChild',
+  }),
 }));
 
 export const merchantsRelations = relations(merchants, ({ one }) => ({

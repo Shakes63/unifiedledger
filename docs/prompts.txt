@@ -49,9 +49,7 @@ Review docs/bugs.md and select the next incomplete task. Create a detailed imple
 4. Use proper TypeScript typing everywhere—never use any as a type
 5. Save the finalized plan to the docs/ folder
 Once the plan is complete and reviewed, implement the first task from the plan.
-
 then
-
 Update bugs.md and .cursor/rules files with the following rules:
 1. Maintain a "New Bugs" section at the top of bugs.md for easy addition of new issues
 2. For incomplete tasks: mark status, note what remains unfinished, and reference the plan file location

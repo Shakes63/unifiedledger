@@ -35,6 +35,8 @@
 
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { toast } from 'sonner';
+import { toastErrorWithHelp } from '@/lib/help/toast-with-help';
+import { HELP_SECTIONS } from '@/lib/help/help-sections';
 
 /**
  * Connection quality levels
@@ -241,9 +243,9 @@ export function NetworkStatusProvider({
 
     // Show notification
     if (showNotifications && previousOnlineStatusRef.current) {
-      toast.error('You are offline', {
+      toastErrorWithHelp('You are offline', {
         description: 'Some features may not be available',
-        duration: 5000,
+        helpSection: HELP_SECTIONS.OFFLINE_MODE,
       });
       previousOnlineStatusRef.current = false;
     }

@@ -1,44 +1,19 @@
 import type { NextConfig } from "next";
-// import withPWA from "next-pwa";
+import withSerwistInit from "@serwist/next";
 
-// TODO: Re-enable PWA once next-pwa supports Next.js 16 Turbopack
-// const withPWAConfig = withPWA({
-//   dest: "public",
-//   register: true,
-//   skipWaiting: true,
-//   disable: process.env.NODE_ENV === "development",
-//   // Use custom service worker with advanced caching strategies
-//   publicExcludes: ["!sw.js"],
-//   buildExcludes: ["!sw.js"],
-//   // Configure runtime caching for better performance
-//   runtimeCaching: [
-//     {
-//       urlPattern: /^https?:\/\/fonts\.(googleapis|gstatic)\.com/,
-//       handler: "CacheFirst",
-//       options: {
-//         cacheName: "fonts",
-//         expiration: {
-//           maxEntries: 20,
-//           maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-//         },
-//       },
-//     },
-//     {
-//       urlPattern: /^\/api\//,
-//       handler: "StaleWhileRevalidate",
-//       options: {
-//         cacheName: "api",
-//         expiration: {
-//           maxEntries: 50,
-//           maxAgeSeconds: 60 * 5, // 5 minutes
-//         },
-//       },
-//     },
-//   ],
-// });
+const withSerwist = withSerwistInit({
+  swSrc: "app/sw.ts",
+  swDest: "public/sw.js",
+  // Disable in development for faster builds
+  disable: process.env.NODE_ENV === "development",
+});
 
 const nextConfig: NextConfig = {
   /* config options here */
+
+  // Serwist uses webpack; this tells Next.js 16 we're aware of the webpack config
+  // Serwist Turbopack support is tracked at: https://github.com/serwist/serwist/issues/54
+  turbopack: {},
 
   // Enable standalone output for Docker deployment
   output: 'standalone',
@@ -86,5 +61,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// export default withPWAConfig(nextConfig);
-export default nextConfig;
+export default withSerwist(nextConfig);

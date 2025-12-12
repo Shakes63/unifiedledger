@@ -21,6 +21,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   Tags,
+  HelpCircle,
 } from 'lucide-react';
 import Image from 'next/image';
 import { HouseholdSelector } from '@/components/household/household-selector';
@@ -90,6 +91,7 @@ const navSections: NavSection[] = [
       { label: 'Merchants', href: '/dashboard/merchants', icon: <Store className="w-4 h-4" /> },
       { label: 'Rules', href: '/dashboard/rules', icon: <Workflow className="w-4 h-4" /> },
       { label: 'Settings', href: '/dashboard/settings', icon: <Settings className="w-4 h-4" /> },
+      { label: 'Help', href: '/dashboard/help', icon: <HelpCircle className="w-4 h-4" /> },
     ],
   },
 ];

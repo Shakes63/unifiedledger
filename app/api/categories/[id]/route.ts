@@ -29,7 +29,7 @@ export async function PUT(
       );
     }
 
-    const { name, monthlyBudget, dueDate, isTaxDeductible, isBusinessCategory, incomeFrequency } = body;
+    const { name, monthlyBudget, dueDate, isTaxDeductible, isBusinessCategory, incomeFrequency, parentId, isBudgetGroup, targetAllocation } = body;
 
     // Verify category belongs to user AND household
     const category = await db
@@ -84,6 +84,29 @@ export async function PUT(
       }
     }
 
+    // Validate parentId if provided
+    if (parentId !== undefined && parentId !== null && parentId !== '') {
+      const parent = await db
+        .select()
+        .from(budgetCategories)
+        .where(
+          and(
+            eq(budgetCategories.id, parentId),
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId),
+            eq(budgetCategories.isBudgetGroup, true)
+          )
+        )
+        .limit(1);
+
+      if (!parent.length) {
+        return Response.json(
+          { error: 'Parent category not found or is not a parent category' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Update the category
     await db.update(budgetCategories)
       .set({
@@ -93,6 +116,9 @@ export async function PUT(
         isTaxDeductible: isTaxDeductible !== undefined ? isTaxDeductible : category[0].isTaxDeductible,
         isBusinessCategory: isBusinessCategory !== undefined ? isBusinessCategory : category[0].isBusinessCategory,
         incomeFrequency: incomeFrequency !== undefined ? incomeFrequency : category[0].incomeFrequency,
+        parentId: parentId !== undefined ? (parentId === '' ? null : parentId) : category[0].parentId,
+        isBudgetGroup: isBudgetGroup !== undefined ? isBudgetGroup : category[0].isBudgetGroup,
+        targetAllocation: targetAllocation !== undefined ? targetAllocation : category[0].targetAllocation,
       })
       .where(eq(budgetCategories.id, id));
 
@@ -156,24 +182,38 @@ export async function DELETE(
       );
     }
 
-    // CRITICAL: Check if any transactions in household use this category
-    const usageCount = await db
-      .select({ count: count() })
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.categoryId, id),
-          eq(transactions.householdId, householdId)
-        )
-      );
+    // Check if this is a parent category (budget group)
+    if (category[0].isBudgetGroup) {
+      // Orphan all children (set parentId to null) before deleting
+      await db.update(budgetCategories)
+        .set({ parentId: null })
+        .where(
+          and(
+            eq(budgetCategories.parentId, id),
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId)
+          )
+        );
+    } else {
+      // CRITICAL: Check if any transactions in household use this category
+      const usageCount = await db
+        .select({ count: count() })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.categoryId, id),
+            eq(transactions.householdId, householdId)
+          )
+        );
 
-    if (usageCount[0].count > 0) {
-      return Response.json(
-        {
-          error: `Cannot delete category. It is used by ${usageCount[0].count} transaction(s) in this household.`,
-        },
-        { status: 400 }
-      );
+      if (usageCount[0].count > 0) {
+        return Response.json(
+          {
+            error: `Cannot delete category. It is used by ${usageCount[0].count} transaction(s) in this household.`,
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Delete the category

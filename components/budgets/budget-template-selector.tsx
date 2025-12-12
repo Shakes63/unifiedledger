@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/dialog';
 import { ChevronDown, FileText, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { toastWarningWithHelp } from '@/lib/help/toast-with-help';
+import { HELP_SECTIONS } from '@/lib/help/help-sections';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import {
   Tooltip,
@@ -122,7 +124,10 @@ export function BudgetTemplateSelector({
         setIsIncomeDialogOpen(false);
         setSelectedTemplate(null);
       } else {
-        toast.warning('No budget suggestions generated. Make sure you have categories set up.');
+        toastWarningWithHelp('No budget suggestions generated', {
+          description: 'Categories with budget amounts are required for templates.',
+          helpSection: HELP_SECTIONS.CATEGORIES,
+        });
       }
     } catch (error) {
       console.error('Error applying template:', error);

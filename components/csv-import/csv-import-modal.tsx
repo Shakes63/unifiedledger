@@ -25,6 +25,8 @@ import { ColumnMapper } from './column-mapper';
 import { ImportPreview, type StagingRecord } from './import-preview';
 import { autoDetectMappings, type ColumnMapping } from '@/lib/csv-import';
 import { toast } from 'sonner';
+import { toastErrorWithHelp } from '@/lib/help/toast-with-help';
+import { HELP_SECTIONS } from '@/lib/help/help-sections';
 import { 
   detectCreditCard, 
   detectIssuerFromFilename,
@@ -159,7 +161,10 @@ export function CSVImportModal({
       const dataLines = lines.slice(skipRows);
 
       if (dataLines.length === 0) {
-        toast.error('No data found in CSV file');
+        toastErrorWithHelp('No data found in CSV file', {
+          description: 'Make sure your CSV has a header row and data rows.',
+          helpSection: HELP_SECTIONS.IMPORT_EXPORT,
+        });
         return;
       }
 

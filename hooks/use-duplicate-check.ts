@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { toastWarningWithHelp } from '@/lib/help/toast-with-help';
+import { HELP_SECTIONS } from '@/lib/help/help-sections';
 
 interface DuplicateMatch {
   id: string;
@@ -65,7 +67,10 @@ export function useDuplicateCheck() {
 
         if (result.hasDuplicates && !options?.silent) {
           if (result.riskLevel === 'high') {
-            toast.warning(`⚠️ ${result.duplicateCount} very similar transaction(s) found`);
+            toastWarningWithHelp(`${result.duplicateCount} very similar transaction(s) found`, {
+              description: 'This may be a duplicate entry. Review before saving.',
+              helpSection: HELP_SECTIONS.TRANSACTIONS,
+            });
           }
         }
 

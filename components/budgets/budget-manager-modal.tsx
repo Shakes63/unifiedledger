@@ -18,7 +18,7 @@ import Decimal from 'decimal.js';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
-import { Info, Star, ExternalLink, CreditCard } from 'lucide-react';
+import { Info, Star, ExternalLink, CreditCard, FolderPlus, Check, X, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { BudgetTemplateSelector } from './budget-template-selector';
 
@@ -64,6 +64,23 @@ interface Category {
   monthlyBudget: number;
   sortOrder: number;
   incomeFrequency?: 'weekly' | 'biweekly' | 'monthly' | 'variable';
+  parentId?: string | null;
+  isBudgetGroup?: boolean;
+}
+
+interface BudgetGroup {
+  id: string;
+  name: string;
+  type: string;
+  targetAllocation: number | null;
+  children: Array<{
+    id: string;
+    name: string;
+    type: string;
+    monthlyBudget: number;
+  }>;
+  totalBudget: number;
+  totalSpent: number;
 }
 
 interface SuggestedBudget {
@@ -91,23 +108,31 @@ export function BudgetManagerModal({
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, postWithHousehold, putWithHousehold } = useHouseholdFetch();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [budgetGroups, setBudgetGroups] = useState<BudgetGroup[]>([]);
   const [budgetValues, setBudgetValues] = useState<Record<string, string>>({});
   const [frequencies, setFrequencies] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [debtBudgetData, setDebtBudgetData] = useState<UnifiedDebtBudgetData | null>(null);
   const [manualDebtBudgets, setManualDebtBudgets] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState<'budgets' | 'groups'>('budgets');
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupType, setNewGroupType] = useState<'expense' | 'savings'>('expense');
+  const [creatingGroup, setCreatingGroup] = useState(false);
 
   const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetchWithHousehold('/api/budgets');
+      const [budgetsResponse, groupsResponse] = await Promise.all([
+        fetchWithHousehold('/api/budgets'),
+        fetchWithHousehold(`/api/budget-groups?month=${month}`),
+      ]);
 
-      if (!response.ok) {
+      if (!budgetsResponse.ok) {
         throw new Error('Failed to fetch categories');
       }
 
-      const data = await response.json();
+      const data = await budgetsResponse.json();
       setCategories(data.budgets);
 
       // Initialize budget values and frequencies
@@ -121,6 +146,12 @@ export function BudgetManagerModal({
       });
       setBudgetValues(initialValues);
       setFrequencies(initialFrequencies);
+
+      // Fetch budget groups
+      if (groupsResponse.ok) {
+        const groupsData = await groupsResponse.json();
+        setBudgetGroups(groupsData.groups || []);
+      }
     } catch (error) {
       console.error('Error fetching categories:', error);
       if (error instanceof Error && error.message === 'No household selected') {
@@ -131,7 +162,7 @@ export function BudgetManagerModal({
     } finally {
       setLoading(false);
     }
-  }, [fetchWithHousehold]);
+  }, [fetchWithHousehold, month]);
 
   const fetchDebtBudgetData = useCallback(async () => {
     try {
@@ -314,6 +345,142 @@ export function BudgetManagerModal({
     setBudgetValues(newBudgetValues);
   };
 
+  // Budget group management functions
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim()) {
+      toast.error('Group name is required');
+      return;
+    }
+
+    try {
+      setCreatingGroup(true);
+      const response = await postWithHousehold('/api/budget-groups', {
+        name: newGroupName.trim(),
+        type: newGroupType,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to create group');
+      }
+
+      const newGroup = await response.json();
+      setBudgetGroups(prev => [...prev, { ...newGroup, children: [], totalBudget: 0, totalSpent: 0 }]);
+      setNewGroupName('');
+      toast.success(`Budget group "${newGroup.name}" created`);
+    } catch (error) {
+      console.error('Error creating group:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create group');
+    } finally {
+      setCreatingGroup(false);
+    }
+  };
+
+  const handleAssignCategory = async (categoryId: string, groupId: string) => {
+    try {
+      const response = await putWithHousehold('/api/budget-groups', {
+        groupId,
+        action: 'assign',
+        categoryIds: [categoryId],
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to assign category');
+      }
+
+      // Update local state
+      setCategories(prev =>
+        prev.map(cat =>
+          cat.id === categoryId ? { ...cat, parentId: groupId } : cat
+        )
+      );
+
+      // Update groups state
+      const category = categories.find(c => c.id === categoryId);
+      if (category) {
+        setBudgetGroups(prev =>
+          prev.map(group =>
+            group.id === groupId
+              ? {
+                  ...group,
+                  children: [...group.children, { id: categoryId, name: category.name, type: category.type, monthlyBudget: category.monthlyBudget }],
+                }
+              : group
+          )
+        );
+      }
+
+      toast.success('Category assigned to group');
+    } catch (error) {
+      console.error('Error assigning category:', error);
+      toast.error('Failed to assign category');
+    }
+  };
+
+  const handleUnassignCategory = async (categoryId: string, groupId: string) => {
+    try {
+      const response = await putWithHousehold('/api/budget-groups', {
+        groupId,
+        action: 'unassign',
+        categoryIds: [categoryId],
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to unassign category');
+      }
+
+      // Update local state
+      setCategories(prev =>
+        prev.map(cat =>
+          cat.id === categoryId ? { ...cat, parentId: null } : cat
+        )
+      );
+
+      // Update groups state
+      setBudgetGroups(prev =>
+        prev.map(group =>
+          group.id === groupId
+            ? {
+                ...group,
+                children: group.children.filter(c => c.id !== categoryId),
+              }
+            : group
+        )
+      );
+
+      toast.success('Category removed from group');
+    } catch (error) {
+      console.error('Error unassigning category:', error);
+      toast.error('Failed to unassign category');
+    }
+  };
+
+  const handleDeleteGroup = async (groupId: string) => {
+    try {
+      const response = await fetchWithHousehold('/api/budget-groups', {
+        method: 'DELETE',
+        body: JSON.stringify({ groupId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete group');
+      }
+
+      // Update local state - unassign all children
+      setCategories(prev =>
+        prev.map(cat =>
+          cat.parentId === groupId ? { ...cat, parentId: null } : cat
+        )
+      );
+      setBudgetGroups(prev => prev.filter(g => g.id !== groupId));
+
+      toast.success('Budget group deleted');
+    } catch (error) {
+      console.error('Error deleting group:', error);
+      toast.error('Failed to delete group');
+    }
+  };
+
   // Calculate totals
   const calculateTotals = () => {
     const incomeTotal = categories
@@ -431,6 +598,35 @@ export function BudgetManagerModal({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Tab Navigation */}
+        <div className="flex gap-1 p-1 bg-elevated rounded-lg mb-4">
+          <button
+            onClick={() => setActiveTab('budgets')}
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'budgets'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Set Budgets
+          </button>
+          <button
+            onClick={() => setActiveTab('groups')}
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              activeTab === 'groups'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Manage Groups
+            {budgetGroups.length > 0 && (
+              <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded">
+                {budgetGroups.length}
+              </span>
+            )}
+          </button>
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-muted-foreground">Loading categories...</div>
@@ -447,6 +643,186 @@ export function BudgetManagerModal({
             >
               Manage Categories
             </Link>
+          </div>
+        ) : activeTab === 'groups' ? (
+          /* Groups Management Tab */
+          <div className="space-y-6">
+            {/* Create New Group */}
+            <div className="bg-elevated rounded-lg p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <FolderPlus className="w-4 h-4" />
+                Create New Budget Group
+              </h3>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Group name (e.g., Needs, Wants)"
+                  value={newGroupName}
+                  onChange={e => setNewGroupName(e.target.value)}
+                  className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                />
+                <select
+                  value={newGroupType}
+                  onChange={e => setNewGroupType(e.target.value as 'expense' | 'savings')}
+                  className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                >
+                  <option value="expense">Expense</option>
+                  <option value="savings">Savings</option>
+                </select>
+                <button
+                  onClick={handleCreateGroup}
+                  disabled={creatingGroup || !newGroupName.trim()}
+                  className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Budget groups let you organize categories like the 50/30/20 rule (Needs, Wants, Savings).
+              </p>
+            </div>
+
+            {/* Existing Groups */}
+            {budgetGroups.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-foreground">Your Budget Groups</h3>
+                {budgetGroups.map(group => {
+                  const groupCategories = categories.filter(c => c.parentId === group.id);
+                  return (
+                    <div key={group.id} className="bg-card border border-border rounded-lg overflow-hidden">
+                      <div className="px-4 py-3 bg-elevated flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{group.name}</span>
+                            {group.targetAllocation && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                                {group.targetAllocation}% target
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {groupCategories.length} {groupCategories.length === 1 ? 'category' : 'categories'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteGroup(group.id)}
+                          className="p-1.5 text-muted-foreground hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded transition-colors"
+                          title="Delete group"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="p-4 space-y-2">
+                        {/* Assigned categories */}
+                        {groupCategories.length > 0 ? (
+                          <div className="space-y-1">
+                            {groupCategories.map(cat => (
+                              <div key={cat.id} className="flex items-center justify-between py-1.5 px-2 bg-elevated rounded">
+                                <span className="text-sm text-foreground">{cat.name}</span>
+                                <button
+                                  onClick={() => handleUnassignCategory(cat.id, group.id)}
+                                  className="p-1 text-muted-foreground hover:text-[var(--color-error)] transition-colors"
+                                  title="Remove from group"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-2">
+                            No categories assigned yet
+                          </p>
+                        )}
+
+                        {/* Add category dropdown */}
+                        {(() => {
+                          const unassignedCategories = categories.filter(
+                            c => !c.parentId && !c.isBudgetGroup && c.type === group.type
+                          );
+                          if (unassignedCategories.length === 0) return null;
+                          return (
+                            <select
+                              onChange={e => {
+                                if (e.target.value) {
+                                  handleAssignCategory(e.target.value, group.id);
+                                  e.target.value = '';
+                                }
+                              }}
+                              className="w-full mt-2 bg-input border border-border rounded-lg px-3 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                              defaultValue=""
+                            >
+                              <option value="" disabled>
+                                + Add a category to this group
+                              </option>
+                              {unassignedCategories.map(cat => (
+                                <option key={cat.id} value={cat.id}>
+                                  {cat.name}
+                                </option>
+                              ))}
+                            </select>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Unassigned Categories */}
+            {(() => {
+              const unassignedCategories = categories.filter(c => !c.parentId && !c.isBudgetGroup);
+              if (unassignedCategories.length === 0 || budgetGroups.length === 0) return null;
+              return (
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold text-foreground">Unassigned Categories</h3>
+                  <div className="bg-elevated rounded-lg p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {unassignedCategories.map(cat => (
+                        <div key={cat.id} className="flex items-center justify-between py-2 px-3 bg-card border border-border rounded-lg">
+                          <div>
+                            <span className="text-sm text-foreground">{cat.name}</span>
+                            <span className="ml-2 text-xs text-muted-foreground capitalize">({cat.type})</span>
+                          </div>
+                          {budgetGroups.filter(g => g.type === cat.type).length > 0 && (
+                            <select
+                              onChange={e => {
+                                if (e.target.value) {
+                                  handleAssignCategory(cat.id, e.target.value);
+                                }
+                              }}
+                              className="bg-input border border-border rounded px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                              defaultValue=""
+                            >
+                              <option value="">Assign to...</option>
+                              {budgetGroups
+                                .filter(g => g.type === cat.type)
+                                .map(group => (
+                                  <option key={group.id} value={group.id}>
+                                    {group.name}
+                                  </option>
+                                ))}
+                            </select>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors"
+              >
+                Done
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-6">

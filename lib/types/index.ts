@@ -465,6 +465,9 @@ export interface CategoryFormData {
   isBusinessCategory: boolean;
   isActive: boolean;
   incomeFrequency: IncomeFrequency;
+  parentId?: string | null;
+  isBudgetGroup?: boolean;
+  targetAllocation?: number | null;
 }
 
 // ============================================================================

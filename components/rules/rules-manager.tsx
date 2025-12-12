@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/card';
 import { AlertCircle, ArrowUp, ArrowDown, Edit2, Trash2, Eye, EyeOff, Plus, Zap, Tag, Store, FileText, ArrowRightLeft, Scissors, Banknote, CheckCircle2, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { toastInfoWithHelp } from '@/lib/help/toast-with-help';
+import { HELP_SECTIONS } from '@/lib/help/help-sections';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import type { RuleAction } from '@/lib/rules/types';
@@ -385,7 +387,10 @@ export function RulesManager({
         // Refresh rules to update match counts
         fetchRules();
       } else {
-        toast.info('No matching uncategorized transactions found');
+        toastInfoWithHelp('No matching uncategorized transactions found', {
+          description: 'Rules only apply to transactions without a category.',
+          helpSection: HELP_SECTIONS.RULES,
+        });
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to apply rule');

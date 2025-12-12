@@ -8,6 +8,7 @@ import { RequestQueueProvider } from "@/components/providers/request-queue-provi
 import { OfflineBanner } from "@/components/ui/offline-banner";
 import { TestModeInitializer } from "@/components/dev/test-mode-initializer";
 import { DEFAULT_THEME_ID } from "@/lib/themes/theme-config";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const inter = Inter({
@@ -80,6 +81,14 @@ export default function RootLayout({
                     <div className="w-full max-w-full overflow-x-hidden">
                       {children}
                     </div>
+                    <Toaster 
+                      position="bottom-right"
+                      richColors
+                      closeButton
+                      toastOptions={{
+                        className: "font-sans",
+                      }}
+                    />
                   </TestModeInitializer>
                 </RequestQueueProvider>
               </NetworkStatusProvider>

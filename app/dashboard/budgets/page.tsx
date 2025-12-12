@@ -3,17 +3,43 @@
 import React, { useState, useEffect } from 'react';
 import { BudgetSummaryCard } from '@/components/budgets/budget-summary-card';
 import { CategoryBudgetProgress } from '@/components/budgets/category-budget-progress';
+import { BudgetGroupSection } from '@/components/budgets/budget-group-section';
 import { BudgetManagerModal } from '@/components/budgets/budget-manager-modal';
 import { BudgetExportModal } from '@/components/budgets/budget-export-modal';
 import { VariableBillTracker } from '@/components/budgets/variable-bill-tracker';
 import { BudgetAnalyticsSection } from '@/components/budgets/budget-analytics-section';
 import { UnifiedDebtBudgetSection } from '@/components/budgets/unified-debt-budget-section';
 import { RolloverSummary } from '@/components/budgets/rollover-summary';
-import { Download } from 'lucide-react';
+import { Download, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { BudgetTemplateSelector } from '@/components/budgets/budget-template-selector';
+
+interface CategoryData {
+  id: string;
+  name: string;
+  type: string;
+  monthlyBudget: number;
+  actualSpent: number;
+  remaining: number;
+  percentage: number;
+  status: 'on_track' | 'warning' | 'exceeded' | 'unbudgeted';
+  dailyAverage: number;
+  budgetedDailyAverage: number;
+  projectedMonthEnd: number;
+  isOverBudget: boolean;
+  incomeFrequency?: 'weekly' | 'biweekly' | 'monthly' | 'variable';
+  shouldShowDailyAverage: boolean;
+  // Rollover fields (Phase 17)
+  rolloverEnabled?: boolean;
+  rolloverBalance?: number;
+  rolloverLimit?: number | null;
+  effectiveBudget?: number;
+  // Budget group fields
+  parentId?: string | null;
+  isBudgetGroup?: boolean;
+}
 
 interface BudgetOverview {
   month: string;
@@ -31,25 +57,7 @@ interface BudgetOverview {
     daysRemaining: number;
     daysElapsed: number;
   };
-  categories: Array<{
-    id: string;
-    name: string;
-    type: string;
-    monthlyBudget: number;
-    actualSpent: number;
-    remaining: number;
-    percentage: number;
-    status: 'on_track' | 'warning' | 'exceeded' | 'unbudgeted';
-    dailyAverage: number;
-    budgetedDailyAverage: number;
-    projectedMonthEnd: number;
-    isOverBudget: boolean;
-    // Rollover fields (Phase 17)
-    rolloverEnabled?: boolean;
-    rolloverBalance?: number;
-    rolloverLimit?: number | null;
-    effectiveBudget?: number;
-  }>;
+  categories: CategoryData[];
   groupedCategories: {
     income: Array<any>;
     expenses: Array<any>;
@@ -58,10 +66,26 @@ interface BudgetOverview {
   };
 }
 
+interface BudgetGroup {
+  id: string;
+  name: string;
+  type: string;
+  targetAllocation: number | null;
+  children: Array<{
+    id: string;
+    name: string;
+    type: string;
+    monthlyBudget: number;
+  }>;
+  totalBudget: number;
+  totalSpent: number;
+}
+
 export default function BudgetsPage() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, postWithHousehold } = useHouseholdFetch();
   const [budgetData, setBudgetData] = useState<BudgetOverview | null>(null);
+  const [budgetGroups, setBudgetGroups] = useState<BudgetGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
@@ -93,14 +117,24 @@ export default function BudgetsPage() {
         setLoading(true);
         setError(null);
 
-        const response = await fetchWithHousehold(`/api/budgets/overview?month=${selectedMonth}`);
+        // Fetch budget overview and budget groups in parallel
+        const [overviewResponse, groupsResponse] = await Promise.all([
+          fetchWithHousehold(`/api/budgets/overview?month=${selectedMonth}`),
+          fetchWithHousehold(`/api/budget-groups?month=${selectedMonth}`),
+        ]);
 
-        if (!response.ok) {
+        if (!overviewResponse.ok) {
           throw new Error('Failed to fetch budget data');
         }
 
-        const data = await response.json();
+        const data = await overviewResponse.json();
         setBudgetData(data);
+
+        // Budget groups are optional - don't fail if they don't load
+        if (groupsResponse.ok) {
+          const groupsData = await groupsResponse.json();
+          setBudgetGroups(groupsData.groups || []);
+        }
       } catch (err) {
         console.error('Error fetching budget data:', err);
         if (err instanceof Error && err.message === 'No household selected') {
@@ -140,9 +174,18 @@ export default function BudgetsPage() {
   // Refresh budget data
   const refreshBudgetData = async () => {
     try {
-      const response = await fetchWithHousehold(`/api/budgets/overview?month=${selectedMonth}`);
-      const data = await response.json();
+      const [overviewResponse, groupsResponse] = await Promise.all([
+        fetchWithHousehold(`/api/budgets/overview?month=${selectedMonth}`),
+        fetchWithHousehold(`/api/budget-groups?month=${selectedMonth}`),
+      ]);
+      
+      const data = await overviewResponse.json();
       setBudgetData(data);
+      
+      if (groupsResponse.ok) {
+        const groupsData = await groupsResponse.json();
+        setBudgetGroups(groupsData.groups || []);
+      }
     } catch (err) {
       console.error('Error refreshing budget data:', err);
       if (err instanceof Error && err.message === 'No household selected') {
@@ -356,79 +399,149 @@ export default function BudgetsPage() {
         {/* Category Budgets */}
         {hasAnyBudgets && (
           <div className="space-y-6">
-            {/* Income */}
-            {budgetData.groupedCategories.income.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-foreground mb-3">Income</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {budgetData.groupedCategories.income.map(category => (
-                    <CategoryBudgetProgress
-                      key={category.id}
-                      category={category}
-                      daysRemaining={budgetData.summary.daysRemaining}
-                      onEdit={handleEditBudget}
-                    />
-                  ))}
+            {/* Budget Groups - Show first if any exist */}
+            {budgetGroups.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-foreground">Budget Groups</h2>
+                  <button
+                    onClick={() => setIsManagerModalOpen(true)}
+                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Settings2 className="w-4 h-4" />
+                    Manage Groups
+                  </button>
                 </div>
+                {budgetGroups.map(group => {
+                  // Find categories that belong to this group
+                  const groupCategories = budgetData.categories.filter(
+                    cat => cat.parentId === group.id
+                  );
+                  if (groupCategories.length === 0) return null;
+                  return (
+                    <BudgetGroupSection
+                      key={group.id}
+                      group={group}
+                      categories={groupCategories}
+                      monthlyIncome={budgetData.summary.totalIncomeActual}
+                      daysRemaining={budgetData.summary.daysRemaining}
+                      onEditBudget={handleEditBudget}
+                    />
+                  );
+                })}
               </div>
             )}
 
-            {/* Essential Expenses */}
-            {budgetData.groupedCategories.bills.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-foreground mb-3">
-                  Essential Expenses
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {budgetData.groupedCategories.bills.map(category => (
-                    <CategoryBudgetProgress
-                      key={category.id}
-                      category={category}
-                      daysRemaining={budgetData.summary.daysRemaining}
-                      onEdit={handleEditBudget}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Ungrouped Categories - Categories without a parent */}
+            {(() => {
+              // Get IDs of categories that are in budget groups
+              const groupedCategoryIds = new Set(
+                budgetGroups.flatMap(g => g.children.map(c => c.id))
+              );
 
-            {/* Discretionary Spending */}
-            {budgetData.groupedCategories.expenses.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-foreground mb-3">
-                  Discretionary Spending
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {budgetData.groupedCategories.expenses.map(category => (
-                    <CategoryBudgetProgress
-                      key={category.id}
-                      category={category}
-                      daysRemaining={budgetData.summary.daysRemaining}
-                      onEdit={handleEditBudget}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+              // Filter ungrouped categories
+              const ungroupedIncome = budgetData.groupedCategories.income.filter(
+                (c: CategoryData) => !groupedCategoryIds.has(c.id) && !c.parentId
+              );
+              const ungroupedBills = budgetData.groupedCategories.bills.filter(
+                (c: CategoryData) => !groupedCategoryIds.has(c.id) && !c.parentId
+              );
+              const ungroupedExpenses = budgetData.groupedCategories.expenses.filter(
+                (c: CategoryData) => !groupedCategoryIds.has(c.id) && !c.parentId
+              );
+              const ungroupedSavings = budgetData.groupedCategories.savings.filter(
+                (c: CategoryData) => !groupedCategoryIds.has(c.id) && !c.parentId
+              );
 
-            {/* Savings & Goals */}
-            {budgetData.groupedCategories.savings.length > 0 && (
-              <div>
-                <h2 className="text-lg font-semibold text-foreground mb-3">
-                  Savings & Goals
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {budgetData.groupedCategories.savings.map(category => (
-                    <CategoryBudgetProgress
-                      key={category.id}
-                      category={category}
-                      daysRemaining={budgetData.summary.daysRemaining}
-                      onEdit={handleEditBudget}
-                    />
-                  ))}
+              const hasUngrouped = ungroupedIncome.length > 0 || 
+                ungroupedBills.length > 0 || 
+                ungroupedExpenses.length > 0 || 
+                ungroupedSavings.length > 0;
+
+              if (!hasUngrouped) return null;
+
+              return (
+                <div className="space-y-6">
+                  {budgetGroups.length > 0 && (
+                    <h2 className="text-lg font-semibold text-foreground">Uncategorized</h2>
+                  )}
+                  
+                  {/* Income */}
+                  {ungroupedIncome.length > 0 && (
+                    <div>
+                      <h3 className="text-base font-medium text-foreground mb-3">Income</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {ungroupedIncome.map((category: CategoryData) => (
+                          <CategoryBudgetProgress
+                            key={category.id}
+                            category={category}
+                            daysRemaining={budgetData.summary.daysRemaining}
+                            onEdit={handleEditBudget}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Essential Expenses */}
+                  {ungroupedBills.length > 0 && (
+                    <div>
+                      <h3 className="text-base font-medium text-foreground mb-3">
+                        Essential Expenses
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {ungroupedBills.map((category: CategoryData) => (
+                          <CategoryBudgetProgress
+                            key={category.id}
+                            category={category}
+                            daysRemaining={budgetData.summary.daysRemaining}
+                            onEdit={handleEditBudget}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Discretionary Spending */}
+                  {ungroupedExpenses.length > 0 && (
+                    <div>
+                      <h3 className="text-base font-medium text-foreground mb-3">
+                        Discretionary Spending
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {ungroupedExpenses.map((category: CategoryData) => (
+                          <CategoryBudgetProgress
+                            key={category.id}
+                            category={category}
+                            daysRemaining={budgetData.summary.daysRemaining}
+                            onEdit={handleEditBudget}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Savings & Goals */}
+                  {ungroupedSavings.length > 0 && (
+                    <div>
+                      <h3 className="text-base font-medium text-foreground mb-3">
+                        Savings & Goals
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {ungroupedSavings.map((category: CategoryData) => (
+                          <CategoryBudgetProgress
+                            key={category.id}
+                            category={category}
+                            daysRemaining={budgetData.summary.daysRemaining}
+                            onEdit={handleEditBudget}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
 

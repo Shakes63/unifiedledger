@@ -98,13 +98,61 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, type, monthlyBudget = 0, dueDate, isTaxDeductible = false, isBusinessCategory = false, incomeFrequency } = body;
+    const { 
+      name, 
+      type, 
+      monthlyBudget = 0, 
+      dueDate, 
+      isTaxDeductible = false, 
+      isBusinessCategory = false, 
+      incomeFrequency,
+      parentId = null,
+      isBudgetGroup = false,
+      targetAllocation = null,
+    } = body;
 
     if (!name || !type) {
       return Response.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
+    }
+
+    // Validate budget group constraints
+    if (isBudgetGroup && parentId) {
+      return Response.json(
+        { error: 'Budget groups cannot have a parent' },
+        { status: 400 }
+      );
+    }
+
+    // If parentId is provided, validate it exists and is a budget group
+    if (parentId) {
+      const parentCategory = await db
+        .select()
+        .from(budgetCategories)
+        .where(
+          and(
+            eq(budgetCategories.id, parentId),
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId)
+          )
+        )
+        .limit(1);
+
+      if (!parentCategory.length) {
+        return Response.json(
+          { error: 'Parent category not found' },
+          { status: 404 }
+        );
+      }
+
+      if (!parentCategory[0].isBudgetGroup) {
+        return Response.json(
+          { error: 'Parent must be a budget group' },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate income frequency if provided
@@ -146,11 +194,14 @@ export async function POST(request: Request) {
       householdId,
       name,
       type,
-      monthlyBudget,
+      monthlyBudget: isBudgetGroup ? 0 : monthlyBudget, // Budget groups don't have direct budgets
       dueDate: dueDate || null,
       isTaxDeductible,
       isBusinessCategory,
       incomeFrequency: type === 'income' && incomeFrequency ? incomeFrequency : 'variable',
+      parentId,
+      isBudgetGroup,
+      targetAllocation: isBudgetGroup ? targetAllocation : null,
       createdAt: new Date().toISOString(),
       usageCount: 0,
       sortOrder: 0,

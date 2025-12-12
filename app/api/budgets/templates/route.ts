@@ -3,14 +3,23 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
+
+interface BudgetGroupDefinition {
+  name: string;
+  type: 'income' | 'expense' | 'savings';
+  targetAllocation: number;
+  description: string;
+}
 
 interface BudgetTemplate {
   id: string;
   name: string;
   description: string;
+  groups: BudgetGroupDefinition[];
   rules: {
     needs?: number; // Percentage of income
     wants?: number;
@@ -29,6 +38,11 @@ const TEMPLATES: BudgetTemplate[] = [
     name: '50/30/20 Rule',
     description:
       'Popular budgeting method: 50% needs (essentials, bills), 30% wants (discretionary), 20% savings & debt',
+    groups: [
+      { name: 'Needs', type: 'expense', targetAllocation: 50, description: 'Essential expenses like rent, utilities, groceries, insurance' },
+      { name: 'Wants', type: 'expense', targetAllocation: 30, description: 'Discretionary spending like entertainment, dining out, hobbies' },
+      { name: 'Savings', type: 'savings', targetAllocation: 20, description: 'Savings and debt repayment' },
+    ],
     rules: {
       needs: 50,
       wants: 30,
@@ -40,6 +54,7 @@ const TEMPLATES: BudgetTemplate[] = [
     name: 'Zero-Based Budget',
     description:
       'Every dollar has a purpose. Allocate all income to categories until income - expenses - savings = 0',
+    groups: [], // Zero-based doesn't use predefined groups
     rules: {
       // This template requires equal distribution or user customization
       // We'll distribute evenly across categories
@@ -50,6 +65,13 @@ const TEMPLATES: BudgetTemplate[] = [
     name: '60% Solution',
     description:
       'Simplified approach: 60% committed expenses (bills, essentials), 10% retirement, 10% long-term savings, 10% short-term savings, 10% fun money',
+    groups: [
+      { name: 'Committed', type: 'expense', targetAllocation: 60, description: 'Fixed expenses like bills, rent, insurance' },
+      { name: 'Retirement', type: 'savings', targetAllocation: 10, description: '401k, IRA, pension contributions' },
+      { name: 'Long-term Savings', type: 'savings', targetAllocation: 10, description: 'Emergency fund, house down payment, big purchases' },
+      { name: 'Short-term Savings', type: 'savings', targetAllocation: 10, description: 'Vacation, gifts, short-term goals' },
+      { name: 'Fun Money', type: 'expense', targetAllocation: 10, description: 'Entertainment, hobbies, treats' },
+    ],
     rules: {
       committed: 60,
       retirement: 10,
@@ -62,7 +84,7 @@ const TEMPLATES: BudgetTemplate[] = [
 
 /**
  * GET /api/budgets/templates
- * Get available budget templates
+ * Get available budget templates with their budget group definitions
  */
 export async function GET(request: Request) {
   try {
@@ -70,7 +92,20 @@ export async function GET(request: Request) {
     // Note: Templates are static, but we verify auth for consistency
     await getAndVerifyHousehold(request, userId);
 
-    return Response.json({ templates: TEMPLATES });
+    // Return templates with group info for UI
+    const templatesWithInfo = TEMPLATES.map(t => ({
+      id: t.id,
+      name: t.name,
+      description: t.description,
+      groups: t.groups.map(g => ({
+        name: g.name,
+        type: g.type,
+        targetAllocation: g.targetAllocation,
+        description: g.description,
+      })),
+    }));
+
+    return Response.json({ templates: templatesWithInfo });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -87,8 +122,8 @@ export async function GET(request: Request) {
 }
 
 /**
- * POST /api/budgets/templates/apply
- * Apply a budget template
+ * POST /api/budgets/templates
+ * Apply a budget template - creates budget groups with target allocations
  * Request body:
  * {
  *   templateId: '50-30-20' | 'zero-based' | '60-solution',
@@ -124,225 +159,114 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Invalid templateId' }, { status: 400 });
     }
 
-    // Fetch user's categories for this household
-    const categories = await db
+    // For zero-based template, no groups are created - just return info
+    if (template.groups.length === 0) {
+      return Response.json({
+        template: {
+          id: template.id,
+          name: template.name,
+          description: template.description,
+        },
+        monthlyIncome,
+        createdGroups: [],
+        message: 'Zero-based budgeting does not use budget groups. Allocate your income directly to categories.',
+      });
+    }
+
+    // Check for existing budget groups with the same names
+    const existingGroups = await db
       .select()
       .from(budgetCategories)
       .where(
         and(
           eq(budgetCategories.userId, userId),
           eq(budgetCategories.householdId, householdId),
+          eq(budgetCategories.isBudgetGroup, true),
           eq(budgetCategories.isActive, true)
         )
       );
 
-    if (categories.length === 0) {
-      return Response.json(
-        {
-          error:
-            'No categories found. Please create categories before applying a template.',
-        },
-        { status: 404 }
-      );
-    }
+    const existingGroupNames = new Set(existingGroups.map(g => g.name.toLowerCase()));
 
-    // Categorize user's categories into template buckets
-    // "Needs" are essential expenses (based on name patterns)
-    const needs = categories.filter(
-      c =>
-        c.type === 'expense' &&
-        (c.name.toLowerCase().includes('rent') ||
-        c.name.toLowerCase().includes('mortgage') ||
-        c.name.toLowerCase().includes('utilities') ||
-        c.name.toLowerCase().includes('insurance') ||
-        c.name.toLowerCase().includes('groceries') ||
-        c.name.toLowerCase().includes('transportation'))
-    );
-
-    // "Wants" are discretionary expenses (based on name patterns, excluding needs)
-    const wants = categories.filter(
-      c =>
-        c.type === 'expense' &&
-        !needs.some(n => n.id === c.id) &&
-        (c.name.toLowerCase().includes('entertainment') ||
-          c.name.toLowerCase().includes('dining') ||
-          c.name.toLowerCase().includes('shopping') ||
-          c.name.toLowerCase().includes('hobby') ||
-          c.name.toLowerCase().includes('recreation'))
-    );
-
-    const savings = categories.filter(c => c.type === 'savings');
-
-    // For backwards compatibility, debt category still used in templates (from debts module)
-    const debt: typeof categories = [];
-
-    // Apply template rules
-    const suggestedBudgets: Array<{
-      categoryId: string;
-      categoryName: string;
-      monthlyBudget: number;
-      allocation: string;
+    // Create budget groups that don't already exist
+    const income = new Decimal(monthlyIncome);
+    const createdGroups: Array<{
+      id: string;
+      name: string;
+      type: string;
+      targetAllocation: number;
+      targetAmount: number;
+      description: string;
+      isNew: boolean;
     }> = [];
 
-    const income = new Decimal(monthlyIncome);
-
-    if (templateId === '50-30-20') {
-      // 50% to needs
-      const needsAmount = income.times(0.5);
-      const perNeedCategory = needs.length > 0 ? needsAmount.div(needs.length) : 0;
-
-      for (const category of needs) {
-        suggestedBudgets.push({
-          categoryId: category.id,
-          categoryName: category.name,
-          monthlyBudget: new Decimal(perNeedCategory).toNumber(),
-          allocation: 'Needs (50%)',
-        });
-      }
-
-      // 30% to wants
-      const wantsAmount = income.times(0.3);
-      const perWantCategory = wants.length > 0 ? wantsAmount.div(wants.length) : 0;
-
-      for (const category of wants) {
-        suggestedBudgets.push({
-          categoryId: category.id,
-          categoryName: category.name,
-          monthlyBudget: new Decimal(perWantCategory).toNumber(),
-          allocation: 'Wants (30%)',
-        });
-      }
-
-      // 20% to savings & debt
-      const savingsAmount = income.times(0.2);
-      const savingsAndDebt = [...savings, ...debt];
-      const perSavingsCategory =
-        savingsAndDebt.length > 0 ? savingsAmount.div(savingsAndDebt.length) : 0;
-
-      for (const category of savingsAndDebt) {
-        suggestedBudgets.push({
-          categoryId: category.id,
-          categoryName: category.name,
-          monthlyBudget: new Decimal(perSavingsCategory).toNumber(),
-          allocation: 'Savings & Debt (20%)',
-        });
-      }
-    } else if (templateId === 'zero-based') {
-      // Distribute income evenly across all categories
-      const perCategory = income.div(categories.length);
-
-      for (const category of categories) {
-        suggestedBudgets.push({
-          categoryId: category.id,
-          categoryName: category.name,
-          monthlyBudget: new Decimal(perCategory).toNumber(),
-          allocation: 'Equal Distribution',
-        });
-      }
-    } else if (templateId === '60-solution') {
-      // 60% committed (needs + bills)
-      const committedAmount = income.times(0.6);
-      const perCommittedCategory =
-        needs.length > 0 ? committedAmount.div(needs.length) : 0;
-
-      for (const category of needs) {
-        suggestedBudgets.push({
-          categoryId: category.id,
-          categoryName: category.name,
-          monthlyBudget: new Decimal(perCommittedCategory).toNumber(),
-          allocation: 'Committed Expenses (60%)',
-        });
-      }
-
-      // 10% retirement
-      const retirementCategories = categories.filter(
-        c =>
-          c.type === 'savings' &&
-          (c.name.toLowerCase().includes('retirement') ||
-            c.name.toLowerCase().includes('401k') ||
-            c.name.toLowerCase().includes('ira'))
+    for (const groupDef of template.groups) {
+      // Check if group already exists (case-insensitive)
+      const existingGroup = existingGroups.find(
+        g => g.name.toLowerCase() === groupDef.name.toLowerCase()
       );
 
-      const retirementAmount = income.times(0.1);
-      const perRetirementCategory =
-        retirementCategories.length > 0
-          ? retirementAmount.div(retirementCategories.length)
-          : 0;
+      if (existingGroup) {
+        // Update existing group's target allocation
+        await db
+          .update(budgetCategories)
+          .set({ targetAllocation: groupDef.targetAllocation })
+          .where(eq(budgetCategories.id, existingGroup.id));
 
-      for (const category of retirementCategories) {
-        suggestedBudgets.push({
-          categoryId: category.id,
-          categoryName: category.name,
-          monthlyBudget: new Decimal(perRetirementCategory).toNumber(),
-          allocation: 'Retirement (10%)',
+        createdGroups.push({
+          id: existingGroup.id,
+          name: existingGroup.name,
+          type: groupDef.type,
+          targetAllocation: groupDef.targetAllocation,
+          targetAmount: income.times(groupDef.targetAllocation / 100).toNumber(),
+          description: groupDef.description,
+          isNew: false,
         });
-      }
+      } else {
+        // Create new group
+        const groupId = nanoid();
+        const groupData = {
+          id: groupId,
+          userId,
+          householdId,
+          name: groupDef.name,
+          type: groupDef.type,
+          monthlyBudget: 0, // Budget groups don't have direct budgets
+          isBudgetGroup: true,
+          targetAllocation: groupDef.targetAllocation,
+          createdAt: new Date().toISOString(),
+          usageCount: 0,
+          sortOrder: createdGroups.length,
+        };
 
-      // 10% long-term savings
-      const longTermCategories = savings.filter(
-        c =>
-          !retirementCategories.some(r => r.id === c.id) &&
-          (c.name.toLowerCase().includes('emergency') ||
-            c.name.toLowerCase().includes('house') ||
-            c.name.toLowerCase().includes('car'))
-      );
+        await db.insert(budgetCategories).values(groupData);
 
-      const longTermAmount = income.times(0.1);
-      const perLongTermCategory =
-        longTermCategories.length > 0
-          ? longTermAmount.div(longTermCategories.length)
-          : 0;
-
-      for (const category of longTermCategories) {
-        suggestedBudgets.push({
-          categoryId: category.id,
-          categoryName: category.name,
-          monthlyBudget: new Decimal(perLongTermCategory).toNumber(),
-          allocation: 'Long-term Savings (10%)',
-        });
-      }
-
-      // 10% short-term savings
-      const shortTermCategories = savings.filter(
-        c =>
-          !retirementCategories.some(r => r.id === c.id) &&
-          !longTermCategories.some(l => l.id === c.id)
-      );
-
-      const shortTermAmount = income.times(0.1);
-      const perShortTermCategory =
-        shortTermCategories.length > 0
-          ? shortTermAmount.div(shortTermCategories.length)
-          : 0;
-
-      for (const category of shortTermCategories) {
-        suggestedBudgets.push({
-          categoryId: category.id,
-          categoryName: category.name,
-          monthlyBudget: new Decimal(perShortTermCategory).toNumber(),
-          allocation: 'Short-term Savings (10%)',
-        });
-      }
-
-      // 10% fun money
-      const funAmount = income.times(0.1);
-      const perFunCategory = wants.length > 0 ? funAmount.div(wants.length) : 0;
-
-      for (const category of wants) {
-        suggestedBudgets.push({
-          categoryId: category.id,
-          categoryName: category.name,
-          monthlyBudget: new Decimal(perFunCategory).toNumber(),
-          allocation: 'Fun Money (10%)',
+        createdGroups.push({
+          id: groupId,
+          name: groupDef.name,
+          type: groupDef.type,
+          targetAllocation: groupDef.targetAllocation,
+          targetAmount: income.times(groupDef.targetAllocation / 100).toNumber(),
+          description: groupDef.description,
+          isNew: true,
         });
       }
     }
 
-    // Calculate totals
-    const totalAllocated = suggestedBudgets.reduce(
-      (sum, b) => new Decimal(sum).plus(b.monthlyBudget).toNumber(),
-      0
-    );
+    // Get count of unassigned categories
+    const unassignedCategories = await db
+      .select()
+      .from(budgetCategories)
+      .where(
+        and(
+          eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId),
+          eq(budgetCategories.isBudgetGroup, false),
+          eq(budgetCategories.isActive, true)
+        )
+      );
+
+    const unassignedCount = unassignedCategories.filter(c => !c.parentId).length;
 
     return Response.json({
       template: {
@@ -351,11 +275,11 @@ export async function POST(request: Request) {
         description: template.description,
       },
       monthlyIncome,
-      suggestedBudgets,
-      totalAllocated,
-      remaining: new Decimal(monthlyIncome).minus(totalAllocated).toNumber(),
-      categoriesMatched: suggestedBudgets.length,
-      totalCategories: categories.length,
+      createdGroups,
+      unassignedCategoriesCount: unassignedCount,
+      message: unassignedCount > 0 
+        ? `Budget groups created! You have ${unassignedCount} categories to assign to these groups.`
+        : 'Budget groups created! All your categories are already assigned.',
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

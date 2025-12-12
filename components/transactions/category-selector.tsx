@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { flushSync } from 'react-dom';
 import {
   Select,
@@ -23,6 +23,8 @@ interface Category {
   name: string;
   type: string;
   isBusinessCategory?: boolean;
+  isBudgetGroup?: boolean;
+  parentId?: string | null;
 }
 
 interface Bill {
@@ -213,11 +215,16 @@ export function CategorySelector({
               // Track which categoryIds we've already shown to prevent duplicates
               const shownCategoryIds = new Set<string>();
 
+              // Separate budget groups from regular categories
+              const budgetGroups = categories.filter(c => c.isBudgetGroup);
+              const regularCategories = categories.filter(c => !c.isBudgetGroup);
+
               // Collect all items to display
               const billItems: React.ReactElement[] = [];
               const debtItems: React.ReactElement[] = [];
               const businessCategoryItems: React.ReactElement[] = [];
               const personalCategoryItems: React.ReactElement[] = [];
+              const budgetGroupSections: React.ReactElement[] = [];
 
               // Add bills
               bills.forEach((bill) => {
@@ -243,10 +250,39 @@ export function CategorySelector({
                 }
               });
 
-              // Add regular categories (excluding those used by bills/debts)
+              // Build budget group sections with their children
+              budgetGroups.forEach((group) => {
+                const children = regularCategories.filter(c => c.parentId === group.id);
+                if (children.length > 0) {
+                  const childItems = children
+                    .filter(child => !shownCategoryIds.has(child.id))
+                    .map(child => {
+                      shownCategoryIds.add(child.id);
+                      return (
+                        <SelectItem key={`cat-${child.id}`} value={child.id}>
+                          {child.name}
+                        </SelectItem>
+                      );
+                    });
+
+                  if (childItems.length > 0) {
+                    budgetGroupSections.push(
+                      <React.Fragment key={`group-${group.id}`}>
+                        <SelectSeparator />
+                        <SelectGroup>
+                          <SelectLabel className="uppercase text-xs tracking-wider">{group.name}</SelectLabel>
+                          {childItems}
+                        </SelectGroup>
+                      </React.Fragment>
+                    );
+                  }
+                }
+              });
+
+              // Add remaining regular categories (not in any budget group)
               // Split into business and personal categories
-              categories.forEach((category) => {
-                if (!shownCategoryIds.has(category.id)) {
+              regularCategories.forEach((category) => {
+                if (!shownCategoryIds.has(category.id) && !category.parentId) {
                   shownCategoryIds.add(category.id);
                   const item = (
                     <SelectItem key={`cat-${category.id}`} value={category.id}>
@@ -260,6 +296,10 @@ export function CategorySelector({
                   }
                 }
               });
+
+              // Render budget group sections first (they represent the user's budget structure)
+              const renderBudgetGroups = () =>
+                budgetGroupSections.length > 0 && budgetGroupSections;
 
               // Render sections in order based on account type
               // If business account: Business first, then Bills, Debts, Personal
@@ -280,7 +320,7 @@ export function CategorySelector({
                   <>
                     <SelectSeparator />
                     <SelectGroup>
-                      <SelectLabel>Personal</SelectLabel>
+                      <SelectLabel>Uncategorized</SelectLabel>
                       {personalCategoryItems}
                     </SelectGroup>
                   </>
@@ -310,6 +350,9 @@ export function CategorySelector({
 
               return (
                 <>
+                  {/* Budget groups always appear first since they represent the budget structure */}
+                  {renderBudgetGroups()}
+                  
                   {isBusinessAccount ? (
                     <>
                       {renderBusinessSection()}

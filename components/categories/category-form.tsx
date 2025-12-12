@@ -20,12 +20,20 @@ const CATEGORY_TYPES = [
   { value: 'savings', label: 'Savings' },
 ];
 
+interface ParentCategory {
+  id: string;
+  name: string;
+  type: string;
+}
+
 interface CategoryFormProps {
   category?: Partial<CategoryFormData> | null;
   onSubmit: (data: Partial<CategoryFormData>) => void;
   onCancel?: () => void;
   isLoading?: boolean;
   defaultBusinessCategory?: boolean;
+  isParentCategory?: boolean;
+  parentCategories?: ParentCategory[];
 }
 
 export function CategoryForm({
@@ -34,6 +42,8 @@ export function CategoryForm({
   onCancel,
   isLoading = false,
   defaultBusinessCategory = false,
+  isParentCategory = false,
+  parentCategories = [],
 }: CategoryFormProps) {
   const [formData, setFormData] = useState({
     name: category?.name || '',
@@ -43,8 +53,13 @@ export function CategoryForm({
     isBusinessCategory: category?.isBusinessCategory ?? defaultBusinessCategory,
     isActive: category?.isActive !== undefined ? category.isActive : true,
     incomeFrequency: category?.incomeFrequency || 'variable',
+    parentId: category?.parentId || '',
+    targetAllocation: category?.targetAllocation || '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Filter parent categories by selected type
+  const availableParents = parentCategories.filter(p => p.type === formData.type);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -89,15 +104,27 @@ export function CategoryForm({
 
     setErrors({});
 
-    const submitData = {
+    const submitData: Record<string, any> = {
       name: formData.name,
       type: formData.type,
-      monthlyBudget: parseFloat(String(formData.monthlyBudget)) || 0,
       isTaxDeductible: formData.isTaxDeductible,
       isBusinessCategory: formData.isBusinessCategory,
       isActive: formData.isActive,
-      incomeFrequency: formData.type === 'income' ? formData.incomeFrequency : undefined,
     };
+
+    if (isParentCategory) {
+      // Parent category - no budget, but has targetAllocation
+      submitData.isBudgetGroup = true;
+      submitData.monthlyBudget = 0;
+      submitData.targetAllocation = formData.targetAllocation ? parseFloat(String(formData.targetAllocation)) : null;
+    } else {
+      // Regular category
+      submitData.monthlyBudget = parseFloat(String(formData.monthlyBudget)) || 0;
+      submitData.parentId = formData.parentId || null;
+      if (formData.type === 'income') {
+        submitData.incomeFrequency = formData.incomeFrequency;
+      }
+    }
 
     onSubmit(submitData);
   };
@@ -156,24 +183,73 @@ export function CategoryForm({
         </div>
       </div>
 
-      {/* Monthly Budget */}
-      <div>
-        <Label className="text-muted-foreground text-sm mb-2 block">Monthly Budget (Optional)</Label>
-        <Input
-          name="monthlyBudget"
-          type="number"
-          value={formData.monthlyBudget}
-          onChange={handleChange}
-          placeholder="Enter budget"
-          step="0.01"
-          min="0"
-          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
-        />
-        <p className="text-xs text-muted-foreground mt-1">Set to 0 for no budget limit</p>
-      </div>
+      {/* Parent Category Selector (for regular categories) */}
+      {!isParentCategory && availableParents.length > 0 && (
+        <div>
+          <Label className="text-muted-foreground text-sm mb-2 block">Parent Category (Optional)</Label>
+          <Select
+            value={formData.parentId}
+            onValueChange={(value) => handleSelectChange('parentId', value)}
+          >
+            <SelectTrigger className="bg-elevated border-border text-foreground">
+              <SelectValue placeholder="Select parent category (optional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">No parent (standalone category)</SelectItem>
+              {availableParents.map((parent) => (
+                <SelectItem key={parent.id} value={parent.id}>
+                  {parent.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            Optionally group this category under a parent for 50/30/20 or similar budgeting
+          </p>
+        </div>
+      )}
+
+      {/* Target Allocation (for parent categories) */}
+      {isParentCategory && (
+        <div>
+          <Label className="text-muted-foreground text-sm mb-2 block">Target Allocation % (Optional)</Label>
+          <Input
+            name="targetAllocation"
+            type="number"
+            value={formData.targetAllocation}
+            onChange={handleChange}
+            placeholder="e.g., 50 for 50%"
+            step="1"
+            min="0"
+            max="100"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            What percentage of income should go to this category group? (e.g., 50% for Needs in 50/30/20)
+          </p>
+        </div>
+      )}
+
+      {/* Monthly Budget (for regular categories only) */}
+      {!isParentCategory && (
+        <div>
+          <Label className="text-muted-foreground text-sm mb-2 block">Monthly Budget (Optional)</Label>
+          <Input
+            name="monthlyBudget"
+            type="number"
+            value={formData.monthlyBudget}
+            onChange={handleChange}
+            placeholder="Enter budget"
+            step="0.01"
+            min="0"
+            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground/50 placeholder:italic"
+          />
+          <p className="text-xs text-muted-foreground mt-1">Set to 0 for no budget limit</p>
+        </div>
+      )}
 
       {/* Income Frequency (for income categories) */}
-      {formData.type === 'income' && (
+      {!isParentCategory && formData.type === 'income' && (
         <div>
           <Label className="text-muted-foreground text-sm mb-2 block">Income Frequency</Label>
           <Select

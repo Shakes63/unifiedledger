@@ -65,8 +65,8 @@ vi.mock("@clerk/nextjs/server", () => ({
   }),
 }));
 
-// Mock next-pwa
-vi.mock("next-pwa", () => ({
+// Mock @serwist/next
+vi.mock("@serwist/next", () => ({
   default: (config: any) => (nextConfig: any) => ({
     ...nextConfig,
     ...config,
