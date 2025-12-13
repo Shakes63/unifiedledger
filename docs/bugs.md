@@ -11,7 +11,6 @@
 - **Transfer conversion/account balance updates aren’t ownership-scoped** - Several updates select/update `transactions`/`accounts` by `id` only (or `id+userId` without household), which is fragile for household isolation and could corrupt balances if misused. See `lib/rules/transfer-action-handler.ts` (source tx fetch ~L194-L204; account updates ~L433-L465).
 - **Split creation isn’t household-scoped and updates transaction by id only** - `handleSplitCreation()` validates categories by `userId` only (no household) and updates `transactions` with `where(eq(transactions.id, ...))` (no user/household). See `lib/rules/split-action-handler.ts` (~L80-L90, ~L151-L155).
 - **Account change handler can move transactions across households and log to wrong household** - `handleAccountChange()` validates target account by `userId` only (no household), updates accounts/transactions by id only, and logs activity using the *first* `householdMembers` row for the user (not the transaction’s household). This can create incorrect balances and audit logs. See `lib/rules/account-action-handler.ts` (~L61-L71, ~L93-L101, ~L193-L205).
-- **findAllMatchingRules ignores household isolation** - Helper queries rules by `userId` only (no `householdId`), so debugging/testing can leak rules across households. See `lib/rules/rule-matcher.ts` (~L156-L170).
 
 ---
 
@@ -38,17 +37,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 4 |
-| Tests Passing | 901/901 (100%) |
+| Active Bugs | 8 |
+| Tests Passing | 902/902 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 756 (180 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 757 (181 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (180 total)
+## Fixed Bugs (181 total)
 
+181. ✅ **findAllMatchingRules ignores household isolation** [FIXED 2025-12-13] - `findAllMatchingRules` now requires householdId and scopes DB rule selection accordingly; added regression test asserting household filtering is included in the query.
 180. ✅ **Rules action executor lookups aren’t household-scoped** [FIXED 2025-12-13] - `executeRuleActions()` now scopes category/merchant validation lookups by household when householdId is provided, and apply-bulk context lookups are household-filtered.
 179. ✅ **Bulk apply rules endpoint docs mention unsupported query param** [FIXED 2025-12-13] - Removed misleading `categoryId` query param docs from apply-bulk route and added a unit test ensuring extra query params don’t break the handler.
 178. ✅ **Rule action preview shows “Unknown” for merchant/account actions** [FIXED 2025-12-13] - Hydrated merchant/account names once and passed them into the Rules page action preview so merchant/account/transfer actions display correct labels; added regression test.

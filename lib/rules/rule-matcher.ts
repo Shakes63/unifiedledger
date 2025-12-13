@@ -155,6 +155,7 @@ export async function findMatchingRule(
  */
 export async function findAllMatchingRules(
   userId: string,
+  householdId: string,
   transaction: TransactionData
 ): Promise<RuleMatch[]> {
   try {
@@ -164,6 +165,7 @@ export async function findAllMatchingRules(
       .where(
         and(
           eq(categorizationRules.userId, userId),
+          eq(categorizationRules.householdId, householdId),
           eq(categorizationRules.isActive, true)
         )
       )

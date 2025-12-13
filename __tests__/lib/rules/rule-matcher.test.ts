@@ -1282,12 +1282,25 @@ describe("Rule Matcher - findAllMatchingRules()", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const results = await findAllMatchingRules('user-123', transaction);
+    const results = await findAllMatchingRules('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(results).toHaveLength(3);
     expect(results[0].ruleId).toBe('rule-1');
     expect(results[1].ruleId).toBe('rule-2');
     expect(results[2].ruleId).toBe('rule-3');
+  });
+
+  it("includes householdId filter in the database query", async () => {
+    mockDatabaseRules([]);
+
+    const transaction = createTestTransaction({ description: "Coffee Shop" });
+    await findAllMatchingRules('user-123', TEST_HOUSEHOLD_ID, transaction);
+
+    expect(db.where).toHaveBeenCalled();
+
+    const whereArg = vi.mocked(db.where).mock.calls[0]?.[0] as unknown;
+    const inspected = (await import('node:util')).default.inspect(whereArg, { depth: 8, colors: false });
+    expect(inspected.toLowerCase()).toContain('household');
   });
 
   it("should return only matching rules when some rules match", async () => {
@@ -1313,7 +1326,7 @@ describe("Rule Matcher - findAllMatchingRules()", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const results = await findAllMatchingRules('user-123', transaction);
+    const results = await findAllMatchingRules('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(results).toHaveLength(2);
     expect(results[0].ruleId).toBe('rule-1');
@@ -1336,7 +1349,7 @@ describe("Rule Matcher - findAllMatchingRules()", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const results = await findAllMatchingRules('user-123', transaction);
+    const results = await findAllMatchingRules('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(results).toHaveLength(0);
     expect(Array.isArray(results)).toBe(true);
@@ -1366,7 +1379,7 @@ describe("Rule Matcher - findAllMatchingRules()", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const results = await findAllMatchingRules('user-123', transaction);
+    const results = await findAllMatchingRules('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(results).toHaveLength(3);
     expect(results[0].ruleId).toBe('rule-1');
@@ -1394,7 +1407,7 @@ describe("Rule Matcher - findAllMatchingRules()", () => {
     mockDatabaseRules(mockRules);
 
     const transaction = createTestTransaction({ description: "Coffee Shop" });
-    const results = await findAllMatchingRules('user-123', transaction);
+    const results = await findAllMatchingRules('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(results).toHaveLength(1);
     expect(results[0].ruleId).toBe('rule-1');
@@ -1404,7 +1417,7 @@ describe("Rule Matcher - findAllMatchingRules()", () => {
     vi.mocked(db.orderBy).mockRejectedValue(new Error('Database connection failed'));
 
     const transaction = createTestTransaction();
-    const results = await findAllMatchingRules('user-123', transaction);
+    const results = await findAllMatchingRules('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(results).toHaveLength(0);
     expect(Array.isArray(results)).toBe(true);
