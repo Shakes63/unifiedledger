@@ -30,7 +30,6 @@ interface BulkApplyResult {
  *
  * Query parameters:
  * - ruleId: Optional - only apply specific rule
- * - categoryId: Optional - only apply to transactions without this category
  * - startDate: Optional - YYYY-MM-DD format
  * - endDate: Optional - YYYY-MM-DD format
  * - limit: Optional - max transactions to process (default 100)
