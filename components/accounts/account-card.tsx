@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { EntityIdBadge } from '@/components/dev/entity-id-badge';
+import { differenceInCalendarDays, parseISO, startOfDay } from 'date-fns';
 
 interface AccountData {
   id: string;
@@ -92,9 +93,9 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
   const drawPeriodStatus = useMemo(() => {
     if (!isLineOfCredit || !account.drawPeriodEndDate) return null;
     
-    const endDate = new Date(account.drawPeriodEndDate);
-    const today = new Date();
-    const daysRemaining = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const endDate = parseISO(account.drawPeriodEndDate);
+    const today = startOfDay(new Date());
+    const daysRemaining = differenceInCalendarDays(endDate, today);
     
     if (daysRemaining < 0) {
       return { status: 'ended', label: 'Draw period ended', color: 'var(--color-warning)' };

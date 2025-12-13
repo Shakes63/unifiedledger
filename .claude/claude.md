@@ -26,6 +26,7 @@ A comprehensive mobile-first personal finance application built with Next.js, fe
 ## Project Structure
 ```
 unifiedledger/
+├── proxy.ts                      # Route protection (renamed from middleware.ts per Next.js 16)
 ├── app/
 │   ├── api/                      # API routes (transactions, accounts, bills, rules, settings, etc.)
 │   └── dashboard/                # All dashboard pages (main, transactions, accounts, bills, calendar, goals, debts, reports, tax, sales-tax, settings, etc.)
@@ -43,7 +44,7 @@ unifiedledger/
 │   ├── db/                       # schema.ts, index.ts
 │   ├── themes/                   # theme-config.ts, theme-utils.ts
 │   ├── rules/                    # Rules engine
-│   ├── bills/                    # Bill matching
+│   ├── bills/                    # Bill matching, autopay
 │   ├── notifications/            # Notification service
 │   ├── email/                    # Email service (Resend + SMTP providers)
 │   ├── tax/                      # Tax utilities
@@ -101,7 +102,27 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 - Drizzle ORM for type-safe queries
 - SQLite for local storage
 - Schema: `lib/db/schema.ts`
-- Migrations: `drizzle-kit generate` and `drizzle-kit migrate`
+- **Push-based workflow** (no migration files)
+
+**Schema Change Workflow:**
+```bash
+# 1. Edit lib/db/schema.ts
+# 2. Push changes directly to database
+pnpm drizzle-kit push
+```
+
+**Important:**
+- We use `push` instead of `generate`/`migrate` for simplicity
+- `push` syncs schema directly to database without migration files
+- May require interactive input for table renames - run in terminal manually if needed
+- Always backup database before major schema changes
+
+### Route Protection (Proxy)
+- **File:** `proxy.ts` in project root (NOT `middleware.ts`)
+- **Convention:** Next.js 16 deprecated "middleware" in favor of "proxy"
+- **Function:** Export `proxy(request)` not `middleware(request)`
+- **Runtime:** Always Node.js (no `export const runtime` needed)
+- **Purpose:** Session validation, authentication checks, activity tracking, test mode bypass
 
 ## Key Features Summary
 
@@ -113,19 +134,7 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 5. ✅ **Goals & Activity:** Savings goals with milestones, debt management with payoff projections, household activity audit trail
 6. ✅ **Mobile & Performance:** Offline mode (IndexedDB queue), household system with roles, responsive navigation, service worker caching, performance monitoring, data cleanup cron jobs
 7. ✅ **Reporting & Tax:** 6 report types with 7 chart types, tax dashboard, sales tax quarterly reporting (all 50 states), credit utilization tracking, collapsible debt cards
-8. ✅ **Testing:** 386 tests (99.5% of plan), 100% unit test coverage, 93% integration test coverage (28/30 passing)
-
-**Recent Additions:**
-- Developer Mode Feature (100% COMPLETE - entity ID badges, DEV indicator, developer tools panel)
-- Household Favorite Feature (100% COMPLETE - star/favorite households to pin to top of sidebar)
-- Household Tab-Based UI (100% COMPLETE - tab-based interface for household settings with member count badges)
-- Household Management System (100% COMPLETE - multi-household support with role-based permissions)
-- Notifications Tab (100% COMPLETE - granular channel selection for 9 notification types)
-- Unified Settings Page (100% COMPLETE - `/dashboard/settings` with 9 comprehensive tabs)
-- Transaction save performance optimization (65-75% faster)
-- Income frequency tracking (weekly/biweekly/monthly)
-- Goals dashboard widget
-- All 12 tracked bugs fixed (100% completion)
+8. ✅ **Testing:** 590 tests (100% passing)
 
 ## Important Architecture Decisions
 
@@ -135,7 +144,7 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 - `transfer_out` - Money leaving source account
 - `transfer_in` - Money arriving at destination account
 
-**Transfer Model:** Creates TWO linked transactions via `transferId`. Main view shows only `transfer_out` to avoid duplicates, account-filtered view shows relevant transaction.
+**Transfer Model:** Creates TWO linked transactions via `transferId`. Transactions page combines transfers into single transaction when no filter or both accounts filtered (shows `transfer_out` only). When filtered by single account, shows individual transactions with appropriate colors: red (-) for source account, green (+) for destination account.
 
 ### Rules System
 - Priority-based matching (lower number = higher priority)
@@ -151,8 +160,8 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 - **weekly:** Repeats every 7 days on the same day of week (creates 8 instances ~2 months ahead)
 - **biweekly:** Repeats every 14 days on the same day of week (creates 4 instances ~2 months ahead)
 - **monthly:** Repeats every month on the same day of month (creates 3 instances)
-- **quarterly:** Repeats every 3 months (creates 3 instances)
-- **semi-annual:** Repeats every 6 months (creates 2 instances)
+- **quarterly:** Repeats every 3 months (creates 4 instances)
+- **semi-annual:** Repeats every 6 months (creates 4 instances)
 - **annual:** Repeats once per year (creates 2 instances)
 
 **Due Date Field Semantics:**
@@ -165,9 +174,61 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 - Other frequencies remain active and continue generating future instances
 
 ### Bill Matching
-- Multi-factor matching using Levenshtein distance
-- String similarity (40%), amount tolerance ±5% (30%), date pattern (20%), payee pattern (10%)
-- Only auto-links matches ≥90% confidence
+**Three-Tier Matching System:**
+1. Direct bill instance ID matching for explicit bill payments (bypasses all matching logic)
+2. Bill-matcher utility for description/amount/date matching (40% similarity, 30% amount, 20% date, 10% payee patterns, 70% confidence threshold)
+3. Category-only matching as fallback
+
+**Matching Logic:** Bills match transactions with matching category, regardless of merchantId (null or set). Bills without merchants match correctly using description/amount/date matching.
+
+**Direct Bill Payments:** When `billInstanceId` is provided, directly links to that bill instance regardless of category/date/description/merchant
+
+**Auto-Matching:** Happens automatically when expense transactions are created. Uses bill-matcher first, falls back to category-only matching if no match found.
+
+**Legacy Multi-Factor Matching:** Available via `/api/bills/match` endpoint using Levenshtein distance (string similarity 40%, amount tolerance ±5% 30%, date pattern 20%, payee pattern 10%, requires ≥90% confidence)
+
+### Business Account Features
+- **Two Independent Toggles:** Each account has `enableSalesTax` and `enableTaxDeductions` toggles
+- **Sales Tax Tracking:** When enabled, income transactions can be marked as sales taxable
+- **Tax Deduction Tracking:** When enabled, expenses auto-detect as business deductions
+- **Navigation Visibility:** Tax Dashboard shows when any account has tax deduction tracking; Sales Tax page shows when any account has sales tax tracking
+- **Backward Compatibility:** `isBusinessAccount` field computed from either toggle being enabled
+- **Auto-Detection:** Transaction `taxDeductionType` uses `enableTaxDeductions` flag (falls back to `isBusinessAccount`)
+
+### Permission System
+- Role-based permissions: owner, admin, member, viewer
+- 13 permissions across 4 roles (invite_members, remove_members, manage_permissions, create_accounts, edit_accounts, delete_accounts, create_transactions, edit_all_transactions, view_all_data, manage_budget, delete_household, leave_household)
+- Custom permission overrides: Admins/owners can set custom permission overrides per member (beyond role defaults)
+- Permission resolution: Custom permissions override role defaults, deny takes precedence over allow
+- Owners always have all permissions and cannot have custom permissions modified
+- Last admin protection: Cannot remove manage_permissions from last admin
+- See `lib/household/permissions.ts` for permission logic
+
+### Autopay System
+**Daily Cron Job:** Runs at 6:00 AM UTC (before bill reminders at 9:00 AM)
+
+**Bill Processing Logic:**
+1. Find all bills with `isAutopayEnabled=true` and `autopayAccountId` set
+2. Filter pending instances where (dueDate - autopayDaysBefore) = today
+3. Calculate payment amount based on `autopayAmountType`:
+   - `fixed`: Use `autopayFixedAmount`
+   - `minimum_payment`: Use linked credit account's `minimumPaymentAmount`
+   - `statement_balance`: Use linked credit account's `statementBalance`
+   - `full_balance`: Use absolute value of credit account's `currentBalance`
+4. Create transaction:
+   - **Credit card payments:** Create transfer from autopayAccount to linkedAccountId
+   - **Regular bills:** Create expense from autopayAccount
+5. Call `processBillPayment()` to update instance and create payment record
+6. Send notification (success or failure)
+
+**Files:**
+- `lib/bills/autopay-calculator.ts` - Amount calculation utility
+- `lib/bills/autopay-transaction.ts` - Transaction creator
+- `lib/bills/autopay-processor.ts` - Batch processor
+- `app/api/cron/autopay/route.ts` - Cron endpoint
+- `lib/notifications/autopay-notifications.ts` - Notification handlers
+
+**Bill Reminders:** Autopay-enabled bills are skipped by bill reminder system
 
 ### Offline Sync
 - IndexedDB queue for pending transactions
@@ -186,11 +247,28 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 
 **Common Parameters:** `limit` (default: 50), `offset` (default: 0), `sortBy`, `sortOrder` (asc|desc)
 
+**Authentication:**
+- All API routes must verify user authentication
+- Use Better Auth session validation
+- Always verify user owns data before returning
+- Include `credentials: "include"` in fetch calls for cookie support
+
+**Household Context:**
+- Core financial data (transactions, accounts, categories, merchants, bills, budgets, goals, debts) is household-isolated
+- Use `lib/api/household-auth.ts` helpers for household validation
+- Frontend should use `lib/hooks/use-household-fetch.ts` for household-aware HTTP methods
+- Always filter by `household_id` when querying household-scoped data
+
+**Enhanced Fetch Utility:**
+- Use `lib/utils/enhanced-fetch.ts` for all fetch calls (replaces standard fetch)
+- Features: Exponential backoff retry (3 attempts: 1s, 2s, 4s), timeout handling (10s default), request deduplication, detailed error categorization
+- Error types: network, timeout, server, client, abort
+
 ## Database Schema Highlights
 
 **Core:** users, households, householdMembers, accounts, budgetCategories, transactions, transactionSplits, merchants
-**Settings:** userSettings, userSessions
-**Bills:** bills, billInstances
+**Settings:** userSettings, userSessions, user_household_preferences, household_settings
+**Bills:** bills (household-scoped), billInstances (household-scoped)
 **Rules:** categorizationRules, ruleExecutionLog
 **Tags:** tags, transactionTags, customFields, customFieldValues
 **Goals:** savingsGoals, savingsMilestones
@@ -199,177 +277,13 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 **Notifications:** notifications, notificationPreferences, householdActivityLog
 **Search:** savedSearchFilters, searchHistory, importTemplates, importHistory, importStaging
 
-## Recent Updates
-
-**All 23 tracked bugs fixed (100%)** - See `docs/bugs.md`
-
-**Latest (2025-11-15):**
-- Enhanced Error Handling & Network Infrastructure (CORE COMPLETE - 9/9 bugs fixed): Comprehensive error handling improvements
-  - ✅ Created `lib/utils/enhanced-fetch.ts` - Robust fetch utility with exponential backoff retry (3 attempts: 1s, 2s, 4s), timeout handling (10s default), request deduplication, and detailed error categorization (network, timeout, server, client, abort)
-  - ✅ Created `contexts/network-status-context.tsx` - Real-time online/offline detection, periodic server health checks (30s), connection quality monitoring (excellent/good/fair/poor), automatic toast notifications
-  - ✅ Updated `contexts/household-context.tsx` - Added initialization state (`initialized`), error state (`error`), retry function, enhanced fetch with retry logic, toast notifications with actionable retry buttons, fallback to cached preferences
-  - ✅ Updated `components/dashboard/recent-transactions.tsx` - Implemented 6-state loading system (initializing, household error, no household, data loading, data error, empty state), guard clauses prevent fetching before ready, comprehensive error states with retry buttons
-  - ✅ Updated `hooks/useWebVitals.ts` - Implemented circuit breaker pattern (stops after 3 failures for 60s), metric batching (max 1 request per 5s), offline detection, silent failure mode, development-only logging
-  - ✅ Updated `app/api/performance/metrics/route.ts` - Added batched metrics support (80-90% reduction in requests), always returns 200 (even on errors), graceful auth failures, non-blocking operation
-  - ✅ Updated `components/providers/session-activity-provider.tsx` - Added Page Visibility API integration (no pings when tab hidden), network status detection, timeout handling (5s abort signal), production-safe logging
-  - ⏳ Optional UI enhancements pending: Request queue for offline support, skeleton loading components, reusable error UI components, offline banner component, network status integration in root layout
-  - See `docs/fetch-error-handling-improvement-plan.md` for comprehensive implementation plan and remaining optional tasks
-
-**Previous (2025-11-14):**
-- Better Auth Authentication Bug Fixes (100% COMPLETE): Fixed widespread authentication issues after cookie integration
-  - ✅ Added `credentials: "include"` to 185 fetch calls across 82 files using automated script
-  - ✅ Fixed session ping endpoint (`/api/session/ping`) to parse `better-auth.session_data` cookie correctly
-  - ✅ Fixed Web Vitals hook to include credentials (removed sendBeacon, added credentials to fetch)
-  - ✅ Fixed performance metrics endpoint to gracefully handle unauthenticated requests
-  - ✅ Removed `imageUpdatedAt` field from auth schema (causing Better Auth schema mismatch)
-  - ✅ Fixed PWA manifest 404 error by removing non-existent screenshot references
-  - ✅ Added inline error display on sign-in page (shows "Incorrect email or password" in form)
-  - ✅ Created automated fix script: `scripts/fix-all-fetch.mjs` for bulk credential fixes
-- Better Auth Cookie Integration (100% COMPLETE): Initial session authentication and cookie handling
-  - ✅ Added `credentials: "include"` to Better Auth client configuration for cookie support
-  - ✅ Updated middleware to parse `better-auth.session_data` cookie (not `session_token`)
-  - ✅ Fixed TypeScript errors in email verification and user API routes
-  - ✅ Added missing tooltip UI component and Radix UI dependency
-  - ✅ Created user_settings record automatically for new users
-  - ✅ Fixed cookie security settings for localhost development (`useSecureCookies: false`)
-- Experimental Features System (100% COMPLETE): Complete feature gating system with 3 implemented features
-  - ✅ Quick Entry Mode: Press Q anywhere for rapid transaction entry modal with keyboard shortcuts
-  - ✅ Enhanced Search: Regex search toggle and save search button in Advanced Search
-  - ✅ Advanced Charts: Heatmap and Treemap visualizations in Reports page
-  - ✅ ExperimentalBadge component for marking experimental features
-  - ✅ FeatureGate component for conditional rendering
-  - ✅ Experimental Features Context provider with toggle in Advanced settings
-- GeoIP Location Lookup (100% COMPLETE): Session location display in Privacy & Security settings
-  - ✅ Added location fields (city, region, country, countryCode) to Better Auth session table
-  - ✅ Created GeoIP service module using ip-api.com (free tier, 45 req/min)
-  - ✅ Special case handling: localhost → "Local Device", private IPs → "Private Network"
-  - ✅ In-memory caching with 24-hour TTL for performance
-  - ✅ UI displays formatted location with country flag emoji and tooltip
-  - Migrations: `0039_add_session_location.sql`, `0040_add_session_location_better_auth.sql`
-- Import Preferences (100% COMPLETE): Default CSV import template selection in Data Management settings
-  - ✅ Database schema with `defaultImportTemplateId` in userSettings table
-  - ✅ API validation ensuring template belongs to user
-  - ✅ Data Management Tab UI with template selector and details display
-  - ✅ CSV Import Modal auto-loads default template settings
-  - Migration: `0041_add_default_import_template.sql`
-- Email Verification Flow (100% COMPLETE): Complete email verification system implemented
-  - ✅ Email service infrastructure with Resend (primary) and SMTP/Nodemailer (fallback for self-hosting)
-  - ✅ Email configuration utility with automatic provider selection (`lib/email/email-config.ts`)
-  - ✅ Email templates for verification, email change verification, and welcome emails
-  - ✅ Better Auth integration - sends verification emails during signup automatically
-  - ✅ Resend verification email API endpoint with rate limiting (max 3 requests per hour)
-  - ✅ ProfileTab UI with verification status banner and "Resend Verification Email" button
-  - ✅ Email change endpoint with verification flow - sends verification to new email before changing
-  - ✅ Email change verification callback handler (`/api/auth/verify-email-change`)
-  - ✅ Cancel pending email change endpoint (`/api/user/cancel-email-change`)
-  - ✅ Pending email change banner in ProfileTab with cancel option
-  - ✅ Email verification success page (`/email-verified`) with auto-redirect
-  - ✅ Verification guard utilities (server-side and client-side) for sensitive operations
-  - ✅ Applied verification guards to data export endpoint
-  - **Currently in "soft launch" mode** - emails sent but verification not enforced for login
-  - Migration: `0038_add_pending_email.sql` - Added `pendingEmail` field to user table
-- Session Timeout Enforcement (100% COMPLETE): Automatic logout after configurable inactivity period
-  - ✅ UI in Privacy & Security settings with 7 timeout options (15min-8hrs, or Never)
-  - ✅ Database schema with `lastActivityAt` and `rememberMe` fields on sessions
-  - ✅ Middleware validation checking absolute expiration and inactivity timeout
-  - ✅ Client-side activity tracking (mouse, keyboard, scroll, touch events)
-  - ✅ Remember Me option on sign-in page to bypass inactivity timeout
-  - ✅ Activity ping API endpoint with debounced updates (max 1/minute)
-  - ✅ Automatic redirect with reason (`?reason=timeout` or `?reason=expired`)
-  - ✅ All styling uses semantic theme variables
-- Developer Mode Feature (100% COMPLETE): Full debugging utility with developer tools
-  - ✅ Entity ID badges integrated into 8 pages (Transactions, Accounts, Bills, Categories, Merchants, Goals, Debts, Budgets)
-  - ✅ Copy-to-clipboard functionality with toast notifications
-  - ✅ DEV badge indicator in sidebar (visible in both expanded and collapsed states)
-  - ✅ Developer Tools Panel - Fixed bottom-right panel with user/household info, route display, debug data export, cache clearing
-  - ✅ All components use semantic theme variables for full theme integration
-  - ✅ Zero overhead when developer mode is disabled (conditional rendering)
-  - ✅ Fixed bug: Corrected `/api/goals` endpoint to `/api/savings-goals` in Advanced settings tab
-- Household Data Isolation Phase 1 (100% COMPLETE - 2025-11-14): Complete household isolation for core financial data - **PRODUCTION READY**
-  - ✅ Database schema updated - Added `household_id` to 6 tables (accounts, transactions, categories, merchants, transactionSplits, usageAnalytics) + 15 indexes
-  - ✅ **Migration APPLIED successfully** (`drizzle/0042_add_household_id_to_core_tables.sql`)
-    - ✅ All existing data backfilled with household assignments (0 NULL values)
-    - ✅ Database backup created (sqlite.db.backup-20251114-222210)
-    - ✅ 15+ indexes created and verified for optimal query performance
-  - ✅ Backend auth helpers (`lib/api/household-auth.ts`) - 5 utility functions for household validation
-  - ✅ Frontend fetch hook (`lib/hooks/use-household-fetch.ts`) - Household-aware HTTP methods
-  - ✅ **ALL Core Financial Data API endpoints updated (18 files):**
-    - ✅ Accounts API (2 files)
-    - ✅ Transactions API (12 files - CRUD, search, history, templates, splits, tags, duplicate detection, repeat, convert-to-transfer)
-    - ✅ Categories API (2 files - name uniqueness per-household, delete protection)
-    - ✅ Merchants API (2 files - name uniqueness per-household, delete protection, normalized names)
-  - ✅ **ALL Frontend components updated (20 files, ~35 fetch calls converted):**
-    - ✅ Pages (3): transactions, accounts, merchants
-    - ✅ Forms (1): transaction-form
-    - ✅ Selectors (3): category, merchant, account
-    - ✅ Modals (4): quick-transaction, templates-manager, convert-to-transfer, transfer-suggestions
-    - ✅ Lists (5): recent-transactions (both versions), transaction-history
-  - ✅ **Compilation:** 100% successful, server running without errors
-  - ✅ **What works:** Users can switch households and see isolated transactions, accounts, categories, and merchants
-  - See `docs/frontend-update-completion-report.md` for detailed frontend implementation report
-  - **Remaining for future phases:** Business logic (rules engine, bill matching), Phase 2-4 APIs (bills, budgets, debts, goals)
-- Household Data Isolation Phase 0 (100% COMPLETE - 2025-11-14): Three-tier settings architecture fully implemented and tested
-  - ✅ Phase 0.1: Database & Migration - Created `user_household_preferences` and `household_settings` tables with migrations
-  - ✅ Phase 0.2: API Endpoints - 6 new endpoints for managing user-per-household preferences and household settings with proper authorization
-  - ✅ Phase 0.3: UI Restructure - Redesigned settings page with 3-tier structure (User Settings / My Settings / Household Settings tabs)
-  - ✅ Phase 0.4: Theme & Notifications - Per-household theme and notification preferences with automatic switching
-  - ✅ Phase 0.5: Testing & Polish - 60 automated tests passing (100% success rate), comprehensive API and migration utility coverage
-  - See `docs/phase-0-implementation-progress.md` for detailed status
-- Household Favorite Feature (100% COMPLETE): Star/favorite households to pin them to top of sidebar
-- Household Settings Decoupling (100% COMPLETE): Sidebar dropdown and settings tabs operate independently
-- Household Sort by Join Date (100% COMPLETE): Households ordered chronologically by when user joined them
-
-**Previous (2025-11-14):**
-- Reset App Data (100% COMPLETE): Fully functional settings reset feature in Data Management tab
-  - Backend API endpoint (`/api/user/reset-app-data`) with password confirmation requirement
-  - Rate limiting: Max 3 resets per 24 hours per user
-  - Comprehensive UI with clear "what resets" vs "what stays safe" sections
-  - Resets: User settings, notification preferences, saved searches, import templates, cached data
-  - Preserves: All financial data (transactions, accounts, budgets, bills, goals, debts, tax records)
-  - Automatic logout after reset with 3-second countdown
-  - Client-side cache clearing (localStorage, sessionStorage, browser caches)
-- Household Tab Switching Fix (100% COMPLETE): Fixed household context management in settings
-  - Separated viewing household settings from switching active household
-  - Active household only changes from sidebar, not from settings page tabs
-  - Replaced nested Tabs component with custom button-based implementation
-  - Fixed React hydration mismatch error caused by nested Radix UI Tabs components
-- Avatar Upload (100% COMPLETE): Full profile picture upload system with display throughout app
-  - **Integrated everywhere:** UserMenu (sidebar + mobile nav), Activity Feed, Household Members list
-- Household Tab-Based UI (100% COMPLETE): Redesigned household settings from card-based selector to tab-based interface
-
-**Previous (2025-11-13):**
-- Notifications Tab (FULLY COMPLETE): Implemented granular notification channel selection system
-  - Per-notification-type delivery channels (push/email) with extendable architecture for future channels (SMS, Slack, Webhook)
-  - 9 notification types with independent channel preferences: Bill Reminders, Budget Warnings, Budget Exceeded, Budget Reviews, Low Balance, Savings Milestones, Debt Milestones, Weekly Summaries, Monthly Summaries
-  - Auto-save with optimistic UI updates and validation (requires at least one channel per notification)
-  - Database schema updated with JSON channel arrays stored per notification type
-  - API validation for channel arrays with extensible `VALID_CHANNELS` list
-  - Created migrations: `0028_add_budget_review_enabled.sql`, `0029_add_notification_channels.sql`
-- Settings Page (ALL 3 PHASES COMPLETE): Created comprehensive `/dashboard/settings` page with 9 tabs
-  - **Phase 1:** Profile (name, email, password), Preferences (currency, date, fiscal year), Financial (budget method, display options), Theme (moved from `/dashboard/theme`), Notifications (moved from `/dashboard/notifications`)
-  - **Phase 2:** Privacy & Security (session management with device detection, JSON/CSV data export, account deletion), Household (create/join households, invite members, role management)
-  - **Phase 3:** Data Management (retention policies, cache management), Advanced (developer mode, animations toggle, experimental features, app info, database statistics)
-  - Created 7 new API routes for sessions, data export, and account deletion
-  - Installed `ua-parser-js` for user agent parsing
-  - All components use semantic theme variables for full theme integration
-
-**Previous (2025-11-12):**
-- Bug #12: Reports Charts Dimension Warnings - Changed ResponsiveContainer to explicit `height={320}` in all chart components
-- Bug #11: Form Field ID/Name Attributes - Added id, name, aria-label to select dropdowns
-- Bug #10: Reports Page Chart Dimension Warnings - Added explicit height to ChartContainer
-- Bug #9: Budget Export Incorrect Values - Fixed transaction type query and calculations
-- Bug #8: Goals Page Console Errors - Fixed database schema mismatch
-- Bug #7: Budget Income Display Logic - Reversed status logic for income categories
-- Bug #6: Dialog Accessibility - Added DialogDescription to all 7 dialogs
-- Bugs #1-5: Savings Goals errors, Budget Summary auth, Bill Save performance, Budget Analytics chart
-
-**Recent Features:**
-- Session Timeout Enforcement: Configurable inactivity-based automatic logout (15min-8hrs or Never). Middleware validates sessions against database on every request, checks both absolute expiration and inactivity timeout. Client-side activity tracking with debounced server pings. Remember Me option on sign-in bypasses inactivity timeout. Migration added `lastActivityAt` and `rememberMe` fields to sessions table.
-- Notifications Tab: Granular per-notification-type channel selection (push/email) with auto-save, validation, and extendable architecture for future channels (SMS, Slack, Webhook). 9 notification types with independent delivery preferences.
-- Unified Settings Page: Comprehensive settings at `/dashboard/settings` with 3-tier structure (User Settings / My Settings / Household Settings). User Settings includes Profile, Privacy & Security, and Advanced. My Settings includes per-household Preferences, Financial, Theme, and Notifications. Household Settings includes shared Preferences, Financial, Data Management, and Members. Includes session management, data export (JSON/CSV), account deletion, household management, data retention policies, developer mode, and database statistics.
-- Transaction Save Performance: 65-75% faster via parallel queries, batch updates, database indexes
-- Income Frequency Tracking: Category-level frequency field (weekly/biweekly/monthly/variable)
-- Goals Dashboard Widget: Inline stat card showing overall progress
+**Household Data Isolation:**
+- **Phase 1 Complete:** `accounts`, `transactions`, `budgetCategories`, `merchants`, `transactionSplits`, `usageAnalytics` all have `household_id`
+- **Phase 2 Complete:** `bills`, `billInstances` have `household_id`
+- **Phase 3 Complete:** Goals & Debts API isolation
+- **Phase 4 Complete:** Business logic isolation (categorization rules, rule execution logs)
+- All queries must filter by `household_id` for household-scoped tables
+- Use `lib/api/household-auth.ts` helpers for validation
 
 ## Important Notes
 
@@ -398,6 +312,7 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 - Creates notifications when thresholds crossed
 
 ### Cron Jobs
+- Autopay processing (daily 6 AM UTC)
 - Bill reminders (daily 9 AM UTC)
 - Budget warnings (daily 9 AM UTC)
 - Low balance alerts (daily 8 AM UTC)
@@ -408,20 +323,49 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 See `docs/CRON_JOB_SETUP.md` for setup instructions.
 
 ### Never Do
-- ❌ Never use floating-point arithmetic for money (use Decimal.js)
-- ❌ Never commit without meaningful message
-- ❌ Never skip user authentication checks in API routes
-- ❌ Never start dev servers to leave running for user
-- ❌ Never use hardcoded colors (use CSS variables)
-- ❌ Never use emojis unless explicitly requested
+- Never use floating-point arithmetic for money (use Decimal.js)
+- Never commit without meaningful message
+- Never skip user authentication checks in API routes
+- Never start dev servers to leave running for user
+- Never use hardcoded colors (use CSS variables)
+- Never use emojis unless explicitly requested
+- Never create `middleware.ts` (use `proxy.ts` per Next.js 16 convention)
+- Never use `drizzle-kit generate` or `drizzle-kit migrate` (use `push` workflow)
 
 ### Always Do
-- ✅ Always use pnpm (not npm or yarn)
-- ✅ Always verify user owns data before returning
-- ✅ Always use Decimal.js for financial calculations
-- ✅ Always include toast notifications for user actions
-- ✅ Always use semantic color tokens (CSS variables)
-- ✅ Always commit meaningful changes
+- Always use pnpm (not npm or yarn)
+- Always verify user owns data before returning
+- Always use Decimal.js for financial calculations
+- Always include toast notifications for user actions
+- Always use semantic color tokens (CSS variables)
+- Always commit meaningful changes
+- Always use `drizzle-kit push` for schema changes
+
+## Bug Tracking Guidelines
+
+**File:** `docs/bugs.md`
+
+**Adding New Bugs:**
+- Add to the "New Bugs" section at the top of `bugs.md`
+- Format: `- **Bug Name** - Brief description of the issue`
+- Include file paths and line numbers when known
+
+**Working on Bugs:**
+- Move bug from "New Bugs" or "Active Bugs" to "In Progress"
+- Create implementation plan in `docs/` folder (e.g., `docs/bug-name-fix-plan.md`)
+- Reference the plan file location in the bug entry
+
+**Incomplete Tasks:**
+- Keep in "In Progress" section with status note
+- Document what remains unfinished
+- Reference the plan file for continuation
+
+**Completed Bugs:**
+1. Move to "Fixed Bugs" section with next sequential number
+2. Format: `N. **Bug Name** [FIXED YYYY-MM-DD] - 1-2 line description of the fix`
+3. Update metrics table (decrement Active Bugs, increment Fixed count)
+4. Delete the associated plan file from `docs/`
+5. Commit and push changes
 
 ## Development Commands
 ```bash
@@ -430,123 +374,59 @@ pnpm build                  # Build for production
 pnpm test                   # Run tests
 pnpm test:watch             # Watch mode for tests
 pnpm test:coverage          # Generate coverage report
-pnpm drizzle-kit generate   # Generate database migration
-pnpm drizzle-kit migrate    # Apply database migration
+pnpm drizzle-kit push       # Sync schema changes to database
+pnpm drizzle-kit studio     # Open Drizzle Studio (database GUI)
 ```
 
 ## Current Status
 **All core features implemented and working!**
 - ✅ Transaction management with splits, search, CSV import
-- ✅ Bill tracking with auto-detection
-- ✅ Budget tracking with real-time progress, templates
-- ✅ Savings goals and debt management with milestones
+- ✅ Bill tracking with auto-detection and autopay
+- ✅ Budget tracking with real-time progress, templates, debt integration
+- ✅ Savings goals and debt management with milestones and payoff strategies
 - ✅ Rules-based auto-categorization (14 operators, 11 actions)
 - ✅ Comprehensive notification system (10 types)
 - ✅ Tax and sales tax tracking with quarterly reporting
-- ✅ Financial reports (6 types, 7 chart types)
+- ✅ Financial reports (6 types, 7 chart types) with advanced filtering
 - ✅ Household collaboration with activity feed
 - ✅ Offline mode with automatic sync
 - ✅ PWA support for mobile app experience
-- ✅ Unified Settings Page (3-tier structure with User Settings, My Settings, and Household Settings tabs)
-- ✅ Avatar Upload (100% complete - upload, display, initials fallback throughout app)
-- ✅ Reset App Data (100% complete - settings reset with password confirmation and rate limiting)
-- ✅ Household Tab Switching Fix (100% complete - fixed context not updating, removed nested Tabs)
-- ✅ Household Favorite Feature (100% complete - star/favorite households to pin to top)
-- ✅ Developer Mode Feature (100% complete - entity ID badges, DEV indicator, developer tools panel)
-- ✅ Better Auth Cookie Integration (100% complete - fixed session authentication and cookie handling)
-- ✅ Experimental Features System (100% complete - Quick Entry, Enhanced Search, Advanced Charts)
-- ✅ GeoIP Location Lookup (100% complete - session location display with country flags)
-- ✅ Import Preferences (100% complete - default template selection in Data Management settings)
-- ✅ Household Data Isolation Phase 0 (100% complete - three-tier settings architecture fully tested)
-- ✅ **Household Data Isolation Phase 1 (100% COMPLETE - 2025-11-14) - PRODUCTION READY**
-- ✅ Enhanced Error Handling & Network Infrastructure (CORE COMPLETE - 9/9 bugs fixed, optional UI enhancements pending)
-- ✅ Testing complete (446 tests total: 386 original + 60 Phase 0.5, 100% unit coverage, 93% integration coverage)
-- ✅ All 23 tracked bugs fixed (100%)
+- ✅ Unified Settings Page (2-tier structure: Account/Households)
+- ✅ Testing: 590/590 passing (100%)
+- ✅ Enhanced Error Handling & Network Infrastructure (100% COMPLETE)
+- ✅ Household Data Isolation (100% COMPLETE - All phases 0-4)
+- ✅ All bugs fixed (85 total)
 
-**✅ Household Data Isolation Phase 1 - COMPLETE:**
-- ✅ Multi-household data is NOW fully isolated for core financial data (transactions, accounts, categories, merchants)
-- ✅ Database migration applied successfully - all data backfilled with household assignments
-- ✅ All 18 API endpoints updated and working with household isolation
-- ✅ All 20 frontend components updated (~35 fetch calls converted)
-- ✅ Users can switch between households and see completely isolated data
-- ✅ **What works:** Transactions, accounts, categories, merchants are fully household-isolated
-- ⏳ **Future Phases:** Bills, budgets, debts, goals (Phase 2-4), business logic updates
+## Household Data Isolation Status
 
-## Next Steps
+**✅ Phase 0 - COMPLETE:** Three-tier settings architecture fully implemented and tested
+**✅ Phase 1 - COMPLETE:** Core financial data isolation (transactions, accounts, categories, merchants) - PRODUCTION READY
+**✅ Phase 2 - COMPLETE:** Bills & Budgets API isolation - All 23 endpoints isolated, 13 frontend components updated
+**✅ Phase 3 - COMPLETE:** Goals & Debts API isolation - All 19 endpoints isolated, 20 frontend components updated
+**✅ Phase 4 - COMPLETE:** Business logic isolation - Rules engine, 6 API endpoints isolated, 4 frontend components updated
 
-### Household Data Isolation - Future Phases
-**Status:** Phase 0 - ✅ Complete | Phase 1 - ✅ Complete | Phases 2-4 - Not Started
-**Estimated Remaining Effort:** 3-6 days (Phases 2-4)
-**Last Updated:** 2025-11-14
+**What works:** Users can switch between households and see fully isolated transactions, accounts, categories, merchants, bills, budgets, goals, debts, and categorization rules. Rules engine filters by household. All API endpoints are updated for household isolation.
 
-The multi-household feature is being implemented in phases. **Phases 0 and 1 are complete and production-ready!** Users can now switch between households and see fully isolated transactions, accounts, categories, and merchants.
+## Recent Major Features
 
-**Completed:**
-- ✅ Phase 0: Three-tier settings architecture (60 automated tests)
-- ✅ Phase 1: Core financial data isolation (transactions, accounts, categories, merchants)
+**Latest (2025-12-04):**
+- **Unified Debt, Bill & Credit Card Architecture** (ALL 19 PHASES COMPLETE)
+  - Major refactor unifying credit cards, lines of credit, and debt bills into a single financial obligation tracking system
+  - Key features: Enhanced schemas, account/bill forms, autopay system, budget integration with debt strategy toggle, payoff strategies (snowball/avalanche), calendar integration, notifications (utilization warnings, milestones), tax integration (interest deductions), CSV import improvements, dashboard widgets, balance history/trends, category simplification (3 types), recurring income tracking, budget rollover, savings goals integration, bill classification & subscription management
 
-**Remaining:**
-- ⏳ Phase 2: Bills & Budgets API isolation
-- ⏳ Phase 3: Goals & Debts API isolation
-- ⏳ Phase 4: Business logic updates (rules engine, bill matching, usage analytics)
+**Previous:**
+- Sales Tax Exemption for Transactions - Mark income transactions as tax exempt
+- Category-to-Tax-Category Mapping UI - Link budget categories to IRS tax categories
+- Business Features Visibility - Tax pages hidden unless business account exists
+- Debt Budget Integration - Debts appear in budgeting with auto-populated payments
+- 12-Month Annual Bill Planning Grid - Year-at-a-glance view for non-monthly bills
+- Budget Summary Dashboard - High-level overview with donut chart and trends
+- Reports Advanced Filtering & Custom Date Range
+- Admin User Management
+- Onboarding Flow (9-step wizard)
+- Two-Factor Authentication (2FA)
+- Advanced Permission System
+- OAuth Provider Management (Google, GitHub)
+- Auto-Backup Settings
 
-**Implementation Plans:**
-- `docs/household-data-isolation-plan.md` - Overview of all phases
-- `docs/frontend-update-completion-report.md` - Phase 1 frontend implementation report
-- `docs/household-data-isolation-plan.md` - Phases 1-4 overview
-
-**Phase 0: Settings Reorganization** (100% COMPLETE - 2025-11-14)
-- ✅ Phase 0.1: Database & Migration - Tables created, data migrated
-- ✅ Phase 0.2: API Endpoints - 6 new endpoints with authorization
-- ✅ Phase 0.3: UI Restructure - 3-tier settings page
-- ✅ Phase 0.4: Theme & Notifications - Per-household preferences
-- ✅ Phase 0.5: Testing & Polish - 60 automated tests (100% passing)
-
-**Phase 1: Core Financial Data Isolation** (48% COMPLETE - In Progress 2025-11-14)
-- ✅ Database schema updates (6 tables: accounts, transactions, budgetCategories, merchants, transactionSplits, usageAnalytics)
-- ✅ Migration file created (`drizzle/0042_add_household_id_to_core_tables.sql`) - NOT YET APPLIED
-- ✅ Backend auth helpers (`lib/api/household-auth.ts`) - 5 utility functions
-- ✅ Frontend fetch hook (`lib/hooks/use-household-fetch.ts`) - Household-aware HTTP methods
-- ✅ Accounts API endpoints updated (4 endpoints: GET, POST, PUT, DELETE)
-- ✅ Transactions API endpoints complete (10 endpoints: main CRUD, search, history, templates, splits, tags, duplicate detection, repeat, convert-to-transfer)
-- ⏳ Remaining: 11 API endpoints (4 categories, 4 merchants, 3 dashboard), 20 frontend components, business logic, tests, migration application
-
-**Phases 1-4: Data Isolation** (5-9 days - NOT STARTED)
-- Add `household_id` to 20+ tables
-- Migrate existing data to user's first household
-- Update 90+ API endpoints to filter by household
-- Update 50+ components to pass household context
-- Add security checks to prevent cross-household access
-
-### Enhanced Error Handling - Optional UI Enhancements
-**Status:** Core fixes complete (9/9 bugs), optional UI pending
-**Estimated Effort:** 2-3 hours (optional polish)
-**Last Updated:** 2025-11-15
-**Plan:** `docs/fetch-error-handling-improvement-plan.md`
-
-**Core work complete:**
-- ✅ Enhanced fetch utility with retry logic
-- ✅ Network status context with health checks
-- ✅ All component error handling improved
-- ✅ Circuit breakers and batching implemented
-
-**Optional UI enhancements (not required for functionality):**
-- ⏳ Request queue for offline support (already have basic offline detection)
-- ⏳ Skeleton loading components (currently using simple loading states)
-- ⏳ Reusable error UI components (currently inline error states)
-- ⏳ Offline banner component (currently using toast notifications)
-- ⏳ Network status integration in root layout (currently per-component)
-
-### Other Next Steps
-1. ✅ **Authentication Migration** - Complete
-2. ✅ **Settings Page** - Complete
-3. ✅ **Avatar Upload** - Complete
-4. ✅ **Household Favorite Feature** - Complete
-5. ✅ **Developer Mode Feature** - Complete
-6. ✅ **Household Data Isolation Phase 0** - Complete (60 tests, 100% passing)
-7. ✅ **Enhanced Error Handling** - Core complete (9/9 bugs fixed, optional UI pending)
-8. ⏳ **Household Data Isolation Phases 1-4** - Not started (5-9 days)
-9. ⏳ Fix 2 date handling edge cases in transfer matching tests (optional)
-10. Docker configuration for deployment
-11. Performance optimizations as needed
-12. User feedback and iterations
+For detailed bug tracking, see `docs/bugs.md`.

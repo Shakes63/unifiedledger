@@ -118,6 +118,15 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate type
+    const validTypes = ['income', 'expense', 'savings'];
+    if (!validTypes.includes(type)) {
+      return Response.json(
+        { error: 'Invalid category type. Must be income, expense, or savings' },
+        { status: 400 }
+      );
+    }
+
     // Validate budget group constraints
     if (isBudgetGroup && parentId) {
       return Response.json(
@@ -150,6 +159,13 @@ export async function POST(request: Request) {
       if (!parentCategory[0].isBudgetGroup) {
         return Response.json(
           { error: 'Parent must be a budget group' },
+          { status: 400 }
+        );
+      }
+
+      if (parentCategory[0].type !== type) {
+        return Response.json(
+          { error: 'Parent category type must match category type' },
           { status: 400 }
         );
       }

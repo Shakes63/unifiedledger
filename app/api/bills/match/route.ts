@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, bills, billInstances } from '@/lib/db/schema';
-import { eq, and, desc, gte, lte, inArray, asc, sql } from 'drizzle-orm';
+import { eq, and, desc, gte, lte, inArray, asc, sql, isNull } from 'drizzle-orm';
 import { findMatchingBills, BillMatch } from '@/lib/bills/bill-matcher';
 
 export const dynamic = 'force-dynamic';
@@ -236,8 +236,8 @@ export async function GET(request: Request) {
         and(
           eq(transactions.userId, userId),
           eq(transactions.householdId, householdId),
-          eq(transactions.type, 'expense')
-          // billId is null - unmatched
+          eq(transactions.type, 'expense'),
+          isNull(transactions.billId)
         )
       )
       .orderBy(desc(transactions.date))

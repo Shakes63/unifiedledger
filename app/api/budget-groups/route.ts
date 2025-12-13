@@ -353,6 +353,8 @@ export async function PUT(request: Request) {
           );
         }
 
+        const groupType = group[0].type;
+
         // Verify all categories exist and belong to user
         const categories = await db
           .select()
@@ -365,13 +367,21 @@ export async function PUT(request: Request) {
             )
           );
 
-        const validCategoryIds = categories
-          .filter(cat => categoryIds.includes(cat.id))
-          .map(cat => cat.id);
+        const selectedCategories = categories.filter(cat => categoryIds.includes(cat.id));
+        const validCategoryIds = selectedCategories.map(cat => cat.id);
 
         if (validCategoryIds.length !== categoryIds.length) {
           return Response.json(
             { error: 'Some category IDs are invalid' },
+            { status: 400 }
+          );
+        }
+
+        // Enforce same-type grouping (prevents cross-type subcategories)
+        const invalidType = selectedCategories.filter(cat => cat.type !== groupType);
+        if (invalidType.length > 0) {
+          return Response.json(
+            { error: 'All assigned categories must match the group type' },
             { status: 400 }
           );
         }

@@ -160,7 +160,11 @@ export function CategoryForm({
           <Select 
             value={formData.type} 
             onValueChange={(value) => {
-              handleSelectChange('type', value);
+              setFormData(prev => ({
+                ...prev,
+                type: value,
+                ...(isParentCategory ? {} : { parentId: '' }),
+              }));
               if (errors.type) setErrors(prev => ({ ...prev, type: '' }));
             }}
           >

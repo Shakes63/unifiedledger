@@ -4,6 +4,7 @@ import { accountBalanceHistory, accounts } from '@/lib/db/schema';
 import { eq, and, gte, inArray, desc } from 'drizzle-orm';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import Decimal from 'decimal.js';
+import { format, startOfDay, subDays } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,8 +38,10 @@ export async function GET(request: Request) {
     const accountId = searchParams.get('accountId'); // optional - filter to single account
 
     // Calculate start date
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    const endDate = startOfDay(new Date());
+    const startDate = subDays(endDate, days);
+    const startDateStr = format(startDate, 'yyyy-MM-dd');
+    const endDateStr = format(endDate, 'yyyy-MM-dd');
 
     // Get credit accounts for name lookup
     const creditAccounts = await db
@@ -66,7 +69,7 @@ export async function GET(request: Request) {
     // Build query conditions
     const conditions = [
       eq(accountBalanceHistory.householdId, householdId),
-      gte(accountBalanceHistory.snapshotDate, startDate.toISOString().split('T')[0]),
+      gte(accountBalanceHistory.snapshotDate, startDateStr),
     ];
 
     if (accountId && accountIds.includes(accountId)) {
@@ -134,7 +137,7 @@ export async function GET(request: Request) {
           )
         );
 
-      const today = new Date().toISOString().split('T')[0];
+      const today = endDateStr;
       let totalBalance = 0;
       let totalLimit = 0;
 
@@ -160,8 +163,8 @@ export async function GET(request: Request) {
       aggregated: aggregatedData,
       accounts: creditAccounts.map(a => ({ id: a.id, name: a.name })),
       dateRange: {
-        start: startDate.toISOString().split('T')[0],
-        end: new Date().toISOString().split('T')[0],
+        start: startDateStr,
+        end: endDateStr,
         days,
       },
     });
@@ -179,4 +182,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

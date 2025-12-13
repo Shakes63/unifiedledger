@@ -7,8 +7,14 @@ import { sendVerificationEmail } from "@/lib/email/email-service";
 // import { lookupLocation } from "@/lib/geoip/geoip-service";
 // import { eq } from "drizzle-orm";
 import { genericOAuth } from "better-auth/plugins/generic-oauth";
-// OAuth settings from database - currently using env vars instead
-// import { loadOAuthSettingsFromDatabase } from "@/lib/auth/load-oauth-settings";
+import { loadOAuthSettingsFromDatabase } from "@/lib/auth/load-oauth-settings";
+
+const dbOAuthSettings = await loadOAuthSettingsFromDatabase().catch(() => null);
+
+const googleClientId = dbOAuthSettings?.google?.clientId || process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = dbOAuthSettings?.google?.clientSecret || process.env.GOOGLE_CLIENT_SECRET;
+const githubClientId = dbOAuthSettings?.github?.clientId || process.env.GITHUB_CLIENT_ID;
+const githubClientSecret = dbOAuthSettings?.github?.clientSecret || process.env.GITHUB_CLIENT_SECRET;
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -96,15 +102,14 @@ export const auth = betterAuth({
   plugins: [
     genericOAuth({
       config: [
-        // Google OAuth - Use environment variables
-        // Note: Database OAuth settings require server restart to take effect
-        // See lib/auth/load-oauth-settings.ts for database loading logic
-        ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+        // Google OAuth - Use database settings (fallback to env vars).
+        // Note: Changing DB settings requires a server restart to take effect.
+        ...(googleClientId && googleClientSecret
           ? [
               {
                 providerId: "google",
-                clientId: process.env.GOOGLE_CLIENT_ID,
-                clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+                clientId: googleClientId,
+                clientSecret: googleClientSecret,
                 authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth",
                 tokenUrl: "https://oauth2.googleapis.com/token",
                 userInfoUrl: "https://www.googleapis.com/oauth2/v2/userinfo",
@@ -125,13 +130,13 @@ export const auth = betterAuth({
               },
             ]
           : []),
-        // GitHub OAuth - Use environment variables
-        ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
+        // GitHub OAuth - Use database settings (fallback to env vars).
+        ...(githubClientId && githubClientSecret
           ? [
               {
                 providerId: "github",
-                clientId: process.env.GITHUB_CLIENT_ID,
-                clientSecret: process.env.GITHUB_CLIENT_SECRET,
+                clientId: githubClientId,
+                clientSecret: githubClientSecret,
                 authorizationUrl: "https://github.com/login/oauth/authorize",
                 tokenUrl: "https://github.com/login/oauth/access_token",
                 userInfoUrl: "https://api.github.com/user",

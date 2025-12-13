@@ -14,6 +14,7 @@ import {
 import { ChartContainer } from './chart-container';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { parseISO } from 'date-fns';
 
 interface AccountInfo {
   id: string;
@@ -46,7 +47,7 @@ function CustomTooltip({
   return (
     <div className="bg-elevated border border-border rounded-lg p-3 shadow-lg min-w-[200px]">
       <p className="text-sm text-muted-foreground mb-2">
-        {new Date(label || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        {label ? parseISO(label).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
       </p>
       
       <div className="space-y-1 mb-2">
@@ -117,8 +118,7 @@ export function BalanceHistoryChart({ className = '' }: BalanceHistoryChartProps
 
   // Format date for x-axis
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return parseISO(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   // Format currency for y-axis
@@ -285,4 +285,3 @@ export function BalanceHistoryChart({ className = '' }: BalanceHistoryChartProps
     </ChartContainer>
   );
 }
-

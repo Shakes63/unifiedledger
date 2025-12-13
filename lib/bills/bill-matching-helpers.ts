@@ -1,20 +1,21 @@
 import { db } from '@/lib/db';
 import { bills, billInstances } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
+import { parseISO } from 'date-fns';
 import { findMatchingBills, BillForMatching, TransactionForMatching } from './bill-matcher';
 
 /**
  * Extract day of month from ISO date string (1-31)
  */
 function extractDayOfMonth(isoDate: string): number {
-  return new Date(isoDate).getDate();
+  return parseISO(isoDate).getDate();
 }
 
 /**
  * Extract day of week from ISO date string (0 = Sunday, 6 = Saturday)
  */
 function extractDayOfWeek(isoDate: string): number {
-  return new Date(isoDate).getDay();
+  return parseISO(isoDate).getDay();
 }
 
 /**
@@ -204,4 +205,3 @@ export async function findMatchingBillInstance(
     return null;
   }
 }
-

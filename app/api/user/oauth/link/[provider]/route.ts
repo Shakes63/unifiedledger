@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { isOAuthLoginProviderConfigured } from '@/lib/auth/oauth-provider-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,20 +28,9 @@ export async function POST(
       );
     }
 
-    // Check if provider is configured
-    const envVarMap: Record<string, { id: string; secret: string }> = {
-      google: {
-        id: process.env.GOOGLE_CLIENT_ID || '',
-        secret: process.env.GOOGLE_CLIENT_SECRET || '',
-      },
-      github: {
-        id: process.env.GITHUB_CLIENT_ID || '',
-        secret: process.env.GITHUB_CLIENT_SECRET || '',
-      },
-    };
-
-    const providerConfig = envVarMap[provider];
-    if (!providerConfig.id || !providerConfig.secret) {
+    // Check if provider is configured (env vars or DB settings)
+    const configured = await isOAuthLoginProviderConfigured(provider as 'google' | 'github');
+    if (!configured) {
       return NextResponse.json(
         { error: `${provider} OAuth is not configured` },
         { status: 400 }
@@ -64,4 +54,3 @@ export async function POST(
     );
   }
 }
-

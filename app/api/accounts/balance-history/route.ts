@@ -4,6 +4,7 @@ import { accountBalanceHistory, accounts } from '@/lib/db/schema';
 import { eq, and, gte, inArray } from 'drizzle-orm';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import Decimal from 'decimal.js';
+import { format, startOfDay, subDays } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,8 +39,10 @@ export async function GET(request: Request) {
     const accountType = searchParams.get('type'); // 'credit' | 'line_of_credit' | 'all' | null
 
     // Calculate start date
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    const endDate = startOfDay(new Date());
+    const startDate = subDays(endDate, days);
+    const startDateStr = format(startDate, 'yyyy-MM-dd');
+    const endDateStr = format(endDate, 'yyyy-MM-dd');
 
     // Build account type filter
     type AccountType = 'checking' | 'savings' | 'credit' | 'line_of_credit' | 'investment' | 'cash';
@@ -67,8 +70,19 @@ export async function GET(request: Request) {
         )
       );
 
+    // Disambiguate duplicate account names so chart keys don't collide
+    const nameCounts = new Map<string, number>();
+    for (const acc of creditAccounts) {
+      nameCounts.set(acc.name, (nameCounts.get(acc.name) || 0) + 1);
+    }
+    const accountDisplayName = new Map<string, string>();
+    for (const acc of creditAccounts) {
+      const count = nameCounts.get(acc.name) || 0;
+      accountDisplayName.set(acc.id, count > 1 ? `${acc.name} (${acc.id.slice(0, 4)})` : acc.name);
+    }
+
     const accountMetaMap = new Map(creditAccounts.map(a => [a.id, { 
-      name: a.name, 
+      name: accountDisplayName.get(a.id) || a.name, 
       color: a.color || '#ef4444',
       creditLimit: a.creditLimit || 0,
       currentBalance: a.currentBalance || 0,
@@ -87,7 +101,7 @@ export async function GET(request: Request) {
     // Build query conditions
     const conditions = [
       eq(accountBalanceHistory.householdId, householdId),
-      gte(accountBalanceHistory.snapshotDate, startDate.toISOString().split('T')[0]),
+      gte(accountBalanceHistory.snapshotDate, startDateStr),
     ];
 
     if (accountId && accountIds.includes(accountId)) {
@@ -152,7 +166,7 @@ export async function GET(request: Request) {
 
     // If no historical data, generate current snapshot
     if (aggregatedData.length === 0) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = endDateStr;
       const point: { date: string; total: number; [key: string]: string | number } = { 
         date: today, 
         total: 0 
@@ -172,12 +186,12 @@ export async function GET(request: Request) {
       aggregated: aggregatedData,
       accounts: creditAccounts.map(a => ({ 
         id: a.id, 
-        name: a.name, 
+        name: accountDisplayName.get(a.id) || a.name, 
         color: a.color || '#ef4444',
       })),
       dateRange: {
-        start: startDate.toISOString().split('T')[0],
-        end: new Date().toISOString().split('T')[0],
+        start: startDateStr,
+        end: endDateStr,
         days,
       },
     });
@@ -195,4 +209,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

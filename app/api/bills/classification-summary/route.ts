@@ -4,7 +4,7 @@ import { bills, billInstances } from '@/lib/db/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { CLASSIFICATION_META, type BillClassification } from '@/lib/bills/bill-classification';
-import { addDays, startOfDay } from 'date-fns';
+import { addDays, startOfDay, format } from 'date-fns';
 import { requireAuth } from '@/lib/auth-helpers';
 import { isTestMode, TEST_USER_ID, TEST_HOUSEHOLD_ID, logTestModeWarning } from '@/lib/test-mode';
 
@@ -98,6 +98,8 @@ export async function GET(request: NextRequest) {
     // Get upcoming bill instances (next 30 days)
     const today = startOfDay(new Date());
     const thirtyDaysFromNow = addDays(today, 30);
+    const todayStr = format(today, 'yyyy-MM-dd');
+    const thirtyDaysFromNowStr = format(thirtyDaysFromNow, 'yyyy-MM-dd');
 
     const upcomingInstances = await db
       .select({
@@ -111,8 +113,8 @@ export async function GET(request: NextRequest) {
         and(
           eq(bills.householdId, householdId),
           eq(billInstances.status, 'pending'),
-          gte(billInstances.dueDate, today.toISOString().split('T')[0]),
-          lte(billInstances.dueDate, thirtyDaysFromNow.toISOString().split('T')[0])
+          gte(billInstances.dueDate, todayStr),
+          lte(billInstances.dueDate, thirtyDaysFromNowStr)
         )
       );
 
@@ -194,4 +196,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

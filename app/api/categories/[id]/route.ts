@@ -29,7 +29,18 @@ export async function PUT(
       );
     }
 
-    const { name, monthlyBudget, dueDate, isTaxDeductible, isBusinessCategory, incomeFrequency, parentId, isBudgetGroup, targetAllocation } = body;
+    const {
+      name,
+      type,
+      monthlyBudget,
+      dueDate,
+      isTaxDeductible,
+      isBusinessCategory,
+      incomeFrequency,
+      parentId,
+      isBudgetGroup,
+      targetAllocation,
+    } = body;
 
     // Verify category belongs to user AND household
     const category = await db
@@ -51,8 +62,30 @@ export async function PUT(
       );
     }
 
+    const current = category[0];
+    const nextType: string = type ?? current.type;
+    const nextIsBudgetGroup: boolean = isBudgetGroup ?? current.isBudgetGroup;
+
+    // Budget groups cannot have parents (prevent nesting/cycles)
+    if (nextIsBudgetGroup) {
+      if (parentId !== undefined && parentId !== null && parentId !== '') {
+        return Response.json(
+          { error: 'Budget groups cannot have a parent' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Prevent self-parenting cycles
+      if (parentId !== undefined && parentId === id) {
+        return Response.json(
+          { error: 'A category cannot be its own parent' },
+          { status: 400 }
+        );
+      }
+    }
+
     // If updating name, check for duplicates in household
-    if (name && name !== category[0].name) {
+    if (name && name !== current.name) {
       const existing = await db
         .select()
         .from(budgetCategories)
@@ -68,6 +101,17 @@ export async function PUT(
       if (existing && existing.length > 0) {
         return Response.json(
           { error: 'Category with this name already exists in household' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate type if provided
+    if (type) {
+      const validTypes = ['income', 'expense', 'savings'];
+      if (!validTypes.includes(type)) {
+        return Response.json(
+          { error: 'Invalid category type. Must be income, expense, or savings' },
           { status: 400 }
         );
       }
@@ -105,20 +149,52 @@ export async function PUT(
           { status: 400 }
         );
       }
+
+      // Parent/child type must match (prevents cross-type groupings)
+      if (parent[0].type !== nextType) {
+        return Response.json(
+          { error: 'Parent category type must match category type' },
+          { status: 400 }
+        );
+      }
+    } else if (type && current.parentId) {
+      // If type changes and parentId isn't explicitly cleared, verify existing parent still matches
+      const parent = await db
+        .select({ id: budgetCategories.id, type: budgetCategories.type })
+        .from(budgetCategories)
+        .where(
+          and(
+            eq(budgetCategories.id, current.parentId),
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId),
+            eq(budgetCategories.isBudgetGroup, true)
+          )
+        )
+        .limit(1);
+
+      if (parent.length && parent[0].type !== nextType) {
+        return Response.json(
+          { error: 'Category type changed; clear parent category or select a matching parent' },
+          { status: 400 }
+        );
+      }
     }
 
     // Update the category
     await db.update(budgetCategories)
       .set({
-        name: name || category[0].name,
-        monthlyBudget: monthlyBudget ?? category[0].monthlyBudget,
-        dueDate: dueDate !== undefined ? dueDate : category[0].dueDate,
-        isTaxDeductible: isTaxDeductible !== undefined ? isTaxDeductible : category[0].isTaxDeductible,
-        isBusinessCategory: isBusinessCategory !== undefined ? isBusinessCategory : category[0].isBusinessCategory,
-        incomeFrequency: incomeFrequency !== undefined ? incomeFrequency : category[0].incomeFrequency,
-        parentId: parentId !== undefined ? (parentId === '' ? null : parentId) : category[0].parentId,
-        isBudgetGroup: isBudgetGroup !== undefined ? isBudgetGroup : category[0].isBudgetGroup,
-        targetAllocation: targetAllocation !== undefined ? targetAllocation : category[0].targetAllocation,
+        name: name || current.name,
+        type: nextType,
+        monthlyBudget: monthlyBudget ?? current.monthlyBudget,
+        dueDate: dueDate !== undefined ? dueDate : current.dueDate,
+        isTaxDeductible: isTaxDeductible !== undefined ? isTaxDeductible : current.isTaxDeductible,
+        isBusinessCategory: isBusinessCategory !== undefined ? isBusinessCategory : current.isBusinessCategory,
+        incomeFrequency: incomeFrequency !== undefined ? incomeFrequency : current.incomeFrequency,
+        parentId: nextIsBudgetGroup
+          ? null
+          : (parentId !== undefined ? (parentId === '' ? null : parentId) : current.parentId),
+        isBudgetGroup: nextIsBudgetGroup,
+        targetAllocation: targetAllocation !== undefined ? targetAllocation : current.targetAllocation,
       })
       .where(eq(budgetCategories.id, id));
 

@@ -15,6 +15,7 @@ import { transactions, accounts, budgetCategories } from '@/lib/db/schema';
 import { eq, and, gte, lte, inArray, or, like, sql } from 'drizzle-orm';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import Decimal from 'decimal.js';
+import { format, startOfDay, subDays } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,11 +92,10 @@ export async function GET(request: Request) {
     const accountId = searchParams.get('accountId'); // optional - filter to single account
 
     // Calculate date range
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-    const startDateStr = startDate.toISOString().split('T')[0];
-    const endDateStr = endDate.toISOString().split('T')[0];
+    const endDate = startOfDay(new Date());
+    const startDate = subDays(endDate, days);
+    const startDateStr = format(startDate, 'yyyy-MM-dd');
+    const endDateStr = format(endDate, 'yyyy-MM-dd');
 
     // YTD calculation
     const currentYear = new Date().getFullYear();
@@ -129,8 +129,19 @@ export async function GET(request: Request) {
       });
     }
 
+    // Disambiguate duplicate account names so monthly keys don't collide
+    const nameCounts = new Map<string, number>();
+    for (const acc of creditAccountsQuery) {
+      nameCounts.set(acc.name, (nameCounts.get(acc.name) || 0) + 1);
+    }
+    const accountDisplayName = new Map<string, string>();
+    for (const acc of creditAccountsQuery) {
+      const count = nameCounts.get(acc.name) || 0;
+      accountDisplayName.set(acc.id, count > 1 ? `${acc.name} (${acc.id.slice(0, 4)})` : acc.name);
+    }
+
     const accountMap = new Map(creditAccountsQuery.map(a => [a.id, {
-      name: a.name,
+      name: accountDisplayName.get(a.id) || a.name,
       color: a.color || '#ef4444',
       interestRate: a.interestRate,
     }]));
@@ -312,4 +323,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { AlertCircle, Plus, X, ChevronDown, ChevronUp, CreditCard, Landmark, Info, DollarSign, ArrowDownCircle, ArrowUpCircle, Sparkles, Check } from 'lucide-react';
+import { parseISO } from 'date-fns';
 import {
   FREQUENCY_LABELS,
   DAY_OF_WEEK_OPTIONS,
@@ -26,11 +27,13 @@ import {
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { MerchantSelector } from '@/components/transactions/merchant-selector';
-import { 
-  suggestClassification, 
-  type ClassificationSuggestion, 
+import {
+  suggestClassification,
+  type ClassificationSuggestion,
+  type BillClassification,
   CLASSIFICATION_META,
-  formatSubcategory 
+  formatSubcategory,
+  getSubcategories
 } from '@/lib/bills/bill-classification';
 
 // Bill type options
@@ -189,7 +192,8 @@ export function BillForm({
     // Bill classification
     billType: bill?.billType || 'expense',
     billClassification: bill?.billClassification || 'other',
-    
+    classificationSubcategory: bill?.classificationSubcategory || null,
+
     // Account linking
     linkedAccountId: bill?.linkedAccountId || '',
     amountSource: bill?.amountSource || 'fixed',
@@ -278,9 +282,13 @@ export function BillForm({
       setFormData(prev => ({
         ...prev,
         billClassification: classificationSuggestion.classification,
+        classificationSubcategory: classificationSuggestion.subcategory,
       }));
       setClassificationSuggestion(null);
-      toast.success(`Classification set to ${CLASSIFICATION_META[classificationSuggestion.classification].label}`);
+      const subcategoryText = classificationSuggestion.subcategory
+        ? ` (${formatSubcategory(classificationSuggestion.subcategory)})`
+        : '';
+      toast.success(`Classification set to ${CLASSIFICATION_META[classificationSuggestion.classification].label}${subcategoryText}`);
     }
   }, [classificationSuggestion]);
 
@@ -481,7 +489,7 @@ export function BillForm({
         newErrors.specificDueDate = 'Due date is required for one-time bills';
       } else {
         // Validate date is not in the past
-        const selectedDate = new Date(formData.specificDueDate);
+        const selectedDate = parseISO(formData.specificDueDate);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         selectedDate.setHours(0, 0, 0, 0);
@@ -549,7 +557,8 @@ export function BillForm({
       // Bill classification
       billType: formData.billType as 'expense' | 'income' | 'savings_transfer',
       billClassification: formData.billClassification as 'subscription' | 'utility' | 'housing' | 'insurance' | 'loan_payment' | 'membership' | 'service' | 'other',
-      
+      classificationSubcategory: formData.classificationSubcategory || null,
+
       // Account linking
       linkedAccountId: formData.linkedAccountId || null,
       amountSource: formData.linkedAccountId ? formData.amountSource as 'fixed' | 'minimum_payment' | 'statement_balance' | 'full_balance' : 'fixed',
@@ -617,6 +626,7 @@ export function BillForm({
         notes: '',
         billType: 'expense',
         billClassification: 'other',
+        classificationSubcategory: null,
         linkedAccountId: '',
         amountSource: 'fixed',
         chargedToAccountId: '',
@@ -1097,30 +1107,64 @@ export function BillForm({
       </div>
 
       {/* Bill Classification */}
-      <div className="p-4 bg-card rounded-lg border border-border">
-        <Label className="text-muted-foreground text-sm mb-2 block">
-          {isIncomeBill ? 'Income Classification' : 'Bill Classification'}
-        </Label>
-        <Select 
-          value={formData.billClassification} 
-          onValueChange={(value) => handleSelectChange('billClassification', value)}
-        >
-          <SelectTrigger className="bg-elevated border-border text-foreground">
-            <SelectValue placeholder="Select classification" />
-          </SelectTrigger>
-          <SelectContent className="bg-card border-border">
-            {classificationOptions.map((option) => (
-              <SelectItem key={option.value} value={option.value} className="text-foreground">
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground mt-1">
-          {isIncomeBill 
-            ? 'Helps organize income sources and track expected vs actual'
-            : 'Helps organize bills and provides better reports'}
-        </p>
+      <div className="p-4 bg-card rounded-lg border border-border space-y-4">
+        <div>
+          <Label className="text-muted-foreground text-sm mb-2 block">
+            {isIncomeBill ? 'Income Classification' : 'Bill Classification'}
+          </Label>
+          <Select
+            value={formData.billClassification}
+            onValueChange={(value) => {
+              handleSelectChange('billClassification', value);
+              // Clear subcategory when classification changes
+              setFormData(prev => ({ ...prev, classificationSubcategory: null }));
+            }}
+          >
+            <SelectTrigger className="bg-elevated border-border text-foreground">
+              <SelectValue placeholder="Select classification" />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border">
+              {classificationOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value} className="text-foreground">
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isIncomeBill
+              ? 'Helps organize income sources and track expected vs actual'
+              : 'Helps organize bills and provides better reports'}
+          </p>
+        </div>
+
+        {/* Subcategory - only show for expense bills with subcategories */}
+        {!isIncomeBill && getSubcategories(formData.billClassification as BillClassification).length > 0 && (
+          <div>
+            <Label className="text-muted-foreground text-sm mb-2 block">
+              Subcategory (Optional)
+            </Label>
+            <Select
+              value={formData.classificationSubcategory || 'none'}
+              onValueChange={(value) => handleSelectChange('classificationSubcategory', value === 'none' ? '' : value)}
+            >
+              <SelectTrigger className="bg-elevated border-border text-foreground">
+                <SelectValue placeholder="Select subcategory" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="none" className="text-foreground">None</SelectItem>
+                {getSubcategories(formData.billClassification as BillClassification).map((subcategory) => (
+                  <SelectItem key={subcategory} value={subcategory} className="text-foreground">
+                    {formatSubcategory(subcategory)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Further categorize this bill for better organization
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Budget Period Assignment - only show if more than 1 period per month */}

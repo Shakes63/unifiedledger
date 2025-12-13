@@ -3,7 +3,7 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { billInstances, bills, accounts } from '@/lib/db/schema';
 import { eq, and, asc, inArray, lt, gte, or } from 'drizzle-orm';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, parseISO } from 'date-fns';
 import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
@@ -79,10 +79,10 @@ export async function GET(request: Request) {
     // Combine: overdue first (sorted by oldest), then pending (sorted by soonest)
     const combinedBills = [
       ...overdueBills.sort((a, b) => 
-        new Date(a.instance.dueDate).getTime() - new Date(b.instance.dueDate).getTime()
+        parseISO(a.instance.dueDate).getTime() - parseISO(b.instance.dueDate).getTime()
       ),
       ...pendingBills.sort((a, b) => 
-        new Date(a.instance.dueDate).getTime() - new Date(b.instance.dueDate).getTime()
+        parseISO(a.instance.dueDate).getTime() - parseISO(b.instance.dueDate).getTime()
       ),
     ].slice(0, limit);
 
@@ -119,8 +119,7 @@ export async function GET(request: Request) {
 
     // Transform results for the widget
     const billsList = combinedBills.map(r => {
-      const dueDate = new Date(r.instance.dueDate);
-      dueDate.setHours(0, 0, 0, 0);
+      const dueDate = parseISO(r.instance.dueDate);
       const daysUntilDue = differenceInDays(dueDate, todayDate);
       const isOverdue = r.instance.status === 'overdue';
       
@@ -186,15 +185,14 @@ export async function GET(request: Request) {
     const nextPending = allOverdueAndPending
       .filter(r => r.instance.status === 'pending')
       .sort((a, b) => 
-        new Date(a.instance.dueDate).getTime() - new Date(b.instance.dueDate).getTime()
+        parseISO(a.instance.dueDate).getTime() - parseISO(b.instance.dueDate).getTime()
       )[0];
     const nextDueDate = nextPending?.instance.dueDate || null;
 
     // Calculate next 7 days totals using consistent date arithmetic
     // Use differenceInDays to match daysUntilDue calculation and avoid string comparison issues
     const next7DaysInstances = allOverdueAndPending.filter(r => {
-      const dueDate = new Date(r.instance.dueDate);
-      dueDate.setHours(0, 0, 0, 0);
+      const dueDate = parseISO(r.instance.dueDate);
       const daysUntil = differenceInDays(dueDate, todayDate);
       return daysUntil >= 0 && daysUntil <= 7;
     });
@@ -229,4 +227,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

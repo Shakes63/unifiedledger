@@ -1,4 +1,4 @@
-# Bugs Status (Updated 2025-12-10)
+# Bugs Status (Updated 2025-12-12)
 
 ---
 
@@ -36,12 +36,29 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 728 (152 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 745 (169 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (152 total)
+## Fixed Bugs (169 total)
 
+169. ✅ **Cannot Disable OAuth Provider Without Supplying Secret** [FIXED 2025-12-12] - Allowed disabling an existing provider without re-entering secrets in both UI validation and `/api/admin/oauth-settings`.
+168. ✅ **OAuth Link Validation Ignores DB Settings** [FIXED 2025-12-12] - `/api/user/oauth/link/[provider]` now treats DB-configured providers as configured (matches login provider availability).
+167. ✅ **Admin OAuth Settings For Google/GitHub Have No Effect** [FIXED 2025-12-12] - Better Auth OAuth config and `/api/user/oauth/available` now load provider configuration from `oauth_settings` (fallback to env vars); changes still require restart.
+166. ✅ **Interest Paid Monthly Breakdown Collides on Duplicate Account Names** [FIXED 2025-12-12] - Disambiguated duplicate account names by appending a short ID suffix so chart keys don’t merge.
+165. ✅ **Balance History Aggregation Collides on Duplicate Account Names** [FIXED 2025-12-12] - Disambiguated duplicate account names by appending a short ID suffix so stacked series don’t overwrite.
+164. ✅ **Line Of Credit Draw Period Countdown Can Be Off-By-One** [FIXED 2025-12-12] - Switched to `parseISO` + `differenceInCalendarDays` against `startOfDay(new Date())` for stable day counts.
+163. ✅ **Accounts Charts Parse Date-Only Strings with new Date()** [FIXED 2025-12-12] - Updated chart date formatting to use `parseISO()` for date-only labels.
+162. ✅ **Account History Date Ranges Are Timezone-Sensitive** [FIXED 2025-12-12] - Replaced `toISOString().split('T')[0]` with local `format(..., 'yyyy-MM-dd')` and `startOfDay` boundaries in account history APIs.
+161. ✅ **/api/bills/match GET Returns “Matched” Transactions** [FIXED 2025-12-12] - Added `billId IS NULL` filtering so the endpoint only returns truly unmatched expense transactions.
+160. ✅ **Bill Classification Summary Upcoming Window Uses UTC Boundaries** [FIXED 2025-12-12] - Replaced `toISOString().split('T')[0]` with `format(..., 'yyyy-MM-dd')` to align date window filters with local `startOfDay`.
+159. ✅ **Bills “By Period” API Can Assign Wrong Period** [FIXED 2025-12-12] - Switched date-only parsing from `new Date()` to `parseISO()` to prevent timezone shifts affecting budget period selection.
+158. ✅ **Next-Due Bills API Can Miscompute daysUntilDue / next7Days** [FIXED 2025-12-12] - Parsed bill instance `dueDate` via `parseISO()` for consistent day calculations and sorting across timezones.
+157. ✅ **Bill Matching Date Helpers Are Timezone-Sensitive** [FIXED 2025-12-12] - Updated day/day-of-week extraction to use `parseISO()` for date-only strings to avoid off-by-one matching.
+156. ✅ **BillForm One-Time Due Date Can Be Falsely “In The Past”** [FIXED 2025-12-12] - Validated one-time `specificDueDate` using `parseISO()` to prevent timezone-induced “past date” errors.
+155. ✅ **Budget Group Assign API Skips Type Validation** [FIXED 2025-12-12] - Added server-side validation so `/api/budget-groups` rejects assigning categories whose `type` doesn’t match the target group.
+154. ✅ **Cross-Type Subcategory Links Possible** [FIXED 2025-12-12] - Cleared parent selection on category type changes in the UI and enforced parent/child type matching on the category update API.
+153. ✅ **Budget Groups Can Become Self-Parenting / Nested** [FIXED 2025-12-12] - Prevented budget groups from ever having `parentId` and blocked self-parenting cycles in category updates.
 152. ✅ **Budget Templates Dropdown Opens Modal** [FIXED 2025-12-11] - Created `BudgetTemplateSelector` component with dropdown menu showing 3 predefined templates (50/30/20, Zero-Based, 60% Solution). Replaced non-functional buttons in budget page and modal with the new component. Template selection prompts for monthly income and applies calculated budget allocations.
 151. ✅ **What-If Calculator API Error** [FIXED 2025-12-10] - Added missing `name` field to scenarios payload in `what-if-calculator.tsx`. The API requires scenario names but the component was not including them in the POST request.
 150. ✅ **Transfer Form Missing Credit Card Detection** [FIXED 2025-12-10] - Ported Phase 5 auto-detection logic from `transaction-form.tsx` to `transfer-form.tsx`. Added useEffect hook to detect payment bills when selecting destination credit card accounts, and banner UI showing bill status (overdue/partial), due date, and expected amount.

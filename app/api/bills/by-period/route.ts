@@ -20,7 +20,7 @@ import {
   type BudgetCycleFrequency,
   type BudgetPeriod,
 } from '@/lib/budgets/budget-schedule';
-import { addDays, subDays, startOfDay, format } from 'date-fns';
+import { addDays, subDays, startOfDay, format, parseISO } from 'date-fns';
 import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
@@ -39,7 +39,7 @@ function calculatePeriodFromDate(
   dateStr: string,
   settings: BudgetScheduleSettings
 ): number {
-  const date = new Date(dateStr);
+  const date = parseISO(dateStr);
   const period = getCurrentBudgetPeriod(settings, date);
   return period.periodNumber;
 }
@@ -202,7 +202,7 @@ export async function GET(request: NextRequest) {
       } else {
         // For non-monthly, check period number matches
         if (instancePeriodNumber === period.periodNumber) {
-          const dueDate = new Date(row.instance.dueDate);
+          const dueDate = parseISO(row.instance.dueDate);
           const periodStart = period.start;
           const periodEnd = period.end;
           
@@ -243,7 +243,7 @@ export async function GET(request: NextRequest) {
 
     // Sort by due date
     filteredInstances.sort((a, b) => 
-      new Date(a.instance.dueDate).getTime() - new Date(b.instance.dueDate).getTime()
+      parseISO(a.instance.dueDate).getTime() - parseISO(b.instance.dueDate).getTime()
     );
 
     // Calculate totals

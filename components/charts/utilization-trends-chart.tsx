@@ -15,6 +15,7 @@ import {
 import { ChartContainer } from './chart-container';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { parseISO } from 'date-fns';
 
 interface UtilizationDataPoint {
   date: string;
@@ -41,7 +42,7 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
   return (
     <div className="bg-elevated border border-border rounded-lg p-3 shadow-lg">
       <p className="text-sm text-muted-foreground mb-2">
-        {new Date(label || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        {label ? parseISO(label).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
       </p>
       <div className="space-y-1">
         <p className="text-lg font-bold" style={{ color: utilizationColor }}>
@@ -94,8 +95,7 @@ export function UtilizationTrendsChart({ className = '' }: UtilizationTrendsChar
 
   // Format date for x-axis
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return parseISO(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   // Determine chart gradient based on current utilization
@@ -216,4 +216,3 @@ export function UtilizationTrendsChart({ className = '' }: UtilizationTrendsChar
     </ChartContainer>
   );
 }
-

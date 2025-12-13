@@ -26,7 +26,7 @@ interface OAuthProvider {
   id: string;
   providerId: 'google' | 'github' | 'ticktick';
   clientId: string;
-  clientSecret: string;
+  hasClientSecret: boolean;
   enabled: boolean;
   createdAt: string;
   updatedAt: string;
@@ -44,6 +44,7 @@ interface SystemInfo {
 interface OAuthFormState {
   clientId: string;
   clientSecret: string;
+  hasClientSecret: boolean;
   enabled: boolean;
 }
 
@@ -51,16 +52,19 @@ export function AdminTab() {
   const [googleSettings, setGoogleSettings] = useState<OAuthFormState>({
     clientId: '',
     clientSecret: '',
+    hasClientSecret: false,
     enabled: false,
   });
   const [githubSettings, setGithubSettings] = useState<OAuthFormState>({
     clientId: '',
     clientSecret: '',
+    hasClientSecret: false,
     enabled: false,
   });
   const [ticktickSettings, setTicktickSettings] = useState<OAuthFormState>({
     clientId: '',
     clientSecret: '',
+    hasClientSecret: false,
     enabled: false,
   });
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
@@ -100,7 +104,8 @@ export function AdminTab() {
       if (google) {
         setGoogleSettings({
           clientId: google.clientId || '',
-          clientSecret: google.clientSecret || '',
+          clientSecret: '',
+          hasClientSecret: Boolean(google.hasClientSecret),
           enabled: google.enabled !== false,
         });
       }
@@ -108,7 +113,8 @@ export function AdminTab() {
       if (github) {
         setGithubSettings({
           clientId: github.clientId || '',
-          clientSecret: github.clientSecret || '',
+          clientSecret: '',
+          hasClientSecret: Boolean(github.hasClientSecret),
           enabled: github.enabled !== false,
         });
       }
@@ -116,7 +122,8 @@ export function AdminTab() {
       if (ticktick) {
         setTicktickSettings({
           clientId: ticktick.clientId || '',
-          clientSecret: ticktick.clientSecret || '',
+          clientSecret: '',
+          hasClientSecret: Boolean(ticktick.hasClientSecret),
           enabled: ticktick.enabled !== false,
         });
       }
@@ -150,7 +157,7 @@ export function AdminTab() {
   }
 
   async function saveOAuthSettings(providerId: 'google' | 'github' | 'ticktick', settings: OAuthFormState) {
-    if (!settings.clientId || !settings.clientSecret) {
+    if (settings.enabled && (!settings.clientId || (!settings.hasClientSecret && !settings.clientSecret))) {
       toast.error('Client ID and Client Secret are required');
       return;
     }
@@ -169,16 +176,20 @@ export function AdminTab() {
 
     setSaving(true);
     try {
+      const payload: Record<string, unknown> = {
+        providerId,
+        clientId: settings.clientId,
+        enabled: settings.enabled,
+      };
+      if (settings.clientSecret.trim().length > 0) {
+        payload.clientSecret = settings.clientSecret;
+      }
+
       const response = await fetch('/api/admin/oauth-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          providerId,
-          clientId: settings.clientId,
-          clientSecret: settings.clientSecret,
-          enabled: settings.enabled,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -190,14 +201,8 @@ export function AdminTab() {
         throw new Error(errorData.error || 'Failed to save OAuth settings');
       }
 
-      toast.success(`${providerName} OAuth settings saved successfully`);
-      
-      // Note for Google/GitHub (login providers)
-      if (providerId === 'google' || providerId === 'github') {
-        toast.info('Note: Server restart required for OAuth login changes to take effect', {
-          duration: 5000,
-        });
-      }
+	      toast.success(`${providerName} OAuth settings saved successfully`);
+	      await fetchOAuthSettings();
     } catch (error) {
       console.error(`Error saving ${providerId} OAuth settings:`, error);
       toast.error(
@@ -240,7 +245,7 @@ export function AdminTab() {
             <CardTitle className="text-foreground">OAuth Configuration</CardTitle>
           </div>
           <CardDescription className="text-muted-foreground">
-            Configure OAuth providers for social login. Changes require a server restart to take effect.
+            Configure OAuth providers for social login. Google/GitHub login changes require a server restart to take effect.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -265,12 +270,18 @@ export function AdminTab() {
                     Disabled
                   </Badge>
                 )}
-                <Switch
-                  checked={googleSettings.enabled}
-                  onCheckedChange={(checked) =>
-                    setGoogleSettings((prev) => ({ ...prev, enabled: checked }))
-                  }
-                />
+	                <Switch
+	                  checked={googleSettings.enabled}
+	                  onCheckedChange={(checked) => {
+	                    const wasEnabled = googleSettings.enabled;
+	                    setGoogleSettings((prev) => ({ ...prev, enabled: checked }));
+	                    if (!wasEnabled && checked) {
+	                      toast.info('Google OAuth login requires a server restart after saving to take effect.', {
+	                        duration: 5000,
+	                      });
+	                    }
+	                  }}
+	                />
               </div>
             </div>
             <Separator className="bg-border" />
@@ -301,13 +312,21 @@ export function AdminTab() {
                   onChange={(e) =>
                     setGoogleSettings((prev) => ({ ...prev, clientSecret: e.target.value }))
                   }
-                  placeholder="Enter Google Client Secret"
+                  placeholder={
+                    googleSettings.hasClientSecret
+                      ? 'Stored (hidden) — enter to replace'
+                      : 'Enter Google Client Secret'
+                  }
                   className="bg-background border-border text-foreground"
                 />
               </div>
               <Button
                 onClick={() => saveOAuthSettings('google', googleSettings)}
-                disabled={savingGoogle || !googleSettings.clientId || !googleSettings.clientSecret}
+                disabled={
+                  savingGoogle ||
+                  (googleSettings.enabled &&
+                    (!googleSettings.clientId || (!googleSettings.hasClientSecret && !googleSettings.clientSecret)))
+                }
                 className="bg-[var(--color-primary)] hover:opacity-90 text-white"
               >
                 {savingGoogle ? (
@@ -343,12 +362,18 @@ export function AdminTab() {
                     Disabled
                   </Badge>
                 )}
-                <Switch
-                  checked={githubSettings.enabled}
-                  onCheckedChange={(checked) =>
-                    setGithubSettings((prev) => ({ ...prev, enabled: checked }))
-                  }
-                />
+	                <Switch
+	                  checked={githubSettings.enabled}
+	                  onCheckedChange={(checked) => {
+	                    const wasEnabled = githubSettings.enabled;
+	                    setGithubSettings((prev) => ({ ...prev, enabled: checked }));
+	                    if (!wasEnabled && checked) {
+	                      toast.info('GitHub OAuth login requires a server restart after saving to take effect.', {
+	                        duration: 5000,
+	                      });
+	                    }
+	                  }}
+	                />
               </div>
             </div>
             <Separator className="bg-border" />
@@ -379,13 +404,21 @@ export function AdminTab() {
                   onChange={(e) =>
                     setGithubSettings((prev) => ({ ...prev, clientSecret: e.target.value }))
                   }
-                  placeholder="Enter GitHub Client Secret"
+                  placeholder={
+                    githubSettings.hasClientSecret
+                      ? 'Stored (hidden) — enter to replace'
+                      : 'Enter GitHub Client Secret'
+                  }
                   className="bg-background border-border text-foreground"
                 />
               </div>
               <Button
                 onClick={() => saveOAuthSettings('github', githubSettings)}
-                disabled={savingGithub || !githubSettings.clientId || !githubSettings.clientSecret}
+                disabled={
+                  savingGithub ||
+                  (githubSettings.enabled &&
+                    (!githubSettings.clientId || (!githubSettings.hasClientSecret && !githubSettings.clientSecret)))
+                }
                 className="bg-[var(--color-primary)] hover:opacity-90 text-white"
               >
                 {savingGithub ? (
@@ -460,13 +493,22 @@ export function AdminTab() {
                   onChange={(e) =>
                     setTicktickSettings((prev) => ({ ...prev, clientSecret: e.target.value }))
                   }
-                  placeholder="Enter TickTick Client Secret"
+                  placeholder={
+                    ticktickSettings.hasClientSecret
+                      ? 'Stored (hidden) — enter to replace'
+                      : 'Enter TickTick Client Secret'
+                  }
                   className="bg-background border-border text-foreground"
                 />
               </div>
               <Button
                 onClick={() => saveOAuthSettings('ticktick', ticktickSettings)}
-                disabled={savingTicktick || !ticktickSettings.clientId || !ticktickSettings.clientSecret}
+                disabled={
+                  savingTicktick ||
+                  (ticktickSettings.enabled &&
+                    (!ticktickSettings.clientId ||
+                      (!ticktickSettings.hasClientSecret && !ticktickSettings.clientSecret)))
+                }
                 className="bg-[var(--color-primary)] hover:opacity-90 text-white"
               >
                 {savingTicktick ? (
@@ -488,8 +530,9 @@ export function AdminTab() {
               <div className="text-sm text-foreground">
                 <p className="font-medium mb-1">Important:</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>OAuth client secrets are encrypted before storage</li>
-                  <li>Server restart is required for Google/GitHub OAuth login changes to take effect</li>
+                  <li>Client secrets are write-only: stored encrypted and never shown again</li>
+                  <li>Google/GitHub login providers are loaded on server startup; restart after enabling/disabling or changing credentials</li>
+                  <li>Until restart, the sign-in page may show updated availability but the login flow may still use the previous configuration</li>
                   <li>TickTick settings take effect immediately (no restart needed)</li>
                   <li>Ensure your OAuth redirect URLs are configured correctly in the provider settings</li>
                 </ul>
@@ -592,4 +635,3 @@ export function AdminTab() {
     </div>
   );
 }
-

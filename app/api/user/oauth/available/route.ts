@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { isOAuthLoginProviderConfigured } from '@/lib/auth/oauth-provider-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,23 +9,24 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
+    const [googleEnabled, githubEnabled] = await Promise.all([
+      isOAuthLoginProviderConfigured('google'),
+      isOAuthLoginProviderConfigured('github'),
+    ]);
+
     const providers = [
       {
         id: 'google',
         name: 'Google',
         icon: 'google',
-        enabled: !!(
-          process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-        ),
+        enabled: googleEnabled,
         description: 'Sign in with your Google account',
       },
       {
         id: 'github',
         name: 'GitHub',
         icon: 'github',
-        enabled: !!(
-          process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
-        ),
+        enabled: githubEnabled,
         description: 'Sign in with your GitHub account',
       },
     ];
@@ -40,4 +42,3 @@ export async function GET() {
     );
   }
 }
-
