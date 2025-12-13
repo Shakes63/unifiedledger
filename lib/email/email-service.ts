@@ -50,6 +50,24 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
       throw new Error('No email provider configured');
     }
   } catch (error) {
+    // Best-effort fallback: if the primary provider fails and the other provider is configured,
+    // attempt to send via the fallback provider before bubbling the error.
+    try {
+      if (config.provider === 'resend' && config.smtp) {
+        console.warn('[Email] Resend failed; attempting SMTP fallback');
+        await sendWithSMTP(options);
+        return;
+      }
+
+      if (config.provider === 'smtp' && config.resend?.apiKey) {
+        console.warn('[Email] SMTP failed; attempting Resend fallback');
+        await sendWithResend(options);
+        return;
+      }
+    } catch (fallbackError) {
+      console.error('[Email] Fallback provider also failed:', fallbackError);
+    }
+
     console.error('[Email] Failed to send email:', error);
     throw error;
   }
