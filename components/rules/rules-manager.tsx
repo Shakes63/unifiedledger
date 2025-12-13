@@ -402,19 +402,23 @@ export function RulesManager({
     const ruleIndex = rules.findIndex(r => r.id === ruleId);
     if (ruleIndex === -1) return;
 
+    const otherIndex = direction === 'up' ? ruleIndex - 1 : ruleIndex + 1;
     const rule = rules[ruleIndex];
-    const otherRule = direction === 'up'
-      ? rules[ruleIndex - 1]
-      : rules[ruleIndex + 1];
+    const otherRule = rules[otherIndex];
 
     if (!otherRule) return;
 
     // Swap priorities
-    const newPriority = otherRule.priority;
-    const newRules = [...rules];
-    newRules[ruleIndex].priority = newPriority;
-    newRules[ruleIndex + (direction === 'up' ? -1 : 1)].priority = rule.priority;
-    newRules.sort((a, b) => a.priority - b.priority);
+    const currentPriority = rule.priority;
+    const otherPriority = otherRule.priority;
+    const newPriority = otherPriority;
+    const newRules = rules
+      .map(r => {
+        if (r.id === rule.id) return { ...r, priority: otherPriority };
+        if (r.id === otherRule.id) return { ...r, priority: currentPriority };
+        return r;
+      })
+      .sort((a, b) => a.priority - b.priority);
 
     setRules(newRules);
 
@@ -428,7 +432,7 @@ export function RulesManager({
     try {
       await Promise.all([
         putWithHousehold('/api/rules', { id: ruleId, priority: newPriority }),
-        putWithHousehold('/api/rules', { id: otherRule.id, priority: rule.priority }),
+        putWithHousehold('/api/rules', { id: otherRule.id, priority: currentPriority }),
       ]);
 
       onChangePriority?.(ruleId, newPriority);

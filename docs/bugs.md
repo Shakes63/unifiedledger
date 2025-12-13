@@ -3,7 +3,21 @@
 ---
 
 ## New Bugs
-(None)
+- **Rules list returned in reverse priority order** - `/api/rules` lists rules with `orderBy(desc(categorizationRules.priority))`, but the UI and engine define “lower number = higher priority” and the matcher sorts ascending. This makes the Rules page show the opposite order (and can mislead users when adjusting priorities). See `app/api/rules/route.ts` (~L126-L128) and `lib/rules/rule-matcher.ts` (~L100-L112).
+- **RulesManager N+1 category fetches** - The Rules page fetches `/api/categories` once per rule inside a `Promise.all(data.map(...))`, causing unnecessary repeated requests and slow load with many rules. See `components/rules/rules-manager.tsx` (~L294-L309).
+- **Rule action preview shows “Unknown” for merchant/account actions** - The action preview label helper supports merchant/account names, but the caller only passes `categoryName`, and the manager doesn’t hydrate merchant/account names. This makes `set_merchant`, `set_account`, and `convert_to_transfer` previews display “Unknown”/generic labels even when IDs are set. See `components/rules/rules-manager.tsx` (`getActionLabel()` + call site around ~L42-L74 and ~L157-L172).
+- **Bulk apply rules endpoint docs mention unsupported query param** - `/api/rules/apply-bulk` docstring lists a `categoryId` query param, but the handler never reads it and always filters `categoryId IS NULL`. See `app/api/rules/apply-bulk/route.ts` (comment ~L31-L37; query build ~L50-L63).
+- **Rules action executor lookups aren’t household-scoped** - `executeRuleActions()` validates/fetches categories/merchants by `userId` only (no `householdId`), and apply-bulk’s merchant/category lookups also omit user/household filters. This is risky for multi-household isolation if any cross-household IDs slip through (or future callers reuse the executor). See `lib/rules/actions-executor.ts` (~L127-L137, ~L175-L186, ~L279-L289) and `app/api/rules/apply-bulk/route.ts` (~L171-L191).
+- **isActionImplemented() is outdated vs actual supported actions** - The helper omits several implemented actions (`set_sales_tax`, `set_account`, `create_split`) despite the executor supporting them, which can mislead future UI gating or validations. See `lib/rules/actions-executor.ts` (~L625-L636).
+- **Repeat Transaction applies rules incompletely (category only)** - The repeat endpoint runs `findMatchingRule()` but only extracts the first `set_category` action and ignores other rule actions (merchant/description/split/transfer/account/sales tax). This diverges from normal transaction creation. See `app/api/transactions/repeat/route.ts` (~L98-L129).
+- **Repeat Transaction can update category usage across households/users** - Category usage update queries `budgetCategories` by `id` only (no `userId`/`householdId`) before updating usage counts. If an ID from another household slips in, this can mutate another household’s category usage. See `app/api/transactions/repeat/route.ts` (~L174-L190).
+- **CSV import confirm applies rules incompletely (category only) and doesn’t log execution** - Import confirm runs `findMatchingRule()` but only uses `set_category` and does not run `executeRuleActions()` or write a `ruleExecutionLog` entry. See `app/api/csv-import/[importId]/confirm/route.ts` (~L99-L125).
+- **Transfer conversion can match transactions across households** - `findMatchingTransaction()` filters by `userId` and `type` but never filters by `householdId`, so a conversion can link transactions from different households. See `lib/rules/transfer-action-handler.ts` (~L359-L383).
+- **Transfer conversion matching is timezone-sensitive** - Uses `new Date(YYYY-MM-DD)` and `toISOString().split('T')[0]` for date windows, which can shift days in some timezones. This can miss/incorrectly include candidates. See `lib/rules/transfer-action-handler.ts` (~L344-L370).
+- **Transfer conversion/account balance updates aren’t ownership-scoped** - Several updates select/update `transactions`/`accounts` by `id` only (or `id+userId` without household), which is fragile for household isolation and could corrupt balances if misused. See `lib/rules/transfer-action-handler.ts` (source tx fetch ~L194-L204; account updates ~L433-L465).
+- **Split creation isn’t household-scoped and updates transaction by id only** - `handleSplitCreation()` validates categories by `userId` only (no household) and updates `transactions` with `where(eq(transactions.id, ...))` (no user/household). See `lib/rules/split-action-handler.ts` (~L80-L90, ~L151-L155).
+- **Account change handler can move transactions across households and log to wrong household** - `handleAccountChange()` validates target account by `userId` only (no household), updates accounts/transactions by id only, and logs activity using the *first* `householdMembers` row for the user (not the transaction’s household). This can create incorrect balances and audit logs. See `lib/rules/account-action-handler.ts` (~L61-L71, ~L93-L101, ~L193-L205).
+- **findAllMatchingRules ignores household isolation** - Helper queries rules by `userId` only (no `householdId`), so debugging/testing can leak rules across households. See `lib/rules/rule-matcher.ts` (~L156-L170).
 
 ---
 
@@ -30,17 +44,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 0 |
-| Tests Passing | 590/590 (100%) |
+| Active Bugs | 10 |
+| Tests Passing | 897/897 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 749 (173 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 750 (174 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (173 total)
+## Fixed Bugs (174 total)
 
+174. ✅ **Rules priority reorder can assign duplicate priorities** [FIXED 2025-12-13] - Made priority swapping immutable in `RulesManager` to prevent duplicate priorities and added a regression test.
 173. ✅ **Tailwind CSS variable class warnings** [FIXED 2025-12-13] - Replaced `*-[var(--...)]` Tailwind classes with v4 shorthand `*-(--...)` and added a regression test to prevent reverting.
 172. ✅ **Logo triggers Next.js LCP warning** [FIXED 2025-12-13] - Marked above-the-fold `/logo.png` usages as `priority` (eager) and added a regression test to prevent removing it.
 171. ✅ **Create New Household does not create household** [FIXED 2025-12-13] - Added `credentials: 'include'`, trimmed payload, and toast-based error handling in Settings; added regression test to ensure create-household POST includes credentials.
