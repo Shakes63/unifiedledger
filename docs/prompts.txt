@@ -19,15 +19,11 @@ Cursor
 ***Features***
 
 Review docs/features.md and select the next incomplete task. Create a detailed implementation plan before coding:
-1. First, check if the feature relates to the Unified Architecture (Feature #58):
-   - Review docs/unified-debt-bill-credit-card-architecture.md for relevant sections
-   - If the feature is part of the architecture (debts, bills, credit cards, categories, budgets, etc.), follow the implementation phases and schema defined in that document
-   - Ensure the implementation aligns with the architecture decisions (e.g., simplified categories, bill classification, debt strategy toggle, etc.)
-2. Document a step-by-step approach for completing the task, making sure to cover edge cases.
-3. Ensure seamless integration with the existing application architecture, UI, and styling patterns
-4. Use theme variables throughout the implementation
-5. Use proper TypeScript typing everywhere—never use any as a type
-6. Save the finalized plan to the docs/ folder
+1. Document a step-by-step approach for completing the task, making sure to cover edge cases.
+2. Ensure seamless integration with the existing application architecture, UI, and styling patterns
+3. Use theme variables throughout the implementation
+4. Use proper TypeScript typing everywhere—never use any as a type
+5. Save the finalized plan to the docs/ folder
 Once the plan is complete and reviewed, implement the first task from the plan.
 then
 Update features.md, .cursor/rules files, and architecture doc with the following rules:
