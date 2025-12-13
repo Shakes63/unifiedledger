@@ -18,66 +18,50 @@ Cursor
 
 ***Features***
 
-Review docs/features.md and select the next incomplete task. Create a detailed implementation plan before coding:
-1. Document a step-by-step approach for completing the task, making sure to cover edge cases.
-2. Ensure seamless integration with the existing application architecture, UI, and styling patterns
-3. Use theme variables throughout the implementation
-4. Use proper TypeScript typing everywhere—never use any as a type
-5. Save the finalized plan to the docs/ folder
-Once the plan is complete and reviewed, implement the first task from the plan.
-then
-Update features.md, and .cursor/rules files with the following rules:
-1. Maintain a "New Features" section at the top of features.md for easy addition of new ideas
-2. For incomplete tasks: mark status, note what remains unfinished, and reference the plan file location
-3. For completed features: replace full entry with feature name + "[COMPLETED]" label + 1 line description, then delete the associated plan file
-4. If the feature was part of the Unified Architecture: mark the relevant implementation phase as complete in unified-debt-bill-credit-card-architecture.md
-5. Add feature to manual-testing-checklist.md 
-6. Commit and push all changes
+Review docs/features.md and keep completing features until the context window is nearly full or there are no unfinished features left.
+For each feature:
+Before coding: write docs/<feature>-plan.md (steps + edge cases, fits existing architecture/UI, uses theme variables, strict TypeScript—no any).
+Implement the first task from the plan.
+Update docs/features.md and .cursor/rules:
+Keep “New Features” at the top of docs/features.md.
+For incomplete features: include status, what’s left, and link the plan.
+For completed features: Feature Name [COMPLETED YYYY-MM-DD] - 1 line, then delete the plan.
+If part of Unified Architecture: mark the relevant phase complete in docs/unified-debt-bill-credit-card-architecture.md.
+Add a manual check to docs/manual-testing-checklist.md.
+Commit and push as you go (or at least at the end if time is tight).
 
 ***Bugs***
 
-Review docs/bugs.md and select the next incomplete task. Create a detailed implementation plan before coding:
-1. Document a step-by-step approach for completing the task
-2. Ensure seamless integration with the existing application architecture, UI, and styling patterns
-3. Use theme variables throughout the implementation
-4. Use proper TypeScript typing everywhere—never use any as a type
-5. Save the finalized plan to the docs/ folder
-Once the plan is complete and reviewed, implement the first task from the plan.
-then
-Update bugs.md and .cursor/rules files with the following rules:
-1. Maintain a "New Bugs" section at the top of bugs.md for easy addition of new issues
-2. For incomplete tasks: mark status, note what remains unfinished, and reference the plan file location
-3. For completed bugs: replace full entry with bug name + "[FIXED]" label + 1-2 line description of the fix, then delete the associated plan file and add a small Testing Library regression test to lock the behavior in.
-4. Commit and push all changes
+Review docs/bugs.md and keep fixing bugs until the context window is nearly full or there are no unfinished bugs left.
+For each bug:
+Before coding: write docs/<bug>-fix-plan.md (steps, architecture/UI fit, theme variables, strict TypeScript—no any).
+Implement the first task from the plan.
+Update docs/bugs.md and .cursor/rules:
+Keep “New Bugs” at the top of docs/bugs.md.
+For incomplete bugs: include status, what’s left, and link the plan.
+For completed bugs: Bug Name [FIXED YYYY-MM-DD] - 1–2 line summary, delete the plan file, and add a small Testing Library regression test.
+Commit and push changes as you go (or at least at the end if time is tight).
 
 ***Manual Testing***
 
-Review docs/manual-testing-checklist.md and systematically test the application using the browser:
-1. Start with the next untested section in the checklist
-2. Navigate to the relevant page and test each item using browser tools
-3. For each test case:
-   - Mark [x] if the test passes
-   - Mark [!] if there's an issue and add a brief note
-   - Leave [ ] if not yet tested
-4. If you find a bug, document it in docs/bugs.md with:
-   - Clear title and description
-   - Steps to reproduce
-   - Expected vs actual behavior
-5. After completing a section, update the checklist with test date and results
-6. Continue to the next section until testing is complete or time runs out
-
-Focus on functional correctness, UI/UX issues, and edge cases. Use browser dev tools to monitor console errors and network requests during testing.
+Review docs/manual-testing-checklist.md and use the browser to test the next unchecked section.
+Go to the relevant page(s) and test each checklist item.
+For each item:
+Mark [x] if it passes
+Mark [!] if it fails and add a short note
+Leave [ ] if not tested
+If you find a bug, add it to docs/bugs.md with title/description, repro steps, and expected vs actual.
+After finishing a section, record the test date/results, then move to the next section until done or out of time.
+Prioritize correctness, UI/UX, and edge cases; watch console + network during testing.
 
 ***Retest Fixed Bugs***
 
-Review docs/manual-testing-checklist.md and retest items that previously failed but have since been fixed:
-1. Search the checklist for items marked with [!] (failed tests)
-2. Cross-reference with docs/bugs.md to verify the associated bug has been marked as fixed
-3. For each fixed bug, retest the corresponding checklist item using browser tools:
-   - If the test now passes: change [!] to [x] and remove or update the failure note
-   - If the test still fails: keep [!] and update the note with current behavior
-   - If the bug fix introduced new issues: document in bugs.md
-4. Update the "Last Tested" date for any retested sections
-5. Continue until all [!] items with fixed bugs have been retested
-
-Focus on verifying the fix works correctly and hasn't caused regressions. Use browser dev tools to confirm no new console errors or failed network requests.
+Retest previously failed checklist items that should be fixed:
+Find all [!] items in docs/manual-testing-checklist.md.
+Confirm the related bug is marked fixed in docs/bugs.md.
+Retest in the browser:
+If it passes: change [!] → [x] and update/remove the note
+If it still fails: keep [!] and update the note
+If new issues appear: add a new entry to docs/bugs.md
+Update the section’s Last Tested date.
+Continue until all eligible [!] items are retested; watch console + network for regressions.
