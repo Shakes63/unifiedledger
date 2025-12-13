@@ -82,8 +82,14 @@ const wrong = 100.50 + 25.25; // ✗ Never use this
 - Background: `bg-background`, `bg-card`, `bg-elevated`
 - Text: `text-foreground`, `text-muted-foreground`
 - Borders: `border-border`
-- Transactions: `text-[var(--color-income)]`, `text-[var(--color-expense)]`, `text-[var(--color-transfer)]`
-- UI States: `bg-[var(--color-primary)]`, `bg-[var(--color-success)]`, `bg-[var(--color-warning)]`, `bg-[var(--color-error)]`
+- Transactions: `text-income`, `text-expense`, `text-transfer`
+- UI States: `bg-primary`, `bg-success`, `bg-warning`, `bg-error`
+
+**Tailwind v4 Utility Conventions (Warning-Free):**
+- Prefer **theme tokens** generated from `@theme` variables (e.g. `text-primary`, `bg-income/10`, `border-error/30`) over arbitrary CSS-var values.
+- If a direct CSS variable reference is unavoidable, use v4 shorthand `text-(--color-foo)` (avoid `text-[var(--color-foo)]`).
+- Prefer `shrink-0` over `flex-shrink-0`.
+- Avoid conflicting display utilities like `block flex` on the same element. Use `flex` only when you need `gap-*`, `items-*`, `justify-*`.
 
 **Key CSS Variables:**
 ```
