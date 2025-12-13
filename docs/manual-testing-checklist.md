@@ -361,6 +361,11 @@ Code verified: NetworkStatusProvider, OfflineBanner, IndexedDB request queue (3 
 
 **Note:** Actual network disconnection testing requires manual intervention.
 
+- [ ] Offline transaction submission queues to IndexedDB when network is unavailable (no crash, shows offline/toast state)
+- [ ] Pending offline transactions automatically sync after reconnect (creates server transaction, clears from offline queue)
+- [ ] Failed sync retries increment attempts and stop after max attempts (shows error state in sync status UI)
+- [ ] User can discard a queued offline transaction (removes it from the queue)
+
 ---
 
 ## 22. Onboarding

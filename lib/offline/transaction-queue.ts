@@ -8,7 +8,7 @@
 export interface OfflineTransaction {
   id: string; // Unique offline ID
   userId: string;
-  formData: Record<string, any>; // Complete transaction form data
+  formData: Record<string, unknown>; // Complete transaction form data
   timestamp: number; // When transaction was created (ms since epoch)
   syncStatus: 'pending' | 'syncing' | 'synced' | 'error'; // Current sync state
   syncedId?: string; // Server transaction ID after sync
@@ -18,7 +18,8 @@ export interface OfflineTransaction {
 }
 
 const DB_NAME = 'unified-ledger-offline';
-const DB_VERSION = 1;
+// NOTE: Shared DB with other offline stores (e.g., request queue). Keep version in sync across modules.
+const DB_VERSION = 2;
 const STORE_NAME = 'offlineTransactions';
 
 class OfflineTransactionQueue {

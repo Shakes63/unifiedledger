@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import "fake-indexeddb/auto";
 import { vi, afterEach, beforeAll } from "vitest";
 
 // Mock Next.js modules
@@ -26,7 +27,7 @@ vi.mock("next/headers", () => ({
 }));
 
 vi.mock("next/image", () => ({
-  default: (props: any) => props,
+  default: (props: unknown) => props as unknown as JSX.Element,
 }));
 
 // Mock Clerk authentication
@@ -67,10 +68,11 @@ vi.mock("@clerk/nextjs/server", () => ({
 
 // Mock @serwist/next
 vi.mock("@serwist/next", () => ({
-  default: (config: any) => (nextConfig: any) => ({
-    ...nextConfig,
-    ...config,
-  }),
+  default:
+    (config: Record<string, unknown>) => (nextConfig: Record<string, unknown>) => ({
+      ...nextConfig,
+      ...config,
+    }),
 }));
 
 // Global test utilities
@@ -85,7 +87,7 @@ global.IntersectionObserver = class IntersectionObserver {
     return [];
   }
   unobserve() {}
-} as any;
+} as unknown as typeof IntersectionObserver;
 
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
@@ -93,7 +95,7 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
   observe() {}
   unobserve() {}
-} as any;
+} as unknown as typeof ResizeObserver;
 
 // Mock window.matchMedia
 Object.defineProperty(window, "matchMedia", {
@@ -140,7 +142,7 @@ Object.defineProperty(window, "sessionStorage", {
 // Suppress console errors during tests (optional, comment out if you want to see them)
 const originalError = console.error;
 beforeAll(() => {
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     if (
       typeof args[0] === "string" &&
       (args[0].includes("Warning: ReactDOM.render") ||
