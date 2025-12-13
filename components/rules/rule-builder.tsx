@@ -503,7 +503,7 @@ export function RuleBuilder({
       {/* Actions Section */}
       <div className="space-y-4 pt-6 mt-6 border-t border-border">
         <div>
-          <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+          <label className="text-sm font-medium text-foreground mb-2 flex items-center gap-2">
             <Zap className="w-4 h-4 text-primary" />
             Actions to Apply
           </label>
