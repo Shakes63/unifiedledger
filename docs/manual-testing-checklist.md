@@ -313,6 +313,10 @@ All Account tabs verified: Profile (avatar, name, email, password), Preferences 
 All Household tabs verified: Members & Access (member list, roles, invite, rename, delete), Household Preferences (fiscal year), Financial Settings (budget method, period, auto-categorization), Personal Preferences (theme, financial display, notifications).
 
 - [ ] Admin tab (Owner Only) - Not tested
+- [ ] Admin User Management: user list loads (search/pagination)
+- [ ] Admin User Management: create user (validation, success toast)
+- [ ] Admin User Management: edit user (name/email changes, household role assignment)
+- [ ] Admin User Management: delete user (confirm dialog, cannot delete owner)
 
 ### Two-Factor Authentication (2FA) (Manual Verification)
 - [ ] Enable 2FA shows QR + secret, and verification code enables successfully
