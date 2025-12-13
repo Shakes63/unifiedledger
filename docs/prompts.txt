@@ -26,7 +26,7 @@ Review docs/features.md and select the next incomplete task. Create a detailed i
 5. Save the finalized plan to the docs/ folder
 Once the plan is complete and reviewed, implement the first task from the plan.
 then
-Update features.md, .cursor/rules files, and architecture doc with the following rules:
+Update features.md, and .cursor/rules files with the following rules:
 1. Maintain a "New Features" section at the top of features.md for easy addition of new ideas
 2. For incomplete tasks: mark status, note what remains unfinished, and reference the plan file location
 3. For completed features: replace full entry with feature name + "[COMPLETED]" label + 1 line description, then delete the associated plan file

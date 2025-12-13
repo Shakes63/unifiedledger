@@ -45,6 +45,8 @@ Mocking approach:
 - `vi.mock('@/lib/db', ...)` for `db.select()` chains
 - `vi.mock('@/lib/calendar/google-calendar', ...)` for the Google helpers
 
+**Status:** ✅ Implemented (`__tests__/api/calendar-sync-google-status.test.ts`)
+
 ### Phase 2 — Google enable endpoint tests
 Write `__tests__/api/calendar-sync-google-enable.test.ts` to cover `POST /api/calendar-sync/google/enable`:
 - **400** missing `householdId`
@@ -56,6 +58,8 @@ Write `__tests__/api/calendar-sync-google-enable.test.ts` to cover `POST /api/ca
 - Calendar selection:
   - picks primary (or first) calendar if no `calendarId` provided
   - resolves `calendarName` when `calendarId` provided
+ - Calendar lookup failures:
+   - list call errors should not crash enable (calendarId/calendarName may be null)
 
 ### Phase 3 — Shared routes (`settings`, `sync`)
 Add tests for:
@@ -69,7 +73,7 @@ If coverage still feels thin after route tests:
 - Add focused tests around `lib/calendar/sync-service.ts` branching logic (e.g., `syncEntity` early exits) using DB mocks
 
 ## First Task to Implement (do this immediately)
-Implement **Phase 1**: `__tests__/api/calendar-sync-google-status.test.ts` with the full set of cases above.
+Implement **Phase 2**: `__tests__/api/calendar-sync-google-enable.test.ts` with the full set of cases above.
 
 ## Definition of Done
 - New API tests pass under `pnpm test`
