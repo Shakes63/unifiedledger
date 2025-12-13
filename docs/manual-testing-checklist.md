@@ -301,6 +301,8 @@ All features verified: Transfers list (empty state), new transfer modal (from/to
 ### Notification Preferences
 - [x] All 8 types with push/email channels, auto-save working
 - [ ] At least one channel required per enabled type - NOT TESTED (validation)
+- [ ] Creating notifications respects per-type channel selections (e.g., disable push for a type prevents push delivery)
+- [ ] Rate limiting prevents duplicate notifications from repeating rapidly (e.g., cron-driven alerts)
 
 ---
 

@@ -18,7 +18,7 @@ _These features are implemented, but still need dedicated automated test coverag
 - [x] **Autopay System (Test Coverage)** - Added automated coverage for calculator, cron route contract, processor selection, transaction creation, and autopay notifications. **Plan:** `docs/autopay-system-tests-plan.md`
 - [x] **Offline Sync Queue (Test Coverage)** [COMPLETED 2025-12-13] - Added automated coverage for offline transaction sync orchestration + queuing (sync, retries, status, discard), including real IndexedDB-backed queue tests for `lib/offline/transaction-queue.ts`.
 - [x] **Admin User Management (Test Coverage)** [COMPLETED 2025-12-13] - Added automated API coverage for `/api/admin/users` GET/POST and `/api/admin/users/[userId]` PUT/DELETE, including owner gating and key validation/error cases.
-- [ ] **Notification Delivery & Preferences** - preference validation (channels), per-notification-type routing, send logic + rate limiting
+- [x] **Notification Delivery & Preferences** [COMPLETED 2025-12-13] - Implemented per-type channel routing, best-effort push/email delivery dispatch, and rate limiting with unit test coverage.
 - [ ] **PDF Export** (Tax Dashboard) - generation pipeline (inputs/formatting), permissions, and file response correctness
 - [ ] **Sales Tax Pipeline** - exemption rules (merchant + transaction), multi-jurisdiction rate calculations, quarterly filing aggregation
 - [ ] **Email Flows** - verification resend rate limits, email-change verification callbacks, error handling/fallback provider behavior
