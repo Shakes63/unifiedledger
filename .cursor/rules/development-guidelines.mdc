@@ -127,3 +127,24 @@ pnpm drizzle-kit studio     # Open Drizzle Studio (database GUI)
 3. Update metrics table (decrement Active Bugs, increment Fixed count)
 4. Delete the associated plan file from `docs/`
 5. Commit and push changes
+
+## Feature Tracking Guidelines
+
+**File:** `docs/features.md`
+
+**Adding New Features:**
+- Maintain a **"New Features"** section at the top of `features.md` for quick idea capture
+
+**Working on Features:**
+- For the next incomplete feature, write a detailed implementation plan into `docs/<feature>-plan.md` before coding
+- Ensure the plan calls out integration points (API routes, lib services, UI components) and uses theme variables + proper TypeScript types
+
+**Incomplete Features:**
+- Keep the feature listed as incomplete and annotate what remains unfinished
+- Reference the plan file location in the feature entry for continuation
+
+**Completed Features:**
+1. Replace the detailed entry with: `Feature Name [COMPLETED YYYY-MM-DD] - 1 line summary`
+2. Delete the associated plan file from `docs/`
+3. Add/adjust relevant entries in `docs/manual-testing-checklist.md`
+4. Commit and push changes

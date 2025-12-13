@@ -1013,6 +1013,7 @@ External calendar sync for syncing bills, milestones, and payoff dates to Google
 - [ ] Changing calendar updates connection - NOT TESTABLE
 - [ ] Disconnect button removes connection and optionally deletes remote events - NOT TESTABLE
 - [x] Connection status displays correctly - Shows "Not configured" / "Setup Required" badge when env vars missing
+- [x] Automated API tests added: `GET /api/calendar-sync/google/status` route contract + branches (`__tests__/api/calendar-sync-google-status.test.ts`) - Added 2025-12-13
 
 ### TickTick Integration
 - [x] Connect button visible and clickable

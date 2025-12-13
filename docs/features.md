@@ -8,7 +8,22 @@ _Add new feature ideas here_
 
 ## Incomplete Features
 
-_No incomplete features at this time._
+### Testing Backlog (still needs tests)
+
+_These features are implemented, but still need dedicated automated test coverage (unit/integration/component as appropriate)._
+
+- [ ] **Google Calendar Sync** - Add automated coverage for calendar sync API routes + sync service logic (event creation/update/delete, sync modes, error handling). **Plan:** `docs/google-calendar-sync-tests-plan.md` (Phase 1 done: added tests for `GET /api/calendar-sync/google/status`).
+- [ ] **TickTick Calendar Sync** - API routes + sync service logic (OAuth token handling, project selection, task upsert, sync modes)
+- [ ] **Two-Factor Authentication (2FA)** - TOTP setup/verify flows, backup codes lifecycle, enforcement on sign-in, recovery paths
+- [ ] **Autopay System** - cron endpoint behavior, amount calculation (fixed/minimum/statement/full), transaction creation side effects, notifications
+- [ ] **Offline Sync Queue** - IndexedDB queue behaviors (enqueue, retry, reconciliation), API retry/timeout handling, conflict resolution
+- [ ] **Admin User Management** - `/api/admin/users` routes (CRUD, search/pagination), owner/admin gating, validation and error cases
+- [ ] **Notification Delivery & Preferences** - preference validation (channels), per-notification-type routing, send logic + rate limiting
+- [ ] **PDF Export** (Tax Dashboard) - generation pipeline (inputs/formatting), permissions, and file response correctness
+- [ ] **Sales Tax Pipeline** - exemption rules (merchant + transaction), multi-jurisdiction rate calculations, quarterly filing aggregation
+- [ ] **Email Flows** - verification resend rate limits, email-change verification callbacks, error handling/fallback provider behavior
+- [ ] **Backup System** - scheduled backups, retention policies, restore flows, and permissions
+- [ ] **Household Data Isolation (end-to-end)** - cross-household access attempts blocked across all household-scoped modules (beyond unit checks)
 
 ---
 
