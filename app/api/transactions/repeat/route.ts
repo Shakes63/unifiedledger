@@ -176,7 +176,13 @@ export async function POST(request: Request) {
       const category = await db
         .select()
         .from(budgetCategories)
-        .where(eq(budgetCategories.id, appliedCategoryId))
+        .where(
+          and(
+            eq(budgetCategories.id, appliedCategoryId),
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId)
+          )
+        )
         .limit(1);
 
       if (category.length > 0) {
@@ -186,7 +192,13 @@ export async function POST(request: Request) {
             lastUsedAt: new Date().toISOString(),
             usageCount: (category[0].usageCount || 0) + 1,
           })
-          .where(eq(budgetCategories.id, appliedCategoryId));
+          .where(
+            and(
+              eq(budgetCategories.id, appliedCategoryId),
+              eq(budgetCategories.userId, userId),
+              eq(budgetCategories.householdId, householdId)
+            )
+          );
 
         // Track in usage analytics
         const analyticsId = nanoid();
