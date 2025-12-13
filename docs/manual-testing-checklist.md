@@ -314,6 +314,15 @@ All Household tabs verified: Members & Access (member list, roles, invite, renam
 
 - [ ] Admin tab (Owner Only) - Not tested
 
+### Two-Factor Authentication (2FA) (Manual Verification)
+- [ ] Enable 2FA shows QR + secret, and verification code enables successfully
+- [ ] Backup codes displayed once on enable, and stored/usable for login verification
+- [ ] Generate new backup codes invalidates old ones
+- [ ] Disable 2FA works with TOTP code
+- [ ] Disable 2FA works with a backup code and consumes that code
+- [ ] Sign-in flow prompts for 2FA when enabled and accepts TOTP
+- [ ] Sign-in flow accepts backup code and consumes it
+
 ---
 
 ## 19. Household Management

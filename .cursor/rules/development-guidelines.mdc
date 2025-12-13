@@ -147,4 +147,5 @@ pnpm drizzle-kit studio     # Open Drizzle Studio (database GUI)
 1. Replace the detailed entry with: `Feature Name [COMPLETED YYYY-MM-DD] - 1 line summary`
 2. Delete the associated plan file from `docs/`
 3. Add/adjust relevant entries in `docs/manual-testing-checklist.md`
-4. Commit and push changes
+4. If the feature is part of the Unified Architecture, mark the relevant phase as complete in `docs/unified-debt-bill-credit-card-architecture.md`
+5. Commit and push changes
