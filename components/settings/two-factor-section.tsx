@@ -243,9 +243,9 @@ export function TwoFactorSection() {
             <div className="flex items-center gap-2 mb-2">
               {status?.enabled ? (
                 <>
-                  <ShieldCheck className="w-5 h-5 text-[var(--color-success)]" />
+                  <ShieldCheck className="w-5 h-5 text-(--color-success)" />
                   <span className="font-medium text-foreground">Enabled</span>
-                  <Badge className="bg-[var(--color-success)] text-white">Active</Badge>
+                  <Badge className="bg-(--color-success) text-white">Active</Badge>
                 </>
               ) : (
                 <>
@@ -299,7 +299,7 @@ export function TwoFactorSection() {
                 <Button
                   variant="outline"
                   onClick={() => setDisableDialogOpen(true)}
-                  className="border-[var(--color-error)] text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+                  className="border-(--color-error) text-(--color-error) hover:bg-(--color-error)/10"
                 >
                   <ShieldOff className="w-4 h-4 mr-2" />
                   Disable
@@ -400,7 +400,7 @@ export function TwoFactorSection() {
         <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-[var(--color-warning)]" />
+              <AlertTriangle className="w-5 h-5 text-(--color-warning)" />
               Save Your Backup Codes
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -489,7 +489,7 @@ export function TwoFactorSection() {
             <Button
               onClick={handleDisable}
               disabled={disabling || disableCode.length !== 6}
-              className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
+              className="bg-(--color-error) hover:bg-(--color-error)/90"
             >
               {disabling ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

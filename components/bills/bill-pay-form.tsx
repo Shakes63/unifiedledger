@@ -169,7 +169,7 @@ export function BillPayForm({
         <Button
           type="submit"
           disabled={!isValid || processing}
-          className="flex-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white"
+          className="flex-1 bg-(--color-primary) hover:bg-(--color-primary)/90 text-white"
         >
           {processing ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />

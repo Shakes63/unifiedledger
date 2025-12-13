@@ -312,7 +312,7 @@ export function BackupSettingsForm() {
           {settings.nextBackupAt && (
             <Card className="p-4 bg-elevated border-border">
               <div className="flex items-center gap-2 text-sm">
-                <Calendar className="w-4 h-4 text-[var(--color-primary)]" />
+                <Calendar className="w-4 h-4 text-(--color-primary)" />
                 <span className="text-muted-foreground">Next backup scheduled:</span>
                 <span className="font-medium text-foreground">
                   {formatDate(settings.nextBackupAt)}
@@ -339,7 +339,7 @@ export function BackupSettingsForm() {
             <Button
               onClick={createManualBackup}
               disabled={creatingBackup || saving}
-              className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90"
+              className="bg-(--color-primary) hover:bg-(--color-primary)/90"
             >
               {creatingBackup ? (
                 <>

@@ -957,7 +957,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--color-primary)]" />
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-(--color-primary)" />
           <p className="text-muted-foreground">Loading household data...</p>
         </div>
       </div>
@@ -983,13 +983,13 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-6 md:max-w-2xl md:mx-auto">
       {error && (
-        <div className="p-4 bg-[var(--color-error)]/20 border border-[var(--color-error)]/40 rounded-lg text-[var(--color-error)] text-sm">
+        <div className="p-4 bg-(--color-error)/20 border border-(--color-error)/40 rounded-lg text-(--color-error) text-sm">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="p-4 bg-[var(--color-success)]/20 border border-[var(--color-success)]/40 rounded-lg text-[var(--color-success)] text-sm">
+        <div className="p-4 bg-(--color-success)/20 border border-(--color-success)/40 rounded-lg text-(--color-success) text-sm">
           Transaction {isEditMode ? 'updated' : 'created'} successfully! Redirecting...
         </div>
       )}
@@ -1031,7 +1031,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
               ) : (
                 unpaidBills.map((item: UnpaidBillWithInstance) => (
                   <SelectItem key={item.instance.id} value={item.instance.id}>
-                    <div className={item.instance.status === 'overdue' ? 'text-[var(--color-error)]' : 'text-foreground'}>
+                    <div className={item.instance.status === 'overdue' ? 'text-(--color-error)' : 'text-foreground'}>
                       {item.instance.status === 'overdue' && (
                         <span className="font-semibold">OVERDUE - </span>
                       )}
@@ -1092,34 +1092,34 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         {formData.type === 'transfer' && formData.toAccountId && paymentBillDetection && paymentBillDetection.confidence !== 'none' && (
           <div className={`mt-4 p-3 rounded-lg border flex items-start gap-3 ${
             paymentBillDetection.detectedBill?.status === 'overdue'
-              ? 'bg-[var(--color-error)]/10 border-[var(--color-error)]/30'
+              ? 'bg-(--color-error)/10 border-(--color-error)/30'
               : paymentBillDetection.confidence === 'high'
-                ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30'
+                ? 'bg-(--color-primary)/10 border-(--color-primary)/30'
                 : paymentBillDetection.confidence === 'medium'
-                  ? 'bg-[var(--color-primary)]/5 border-[var(--color-primary)]/20'
+                  ? 'bg-(--color-primary)/5 border-(--color-primary)/20'
                   : 'bg-elevated border-border'
           }`}>
             <CreditCard className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
               paymentBillDetection.detectedBill?.status === 'overdue'
-                ? 'text-[var(--color-error)]'
-                : 'text-[var(--color-primary)]'
+                ? 'text-(--color-error)'
+                : 'text-(--color-primary)'
             }`} />
             <div className="flex-1 min-w-0">
               {paymentBillDetection.detectedBill ? (
                 <>
                   <p className={`text-sm font-medium ${
                     paymentBillDetection.detectedBill.status === 'overdue' 
-                      ? 'text-[var(--color-error)]' 
+                      ? 'text-(--color-error)' 
                       : 'text-foreground'
                   }`}>
                     {paymentBillDetection.detectedBill.billName}
                     {paymentBillDetection.detectedBill.status === 'overdue' && (
-                      <span className="ml-2 text-xs font-normal bg-[var(--color-error)]/20 px-1.5 py-0.5 rounded">
+                      <span className="ml-2 text-xs font-normal bg-(--color-error)/20 px-1.5 py-0.5 rounded">
                         OVERDUE
                       </span>
                     )}
                     {paymentBillDetection.detectedBill.status === 'partial' && (
-                      <span className="ml-2 text-xs font-normal bg-[var(--color-warning)]/20 text-[var(--color-warning)] px-1.5 py-0.5 rounded">
+                      <span className="ml-2 text-xs font-normal bg-(--color-warning)/20 text-(--color-warning) px-1.5 py-0.5 rounded">
                         PARTIAL
                       </span>
                     )}
@@ -1129,7 +1129,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                     {' '}&middot;{' '}
                     ${paymentBillDetection.detectedBill.expectedAmount.toFixed(2)}
                     {paymentBillDetection.detectedBill.status === 'partial' && (
-                      <span className="text-[var(--color-warning)]">
+                      <span className="text-(--color-warning)">
                         {' '}(${paymentBillDetection.detectedBill.remainingAmount.toFixed(2)} remaining)
                       </span>
                     )}
@@ -1138,9 +1138,9 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
               ) : null}
               <p className={`text-xs mt-1 ${
                 paymentBillDetection.detectedBill?.status === 'overdue'
-                  ? 'text-[var(--color-error)]'
+                  ? 'text-(--color-error)'
                   : paymentBillDetection.confidence === 'high'
-                    ? 'text-[var(--color-primary)]'
+                    ? 'text-(--color-primary)'
                     : 'text-muted-foreground'
               }`}>
                 {paymentBillDetection.reason}
@@ -1150,7 +1150,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   href="/dashboard/bills"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline mt-1"
+                  className="inline-flex items-center gap-1 text-xs text-(--color-primary) hover:underline mt-1"
                 >
                   Set up payment bill <ExternalLink className="w-3 h-3" />
                 </a>
@@ -1163,19 +1163,19 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         {formData.type === 'transfer' && formData.toAccountId && detectionResult && detectionResult.confidence !== 'none' && (
           <div className={`mt-4 p-3 rounded-lg border flex items-start gap-3 ${
             detectionResult.confidence === 'high'
-              ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30'
+              ? 'bg-(--color-primary)/10 border-(--color-primary)/30'
               : detectionResult.confidence === 'medium'
-                ? 'bg-[var(--color-primary)]/5 border-[var(--color-primary)]/20'
+                ? 'bg-(--color-primary)/5 border-(--color-primary)/20'
                 : 'bg-elevated border-border'
           }`}>
             {detectionResult.confidence === 'high' ? (
-              <Target className="w-5 h-5 text-[var(--color-primary)] flex-shrink-0 mt-0.5" />
+              <Target className="w-5 h-5 text-(--color-primary) flex-shrink-0 mt-0.5" />
             ) : (
               <Info className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
             )}
             <div className="flex-1 min-w-0">
               <p className={`text-sm ${
-                detectionResult.confidence === 'high' ? 'text-[var(--color-primary)]' : 'text-foreground'
+                detectionResult.confidence === 'high' ? 'text-(--color-primary)' : 'text-foreground'
               }`}>
                 {detectionResult.reason}
               </p>
@@ -1184,7 +1184,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   href="/dashboard/goals"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline mt-1"
+                  className="inline-flex items-center gap-1 text-xs text-(--color-primary) hover:underline mt-1"
                 >
                   Create a goal <ExternalLink className="w-3 h-3" />
                 </a>
@@ -1343,7 +1343,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             }}
             className={`w-full h-12 md:h-10 text-base md:text-sm ${
               useSplits
-                ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90'
+                ? 'bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90'
                 : 'bg-elevated text-foreground border-border hover:bg-elevated/80'
             }`}
           >
@@ -1370,7 +1370,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         <div className="border-t border-border pt-4 space-y-2">
           {merchantIsSalesTaxExempt ? (
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/30">
+              <Badge variant="outline" className="text-xs bg-(--color-success)/10 text-(--color-success) border-(--color-success)/30">
                 Tax Exempt Merchant
               </Badge>
               <span className="text-sm text-muted-foreground">
@@ -1385,7 +1385,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   id="salesTax"
                   checked={salesTaxEnabled}
                   onChange={(e) => setSalesTaxEnabled(e.target.checked)}
-                  className="h-4 w-4 rounded border-border bg-input text-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-offset-0"
+                  className="h-4 w-4 rounded border-border bg-input text-(--color-primary) focus:ring-2 focus:ring-(--color-primary) focus:ring-offset-0"
                 />
                 <label
                   htmlFor="salesTax"
@@ -1427,7 +1427,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
               <div key={field.id} className="space-y-2">
                 <Label htmlFor={field.id} className="text-sm font-medium text-foreground">
                   {field.name}
-                  {field.isRequired && <span className="text-[var(--color-error)] ml-1">*</span>}
+                  {field.isRequired && <span className="text-(--color-error) ml-1">*</span>}
                 </Label>
 
                 {field.type === 'text' && (
@@ -1639,7 +1639,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                     size="sm"
                     onClick={handleCreateTag}
                     disabled={creatingTag || !newTagName.trim()}
-                    className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+                    className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
                   >
                     <Plus className="w-4 h-4" />
                   </Button>
@@ -1695,7 +1695,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                 <Button
                   onClick={handleSaveTemplate}
                   disabled={savingTemplate || !templateName.trim()}
-                  className="flex-1 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
+                  className="flex-1 bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90 font-medium"
                 >
                   {savingTemplate ? 'Saving...' : 'Save Template'}
                 </Button>
@@ -1722,7 +1722,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             type="submit"
             onClick={() => setSaveMode('save')}
             disabled={loading}
-            className="flex-1 bg-[var(--color-primary)] text-white hover:opacity-90 font-medium h-12 md:h-10 text-base md:text-sm"
+            className="flex-1 bg-(--color-primary) text-white hover:opacity-90 font-medium h-12 md:h-10 text-base md:text-sm"
           >
             {isEditMode
               ? loading && saveMode === 'save'

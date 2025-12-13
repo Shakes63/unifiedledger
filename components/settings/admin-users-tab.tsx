@@ -353,7 +353,7 @@ export function AdminUsersTab() {
         </div>
         <Button
           onClick={handleCreateClick}
-          className="bg-[var(--color-primary)] hover:opacity-90 text-white"
+          className="bg-(--color-primary) hover:opacity-90 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
           Create User
@@ -430,7 +430,7 @@ export function AdminUsersTab() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleDeleteClick(user)}
-                          className="bg-elevated border-border text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+                          className="bg-elevated border-border text-(--color-error) hover:bg-(--color-error)/10"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -485,7 +485,7 @@ export function AdminUsersTab() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="create-email" className="text-foreground">
-                Email <span className="text-[var(--color-error)]">*</span>
+                Email <span className="text-(--color-error)">*</span>
               </Label>
               <Input
                 id="create-email"
@@ -497,17 +497,17 @@ export function AdminUsersTab() {
                 }}
                 placeholder="user@example.com"
                 className={`bg-background border-border text-foreground ${
-                  formErrors.email ? 'border-[var(--color-error)]' : ''
+                  formErrors.email ? 'border-(--color-error)' : ''
                 }`}
               />
               {formErrors.email && (
-                <p className="text-sm text-[var(--color-error)]">{formErrors.email}</p>
+                <p className="text-sm text-(--color-error)">{formErrors.email}</p>
               )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="create-password" className="text-foreground">
-                Password <span className="text-[var(--color-error)]">*</span>
+                Password <span className="text-(--color-error)">*</span>
               </Label>
               <Input
                 id="create-password"
@@ -519,11 +519,11 @@ export function AdminUsersTab() {
                 }}
                 placeholder="Minimum 8 characters"
                 className={`bg-background border-border text-foreground ${
-                  formErrors.password ? 'border-[var(--color-error)]' : ''
+                  formErrors.password ? 'border-(--color-error)' : ''
                 }`}
               />
               {formErrors.password && (
-                <p className="text-sm text-[var(--color-error)]">{formErrors.password}</p>
+                <p className="text-sm text-(--color-error)">{formErrors.password}</p>
               )}
             </div>
 
@@ -577,7 +577,7 @@ export function AdminUsersTab() {
             {formHouseholdId && (
               <div className="space-y-2">
                 <Label htmlFor="create-role" className="text-foreground">
-                  Role <span className="text-[var(--color-error)]">*</span>
+                  Role <span className="text-(--color-error)">*</span>
                 </Label>
                 <Select
                   value={formRole}
@@ -611,7 +611,7 @@ export function AdminUsersTab() {
                   </SelectContent>
                 </Select>
                 {formErrors.role && (
-                  <p className="text-sm text-[var(--color-error)]">{formErrors.role}</p>
+                  <p className="text-sm text-(--color-error)">{formErrors.role}</p>
                 )}
               </div>
             )}
@@ -630,7 +630,7 @@ export function AdminUsersTab() {
             <Button
               onClick={handleCreate}
               disabled={submitting}
-              className="bg-[var(--color-primary)] hover:opacity-90 text-white"
+              className="bg-(--color-primary) hover:opacity-90 text-white"
             >
               {submitting ? (
                 <>
@@ -657,7 +657,7 @@ export function AdminUsersTab() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="edit-email" className="text-foreground">
-                Email <span className="text-[var(--color-error)]">*</span>
+                Email <span className="text-(--color-error)">*</span>
               </Label>
               <Input
                 id="edit-email"
@@ -668,11 +668,11 @@ export function AdminUsersTab() {
                   if (formErrors.email) setFormErrors((prev) => ({ ...prev, email: '' }));
                 }}
                 className={`bg-background border-border text-foreground ${
-                  formErrors.email ? 'border-[var(--color-error)]' : ''
+                  formErrors.email ? 'border-(--color-error)' : ''
                 }`}
               />
               {formErrors.email && (
-                <p className="text-sm text-[var(--color-error)]">{formErrors.email}</p>
+                <p className="text-sm text-(--color-error)">{formErrors.email}</p>
               )}
             </div>
 
@@ -729,7 +729,7 @@ export function AdminUsersTab() {
             {formHouseholdId && (
               <div className="space-y-2">
                 <Label htmlFor="edit-role" className="text-foreground">
-                  Role <span className="text-[var(--color-error)]">*</span>
+                  Role <span className="text-(--color-error)">*</span>
                 </Label>
                 <Select
                   value={formRole}
@@ -763,7 +763,7 @@ export function AdminUsersTab() {
                   </SelectContent>
                 </Select>
                 {formErrors.role && (
-                  <p className="text-sm text-[var(--color-error)]">{formErrors.role}</p>
+                  <p className="text-sm text-(--color-error)">{formErrors.role}</p>
                 )}
               </div>
             )}
@@ -783,7 +783,7 @@ export function AdminUsersTab() {
             <Button
               onClick={handleUpdate}
               disabled={submitting}
-              className="bg-[var(--color-primary)] hover:opacity-90 text-white"
+              className="bg-(--color-primary) hover:opacity-90 text-white"
             >
               {submitting ? (
                 <>
@@ -816,7 +816,7 @@ export function AdminUsersTab() {
                 <strong>Name:</strong> {selectedUser.name}
               </p>
             )}
-            <div className="p-4 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 rounded-lg">
+            <div className="p-4 bg-(--color-warning)/10 border border-(--color-warning)/20 rounded-lg">
               <p className="text-sm text-foreground">
                 This will permanently delete the user account and remove them from all households.
               </p>
@@ -836,7 +836,7 @@ export function AdminUsersTab() {
             <Button
               onClick={handleDelete}
               disabled={submitting}
-              className="bg-[var(--color-error)] hover:opacity-90 text-white"
+              className="bg-(--color-error) hover:opacity-90 text-white"
             >
               {submitting ? (
                 <>

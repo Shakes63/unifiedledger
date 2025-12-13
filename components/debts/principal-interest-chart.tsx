@@ -224,13 +224,13 @@ export function PrincipalInterestChart({
       <div className="grid grid-cols-3 gap-4 mt-6 p-4 bg-elevated rounded-lg">
         <div>
           <div className="text-xs text-muted-foreground uppercase mb-1">Total Principal</div>
-          <div className="text-lg font-semibold text-[var(--color-chart-principal)] font-mono">
+          <div className="text-lg font-semibold text-(--color-chart-principal) font-mono">
             ${schedule.originalBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
         <div>
           <div className="text-xs text-muted-foreground uppercase mb-1">Total Interest</div>
-          <div className="text-lg font-semibold text-[var(--color-chart-interest)] font-mono">
+          <div className="text-lg font-semibold text-(--color-chart-interest) font-mono">
             ${schedule.totalInterestPaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>

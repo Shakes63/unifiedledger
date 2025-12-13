@@ -359,7 +359,7 @@ export function DataTab() {
                           {selectedTemplate.name}
                         </span>
                         {selectedTemplate.isFavorite && (
-                          <Badge variant="secondary" className="bg-[var(--color-primary)] text-white">
+                          <Badge variant="secondary" className="bg-(--color-primary) text-white">
                             Favorite
                           </Badge>
                         )}
@@ -472,10 +472,10 @@ export function DataTab() {
 
       {/* Danger Zone Section */}
       <div>
-        <h3 className="text-lg font-semibold text-[var(--color-error)] mb-2">Danger Zone</h3>
-        <Card className="p-4 border-[var(--color-error)] bg-[var(--color-error)]/5">
+        <h3 className="text-lg font-semibold text-(--color-error) mb-2">Danger Zone</h3>
+        <Card className="p-4 border-(--color-error) bg-(--color-error)/5">
           <div className="flex items-start gap-3 mb-4">
-            <AlertTriangle className="w-5 h-5 text-[var(--color-error)] mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-(--color-error) mt-0.5" />
             <div>
               <h4 className="font-medium text-foreground mb-1">Reset App Data</h4>
               <p className="text-sm text-muted-foreground">
@@ -487,7 +487,7 @@ export function DataTab() {
           <Button
             variant="destructive"
             onClick={() => setResetDataDialogOpen(true)}
-            className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
+            className="bg-(--color-error) hover:bg-(--color-error)/90"
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Reset App Data
@@ -531,9 +531,9 @@ export function DataTab() {
           }
         }}
       >
-        <DialogContent className="bg-card border-[var(--color-error)] sm:max-w-[500px]">
+        <DialogContent className="bg-card border-(--color-error) sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-[var(--color-error)] flex items-center gap-2">
+            <DialogTitle className="text-(--color-error) flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
               Reset App Data
             </DialogTitle>
@@ -551,7 +551,7 @@ export function DataTab() {
             <div className="space-y-4 py-4">
               {/* What will be reset */}
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-[var(--color-error)] flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-(--color-error) flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4" />
                   This will reset:
                 </h4>
@@ -566,7 +566,7 @@ export function DataTab() {
 
               {/* What will NOT be affected */}
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-[var(--color-success)] flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-(--color-success) flex items-center gap-2">
                   <Shield className="w-4 h-4" />
                   This will NOT affect:
                 </h4>
@@ -635,7 +635,7 @@ export function DataTab() {
               <Button
                 type="submit"
                 variant="destructive"
-                className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
+                className="bg-(--color-error) hover:bg-(--color-error)/90"
                 disabled={resetting || !resetPassword || !resetConfirmed}
               >
                 {resetting ? (

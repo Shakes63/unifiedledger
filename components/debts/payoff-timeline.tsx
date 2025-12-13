@@ -74,7 +74,7 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
               </div>
               <div className="relative h-8 bg-elevated rounded-lg overflow-hidden">
                 <div
-                  className="absolute h-full rounded-lg flex items-center justify-center text-xs font-semibold text-[var(--color-card)] transition-all"
+                  className="absolute h-full rounded-lg flex items-center justify-center text-xs font-semibold text-(--color-card) transition-all"
                   style={{
                     backgroundColor: debt.color,
                     width: `${(debt.monthsToPayoff / totalMonths) * 100}%`,
@@ -99,8 +99,8 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
               className="absolute top-0 flex flex-col items-center"
               style={{ left: `${(milestone.month / totalMonths) * 100}%` }}
             >
-              <div className="w-2 h-2 bg-[var(--color-chart-principal)] rounded-full mb-1"></div>
-              <div className="text-xs text-[var(--color-chart-principal)] font-semibold whitespace-nowrap">
+              <div className="w-2 h-2 bg-(--color-chart-principal) rounded-full mb-1"></div>
+              <div className="text-xs text-(--color-chart-principal) font-semibold whitespace-nowrap">
                 {milestone.percent}%
               </div>
             </div>
@@ -147,10 +147,10 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
                   <div className="text-foreground font-mono text-right">
                     ${payment.paymentAmount.toFixed(2)}
                   </div>
-                  <div className="text-[var(--color-chart-principal)] font-mono text-right">
+                  <div className="text-(--color-chart-principal) font-mono text-right">
                     -${payment.principalAmount.toFixed(2)}
                   </div>
-                  <div className="text-[var(--color-chart-interest)] font-mono text-right">
+                  <div className="text-(--color-chart-interest) font-mono text-right">
                     ${payment.interestAmount.toFixed(2)}
                   </div>
                 </div>
@@ -172,10 +172,10 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
                   <div className="text-foreground font-mono text-right">
                     ${schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].paymentAmount.toFixed(2)}
                   </div>
-                  <div className="text-[var(--color-chart-principal)] font-mono text-right">
+                  <div className="text-(--color-chart-principal) font-mono text-right">
                     -${schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].principalAmount.toFixed(2)}
                   </div>
-                  <div className="text-[var(--color-chart-interest)] font-mono text-right">
+                  <div className="text-(--color-chart-interest) font-mono text-right">
                     ${schedule.monthlyBreakdown[schedule.monthlyBreakdown.length - 1].interestAmount.toFixed(2)}
                   </div>
                 </div>
@@ -187,10 +187,10 @@ export function PayoffTimeline({ strategy, className }: PayoffTimelineProps) {
                 <div className="text-foreground font-mono font-semibold text-right">
                   ${(schedule.originalBalance + schedule.totalInterestPaid).toFixed(2)}
                 </div>
-                <div className="text-[var(--color-chart-principal)] font-mono font-semibold text-right">
+                <div className="text-(--color-chart-principal) font-mono font-semibold text-right">
                   -${schedule.originalBalance.toFixed(2)}
                 </div>
-                <div className="text-[var(--color-chart-interest)] font-mono font-semibold text-right">
+                <div className="text-(--color-chart-interest) font-mono font-semibold text-right">
                   ${schedule.totalInterestPaid.toFixed(2)}
                 </div>
               </div>

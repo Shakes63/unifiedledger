@@ -136,25 +136,25 @@ export function BudgetSummaryWidget() {
       return {
         label: 'Excellent',
         color: 'var(--color-success)',
-        textColor: 'text-[var(--color-success)]',
+        textColor: 'text-(--color-success)',
       };
     } else if (score >= 70) {
       return {
         label: 'Good',
         color: 'var(--color-income)',
-        textColor: 'text-[var(--color-income)]',
+        textColor: 'text-(--color-income)',
       };
     } else if (score >= 50) {
       return {
         label: 'Fair',
         color: 'var(--color-warning)',
-        textColor: 'text-[var(--color-warning)]',
+        textColor: 'text-(--color-warning)',
       };
     } else {
       return {
         label: 'Needs Work',
         color: 'var(--color-error)',
-        textColor: 'text-[var(--color-error)]',
+        textColor: 'text-(--color-error)',
       };
     }
   };
@@ -164,11 +164,11 @@ export function BudgetSummaryWidget() {
   // Determine overall status color
   const getStatusColor = () => {
     if (summary.percentage >= 100) {
-      return 'bg-[var(--color-error)]';
+      return 'bg-(--color-error)';
     } else if (summary.percentage >= 80) {
-      return 'bg-[var(--color-warning)]';
+      return 'bg-(--color-warning)';
     } else {
-      return 'bg-[var(--color-success)]';
+      return 'bg-(--color-success)';
     }
   };
 
@@ -187,7 +187,7 @@ export function BudgetSummaryWidget() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-sm font-medium text-foreground">Budget Status</h3>
-          <div className="flex items-center gap-1 text-xs text-[var(--color-primary)] hover:opacity-80">
+          <div className="flex items-center gap-1 text-xs text-(--color-primary) hover:opacity-80">
             <span>View All</span>
             <ChevronRight className="w-3 h-3" />
           </div>
@@ -280,19 +280,19 @@ export function BudgetSummaryWidget() {
         <div className="flex items-center justify-between text-xs pt-4 border-t border-border">
           {summary.onTrack > 0 && (
             <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-[var(--color-success)]"></div>
+              <div className="w-2 h-2 rounded-full bg-(--color-success)"></div>
               <span className="text-muted-foreground">{summary.onTrack} On Track</span>
             </div>
           )}
           {summary.warning > 0 && (
             <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-[var(--color-warning)]"></div>
+              <div className="w-2 h-2 rounded-full bg-(--color-warning)"></div>
               <span className="text-muted-foreground">{summary.warning} Warning</span>
             </div>
           )}
           {summary.exceeded > 0 && (
             <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-[var(--color-error)]"></div>
+              <div className="w-2 h-2 rounded-full bg-(--color-error)"></div>
               <span className="text-muted-foreground">{summary.exceeded} Over</span>
             </div>
           )}

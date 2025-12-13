@@ -563,7 +563,7 @@ export function BudgetManagerModal({
             step="0.01"
             value={budgetValues[category.id] || '0'}
             onChange={e => handleValueChange(category.id, e.target.value)}
-            className="w-32 bg-input border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            className="w-32 bg-input border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
           />
         </div>
       </div>
@@ -576,7 +576,7 @@ export function BudgetManagerModal({
             id={`frequency-${category.id}`}
             value={frequencies[category.id] || 'variable'}
             onChange={e => setFrequencies(prev => ({ ...prev, [category.id]: e.target.value }))}
-            className="flex-1 bg-input border border-border rounded-lg px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            className="flex-1 bg-input border border-border rounded-lg px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
           >
             <option value="weekly">Weekly</option>
             <option value="biweekly">Biweekly (Every 2 weeks)</option>
@@ -620,7 +620,7 @@ export function BudgetManagerModal({
           >
             Manage Groups
             {budgetGroups.length > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded">
+              <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-(--color-primary)/10 text-(--color-primary) rounded">
                 {budgetGroups.length}
               </span>
             )}
@@ -638,7 +638,7 @@ export function BudgetManagerModal({
             </p>
             <Link
               href="/dashboard/categories"
-              className="text-[var(--color-primary)] hover:underline"
+              className="text-(--color-primary) hover:underline"
               onClick={onClose}
             >
               Manage Categories
@@ -659,12 +659,12 @@ export function BudgetManagerModal({
                   placeholder="Group name (e.g., Needs, Wants)"
                   value={newGroupName}
                   onChange={e => setNewGroupName(e.target.value)}
-                  className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                  className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
                 />
                 <select
                   value={newGroupType}
                   onChange={e => setNewGroupType(e.target.value as 'expense' | 'savings')}
-                  className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                  className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
                 >
                   <option value="expense">Expense</option>
                   <option value="savings">Savings</option>
@@ -672,7 +672,7 @@ export function BudgetManagerModal({
                 <button
                   onClick={handleCreateGroup}
                   disabled={creatingGroup || !newGroupName.trim()}
-                  className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1"
+                  className="px-4 py-2 bg-(--color-primary) text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-1"
                 >
                   <Plus className="w-4 h-4" />
                   Create
@@ -696,7 +696,7 @@ export function BudgetManagerModal({
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-foreground">{group.name}</span>
                             {group.targetAllocation && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-(--color-primary)/10 text-(--color-primary)">
                                 {group.targetAllocation}% target
                               </span>
                             )}
@@ -707,7 +707,7 @@ export function BudgetManagerModal({
                         </div>
                         <button
                           onClick={() => handleDeleteGroup(group.id)}
-                          className="p-1.5 text-muted-foreground hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/10 rounded transition-colors"
+                          className="p-1.5 text-muted-foreground hover:text-(--color-error) hover:bg-(--color-error)/10 rounded transition-colors"
                           title="Delete group"
                         >
                           <X className="w-4 h-4" />
@@ -722,7 +722,7 @@ export function BudgetManagerModal({
                                 <span className="text-sm text-foreground">{cat.name}</span>
                                 <button
                                   onClick={() => handleUnassignCategory(cat.id, group.id)}
-                                  className="p-1 text-muted-foreground hover:text-[var(--color-error)] transition-colors"
+                                  className="p-1 text-muted-foreground hover:text-(--color-error) transition-colors"
                                   title="Remove from group"
                                 >
                                   <X className="w-3.5 h-3.5" />
@@ -750,7 +750,7 @@ export function BudgetManagerModal({
                                   e.target.value = '';
                                 }
                               }}
-                              className="w-full mt-2 bg-input border border-border rounded-lg px-3 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                              className="w-full mt-2 bg-input border border-border rounded-lg px-3 py-2 text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
                               defaultValue=""
                             >
                               <option value="" disabled>
@@ -793,7 +793,7 @@ export function BudgetManagerModal({
                                   handleAssignCategory(cat.id, e.target.value);
                                 }
                               }}
-                              className="bg-input border border-border rounded px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+                              className="bg-input border border-border rounded px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-(--color-primary)"
                               defaultValue=""
                             >
                               <option value="">Assign to...</option>
@@ -880,12 +880,12 @@ export function BudgetManagerModal({
             {debtBudgetData && debtBudgetData.debtCount > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-3">
-                  <CreditCard className="w-4 h-4 text-[var(--color-expense)]" />
+                  <CreditCard className="w-4 h-4 text-(--color-expense)" />
                   <h3 className="text-sm font-semibold text-foreground">
                     Debt Payments
                   </h3>
                   {debtBudgetData.strategyEnabled && (
-                    <span className="text-xs px-2 py-0.5 bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded">
+                    <span className="text-xs px-2 py-0.5 bg-(--color-primary)/10 text-(--color-primary) rounded">
                       {debtBudgetData.payoffMethod} strategy
                     </span>
                   )}
@@ -911,7 +911,7 @@ export function BudgetManagerModal({
                   {debtBudgetData.strategyEnabled && debtBudgetData.strategyDebts.items.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <Star className="w-3 h-3 text-[var(--color-primary)]" />
+                        <Star className="w-3 h-3 text-(--color-primary)" />
                         <span className="text-xs font-medium text-muted-foreground">
                           Managed by Strategy
                         </span>
@@ -925,7 +925,7 @@ export function BudgetManagerModal({
                             />
                             <span className="text-sm text-foreground">{debt.name}</span>
                             {debt.isFocusDebt && (
-                              <span className="inline-flex items-center gap-0.5 text-xs text-[var(--color-primary)]">
+                              <span className="inline-flex items-center gap-0.5 text-xs text-(--color-primary)">
                                 <Star className="w-3 h-3" />
                                 Focus
                               </span>
@@ -993,7 +993,7 @@ export function BudgetManagerModal({
                                   [debt.id]: e.target.value,
                                 }))
                               }
-                              className="w-28 bg-input border border-border rounded-lg px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                              className="w-28 bg-input border border-border rounded-lg px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
                             />
                           </div>
                         </div>
@@ -1003,14 +1003,14 @@ export function BudgetManagerModal({
 
                   <div className="flex items-center justify-between pt-2 mt-2 border-t border-border">
                     <span className="text-sm font-medium text-muted-foreground">Total Debt Payments:</span>
-                    <span className="text-sm font-mono font-semibold text-[var(--color-expense)]">
+                    <span className="text-sm font-mono font-semibold text-(--color-expense)">
                       ${totals.debtTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex items-center justify-center gap-4 mt-2">
                     <Link
                       href="/dashboard/debts"
-                      className="flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline"
+                      className="flex items-center gap-1 text-xs text-(--color-primary) hover:underline"
                     >
                       Manage Debts
                       <ExternalLink className="w-3 h-3" />
@@ -1031,13 +1031,13 @@ export function BudgetManagerModal({
               <h3 className="text-sm font-semibold text-foreground mb-2">Summary</h3>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Total Income:</span>
-                <span className="font-semibold text-[var(--color-income)]">
+                <span className="font-semibold text-(--color-income)">
                   ${totals.incomeTotal.toFixed(2)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Total Expenses:</span>
-                <span className="font-semibold text-[var(--color-expense)]">
+                <span className="font-semibold text-(--color-expense)">
                   ${totals.expenseTotal.toFixed(2)}
                 </span>
               </div>
@@ -1050,7 +1050,7 @@ export function BudgetManagerModal({
               {totals.debtTotal > 0 && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Total Debt Payments:</span>
-                  <span className="font-semibold text-[var(--color-expense)]">
+                  <span className="font-semibold text-(--color-expense)">
                     ${totals.debtTotal.toFixed(2)}
                   </span>
                 </div>
@@ -1061,8 +1061,8 @@ export function BudgetManagerModal({
                   <span
                     className={`font-semibold ${
                       totals.surplus >= 0
-                        ? 'text-[var(--color-success)]'
-                        : 'text-[var(--color-error)]'
+                        ? 'text-(--color-success)'
+                        : 'text-(--color-error)'
                     }`}
                   >
                     ${totals.surplus.toFixed(2)}
@@ -1084,7 +1084,7 @@ export function BudgetManagerModal({
               <button
                 onClick={handleSave}
                 disabled={saving || categories.length === 0}
-                className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="px-4 py-2 bg-(--color-primary) text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Budget'}
               </button>

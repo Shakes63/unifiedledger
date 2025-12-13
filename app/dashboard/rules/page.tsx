@@ -229,7 +229,7 @@ export default function RulesPage() {
   if (!selectedHouseholdId) {
     return (
       <div className="p-6">
-        <div className="bg-[var(--color-warning)]/20 border border-[var(--color-warning)]/40 rounded-lg p-4 text-[var(--color-warning)] flex gap-2">
+        <div className="bg-(--color-warning)/20 border border-(--color-warning)/40 rounded-lg p-4 text-(--color-warning) flex gap-2">
           <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-medium">No household selected</p>
@@ -322,7 +322,7 @@ export default function RulesPage() {
             <Button
               onClick={handleSaveRule}
               disabled={saving}
-              className="flex-1 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90"
+              className="flex-1 bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90"
             >
               {saving ? 'Saving...' : editingRule ? 'Update Rule' : 'Create Rule'}
             </Button>

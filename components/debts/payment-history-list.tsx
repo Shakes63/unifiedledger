@@ -130,8 +130,8 @@ export function PaymentHistoryList({
   // Error state
   if (error) {
     return (
-      <div className={`p-4 bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-lg ${className}`}>
-        <p className="text-sm text-[var(--color-error)]">
+      <div className={`p-4 bg-(--color-error)/10 border border-(--color-error)/30 rounded-lg ${className}`}>
+        <p className="text-sm text-(--color-error)">
           {error}
         </p>
       </div>
@@ -170,7 +170,7 @@ export function PaymentHistoryList({
                   ? 'bg-accent/10 border border-accent/30'
                   : 'bg-elevated border border-border'
                 }
-                hover:bg-[var(--color-border)]/20
+                hover:bg-(--color-border)/20
               `}
             >
               {/* Left side: Date and amount */}
@@ -207,8 +207,8 @@ export function PaymentHistoryList({
                 {hasPrincipalInterest && (
                   <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
                     <div className="flex items-center justify-end gap-1">
-                      <TrendingDown className="w-3 h-3 text-[var(--color-chart-principal)]" />
-                      <span className="text-[var(--color-chart-principal)]">
+                      <TrendingDown className="w-3 h-3 text-(--color-chart-principal)" />
+                      <span className="text-(--color-chart-principal)">
                         ${payment.principalAmount!.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
@@ -217,7 +217,7 @@ export function PaymentHistoryList({
                       <span className="text-muted-foreground">principal</span>
                     </div>
                     <div className="flex items-center justify-end gap-1">
-                      <span className="text-[var(--color-chart-interest)]">
+                      <span className="text-(--color-chart-interest)">
                         ${payment.interestAmount!.toLocaleString(undefined, {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,

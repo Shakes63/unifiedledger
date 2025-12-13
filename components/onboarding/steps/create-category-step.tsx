@@ -78,8 +78,8 @@ export function CreateCategoryStep({
         isFirstStep={false}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-[var(--color-success)]/20 flex items-center justify-center">
-            <CheckCircle2 className="w-8 h-8 text-[var(--color-success)]" />
+          <div className="w-16 h-16 rounded-full bg-(--color-success)/20 flex items-center justify-center">
+            <CheckCircle2 className="w-8 h-8 text-(--color-success)" />
           </div>
           <p className="text-muted-foreground">
             Demo categories with sample budgets are ready for you to explore.
@@ -103,8 +103,8 @@ export function CreateCategoryStep({
     >
       <div className="space-y-6">
         <div className="flex items-center justify-center py-4">
-          <div className="w-16 h-16 rounded-full bg-[var(--color-primary)]/20 flex items-center justify-center">
-            <FolderTree className="w-8 h-8 text-[var(--color-primary)]" />
+          <div className="w-16 h-16 rounded-full bg-(--color-primary)/20 flex items-center justify-center">
+            <FolderTree className="w-8 h-8 text-(--color-primary)" />
           </div>
         </div>
 

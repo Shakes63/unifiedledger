@@ -136,7 +136,7 @@ export function CategoryForm({
       {/* Name and Type */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className={`text-sm mb-2 block ${errors.name ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+          <Label className={`text-sm mb-2 block ${errors.name ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
             Category Name
           </Label>
           <Input
@@ -148,15 +148,15 @@ export function CategoryForm({
             }}
             placeholder="e.g., Groceries"
             className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.name ? 'border-[var(--color-error)]' : 'border-border'
+              errors.name ? 'border-(--color-error)' : 'border-border'
             }`}
           />
           {errors.name && (
-            <p className="text-[var(--color-error)] text-xs mt-1">{errors.name}</p>
+            <p className="text-(--color-error) text-xs mt-1">{errors.name}</p>
           )}
         </div>
         <div>
-          <Label className={`text-sm mb-2 block ${errors.type ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+          <Label className={`text-sm mb-2 block ${errors.type ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
             Category Type
           </Label>
           <Select 
@@ -171,7 +171,7 @@ export function CategoryForm({
             }}
           >
             <SelectTrigger className={`bg-elevated text-foreground ${
-              errors.type ? 'border-[var(--color-error)]' : 'border-border'
+              errors.type ? 'border-(--color-error)' : 'border-border'
             }`}>
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
@@ -184,7 +184,7 @@ export function CategoryForm({
             </SelectContent>
           </Select>
           {errors.type && (
-            <p className="text-[var(--color-error)] text-xs mt-1">{errors.type}</p>
+            <p className="text-(--color-error) text-xs mt-1">{errors.type}</p>
           )}
         </div>
       </div>
@@ -289,11 +289,11 @@ export function CategoryForm({
             type="button"
             onClick={() => handleCheckboxChange('isActive')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isActive ? 'bg-[var(--color-income)]' : 'bg-border'
+              formData.isActive ? 'bg-(--color-income)' : 'bg-border'
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-[var(--color-card)] transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full bg-(--color-card) transition-transform ${
                 formData.isActive ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
@@ -308,11 +308,11 @@ export function CategoryForm({
             type="button"
             onClick={() => handleCheckboxChange('isTaxDeductible')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isTaxDeductible ? 'bg-[var(--color-income)]' : 'bg-border'
+              formData.isTaxDeductible ? 'bg-(--color-income)' : 'bg-border'
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-[var(--color-card)] transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full bg-(--color-card) transition-transform ${
                 formData.isTaxDeductible ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
@@ -327,11 +327,11 @@ export function CategoryForm({
             type="button"
             onClick={() => handleCheckboxChange('isBusinessCategory')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isBusinessCategory ? 'bg-[var(--color-income)]' : 'bg-border'
+              formData.isBusinessCategory ? 'bg-(--color-income)' : 'bg-border'
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-[var(--color-card)] transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full bg-(--color-card) transition-transform ${
                 formData.isBusinessCategory ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
@@ -344,7 +344,7 @@ export function CategoryForm({
         <Button
           type="submit"
           disabled={isLoading}
-          className="flex-1 bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
+          className="flex-1 bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90 font-medium"
         >
           {isLoading ? 'Saving...' : category ? 'Update Category' : 'Create Category'}
         </Button>

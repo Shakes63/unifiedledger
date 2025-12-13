@@ -48,19 +48,19 @@ interface ImportPreviewProps {
 function getCCTypeIcon(type: CCTransactionType | undefined): React.ReactNode {
   switch (type) {
     case 'payment':
-      return <DollarSign className="w-3 h-3 text-[var(--color-success)]" />;
+      return <DollarSign className="w-3 h-3 text-(--color-success)" />;
     case 'refund':
-      return <RefreshCw className="w-3 h-3 text-[var(--color-income)]" />;
+      return <RefreshCw className="w-3 h-3 text-(--color-income)" />;
     case 'interest':
-      return <Percent className="w-3 h-3 text-[var(--color-warning)]" />;
+      return <Percent className="w-3 h-3 text-(--color-warning)" />;
     case 'fee':
-      return <Receipt className="w-3 h-3 text-[var(--color-error)]" />;
+      return <Receipt className="w-3 h-3 text-(--color-error)" />;
     case 'balance_transfer':
-      return <ArrowLeftRight className="w-3 h-3 text-[var(--color-primary)]" />;
+      return <ArrowLeftRight className="w-3 h-3 text-(--color-primary)" />;
     case 'reward':
-      return <Gift className="w-3 h-3 text-[var(--color-success)]" />;
+      return <Gift className="w-3 h-3 text-(--color-success)" />;
     case 'cash_advance':
-      return <DollarSign className="w-3 h-3 text-[var(--color-warning)]" />;
+      return <DollarSign className="w-3 h-3 text-(--color-warning)" />;
     default:
       return <CreditCard className="w-3 h-3 text-muted-foreground" />;
   }
@@ -128,16 +128,16 @@ export function ImportPreview({
   const getStatusIcon = (status: string, errors?: string[]) => {
     if (errors && errors.length > 0) {
       return (
-        <AlertCircle className="w-4 h-4 text-[var(--color-error)]" />
+        <AlertCircle className="w-4 h-4 text-(--color-error)" />
       );
     }
     if (status === 'approved') {
       return (
-        <CheckCircle2 className="w-4 h-4 text-[var(--color-success)]" />
+        <CheckCircle2 className="w-4 h-4 text-(--color-success)" />
       );
     }
     return (
-      <AlertTriangle className="w-4 h-4 text-[var(--color-warning)]" />
+      <AlertTriangle className="w-4 h-4 text-(--color-warning)" />
     );
   };
 
@@ -152,7 +152,7 @@ export function ImportPreview({
           <CardDescription className="flex items-center gap-2">
             {fileName}
             {sourceType === 'credit_card' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded-full">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs bg-(--color-primary)/10 text-(--color-primary) rounded-full">
                 <CreditCard className="w-3 h-3" />
                 Credit Card
               </span>
@@ -172,22 +172,22 @@ export function ImportPreview({
             </div>
             <div className="p-2 bg-elevated rounded">
               <div className="text-xs text-muted-foreground">Valid</div>
-              <div className="text-lg font-semibold text-[var(--color-success)]">{validRows}</div>
+              <div className="text-lg font-semibold text-(--color-success)">{validRows}</div>
             </div>
             <div className="p-2 bg-elevated rounded">
               <div className="text-xs text-muted-foreground">Need Review</div>
-              <div className="text-lg font-semibold text-[var(--color-warning)]">{reviewRows}</div>
+              <div className="text-lg font-semibold text-(--color-warning)">{reviewRows}</div>
             </div>
             <div className="p-2 bg-elevated rounded">
               <div className="text-xs text-muted-foreground">Duplicates</div>
-              <div className="text-lg font-semibold text-[var(--color-error)]">{duplicateRows}</div>
+              <div className="text-lg font-semibold text-(--color-error)">{duplicateRows}</div>
             </div>
           </div>
 
           {/* Transfer matches warning */}
           {transferMatches > 0 && (
-            <div className="p-3 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-lg">
-              <div className="flex items-center gap-2 text-sm text-[var(--color-warning)]">
+            <div className="p-3 bg-(--color-warning)/10 border border-(--color-warning)/30 rounded-lg">
+              <div className="flex items-center gap-2 text-sm text-(--color-warning)">
                 <ArrowLeftRight className="w-4 h-4" />
                 <span className="font-medium">{transferMatches} potential transfer match{transferMatches > 1 ? 'es' : ''}</span>
               </div>
@@ -293,7 +293,7 @@ export function ImportPreview({
                               )}
                               {/* Show CC transaction type badge */}
                               {record.ccTransactionType && record.ccTransactionType !== 'purchase' && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded">
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs bg-(--color-primary)/10 text-(--color-primary) rounded">
                                   {getCCTypeIcon(record.ccTransactionType)}
                                   {getCCTypeLabel(record.ccTransactionType)}
                                 </span>
@@ -306,7 +306,7 @@ export function ImportPreview({
                         )}
 
                         {record.validationErrors && record.validationErrors.length > 0 && (
-                          <div className="text-xs text-[var(--color-error)] mt-2 space-y-1">
+                          <div className="text-xs text-(--color-error) mt-2 space-y-1">
                             {record.validationErrors.map((error, i) => (
                               <div key={`error-${record.rowNumber}-${i}`}>{error}</div>
                             ))}
@@ -314,14 +314,14 @@ export function ImportPreview({
                         )}
 
                         {record.duplicateOf && (
-                          <div className="text-xs text-[var(--color-warning)] mt-2">
+                          <div className="text-xs text-(--color-warning) mt-2">
                             Possible duplicate ({record.duplicateScore?.toFixed(0)}% match)
                           </div>
                         )}
 
                         {/* Show transfer match warning */}
                         {record.potentialTransferId && (
-                          <div className="flex items-center gap-2 text-xs text-[var(--color-primary)] mt-2">
+                          <div className="flex items-center gap-2 text-xs text-(--color-primary) mt-2">
                             <ArrowLeftRight className="w-3 h-3" />
                             <span>
                               Potential transfer match ({record.transferMatchConfidence?.toFixed(0)}% confidence)

@@ -235,7 +235,7 @@ export function TransferForm({
             )}
           />
           {errors.fromAccountId && (
-            <p className="text-[var(--color-error)] text-sm mt-1">
+            <p className="text-(--color-error) text-sm mt-1">
               {errors.fromAccountId.message}
             </p>
           )}
@@ -276,7 +276,7 @@ export function TransferForm({
             )}
           />
           {errors.toAccountId && (
-            <p className="text-[var(--color-error)] text-sm mt-1">
+            <p className="text-(--color-error) text-sm mt-1">
               {errors.toAccountId.message}
             </p>
           )}
@@ -285,34 +285,34 @@ export function TransferForm({
           {toAccountId && paymentBillDetection && paymentBillDetection.confidence !== 'none' && (
             <div className={`mt-3 p-3 rounded-lg border flex items-start gap-3 ${
               paymentBillDetection.detectedBill?.status === 'overdue'
-                ? 'bg-[var(--color-error)]/10 border-[var(--color-error)]/30'
+                ? 'bg-(--color-error)/10 border-(--color-error)/30'
                 : paymentBillDetection.confidence === 'high'
-                  ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30'
+                  ? 'bg-(--color-primary)/10 border-(--color-primary)/30'
                   : paymentBillDetection.confidence === 'medium'
-                    ? 'bg-[var(--color-primary)]/5 border-[var(--color-primary)]/20'
+                    ? 'bg-(--color-primary)/5 border-(--color-primary)/20'
                     : 'bg-elevated border-border'
             }`}>
               <CreditCard className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
                 paymentBillDetection.detectedBill?.status === 'overdue'
-                  ? 'text-[var(--color-error)]'
-                  : 'text-[var(--color-primary)]'
+                  ? 'text-(--color-error)'
+                  : 'text-(--color-primary)'
               }`} />
               <div className="flex-1 min-w-0">
                 {paymentBillDetection.detectedBill ? (
                   <>
                     <p className={`text-sm font-medium ${
                       paymentBillDetection.detectedBill.status === 'overdue' 
-                        ? 'text-[var(--color-error)]' 
+                        ? 'text-(--color-error)' 
                         : 'text-foreground'
                     }`}>
                       {paymentBillDetection.detectedBill.billName}
                       {paymentBillDetection.detectedBill.status === 'overdue' && (
-                        <span className="ml-2 text-xs font-normal bg-[var(--color-error)]/20 px-1.5 py-0.5 rounded">
+                        <span className="ml-2 text-xs font-normal bg-(--color-error)/20 px-1.5 py-0.5 rounded">
                           OVERDUE
                         </span>
                       )}
                       {paymentBillDetection.detectedBill.status === 'partial' && (
-                        <span className="ml-2 text-xs font-normal bg-[var(--color-warning)]/20 text-[var(--color-warning)] px-1.5 py-0.5 rounded">
+                        <span className="ml-2 text-xs font-normal bg-(--color-warning)/20 text-(--color-warning) px-1.5 py-0.5 rounded">
                           PARTIAL
                         </span>
                       )}
@@ -322,7 +322,7 @@ export function TransferForm({
                       {' '}&middot;{' '}
                       ${paymentBillDetection.detectedBill.expectedAmount.toFixed(2)}
                       {paymentBillDetection.detectedBill.status === 'partial' && (
-                        <span className="text-[var(--color-warning)]">
+                        <span className="text-(--color-warning)">
                           {' '}(${paymentBillDetection.detectedBill.remainingAmount.toFixed(2)} remaining)
                         </span>
                       )}
@@ -331,9 +331,9 @@ export function TransferForm({
                 ) : null}
                 <p className={`text-xs mt-1 ${
                   paymentBillDetection.detectedBill?.status === 'overdue'
-                    ? 'text-[var(--color-error)]'
+                    ? 'text-(--color-error)'
                     : paymentBillDetection.confidence === 'high'
-                      ? 'text-[var(--color-primary)]'
+                      ? 'text-(--color-primary)'
                       : 'text-muted-foreground'
                 }`}>
                   {paymentBillDetection.reason}
@@ -343,7 +343,7 @@ export function TransferForm({
                     href="/dashboard/bills"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-[var(--color-primary)] hover:underline mt-1"
+                    className="inline-flex items-center gap-1 text-xs text-(--color-primary) hover:underline mt-1"
                   >
                     Set up payment bill <ExternalLink className="w-3 h-3" />
                   </a>
@@ -372,7 +372,7 @@ export function TransferForm({
             )}
           />
           {errors.amount && (
-            <p className="text-[var(--color-error)] text-sm mt-1">
+            <p className="text-(--color-error) text-sm mt-1">
               {errors.amount.message}
             </p>
           )}
@@ -397,7 +397,7 @@ export function TransferForm({
             )}
           />
           {errors.fees && (
-            <p className="text-[var(--color-error)] text-sm mt-1">
+            <p className="text-(--color-error) text-sm mt-1">
               {errors.fees.message}
             </p>
           )}
@@ -420,7 +420,7 @@ export function TransferForm({
             )}
           />
           {errors.date && (
-            <p className="text-[var(--color-error)] text-sm mt-1">
+            <p className="text-(--color-error) text-sm mt-1">
               {errors.date.message}
             </p>
           )}
@@ -467,7 +467,7 @@ export function TransferForm({
           <Button
             type="submit"
             disabled={isLoading}
-            className="flex-1 bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+            className="flex-1 bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
           >
             {isLoading ? (
               <>

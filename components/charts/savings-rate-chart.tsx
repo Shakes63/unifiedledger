@@ -118,9 +118,9 @@ export function SavingsRateChart({
   const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
     switch (trend) {
       case 'up':
-        return <TrendingUp className="w-4 h-4 text-[var(--color-income)]" />;
+        return <TrendingUp className="w-4 h-4 text-(--color-income)" />;
       case 'down':
-        return <TrendingDown className="w-4 h-4 text-[var(--color-expense)]" />;
+        return <TrendingDown className="w-4 h-4 text-(--color-expense)" />;
       default:
         return <Minus className="w-4 h-4 text-muted-foreground" />;
     }
@@ -138,7 +138,7 @@ export function SavingsRateChart({
         <div className="space-y-1">
           <div className="flex items-center justify-between gap-4 text-sm">
             <span className="text-muted-foreground">Savings Rate</span>
-            <span className="font-semibold text-[var(--color-primary)]">
+            <span className="font-semibold text-(--color-primary)">
               {payload[0].value.toFixed(1)}%
             </span>
           </div>
@@ -146,7 +146,7 @@ export function SavingsRateChart({
             <>
               <div className="flex items-center justify-between gap-4 text-xs">
                 <span className="text-muted-foreground">Saved</span>
-                <span className="text-[var(--color-income)]">
+                <span className="text-(--color-income)">
                   ${dataPoint.totalSavingsContributions.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                 </span>
               </div>
@@ -176,13 +176,13 @@ export function SavingsRateChart({
         <div className="flex items-center gap-6 mb-4 pb-4 border-b border-border">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Average</span>
-            <span className="text-lg font-semibold text-[var(--color-primary)]">
+            <span className="text-lg font-semibold text-(--color-primary)">
               {summary.averageRate.toFixed(1)}%
             </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Total Saved</span>
-            <span className="text-lg font-semibold text-[var(--color-income)]">
+            <span className="text-lg font-semibold text-(--color-income)">
               ${summary.totalSaved.toLocaleString('en-US', { maximumFractionDigits: 0 })}
             </span>
           </div>

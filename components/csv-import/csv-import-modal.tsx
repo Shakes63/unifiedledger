@@ -445,12 +445,12 @@ export function CSVImportModal({
               {detectedSourceType && detectionConfidence >= 50 && (
                 <div className={`p-3 rounded-lg border ${
                   detectedSourceType === 'credit_card' 
-                    ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]/30' 
+                    ? 'bg-(--color-primary)/10 border-(--color-primary)/30' 
                     : 'bg-elevated border-border'
                 }`}>
                   <div className="flex items-center gap-2">
                     {detectedSourceType === 'credit_card' ? (
-                      <CreditCard className="w-4 h-4 text-[var(--color-primary)]" />
+                      <CreditCard className="w-4 h-4 text-(--color-primary)" />
                     ) : (
                       <Building2 className="w-4 h-4 text-muted-foreground" />
                     )}
@@ -656,10 +656,10 @@ export function CSVImportModal({
 
           {/* Complete Step */}
           {step === 'complete' && (
-            <Card className="border-[var(--color-success)]">
+            <Card className="border-(--color-success)">
               <CardContent className="pt-6">
                 <div className="text-center space-y-2">
-                  <div className="text-sm text-[var(--color-success)]">✓ Import completed</div>
+                  <div className="text-sm text-(--color-success)">✓ Import completed</div>
                   <p className="text-sm text-muted-foreground">
                     Transactions have been imported successfully.
                   </p>

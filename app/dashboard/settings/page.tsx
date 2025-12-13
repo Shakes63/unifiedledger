@@ -278,7 +278,7 @@ function SettingsPageContent() {
           <TabsList className="grid w-full grid-cols-2 bg-elevated border border-border h-12">
             <TabsTrigger
               value="account"
-              className="flex items-center gap-2 data-[state=active]:bg-card data-[state=active]:text-[var(--color-primary)]"
+              className="flex items-center gap-2 data-[state=active]:bg-card data-[state=active]:text-(--color-primary)"
             >
               <User className="w-4 h-4" />
               <span className="hidden sm:inline">Account</span>
@@ -286,7 +286,7 @@ function SettingsPageContent() {
             </TabsTrigger>
             <TabsTrigger
               value="households"
-              className="flex items-center gap-2 data-[state=active]:bg-card data-[state=active]:text-[var(--color-primary)]"
+              className="flex items-center gap-2 data-[state=active]:bg-card data-[state=active]:text-(--color-primary)"
             >
               <Home className="w-4 h-4" />
               <span className="hidden sm:inline">Households</span>
@@ -322,7 +322,7 @@ function SettingsPageContent() {
                     className={cn(
                       "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                       tab === t.id
-                        ? "bg-card text-[var(--color-primary)] shadow-sm"
+                        ? "bg-card text-(--color-primary) shadow-sm"
                         : "text-foreground hover:bg-card/50"
                     )}
                   >
@@ -426,7 +426,7 @@ function SettingsPageContent() {
           <TabsContent value="households" className="mt-6 space-y-4">
             {householdsLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-[var(--color-primary)]" />
+                <Loader2 className="w-8 h-8 animate-spin text-(--color-primary)" />
               </div>
             ) : households.length === 0 ? (
               <Card className="border-border bg-card p-8">
@@ -440,7 +440,7 @@ function SettingsPageContent() {
                   </p>
                   <Button
                     onClick={() => setCreateDialogOpen(true)}
-                    className="bg-[var(--color-primary)] hover:opacity-90"
+                    className="bg-(--color-primary) hover:opacity-90"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Create Household
@@ -464,7 +464,7 @@ function SettingsPageContent() {
                         className={cn(
                           "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors relative group",
                           householdId === household.id
-                            ? "bg-card text-[var(--color-primary)] shadow-sm"
+                            ? "bg-card text-(--color-primary) shadow-sm"
                             : "text-foreground hover:bg-card/50"
                         )}
                       >
@@ -472,8 +472,8 @@ function SettingsPageContent() {
                           className={cn(
                             "w-4 h-4 cursor-pointer transition-colors shrink-0",
                             household.isFavorite
-                              ? "fill-[var(--color-warning)] text-[var(--color-warning)]"
-                              : "text-muted-foreground hover:text-[var(--color-warning)]"
+                              ? "fill-(--color-warning) text-(--color-warning)"
+                              : "text-muted-foreground hover:text-(--color-warning)"
                           )}
                           onClick={(e) => toggleFavorite(household.id, household.isFavorite, e)}
                         />
@@ -489,7 +489,7 @@ function SettingsPageContent() {
                     <button
                       onClick={() => setCreateDialogOpen(true)}
                       className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors text-[var(--color-primary)] hover:bg-card/50"
+                        "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors text-(--color-primary) hover:bg-card/50"
                       )}
                     >
                       <Plus className="w-4 h-4" />
@@ -525,7 +525,7 @@ function SettingsPageContent() {
                                 className={cn(
                                   "w-4 h-4 cursor-pointer transition-colors shrink-0",
                                   household.isFavorite
-                                    ? "fill-[var(--color-warning)] text-[var(--color-warning)]"
+                                    ? "fill-(--color-warning) text-(--color-warning)"
                                     : "text-muted-foreground"
                                 )}
                                 onClick={(e) => toggleFavorite(household.id, household.isFavorite, e)}
@@ -541,7 +541,7 @@ function SettingsPageContent() {
                           </SelectItem>
                         ))}
                         <SelectItem value="create-new">
-                          <div className="flex items-center gap-2 text-[var(--color-primary)]">
+                          <div className="flex items-center gap-2 text-(--color-primary)">
                             <Plus className="w-4 h-4" />
                             <span>Create New Household</span>
                           </div>
@@ -573,7 +573,7 @@ function SettingsPageContent() {
                           className={cn(
                             "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                             tab === t.id
-                              ? "bg-card text-[var(--color-primary)] shadow-sm"
+                              ? "bg-card text-(--color-primary) shadow-sm"
                               : "text-foreground hover:bg-card/50"
                           )}
                         >
@@ -722,7 +722,7 @@ function SettingsPageContent() {
               <Button
                 onClick={createHousehold}
                 disabled={!householdName.trim() || submitting}
-                className="bg-[var(--color-primary)] hover:opacity-90"
+                className="bg-(--color-primary) hover:opacity-90"
               >
                 {submitting ? (
                   <>

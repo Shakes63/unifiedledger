@@ -125,7 +125,7 @@ export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCar
               <span className="text-sm text-muted-foreground">
                 ${summary.totalIncome.toFixed(2)} budgeted
               </span>
-              <span className="text-sm font-semibold text-[var(--color-income)]">
+              <span className="text-sm font-semibold text-(--color-income)">
                 ${summary.totalIncomeActual.toFixed(2)} actual
               </span>
             </div>
@@ -134,12 +134,12 @@ export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCar
             <div
               className={`h-full transition-all duration-300 ${
                 incomeStatus === 'ahead'
-                  ? 'bg-[var(--color-success)]'
+                  ? 'bg-(--color-success)'
                   : incomeStatus === 'on_track'
-                  ? 'bg-[var(--color-income)]'
+                  ? 'bg-(--color-income)'
                   : incomeStatus === 'warning'
-                  ? 'bg-[var(--color-warning)]'
-                  : 'bg-[var(--color-error)]'
+                  ? 'bg-(--color-warning)'
+                  : 'bg-(--color-error)'
               }`}
               style={{ width: `${Math.min(100, incomePercentage)}%` }}
             />
@@ -149,15 +149,15 @@ export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCar
               {incomePercentage.toFixed(1)}%
             </span>
             {incomeVariance > 0 ? (
-              <span className="text-xs text-[var(--color-success)]">
+              <span className="text-xs text-(--color-success)">
                 ✓ Exceeding expected by ${Math.abs(incomeVariance).toFixed(2)}
               </span>
             ) : incomeVariance < 0 ? (
               <span
                 className={`text-xs ${
                   incomeStatus === 'critical'
-                    ? 'text-[var(--color-error)]'
-                    : 'text-[var(--color-warning)]'
+                    ? 'text-(--color-error)'
+                    : 'text-(--color-warning)'
                 }`}
               >
                 Below expected by ${Math.abs(incomeVariance).toFixed(2)}
@@ -176,7 +176,7 @@ export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCar
               <span className="text-sm text-muted-foreground">
                 ${summary.totalExpenseBudget.toFixed(2)} budgeted
               </span>
-              <span className="text-sm font-semibold text-[var(--color-expense)]">
+              <span className="text-sm font-semibold text-(--color-expense)">
                 ${summary.totalExpenseActual.toFixed(2)} actual
               </span>
             </div>
@@ -185,10 +185,10 @@ export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCar
             <div
               className={`h-full transition-all duration-300 ${
                 expenseStatus === 'exceeded'
-                  ? 'bg-[var(--color-error)]'
+                  ? 'bg-(--color-error)'
                   : expenseStatus === 'warning'
-                  ? 'bg-[var(--color-warning)]'
-                  : 'bg-[var(--color-success)]'
+                  ? 'bg-(--color-warning)'
+                  : 'bg-(--color-success)'
               }`}
               style={{ width: `${Math.min(100, expensePercentage)}%` }}
             />
@@ -198,11 +198,11 @@ export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCar
               {expensePercentage.toFixed(1)}%
             </span>
             {expenseVariance > 0 ? (
-              <span className="text-xs text-[var(--color-success)]">
+              <span className="text-xs text-(--color-success)">
                 ✓ Under budget by ${Math.abs(expenseVariance).toFixed(2)}
               </span>
             ) : expenseVariance < 0 ? (
-              <span className="text-xs text-[var(--color-error)]">
+              <span className="text-xs text-(--color-error)">
                 Over budget by ${Math.abs(expenseVariance).toFixed(2)}
               </span>
             ) : (
@@ -220,7 +220,7 @@ export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCar
                 <span className="text-sm text-muted-foreground">
                   ${summary.totalSavingsBudget.toFixed(2)} budgeted
                 </span>
-                <span className="text-sm font-semibold text-[var(--color-success)]">
+                <span className="text-sm font-semibold text-(--color-success)">
                   ${summary.totalSavingsActual.toFixed(2)} actual
                 </span>
               </div>
@@ -229,10 +229,10 @@ export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCar
               <div
                 className={`h-full transition-all duration-300 ${
                   savingsStatus === 'ahead'
-                    ? 'bg-[var(--color-success)]'
+                    ? 'bg-(--color-success)'
                     : savingsStatus === 'on_track'
-                    ? 'bg-[var(--color-income)]'
-                    : 'bg-[var(--color-warning)]'
+                    ? 'bg-(--color-income)'
+                    : 'bg-(--color-warning)'
                 }`}
                 style={{ width: `${Math.min(100, savingsPercentage)}%` }}
               />
@@ -242,11 +242,11 @@ export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCar
                 {savingsPercentage.toFixed(1)}%
               </span>
               {savingsVariance > 0 ? (
-                <span className="text-xs text-[var(--color-success)]">
+                <span className="text-xs text-(--color-success)">
                   ✓ Ahead by ${Math.abs(savingsVariance).toFixed(2)}
                 </span>
               ) : savingsVariance < 0 ? (
-                <span className="text-xs text-[var(--color-warning)]">
+                <span className="text-xs text-(--color-warning)">
                   Behind by ${Math.abs(savingsVariance).toFixed(2)}
                 </span>
               ) : (
@@ -268,7 +268,7 @@ export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCar
                 <span className="text-sm text-muted-foreground">
                   ${debtData.totalRecommendedPayments.toFixed(2)} recommended
                 </span>
-                <span className="text-sm font-semibold text-[var(--color-expense)]">
+                <span className="text-sm font-semibold text-(--color-expense)">
                   ${debtData.totalActualPaid.toFixed(2)} paid
                 </span>
               </div>
@@ -277,10 +277,10 @@ export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCar
               <div
                 className={`h-full transition-all duration-300 ${
                   debtData.totalActualPaid >= debtData.totalRecommendedPayments
-                    ? 'bg-[var(--color-success)]'
+                    ? 'bg-(--color-success)'
                     : debtData.totalActualPaid >= debtData.totalRecommendedPayments * 0.8
-                    ? 'bg-[var(--color-warning)]'
-                    : 'bg-[var(--color-expense)]'
+                    ? 'bg-(--color-warning)'
+                    : 'bg-(--color-expense)'
                 }`}
                 style={{
                   width: `${Math.min(
@@ -300,11 +300,11 @@ export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCar
                 %
               </span>
               {debtData.totalActualPaid >= debtData.totalRecommendedPayments ? (
-                <span className="text-xs text-[var(--color-success)]">
+                <span className="text-xs text-(--color-success)">
                   ✓ All payments made
                 </span>
               ) : (
-                <span className="text-xs text-[var(--color-expense)]">
+                <span className="text-xs text-(--color-expense)">
                   ${(debtData.totalRecommendedPayments - debtData.totalActualPaid).toFixed(2)} remaining
                 </span>
               )}
@@ -319,12 +319,12 @@ export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCar
             <span
               className={`text-sm font-semibold ${
                 summary.adherenceScore >= 90
-                  ? 'text-[var(--color-success)]'
+                  ? 'text-(--color-success)'
                   : summary.adherenceScore >= 70
-                  ? 'text-[var(--color-income)]'
+                  ? 'text-(--color-income)'
                   : summary.adherenceScore >= 50
-                  ? 'text-[var(--color-warning)]'
-                  : 'text-[var(--color-error)]'
+                  ? 'text-(--color-warning)'
+                  : 'text-(--color-error)'
               }`}
             >
               {summary.adherenceScore}% ({adherenceLabel})

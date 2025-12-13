@@ -151,7 +151,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
       {/* Name and Target Amount */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className={`text-sm mb-1 ${errors.name ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+          <Label className={`text-sm mb-1 ${errors.name ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
             Goal Name
           </Label>
           <Input
@@ -163,15 +163,15 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
             }}
             placeholder="e.g., Vacation Fund"
             className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.name ? 'border-[var(--color-error)]' : 'border-border'
+              errors.name ? 'border-(--color-error)' : 'border-border'
             }`}
           />
           {errors.name && (
-            <p className="text-[var(--color-error)] text-xs mt-1">{errors.name}</p>
+            <p className="text-(--color-error) text-xs mt-1">{errors.name}</p>
           )}
         </div>
         <div>
-          <Label className={`text-sm mb-1 ${errors.targetAmount ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+          <Label className={`text-sm mb-1 ${errors.targetAmount ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
             Target Amount
           </Label>
           <Input
@@ -186,11 +186,11 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
             step="0.01"
             min="0"
             className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.targetAmount ? 'border-[var(--color-error)]' : 'border-border'
+              errors.targetAmount ? 'border-(--color-error)' : 'border-border'
             }`}
           />
           {errors.targetAmount && (
-            <p className="text-[var(--color-error)] text-xs mt-1">{errors.targetAmount}</p>
+            <p className="text-(--color-error) text-xs mt-1">{errors.targetAmount}</p>
           )}
         </div>
       </div>
@@ -271,8 +271,8 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
       {recommendation && (
         <div className="bg-elevated border border-border rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <div className="p-2 rounded-full bg-[var(--color-primary)]/10 flex-shrink-0">
-              <Lightbulb className="w-4 h-4 text-[var(--color-primary)]" />
+            <div className="p-2 rounded-full bg-(--color-primary)/10 flex-shrink-0">
+              <Lightbulb className="w-4 h-4 text-(--color-primary)" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground mb-1">
@@ -280,7 +280,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
               </p>
               {recommendation.recommendedMonthly !== null ? (
                 <>
-                  <p className="text-xl font-semibold text-[var(--color-primary)] font-mono">
+                  <p className="text-xl font-semibold text-(--color-primary) font-mono">
                     {formatCurrency(recommendation.recommendedMonthly)}
                     <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
                   </p>
@@ -288,7 +288,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
                     {recommendation.message}
                   </p>
                   {recommendation.isTightTimeline && (
-                    <p className="text-xs text-[var(--color-warning)] mt-1">
+                    <p className="text-xs text-(--color-warning) mt-1">
                       Tight timeline - consider adjusting your target date
                     </p>
                   )}
@@ -299,8 +299,8 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
                     disabled={isRecommendationApplied}
                     className={`mt-3 ${
                       isRecommendationApplied
-                        ? 'bg-[var(--color-success)]/20 text-[var(--color-success)] cursor-default'
-                        : 'bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]'
+                        ? 'bg-(--color-success)/20 text-(--color-success) cursor-default'
+                        : 'bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)'
                     }`}
                   >
                     {isRecommendationApplied ? (
@@ -370,7 +370,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
         <Button
           type="submit"
           disabled={isLoading}
-          className="flex-1 bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+          className="flex-1 bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
         >
           {isLoading ? 'Saving...' : goal ? 'Update Goal' : 'Create Goal'}
         </Button>

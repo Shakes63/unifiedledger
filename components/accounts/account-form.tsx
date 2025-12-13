@@ -313,7 +313,7 @@ export function AccountForm({
       {/* Name and Type */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className={`text-sm mb-2 block ${errors.name ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+          <Label className={`text-sm mb-2 block ${errors.name ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
             Account Name
           </Label>
           <Input
@@ -326,15 +326,15 @@ export function AccountForm({
             }}
             placeholder="e.g., My Checking"
             className={`bg-elevated text-foreground placeholder:text-muted-foreground ${
-              errors.name ? 'border-[var(--color-error)] focus:border-[var(--color-error)]' : 'border-border'
+              errors.name ? 'border-(--color-error) focus:border-(--color-error)' : 'border-border'
             }`}
           />
           {errors.name && (
-            <p className="text-[var(--color-error)] text-xs mt-1">{errors.name}</p>
+            <p className="text-(--color-error) text-xs mt-1">{errors.name}</p>
           )}
         </div>
         <div>
-          <Label className={`text-sm mb-2 block ${errors.type ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+          <Label className={`text-sm mb-2 block ${errors.type ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
             Account Type
           </Label>
           <Select 
@@ -345,7 +345,7 @@ export function AccountForm({
             }}
           >
             <SelectTrigger className={`bg-elevated text-foreground ${
-              errors.type ? 'border-[var(--color-error)]' : 'border-border'
+              errors.type ? 'border-(--color-error)' : 'border-border'
             }`}>
               <SelectValue placeholder="Select type" />
             </SelectTrigger>
@@ -358,7 +358,7 @@ export function AccountForm({
             </SelectContent>
           </Select>
           {errors.type && (
-            <p className="text-[var(--color-error)] text-xs mt-1">{errors.type}</p>
+            <p className="text-(--color-error) text-xs mt-1">{errors.type}</p>
           )}
         </div>
       </div>
@@ -366,7 +366,7 @@ export function AccountForm({
       {/* Bank Name and Account Number */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className={`text-sm mb-2 block ${errors.bankName ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+          <Label className={`text-sm mb-2 block ${errors.bankName ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
             Bank Name
           </Label>
           <Input
@@ -378,11 +378,11 @@ export function AccountForm({
             }}
             placeholder="e.g., Chase Bank"
             className={`bg-elevated text-foreground placeholder:text-muted-foreground ${
-              errors.bankName ? 'border-[var(--color-error)] focus:border-[var(--color-error)]' : 'border-border'
+              errors.bankName ? 'border-(--color-error) focus:border-(--color-error)' : 'border-border'
             }`}
           />
           {errors.bankName && (
-            <p className="text-[var(--color-error)] text-xs mt-1">{errors.bankName}</p>
+            <p className="text-(--color-error) text-xs mt-1">{errors.bankName}</p>
           )}
         </div>
         <div>
@@ -437,7 +437,7 @@ export function AccountForm({
       {formData.type === 'credit' && (
         <div className="p-4 bg-card rounded-lg border border-border space-y-4">
           <div className="text-sm font-medium text-foreground flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-[var(--color-primary)]" />
+            <CreditCard className="h-4 w-4 text-(--color-primary)" />
             Credit Card Details
           </div>
           
@@ -458,7 +458,7 @@ export function AccountForm({
               />
             </div>
             <div>
-              <Label className={`text-sm mb-2 block ${errors.statementDueDay ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+              <Label className={`text-sm mb-2 block ${errors.statementDueDay ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
                 Payment Due Day (1-31)
               </Label>
               <Input
@@ -473,11 +473,11 @@ export function AccountForm({
                 min="1"
                 max="31"
                 className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-                  errors.statementDueDay ? 'border-[var(--color-error)] focus:border-[var(--color-error)]' : 'border-border'
+                  errors.statementDueDay ? 'border-(--color-error) focus:border-(--color-error)' : 'border-border'
                 }`}
               />
               {errors.statementDueDay && (
-                <p className="text-[var(--color-error)] text-xs mt-1">{errors.statementDueDay}</p>
+                <p className="text-(--color-error) text-xs mt-1">{errors.statementDueDay}</p>
               )}
             </div>
           </div>
@@ -529,7 +529,7 @@ export function AccountForm({
               />
             </div>
             <div>
-              <Label className={`text-sm mb-2 block ${errors.annualFeeMonth ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+              <Label className={`text-sm mb-2 block ${errors.annualFeeMonth ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
                 Fee Month
               </Label>
               <Select 
@@ -540,7 +540,7 @@ export function AccountForm({
                 }}
               >
                 <SelectTrigger className={`bg-elevated text-foreground ${
-                  errors.annualFeeMonth ? 'border-[var(--color-error)]' : 'border-border'
+                  errors.annualFeeMonth ? 'border-(--color-error)' : 'border-border'
                 }`}>
                   <SelectValue placeholder="Select month" />
                 </SelectTrigger>
@@ -553,7 +553,7 @@ export function AccountForm({
                 </SelectContent>
               </Select>
               {errors.annualFeeMonth && (
-                <p className="text-[var(--color-error)] text-xs mt-1">{errors.annualFeeMonth}</p>
+                <p className="text-(--color-error) text-xs mt-1">{errors.annualFeeMonth}</p>
               )}
             </div>
           </div>
@@ -564,7 +564,7 @@ export function AccountForm({
       {formData.type === 'line_of_credit' && (
         <div className="p-4 bg-card rounded-lg border border-border space-y-4">
           <div className="text-sm font-medium text-foreground flex items-center gap-2">
-            <Landmark className="h-4 w-4 text-[var(--color-primary)]" />
+            <Landmark className="h-4 w-4 text-(--color-primary)" />
             Line of Credit Details
           </div>
           
@@ -619,7 +619,7 @@ export function AccountForm({
 
           {/* Payment Due Day */}
           <div>
-            <Label className={`text-sm mb-2 block ${errors.statementDueDay ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
+            <Label className={`text-sm mb-2 block ${errors.statementDueDay ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
               Payment Due Day (1-31)
             </Label>
             <Input
@@ -634,11 +634,11 @@ export function AccountForm({
               min="1"
               max="31"
               className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic w-1/2 ${
-                errors.statementDueDay ? 'border-[var(--color-error)] focus:border-[var(--color-error)]' : 'border-border'
+                errors.statementDueDay ? 'border-(--color-error) focus:border-(--color-error)' : 'border-border'
               }`}
             />
             {errors.statementDueDay && (
-              <p className="text-[var(--color-error)] text-xs mt-1">{errors.statementDueDay}</p>
+              <p className="text-(--color-error) text-xs mt-1">{errors.statementDueDay}</p>
             )}
           </div>
           
@@ -683,7 +683,7 @@ export function AccountForm({
               type="button"
               onClick={() => handleCheckboxChange('isSecured')}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                formData.isSecured ? 'bg-[var(--color-primary)]' : 'bg-elevated'
+                formData.isSecured ? 'bg-(--color-primary)' : 'bg-elevated'
               }`}
             >
               <span
@@ -760,7 +760,7 @@ export function AccountForm({
               type="button"
               onClick={() => handleCheckboxChange('autoCreatePaymentBill')}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                formData.autoCreatePaymentBill ? 'bg-[var(--color-primary)]' : 'bg-elevated'
+                formData.autoCreatePaymentBill ? 'bg-(--color-primary)' : 'bg-elevated'
               }`}
             >
               <span
@@ -820,7 +820,7 @@ export function AccountForm({
               type="button"
               onClick={() => handleCheckboxChange('includeInPayoffStrategy')}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                formData.includeInPayoffStrategy ? 'bg-[var(--color-primary)]' : 'bg-elevated'
+                formData.includeInPayoffStrategy ? 'bg-(--color-primary)' : 'bg-elevated'
               }`}
             >
               <span
@@ -847,7 +847,7 @@ export function AccountForm({
             type="button"
             onClick={() => handleCheckboxChange('enableSalesTax')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.enableSalesTax ? 'bg-[var(--color-primary)]' : 'bg-elevated'
+              formData.enableSalesTax ? 'bg-(--color-primary)' : 'bg-elevated'
             }`}
           >
             <span
@@ -868,7 +868,7 @@ export function AccountForm({
             type="button"
             onClick={() => handleCheckboxChange('enableTaxDeductions')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.enableTaxDeductions ? 'bg-[var(--color-primary)]' : 'bg-elevated'
+              formData.enableTaxDeductions ? 'bg-(--color-primary)' : 'bg-elevated'
             }`}
           >
             <span
@@ -891,7 +891,7 @@ export function AccountForm({
               onClick={() => handleColorChange(color)}
               className={`w-10 h-10 rounded-lg border-2 transition-all ${
                 formData.color === color
-                  ? 'border-foreground ring-2 ring-[var(--color-primary)] scale-110'
+                  ? 'border-foreground ring-2 ring-(--color-primary) scale-110'
                   : 'border-transparent hover:scale-105'
               }`}
               style={{ backgroundColor: color }}
@@ -914,8 +914,8 @@ export function AccountForm({
                 onClick={() => handleIconChange(iconItem.value)}
                 className={`w-12 h-12 rounded-lg border-2 transition-all flex items-center justify-center ${
                   formData.icon === iconItem.value
-                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)]'
-                    : 'border-border bg-elevated text-muted-foreground hover:bg-elevated hover:border-[var(--color-primary)]/30'
+                    ? 'border-(--color-primary) bg-(--color-primary)/10 text-(--color-primary)'
+                    : 'border-border bg-elevated text-muted-foreground hover:bg-elevated hover:border-(--color-primary)/30'
                 }`}
                 title={iconItem.label}
                 aria-label={iconItem.label}
@@ -935,7 +935,7 @@ export function AccountForm({
             type="submit"
             onClick={() => setSaveMode('save')}
             disabled={isLoading}
-            className="flex-1 bg-[var(--color-primary)] text-white hover:opacity-90 font-medium"
+            className="flex-1 bg-(--color-primary) text-white hover:opacity-90 font-medium"
           >
             {account
               ? isLoading && saveMode === 'save'

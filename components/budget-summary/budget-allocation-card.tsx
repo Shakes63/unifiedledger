@@ -159,8 +159,8 @@ export function BudgetAllocationCard({
         <p 
           className={`text-xs ${
             varianceInfo.isPositive 
-              ? 'text-[var(--color-success)]' 
-              : 'text-[var(--color-error)]'
+              ? 'text-(--color-success)' 
+              : 'text-(--color-error)'
           }`}
         >
           {varianceInfo.text}
@@ -183,7 +183,7 @@ export function BudgetAllocationCard({
             {percentage.toFixed(1)}%
           </span>
           {type === 'expense' && percentage > 100 && (
-            <span className="text-xs text-[var(--color-error)]">
+            <span className="text-xs text-(--color-error)">
               {(percentage - 100).toFixed(1)}% over
             </span>
           )}

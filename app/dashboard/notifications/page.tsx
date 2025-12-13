@@ -132,11 +132,11 @@ export default function NotificationsPage() {
   const getPriorityBadgeColor = (priority: string) => {
     switch (priority) {
       case 'urgent':
-        return 'bg-[var(--color-error)]/20 text-[var(--color-error)] border-[var(--color-error)]/30';
+        return 'bg-(--color-error)/20 text-(--color-error) border-(--color-error)/30';
       case 'high':
-        return 'bg-[var(--color-warning)]/20 text-[var(--color-warning)] border-[var(--color-warning)]/30';
+        return 'bg-(--color-warning)/20 text-(--color-warning) border-(--color-warning)/30';
       case 'normal':
-        return 'bg-[var(--color-primary)]/20 text-[var(--color-primary)] border-[var(--color-primary)]/30';
+        return 'bg-(--color-primary)/20 text-(--color-primary) border-(--color-primary)/30';
       default:
         return 'bg-muted/20 text-muted-foreground border-border';
     }
@@ -147,21 +147,21 @@ export default function NotificationsPage() {
     switch (type) {
       case 'bill_due':
       case 'bill_overdue':
-        return <Calendar className={`${iconClass} text-[var(--color-warning)]`} />;
+        return <Calendar className={`${iconClass} text-(--color-warning)`} />;
       case 'budget_warning':
       case 'budget_exceeded':
-        return <DollarSign className={`${iconClass} text-[var(--color-error)]`} />;
+        return <DollarSign className={`${iconClass} text-(--color-error)`} />;
       case 'budget_review':
-        return <BarChart3 className={`${iconClass} text-[var(--color-primary)]`} />;
+        return <BarChart3 className={`${iconClass} text-(--color-primary)`} />;
       case 'low_balance':
-        return <TrendingDown className={`${iconClass} text-[var(--color-error)]`} />;
+        return <TrendingDown className={`${iconClass} text-(--color-error)`} />;
       case 'savings_milestone':
       case 'debt_milestone':
-        return <PartyPopper className={`${iconClass} text-[var(--color-success)]`} />;
+        return <PartyPopper className={`${iconClass} text-(--color-success)`} />;
       case 'spending_summary':
-        return <BarChart3 className={`${iconClass} text-[var(--color-primary)]`} />;
+        return <BarChart3 className={`${iconClass} text-(--color-primary)`} />;
       case 'reminder':
-        return <Bell className={`${iconClass} text-[var(--color-primary)]`} />;
+        return <Bell className={`${iconClass} text-(--color-primary)`} />;
       default:
         return <Info className={`${iconClass} text-muted-foreground`} />;
     }
@@ -186,7 +186,7 @@ export default function NotificationsPage() {
             setFilter('all');
             setPage(0);
           }}
-          className={filter === 'all' ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]' : 'border-border text-muted-foreground hover:text-foreground'}
+          className={filter === 'all' ? 'bg-(--color-primary) text-(--color-primary-foreground)' : 'border-border text-muted-foreground hover:text-foreground'}
         >
           All
         </Button>
@@ -196,7 +196,7 @@ export default function NotificationsPage() {
             setFilter('unread');
             setPage(0);
           }}
-          className={filter === 'unread' ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]' : 'border-border text-muted-foreground hover:text-foreground'}
+          className={filter === 'unread' ? 'bg-(--color-primary) text-(--color-primary-foreground)' : 'border-border text-muted-foreground hover:text-foreground'}
         >
           Unread
         </Button>
@@ -207,7 +207,7 @@ export default function NotificationsPage() {
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin">
-              <div className="h-8 w-8 border-4 border-border border-t-[var(--color-primary)] rounded-full" />
+              <div className="h-8 w-8 border-4 border-border border-t-(--color-primary) rounded-full" />
             </div>
           </div>
         ) : notifications.length === 0 ? (
@@ -221,7 +221,7 @@ export default function NotificationsPage() {
             <Card
               key={notification.id}
               className={`bg-background border-border hover:border-border transition-colors ${
-                !notification.isRead ? 'border-l-4 border-l-[var(--color-primary)]' : ''
+                !notification.isRead ? 'border-l-4 border-l-(--color-primary)' : ''
               }`}
             >
               <CardContent className="pt-6">
@@ -245,7 +245,7 @@ export default function NotificationsPage() {
                             {notification.priority}
                           </span>
                           {!notification.isRead && (
-                            <span className="text-xs text-[var(--color-primary)]">New</span>
+                            <span className="text-xs text-(--color-primary)">New</span>
                           )}
                         </div>
 
@@ -265,7 +265,7 @@ export default function NotificationsPage() {
                             <a
                               href={notification.actionUrl}
                               onClick={() => handleMarkAsRead(notification.id)}
-                              className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary)]/80"
+                              className="text-xs text-(--color-primary) hover:text-(--color-primary)/80"
                             >
                               {notification.actionLabel || 'View'}
                             </a>
@@ -299,7 +299,7 @@ export default function NotificationsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(notification.id)}
-                            className="text-muted-foreground hover:text-[var(--color-error)]"
+                            className="text-muted-foreground hover:text-(--color-error)"
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />

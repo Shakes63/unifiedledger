@@ -87,15 +87,15 @@ export function CreateDemoDataStep({ onNext, onPrevious }: CreateDemoDataStepPro
       <div className="flex flex-col items-center justify-center py-8 text-center space-y-6">
         {loading && (
           <>
-            <Loader2 className="w-12 h-12 text-[var(--color-primary)] animate-spin" />
+            <Loader2 className="w-12 h-12 text-(--color-primary) animate-spin" />
             <p className="text-foreground font-medium">{progress}</p>
           </>
         )}
 
         {result && !loading && (
           <>
-            <div className="w-16 h-16 rounded-full bg-[var(--color-success)]/20 flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8 text-[var(--color-success)]" />
+            <div className="w-16 h-16 rounded-full bg-(--color-success)/20 flex items-center justify-center">
+              <CheckCircle2 className="w-8 h-8 text-(--color-success)" />
             </div>
             <div className="space-y-4 max-w-md">
               <h3 className="text-lg font-semibold text-foreground">
@@ -121,8 +121,8 @@ export function CreateDemoDataStep({ onNext, onPrevious }: CreateDemoDataStepPro
         )}
 
         {error && !loading && (
-          <div className="w-full max-w-md bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-lg p-4">
-            <p className="text-sm text-[var(--color-error)]">{error}</p>
+          <div className="w-full max-w-md bg-(--color-error)/10 border border-(--color-error)/30 rounded-lg p-4">
+            <p className="text-sm text-(--color-error)">{error}</p>
             <p className="text-xs text-muted-foreground mt-2">
               You can continue with onboarding anyway.
             </p>

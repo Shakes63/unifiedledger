@@ -31,23 +31,23 @@ export function AnnualPlanningCell({ data, onClick }: AnnualPlanningCellProps) {
     switch (data.status) {
       case 'paid':
         return {
-          bg: 'bg-[var(--color-income)]/10 hover:bg-[var(--color-income)]/20',
-          border: 'border-[var(--color-income)]/30',
-          icon: <CheckCircle2 className="w-3 h-3 text-[var(--color-income)]" />,
+          bg: 'bg-(--color-income)/10 hover:bg-(--color-income)/20',
+          border: 'border-(--color-income)/30',
+          icon: <CheckCircle2 className="w-3 h-3 text-(--color-income)" />,
           iconTitle: 'Paid',
         };
       case 'pending':
         return {
-          bg: 'bg-[var(--color-warning)]/10 hover:bg-[var(--color-warning)]/20',
-          border: 'border-[var(--color-warning)]/30',
-          icon: <Clock className="w-3 h-3 text-[var(--color-warning)]" />,
+          bg: 'bg-(--color-warning)/10 hover:bg-(--color-warning)/20',
+          border: 'border-(--color-warning)/30',
+          icon: <Clock className="w-3 h-3 text-(--color-warning)" />,
           iconTitle: 'Pending',
         };
       case 'overdue':
         return {
-          bg: 'bg-[var(--color-error)]/10 hover:bg-[var(--color-error)]/20',
-          border: 'border-[var(--color-error)]/30',
-          icon: <AlertCircle className="w-3 h-3 text-[var(--color-error)]" />,
+          bg: 'bg-(--color-error)/10 hover:bg-(--color-error)/20',
+          border: 'border-(--color-error)/30',
+          icon: <AlertCircle className="w-3 h-3 text-(--color-error)" />,
           iconTitle: 'Overdue',
         };
       case 'skipped':

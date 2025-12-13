@@ -148,13 +148,13 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
   // No debts - debt-free celebration
   if (!data.hasDebts) {
     return (
-      <div className="bg-gradient-to-br from-[var(--color-income)]/20 to-[var(--color-income)]/10 border border-[var(--color-income)]/30 rounded-xl p-8">
+      <div className="bg-gradient-to-br from-(--color-income)/20 to-(--color-income)/10 border border-(--color-income)/30 rounded-xl p-8">
         <div className="text-center">
-          <PartyPopper className="w-16 h-16 text-[var(--color-income)] mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-[var(--color-income)] mb-2">
+          <PartyPopper className="w-16 h-16 text-(--color-income) mx-auto mb-4" />
+          <h2 className="text-3xl font-bold text-(--color-income) mb-2">
             You&apos;re Debt-Free!
           </h2>
-          <p className="text-[var(--color-income)]/80 text-lg">
+          <p className="text-(--color-income)/80 text-lg">
             Congratulations! You have no active debts. Keep up the great work!
           </p>
         </div>
@@ -199,7 +199,7 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
           {/* Total Debt */}
           <div className="bg-elevated rounded-lg p-4">
             <div className="text-sm text-muted-foreground mb-1">Total Debt</div>
-            <div className="text-2xl font-bold font-mono text-[var(--color-error)]">
+            <div className="text-2xl font-bold font-mono text-(--color-error)">
               ${data.totalRemainingBalance.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
@@ -210,7 +210,7 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
           {/* Amount Paid */}
           <div className="bg-elevated rounded-lg p-4">
             <div className="text-sm text-muted-foreground mb-1">Total Paid</div>
-            <div className="text-2xl font-bold font-mono text-[var(--color-income)]">
+            <div className="text-2xl font-bold font-mono text-(--color-income)">
               ${data.totalPaid.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
@@ -240,7 +240,7 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
           <h2 className="text-2xl md:text-3xl font-bold text-foreground">
             Debt-Free Countdown
           </h2>
-          <span className="text-xs px-2.5 py-1 rounded-full font-medium capitalize bg-[var(--color-income)]/20 text-[var(--color-income)]">
+          <span className="text-xs px-2.5 py-1 rounded-full font-medium capitalize bg-(--color-income)/20 text-(--color-income)">
             {payoffMethod} Strategy
           </span>
         </div>
@@ -251,11 +251,11 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
 
       {/* Focus Debt Card */}
       {data.focusDebt && (
-        <div className="mb-6 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-primary)]/5 border border-[var(--color-primary)]/30 rounded-xl p-4 md:p-5">
+        <div className="mb-6 bg-gradient-to-r from-(--color-primary)/10 to-(--color-primary)/5 border border-(--color-primary)/30 rounded-xl p-4 md:p-5">
           {/* Focus Header */}
           <div className="flex items-center gap-2 mb-3">
-            <Zap className="w-5 h-5 text-[var(--color-primary)]" />
-            <span className="text-sm font-semibold text-[var(--color-primary)] uppercase tracking-wide">
+            <Zap className="w-5 h-5 text-(--color-primary)" />
+            <span className="text-sm font-semibold text-(--color-primary) uppercase tracking-wide">
               Current Focus
             </span>
           </div>
@@ -274,7 +274,7 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
           <div className="mb-3">
             <div className="flex justify-between items-center mb-1">
               <span className="text-xs text-muted-foreground">Progress</span>
-              <span className="text-xs font-medium text-[var(--color-income)]">
+              <span className="text-xs font-medium text-(--color-income)">
                 {data.focusDebt.percentagePaid.toFixed(1)}% paid
               </span>
             </div>
@@ -308,7 +308,7 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
               <div className="text-sm font-semibold text-foreground">
                 {formatPayoffDate(data.focusDebt.payoffDate)}
               </div>
-              <div className="text-xs text-[var(--color-primary)] mt-0.5">
+              <div className="text-xs text-(--color-primary) mt-0.5">
                 {data.focusDebt.monthsRemaining} mo{data.focusDebt.daysRemaining > 0 ? `, ${data.focusDebt.daysRemaining} days` : ''}
               </div>
             </div>
@@ -323,7 +323,7 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
                 ${data.focusDebt.activePayment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               {data.focusDebt.activePayment > data.focusDebt.currentPayment && (
-                <div className="text-xs text-[var(--color-income)] mt-0.5">
+                <div className="text-xs text-(--color-income) mt-0.5">
                   +${(data.focusDebt.activePayment - data.focusDebt.currentPayment).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} extra
                 </div>
               )}
@@ -370,7 +370,7 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
           {/* Debt-free date */}
           <div className="bg-elevated rounded-lg p-4">
             <div className="text-sm text-muted-foreground mb-1">Debt-Free Date</div>
-            <div className="text-2xl font-bold text-[var(--color-income)]">
+            <div className="text-2xl font-bold text-(--color-income)">
               {formatDate(data.debtFreeDate)}
             </div>
           </div>
@@ -393,15 +393,15 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
 
           {/* Next milestone */}
           {data.nextMilestone && (
-            <div className="bg-gradient-to-r from-[var(--color-primary)]/20 to-[var(--color-primary)]/10 border border-[var(--color-primary)]/30 rounded-lg p-4">
+            <div className="bg-gradient-to-r from-(--color-primary)/20 to-(--color-primary)/10 border border-(--color-primary)/30 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm text-[var(--color-primary)] mb-1">Next Milestone</div>
-                  <div className="text-xl font-bold text-[var(--color-primary)] flex items-center gap-2">
+                  <div className="text-sm text-(--color-primary) mb-1">Next Milestone</div>
+                  <div className="text-xl font-bold text-(--color-primary) flex items-center gap-2">
                     {getMilestoneIcon(data.nextMilestone.percentage)}
                     {data.nextMilestone.percentage}% Complete
                   </div>
-                  <div className="text-xs text-[var(--color-primary)]/70 mt-1">
+                  <div className="text-xs text-(--color-primary)/70 mt-1">
                     ~{data.nextMilestone.monthsAway} months away
                   </div>
                 </div>
@@ -419,7 +419,7 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
                 <div
                   className={`transition-all flex justify-center ${
                     milestone.achieved
-                      ? 'opacity-100 scale-110 text-[var(--color-income)]'
+                      ? 'opacity-100 scale-110 text-(--color-income)'
                       : 'opacity-30 scale-90 grayscale text-muted-foreground'
                   }`}
                 >
@@ -427,7 +427,7 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
                 </div>
                 <div
                   className={`text-xs mt-1 ${
-                    milestone.achieved ? 'text-[var(--color-income)]' : 'text-muted-foreground'
+                    milestone.achieved ? 'text-(--color-income)' : 'text-muted-foreground'
                   }`}
                 >
                   {milestone.percentage}%

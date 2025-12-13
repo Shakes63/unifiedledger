@@ -155,18 +155,18 @@ export function DebtPayoffTracker({
                 <h3 className="font-semibold text-foreground">{debt.name}</h3>
                 <EntityIdBadge id={debt.id} label="Debt" />
                 {debt.status === 'paid_off' && (
-                  <span className="text-xs bg-[var(--color-income)]/30 text-[var(--color-income)] px-2 py-1 rounded">
+                  <span className="text-xs bg-(--color-income)/30 text-(--color-income) px-2 py-1 rounded">
                     Paid Off
                   </span>
                 )}
                 {debt.status === 'paused' && (
-                  <span className="text-xs bg-[var(--color-warning)]/30 text-[var(--color-warning)] px-2 py-1 rounded">
+                  <span className="text-xs bg-(--color-warning)/30 text-(--color-warning) px-2 py-1 rounded">
                     Paused
                   </span>
                 )}
                 {/* Extra Payment Badge */}
                 {(debt.additionalMonthlyPayment ?? 0) > 0 && debt.status !== 'paid_off' && (
-                  <span className="text-xs bg-[var(--color-income)]/20 text-[var(--color-income)] px-2 py-1 rounded flex items-center gap-1">
+                  <span className="text-xs bg-(--color-income)/20 text-(--color-income) px-2 py-1 rounded flex items-center gap-1">
                     <TrendingUp className="w-3 h-3" />
                     Extra
                   </span>
@@ -206,7 +206,7 @@ export function DebtPayoffTracker({
                     size="sm"
                     variant="ghost"
                     onClick={() => onDelete(debt.id)}
-                    className="text-muted-foreground hover:text-[var(--color-error)] hover:bg-[var(--color-error)]/20"
+                    className="text-muted-foreground hover:text-(--color-error) hover:bg-(--color-error)/20"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -263,7 +263,7 @@ export function DebtPayoffTracker({
                 ${((debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0)).toLocaleString('en-US', { maximumFractionDigits: 2 })}
               </p>
               {(debt.additionalMonthlyPayment ?? 0) > 0 && (
-                <p className="text-xs text-[var(--color-income)] flex items-center justify-center gap-1 mt-0.5">
+                <p className="text-xs text-(--color-income) flex items-center justify-center gap-1 mt-0.5">
                   <TrendingUp className="w-3 h-3" />
                   +${(debt.additionalMonthlyPayment ?? 0).toLocaleString('en-US', { maximumFractionDigits: 2 })} extra
                 </p>
@@ -273,7 +273,7 @@ export function DebtPayoffTracker({
           {daysLeft !== null ? (
             <div>
               <p className="text-muted-foreground text-xs">Days Left</p>
-              <p className={`font-semibold ${daysLeft < 0 ? 'text-[var(--color-error)]' : 'text-foreground'}`}>
+              <p className={`font-semibold ${daysLeft < 0 ? 'text-(--color-error)' : 'text-foreground'}`}>
                 {daysLeft < 0 ? `${Math.abs(daysLeft)} ago` : daysLeft}
               </p>
             </div>
@@ -287,9 +287,9 @@ export function DebtPayoffTracker({
 
         {/* Payoff Timeline (Strategy vs Minimum) */}
         {payoffTimeline && debt.status !== 'paid_off' && (
-          <div className="bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/30 rounded-lg p-3">
+          <div className="bg-(--color-primary)/10 border border-(--color-primary)/30 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-2">
-              <Zap className="w-4 h-4 text-[var(--color-primary)]" />
+              <Zap className="w-4 h-4 text-(--color-primary)" />
               <span className="text-xs font-semibold text-foreground">
                 Payoff Timeline ({payoffTimeline.method})
               </span>
@@ -301,8 +301,8 @@ export function DebtPayoffTracker({
               <div>
                 <p className="text-xs text-muted-foreground mb-1">With Strategy</p>
                 <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-[var(--color-income)]" />
-                  <span className="text-sm font-semibold text-[var(--color-income)]">
+                  <Clock className="w-3 h-3 text-(--color-income)" />
+                  <span className="text-sm font-semibold text-(--color-income)">
                     {payoffTimeline.strategyMonths} months
                   </span>
                 </div>
@@ -319,7 +319,7 @@ export function DebtPayoffTracker({
                   </span>
                 </div>
                 {payoffTimeline.minimumOnlyMonths > 0 && payoffTimeline.minimumOnlyMonths !== -1 && (
-                  <p className="text-xs text-[var(--color-income)]">
+                  <p className="text-xs text-(--color-income)">
                     {payoffTimeline.minimumOnlyMonths - payoffTimeline.strategyMonths} months faster!
                   </p>
                 )}
@@ -353,7 +353,7 @@ export function DebtPayoffTracker({
               <CreditCard className="w-4 h-4" />
               <span>Credit Utilization</span>
               {isOverTarget && (
-                <AlertTriangle className="w-3 h-3 text-[var(--color-warning)] ml-auto" />
+                <AlertTriangle className="w-3 h-3 text-(--color-warning) ml-auto" />
               )}
             </button>
 
@@ -368,7 +368,7 @@ export function DebtPayoffTracker({
                   <Progress value={utilization} className="h-2 bg-card" />
                   <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span>0%</span>
-                    <span className="text-[var(--color-warning)]">30% target</span>
+                    <span className="text-(--color-warning)">30% target</span>
                     <span>100%</span>
                   </div>
                 </div>
@@ -383,7 +383,7 @@ export function DebtPayoffTracker({
                   </div>
                   <div>
                     <p className="text-muted-foreground text-xs mb-1">Available Credit</p>
-                    <p className="text-[var(--color-success)] font-semibold font-mono">
+                    <p className="text-(--color-success) font-semibold font-mono">
                       ${available.toLocaleString('en-US', { maximumFractionDigits: 2 })}
                     </p>
                   </div>
@@ -398,9 +398,9 @@ export function DebtPayoffTracker({
 
                 {/* Payment to Target */}
                 {paymentToTarget > 0 && (
-                  <div className="bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-lg p-3">
+                  <div className="bg-(--color-warning)/10 border border-(--color-warning)/30 rounded-lg p-3">
                     <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-[var(--color-warning)] mt-0.5 flex-shrink-0" />
+                      <AlertTriangle className="w-4 h-4 text-(--color-warning) mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
                         <p className="text-xs font-semibold text-foreground mb-1">
                           Pay ${paymentToTarget.toLocaleString()} to reach 30%
@@ -448,7 +448,7 @@ export function DebtPayoffTracker({
                       />
                     </div>
                     {milestone.achievedAt && (
-                      <span className="text-[var(--color-income)] text-xs">✓</span>
+                      <span className="text-(--color-income) text-xs">✓</span>
                     )}
                   </div>
                 ))}
@@ -515,7 +515,7 @@ export function DebtPayoffTracker({
                 {!showPayment ? (
                   <Button
                     onClick={() => setShowPayment(true)}
-                    className="w-full bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+                    className="w-full bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
                   >
                     Record Payment
                   </Button>
@@ -526,13 +526,13 @@ export function DebtPayoffTracker({
                       placeholder="Amount"
                       value={paymentAmount}
                       onChange={(e) => setPaymentAmount(e.target.value)}
-                      className="flex-1 bg-elevated border border-border rounded px-3 py-2 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-[var(--color-income)]"
+                      className="flex-1 bg-elevated border border-border rounded px-3 py-2 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-(--color-income)"
                       step="0.01"
                       min="0"
                     />
                     <Button
                       onClick={handlePayment}
-                      className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+                      className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
                     >
                       Record
                     </Button>

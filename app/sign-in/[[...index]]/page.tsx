@@ -243,14 +243,14 @@ export default function SignInPage() {
         <CardContent>
           {/* Session redirect reason message */}
           {searchParams.get('reason') && (
-            <div className="mb-4 p-3 rounded-lg bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20">
+            <div className="mb-4 p-3 rounded-lg bg-(--color-warning)/10 border border-(--color-warning)/20">
               <div className="flex items-center gap-2">
                 {searchParams.get('reason') === 'timeout' ? (
-                  <Clock className="w-4 h-4 text-[var(--color-warning)] flex-shrink-0" />
+                  <Clock className="w-4 h-4 text-(--color-warning) flex-shrink-0" />
                 ) : (
-                  <AlertTriangle className="w-4 h-4 text-[var(--color-warning)] flex-shrink-0" />
+                  <AlertTriangle className="w-4 h-4 text-(--color-warning) flex-shrink-0" />
                 )}
-                <p className="text-sm text-[var(--color-warning)] font-medium">
+                <p className="text-sm text-(--color-warning) font-medium">
                   {searchParams.get('reason') === 'timeout'
                     ? 'Your session expired due to inactivity. Please sign in again.'
                     : 'Your session has expired. Please sign in again.'}
@@ -260,8 +260,8 @@ export default function SignInPage() {
           )}
 
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-[var(--color-error)]/10 border border-[var(--color-error)]/20">
-              <p className="text-sm text-[var(--color-error)] font-medium">
+            <div className="mb-4 p-3 rounded-lg bg-(--color-error)/10 border border-(--color-error)/20">
+              <p className="text-sm text-(--color-error) font-medium">
                 {error}
               </p>
             </div>
@@ -325,7 +325,7 @@ export default function SignInPage() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-background font-medium"
+                  className="w-full bg-(--color-primary) hover:bg-(--color-primary)/90 text-background font-medium"
                   disabled={loading}
                 >
                   {loading ? (
@@ -341,8 +341,8 @@ export default function SignInPage() {
             ) : (
               <>
                 <div className="flex items-center justify-center mb-4">
-                  <div className="p-3 rounded-full bg-[var(--color-primary)]/10">
-                    <Shield className="w-6 h-6 text-[var(--color-primary)]" />
+                  <div className="p-3 rounded-full bg-(--color-primary)/10">
+                    <Shield className="w-6 h-6 text-(--color-primary)" />
                   </div>
                 </div>
                 <div className="text-center mb-4">
@@ -389,7 +389,7 @@ export default function SignInPage() {
                   </Button>
                   <Button
                     type="submit"
-                    className="flex-1 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-background font-medium"
+                    className="flex-1 bg-(--color-primary) hover:bg-(--color-primary)/90 text-background font-medium"
                     disabled={verifyingTwoFactor || twoFactorCode.length !== 6}
                   >
                     {verifyingTwoFactor ? (
@@ -451,7 +451,7 @@ export default function SignInPage() {
             Don&apos;t have an account?{' '}
             <Link
               href="/sign-up"
-              className="text-[var(--color-primary)] hover:underline font-medium"
+              className="text-(--color-primary) hover:underline font-medium"
             >
               Sign up
             </Link>

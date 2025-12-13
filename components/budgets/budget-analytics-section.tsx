@@ -132,10 +132,10 @@ export function BudgetAnalyticsSection() {
 
   // Get savings rate quality label
   const getSavingsRateLabel = (rate: number) => {
-    if (rate >= 20) return { label: 'Excellent', color: 'text-[var(--color-success)]' };
-    if (rate >= 10) return { label: 'Good', color: 'text-[var(--color-success)]' };
-    if (rate >= 5) return { label: 'Fair', color: 'text-[var(--color-warning)]' };
-    return { label: 'Needs Improvement', color: 'text-[var(--color-error)]' };
+    if (rate >= 20) return { label: 'Excellent', color: 'text-(--color-success)' };
+    if (rate >= 10) return { label: 'Good', color: 'text-(--color-success)' };
+    if (rate >= 5) return { label: 'Fair', color: 'text-(--color-warning)' };
+    return { label: 'Needs Improvement', color: 'text-(--color-error)' };
   };
 
   // Get recommendation icon
@@ -156,8 +156,8 @@ export function BudgetAnalyticsSection() {
 
   // Get recommendation priority color
   const getPriorityColor = (priority: string) => {
-    if (priority === 'high') return 'border-[var(--color-error)] bg-[var(--color-error)]/10';
-    if (priority === 'medium') return 'border-[var(--color-warning)] bg-[var(--color-warning)]/10';
+    if (priority === 'high') return 'border-(--color-error) bg-(--color-error)/10';
+    if (priority === 'medium') return 'border-(--color-warning) bg-(--color-warning)/10';
     return 'border-border bg-card';
   };
 
@@ -175,10 +175,10 @@ export function BudgetAnalyticsSection() {
     return (
       <div className="bg-card border border-border rounded-xl p-6">
         <div className="flex flex-col items-center justify-center py-12 gap-4">
-          <div className="text-[var(--color-error)]">{error || 'Failed to load analytics'}</div>
+          <div className="text-(--color-error)">{error || 'Failed to load analytics'}</div>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-[var(--color-primary)] text-white text-sm rounded-lg hover:opacity-90"
+            className="px-4 py-2 bg-(--color-primary) text-white text-sm rounded-lg hover:opacity-90"
           >
             Retry
           </button>
@@ -206,7 +206,7 @@ export function BudgetAnalyticsSection() {
           aria-label="Select analytics time period"
           value={monthsPeriod}
           onChange={e => setMonthsPeriod(parseInt(e.target.value))}
-          className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
         >
           <option value={3}>Last 3 Months</option>
           <option value={6}>Last 6 Months</option>
@@ -230,7 +230,7 @@ export function BudgetAnalyticsSection() {
         </div>
         <div className="bg-card border border-border rounded-xl p-4">
           <div className="text-xs text-muted-foreground mb-1">Avg Monthly Savings</div>
-          <div className={`text-2xl font-semibold ${analyticsData.summary.averageMonthlySavings >= 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'}`}>
+          <div className={`text-2xl font-semibold ${analyticsData.summary.averageMonthlySavings >= 0 ? 'text-(--color-success)' : 'text-(--color-error)'}`}>
             ${Math.abs(analyticsData.summary.averageMonthlySavings).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </div>
         </div>
@@ -264,7 +264,7 @@ export function BudgetAnalyticsSection() {
             {analyticsData.categoryTrends.length > 5 && (
               <button
                 onClick={() => setShowAllCategories(!showAllCategories)}
-                className="text-sm text-[var(--color-primary)] hover:opacity-80 transition-opacity"
+                className="text-sm text-(--color-primary) hover:opacity-80 transition-opacity"
               >
                 {showAllCategories ? 'Show Less' : 'View All'}
               </button>
@@ -323,11 +323,11 @@ export function BudgetAnalyticsSection() {
 
       {/* Overspending Alert */}
       {analyticsData.overspendingRanking.length > 0 && (
-        <div className="bg-card border border-[var(--color-warning)] rounded-xl p-6">
+        <div className="bg-card border border-(--color-warning) rounded-xl p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-5 h-5 text-[var(--color-warning)]" />
+                <AlertTriangle className="w-5 h-5 text-(--color-warning)" />
                 <h3 className="text-base font-semibold text-foreground">Overspending Alert</h3>
               </div>
               <p className="text-sm text-muted-foreground mb-3">
@@ -337,7 +337,7 @@ export function BudgetAnalyticsSection() {
                 {analyticsData.overspendingRanking.slice(0, 3).map(cat => (
                   <span
                     key={cat.categoryId}
-                    className="text-xs px-3 py-1.5 bg-[var(--color-warning)]/10 text-[var(--color-warning)] rounded-md font-medium"
+                    className="text-xs px-3 py-1.5 bg-(--color-warning)/10 text-(--color-warning) rounded-md font-medium"
                   >
                     {cat.categoryName}
                   </span>
@@ -372,7 +372,7 @@ export function BudgetAnalyticsSection() {
                     <p className="text-sm font-medium text-foreground mb-1">{rec.message}</p>
                     <p className="text-sm text-muted-foreground">{rec.suggestedAction}</p>
                     {rec.potentialSavings && rec.potentialSavings > 0 && (
-                      <p className="text-xs text-[var(--color-success)] mt-2 font-medium">
+                      <p className="text-xs text-(--color-success) mt-2 font-medium">
                         Potential savings: ${rec.potentialSavings.toFixed(0)}/month
                       </p>
                     )}

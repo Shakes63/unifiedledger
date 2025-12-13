@@ -132,11 +132,11 @@ export function NextPaymentDueWidget() {
     return (
       <Card className="p-4 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <div className="flex flex-col items-center justify-center py-6 text-center">
-          <AlertCircle className="w-8 h-8 text-[var(--color-error)] mb-2" />
+          <AlertCircle className="w-8 h-8 text-(--color-error) mb-2" />
           <p className="text-sm text-muted-foreground">Failed to load upcoming payments</p>
           <button
             onClick={fetchData}
-            className="mt-2 text-xs text-[var(--color-primary)] hover:underline"
+            className="mt-2 text-xs text-(--color-primary) hover:underline"
           >
             Retry
           </button>
@@ -156,7 +156,7 @@ export function NextPaymentDueWidget() {
           <h3 className="text-sm font-semibold text-foreground">Next Payments</h3>
         </div>
         <div className="flex flex-col items-center justify-center py-6 text-center">
-          <CheckCircle className="w-10 h-10 text-[var(--color-success)] mb-2 opacity-50" />
+          <CheckCircle className="w-10 h-10 text-(--color-success) mb-2 opacity-50" />
           <p className="text-sm font-medium text-foreground">All caught up!</p>
           <p className="text-xs text-muted-foreground mt-1">No upcoming payments due</p>
         </div>
@@ -301,7 +301,7 @@ export function NextPaymentDueWidget() {
           <Button 
             variant="ghost" 
             size="sm" 
-            className="w-full text-xs h-8 text-[var(--color-primary)] hover:bg-elevated"
+            className="w-full text-xs h-8 text-(--color-primary) hover:bg-elevated"
           >
             View all bills
             <ArrowRight className="w-3 h-3 ml-1" />

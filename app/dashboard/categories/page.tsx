@@ -268,7 +268,7 @@ export default function CategoriesPage() {
             </Button>
             <Button
               onClick={() => handleNewCategory()}
-              className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
+              className="bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90 font-medium"
             >
               <Plus className="mr-2 h-5 w-5" />
               Add Category
@@ -282,7 +282,7 @@ export default function CategoriesPage() {
             onClick={() => setFilterType('all')}
             className={`px-4 py-2 rounded-lg font-medium transition-colors ${
               filterType === 'all'
-                ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                ? 'bg-(--color-primary) text-(--color-primary-foreground)'
                 : 'bg-elevated text-muted-foreground hover:bg-elevated'
             }`}
           >
@@ -294,7 +294,7 @@ export default function CategoriesPage() {
               onClick={() => setFilterType(type)}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 filterType === type
-                  ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                  ? 'bg-(--color-primary) text-(--color-primary-foreground)'
                   : 'bg-elevated text-muted-foreground hover:bg-elevated'
               }`}
             >
@@ -311,7 +311,7 @@ export default function CategoriesPage() {
             </p>
             <Button
               onClick={() => handleNewCategory()}
-              className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
+              className="bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90 font-medium"
             >
               <Plus className="mr-2 h-5 h-5" />
               Create First Category
@@ -342,7 +342,7 @@ export default function CategoriesPage() {
                           <div>
                             <span className="font-semibold text-foreground">{parent.name}</span>
                             {parent.targetAllocation && (
-                              <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                              <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-(--color-primary)/10 text-(--color-primary)">
                                 {parent.targetAllocation}% target
                               </span>
                             )}
@@ -373,7 +373,7 @@ export default function CategoriesPage() {
                             size="sm"
                             variant="ghost"
                             onClick={() => handleDelete(parent.id)}
-                            className="text-muted-foreground hover:text-[var(--color-error)]"
+                            className="text-muted-foreground hover:text-(--color-error)"
                           >
                             Delete
                           </Button>
@@ -399,7 +399,7 @@ export default function CategoriesPage() {
                               No categories in this group yet.{' '}
                               <button
                                 onClick={() => handleNewCategory(parent.id)}
-                                className="text-[var(--color-primary)] hover:underline"
+                                className="text-(--color-primary) hover:underline"
                               >
                                 Add one
                               </button>

@@ -298,7 +298,7 @@ export function TaxMappingTab() {
   const getDeductionTypeBadge = (category: string) => {
     if (category.includes('business')) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-primary)]/20 text-[var(--color-primary)]">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-(--color-primary)/20 text-(--color-primary)">
           <Building2 className="w-3 h-3" />
           Business
         </span>
@@ -306,7 +306,7 @@ export function TaxMappingTab() {
     }
     if (category.includes('personal') || category === 'personal_deduction') {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-success)]/20 text-[var(--color-success)]">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-(--color-success)/20 text-(--color-success)">
           <User className="w-3 h-3" />
           Personal
         </span>
@@ -321,7 +321,7 @@ export function TaxMappingTab() {
   if (loading && !taxCategories.length) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-[var(--color-primary)]" />
+        <Loader2 className="w-8 h-8 animate-spin text-(--color-primary)" />
       </div>
     );
   }
@@ -338,10 +338,10 @@ export function TaxMappingTab() {
 
       {/* Setup Section (if no tax categories) */}
       {taxCategories.length === 0 && (
-        <Card className="border-[var(--color-warning)]/30 bg-[var(--color-warning)]/5">
+        <Card className="border-(--color-warning)/30 bg-(--color-warning)/5">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2 text-foreground">
-              <AlertCircle className="w-5 h-5 text-[var(--color-warning)]" />
+              <AlertCircle className="w-5 h-5 text-(--color-warning)" />
               Setup Required
             </CardTitle>
             <CardDescription>
@@ -352,7 +352,7 @@ export function TaxMappingTab() {
             <Button
               onClick={seedTaxCategories}
               disabled={seeding}
-              className="bg-[var(--color-primary)] hover:opacity-90"
+              className="bg-(--color-primary) hover:opacity-90"
             >
               {seeding ? (
                 <>
@@ -401,7 +401,7 @@ export function TaxMappingTab() {
 
           <Button
             onClick={() => openCreateDialog()}
-            className="bg-[var(--color-primary)] hover:opacity-90"
+            className="bg-(--color-primary) hover:opacity-90"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Mapping
@@ -412,7 +412,7 @@ export function TaxMappingTab() {
       {/* Loading State */}
       {loading && taxCategories.length > 0 && (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-[var(--color-primary)]" />
+          <Loader2 className="w-6 h-6 animate-spin text-(--color-primary)" />
         </div>
       )}
 
@@ -472,7 +472,7 @@ export function TaxMappingTab() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDeleteMapping(mapping.id)}
-                      className="text-muted-foreground hover:text-[var(--color-error)]"
+                      className="text-muted-foreground hover:text-(--color-error)"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -486,10 +486,10 @@ export function TaxMappingTab() {
 
       {/* Unmapped Tax-Deductible Categories */}
       {!loading && unmappedTaxDeductible.length > 0 && (
-        <Card className="border-[var(--color-warning)]/30">
+        <Card className="border-(--color-warning)/30">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-[var(--color-warning)]" />
+              <AlertCircle className="w-5 h-5 text-(--color-warning)" />
               Unmapped Tax-Deductible Categories ({unmappedTaxDeductible.length})
             </CardTitle>
             <CardDescription>
@@ -506,7 +506,7 @@ export function TaxMappingTab() {
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground">{cat.name}</span>
                     {cat.isBusinessCategory && (
-                      <span className="text-xs px-2 py-0.5 bg-[var(--color-primary)]/20 text-[var(--color-primary)] rounded">
+                      <span className="text-xs px-2 py-0.5 bg-(--color-primary)/20 text-(--color-primary) rounded">
                         Business
                       </span>
                     )}
@@ -515,7 +515,7 @@ export function TaxMappingTab() {
                     variant="outline"
                     size="sm"
                     onClick={() => openCreateDialog(cat)}
-                    className="text-[var(--color-primary)] border-[var(--color-primary)]"
+                    className="text-(--color-primary) border-(--color-primary)"
                   >
                     <Plus className="w-4 h-4 mr-1" />
                     Map
@@ -540,7 +540,7 @@ export function TaxMappingTab() {
             </p>
             <Button
               onClick={() => openCreateDialog()}
-              className="bg-[var(--color-primary)] hover:opacity-90"
+              className="bg-(--color-primary) hover:opacity-90"
             >
               <Plus className="w-4 h-4 mr-2" />
               Create First Mapping
@@ -593,7 +593,7 @@ export function TaxMappingTab() {
                         <div className="flex items-center gap-2">
                           <span>{cat.name}</span>
                           {cat.isTaxDeductible && (
-                            <span className="text-xs px-1 py-0.5 bg-[var(--color-success)]/20 text-[var(--color-success)] rounded">
+                            <span className="text-xs px-1 py-0.5 bg-(--color-success)/20 text-(--color-success) rounded">
                               Tax Deductible
                             </span>
                           )}
@@ -700,7 +700,7 @@ export function TaxMappingTab() {
             <Button
               onClick={handleSaveMapping}
               disabled={saving || !formData.budgetCategoryId || !formData.taxCategoryId}
-              className="bg-[var(--color-primary)] hover:opacity-90"
+              className="bg-(--color-primary) hover:opacity-90"
             >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {editingMapping ? 'Save Changes' : 'Create Mapping'}

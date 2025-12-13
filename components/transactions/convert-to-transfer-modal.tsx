@@ -365,7 +365,7 @@ export function ConvertToTransferModal({
           <Button
             onClick={handleConvert}
             disabled={loading || !targetAccountId}
-            className="bg-[var(--color-primary)] hover:opacity-90 text-white"
+            className="bg-(--color-primary) hover:opacity-90 text-white"
           >
             {loading ? 'Converting...' : 'Convert to Transfer'}
           </Button>

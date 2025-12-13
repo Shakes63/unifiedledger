@@ -130,8 +130,8 @@ export function MonthlySurplusCard({
         <span 
           className={`font-mono font-semibold ${
             variance >= 0 
-              ? 'text-[var(--color-success)]' 
-              : 'text-[var(--color-error)]'
+              ? 'text-(--color-success)' 
+              : 'text-(--color-error)'
           }`}
         >
           {variance >= 0 ? '+' : '-'}{formatCurrency(variance)}
@@ -147,14 +147,14 @@ export function MonthlySurplusCard({
           <div className="flex flex-wrap gap-2">
             <Link 
               href="/dashboard/debts"
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20 transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-(--color-primary)/10 text-(--color-primary) hover:bg-(--color-primary)/20 transition-colors"
             >
               Apply to Debt
               <ArrowRight className="w-3 h-3" />
             </Link>
             <Link 
               href="/dashboard/goals"
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-[var(--color-success)]/10 text-[var(--color-success)] hover:bg-[var(--color-success)]/20 transition-colors"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-(--color-success)/10 text-(--color-success) hover:bg-(--color-success)/20 transition-colors"
             >
               Add to Savings
               <ArrowRight className="w-3 h-3" />
@@ -165,14 +165,14 @@ export function MonthlySurplusCard({
 
       {/* Shortfall Warning */}
       {!isSurplus && (
-        <div className="p-3 rounded-lg bg-[var(--color-error)]/10 border border-[var(--color-error)]/20">
-          <p className="text-xs text-[var(--color-error)]">
+        <div className="p-3 rounded-lg bg-(--color-error)/10 border border-(--color-error)/20">
+          <p className="text-xs text-(--color-error)">
             You&apos;re spending more than you&apos;re earning this month. 
             Review your expenses or adjust your budget.
           </p>
           <Link 
             href="/dashboard/budgets"
-            className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-[var(--color-error)] hover:underline"
+            className="inline-flex items-center gap-1 mt-2 text-xs font-medium text-(--color-error) hover:underline"
           >
             Review Budget
             <ArrowRight className="w-3 h-3" />

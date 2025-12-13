@@ -29,7 +29,7 @@ export function NoHouseholdError({
           {onRetry && (
             <Button 
               onClick={onRetry}
-              className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90"
+              className="bg-(--color-primary) hover:bg-(--color-primary)/90"
             >
               Retry
             </Button>

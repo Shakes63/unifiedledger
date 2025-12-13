@@ -179,13 +179,13 @@ export function AnnualPlanningGrid({
                         {(totals.paidCount > 0 || totals.pendingCount > 0 || totals.overdueCount > 0) && (
                           <div className="flex gap-1">
                             {totals.paidCount > 0 && (
-                              <span className="w-2 h-2 rounded-full bg-[var(--color-income)]" title={`${totals.paidCount} paid`} />
+                              <span className="w-2 h-2 rounded-full bg-(--color-income)" title={`${totals.paidCount} paid`} />
                             )}
                             {totals.pendingCount > 0 && (
-                              <span className="w-2 h-2 rounded-full bg-[var(--color-warning)]" title={`${totals.pendingCount} pending`} />
+                              <span className="w-2 h-2 rounded-full bg-(--color-warning)" title={`${totals.pendingCount} pending`} />
                             )}
                             {totals.overdueCount > 0 && (
-                              <span className="w-2 h-2 rounded-full bg-[var(--color-error)]" title={`${totals.overdueCount} overdue`} />
+                              <span className="w-2 h-2 rounded-full bg-(--color-error)" title={`${totals.overdueCount} overdue`} />
                             )}
                           </div>
                         )}
@@ -198,7 +198,7 @@ export function AnnualPlanningGrid({
               })}
               {/* Annual Total */}
               <td className="px-3 py-3 text-center border-l border-border">
-                <span className="font-mono text-base font-bold text-[var(--color-primary)]">
+                <span className="font-mono text-base font-bold text-(--color-primary)">
                   ${annualTotal.toFixed(2)}
                 </span>
               </td>

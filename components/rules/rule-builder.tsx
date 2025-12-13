@@ -149,7 +149,7 @@ function ConditionRow({
         variant="ghost"
         size="icon"
         onClick={onRemove}
-        className="text-[var(--color-error)] hover:bg-[var(--color-error)]/20"
+        className="text-(--color-error) hover:bg-(--color-error)/20"
       >
         <X className="w-4 h-4" />
       </Button>
@@ -224,8 +224,8 @@ function ConditionGroupEditor({
               onClick={() => onUpdate({ ...group, logic })}
               className={`px-3 py-1 text-sm font-medium rounded-md border-2 transition-colors ${
                 group.logic === logic
-                  ? 'bg-[var(--color-transfer)] text-white border-[var(--color-transfer)] hover:opacity-80'
-                  : 'bg-elevated text-foreground border-border hover:bg-elevated hover:border-[var(--color-transfer)]/30'
+                  ? 'bg-(--color-transfer) text-white border-(--color-transfer) hover:opacity-80'
+                  : 'bg-elevated text-foreground border-border hover:bg-elevated hover:border-(--color-transfer)/30'
               }`}
             >
               {logic}
@@ -237,7 +237,7 @@ function ConditionGroupEditor({
             variant="ghost"
             size="icon"
             onClick={onRemove}
-            className="ml-auto text-[var(--color-error)] hover:bg-[var(--color-error)]/20"
+            className="ml-auto text-(--color-error) hover:bg-(--color-error)/20"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -488,7 +488,7 @@ export function RuleBuilder({
       )}
 
       <div className="text-xs text-muted-foreground p-3 bg-card rounded-lg border border-border flex gap-2">
-        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--color-primary)]" />
+        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-(--color-primary)" />
         <div>
           <p className="mb-1">Tips for writing conditions:</p>
           <ul className="list-disc list-inside space-y-1">
@@ -504,7 +504,7 @@ export function RuleBuilder({
       <div className="space-y-4 pt-6 mt-6 border-t border-border">
         <div>
           <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-            <Zap className="w-4 h-4 text-[var(--color-primary)]" />
+            <Zap className="w-4 h-4 text-(--color-primary)" />
             Actions to Apply
           </label>
           <p className="text-xs text-muted-foreground mb-3">
@@ -592,7 +592,7 @@ export function RuleBuilder({
                         </SelectItem>
                         <SelectItem value="set_sales_tax">
                           <div className="flex items-center gap-2">
-                            <Receipt className="h-4 w-4 text-[var(--color-warning)]" />
+                            <Receipt className="h-4 w-4 text-(--color-warning)" />
                             Set Sales Tax
                           </div>
                         </SelectItem>
@@ -676,11 +676,11 @@ export function RuleBuilder({
                         />
                         <div className="flex flex-wrap gap-1 text-xs text-muted-foreground">
                           <span>Variables:</span>
-                          <code className="px-1 py-0.5 bg-elevated rounded text-[var(--color-primary)]">{'{original}'}</code>
-                          <code className="px-1 py-0.5 bg-elevated rounded text-[var(--color-primary)]">{'{merchant}'}</code>
-                          <code className="px-1 py-0.5 bg-elevated rounded text-[var(--color-primary)]">{'{category}'}</code>
-                          <code className="px-1 py-0.5 bg-elevated rounded text-[var(--color-primary)]">{'{amount}'}</code>
-                          <code className="px-1 py-0.5 bg-elevated rounded text-[var(--color-primary)]">{'{date}'}</code>
+                          <code className="px-1 py-0.5 bg-elevated rounded text-(--color-primary)">{'{original}'}</code>
+                          <code className="px-1 py-0.5 bg-elevated rounded text-(--color-primary)">{'{merchant}'}</code>
+                          <code className="px-1 py-0.5 bg-elevated rounded text-(--color-primary)">{'{category}'}</code>
+                          <code className="px-1 py-0.5 bg-elevated rounded text-(--color-primary)">{'{amount}'}</code>
+                          <code className="px-1 py-0.5 bg-elevated rounded text-(--color-primary)">{'{date}'}</code>
                         </div>
                       </div>
                     )}
@@ -688,7 +688,7 @@ export function RuleBuilder({
                     {action.type === 'set_tax_deduction' && (
                       <div className="flex-1 bg-elevated rounded-lg p-3">
                         <div className="flex items-start gap-2">
-                          <AlertCircle className="h-4 w-4 text-[var(--color-warning)] mt-0.5" />
+                          <AlertCircle className="h-4 w-4 text-(--color-warning) mt-0.5" />
                           <div className="flex-1">
                             <p className="text-sm text-foreground">
                               This action will mark transactions as tax deductible if their category is configured as tax deductible.
@@ -716,13 +716,13 @@ export function RuleBuilder({
                               className={`
                                 px-4 py-3 rounded-lg border-2 transition-all
                                 ${action.config?.value === true
-                                  ? 'border-[var(--color-success)] bg-[var(--color-success)]/10'
+                                  ? 'border-(--color-success) bg-(--color-success)/10'
                                   : 'border-border bg-card hover:bg-elevated'
                                 }
                               `}
                             >
                               <div className="flex items-center justify-center gap-2">
-                                <CheckCircle2 className="h-5 w-5 text-[var(--color-success)]" />
+                                <CheckCircle2 className="h-5 w-5 text-(--color-success)" />
                                 <div className="text-left">
                                   <div className="font-medium text-foreground">Taxable</div>
                                   <div className="text-xs text-muted-foreground">Subject to sales tax</div>
@@ -737,13 +737,13 @@ export function RuleBuilder({
                               className={`
                                 px-4 py-3 rounded-lg border-2 transition-all
                                 ${action.config?.value === false
-                                  ? 'border-[var(--color-error)] bg-[var(--color-error)]/10'
+                                  ? 'border-(--color-error) bg-(--color-error)/10'
                                   : 'border-border bg-card hover:bg-elevated'
                                 }
                               `}
                             >
                               <div className="flex items-center justify-center gap-2">
-                                <XCircle className="h-5 w-5 text-[var(--color-error)]" />
+                                <XCircle className="h-5 w-5 text-(--color-error)" />
                                 <div className="text-left">
                                   <div className="font-medium text-foreground">Not Taxable</div>
                                   <div className="text-xs text-muted-foreground">Exempt from sales tax</div>
@@ -755,7 +755,7 @@ export function RuleBuilder({
 
                         {/* Educational Info */}
                         <div className="flex items-start gap-2 p-3 bg-card border border-border rounded-lg">
-                          <Lightbulb className="h-5 w-5 text-[var(--color-warning)] flex-shrink-0 mt-0.5" />
+                          <Lightbulb className="h-5 w-5 text-(--color-warning) flex-shrink-0 mt-0.5" />
                           <div className="text-sm text-muted-foreground">
                             <p className="mb-2">
                               <strong className="text-foreground">How it works:</strong>
@@ -783,8 +783,8 @@ export function RuleBuilder({
                         </div>
 
                         {/* Warning for Income Only */}
-                        <div className="flex items-start gap-2 p-3 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 rounded-lg">
-                          <AlertCircle className="h-5 w-5 text-[var(--color-warning)] flex-shrink-0 mt-0.5" />
+                        <div className="flex items-start gap-2 p-3 bg-(--color-warning)/10 border border-(--color-warning)/20 rounded-lg">
+                          <AlertCircle className="h-5 w-5 text-(--color-warning) flex-shrink-0 mt-0.5" />
                           <p className="text-sm text-muted-foreground">
                             This action only applies to <strong className="text-foreground">income</strong> transactions.
                             Expense transactions will be skipped automatically.
@@ -863,9 +863,9 @@ export function RuleBuilder({
 
                         {/* Advanced Options - Only show if Auto-Match is enabled */}
                         {Boolean((action.config as ActionConfig | undefined)?.autoMatch ?? true) && (
-                          <div className="space-y-3 border-l-2 border-[var(--color-primary)] pl-4 mt-4">
+                          <div className="space-y-3 border-l-2 border-(--color-primary) pl-4 mt-4">
                             <div className="flex items-center gap-2 mb-2">
-                              <Settings className="h-4 w-4 text-[var(--color-primary)]" />
+                              <Settings className="h-4 w-4 text-(--color-primary)" />
                               <span className="text-sm font-medium text-foreground">Advanced Matching Options</span>
                             </div>
 
@@ -939,8 +939,8 @@ export function RuleBuilder({
                             {/* Warning if Create Pair enabled but no target account */}
                             {Boolean((action.config as ActionConfig | undefined)?.createIfNoMatch ?? true) &&
                               !(action.config as ActionConfig | undefined)?.targetAccountId && (
-                              <div className="flex items-start gap-2 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-lg p-3">
-                                <AlertCircle className="h-4 w-4 text-[var(--color-warning)] mt-0.5 flex-shrink-0" />
+                              <div className="flex items-start gap-2 bg-(--color-warning)/10 border border-(--color-warning)/30 rounded-lg p-3">
+                                <AlertCircle className="h-4 w-4 text-(--color-warning) mt-0.5 flex-shrink-0" />
                                 <div className="flex-1">
                                   <p className="text-xs text-foreground">
                                     <strong>Note:</strong> To create transfer pairs automatically, you should specify a target account above.
@@ -968,7 +968,7 @@ export function RuleBuilder({
 
                         {/* General Information Box */}
                         <div className="flex items-start gap-2 bg-elevated rounded-lg p-3 mt-4">
-                          <Lightbulb className="h-4 w-4 text-[var(--color-primary)] mt-0.5 flex-shrink-0" />
+                          <Lightbulb className="h-4 w-4 text-(--color-primary) mt-0.5 flex-shrink-0" />
                           <div className="flex-1">
                             <p className="text-xs text-foreground leading-relaxed">
                               <strong>How it works:</strong> This action converts transactions to transfers between accounts.
@@ -997,7 +997,7 @@ export function RuleBuilder({
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => removeSplit(index, splitIndex)}
-                                    className="text-[var(--color-error)] hover:bg-[var(--color-error)]/20 h-7 w-7 p-0"
+                                    className="text-(--color-error) hover:bg-(--color-error)/20 h-7 w-7 p-0"
                                   >
                                     <X className="h-4 w-4" />
                                   </Button>
@@ -1053,8 +1053,8 @@ export function RuleBuilder({
                                       }}
                                       className={`flex-1 ${
                                         !split.isPercentage
-                                          ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:opacity-90'
-                                          : 'bg-elevated border-border text-foreground hover:bg-elevated hover:border-[var(--color-primary)]/30'
+                                          ? 'bg-(--color-primary) text-white border-(--color-primary) hover:bg-(--color-primary) hover:opacity-90'
+                                          : 'bg-elevated border-border text-foreground hover:bg-elevated hover:border-(--color-primary)/30'
                                       }`}
                                     >
                                       <DollarSign className="h-4 w-4 mr-1" />
@@ -1072,8 +1072,8 @@ export function RuleBuilder({
                                       }}
                                       className={`flex-1 ${
                                         split.isPercentage
-                                          ? 'bg-[var(--color-primary)] text-white border-[var(--color-primary)] hover:bg-[var(--color-primary)] hover:opacity-90'
-                                          : 'bg-elevated border-border text-foreground hover:bg-elevated hover:border-[var(--color-primary)]/30'
+                                          ? 'bg-(--color-primary) text-white border-(--color-primary) hover:bg-(--color-primary) hover:opacity-90'
+                                          : 'bg-elevated border-border text-foreground hover:bg-elevated hover:border-(--color-primary)/30'
                                       }`}
                                     >
                                       <Percent className="h-4 w-4 mr-1" />
@@ -1169,7 +1169,7 @@ export function RuleBuilder({
                           type="button"
                           variant="outline"
                           onClick={() => addSplit(index)}
-                          className="w-full border-dashed border-2 border-border bg-elevated hover:bg-elevated hover:border-[var(--color-primary)]/30 text-foreground"
+                          className="w-full border-dashed border-2 border-border bg-elevated hover:bg-elevated hover:border-(--color-primary)/30 text-foreground"
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Add Split
@@ -1193,9 +1193,9 @@ export function RuleBuilder({
                                   <div
                                     className={`flex items-center gap-2 p-3 rounded-lg border ${
                                       totalPercentage > 100
-                                        ? 'bg-[var(--color-error)]/10 border-[var(--color-error)]/30'
+                                        ? 'bg-(--color-error)/10 border-(--color-error)/30'
                                         : totalPercentage === 100
-                                        ? 'bg-[var(--color-success)]/10 border-[var(--color-success)]/30'
+                                        ? 'bg-(--color-success)/10 border-(--color-success)/30'
                                         : 'bg-elevated border-border'
                                     }`}
                                   >
@@ -1205,7 +1205,7 @@ export function RuleBuilder({
                                         Total Percentage: {totalPercentage.toFixed(1)}%
                                       </p>
                                       {totalPercentage > 100 && (
-                                        <p className="text-xs text-[var(--color-error)] mt-0.5">
+                                        <p className="text-xs text-(--color-error) mt-0.5">
                                           Total exceeds 100% - please adjust your splits
                                         </p>
                                       )}
@@ -1253,7 +1253,7 @@ export function RuleBuilder({
 
                         {/* Information Box */}
                         <div className="flex items-start gap-2 bg-elevated rounded-lg p-3">
-                          <Lightbulb className="h-4 w-4 text-[var(--color-primary)] mt-0.5 flex-shrink-0" />
+                          <Lightbulb className="h-4 w-4 text-(--color-primary) mt-0.5 flex-shrink-0" />
                           <div className="flex-1">
                             <p className="text-xs text-foreground leading-relaxed">
                               <strong>How it works:</strong> This action automatically splits transactions across multiple categories.
@@ -1310,8 +1310,8 @@ export function RuleBuilder({
                         </div>
 
                         {/* Warning Box */}
-                        <div className="flex items-start gap-2 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-lg p-3">
-                          <AlertCircle className="h-4 w-4 text-[var(--color-warning)] mt-0.5 flex-shrink-0" />
+                        <div className="flex items-start gap-2 bg-(--color-warning)/10 border border-(--color-warning)/30 rounded-lg p-3">
+                          <AlertCircle className="h-4 w-4 text-(--color-warning) mt-0.5 flex-shrink-0" />
                           <div className="flex-1">
                             <p className="text-xs text-foreground">
                               <strong>Important:</strong> Changing an account will update account balances automatically.
@@ -1322,7 +1322,7 @@ export function RuleBuilder({
 
                         {/* Information Box */}
                         <div className="flex items-start gap-2 bg-elevated rounded-lg p-3">
-                          <Lightbulb className="h-4 w-4 text-[var(--color-primary)] mt-0.5 flex-shrink-0" />
+                          <Lightbulb className="h-4 w-4 text-(--color-primary) mt-0.5 flex-shrink-0" />
                           <div className="flex-1">
                             <p className="text-xs text-foreground leading-relaxed">
                               <strong>How it works:</strong> This action moves transactions to a different account.
@@ -1352,7 +1352,7 @@ export function RuleBuilder({
                     variant="ghost"
                     size="icon"
                     onClick={() => removeAction(index)}
-                    className="text-[var(--color-error)] hover:bg-[var(--color-error)]/20 flex-shrink-0"
+                    className="text-(--color-error) hover:bg-(--color-error)/20 flex-shrink-0"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -1378,7 +1378,7 @@ export function RuleBuilder({
           type="button"
           variant="outline"
           onClick={addAction}
-          className="w-full border-dashed border-2 border-border bg-elevated hover:bg-elevated hover:border-[var(--color-primary)]/30 text-foreground"
+          className="w-full border-dashed border-2 border-border bg-elevated hover:bg-elevated hover:border-(--color-primary)/30 text-foreground"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Action
@@ -1386,7 +1386,7 @@ export function RuleBuilder({
 
         {/* Helper Text */}
         <div className="text-xs text-muted-foreground p-3 bg-card rounded-lg border border-border flex gap-2">
-          <FileEdit className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--color-primary)]" />
+          <FileEdit className="w-4 h-4 mt-0.5 flex-shrink-0 text-(--color-primary)" />
           <div>
             <p className="mb-1">About actions:</p>
             <ul className="list-disc list-inside space-y-1">

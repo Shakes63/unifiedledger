@@ -202,7 +202,7 @@ export function WhatIfCalculator({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-[var(--color-primary)]" />
+            <Sparkles className="w-6 h-6 text-(--color-primary)" />
             What-If Scenario Calculator
           </h2>
           <p className="text-muted-foreground mt-1">
@@ -254,7 +254,7 @@ export function WhatIfCalculator({
               variant="outline"
               size="sm"
               onClick={() => addQuickScenario('weekly')}
-              className="border-[var(--color-success)] text-[var(--color-success)] hover:bg-[var(--color-success)]/20"
+              className="border-(--color-success) text-(--color-success) hover:bg-(--color-success)/20"
             >
               Weekly
             </Button>
@@ -264,7 +264,7 @@ export function WhatIfCalculator({
               variant="outline"
               size="sm"
               onClick={() => addQuickScenario('biweekly')}
-              className="border-[var(--color-income)] text-[var(--color-income)] hover:bg-[var(--color-income)]/20"
+              className="border-(--color-income) text-(--color-income) hover:bg-(--color-income)/20"
             >
               Bi-Weekly
             </Button>
@@ -274,7 +274,7 @@ export function WhatIfCalculator({
               variant="outline"
               size="sm"
               onClick={() => addQuickScenario('quarterly')}
-              className="border-[var(--color-warning)] text-[var(--color-warning)] hover:bg-[var(--color-warning)]/20"
+              className="border-(--color-warning) text-(--color-warning) hover:bg-(--color-warning)/20"
             >
               Quarterly
             </Button>
@@ -312,7 +312,7 @@ export function WhatIfCalculator({
           <h3 className="text-lg font-semibold text-foreground">Your Scenarios</h3>
           <Button
             onClick={() => addScenario()}
-            className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+            className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
             disabled={scenarios.length >= 4}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -321,7 +321,7 @@ export function WhatIfCalculator({
         </div>
 
         {scenarios.length >= 4 && (
-          <p className="text-sm text-[var(--color-warning)] bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded p-2 mb-4">
+          <p className="text-sm text-(--color-warning) bg-(--color-warning)/10 border border-(--color-warning)/30 rounded p-2 mb-4">
             Maximum 4 scenarios can be compared at once
           </p>
         )}
@@ -342,7 +342,7 @@ export function WhatIfCalculator({
       {/* Results */}
       {loading ? (
         <div className="text-center py-12">
-          <div className="inline-block w-8 h-8 border-4 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin"></div>
+          <div className="inline-block w-8 h-8 border-4 border-(--color-primary) border-t-transparent rounded-full animate-spin"></div>
           <p className="text-muted-foreground mt-4">Calculating scenarios...</p>
         </div>
       ) : comparison && comparison.scenarios.length > 0 ? (
@@ -361,9 +361,9 @@ export function WhatIfCalculator({
 
           {/* Recommendation Summary */}
           {comparison.recommendation && comparison.scenarios.length > 1 && (
-            <div className="mt-6 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-success)]/10 border border-[var(--color-primary)]/30 rounded-xl p-6">
+            <div className="mt-6 bg-gradient-to-r from-(--color-primary)/10 to-(--color-success)/10 border border-(--color-primary)/30 rounded-xl p-6">
               <h4 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-[var(--color-primary)]" />
+                <Sparkles className="w-5 h-5 text-(--color-primary)" />
                 Recommendations
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">

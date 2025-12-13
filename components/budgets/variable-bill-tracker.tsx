@@ -255,10 +255,10 @@ export function VariableBillTracker() {
     return (
       <div className="bg-card border border-border rounded-xl p-6">
         <div className="flex flex-col items-center justify-center py-12 gap-4">
-          <div className="text-[var(--color-error)]">{error}</div>
+          <div className="text-(--color-error)">{error}</div>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-[var(--color-primary)] text-white text-sm rounded-lg hover:opacity-90"
+            className="px-4 py-2 bg-(--color-primary) text-white text-sm rounded-lg hover:opacity-90"
           >
             Retry
           </button>
@@ -279,7 +279,7 @@ export function VariableBillTracker() {
           </p>
           <Link
             href="/dashboard/bills"
-            className="mt-4 px-6 py-2 bg-[var(--color-primary)] text-white text-sm rounded-lg hover:opacity-90 transition-opacity"
+            className="mt-4 px-6 py-2 bg-(--color-primary) text-white text-sm rounded-lg hover:opacity-90 transition-opacity"
           >
             Set up your first variable bill →
           </Link>
@@ -349,9 +349,9 @@ export function VariableBillTracker() {
               <div
                 className={`text-lg font-semibold ${
                   summary.totalVariance < 0
-                    ? 'text-[var(--color-success)]'
+                    ? 'text-(--color-success)'
                     : summary.totalVariance > 0
-                    ? 'text-[var(--color-error)]'
+                    ? 'text-(--color-error)'
                     : 'text-muted-foreground'
                 }`}
               >
@@ -379,7 +379,7 @@ export function VariableBillTracker() {
           aria-label="Filter variable bills by status"
           value={filter}
           onChange={e => setFilter(e.target.value as FilterType)}
-          className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+          className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
         >
           <option value="all">All Bills</option>
           <option value="under">Under Budget</option>
@@ -420,7 +420,7 @@ export function VariableBillTracker() {
       {insight && summary && summary.paidCount > 0 && (
         <div className="bg-card border border-border rounded-xl p-6">
           <div className="flex items-start gap-3">
-            <Lightbulb className="w-6 h-6 text-[var(--color-warning)]" />
+            <Lightbulb className="w-6 h-6 text-(--color-warning)" />
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-foreground mb-1">Overall Insight</h3>
               <p className="text-sm text-foreground mb-2">{insight.message}</p>

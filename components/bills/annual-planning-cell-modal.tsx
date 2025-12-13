@@ -93,24 +93,24 @@ export function AnnualPlanningCellModal({
     switch (data?.status) {
       case 'paid':
         return {
-          icon: <CheckCircle2 className="w-5 h-5 text-[var(--color-income)]" />,
+          icon: <CheckCircle2 className="w-5 h-5 text-(--color-income)" />,
           label: 'Paid',
-          color: 'text-[var(--color-income)]',
-          bgColor: 'bg-[var(--color-income)]/10',
+          color: 'text-(--color-income)',
+          bgColor: 'bg-(--color-income)/10',
         };
       case 'pending':
         return {
-          icon: <Clock className="w-5 h-5 text-[var(--color-warning)]" />,
+          icon: <Clock className="w-5 h-5 text-(--color-warning)" />,
           label: 'Pending',
-          color: 'text-[var(--color-warning)]',
-          bgColor: 'bg-[var(--color-warning)]/10',
+          color: 'text-(--color-warning)',
+          bgColor: 'bg-(--color-warning)/10',
         };
       case 'overdue':
         return {
-          icon: <AlertCircle className="w-5 h-5 text-[var(--color-error)]" />,
+          icon: <AlertCircle className="w-5 h-5 text-(--color-error)" />,
           label: 'Overdue',
-          color: 'text-[var(--color-error)]',
-          bgColor: 'bg-[var(--color-error)]/10',
+          color: 'text-(--color-error)',
+          bgColor: 'bg-(--color-error)/10',
         };
       case 'skipped':
         return {
@@ -264,7 +264,7 @@ export function AnnualPlanningCellModal({
                   <Receipt className="w-4 h-4 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-xs text-muted-foreground">Actual Amount Paid</p>
-                    <p className="text-sm font-medium text-[var(--color-income)] font-mono">
+                    <p className="text-sm font-medium text-(--color-income) font-mono">
                       ${data.actualAmount.toFixed(2)}
                     </p>
                   </div>
@@ -307,7 +307,7 @@ export function AnnualPlanningCellModal({
                   <Button
                     onClick={handleMarkAsPaid}
                     disabled={isUpdating}
-                    className="bg-[var(--color-income)] hover:bg-[var(--color-income)]/90 text-white"
+                    className="bg-(--color-income) hover:bg-(--color-income)/90 text-white"
                   >
                     <CheckCircle2 className="w-4 h-4 mr-2" />
                     {isUpdating ? 'Saving...' : 'Mark Paid'}

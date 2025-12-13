@@ -262,7 +262,7 @@ export default function CalendarPage() {
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-[var(--color-primary)]" />
+          <Loader2 className="w-6 h-6 animate-spin text-(--color-primary)" />
         </div>
       )}
 

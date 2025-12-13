@@ -242,7 +242,7 @@ export function ProfileTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-[var(--color-primary)]" />
+        <Loader2 className="w-8 h-8 animate-spin text-(--color-primary)" />
       </div>
     );
   }
@@ -265,9 +265,9 @@ export function ProfileTab() {
 
       {/* Email Verification Banner */}
       {profile && !profile.emailVerified && (
-        <div className="rounded-lg border border-[var(--color-warning)] bg-[var(--color-warning)]/10 p-4">
+        <div className="rounded-lg border border-(--color-warning) bg-(--color-warning)/10 p-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-[var(--color-warning)] mt-0.5 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-(--color-warning) mt-0.5 flex-shrink-0" />
             <div className="flex-1">
               <h3 className="font-semibold text-foreground mb-1">
                 Verify your email address
@@ -281,7 +281,7 @@ export function ProfileTab() {
                 disabled={resendingVerification}
                 size="sm"
                 variant="outline"
-                className="border-[var(--color-warning)] text-[var(--color-warning)] hover:bg-[var(--color-warning)]/10"
+                className="border-(--color-warning) text-(--color-warning) hover:bg-(--color-warning)/10"
               >
                 {resendingVerification && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Resend Verification Email
@@ -293,9 +293,9 @@ export function ProfileTab() {
 
       {/* Pending Email Change Banner */}
       {profile?.pendingEmail && (
-        <div className="rounded-lg border border-[var(--color-primary)] bg-[var(--color-primary)]/10 p-4">
+        <div className="rounded-lg border border-(--color-primary) bg-(--color-primary)/10 p-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-[var(--color-primary)] mt-0.5 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-(--color-primary) mt-0.5 flex-shrink-0" />
             <div className="flex-1">
               <h3 className="font-semibold text-foreground mb-1">
                 Email Change Pending Verification
@@ -373,7 +373,7 @@ export function ProfileTab() {
           <Button
             onClick={handleUpdateProfile}
             disabled={updating}
-            className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90"
+            className="bg-(--color-primary) hover:bg-(--color-primary)/90"
           >
             {updating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Update Profile
@@ -388,7 +388,7 @@ export function ProfileTab() {
           <p className="text-sm text-muted-foreground">
             Current email: <span className="text-foreground font-medium">{profile?.email}</span>
             {profile?.emailVerified && (
-              <span className="ml-2 text-[var(--color-success)]">(Verified)</span>
+              <span className="ml-2 text-(--color-success)">(Verified)</span>
             )}
           </p>
         </div>

@@ -123,7 +123,7 @@ export function UserMenu() {
         <DropdownMenuSeparator className="bg-border" />
         <DropdownMenuItem
           onClick={handleSignOut}
-          className="text-[var(--color-error)] hover:bg-elevated cursor-pointer"
+          className="text-(--color-error) hover:bg-elevated cursor-pointer"
         >
           <LogOut className="w-4 h-4 mr-2" />
           Sign Out

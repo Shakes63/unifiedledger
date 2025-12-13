@@ -216,7 +216,7 @@ export default function GoalsPage() {
             setSelectedGoal(null);
             setIsFormOpen(true);
           }}
-          className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+          className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Goal
@@ -233,7 +233,7 @@ export default function GoalsPage() {
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
           <p className="text-muted-foreground text-sm">Total Saved</p>
-          <p className="text-2xl font-bold text-[var(--color-income)] mt-1">
+          <p className="text-2xl font-bold text-(--color-income) mt-1">
             ${totalCurrent.toLocaleString('en-US', { maximumFractionDigits: 2 })}
           </p>
         </div>
@@ -257,7 +257,7 @@ export default function GoalsPage() {
             onClick={() => setFilter(status)}
             className={`px-4 py-2 rounded transition-colors capitalize ${
               filter === status
-                ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                ? 'bg-(--color-primary) text-(--color-primary-foreground)'
                 : 'bg-card text-muted-foreground border border-border hover:border-border'
             }`}
           >
@@ -272,11 +272,11 @@ export default function GoalsPage() {
           <p className="text-muted-foreground">Loading goals...</p>
         </div>
       ) : error ? (
-        <div className="text-center py-12 bg-card border border-[var(--color-error)] rounded-lg">
-          <p className="text-[var(--color-error)] mb-4">{error}</p>
+        <div className="text-center py-12 bg-card border border-(--color-error) rounded-lg">
+          <p className="text-(--color-error) mb-4">{error}</p>
           <Button
             onClick={loadGoals}
-            className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+            className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
           >
             Retry
           </Button>
@@ -288,7 +288,7 @@ export default function GoalsPage() {
               <p className="text-muted-foreground">No goals yet. Create your first goal to get started!</p>
               <Button
                 onClick={() => setIsFormOpen(true)}
-                className="mt-4 bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+                className="mt-4 bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
               >
                 Create Goal
               </Button>

@@ -144,12 +144,12 @@ export function CalendarDayModal({
   const getTransactionIcon = (type: string) => {
     switch (type) {
       case 'income':
-        return <TrendingUp className="w-4 h-4 text-[var(--color-income)]" />;
+        return <TrendingUp className="w-4 h-4 text-(--color-income)" />;
       case 'expense':
-        return <TrendingDown className="w-4 h-4 text-[var(--color-expense)]" />;
+        return <TrendingDown className="w-4 h-4 text-(--color-expense)" />;
       case 'transfer_in':
       case 'transfer_out':
-        return <ArrowRightLeft className="w-4 h-4 text-[var(--color-transfer)]" />;
+        return <ArrowRightLeft className="w-4 h-4 text-(--color-transfer)" />;
       default:
         return null;
     }
@@ -158,12 +158,12 @@ export function CalendarDayModal({
   const getTransactionColor = (type: string) => {
     switch (type) {
       case 'income':
-        return 'text-[var(--color-income)]';
+        return 'text-(--color-income)';
       case 'expense':
-        return 'text-[var(--color-expense)]';
+        return 'text-(--color-expense)';
       case 'transfer_in':
       case 'transfer_out':
-        return 'text-[var(--color-transfer)]';
+        return 'text-(--color-transfer)';
       default:
         return 'text-foreground';
     }
@@ -172,11 +172,11 @@ export function CalendarDayModal({
   const getBillStatusColor = (status: string) => {
     switch (status) {
       case 'paid':
-        return 'bg-[var(--color-income)]/10 text-[var(--color-income)]';
+        return 'bg-(--color-income)/10 text-(--color-income)';
       case 'overdue':
-        return 'bg-[var(--color-error)]/10 text-[var(--color-error)]';
+        return 'bg-(--color-error)/10 text-(--color-error)';
       case 'pending':
-        return 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]';
+        return 'bg-(--color-warning)/10 text-(--color-warning)';
       default:
         return 'bg-muted/10 text-muted-foreground';
     }
@@ -232,7 +232,7 @@ export function CalendarDayModal({
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-[var(--color-primary)]" />
+                  <Clock className="w-5 h-5 text-(--color-primary)" />
                   Scheduled Autopay ({autopayEvents.length})
                 </h3>
                 <Link href="/dashboard/bills">
@@ -249,18 +249,18 @@ export function CalendarDayModal({
                 {autopayEvents.map((autopay) => (
                   <div
                     key={autopay.id}
-                    className="p-3 bg-[var(--color-primary)]/5 rounded-lg border border-[var(--color-primary)]/30"
+                    className="p-3 bg-(--color-primary)/5 rounded-lg border border-(--color-primary)/30"
                   >
                     <div className="flex items-start gap-3">
-                      <div className="p-2 rounded-lg shrink-0 bg-[var(--color-primary)]/20">
-                        <Clock className="w-5 h-5 text-[var(--color-primary)]" />
+                      <div className="p-2 rounded-lg shrink-0 bg-(--color-primary)/20">
+                        <Clock className="w-5 h-5 text-(--color-primary)" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <p className="font-medium text-foreground truncate">
                             {autopay.billName}
                           </p>
-                          <span className="px-2 py-0.5 rounded text-xs font-semibold shrink-0 bg-[var(--color-primary)]/20 text-[var(--color-primary)]">
+                          <span className="px-2 py-0.5 rounded text-xs font-semibold shrink-0 bg-(--color-primary)/20 text-(--color-primary)">
                             Autopay
                           </span>
                         </div>
@@ -279,7 +279,7 @@ export function CalendarDayModal({
                             {getAutopayAmountLabel(autopay.autopayAmountType)} - Due {format(parseISO(autopay.dueDate), 'MMM d')}
                           </p>
                         </div>
-                        <p className="text-lg font-semibold text-[var(--color-primary)] mt-2">
+                        <p className="text-lg font-semibold text-(--color-primary) mt-2">
                           ${autopay.amount.toFixed(2)}
                         </p>
                       </div>
@@ -299,7 +299,7 @@ export function CalendarDayModal({
               <Link href="/dashboard/transactions/new">
                 <Button
                   size="sm"
-                  className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+                  className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   Add
@@ -356,20 +356,20 @@ export function CalendarDayModal({
                     <div
                       key={bill.id}
                       className={`flex items-center justify-between p-3 bg-elevated rounded-lg border ${
-                        isIncomeBill ? 'border-[var(--color-income)]/30' : 'border-border'
+                        isIncomeBill ? 'border-(--color-income)/30' : 'border-border'
                       }`}
                     >
                       <div className="flex items-center gap-3 flex-1">
                         {isIncomeBill ? (
                           <ArrowDownCircle className={`w-5 h-5 flex-shrink-0 ${
                             bill.status === 'paid' 
-                              ? 'text-[var(--color-income)]' 
+                              ? 'text-(--color-income)' 
                               : bill.status === 'overdue'
-                                ? 'text-[var(--color-warning)]'
-                                : 'text-[var(--color-income)]/50'
+                                ? 'text-(--color-warning)'
+                                : 'text-(--color-income)/50'
                           }`} />
                         ) : (
-                          <TrendingDown className="w-5 h-5 text-[var(--color-expense)] flex-shrink-0" />
+                          <TrendingDown className="w-5 h-5 text-(--color-expense) flex-shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
@@ -377,7 +377,7 @@ export function CalendarDayModal({
                               {bill.description}
                             </p>
                             {isIncomeBill && (
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-income)]/10 text-[var(--color-income)]">
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-(--color-income)/10 text-(--color-income)">
                                 Income
                               </span>
                             )}
@@ -395,15 +395,15 @@ export function CalendarDayModal({
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <p className={`font-semibold ${isIncomeBill ? 'text-[var(--color-income)]' : 'text-[var(--color-expense)]'}`}>
+                        <p className={`font-semibold ${isIncomeBill ? 'text-(--color-income)' : 'text-(--color-expense)'}`}>
                           {isIncomeBill ? '+' : ''}${bill.amount.toFixed(2)}
                         </p>
                         <span
                           className={`px-2 py-1 rounded text-xs font-semibold ${
                             isIncomeBill && bill.status === 'overdue'
-                              ? 'bg-[var(--color-warning)]/10 text-[var(--color-warning)]' // "Late" for income
+                              ? 'bg-(--color-warning)/10 text-(--color-warning)' // "Late" for income
                               : isIncomeBill && bill.status === 'paid'
-                                ? 'bg-[var(--color-income)]/10 text-[var(--color-income)]'
+                                ? 'bg-(--color-income)/10 text-(--color-income)'
                                 : getBillStatusColor(bill.status)
                           }`}
                         >
@@ -428,7 +428,7 @@ export function CalendarDayModal({
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <TrendingDown className="w-5 h-5 text-[var(--color-success)]" />
+                  <TrendingDown className="w-5 h-5 text-(--color-success)" />
                   Projected Payoff Dates ({payoffDates.length})
                 </h3>
                 <Link href="/dashboard/debts">
@@ -589,7 +589,7 @@ export function CalendarDayModal({
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-[var(--color-success)]" />
+                  <Trophy className="w-5 h-5 text-(--color-success)" />
                   Payoff Milestones ({billMilestones.length})
                 </h3>
                 <Link href="/dashboard/debts">
@@ -758,7 +758,7 @@ export function CalendarDayModal({
                 No activity on this day
               </p>
               <Link href="/dashboard/transactions/new">
-                <Button className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]">
+                <Button className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Transaction
                 </Button>

@@ -157,7 +157,7 @@ export function UnifiedDebtCard({
             onClick={() => onToggleStrategy?.(debt.id, !debt.includeInPayoffStrategy)}
             className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
               debt.includeInPayoffStrategy
-                ? 'bg-[var(--color-success)]/10 text-[var(--color-success)]'
+                ? 'bg-(--color-success)/10 text-(--color-success)'
                 : 'bg-muted text-muted-foreground'
             }`}
           >
@@ -206,7 +206,7 @@ export function UnifiedDebtCard({
         <div className="flex items-baseline justify-between">
           <div>
             <p className="text-muted-foreground text-xs">Balance</p>
-            <p className="text-2xl font-bold font-mono text-[var(--color-error)]">
+            <p className="text-2xl font-bold font-mono text-(--color-error)">
               ${debt.balance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
@@ -235,12 +235,12 @@ export function UnifiedDebtCard({
               <div
                 className={`h-full transition-all ${
                   (debt.utilization || 0) >= 100
-                    ? 'bg-[var(--color-error)]'
+                    ? 'bg-(--color-error)'
                     : (debt.utilization || 0) >= 80
-                    ? 'bg-[var(--color-warning)]'
+                    ? 'bg-(--color-warning)'
                     : (debt.utilization || 0) >= 30
-                    ? 'bg-[var(--color-primary)]'
-                    : 'bg-[var(--color-income)]'
+                    ? 'bg-(--color-primary)'
+                    : 'bg-(--color-income)'
                 }`}
                 style={{ width: `${Math.min(debt.utilization || 0, 100)}%` }}
               />
@@ -261,7 +261,7 @@ export function UnifiedDebtCard({
             </div>
             <div className="w-full bg-elevated rounded-full h-2 overflow-hidden border border-border">
               <div
-                className="h-full bg-[var(--color-success)] transition-all"
+                className="h-full bg-(--color-success) transition-all"
                 style={{ width: `${payoffProgress}%` }}
               />
             </div>
@@ -279,7 +279,7 @@ export function UnifiedDebtCard({
               <span className="text-foreground">
                 {debt.interestRate.toFixed(2)}%
                 {debt.interestType === 'variable' && (
-                  <span className="ml-1 text-[var(--color-warning)]">(Variable)</span>
+                  <span className="ml-1 text-(--color-warning)">(Variable)</span>
                 )}
               </span>
             </div>
@@ -336,7 +336,7 @@ export function UnifiedDebtCard({
           {debt.isInterestTaxDeductible && (
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Tax Deductible Interest</span>
-              <span className="text-[var(--color-success)]">
+              <span className="text-(--color-success)">
                 {debt.taxDeductionType === 'mortgage' && 'Mortgage Interest'}
                 {debt.taxDeductionType === 'student_loan' && 'Student Loan Interest'}
                 {debt.taxDeductionType === 'business' && 'Business Interest'}

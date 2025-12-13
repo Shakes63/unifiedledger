@@ -174,7 +174,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             {onDelete && (
               <DropdownMenuItem
                 onClick={() => onDelete(account.id)}
-                className="text-[var(--color-error)] cursor-pointer hover:bg-[var(--color-error)]/10"
+                className="text-(--color-error) cursor-pointer hover:bg-(--color-error)/10"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
@@ -193,11 +193,11 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
               <p className="text-muted-foreground text-xs mb-1">
                 {hasCredit ? 'Credit Balance' : 'Balance Owed'}
               </p>
-              <p className={`text-2xl font-bold font-mono ${hasCredit ? 'text-[var(--color-income)]' : 'text-[var(--color-error)]'}`}>
+              <p className={`text-2xl font-bold font-mono ${hasCredit ? 'text-(--color-income)' : 'text-(--color-error)'}`}>
                 ${displayBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
               {hasCredit && (
-                <p className="text-xs text-[var(--color-income)] mt-1">Overpayment credit</p>
+                <p className="text-xs text-(--color-income) mt-1">Overpayment credit</p>
               )}
             </div>
 
@@ -208,7 +208,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                 <span className="text-muted-foreground">
                   {account.interestRate.toFixed(2)}%
                   {account.interestType === 'variable' && (
-                    <span className="ml-1 text-[var(--color-warning)]">(Variable)</span>
+                    <span className="ml-1 text-(--color-warning)">(Variable)</span>
                   )}
                 </span>
               </div>
@@ -225,14 +225,14 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                   <div
                     className={`h-full transition-all ${
                       hasCredit
-                        ? 'bg-[var(--color-income)]'
+                        ? 'bg-(--color-income)'
                         : utilization! >= 100
-                        ? 'bg-[var(--color-error)]'
+                        ? 'bg-(--color-error)'
                         : utilization! >= 80
-                        ? 'bg-[var(--color-warning)]'
+                        ? 'bg-(--color-warning)'
                         : utilization! >= 30
-                        ? 'bg-[var(--color-primary)]'
-                        : 'bg-[var(--color-income)]'
+                        ? 'bg-(--color-primary)'
+                        : 'bg-(--color-income)'
                     }`}
                     style={{ width: hasCredit ? '0%' : `${Math.min(utilization!, 100)}%` }}
                   />
@@ -241,7 +241,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                   <span className="text-muted-foreground">
                     {hasCredit ? 'Full limit + credit' : 'Available'}
                   </span>
-                  <span className={`font-semibold font-mono ${availableBalance < 0 ? 'text-[var(--color-error)]' : 'text-[var(--color-income)]'}`}>
+                  <span className={`font-semibold font-mono ${availableBalance < 0 ? 'text-(--color-error)' : 'text-(--color-income)'}`}>
                     ${(hasCredit ? (account.creditLimit + displayBalance) : availableBalance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -264,7 +264,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
             {account.includeInPayoffStrategy !== undefined && (
               <div className="flex justify-between items-center text-xs pt-1">
                 <span className="text-muted-foreground">Payoff Strategy</span>
-                <span className={account.includeInPayoffStrategy ? 'text-[var(--color-success)]' : 'text-muted-foreground opacity-50'}>
+                <span className={account.includeInPayoffStrategy ? 'text-(--color-success)' : 'text-muted-foreground opacity-50'}>
                   {account.includeInPayoffStrategy ? 'Included' : 'Excluded'}
                 </span>
               </div>

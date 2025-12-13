@@ -147,11 +147,11 @@ export function MonthDetailModal({
                 />
                 <div className="mt-3 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-[var(--color-chart-principal)]">Principal</span>
+                    <span className="text-(--color-chart-principal)">Principal</span>
                     <span className="text-foreground font-mono">{monthDetails.principalPercent.toFixed(1)}%</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-[var(--color-chart-interest)]">Interest</span>
+                    <span className="text-(--color-chart-interest)">Interest</span>
                     <span className="text-foreground font-mono">{monthDetails.interestPercent.toFixed(1)}%</span>
                   </div>
                 </div>
@@ -172,7 +172,7 @@ export function MonthDetailModal({
                 </div>
                 {isPayoffMonth && (
                   <div className="mt-3">
-                    <PartyPopper className="w-8 h-8 text-[var(--color-success)]" />
+                    <PartyPopper className="w-8 h-8 text-(--color-success)" />
                   </div>
                 )}
               </div>
@@ -196,13 +196,13 @@ export function MonthDetailModal({
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Principal</div>
-                  <div className="text-xl font-semibold text-[var(--color-chart-principal)] font-mono">
+                  <div className="text-xl font-semibold text-(--color-chart-principal) font-mono">
                     ${payment.principalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Interest</div>
-                  <div className="text-xl font-semibold text-[var(--color-chart-interest)] font-mono">
+                  <div className="text-xl font-semibold text-(--color-chart-interest) font-mono">
                     ${payment.interestAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
@@ -221,13 +221,13 @@ export function MonthDetailModal({
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Principal Paid</div>
-                  <div className="text-lg font-semibold text-[var(--color-chart-principal)] font-mono">
+                  <div className="text-lg font-semibold text-(--color-chart-principal) font-mono">
                     ${monthDetails.cumulativePrincipal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Interest Paid</div>
-                  <div className="text-lg font-semibold text-[var(--color-chart-interest)] font-mono">
+                  <div className="text-lg font-semibold text-(--color-chart-interest) font-mono">
                     ${monthDetails.cumulativeInterest.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </div>

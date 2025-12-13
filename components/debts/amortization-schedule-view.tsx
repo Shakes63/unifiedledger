@@ -78,7 +78,7 @@ export function AmortizationScheduleView({
                     p-3 rounded-lg border transition-all text-left
                     ${isActive
                       ? 'bg-accent/20 border-accent ring-2 ring-accent/50'
-                      : 'bg-elevated border-border hover:bg-[var(--border)]/20'
+                      : 'bg-elevated border-border hover:bg-(--border)/20'
                     }
                   `}
                 >

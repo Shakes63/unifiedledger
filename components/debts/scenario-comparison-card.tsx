@@ -28,9 +28,9 @@ export function ScenarioComparisonCard({
     if (!isBest) return null;
 
     const badges = {
-      time: { text: 'Fastest', color: 'bg-[var(--color-success)]/20 text-[var(--color-success)] border-[var(--color-success)]/30' },
-      money: { text: 'Saves Most $', color: 'bg-[var(--color-primary)]/20 text-[var(--color-primary)] border-[var(--color-primary)]/30' },
-      balanced: { text: 'Most Balanced', color: 'bg-[var(--color-transfer)]/20 text-[var(--color-transfer)] border-[var(--color-transfer)]/30' },
+      time: { text: 'Fastest', color: 'bg-(--color-success)/20 text-(--color-success) border-(--color-success)/30' },
+      money: { text: 'Saves Most $', color: 'bg-(--color-primary)/20 text-(--color-primary) border-(--color-primary)/30' },
+      balanced: { text: 'Most Balanced', color: 'bg-(--color-transfer)/20 text-(--color-transfer) border-(--color-transfer)/30' },
     };
 
     const badge = badges[isBest];
@@ -44,7 +44,7 @@ export function ScenarioComparisonCard({
 
   return (
     <div className={`bg-card rounded-xl border transition-all ${
-      isBest ? 'border-[var(--color-success)]/50 shadow-lg shadow-[var(--color-success)]/10' : 'border-border'
+      isBest ? 'border-(--color-success)/50 shadow-lg shadow-(--color-success)/10' : 'border-border'
     }`}>
       {/* Main Content */}
       <div className="p-6">
@@ -55,7 +55,7 @@ export function ScenarioComparisonCard({
               {scenario.name}
             </h3>
             {isBaseline && (
-              <span className="text-xs text-[var(--color-primary)] bg-[var(--color-primary)]/10 px-2 py-1 rounded">
+              <span className="text-xs text-(--color-primary) bg-(--color-primary)/10 px-2 py-1 rounded">
                 Baseline
               </span>
             )}
@@ -90,8 +90,8 @@ export function ScenarioComparisonCard({
                   <span className="text-muted-foreground text-sm">Time Savings:</span>
                   <span className={`font-semibold ${
                     scenario.savingsVsBaseline.monthsSaved > 0
-                      ? 'text-[var(--color-success)]'
-                      : 'text-[var(--color-error)]'
+                      ? 'text-(--color-success)'
+                      : 'text-(--color-error)'
                   }`}>
                     {scenario.savingsVsBaseline.monthsSaved > 0 ? '+' : ''}
                     {Math.abs(scenario.savingsVsBaseline.monthsSaved)} months
@@ -104,8 +104,8 @@ export function ScenarioComparisonCard({
                   <span className="text-muted-foreground text-sm">Interest Savings:</span>
                   <span className={`font-mono font-semibold ${
                     scenario.savingsVsBaseline.interestSaved > 0
-                      ? 'text-[var(--color-success)]'
-                      : 'text-[var(--color-error)]'
+                      ? 'text-(--color-success)'
+                      : 'text-(--color-error)'
                   }`}>
                     {scenario.savingsVsBaseline.interestSaved > 0 ? '+' : ''}
                     ${Math.abs(scenario.savingsVsBaseline.interestSaved).toLocaleString('en-US', {

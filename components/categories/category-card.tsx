@@ -34,9 +34,9 @@ const CATEGORY_TYPE_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_TYPE_COLORS: Record<string, string> = {
-  income: 'bg-[var(--color-income)]/10 text-[var(--color-income)]',
-  expense: 'bg-[var(--color-expense)]/10 text-[var(--color-expense)]',
-  savings: 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]',
+  income: 'bg-(--color-income)/10 text-(--color-income)',
+  expense: 'bg-(--color-expense)/10 text-(--color-expense)',
+  savings: 'bg-(--color-primary)/10 text-(--color-primary)',
 };
 
 export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) {
@@ -74,7 +74,7 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
             {onDelete && (
               <DropdownMenuItem
                 onClick={() => onDelete(category.id)}
-                className="text-[var(--color-error)] cursor-pointer hover:bg-[var(--color-error)]/10 text-xs"
+                className="text-(--color-error) cursor-pointer hover:bg-(--color-error)/10 text-xs"
               >
                 <Trash2 className="h-3 w-3 mr-2" />
                 Delete
@@ -90,7 +90,7 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
           {CATEGORY_TYPE_LABELS[category.type]}
         </span>
         {category.isTaxDeductible && (
-          <span className="text-xs font-medium px-1.5 py-0.5 rounded inline-block bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+          <span className="text-xs font-medium px-1.5 py-0.5 rounded inline-block bg-(--color-primary)/10 text-(--color-primary)">
             Tax Deductible
           </span>
         )}

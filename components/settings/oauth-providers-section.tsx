@@ -254,7 +254,7 @@ export function OAuthProvidersSection() {
                           {isLinked && (
                             <Badge
                               variant="secondary"
-                              className="bg-[var(--color-success)] text-white"
+                              className="bg-(--color-success) text-white"
                             >
                               Linked
                             </Badge>
@@ -262,7 +262,7 @@ export function OAuthProvidersSection() {
                           {linkedProvider?.isPrimary && (
                             <Badge
                               variant="secondary"
-                              className="bg-[var(--color-primary)] text-white"
+                              className="bg-(--color-primary) text-white"
                             >
                               Primary
                             </Badge>
@@ -290,7 +290,7 @@ export function OAuthProvidersSection() {
                             setUnlinkDialogOpen(true);
                           }}
                           disabled={unlinking === availableProvider.id}
-                          className="border-[var(--color-error)] text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+                          className="border-(--color-error) text-(--color-error) hover:bg-(--color-error)/10"
                         >
                           {unlinking === availableProvider.id ? (
                             <>
@@ -392,7 +392,7 @@ export function OAuthProvidersSection() {
               variant="destructive"
               onClick={() => unlinkProvider && handleUnlinkProvider(unlinkProvider)}
               disabled={!unlinkProvider || unlinking === unlinkProvider}
-              className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
+              className="bg-(--color-error) hover:bg-(--color-error)/90"
             >
               {unlinking === unlinkProvider ? (
                 <>

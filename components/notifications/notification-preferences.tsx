@@ -112,7 +112,7 @@ export function NotificationPreferences() {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="animate-spin">
-          <div className="h-8 w-8 border-4 border-border border-t-[var(--color-primary)] rounded-full" />
+          <div className="h-8 w-8 border-4 border-border border-t-(--color-primary) rounded-full" />
         </div>
       </div>
     );
@@ -564,7 +564,7 @@ export function NotificationPreferences() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-[var(--color-primary)] hover:opacity-90 text-white"
+          className="bg-(--color-primary) hover:opacity-90 text-white"
         >
           {saving ? 'Saving...' : 'Save Preferences'}
         </Button>

@@ -106,7 +106,7 @@ export function InlineDescriptionEdit({
           className={cn(
             "text-xs px-2 py-1 min-w-[200px] max-w-[300px] min-h-[40px] max-h-[80px]",
             "bg-elevated border-border rounded resize-none",
-            "focus:ring-1 focus:ring-offset-0 focus:border-[var(--color-primary)]",
+            "focus:ring-1 focus:ring-offset-0 focus:border-(--color-primary)",
             isUpdating && "opacity-60"
           )}
           onClick={(e) => e.stopPropagation()}

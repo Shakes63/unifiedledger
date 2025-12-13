@@ -194,7 +194,7 @@ export default function InvitationPage() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-card border-border p-8">
           <div className="text-center space-y-4">
-            <XCircle className="w-16 h-16 text-[var(--color-error)] mx-auto" />
+            <XCircle className="w-16 h-16 text-(--color-error) mx-auto" />
             <h1 className="text-2xl font-bold text-foreground">Invitation Declined</h1>
             <p className="text-muted-foreground">
               You&apos;ve declined the household invitation. Redirecting...
@@ -214,8 +214,8 @@ export default function InvitationPage() {
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-[var(--color-primary)]/20 rounded-full flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6 text-[var(--color-primary)]" />
+              <div className="w-12 h-12 bg-(--color-primary)/20 rounded-full flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6 text-(--color-primary)" />
               </div>
             </div>
             <h1 className="text-2xl font-bold text-foreground">
@@ -228,7 +228,7 @@ export default function InvitationPage() {
 
           {/* Error message */}
           {error && (
-            <div className="p-3 bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-lg text-[var(--color-error)] text-sm">
+            <div className="p-3 bg-(--color-error)/10 border border-(--color-error)/30 rounded-lg text-(--color-error) text-sm">
               {error}
             </div>
           )}
@@ -236,7 +236,7 @@ export default function InvitationPage() {
           {/* Loading state */}
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 text-[var(--color-primary)] animate-spin" />
+              <Loader2 className="w-6 h-6 text-(--color-primary) animate-spin" />
             </div>
           ) : invitation ? (
             <>
@@ -289,7 +289,7 @@ export default function InvitationPage() {
                     <Button
                       onClick={handleAccept}
                       disabled={accepting}
-                      className="w-full bg-[var(--color-primary)] hover:opacity-90 text-background font-medium py-6 text-base"
+                      className="w-full bg-(--color-primary) hover:opacity-90 text-background font-medium py-6 text-base"
                     >
                       {accepting ? (
                         <>
@@ -307,7 +307,7 @@ export default function InvitationPage() {
                     <Button
                       onClick={handleAccept}
                       disabled={accepting}
-                      className="w-full bg-[var(--color-primary)] hover:opacity-90 text-background font-medium py-6 text-base"
+                      className="w-full bg-(--color-primary) hover:opacity-90 text-background font-medium py-6 text-base"
                     >
                       {accepting ? (
                         <>

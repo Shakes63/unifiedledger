@@ -121,7 +121,7 @@ export default function TestAuthPage() {
             <CardTitle className="flex items-center gap-2">
               {session ? (
                 <>
-                  <CheckCircle2 className="w-5 h-5 text-[var(--color-success)]" />
+                  <CheckCircle2 className="w-5 h-5 text-(--color-success)" />
                   Authenticated with Better Auth
                 </>
               ) : (
@@ -187,7 +187,7 @@ export default function TestAuthPage() {
           <CardContent>
             <Button
               onClick={testProtectedApi}
-              className="w-full bg-[var(--color-primary)]"
+              className="w-full bg-(--color-primary)"
               disabled={loading}
             >
               {loading ? (
@@ -209,17 +209,17 @@ export default function TestAuthPage() {
 
         {/* API Response Card */}
         {apiResponse && (
-          <Card className={`border-border ${apiResponse.success ? 'bg-[var(--color-success)]/10 border-[var(--color-success)]' : 'bg-[var(--color-error)]/10 border-[var(--color-error)]'}`}>
+          <Card className={`border-border ${apiResponse.success ? 'bg-(--color-success)/10 border-(--color-success)' : 'bg-(--color-error)/10 border-(--color-error)'}`}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 {apiResponse.success ? (
                   <>
-                    <CheckCircle2 className="w-5 h-5 text-[var(--color-success)]" />
+                    <CheckCircle2 className="w-5 h-5 text-(--color-success)" />
                     Protected API Test - Success
                   </>
                 ) : (
                   <>
-                    <XCircle className="w-5 h-5 text-[var(--color-error)]" />
+                    <XCircle className="w-5 h-5 text-(--color-error)" />
                     Protected API Test - Failed
                   </>
                 )}
@@ -285,7 +285,7 @@ export default function TestAuthPage() {
               <div className="flex gap-2 pt-2">
                 <Button
                   onClick={handleSignUp}
-                  className="flex-1 bg-[var(--color-primary)]"
+                  className="flex-1 bg-(--color-primary)"
                   disabled={loading || !email || !password || !name}
                 >
                   {loading ? (
@@ -333,7 +333,7 @@ export default function TestAuthPage() {
         </Card>
 
         {/* Info Card */}
-        <Card className="border-border bg-[var(--color-elevated)]">
+        <Card className="border-border bg-(--color-elevated)">
           <CardHeader>
             <CardTitle>Testing Notes</CardTitle>
           </CardHeader>

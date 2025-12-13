@@ -235,7 +235,7 @@ export default function SignUpPage() {
 
             <Button
               type="submit"
-              className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-background font-medium"
+              className="w-full bg-(--color-primary) hover:bg-(--color-primary)/90 text-background font-medium"
               disabled={loading}
             >
               {loading ? (
@@ -253,7 +253,7 @@ export default function SignUpPage() {
             Already have an account?{' '}
             <Link
               href="/sign-in"
-              className="text-[var(--color-primary)] hover:underline font-medium"
+              className="text-(--color-primary) hover:underline font-medium"
             >
               Sign in
             </Link>

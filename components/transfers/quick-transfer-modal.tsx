@@ -83,7 +83,7 @@ export function QuickTransferModal({
 
         {isLoadingSuggestions ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-[var(--color-primary)]" />
+            <Loader2 className="w-6 h-6 animate-spin text-(--color-primary)" />
           </div>
         ) : (
           <TransferForm

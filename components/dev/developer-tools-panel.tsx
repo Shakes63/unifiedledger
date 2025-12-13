@@ -66,7 +66,7 @@ export function DeveloperToolsPanel() {
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b border-border bg-elevated">
             <div className="flex items-center gap-2">
-              <Code className="w-4 h-4 text-[var(--color-primary)]" />
+              <Code className="w-4 h-4 text-(--color-primary)" />
               <span className="font-semibold text-sm text-foreground">Developer Tools</span>
             </div>
             <Button
@@ -142,7 +142,7 @@ export function DeveloperToolsPanel() {
                 variant="outline"
                 size="sm"
                 onClick={handleClearCache}
-                className="w-full justify-start text-xs text-[var(--color-error)] hover:text-[var(--color-error)]"
+                className="w-full justify-start text-xs text-(--color-error) hover:text-(--color-error)"
               >
                 <Trash2 className="w-3 h-3 mr-2" />
                 Clear Cache
@@ -157,7 +157,7 @@ export function DeveloperToolsPanel() {
           onClick={() => setIsExpanded(true)}
           className="h-9 px-3 bg-card border-border shadow-lg hover:bg-elevated"
         >
-          <Code className="w-4 h-4 mr-2 text-[var(--color-primary)]" />
+          <Code className="w-4 h-4 mr-2 text-(--color-primary)" />
           <span className="text-xs font-semibold">Dev Tools</span>
           <ChevronUp className="w-3 h-3 ml-2" />
         </Button>

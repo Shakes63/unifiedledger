@@ -38,43 +38,43 @@ export function TransactionIndicators({
     return (
       <div className="flex flex-wrap gap-1">
         {incomeCount > 0 && (
-          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--color-income)]/20 text-[var(--color-income)] text-xs">
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-(--color-income)/20 text-(--color-income) text-xs">
             <TrendingUp className="w-3 h-3" />
             <span>{incomeCount}</span>
           </div>
         )}
         {expenseCount > 0 && (
-          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--color-expense)]/20 text-[var(--color-expense)] text-xs">
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-(--color-expense)/20 text-(--color-expense) text-xs">
             <TrendingDown className="w-3 h-3" />
             <span>{expenseCount}</span>
           </div>
         )}
         {transferCount > 0 && (
-          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--color-transfer)]/20 text-[var(--color-transfer)] text-xs">
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-(--color-transfer)/20 text-(--color-transfer) text-xs">
             <ArrowRightLeft className="w-3 h-3" />
             <span>{transferCount}</span>
           </div>
         )}
         {billOverdueCount > 0 && (
-          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--color-error)]/20 text-[var(--color-error)] text-xs font-semibold">
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-(--color-error)/20 text-(--color-error) text-xs font-semibold">
             <AlertCircle className="w-3 h-3" />
             <span>{billOverdueCount}</span>
           </div>
         )}
         {billDueCount > 0 && billOverdueCount === 0 && (
-          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--color-warning)]/20 text-[var(--color-warning)] text-xs">
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-(--color-warning)/20 text-(--color-warning) text-xs">
             <AlertCircle className="w-3 h-3" />
             <span>{billDueCount}</span>
           </div>
         )}
         {goalCount > 0 && (
-          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--color-primary)]/20 text-[var(--color-primary)] text-xs">
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-(--color-primary)/20 text-(--color-primary) text-xs">
             <Target className="w-3 h-3" />
             <span>{goalCount}</span>
           </div>
         )}
         {debtCount > 0 && (
-          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-[var(--color-error)]/20 text-[var(--color-error)] text-xs">
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded bg-(--color-error)/20 text-(--color-error) text-xs">
             <CreditCard className="w-3 h-3" />
             <span>{debtCount}</span>
           </div>
@@ -95,7 +95,7 @@ export function TransactionIndicators({
         <div className="space-y-1">
           {incomeCount > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-[var(--color-income)] flex items-center gap-1">
+              <span className="text-(--color-income) flex items-center gap-1">
                 <TrendingUp className="w-3 h-3" />
                 Income
               </span>
@@ -104,7 +104,7 @@ export function TransactionIndicators({
           )}
           {expenseCount > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-[var(--color-expense)] flex items-center gap-1">
+              <span className="text-(--color-expense) flex items-center gap-1">
                 <TrendingDown className="w-3 h-3" />
                 Expenses
               </span>
@@ -113,7 +113,7 @@ export function TransactionIndicators({
           )}
           {transferCount > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-[var(--color-transfer)] flex items-center gap-1">
+              <span className="text-(--color-transfer) flex items-center gap-1">
                 <ArrowRightLeft className="w-3 h-3" />
                 Transfers
               </span>
@@ -123,7 +123,7 @@ export function TransactionIndicators({
           {totalSpent !== undefined && totalSpent > 0 && (
             <div className="flex items-center justify-between text-sm pt-2 border-t border-border">
               <span className="text-muted-foreground">Total Spent</span>
-              <span className="font-medium text-[var(--color-expense)]">
+              <span className="font-medium text-(--color-expense)">
                 ${Math.abs(totalSpent).toFixed(2)}
               </span>
             </div>
@@ -140,22 +140,22 @@ export function TransactionIndicators({
         <div className="space-y-1">
           {billOverdueCount > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-[var(--color-error)] flex items-center gap-1 font-semibold">
+              <span className="text-(--color-error) flex items-center gap-1 font-semibold">
                 <AlertCircle className="w-3 h-3" />
                 Overdue
               </span>
-              <span className="font-medium text-[var(--color-error)]">
+              <span className="font-medium text-(--color-error)">
                 {billOverdueCount}
               </span>
             </div>
           )}
           {billDueCount > 0 && (
             <div className="flex items-center justify-between text-sm">
-              <span className="text-[var(--color-warning)] flex items-center gap-1">
+              <span className="text-(--color-warning) flex items-center gap-1">
                 <AlertCircle className="w-3 h-3" />
                 Due Soon
               </span>
-              <span className="font-medium text-[var(--color-warning)]">
+              <span className="font-medium text-(--color-warning)">
                 {billDueCount}
               </span>
             </div>
@@ -171,14 +171,14 @@ export function TransactionIndicators({
         <div className="bg-card border border-border rounded-lg p-3 col-span-2">
           <div className="flex items-center justify-between mb-2">
             <span className="text-muted-foreground text-sm">Goal Deadlines</span>
-            <Target className="w-4 h-4 text-[var(--color-primary)]" />
+            <Target className="w-4 h-4 text-(--color-primary)" />
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-[var(--color-primary)] flex items-center gap-1">
+            <span className="text-(--color-primary) flex items-center gap-1">
               <Target className="w-3 h-3" />
               Target Date
             </span>
-            <span className="font-medium text-[var(--color-primary)]">
+            <span className="font-medium text-(--color-primary)">
               {goalCount}
             </span>
           </div>
@@ -190,14 +190,14 @@ export function TransactionIndicators({
         <div className="bg-card border border-border rounded-lg p-3 col-span-2">
           <div className="flex items-center justify-between mb-2">
             <span className="text-muted-foreground text-sm">Debt Milestones</span>
-            <CreditCard className="w-4 h-4 text-[var(--color-error)]" />
+            <CreditCard className="w-4 h-4 text-(--color-error)" />
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-[var(--color-error)] flex items-center gap-1">
+            <span className="text-(--color-error) flex items-center gap-1">
               <CreditCard className="w-3 h-3" />
               Payoff Dates
             </span>
-            <span className="font-medium text-[var(--color-error)]">
+            <span className="font-medium text-(--color-error)">
               {debtCount}
             </span>
           </div>

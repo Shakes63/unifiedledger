@@ -62,8 +62,8 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
       nextLabel={isInvitedUser ? "Start Exploring" : "Start Using Unified Ledger"}
     >
       <div className="flex flex-col items-center justify-center py-8 text-center space-y-6">
-        <div className="w-20 h-20 rounded-full bg-[var(--color-success)]/20 flex items-center justify-center">
-          <CheckCircle2 className="w-10 h-10 text-[var(--color-success)]" />
+        <div className="w-20 h-20 rounded-full bg-(--color-success)/20 flex items-center justify-center">
+          <CheckCircle2 className="w-10 h-10 text-(--color-success)" />
         </div>
 
         <div className="space-y-4 max-w-md">
@@ -155,7 +155,7 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
 
         <Button
           onClick={handleComplete}
-          className="mt-6 bg-[var(--color-primary)] text-background hover:opacity-90"
+          className="mt-6 bg-(--color-primary) text-background hover:opacity-90"
           size="lg"
           disabled={isLoading}
         >

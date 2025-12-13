@@ -297,9 +297,9 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
   function getRoleIcon(role: string) {
     switch (role) {
       case 'owner':
-        return <Crown className="w-4 h-4 text-[var(--color-warning)]" />;
+        return <Crown className="w-4 h-4 text-(--color-warning)" />;
       case 'admin':
-        return <Shield className="w-4 h-4 text-[var(--color-primary)]" />;
+        return <Shield className="w-4 h-4 text-(--color-primary)" />;
       case 'viewer':
         return <Eye className="w-4 h-4 text-muted-foreground" />;
       default:
@@ -310,9 +310,9 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
   function getRoleBadgeColor(role: string) {
     switch (role) {
       case 'owner':
-        return 'bg-[var(--color-warning)] text-white';
+        return 'bg-(--color-warning) text-white';
       case 'admin':
-        return 'bg-[var(--color-primary)] text-white';
+        return 'bg-(--color-primary) text-white';
       case 'viewer':
         return 'bg-elevated text-muted-foreground';
       default:
@@ -329,7 +329,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-[var(--color-primary)]" />
+        <Loader2 className="w-8 h-8 animate-spin text-(--color-primary)" />
       </div>
     );
   }
@@ -372,7 +372,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => setDeleteDialogOpen(true)}
-                  className="border-[var(--color-error)] text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+                  className="border-(--color-error) text-(--color-error) hover:bg-(--color-error)/10"
                 >
                   <Trash2 className="w-4 h-4 mr-1" />
                   Delete
@@ -384,7 +384,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
                 variant="outline"
                 size="sm"
                 onClick={() => setLeaveDialogOpen(true)}
-                className="border-[var(--color-error)] text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+                className="border-(--color-error) text-(--color-error) hover:bg-(--color-error)/10"
               >
                 <LogOut className="w-4 h-4 mr-1" />
                 Leave
@@ -404,7 +404,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
             <Button
               size="sm"
               onClick={() => setInviteDialogOpen(true)}
-              className="bg-[var(--color-primary)] hover:opacity-90"
+              className="bg-(--color-primary) hover:opacity-90"
             >
               <UserPlus className="w-4 h-4 mr-1" />
               Invite Member
@@ -487,7 +487,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
                       variant="ghost"
                       size="sm"
                       onClick={() => removeMember(member.id)}
-                      className="text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+                      className="text-(--color-error) hover:bg-(--color-error)/10"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -510,7 +510,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
             {invitations.map((invitation) => (
               <Card
                 key={invitation.id}
-                className="p-4 bg-elevated border-border border-[var(--color-warning)]/30"
+                className="p-4 bg-elevated border-border border-(--color-warning)/30"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -614,7 +614,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
       <Dialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-[var(--color-error)]">
+            <DialogTitle className="text-(--color-error)">
               Leave Household
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -634,7 +634,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
               variant="destructive"
               onClick={leaveHousehold}
               disabled={submitting}
-              className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
+              className="bg-(--color-error) hover:bg-(--color-error)/90"
             >
               {submitting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -689,7 +689,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
             <Button
               onClick={renameHousehold}
               disabled={!newHouseholdName.trim() || submitting}
-              className="bg-[var(--color-primary)] hover:opacity-90"
+              className="bg-(--color-primary) hover:opacity-90"
             >
               {submitting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -706,7 +706,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-[var(--color-error)]">
+            <DialogTitle className="text-(--color-error)">
               Delete Household
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -745,7 +745,7 @@ export function HouseholdMembersTab({ householdId }: HouseholdMembersTabProps) {
               variant="destructive"
               onClick={deleteHousehold}
               disabled={deleteConfirmName !== selectedHousehold?.name || submitting}
-              className="bg-[var(--color-error)] hover:bg-[var(--color-error)]/90"
+              className="bg-(--color-error) hover:bg-(--color-error)/90"
             >
               {submitting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

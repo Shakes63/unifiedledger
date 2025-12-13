@@ -64,7 +64,7 @@ export function UserAvatar({
     'relative inline-flex items-center justify-center rounded-full overflow-hidden',
     'transition-all duration-200',
     sizeClasses[size],
-    showRing && 'hover:ring-2 hover:ring-[var(--color-border)]',
+    showRing && 'hover:ring-2 hover:ring-(--color-border)',
     className
   );
 
@@ -92,7 +92,7 @@ export function UserAvatar({
             priority={size === 'xl'} // Prioritize large avatars (settings page)
           />
           {imageLoading && (
-            <div className="absolute inset-0 bg-[var(--color-muted)] animate-pulse" />
+            <div className="absolute inset-0 bg-(--color-muted) animate-pulse" />
           )}
         </>
       ) : (
@@ -121,7 +121,7 @@ export function UserAvatarSkeleton({
   return (
     <div
       className={cn(
-        'rounded-full bg-[var(--color-muted)] animate-pulse',
+        'rounded-full bg-(--color-muted) animate-pulse',
         sizeClasses[size],
         className
       )}

@@ -255,8 +255,8 @@ export function BudgetExportModal({
           </div>
 
           {/* Preview */}
-          <div className={`p-3 rounded-lg ${preview.valid ? 'bg-accent/10' : 'bg-[var(--color-error)]/10'}`}>
-            <p className={`text-sm ${preview.valid ? 'text-foreground' : 'text-[var(--color-error)]'}`}>
+          <div className={`p-3 rounded-lg ${preview.valid ? 'bg-accent/10' : 'bg-(--color-error)/10'}`}>
+            <p className={`text-sm ${preview.valid ? 'text-foreground' : 'text-(--color-error)'}`}>
               {preview.message}
             </p>
           </div>
@@ -273,7 +273,7 @@ export function BudgetExportModal({
           <Button
             onClick={handleExport}
             disabled={!preview.valid || exporting}
-            className="bg-[var(--color-primary)] text-white hover:opacity-90"
+            className="bg-(--color-primary) text-white hover:opacity-90"
           >
             <Download className="w-4 h-4 mr-2" />
             {exporting ? 'Generating...' : 'Generate CSV'}

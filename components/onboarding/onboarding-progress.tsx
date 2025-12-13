@@ -33,13 +33,13 @@ export function OnboardingProgress({
                 className={cn(
                   'flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors',
                   isCompleted &&
-                    'bg-[var(--color-success)] border-[var(--color-success)] text-background',
+                    'bg-(--color-success) border-(--color-success) text-background',
                   isSkipped &&
-                    'bg-[var(--color-warning)]/20 border-[var(--color-warning)] text-[var(--color-warning)]',
+                    'bg-(--color-warning)/20 border-(--color-warning) text-(--color-warning)',
                   isCurrent &&
                     !isCompleted &&
                     !isSkipped &&
-                    'bg-[var(--color-primary)] border-[var(--color-primary)] text-background',
+                    'bg-(--color-primary) border-(--color-primary) text-background',
                   !isCompleted &&
                     !isSkipped &&
                     !isCurrent &&
@@ -69,7 +69,7 @@ export function OnboardingProgress({
                 className={cn(
                   'h-0.5 flex-1 mx-2 transition-colors',
                   isPast || isCompleted
-                    ? 'bg-[var(--color-success)]'
+                    ? 'bg-(--color-success)'
                     : 'bg-border'
                 )}
               />

@@ -453,14 +453,14 @@ export function CalendarSyncSection() {
                   <span className="text-xs text-muted-foreground">Link your Google account to enable</span>
                 ) : googleConnection ? (
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3 h-3 text-[var(--color-success)]" />
+                    <CheckCircle2 className="w-3 h-3 text-(--color-success)" />
                     <span className="text-xs text-muted-foreground">
                       {googleConnection.calendarName || 'Enabled - Select a calendar'}
                     </span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3 h-3 text-[var(--color-success)]" />
+                    <CheckCircle2 className="w-3 h-3 text-(--color-success)" />
                     <span className="text-xs text-muted-foreground">Google account linked</span>
                   </div>
                 )}
@@ -506,7 +506,7 @@ export function CalendarSyncSection() {
                     size="sm"
                     onClick={() => handleDisconnect(googleConnection.id)}
                     disabled={disconnecting}
-                    className="text-[var(--color-error)] hover:text-[var(--color-error)]"
+                    className="text-(--color-error) hover:text-(--color-error)"
                   >
                     <Unlink className="w-4 h-4" />
                   </Button>
@@ -542,7 +542,7 @@ export function CalendarSyncSection() {
                 <h4 className="font-medium text-foreground">TickTick</h4>
                 {ticktickConnection ? (
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3 h-3 text-[var(--color-success)]" />
+                    <CheckCircle2 className="w-3 h-3 text-(--color-success)" />
                     <span className="text-xs text-muted-foreground">
                       {ticktickConnection.calendarName || 'Connected - Select a project'}
                     </span>
@@ -580,7 +580,7 @@ export function CalendarSyncSection() {
                     size="sm"
                     onClick={() => handleDisconnect(ticktickConnection.id)}
                     disabled={disconnecting}
-                    className="text-[var(--color-error)] hover:text-[var(--color-error)]"
+                    className="text-(--color-error) hover:text-(--color-error)"
                   >
                     <Unlink className="w-4 h-4" />
                   </Button>
@@ -613,7 +613,7 @@ export function CalendarSyncSection() {
               <Card
                 className={`p-3 cursor-pointer transition-colors ${
                   settings.syncMode === 'direct'
-                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
+                    ? 'border-(--color-primary) bg-(--color-primary)/5'
                     : 'border-border bg-card hover:bg-elevated'
                 }`}
                 onClick={() => handleSettingChange('syncMode', 'direct')}
@@ -637,7 +637,7 @@ export function CalendarSyncSection() {
               <Card
                 className={`p-3 cursor-pointer transition-colors ${
                   settings.syncMode === 'budget_period'
-                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
+                    ? 'border-(--color-primary) bg-(--color-primary)/5'
                     : 'border-border bg-card hover:bg-elevated'
                 }`}
                 onClick={() => handleSettingChange('syncMode', 'budget_period')}
@@ -822,7 +822,7 @@ export function CalendarSyncSection() {
                   key={cal.id}
                   className={`p-3 cursor-pointer transition-colors ${
                     selectedCalendarId === cal.id
-                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
+                      ? 'border-(--color-primary) bg-(--color-primary)/5'
                       : 'border-border bg-card hover:bg-elevated'
                   }`}
                   onClick={() => setSelectedCalendarId(cal.id)}
@@ -897,7 +897,7 @@ export function CalendarSyncSection() {
                   key={project.id}
                   className={`p-3 cursor-pointer transition-colors ${
                     selectedProjectId === project.id
-                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5'
+                      ? 'border-(--color-primary) bg-(--color-primary)/5'
                       : 'border-border bg-card hover:bg-elevated'
                   }`}
                   onClick={() => setSelectedProjectId(project.id)}

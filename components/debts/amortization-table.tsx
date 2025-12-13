@@ -80,7 +80,7 @@ export function AmortizationTable({
             </span>
           </div>
           <div className="text-sm text-muted-foreground">
-            Total Interest: <span className="text-[var(--color-chart-interest)] font-mono font-semibold">${schedule.totalInterestPaid.toFixed(2)}</span>
+            Total Interest: <span className="text-(--color-chart-interest) font-mono font-semibold">${schedule.totalInterestPaid.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -123,7 +123,7 @@ export function AmortizationTable({
                   className={`
                     absolute top-0 left-0 w-full
                     ${isLastPayment && highlightPayoffMonth
-                      ? 'bg-gradient-to-r from-[var(--color-chart-principal)]/20 to-transparent border-l-4 border-[var(--color-chart-principal)]'
+                      ? 'bg-gradient-to-r from-(--color-chart-principal)/20 to-transparent border-l-4 border-(--color-chart-principal)'
                       : virtualRow.index % 2 === 0
                       ? 'bg-card'
                       : 'bg-background/50'
@@ -152,7 +152,7 @@ export function AmortizationTable({
                         Month {monthNumber}
                       </span>
                       {isLastPayment && highlightPayoffMonth && (
-                        <PartyPopper className="w-5 h-5 text-[var(--color-chart-principal)]" aria-label="Debt paid off!" />
+                        <PartyPopper className="w-5 h-5 text-(--color-chart-principal)" aria-label="Debt paid off!" />
                       )}
                     </div>
 
@@ -165,7 +165,7 @@ export function AmortizationTable({
 
                     {/* Principal Amount */}
                     <div className="text-right">
-                      <span className="text-[var(--color-chart-principal)] font-mono">
+                      <span className="text-(--color-chart-principal) font-mono">
                         ${payment.principalAmount.toFixed(2)}
                       </span>
                       <div className="text-xs text-muted-foreground mt-0.5">
@@ -175,7 +175,7 @@ export function AmortizationTable({
 
                     {/* Interest Amount */}
                     <div className="text-right">
-                      <span className="text-[var(--color-chart-interest)] font-mono">
+                      <span className="text-(--color-chart-interest) font-mono">
                         ${payment.interestAmount.toFixed(2)}
                       </span>
                       <div className="text-xs text-muted-foreground mt-0.5">
@@ -187,13 +187,13 @@ export function AmortizationTable({
                     <div className="text-right">
                       <span className={`font-mono ${
                         payment.remainingBalance === 0
-                          ? 'text-[var(--color-chart-principal)] font-semibold'
+                          ? 'text-(--color-chart-principal) font-semibold'
                           : 'text-foreground'
                       }`}>
                         ${payment.remainingBalance.toFixed(2)}
                       </span>
                       {isLastPayment && (
-                        <div className="text-xs text-[var(--color-chart-principal)] font-semibold mt-0.5 uppercase">
+                        <div className="text-xs text-(--color-chart-principal) font-semibold mt-0.5 uppercase">
                           Paid Off
                         </div>
                       )}
@@ -216,12 +216,12 @@ export function AmortizationTable({
             </span>
           </div>
           <div className="text-right">
-            <span className="text-[var(--color-chart-principal)] font-mono font-semibold">
+            <span className="text-(--color-chart-principal) font-mono font-semibold">
               ${schedule.originalBalance.toFixed(2)}
             </span>
           </div>
           <div className="text-right">
-            <span className="text-[var(--color-chart-interest)] font-mono font-semibold">
+            <span className="text-(--color-chart-interest) font-mono font-semibold">
               ${schedule.totalInterestPaid.toFixed(2)}
             </span>
           </div>

@@ -207,8 +207,8 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
                 aria-label={`Select ${preset.label} date range`}
                 className={
                   activePreset === preset.id
-                    ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)] border-[var(--color-primary)]'
-                    : 'bg-elevated text-foreground border-border hover:bg-[var(--color-elevated)]'
+                    ? 'bg-(--color-primary) text-(--color-primary-foreground) border-(--color-primary)'
+                    : 'bg-elevated text-foreground border-border hover:bg-(--color-elevated)'
                 }
               >
                 {preset.label}
@@ -223,8 +223,8 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
               aria-label="Select custom date range"
               className={
                 activePreset === 'custom'
-                  ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)] border-[var(--color-primary)]'
-                  : 'bg-elevated text-foreground border-border hover:bg-[var(--color-elevated)]'
+                  ? 'bg-(--color-primary) text-(--color-primary-foreground) border-(--color-primary)'
+                  : 'bg-elevated text-foreground border-border hover:bg-(--color-elevated)'
               }
             >
               Custom
@@ -269,7 +269,7 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
           {error && (
             <div
               id="date-error"
-              className="text-sm text-[var(--color-error)]"
+              className="text-sm text-(--color-error)"
               role="alert"
               aria-live="polite"
             >

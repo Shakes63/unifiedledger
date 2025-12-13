@@ -161,8 +161,8 @@ export function InlineDateEdit({
           disabled={isUpdating}
           className={cn(
             "h-7 text-xs px-2 py-1 w-[120px] rounded",
-            "border border-[var(--color-primary)]",
-            "focus:ring-1 focus:ring-offset-0 focus:border-[var(--color-primary)]",
+            "border border-(--color-primary)",
+            "focus:ring-1 focus:ring-offset-0 focus:border-(--color-primary)",
             "[&::-webkit-calendar-picker-indicator]:opacity-80 [&::-webkit-calendar-picker-indicator]:cursor-pointer",
             "[&::-webkit-calendar-picker-indicator]:hover:opacity-100",
             isUpdating && "opacity-60"

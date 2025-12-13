@@ -139,7 +139,7 @@ export function InlineAccountSelect({
         <SelectTrigger
           className={cn(
             "h-6 text-xs px-2 py-0.5 min-w-[70px] max-w-[100px] bg-elevated rounded",
-            "border border-[var(--color-primary)] text-muted-foreground",
+            "border border-(--color-primary) text-muted-foreground",
             "focus:ring-1 focus:ring-offset-0",
             isUpdating && "opacity-60"
           )}

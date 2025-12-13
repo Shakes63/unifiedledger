@@ -227,11 +227,11 @@ export function GoalSelector({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Target className="w-4 h-4 text-[var(--color-primary)]" />
+          <Target className="w-4 h-4 text-(--color-primary)" />
           <Label className="text-muted-foreground text-sm">
             Link to Savings Goal
             {hasLinkedGoals && (
-              <span className="ml-2 text-xs text-[var(--color-primary)]">
+              <span className="ml-2 text-xs text-(--color-primary)">
                 (Account has linked goal{linkedGoals.length > 1 ? 's' : ''})
               </span>
             )}
@@ -299,7 +299,7 @@ export function GoalSelector({
                 size="sm"
                 variant="ghost"
                 onClick={handleDistributeEqually}
-                className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary)]"
+                className="text-xs text-(--color-primary) hover:text-(--color-primary)"
               >
                 Split Equally
               </Button>
@@ -338,7 +338,7 @@ export function GoalSelector({
                     size="icon"
                     variant="ghost"
                     onClick={() => handleRemoveGoalFromSplit(goalId)}
-                    className="h-8 w-8 text-muted-foreground hover:text-[var(--color-error)]"
+                    className="h-8 w-8 text-muted-foreground hover:text-(--color-error)"
                     disabled={disabled}
                   >
                     <X className="w-4 h-4" />
@@ -376,9 +376,9 @@ export function GoalSelector({
               <span
                 className={
                   Math.abs(totalContribution - transactionAmount) < 0.01
-                    ? 'text-[var(--color-income)] font-medium'
+                    ? 'text-(--color-income) font-medium'
                     : totalContribution > transactionAmount
-                      ? 'text-[var(--color-error)] font-medium'
+                      ? 'text-(--color-error) font-medium'
                       : 'text-foreground'
                 }
               >

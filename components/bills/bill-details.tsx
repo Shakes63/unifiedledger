@@ -314,9 +314,9 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
 
       {/* Overdue Instances */}
       {overdueInstances.length > 0 && (
-        <Card className="bg-card border-[var(--color-error)]/30">
+        <Card className="bg-card border-(--color-error)/30">
           <CardHeader>
-            <CardTitle className="text-[var(--color-error)] flex items-center gap-2">
+            <CardTitle className="text-(--color-error) flex items-center gap-2">
               <AlertCircle className="w-5 h-5" />
               Overdue Instances ({overdueInstances.length})
             </CardTitle>
@@ -339,7 +339,7 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-[var(--color-warning)]" />
+              <Clock className="w-5 h-5 text-(--color-warning)" />
               Upcoming Instances
             </CardTitle>
           </CardHeader>
@@ -361,7 +361,7 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-[var(--color-success)]" />
+              <CheckCircle2 className="w-5 h-5 text-(--color-success)" />
               Recently Paid
             </CardTitle>
           </CardHeader>
@@ -431,21 +431,21 @@ function InstanceItem({ instance, bill: _bill, onAction }: InstanceItemProps) {
     <div className="flex items-center justify-between p-3 bg-elevated border border-border rounded-lg hover:bg-card transition-colors">
       <div className="flex items-start gap-3 flex-1">
         <div className="mt-0.5">
-          {isPaid && <CheckCircle2 className="w-5 h-5 text-[var(--color-success)]" />}
-          {isOverdue && <AlertCircle className="w-5 h-5 text-[var(--color-error)]" />}
-          {isPending && <Clock className="w-5 h-5 text-[var(--color-warning)]" />}
+          {isPaid && <CheckCircle2 className="w-5 h-5 text-(--color-success)" />}
+          {isOverdue && <AlertCircle className="w-5 h-5 text-(--color-error)" />}
+          {isPending && <Clock className="w-5 h-5 text-(--color-warning)" />}
           {isSkipped && <SkipForward className="w-5 h-5 text-muted-foreground" />}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm text-muted-foreground">Due: {format(dueDate, 'MMM d, yyyy')}</p>
           {isOverdue && instance.daysLate > 0 && (
-            <p className="text-sm text-[var(--color-error)]">
+            <p className="text-sm text-(--color-error)">
               {instance.daysLate} day{instance.daysLate !== 1 ? 's' : ''} overdue
               {instance.lateFee > 0 && ` - Late fee: $${instance.lateFee.toFixed(2)}`}
             </p>
           )}
           {isPaid && instance.paidDate && (
-            <p className="text-sm text-[var(--color-success)]">
+            <p className="text-sm text-(--color-success)">
               Paid: {format(parseISO(instance.paidDate), 'MMM d, yyyy')}
             </p>
           )}
@@ -458,7 +458,7 @@ function InstanceItem({ instance, bill: _bill, onAction }: InstanceItemProps) {
           {isPaid && instance.transactionId && (
             <Link
               href={`/dashboard/transactions/${instance.transactionId}`}
-              className="text-sm text-[var(--color-primary)] hover:underline inline-flex items-center gap-1 mt-1"
+              className="text-sm text-(--color-primary) hover:underline inline-flex items-center gap-1 mt-1"
             >
               <ExternalLink className="w-3 h-3" />
               View Transaction
@@ -491,7 +491,7 @@ function InstanceItem({ instance, bill: _bill, onAction }: InstanceItemProps) {
                   onClick={() => onAction(instance)}
                   className="cursor-pointer"
                 >
-                  <CheckCircle2 className="w-4 h-4 mr-2 text-[var(--color-success)]" />
+                  <CheckCircle2 className="w-4 h-4 mr-2 text-(--color-success)" />
                   Mark as Paid
                 </DropdownMenuItem>
                 <DropdownMenuItem

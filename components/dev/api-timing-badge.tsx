@@ -20,9 +20,9 @@ export function ApiTimingBadge({ startTime, endTime, endpoint, className = '' }:
 
   // Color code based on performance
   const getColorClass = () => {
-    if (duration < 100) return 'text-[var(--color-success)] bg-[var(--color-success)]/10';
-    if (duration < 500) return 'text-[var(--color-warning)] bg-[var(--color-warning)]/10';
-    return 'text-[var(--color-error)] bg-[var(--color-error)]/10';
+    if (duration < 100) return 'text-(--color-success) bg-(--color-success)/10';
+    if (duration < 500) return 'text-(--color-warning) bg-(--color-warning)/10';
+    return 'text-(--color-error) bg-(--color-error)/10';
   };
 
   const colorClass = getColorClass();

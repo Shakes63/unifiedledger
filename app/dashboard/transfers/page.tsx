@@ -141,7 +141,7 @@ export default function TransfersPage() {
         <Button
           onClick={() => setIsModalOpen(true)}
           disabled={accounts.length < 2}
-          className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+          className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Transfer
@@ -149,8 +149,8 @@ export default function TransfersPage() {
       </div>
 
       {accounts.length < 2 && (
-        <div className="bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/20 rounded-lg p-4">
-          <p className="text-[var(--color-warning)]">
+        <div className="bg-(--color-warning)/10 border border-(--color-warning)/20 rounded-lg p-4">
+          <p className="text-(--color-warning)">
             You need at least 2 accounts to create transfers.
           </p>
         </div>

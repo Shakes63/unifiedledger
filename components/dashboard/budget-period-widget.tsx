@@ -148,7 +148,7 @@ export function BudgetPeriodWidget() {
       <div className="p-4 border-b" style={{ borderColor: 'var(--color-border)' }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-[var(--color-primary)]" />
+            <Calendar className="w-5 h-5 text-(--color-primary)" />
             <h3 className="font-semibold text-foreground">{data.currentPeriod.label}</h3>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -178,7 +178,7 @@ export function BudgetPeriodWidget() {
           {isNegative && '-'}{formatCurrency(data.available)}
         </p>
         {isNegative && (
-          <div className="flex items-center justify-center gap-1 mt-2 text-[var(--color-error)]">
+          <div className="flex items-center justify-center gap-1 mt-2 text-(--color-error)">
             <AlertCircle className="w-4 h-4" />
             <span className="text-sm">Over budget</span>
           </div>
@@ -238,7 +238,7 @@ export function BudgetPeriodWidget() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-[var(--color-expense)]">
+                <span className="text-sm font-medium text-(--color-expense)">
                   -{formatCurrency(data.paidThisPeriod)}
                 </span>
                 {expandedSection === 'paid' ? (
@@ -259,11 +259,11 @@ export function BudgetPeriodWidget() {
                         {item.categoryName && ` - ${item.categoryName}`}
                       </p>
                     </div>
-                    <span className="text-[var(--color-expense)]">-{formatCurrency(item.amount)}</span>
+                    <span className="text-(--color-expense)">-{formatCurrency(item.amount)}</span>
                   </div>
                 ))}
                 {data.billsBreakdown.paid.length > 5 && (
-                  <Link href="/dashboard/transactions" className="text-xs text-[var(--color-primary)] hover:underline">
+                  <Link href="/dashboard/transactions" className="text-xs text-(--color-primary) hover:underline">
                     View all {data.billsBreakdown.paid.length} transactions
                   </Link>
                 )}
@@ -280,14 +280,14 @@ export function BudgetPeriodWidget() {
               className="w-full flex items-center justify-between p-3 hover:bg-elevated transition-colors"
             >
               <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-[var(--color-primary)]" />
+                <Zap className="w-4 h-4 text-(--color-primary)" />
                 <span className="text-sm text-foreground">Autopay Bills</span>
                 <span className="text-xs text-muted-foreground">
                   ({data.billsBreakdown.autopayUpcoming.length})
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-[var(--color-warning)]">
+                <span className="text-sm font-medium text-(--color-warning)">
                   -{formatCurrency(data.autopayDue)}
                 </span>
                 {expandedSection === 'autopay' ? (
@@ -307,7 +307,7 @@ export function BudgetPeriodWidget() {
                         Due {formatDate(bill.dueDate)}
                       </p>
                     </div>
-                    <span className="text-[var(--color-warning)]">-{formatCurrency(bill.amount)}</span>
+                    <span className="text-(--color-warning)">-{formatCurrency(bill.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -323,14 +323,14 @@ export function BudgetPeriodWidget() {
               className="w-full flex items-center justify-between p-3 hover:bg-elevated transition-colors"
             >
               <div className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-[var(--color-error)]" />
+                <DollarSign className="w-4 h-4 text-(--color-error)" />
                 <span className="text-sm text-foreground">Bills to Pay</span>
-                <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--color-error)]/20 text-[var(--color-error)]">
+                <span className="text-xs px-1.5 py-0.5 rounded bg-(--color-error)/20 text-(--color-error)">
                   Action needed
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-[var(--color-error)]">
+                <span className="text-sm font-medium text-(--color-error)">
                   -{formatCurrency(data.manualBillsDue)}
                 </span>
                 {expandedSection === 'manual' ? (
@@ -350,11 +350,11 @@ export function BudgetPeriodWidget() {
                         Due {formatDate(bill.dueDate)}
                       </p>
                     </div>
-                    <span className="text-[var(--color-error)]">-{formatCurrency(bill.amount)}</span>
+                    <span className="text-(--color-error)">-{formatCurrency(bill.amount)}</span>
                   </div>
                 ))}
                 <Link href="/dashboard/bills">
-                  <Button size="sm" className="w-full mt-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90">
+                  <Button size="sm" className="w-full mt-2 bg-(--color-primary) hover:bg-(--color-primary)/90">
                     Go to Bills
                   </Button>
                 </Link>

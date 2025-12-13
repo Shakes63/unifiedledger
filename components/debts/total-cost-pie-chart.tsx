@@ -214,11 +214,11 @@ export function TotalCostPieChart({
 
       {/* Cost Multiplier Alert */}
       {costData.interestMultiplier > 1.5 && (
-        <div className="bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-lg p-4">
+        <div className="bg-(--color-warning)/10 border border-(--color-warning)/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-[var(--color-warning)] flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-(--color-warning) flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-semibold text-[var(--color-warning)] mb-1">
+              <p className="text-sm font-semibold text-(--color-warning) mb-1">
                 High Interest Cost
               </p>
               <p className="text-sm text-foreground">
@@ -232,11 +232,11 @@ export function TotalCostPieChart({
 
       {/* Low Interest Success */}
       {costData.interestMultiplier <= 1.2 && costData.interest > 0 && (
-        <div className="bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 rounded-lg p-4">
+        <div className="bg-(--color-success)/10 border border-(--color-success)/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-[var(--color-success)] flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-(--color-success) flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-semibold text-[var(--color-success)] mb-1">
+              <p className="text-sm font-semibold text-(--color-success) mb-1">
                 Great Interest Rate
               </p>
               <p className="text-sm text-foreground">
@@ -250,11 +250,11 @@ export function TotalCostPieChart({
 
       {/* Zero Interest */}
       {costData.interest === 0 && (
-        <div className="bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 rounded-lg p-4">
+        <div className="bg-(--color-success)/10 border border-(--color-success)/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <PartyPopper className="w-5 h-5 text-[var(--color-success)] flex-shrink-0" />
+            <PartyPopper className="w-5 h-5 text-(--color-success) flex-shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-semibold text-[var(--color-success)] mb-1">
+              <p className="text-sm font-semibold text-(--color-success) mb-1">
                 Interest-Free Debt
               </p>
               <p className="text-sm text-foreground">

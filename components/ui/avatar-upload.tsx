@@ -162,7 +162,7 @@ export function AvatarUpload({
         {/* Loading overlay */}
         {(isUploading || isRemoving) && (
           <div className="absolute inset-0 bg-background/80 rounded-full flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-[var(--color-primary)]" />
+            <Loader2 className="w-8 h-8 animate-spin text-(--color-primary)" />
           </div>
         )}
       </div>

@@ -49,7 +49,7 @@ export function OnboardingStep({
             <div className="flex items-center gap-2 mb-2">
               <h2 className="text-2xl font-bold text-foreground">{title}</h2>
               {isOptional && (
-                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-(--color-primary)/10 text-(--color-primary) border border-(--color-primary)/20">
                   Optional
                 </span>
               )}
@@ -97,7 +97,7 @@ export function OnboardingStep({
           <Button
             onClick={onNext}
             disabled={isLoading}
-            className="bg-[var(--color-primary)] text-background hover:opacity-90"
+            className="bg-(--color-primary) text-background hover:opacity-90"
           >
             {nextLabel || (isLastStep ? 'Complete' : 'Next')}
             {!isLastStep && <ChevronRight className="w-4 h-4 ml-1" />}

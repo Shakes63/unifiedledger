@@ -108,12 +108,12 @@ export function TransactionTemplatesManager({
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'income':
-        return 'bg-[var(--color-income)]/20 text-[var(--color-income)]';
+        return 'bg-(--color-income)/20 text-(--color-income)';
       case 'expense':
-        return 'bg-[var(--color-expense)]/20 text-[var(--color-expense)]';
+        return 'bg-(--color-expense)/20 text-(--color-expense)';
       case 'transfer_in':
       case 'transfer_out':
-        return 'bg-[var(--color-transfer)]/20 text-[var(--color-transfer)]';
+        return 'bg-(--color-transfer)/20 text-(--color-transfer)';
       default:
         return 'bg-muted/20 text-muted-foreground';
     }
@@ -152,7 +152,7 @@ export function TransactionTemplatesManager({
         </DialogHeader>
 
         {error && (
-          <div className="p-4 bg-[var(--color-error)]/20 border border-[var(--color-error)]/40 rounded-lg text-[var(--color-error)] text-sm">
+          <div className="p-4 bg-(--color-error)/20 border border-(--color-error)/40 rounded-lg text-(--color-error) text-sm">
             {error}
           </div>
         )}

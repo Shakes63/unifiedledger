@@ -130,11 +130,11 @@ export function NotificationBell() {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'urgent':
-        return 'border-[var(--color-error)] bg-[var(--color-error)]/10';
+        return 'border-(--color-error) bg-(--color-error)/10';
       case 'high':
-        return 'border-[var(--color-warning)] bg-[var(--color-warning)]/10';
+        return 'border-(--color-warning) bg-(--color-warning)/10';
       case 'normal':
-        return 'border-[var(--color-primary)] bg-[var(--color-primary)]/10';
+        return 'border-(--color-primary) bg-(--color-primary)/10';
       default:
         return 'border-border bg-muted/10';
     }
@@ -166,7 +166,7 @@ export function NotificationBell() {
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-[var(--color-card)] transform translate-x-1 -translate-y-1 bg-[var(--color-error)] rounded-full">
+          <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-(--color-card) transform translate-x-1 -translate-y-1 bg-(--color-error) rounded-full">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -221,7 +221,7 @@ export function NotificationBell() {
                             handleMarkAsRead(notification.id);
                             setIsOpen(false);
                           }}
-                          className="text-xs text-[var(--color-primary)] hover:text-[var(--color-primary)]/80 mt-2 inline-block"
+                          className="text-xs text-(--color-primary) hover:text-(--color-primary)/80 mt-2 inline-block"
                         >
                           {notification.actionLabel || 'View'}
                         </Link>
@@ -247,7 +247,7 @@ export function NotificationBell() {
           <div className="border-t border-border mt-4 pt-4">
             <Link
               href="/dashboard/notifications"
-              className="block text-center text-sm text-[var(--color-primary)] hover:text-[var(--color-primary)]/80 py-2"
+              className="block text-center text-sm text-(--color-primary) hover:text-(--color-primary)/80 py-2"
               onClick={() => setIsOpen(false)}
             >
               View all notifications

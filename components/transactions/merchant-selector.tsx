@@ -138,7 +138,7 @@ export function MerchantSelector({
                 <div className="flex items-center gap-2">
                   <span>{merchant.name}</span>
                   {merchant.isSalesTaxExempt && (
-                    <Badge variant="outline" className="text-[10px] px-1 py-0 bg-[var(--color-success)]/10 text-[var(--color-success)] border-[var(--color-success)]/30">
+                    <Badge variant="outline" className="text-[10px] px-1 py-0 bg-(--color-success)/10 text-(--color-success) border-(--color-success)/30">
                       Tax Exempt
                     </Badge>
                   )}
@@ -166,14 +166,14 @@ export function MerchantSelector({
             value={newMerchantName}
             onChange={(e) => setNewMerchantName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-elevated border border-[var(--color-primary)] text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            className="flex-1 bg-elevated border border-(--color-primary) text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
           />
           <Button
             type="button"
             size="icon"
             onClick={handleCreateMerchant}
             disabled={creatingMerchant || !newMerchantName.trim()}
-            className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]"
+            className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
           >
             <Plus className="w-4 h-4" />
           </Button>

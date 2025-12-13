@@ -70,7 +70,7 @@ export function CalendarHeader({
           onClick={() => onViewModeChange('month')}
           className={
             viewMode === 'month'
-              ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90'
+              ? 'bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90'
               : 'border-border text-muted-foreground hover:bg-elevated'
           }
         >
@@ -82,7 +82,7 @@ export function CalendarHeader({
           onClick={() => onViewModeChange('week')}
           className={
             viewMode === 'week'
-              ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90'
+              ? 'bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90'
               : 'border-border text-muted-foreground hover:bg-elevated'
           }
         >

@@ -126,7 +126,7 @@ export function UtilizationTrendsChart({ className = '' }: UtilizationTrendsChar
             onClick={() => setDays(value)}
             className={`px-3 py-1 rounded text-sm transition-colors ${
               days === value
-                ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                ? 'bg-(--color-primary) text-(--color-primary-foreground)'
                 : 'bg-card border border-border text-muted-foreground hover:text-foreground'
             }`}
           >

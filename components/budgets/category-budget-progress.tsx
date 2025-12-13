@@ -65,11 +65,11 @@ export function CategoryBudgetProgress({
 
     if (category.status === 'exceeded') {
       // For income: exceeded = good (green), for expenses: exceeded = bad (red)
-      return isIncome ? 'bg-[var(--color-success)]' : 'bg-[var(--color-error)]';
+      return isIncome ? 'bg-(--color-success)' : 'bg-(--color-error)';
     } else if (category.status === 'warning') {
-      return 'bg-[var(--color-warning)]';
+      return 'bg-(--color-warning)';
     } else if (category.status === 'on_track') {
-      return 'bg-[var(--color-success)]';
+      return 'bg-(--color-success)';
     }
     return 'bg-muted';
   };
@@ -105,7 +105,7 @@ export function CategoryBudgetProgress({
           <div className="flex items-center gap-2">
             <h3 className="text-base font-medium text-foreground">{category.name}</h3>
             {category.incomeFrequency && category.incomeFrequency !== 'variable' && (
-              <span className="px-2 py-0.5 text-xs rounded-full bg-[var(--color-income)]/20 text-[var(--color-income)] capitalize">
+              <span className="px-2 py-0.5 text-xs rounded-full bg-(--color-income)/20 text-(--color-income) capitalize">
                 {category.incomeFrequency === 'biweekly' ? 'Bi-weekly' : category.incomeFrequency}
               </span>
             )}
@@ -113,9 +113,9 @@ export function CategoryBudgetProgress({
               <span 
                 className={`flex items-center gap-1 px-2 py-0.5 text-xs rounded-full ${
                   hasRolloverPenalty 
-                    ? 'bg-[var(--color-error)]/20 text-[var(--color-error)]' 
+                    ? 'bg-(--color-error)/20 text-(--color-error)' 
                     : hasRolloverBonus 
-                    ? 'bg-[var(--color-success)]/20 text-[var(--color-success)]' 
+                    ? 'bg-(--color-success)/20 text-(--color-success)' 
                     : 'bg-muted text-muted-foreground'
                 }`}
                 title={`Rollover ${rolloverBalance >= 0 ? '+' : ''}$${rolloverBalance.toFixed(2)}`}
@@ -134,7 +134,7 @@ export function CategoryBudgetProgress({
         {!isEditing && (
           <button
             onClick={() => setIsEditing(true)}
-            className="text-xs text-[var(--color-primary)] hover:opacity-80 transition-opacity"
+            className="text-xs text-(--color-primary) hover:opacity-80 transition-opacity"
           >
             Edit
           </button>
@@ -151,14 +151,14 @@ export function CategoryBudgetProgress({
               value={editValue}
               onChange={e => setEditValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="flex-1 bg-input border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+              className="flex-1 bg-input border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
               autoFocus
               min="0"
               step="0.01"
             />
             <button
               onClick={handleSave}
-              className="px-3 py-1.5 bg-[var(--color-primary)] text-white text-xs rounded-lg hover:opacity-90 transition-opacity"
+              className="px-3 py-1.5 bg-(--color-primary) text-white text-xs rounded-lg hover:opacity-90 transition-opacity"
             >
               Save
             </button>
@@ -188,7 +188,7 @@ export function CategoryBudgetProgress({
             )}
             {/* Show negative rollover penalty */}
             {hasRolloverPenalty && (
-              <div className="text-xs text-[var(--color-error)] mt-0.5">
+              <div className="text-xs text-(--color-error) mt-0.5">
                 ${rolloverBalance.toFixed(2)} rollover deficit
               </div>
             )}
@@ -211,8 +211,8 @@ export function CategoryBudgetProgress({
               className={
                 category.isOverBudget
                   ? category.type === 'income'
-                    ? 'text-[var(--color-success)]' // Income over budget = good (green)
-                    : 'text-[var(--color-error)]' // Expense over budget = bad (red)
+                    ? 'text-(--color-success)' // Income over budget = good (green)
+                    : 'text-(--color-error)' // Expense over budget = bad (red)
                   : 'text-muted-foreground'
               }
             >
@@ -221,14 +221,14 @@ export function CategoryBudgetProgress({
             <span
               className={
                 category.remaining === 0
-                  ? 'text-[var(--color-success)]' // Exactly on target (green)
+                  ? 'text-(--color-success)' // Exactly on target (green)
                   : category.type === 'income'
                   ? category.remaining > 0
-                    ? 'text-[var(--color-warning)]' // Income shortfall
-                    : 'text-[var(--color-success)]' // Extra income!
+                    ? 'text-(--color-warning)' // Income shortfall
+                    : 'text-(--color-success)' // Extra income!
                   : category.remaining > 0
-                  ? 'text-[var(--color-success)]' // Under budget
-                  : 'text-[var(--color-error)]' // Over budget
+                  ? 'text-(--color-success)' // Under budget
+                  : 'text-(--color-error)' // Over budget
               }
             >
               {category.remaining === 0
@@ -259,7 +259,7 @@ export function CategoryBudgetProgress({
             <span className="text-muted-foreground">Daily average:</span>
             <span
               className={
-                isPaceTooHigh ? 'text-[var(--color-warning)] flex items-center gap-1' : 'text-foreground'
+                isPaceTooHigh ? 'text-(--color-warning) flex items-center gap-1' : 'text-foreground'
               }
             >
               ${category.dailyAverage.toFixed(2)}
@@ -268,7 +268,7 @@ export function CategoryBudgetProgress({
           </div>
 
           {isPaceTooHigh && (
-            <div className="text-xs text-[var(--color-warning)]">
+            <div className="text-xs text-(--color-warning)">
               {isIncome
                 ? `Pace too low (target: $${category.budgetedDailyAverage.toFixed(2)}/day)`
                 : `Pace too high (budget: $${category.budgetedDailyAverage.toFixed(2)}/day)`}
@@ -278,7 +278,7 @@ export function CategoryBudgetProgress({
           {isProjectedToExceed && (
             <div
               className={`text-xs ${
-                isIncome ? 'text-[var(--color-warning)]' : 'text-[var(--color-error)]'
+                isIncome ? 'text-(--color-warning)' : 'text-(--color-error)'
               }`}
             >
               {isIncome
@@ -298,7 +298,7 @@ export function CategoryBudgetProgress({
           )}
 
           {!isProjectedToExceed && category.projectedMonthEnd > 0 && (
-            <div className="text-xs text-[var(--color-success)]">
+            <div className="text-xs text-(--color-success)">
               {isIncome
                 ? `Projected: $${category.projectedMonthEnd.toFixed(2)} (above by $${new Decimal(
                     category.projectedMonthEnd

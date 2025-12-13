@@ -904,7 +904,7 @@ function TransactionsContent() {
             <Link href="/dashboard/transactions/new">
               <Button
                 size="sm"
-                className="bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90 font-medium"
+                className="bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90 font-medium"
               >
                 <Plus className="w-4 h-4 mr-1" />
                 New Transaction
@@ -962,7 +962,7 @@ function TransactionsContent() {
                 : 'No transactions match your filters.'}
             </p>
             <Link href="/dashboard/transactions/new">
-              <Button className="font-medium bg-[var(--color-primary)] text-[var(--color-primary-foreground)] hover:opacity-90">Add Transaction</Button>
+              <Button className="font-medium bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90">Add Transaction</Button>
             </Link>
           </Card>
         ) : (
@@ -1042,7 +1042,7 @@ function TransactionsContent() {
                            isAccountSalesTaxEnabled(transaction.accountId) && (
                             <Badge 
                               variant="outline" 
-                              className="text-xs border-[var(--color-warning)]/50 text-[var(--color-warning)] bg-[var(--color-warning)]/10 flex items-center gap-0.5 px-1.5 py-0"
+                              className="text-xs border-(--color-warning)/50 text-(--color-warning) bg-(--color-warning)/10 flex items-center gap-0.5 px-1.5 py-0"
                               title="This income is excluded from sales tax calculations"
                             >
                               <ShieldOff className="w-3 h-3" />

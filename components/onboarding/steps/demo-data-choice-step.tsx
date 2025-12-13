@@ -151,13 +151,13 @@ export function DemoDataChoiceStep({
       <div className="flex flex-col space-y-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-[var(--color-primary)] animate-spin" />
+            <Loader2 className="w-8 h-8 text-(--color-primary) animate-spin" />
             <p className="mt-4 text-muted-foreground">Loading demo data info...</p>
           </div>
         ) : error && !summary ? (
-          <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-xl p-4 text-center">
-            <AlertCircle className="w-6 h-6 text-[var(--color-error)] mx-auto mb-2" />
-            <p className="text-sm text-[var(--color-error)]">{error}</p>
+          <div className="bg-(--color-error)/10 border border-(--color-error)/30 rounded-xl p-4 text-center">
+            <AlertCircle className="w-6 h-6 text-(--color-error) mx-auto mb-2" />
+            <p className="text-sm text-(--color-error)">{error}</p>
             <p className="text-xs text-muted-foreground mt-2">
               You can continue with onboarding anyway.
             </p>
@@ -173,9 +173,9 @@ export function DemoDataChoiceStep({
                 disabled={clearing}
                 className={cn(
                   'flex flex-col items-center p-6 rounded-xl border-2 transition-all text-left',
-                  'hover:border-[var(--color-primary)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/50',
+                  'hover:border-(--color-primary)/50 focus:outline-none focus:ring-2 focus:ring-(--color-primary)/50',
                   choice === 'keep'
-                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10'
+                    ? 'border-(--color-primary) bg-(--color-primary)/10'
                     : 'border-border bg-card',
                   clearing && 'opacity-50 cursor-not-allowed'
                 )}
@@ -184,7 +184,7 @@ export function DemoDataChoiceStep({
                   className={cn(
                     'w-14 h-14 rounded-full flex items-center justify-center mb-4',
                     choice === 'keep'
-                      ? 'bg-[var(--color-primary)]/20'
+                      ? 'bg-(--color-primary)/20'
                       : 'bg-elevated'
                   )}
                 >
@@ -192,7 +192,7 @@ export function DemoDataChoiceStep({
                     className={cn(
                       'w-7 h-7',
                       choice === 'keep'
-                        ? 'text-[var(--color-primary)]'
+                        ? 'text-(--color-primary)'
                         : 'text-muted-foreground'
                     )}
                   />
@@ -204,7 +204,7 @@ export function DemoDataChoiceStep({
                   Practice with sample accounts, transactions, and bills to learn the app.
                 </p>
                 {choice === 'keep' && (
-                  <div className="mt-4 flex items-center text-[var(--color-primary)]">
+                  <div className="mt-4 flex items-center text-(--color-primary)">
                     <Check className="w-5 h-5 mr-1" />
                     <span className="text-sm font-medium">Selected</span>
                   </div>
@@ -218,9 +218,9 @@ export function DemoDataChoiceStep({
                 disabled={clearing}
                 className={cn(
                   'flex flex-col items-center p-6 rounded-xl border-2 transition-all text-left',
-                  'hover:border-[var(--color-primary)]/50 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/50',
+                  'hover:border-(--color-primary)/50 focus:outline-none focus:ring-2 focus:ring-(--color-primary)/50',
                   choice === 'clear'
-                    ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10'
+                    ? 'border-(--color-primary) bg-(--color-primary)/10'
                     : 'border-border bg-card',
                   clearing && 'opacity-50 cursor-not-allowed'
                 )}
@@ -229,7 +229,7 @@ export function DemoDataChoiceStep({
                   className={cn(
                     'w-14 h-14 rounded-full flex items-center justify-center mb-4',
                     choice === 'clear'
-                      ? 'bg-[var(--color-primary)]/20'
+                      ? 'bg-(--color-primary)/20'
                       : 'bg-elevated'
                   )}
                 >
@@ -237,7 +237,7 @@ export function DemoDataChoiceStep({
                     className={cn(
                       'w-7 h-7',
                       choice === 'clear'
-                        ? 'text-[var(--color-primary)]'
+                        ? 'text-(--color-primary)'
                         : 'text-muted-foreground'
                     )}
                   />
@@ -249,7 +249,7 @@ export function DemoDataChoiceStep({
                   Clear all demo data and begin with a clean slate.
                 </p>
                 {choice === 'clear' && (
-                  <div className="mt-4 flex items-center text-[var(--color-primary)]">
+                  <div className="mt-4 flex items-center text-(--color-primary)">
                     <Check className="w-5 h-5 mr-1" />
                     <span className="text-sm font-medium">Selected</span>
                   </div>
@@ -330,8 +330,8 @@ export function DemoDataChoiceStep({
 
             {/* Error Display */}
             {error && (
-              <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-xl p-4">
-                <p className="text-sm text-[var(--color-error)]">{error}</p>
+              <div className="bg-(--color-error)/10 border border-(--color-error)/30 rounded-xl p-4">
+                <p className="text-sm text-(--color-error)">{error}</p>
               </div>
             )}
           </>

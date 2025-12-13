@@ -3,7 +3,6 @@
 ---
 
 ## New Bugs
-
 (None)
 
 ---
@@ -36,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 748 (172 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 749 (173 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (172 total)
+## Fixed Bugs (173 total)
 
+173. ✅ **Tailwind CSS variable class warnings** [FIXED 2025-12-13] - Replaced `*-[var(--...)]` Tailwind classes with v4 shorthand `*-(--...)` and added a regression test to prevent reverting.
 172. ✅ **Logo triggers Next.js LCP warning** [FIXED 2025-12-13] - Marked above-the-fold `/logo.png` usages as `priority` (eager) and added a regression test to prevent removing it.
 171. ✅ **Create New Household does not create household** [FIXED 2025-12-13] - Added `credentials: 'include'`, trimmed payload, and toast-based error handling in Settings; added regression test to ensure create-household POST includes credentials.
 170. ✅ **Manage Households navigates to wrong Settings section** [FIXED 2025-12-13] - Sidebar household dropdown now routes to `section=households&household=<id>&tab=members` and includes a regression test.

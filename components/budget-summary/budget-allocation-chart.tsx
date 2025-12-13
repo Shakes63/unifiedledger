@@ -198,7 +198,7 @@ export function BudgetAllocationChart({
       <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-border">
         <div>
           <p className="text-xs text-muted-foreground">Total Expenses</p>
-          <p className="font-mono font-semibold text-[var(--color-expense)]">
+          <p className="font-mono font-semibold text-(--color-expense)">
             {formatCurrency(
               new Decimal(data.variableExpenses)
                 .plus(data.monthlyBills)
@@ -209,7 +209,7 @@ export function BudgetAllocationChart({
         </div>
         <div>
           <p className="text-xs text-muted-foreground">Available</p>
-          <p className="font-mono font-semibold text-[var(--color-success)]">
+          <p className="font-mono font-semibold text-(--color-success)">
             {formatCurrency(data.surplus)}
           </p>
         </div>

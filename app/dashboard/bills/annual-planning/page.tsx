@@ -231,7 +231,7 @@ export default function AnnualBillPlanningPage() {
                 onClick={handleCurrentYear}
                 className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors ${
                   isCurrentYear
-                    ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                    ? 'bg-(--color-primary) text-(--color-primary-foreground)'
                     : 'text-foreground hover:bg-elevated'
                 }`}
               >
@@ -262,7 +262,7 @@ export default function AnnualBillPlanningPage() {
 
             {/* Add Bill Button */}
             <Link href="/dashboard/bills/new">
-              <Button className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]">
+              <Button className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Bill
               </Button>
@@ -284,11 +284,11 @@ export default function AnnualBillPlanningPage() {
 
         {/* Error State */}
         {!loading && error && (
-          <div className="bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-xl p-6 text-center">
-            <p className="text-[var(--color-error)] mb-4">{error}</p>
+          <div className="bg-(--color-error)/10 border border-(--color-error)/30 rounded-xl p-6 text-center">
+            <p className="text-(--color-error) mb-4">{error}</p>
             <Button
               onClick={fetchData}
-              className="bg-[var(--color-error)] hover:opacity-90 text-white"
+              className="bg-(--color-error) hover:opacity-90 text-white"
             >
               Try Again
             </Button>
@@ -326,15 +326,15 @@ export default function AnnualBillPlanningPage() {
                 <h3 className="text-sm font-semibold text-foreground mb-2">Legend</h3>
                 <div className="flex flex-wrap gap-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-[var(--color-income)]/20 border border-[var(--color-income)]/30" />
+                    <div className="w-4 h-4 rounded bg-(--color-income)/20 border border-(--color-income)/30" />
                     <span className="text-sm text-muted-foreground">Paid</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-[var(--color-warning)]/20 border border-[var(--color-warning)]/30" />
+                    <div className="w-4 h-4 rounded bg-(--color-warning)/20 border border-(--color-warning)/30" />
                     <span className="text-sm text-muted-foreground">Pending</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded bg-[var(--color-error)]/20 border border-[var(--color-error)]/30" />
+                    <div className="w-4 h-4 rounded bg-(--color-error)/20 border border-(--color-error)/30" />
                     <span className="text-sm text-muted-foreground">Overdue</span>
                   </div>
                   <div className="flex items-center gap-2">

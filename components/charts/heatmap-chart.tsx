@@ -115,7 +115,7 @@ export function HeatmapChart({
                             <div className="text-xs">
                               <div className="font-medium text-foreground">{category}</div>
                               <div className="text-muted-foreground">{month}</div>
-                              <div className="text-[var(--color-expense)] font-semibold">
+                              <div className="text-(--color-expense) font-semibold">
                                 ${value.toFixed(2)}
                               </div>
                             </div>

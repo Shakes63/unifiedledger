@@ -166,7 +166,7 @@ export function CalendarWeek({
               key={dayKey}
               className={`p-3 rounded-lg border-2 transition-all flex flex-col min-h-[300px] ${
                 isTodayDate
-                  ? 'bg-[var(--color-primary)]/10 border-[var(--color-primary)]'
+                  ? 'bg-(--color-primary)/10 border-(--color-primary)'
                   : 'bg-card border-border'
               }`}
             >
@@ -177,7 +177,7 @@ export function CalendarWeek({
                 </p>
                 <p
                   className={`text-lg font-bold ${
-                    isTodayDate ? 'text-[var(--color-primary)]' : 'text-foreground'
+                    isTodayDate ? 'text-(--color-primary)' : 'text-foreground'
                   }`}
                 >
                   {format(day, 'd')}
@@ -192,10 +192,10 @@ export function CalendarWeek({
                       key={idx}
                       className={`text-[10px] px-1.5 py-1 rounded flex items-center gap-0.5 ${
                         bill.status === 'overdue'
-                          ? 'bg-[var(--color-error)]/20 text-[var(--color-error)] font-semibold'
+                          ? 'bg-(--color-error)/20 text-(--color-error) font-semibold'
                           : bill.status === 'paid'
-                          ? 'bg-[var(--color-income)]/20 text-[var(--color-income)]'
-                          : 'bg-[var(--color-warning)]/20 text-[var(--color-warning)]'
+                          ? 'bg-(--color-income)/20 text-(--color-income)'
+                          : 'bg-(--color-warning)/20 text-(--color-warning)'
                       }`}
                     >
                       {bill.status === 'paid' && <Check className="w-2.5 h-2.5 shrink-0" />}
@@ -282,7 +282,7 @@ export function CalendarWeek({
                     return (
                       <div
                         key={txn.id}
-                        className="text-[10px] px-1.5 py-1 rounded bg-elevated hover:bg-[var(--color-elevated)] transition-colors"
+                        className="text-[10px] px-1.5 py-1 rounded bg-elevated hover:bg-(--color-elevated) transition-colors"
                       >
                         <div className="flex items-start justify-between gap-1">
                           <div className="flex-1 min-w-0">
@@ -296,9 +296,9 @@ export function CalendarWeek({
                             )}
                           </div>
                           <div className={`font-semibold shrink-0 ${
-                            txn.type === 'income' ? 'text-[var(--color-income)]' :
-                            txn.type === 'expense' ? 'text-[var(--color-expense)]' :
-                            'text-[var(--color-primary)]'
+                            txn.type === 'income' ? 'text-(--color-income)' :
+                            txn.type === 'expense' ? 'text-(--color-expense)' :
+                            'text-(--color-primary)'
                           }`}>
                             {txn.type === 'expense' || txn.type === 'transfer_out' ? '-' : '+'}
                             ${Math.abs(txn.amount).toFixed(0)}

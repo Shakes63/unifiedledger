@@ -403,24 +403,24 @@ export default function BillsDashboard() {
     return (
       <Link href={`/dashboard/bills/${instance.billId}`}>
         <div className={`flex items-center justify-between p-3 bg-card border rounded-lg hover:bg-elevated transition-colors cursor-pointer ${
-          isIncomeBill ? 'border-[var(--color-income)]/30' : 'border-border'
+          isIncomeBill ? 'border-(--color-income)/30' : 'border-border'
         }`}>
           <div className="flex items-start gap-3 flex-1">
             <div className="mt-0.5">
               {instance.status === 'paid' && (
                 isIncomeBill 
-                  ? <ArrowDownCircle className="w-5 h-5 text-[var(--color-income)]" />
-                  : <CheckCircle2 className="w-5 h-5 text-[var(--color-income)]" />
+                  ? <ArrowDownCircle className="w-5 h-5 text-(--color-income)" />
+                  : <CheckCircle2 className="w-5 h-5 text-(--color-income)" />
               )}
               {instance.status === 'overdue' && (
                 isIncomeBill
-                  ? <ArrowDownCircle className="w-5 h-5 text-[var(--color-warning)]" />
-                  : <AlertCircle className="w-5 h-5 text-[var(--color-error)]" />
+                  ? <ArrowDownCircle className="w-5 h-5 text-(--color-warning)" />
+                  : <AlertCircle className="w-5 h-5 text-(--color-error)" />
               )}
               {instance.status === 'pending' && (
                 isIncomeBill
-                  ? <ArrowDownCircle className="w-5 h-5 text-[var(--color-income)]/50" />
-                  : <Clock className="w-5 h-5 text-[var(--color-warning)]" />
+                  ? <ArrowDownCircle className="w-5 h-5 text-(--color-income)/50" />
+                  : <Clock className="w-5 h-5 text-(--color-warning)" />
               )}
             </div>
             <div className="flex-1">
@@ -429,14 +429,14 @@ export default function BillsDashboard() {
                 {bill && bill.frequency && (
                   <span className={`text-xs px-2 py-0.5 rounded-full border ${
                     isIncomeBill
-                      ? 'bg-[var(--color-income)]/10 text-[var(--color-income)] border-[var(--color-income)]/20'
-                      : 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] border-[var(--color-primary)]/20'
+                      ? 'bg-(--color-income)/10 text-(--color-income) border-(--color-income)/20'
+                      : 'bg-(--color-primary)/10 text-(--color-primary) border-(--color-primary)/20'
                   }`}>
                     {FREQUENCY_LABELS[bill.frequency] || bill.frequency}
                   </span>
                 )}
                 {isIncomeBill && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--color-income)]/10 text-[var(--color-income)] border border-[var(--color-income)]/20">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-(--color-income)/10 text-(--color-income) border border-(--color-income)/20">
                     Income
                   </span>
                 )}
@@ -459,7 +459,7 @@ export default function BillsDashboard() {
                 {isIncomeBill ? 'Expected' : 'Due'}: {format(dueDate, 'MMM d, yyyy')}
               </p>
               {instance.status === 'overdue' && instance.daysLate > 0 && (
-                <p className={`text-sm ${isIncomeBill ? 'text-[var(--color-warning)]' : 'text-[var(--color-error)]'}`}>
+                <p className={`text-sm ${isIncomeBill ? 'text-(--color-warning)' : 'text-(--color-error)'}`}>
                   {instance.daysLate} day{instance.daysLate !== 1 ? 's' : ''} {isIncomeBill ? 'late' : 'overdue'}
                   {!isIncomeBill && instance.lateFee > 0 && ` • Late fee: $${instance.lateFee.toFixed(2)}`}
                 </p>
@@ -467,18 +467,18 @@ export default function BillsDashboard() {
             </div>
           </div>
           <div className="text-right">
-            <p className={`font-medium ${isIncomeBill ? 'text-[var(--color-income)]' : 'text-foreground'}`}>
+            <p className={`font-medium ${isIncomeBill ? 'text-(--color-income)' : 'text-foreground'}`}>
               {isIncomeBill ? '+' : ''}${instance.expectedAmount.toFixed(2)}
             </p>
             {showDaysUntil && instance.status === 'pending' && (
-              <p className={`text-sm ${daysUntil <= 3 ? (isIncomeBill ? 'text-[var(--color-income)]' : 'text-[var(--color-warning)]') : 'text-muted-foreground'}`}>
+              <p className={`text-sm ${daysUntil <= 3 ? (isIncomeBill ? 'text-(--color-income)' : 'text-(--color-warning)') : 'text-muted-foreground'}`}>
                 {daysUntil === 0 && (isIncomeBill ? 'Expected today' : 'Due today')}
                 {daysUntil === 1 && (isIncomeBill ? 'Expected tomorrow' : 'Due tomorrow')}
                 {daysUntil > 1 && `${daysUntil} days`}
               </p>
             )}
             {instance.status === 'paid' && (
-              <p className="text-sm text-[var(--color-income)]">{isIncomeBill ? 'Received' : 'Paid'}</p>
+              <p className="text-sm text-(--color-income)">{isIncomeBill ? 'Received' : 'Paid'}</p>
             )}
           </div>
         </div>
@@ -514,7 +514,7 @@ export default function BillsDashboard() {
           <div className="flex items-center gap-2">
             <Button 
               onClick={() => setBillPayModalOpen(true)}
-              className="bg-[var(--color-income)] hover:opacity-90 text-white"
+              className="bg-(--color-income) hover:opacity-90 text-white"
             >
               <Wallet className="w-4 h-4 mr-2" />
               Bill Pay
@@ -526,7 +526,7 @@ export default function BillsDashboard() {
               </Button>
             </Link>
             <Link href="/dashboard/bills/new">
-              <Button className="bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)]">
+              <Button className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)">
                 <Plus className="w-4 h-4 mr-2" />
                 New
               </Button>
@@ -540,7 +540,7 @@ export default function BillsDashboard() {
             onClick={() => setBillTypeFilter('all')}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
               billTypeFilter === 'all'
-                ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
+                ? 'bg-(--color-primary) text-(--color-primary-foreground)'
                 : 'bg-card border border-border text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -550,7 +550,7 @@ export default function BillsDashboard() {
             onClick={() => setBillTypeFilter('expense')}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
               billTypeFilter === 'expense'
-                ? 'bg-[var(--color-expense)] text-white'
+                ? 'bg-(--color-expense) text-white'
                 : 'bg-card border border-border text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -561,7 +561,7 @@ export default function BillsDashboard() {
             onClick={() => setBillTypeFilter('income')}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
               billTypeFilter === 'income'
-                ? 'bg-[var(--color-income)] text-white'
+                ? 'bg-(--color-income) text-white'
                 : 'bg-card border border-border text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -590,7 +590,7 @@ export default function BillsDashboard() {
                   className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
                     isActive
                       ? 'text-white'
-                      : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-[var(--color-border)]'
+                      : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-(--color-border)'
                   }`}
                   style={isActive ? { backgroundColor: option.color } : undefined}
                 >
@@ -613,60 +613,60 @@ export default function BillsDashboard() {
       {billTypeFilter === 'income' ? (
         // Income Statistics
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-background border-[var(--color-income)]/30">
+          <Card className="bg-background border-(--color-income)/30">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <ArrowDownCircle className="w-4 h-4 text-[var(--color-income)]" />
+                <ArrowDownCircle className="w-4 h-4 text-(--color-income)" />
                 Expected (30 days)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[var(--color-income)]">{stats.totalExpectedIncome}</div>
+              <div className="text-3xl font-bold text-(--color-income)">{stats.totalExpectedIncome}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 +${stats.totalExpectedIncomeAmount.toFixed(2)} total
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-background border-[var(--color-warning)]/30">
+          <Card className="bg-background border-(--color-warning)/30">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Clock className="w-4 h-4 text-[var(--color-warning)]" />
+                <Clock className="w-4 h-4 text-(--color-warning)" />
                 Late Income
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[var(--color-warning)]">{stats.totalLateIncome}</div>
+              <div className="text-3xl font-bold text-(--color-warning)">{stats.totalLateIncome}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 +${stats.totalLateIncomeAmount.toFixed(2)} pending
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-background border-[var(--color-income)]/30">
+          <Card className="bg-background border-(--color-income)/30">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[var(--color-income)]" />
+                <CheckCircle2 className="w-4 h-4 text-(--color-income)" />
                 Received this month
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[var(--color-income)]">{stats.receivedThisMonth}</div>
+              <div className="text-3xl font-bold text-(--color-income)">{stats.receivedThisMonth}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 Income received
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-background border-[var(--color-income)]/30">
+          <Card className="bg-background border-(--color-income)/30">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[var(--color-income)]" />
+                <TrendingUp className="w-4 h-4 text-(--color-income)" />
                 Income sources
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[var(--color-income)]">
+              <div className="text-3xl font-bold text-(--color-income)">
                 {stats.incomeBillCount}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -686,7 +686,7 @@ export default function BillsDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[var(--color-warning)]">{stats.totalUpcoming}</div>
+              <div className="text-3xl font-bold text-(--color-warning)">{stats.totalUpcoming}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 ${stats.totalUpcomingAmount.toFixed(2)} total
               </p>
@@ -701,7 +701,7 @@ export default function BillsDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[var(--color-error)]">{stats.totalOverdue}</div>
+              <div className="text-3xl font-bold text-(--color-error)">{stats.totalOverdue}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 ${stats.totalOverdueAmount.toFixed(2)} total
               </p>
@@ -716,7 +716,7 @@ export default function BillsDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[var(--color-income)]">{stats.paidThisMonth}</div>
+              <div className="text-3xl font-bold text-(--color-income)">{stats.paidThisMonth}</div>
               <p className="text-xs text-muted-foreground mt-1">
                 Keep up the great work!
               </p>
@@ -731,7 +731,7 @@ export default function BillsDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-[var(--color-primary)]">
+              <div className="text-3xl font-bold text-(--color-primary)">
                 {billTypeFilter === 'all' ? bills.length : stats.expenseBillCount}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -744,9 +744,9 @@ export default function BillsDashboard() {
 
       {/* Overdue/Late Bills Section */}
       {overdueBills.length > 0 && (
-        <Card className={`bg-background ${billTypeFilter === 'income' ? 'border-[var(--color-warning)]/30' : 'border-[var(--color-error)]/30'}`}>
+        <Card className={`bg-background ${billTypeFilter === 'income' ? 'border-(--color-warning)/30' : 'border-(--color-error)/30'}`}>
           <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${billTypeFilter === 'income' ? 'text-[var(--color-warning)]' : 'text-[var(--color-error)]'}`}>
+            <CardTitle className={`flex items-center gap-2 ${billTypeFilter === 'income' ? 'text-(--color-warning)' : 'text-(--color-error)'}`}>
               {billTypeFilter === 'income' ? (
                 <Clock className="w-5 h-5" />
               ) : (
@@ -767,14 +767,14 @@ export default function BillsDashboard() {
       )}
 
       {/* Upcoming Bills/Income Section */}
-      <Card className={`bg-background ${billTypeFilter === 'income' ? 'border-[var(--color-income)]/30' : 'border-border'}`}>
+      <Card className={`bg-background ${billTypeFilter === 'income' ? 'border-(--color-income)/30' : 'border-border'}`}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               {billTypeFilter === 'income' ? (
-                <ArrowDownCircle className="w-5 h-5 text-[var(--color-income)]" />
+                <ArrowDownCircle className="w-5 h-5 text-(--color-income)" />
               ) : (
-                <Clock className="w-5 h-5 text-[var(--color-warning)]" />
+                <Clock className="w-5 h-5 text-(--color-warning)" />
               )}
               {billTypeFilter === 'income' ? 'Expected Income' : 'Pending Bills'} ({format(pendingMonth, 'MMMM yyyy')})
             </CardTitle>
@@ -826,11 +826,11 @@ export default function BillsDashboard() {
       </Card>
 
       {/* Paid/Received Bills Section */}
-      <Card className={`bg-background ${billTypeFilter === 'income' ? 'border-[var(--color-income)]/30' : 'border-border'}`}>
+      <Card className={`bg-background ${billTypeFilter === 'income' ? 'border-(--color-income)/30' : 'border-border'}`}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-[var(--color-income)]" />
+              <CheckCircle2 className="w-5 h-5 text-(--color-income)" />
               {billTypeFilter === 'income' ? 'Received Income' : 'Paid Bills'} ({format(paidMonth, 'MMMM yyyy')})
             </CardTitle>
             <div className="flex items-center gap-2">

@@ -100,11 +100,11 @@ export function CreditUtilizationWidget() {
     return (
       <div className="bg-card border border-border rounded-xl p-6 h-full">
         <div className="flex flex-col items-center justify-center h-full text-center">
-          <AlertCircle className="w-12 h-12 text-[var(--color-error)] mb-3" />
+          <AlertCircle className="w-12 h-12 text-(--color-error) mb-3" />
           <p className="text-sm text-muted-foreground">Failed to load credit utilization</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 text-xs text-[var(--color-primary)] hover:underline"
+            className="mt-4 text-xs text-(--color-primary) hover:underline"
           >
             Retry
           </button>
@@ -207,9 +207,9 @@ export function CreditUtilizationWidget() {
           <div className="bg-elevated rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
               {summary.cardsOverTarget > 0 ? (
-                <AlertCircle className="w-3 h-3 text-[var(--color-warning)]" />
+                <AlertCircle className="w-3 h-3 text-(--color-warning)" />
               ) : (
-                <CheckCircle className="w-3 h-3 text-[var(--color-success)]" />
+                <CheckCircle className="w-3 h-3 text-(--color-success)" />
               )}
               <span className="text-xs text-muted-foreground">Over 30%</span>
             </div>

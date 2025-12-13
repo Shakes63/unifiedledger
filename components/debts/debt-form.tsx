@@ -239,14 +239,14 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Required fields notice */}
       <p className="text-sm text-muted-foreground">
-        Fields marked with <span className="text-[var(--color-error)]">*</span> are required
+        Fields marked with <span className="text-(--color-error)">*</span> are required
       </p>
 
       {/* Name and Creditor */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className={`text-sm mb-1 ${errors.name ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
-            Debt Name <span className="text-[var(--color-error)]">*</span>
+          <Label className={`text-sm mb-1 ${errors.name ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
+            Debt Name <span className="text-(--color-error)">*</span>
           </Label>
           <Input
             id="debt-name"
@@ -258,16 +258,16 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             }}
             placeholder="e.g., Credit Card Debt"
             className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.name ? 'border-[var(--color-error)]' : 'border-border'
+              errors.name ? 'border-(--color-error)' : 'border-border'
             }`}
           />
           {errors.name && (
-            <p className="text-[var(--color-error)] text-xs mt-1">{errors.name}</p>
+            <p className="text-(--color-error) text-xs mt-1">{errors.name}</p>
           )}
         </div>
         <div>
-          <Label className={`text-sm mb-1 ${errors.creditorName ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
-            Creditor Name <span className="text-[var(--color-error)]">*</span>
+          <Label className={`text-sm mb-1 ${errors.creditorName ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
+            Creditor Name <span className="text-(--color-error)">*</span>
           </Label>
           <Input
             name="creditorName"
@@ -278,11 +278,11 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             }}
             placeholder="e.g., Capital One"
             className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.creditorName ? 'border-[var(--color-error)]' : 'border-border'
+              errors.creditorName ? 'border-(--color-error)' : 'border-border'
             }`}
           />
           {errors.creditorName && (
-            <p className="text-[var(--color-error)] text-xs mt-1">{errors.creditorName}</p>
+            <p className="text-(--color-error) text-xs mt-1">{errors.creditorName}</p>
           )}
         </div>
       </div>
@@ -290,8 +290,8 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {/* Amounts */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className={`text-sm mb-1 ${errors.originalAmount ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
-            Original Amount <span className="text-[var(--color-error)]">*</span>
+          <Label className={`text-sm mb-1 ${errors.originalAmount ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
+            Original Amount <span className="text-(--color-error)">*</span>
           </Label>
           <Input
             name="originalAmount"
@@ -305,16 +305,16 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             step="0.01"
             min="0.01"
             className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.originalAmount ? 'border-[var(--color-error)]' : 'border-border'
+              errors.originalAmount ? 'border-(--color-error)' : 'border-border'
             }`}
           />
           {errors.originalAmount && (
-            <p className="text-[var(--color-error)] text-xs mt-1">{errors.originalAmount}</p>
+            <p className="text-(--color-error) text-xs mt-1">{errors.originalAmount}</p>
           )}
         </div>
         <div>
-          <Label className={`text-sm mb-1 ${errors.remainingBalance ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
-            Remaining Balance <span className="text-[var(--color-error)]">*</span>
+          <Label className={`text-sm mb-1 ${errors.remainingBalance ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
+            Remaining Balance <span className="text-(--color-error)">*</span>
           </Label>
           <Input
             name="remainingBalance"
@@ -328,11 +328,11 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             step="0.01"
             min="0"
             className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.remainingBalance ? 'border-[var(--color-error)]' : 'border-border'
+              errors.remainingBalance ? 'border-(--color-error)' : 'border-border'
             }`}
           />
           {errors.remainingBalance && (
-            <p className="text-[var(--color-error)] text-xs mt-1">{errors.remainingBalance}</p>
+            <p className="text-(--color-error) text-xs mt-1">{errors.remainingBalance}</p>
           )}
         </div>
       </div>
@@ -341,7 +341,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {formData.type === 'credit_card' && (
         <div className="p-4 bg-card rounded-lg border border-border">
           <div className="flex items-center gap-2 mb-3">
-            <Label className="text-sm text-[var(--color-primary)]">Credit Utilization Tracking</Label>
+            <Label className="text-sm text-(--color-primary)">Credit Utilization Tracking</Label>
             <Info className="w-4 h-4 text-muted-foreground" />
           </div>
           <div className="space-y-3">
@@ -427,7 +427,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {/* Additional Monthly Payment */}
       <div className="p-4 bg-card rounded-lg border border-border">
         <div className="flex items-center gap-2 mb-3">
-          <Label className="text-sm text-[var(--color-primary)]">Extra Payment Commitment</Label>
+          <Label className="text-sm text-(--color-primary)">Extra Payment Commitment</Label>
           <Info className="w-4 h-4 text-muted-foreground" />
         </div>
         <div>
@@ -449,7 +449,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             <div className="mt-3 p-3 bg-elevated rounded-lg border border-border">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Total Planned Payment:</span>
-                <span className="text-sm font-semibold text-[var(--color-income)] font-mono">
+                <span className="text-sm font-semibold text-(--color-income) font-mono">
                   ${(parseFloat(String(formData.minimumPayment)) + parseFloat(String(formData.additionalMonthlyPayment))).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
@@ -521,7 +521,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {formData.loanType === 'installment' && (
         <div className="grid grid-cols-2 gap-4 p-4 bg-card rounded-lg border border-border">
           <div className="col-span-2">
-            <p className="text-sm text-[var(--color-primary)] mb-3">Installment Loan Details</p>
+            <p className="text-sm text-(--color-primary) mb-3">Installment Loan Details</p>
           </div>
           <div>
             <Label className="text-muted-foreground text-sm mb-1">Loan Term (months)</Label>
@@ -556,7 +556,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {formData.loanType === 'revolving' && (
         <div className="space-y-4 p-4 bg-card rounded-lg border border-border">
           <div>
-            <p className="text-sm text-[var(--color-primary)] mb-3">Revolving Credit Details</p>
+            <p className="text-sm text-(--color-primary) mb-3">Revolving Credit Details</p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -626,8 +626,8 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       {/* Dates */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className={`text-sm mb-1 ${errors.startDate ? 'text-[var(--color-error)]' : 'text-muted-foreground'}`}>
-            Start Date <span className="text-[var(--color-error)]">*</span>
+          <Label className={`text-sm mb-1 ${errors.startDate ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
+            Start Date <span className="text-(--color-error)">*</span>
           </Label>
           <Input
             name="startDate"
@@ -638,11 +638,11 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
               if (errors.startDate) setErrors(prev => ({ ...prev, startDate: '' }));
             }}
             className={`bg-elevated text-foreground ${
-              errors.startDate ? 'border-[var(--color-error)]' : 'border-border'
+              errors.startDate ? 'border-(--color-error)' : 'border-border'
             }`}
           />
           {errors.startDate && (
-            <p className="text-[var(--color-error)] text-xs mt-1">{errors.startDate}</p>
+            <p className="text-(--color-error) text-xs mt-1">{errors.startDate}</p>
           )}
         </div>
         <div>
@@ -720,7 +720,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             type="submit"
             onClick={() => setSaveMode('save')}
             disabled={isLoading}
-            className="flex-1 bg-[var(--color-primary)] text-white hover:opacity-90 font-medium"
+            className="flex-1 bg-(--color-primary) text-white hover:opacity-90 font-medium"
           >
             {debt
               ? isLoading && saveMode === 'save'

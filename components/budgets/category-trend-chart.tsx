@@ -94,7 +94,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
             <span className="text-xs text-muted-foreground">Variance:</span>
             <span
               className={`text-xs font-semibold ${
-                variance < 0 ? 'text-[var(--color-success)]' : 'text-[var(--color-error)]'
+                variance < 0 ? 'text-(--color-success)' : 'text-(--color-error)'
               }`}
             >
               {variance < 0 ? '-' : '+'}
@@ -147,8 +147,8 @@ export function CategoryTrendChart({
 
   // Get trend color and icon
   const getTrendColor = () => {
-    if (trend.direction === 'increasing') return 'text-[var(--color-error)]';
-    if (trend.direction === 'decreasing') return 'text-[var(--color-success)]';
+    if (trend.direction === 'increasing') return 'text-(--color-error)';
+    if (trend.direction === 'decreasing') return 'text-(--color-success)';
     return 'text-muted-foreground';
   };
 

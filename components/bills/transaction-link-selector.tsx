@@ -137,7 +137,7 @@ export function TransactionLinkSelector({
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="w-5 h-5 animate-spin text-[var(--color-primary)]" />
+        <Loader2 className="w-5 h-5 animate-spin text-(--color-primary)" />
         <span className="ml-2 text-muted-foreground">Loading transactions...</span>
       </div>
     );
@@ -168,17 +168,17 @@ export function TransactionLinkSelector({
           className={cn(
             'w-full p-3 rounded-lg border text-left transition-colors',
             selectedId === null
-              ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10'
+              ? 'border-(--color-primary) bg-(--color-primary)/10'
               : 'border-border bg-card hover:bg-elevated'
           )}
         >
           <div className="flex items-center gap-3">
             <div className={cn(
               'w-5 h-5 rounded-full border-2 flex items-center justify-center',
-              selectedId === null ? 'border-[var(--color-primary)]' : 'border-muted-foreground'
+              selectedId === null ? 'border-(--color-primary)' : 'border-muted-foreground'
             )}>
               {selectedId === null && (
-                <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-primary)]" />
+                <div className="w-2.5 h-2.5 rounded-full bg-(--color-primary)" />
               )}
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -205,7 +205,7 @@ export function TransactionLinkSelector({
               className={cn(
                 'w-full p-3 rounded-lg border text-left transition-colors',
                 selectedId === tx.id
-                  ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10'
+                  ? 'border-(--color-primary) bg-(--color-primary)/10'
                   : 'border-border bg-card hover:bg-elevated'
               )}
             >
@@ -213,10 +213,10 @@ export function TransactionLinkSelector({
                 {/* Radio indicator */}
                 <div className={cn(
                   'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0',
-                  selectedId === tx.id ? 'border-[var(--color-primary)]' : 'border-muted-foreground'
+                  selectedId === tx.id ? 'border-(--color-primary)' : 'border-muted-foreground'
                 )}>
                   {selectedId === tx.id && (
-                    <div className="w-2.5 h-2.5 rounded-full bg-[var(--color-primary)]" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-(--color-primary)" />
                   )}
                 </div>
 
@@ -240,9 +240,9 @@ export function TransactionLinkSelector({
                     <span className={cn(
                       'text-xs px-2 py-0.5 rounded-full',
                       tx.matchScore && tx.matchScore >= 90
-                        ? 'bg-[var(--color-success)]/20 text-[var(--color-success)]'
+                        ? 'bg-(--color-success)/20 text-(--color-success)'
                         : tx.matchScore && tx.matchScore >= 70
-                        ? 'bg-[var(--color-warning)]/20 text-[var(--color-warning)]'
+                        ? 'bg-(--color-warning)/20 text-(--color-warning)'
                         : 'bg-muted text-muted-foreground'
                     )}>
                       {tx.matchScore}% match

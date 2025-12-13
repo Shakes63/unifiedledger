@@ -119,7 +119,7 @@ export function InlineAmountEdit({
           disabled={isUpdating}
           className={cn(
             "h-6 text-sm font-semibold px-1 py-0.5 w-[80px] bg-elevated border-border rounded text-right",
-            "focus:ring-1 focus:ring-offset-0 focus:border-[var(--color-primary)]",
+            "focus:ring-1 focus:ring-offset-0 focus:border-(--color-primary)",
             "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
             isUpdating && "opacity-60"
           )}

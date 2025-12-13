@@ -118,8 +118,8 @@ export function PaymentStreakWidget() {
     return (
       <Card className="p-6 border border-border bg-card rounded-xl">
         <div className="flex items-start gap-4">
-          <div className="p-3 bg-[var(--color-warning)]/20 rounded-lg">
-            <Flame className="w-6 h-6 text-[var(--color-warning)]" />
+          <div className="p-3 bg-(--color-warning)/20 rounded-lg">
+            <Flame className="w-6 h-6 text-(--color-warning)" />
           </div>
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-foreground mb-1">Payment Streak</h3>

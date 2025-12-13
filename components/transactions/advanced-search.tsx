@@ -275,7 +275,7 @@ export function AdvancedSearch({
         <div className="text-left flex-1">
           <h2 className="text-lg font-semibold text-foreground">Advanced Search</h2>
           {activeFilterCount > 0 && (
-            <p className="text-sm text-[var(--color-income)] mt-1">
+            <p className="text-sm text-(--color-income) mt-1">
               {activeFilterCount} filter{activeFilterCount !== 1 ? 's' : ''} applied
             </p>
           )}
@@ -353,7 +353,7 @@ export function AdvancedSearch({
                   id="use-regex"
                   checked={useRegex}
                   onChange={(e) => setUseRegex(e.target.checked)}
-                  className="w-4 h-4 rounded border-border bg-elevated text-[var(--color-primary)] focus:ring-[var(--color-primary)] focus:ring-offset-0"
+                  className="w-4 h-4 rounded border-border bg-elevated text-(--color-primary) focus:ring-(--color-primary) focus:ring-offset-0"
                 />
                 <Label
                   htmlFor="use-regex"
@@ -394,8 +394,8 @@ export function AdvancedSearch({
                 }
                 className={`cursor-pointer transition-colors ${
                   selectedCategories.has(category.id)
-                    ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
-                    : 'bg-elevated text-muted-foreground border-border hover:bg-[var(--color-elevated)]'
+                    ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                    : 'bg-elevated text-muted-foreground border-border hover:bg-(--color-elevated)'
                 }`}
                 onClick={() => handleCategoryToggle(category.id)}
               >
@@ -419,8 +419,8 @@ export function AdvancedSearch({
                 }
                 className={`cursor-pointer transition-colors ${
                   selectedAccounts.has(account.id)
-                    ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
-                    : 'bg-elevated text-muted-foreground border-border hover:bg-[var(--color-elevated)]'
+                    ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                    : 'bg-elevated text-muted-foreground border-border hover:bg-(--color-elevated)'
                 }`}
                 onClick={() => handleAccountToggle(account.id)}
               >
@@ -473,8 +473,8 @@ export function AdvancedSearch({
               }
               className={`cursor-pointer transition-colors ${
                 selectedTypes.has(type.value)
-                  ? 'bg-[var(--color-primary)] text-[var(--color-primary-foreground)]'
-                  : 'bg-elevated text-muted-foreground border-border hover:bg-[var(--color-elevated)]'
+                  ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                  : 'bg-elevated text-muted-foreground border-border hover:bg-(--color-elevated)'
               }`}
               onClick={() => handleTypeToggle(type.value)}
             >
@@ -662,7 +662,7 @@ export function AdvancedSearch({
       <Button
         onClick={handleSearch}
         disabled={isLoading}
-        className="w-full bg-[var(--color-primary)] hover:opacity-90 text-[var(--color-primary-foreground)] font-semibold py-2"
+        className="w-full bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground) font-semibold py-2"
       >
         {isLoading ? 'Searching...' : 'Search Transactions'}
       </Button>
