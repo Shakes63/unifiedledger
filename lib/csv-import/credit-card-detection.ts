@@ -154,8 +154,8 @@ export function detectCreditCardFromData(
     /^amount$|^value$|^total$|^debit$|^credit$/i.test(h)
   );
   
-  const withdrawalCol = headers.find(h => /withdrawal|debit|paid/i.test(h));
-  const depositCol = headers.find(h => /deposit|credit|received/i.test(h));
+  const _withdrawalCol = headers.find(h => /withdrawal|debit|paid/i.test(h));
+  const _depositCol = headers.find(h => /deposit|credit|received/i.test(h));
   
   // Analyze first 20 rows
   const sampleRows = rows.slice(0, 20);
@@ -325,7 +325,7 @@ export function extractStatementInfoFromHeaders(
   
   for (const row of preDataRows) {
     const lowerRow = row.toLowerCase();
-    const parts = row.split(delimiter).map(p => p.trim().replace(/^"|"$/g, ''));
+    const _parts = row.split(delimiter).map(p => p.trim().replace(/^"|"$/g, ''));
     
     // Look for key-value pairs
     if (/statement\s*balance|new\s*balance/i.test(lowerRow)) {

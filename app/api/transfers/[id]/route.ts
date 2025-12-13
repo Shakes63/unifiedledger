@@ -103,7 +103,7 @@ export async function PUT(
     const body = await request.json();
     const { description, notes } = body;
 
-    const updateData: Record<string, any> = {};
+    const updateData: Partial<typeof transfers.$inferInsert> = {};
     if (description !== undefined) updateData.description = description;
     if (notes !== undefined) updateData.notes = notes;
 

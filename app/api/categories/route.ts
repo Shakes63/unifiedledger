@@ -6,10 +6,18 @@ import { eq, desc, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 export const dynamic = 'force-dynamic';
 
+type BudgetCategoryInsert = typeof budgetCategories.$inferInsert;
+type BudgetCategoryType = BudgetCategoryInsert['type'];
+type IncomeFrequency = BudgetCategoryInsert['incomeFrequency'];
+
 // Default categories to create for new users
 // Note: Category types are simplified to income, expense, savings
 // Bills and debts are handled by their respective modules
-const DEFAULT_CATEGORIES = [
+const DEFAULT_CATEGORIES: Array<{
+  name: string;
+  type: BudgetCategoryType;
+  incomeFrequency?: IncomeFrequency;
+}> = [
   // Income categories (with sensible frequency defaults)
   { name: 'Salary', type: 'income', incomeFrequency: 'monthly' },
   { name: 'Bonus', type: 'income', incomeFrequency: 'variable' },
@@ -286,10 +294,10 @@ export async function PUT(request: Request) {
       userId,
       householdId,
       name: cat.name,
-      type: cat.type as any,
+      type: cat.type,
       monthlyBudget: 0,
-      dueDate: (cat as any).dueDate || null,
-      incomeFrequency: (cat as any).incomeFrequency || 'variable',
+      dueDate: null,
+      incomeFrequency: cat.incomeFrequency ?? 'variable',
       sortOrder: index,
       createdAt: new Date().toISOString(),
     }));

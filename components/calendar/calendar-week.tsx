@@ -8,7 +8,7 @@ import {
   isToday,
 } from 'date-fns';
 import { Check, Target, CreditCard, Trophy } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 interface GoalSummary {
   id: string;
@@ -110,9 +110,10 @@ export function CalendarWeek({
   daySummaries = {},
   onDayClick: _onDayClick,
 }: CalendarWeekProps) {
-  const weekStart = startOfWeek(currentDate);
-  const weekEnd = endOfWeek(currentDate);
-  const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
+  const currentDateTime = currentDate.getTime();
+  const weekStart = useMemo(() => startOfWeek(new Date(currentDateTime)), [currentDateTime]);
+  const weekEnd = useMemo(() => endOfWeek(new Date(currentDateTime)), [currentDateTime]);
+  const days = useMemo(() => eachDayOfInterval({ start: weekStart, end: weekEnd }), [weekStart, weekEnd]);
   const [weekTransactions, setWeekTransactions] = useState<Record<string, Transaction[]>>({});
   const [loading, setLoading] = useState(true);
 
@@ -143,7 +144,7 @@ export function CalendarWeek({
     };
 
     fetchWeekTransactions();
-  }, [currentDate.getTime()]);
+  }, [weekStart, weekEnd]);
 
   return (
     <div className="space-y-4">

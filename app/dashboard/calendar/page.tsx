@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { startOfMonth, endOfMonth, format } from 'date-fns';
+import { startOfMonth, endOfMonth } from 'date-fns';
 import { CalendarHeader } from '@/components/calendar/calendar-header';
 import { CalendarMonth } from '@/components/calendar/calendar-month';
 import { CalendarWeek } from '@/components/calendar/calendar-week';

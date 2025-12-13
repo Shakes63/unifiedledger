@@ -23,7 +23,7 @@ interface InvitationData {
 export default function InvitationPage() {
   const router = useRouter();
   const params = useParams();
-  const { data: session, isPending } = betterAuthClient.useSession();
+  const { data: session, isPending: _isPending } = betterAuthClient.useSession();
   const token = params.token as string;
   const isSignedIn = !!session;
 
@@ -197,7 +197,7 @@ export default function InvitationPage() {
             <XCircle className="w-16 h-16 text-[var(--color-error)] mx-auto" />
             <h1 className="text-2xl font-bold text-foreground">Invitation Declined</h1>
             <p className="text-muted-foreground">
-              You've declined the household invitation. Redirecting...
+              You&apos;ve declined the household invitation. Redirecting...
             </p>
           </div>
         </Card>
@@ -219,7 +219,7 @@ export default function InvitationPage() {
               </div>
             </div>
             <h1 className="text-2xl font-bold text-foreground">
-              You've Been Invited!
+              You&apos;ve Been Invited!
             </h1>
             <p className="text-muted-foreground">
               Join a household to share finances with family or friends

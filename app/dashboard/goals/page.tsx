@@ -19,11 +19,12 @@ import { useHousehold } from '@/contexts/household-context';
 export default function GoalsPage() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold } = useHouseholdFetch();
-  const [goals, setGoals] = useState<any[]>([]);
+  type SavingsGoalClient = Record<string, unknown> & { id: string; status?: string };
+  const [goals, setGoals] = useState<SavingsGoalClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedGoal, setSelectedGoal] = useState<any>(null);
+  const [selectedGoal, setSelectedGoal] = useState<SavingsGoalClient | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
 
   const loadGoals = useCallback(async () => {
@@ -35,7 +36,7 @@ export default function GoalsPage() {
       const response = await fetchWithHousehold(`/api/savings-goals${params}`);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        await response.json().catch(() => ({}));
 
         // Different error messages based on status code
         let errorMessage = 'Failed to load goals';
@@ -97,7 +98,7 @@ export default function GoalsPage() {
     }
   };
 
-  const handleCreateGoal = async (data: any) => {
+  const handleCreateGoal = async (data: Record<string, unknown>) => {
     if (!selectedHouseholdId) {
       toast.error('Please select a household');
       return;
@@ -125,7 +126,7 @@ export default function GoalsPage() {
     }
   };
 
-  const handleUpdateGoal = async (data: any) => {
+  const handleUpdateGoal = async (data: Record<string, unknown>) => {
     if (!selectedGoal) return;
     if (!selectedHouseholdId) {
       toast.error('Please select a household');
@@ -184,10 +185,10 @@ export default function GoalsPage() {
     }
   };
 
-  const handleEditGoal = async (goal: any) => {
+  const handleEditGoal = async (goal: { id: string }) => {
     const details = await loadGoalDetails(goal.id);
     if (details) {
-      setSelectedGoal(details);
+      setSelectedGoal(details as SavingsGoalClient);
       setIsFormOpen(true);
     }
   };

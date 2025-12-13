@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, bills, billInstances } from '@/lib/db/schema';
-import { eq, and, desc, gte, lte, inArray, asc, sql, isNull } from 'drizzle-orm';
+import { eq, and, desc, gte, lte, inArray, asc, sql, isNull, type SQL } from 'drizzle-orm';
 import { findMatchingBills, BillMatch } from '@/lib/bills/bill-matcher';
 
 export const dynamic = 'force-dynamic';
@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     }
 
     // Build query for transactions to match (filtered by household)
-    const conditions = [
+    const conditions: SQL[] = [
       eq(transactions.userId, userId),
       eq(transactions.householdId, householdId),
       eq(transactions.type, 'expense'),
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     let txList = await db
       .select()
       .from(transactions)
-      .where(conditions.length === 1 ? conditions[0] : and(...(conditions as any)))
+      .where(conditions.length === 1 ? conditions[0] : and(...conditions))
       .orderBy(desc(transactions.date))
       .limit(maxTransactions);
 

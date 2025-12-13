@@ -4,12 +4,8 @@ import { db } from '@/lib/db';
 import { bills, billInstances } from '@/lib/db/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import { format, startOfYear, endOfYear, addMonths } from 'date-fns';
-import {
-  calculateNextDueDate,
-  isOneTimeFrequency,
-  isNonMonthlyPeriodic,
-} from '@/lib/bills/bill-utils';
+import { format, startOfYear, endOfYear } from 'date-fns';
+import { isOneTimeFrequency, isNonMonthlyPeriodic } from '@/lib/bills/bill-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -181,12 +177,12 @@ function calculateExpectedInstancesForYear(
     // Legacy behavior for non-monthly without startMonth
     // Use current month as the base and calculate forward
     const today = new Date();
-    let baseMonth = today.getMonth();
+    let _baseMonth = today.getMonth();
     let baseYear = today.getFullYear();
     
     // If we're looking at a future year, start from January
     if (year > baseYear) {
-      baseMonth = 0;
+      _baseMonth = 0;
       baseYear = year;
     }
     
@@ -213,7 +209,7 @@ function calculateWeeklyInstancesForYear(
   const interval = isWeekly ? 7 : 14; // days
 
   // Start from the first occurrence of this day in the year
-  let current = new Date(year, 0, 1);
+  const current = new Date(year, 0, 1);
   
   // Find the first occurrence of the target day
   while (current.getDay() !== dayOfWeek) {

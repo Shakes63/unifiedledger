@@ -10,14 +10,12 @@
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { db } from '@/lib/db';
-import { transactions, accounts, bills, billInstances } from '@/lib/db/schema';
+import { transactions, accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { processBillPayment } from '@/lib/bills/bill-payment-utils';
 import { 
   calculateAutopayAmount, 
   validateAutopayConfiguration,
-  BillForAutopay,
-  BillInstanceForAutopay,
   LinkedAccountData,
   PayingAccountData,
 } from '@/lib/bills/autopay-calculator';

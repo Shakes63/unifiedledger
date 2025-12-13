@@ -30,7 +30,6 @@ import { HELP_SECTIONS } from '@/lib/help/help-sections';
 import { 
   detectCreditCard, 
   detectIssuerFromFilename,
-  type CreditCardDetectionResult,
   type CreditCardIssuer,
   type SourceType,
   type StatementInfo,
@@ -82,7 +81,7 @@ export function CSVImportModal({
   const [detectedSourceType, setDetectedSourceType] = useState<SourceType | null>(null);
   const [detectedIssuer, setDetectedIssuer] = useState<CreditCardIssuer | null>(null);
   const [detectionConfidence, setDetectionConfidence] = useState<number>(0);
-  const [statementInfo, setStatementInfo] = useState<StatementInfo | null>(null);
+  const [statementInfo, _setStatementInfo] = useState<StatementInfo | null>(null);
   const [amountSignConvention, setAmountSignConvention] = useState<'standard' | 'credit_card'>('standard');
 
   // Preview data - contains staged transactions and import stats

@@ -104,7 +104,7 @@ export function CategoryForm({
 
     setErrors({});
 
-    const submitData: Record<string, any> = {
+    const submitData: Record<string, unknown> = {
       name: formData.name,
       type: formData.type,
       isTaxDeductible: formData.isTaxDeductible,

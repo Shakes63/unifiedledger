@@ -16,6 +16,17 @@ import { ChartContainer } from './chart-container';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 
+const DEFAULT_ACCOUNT_COLORS = [
+  '#ef4444', // red
+  '#f59e0b', // amber
+  '#10b981', // emerald
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+  '#84cc16', // lime
+];
+
 interface AccountSummary {
   accountId: string;
   accountName: string;
@@ -50,7 +61,7 @@ function MonthlyTooltip({
   active, 
   payload, 
   label,
-  accounts,
+  accounts: _accounts,
 }: { 
   active?: boolean; 
   payload?: { dataKey: string; value: number; color: string }[]; 
@@ -155,23 +166,12 @@ export function InterestPaidChart({ className = '' }: InterestPaidChartProps) {
     return `$${value.toFixed(0)}`;
   };
 
-  // Generate colors for accounts
-  const defaultColors = [
-    '#ef4444', // red
-    '#f59e0b', // amber
-    '#10b981', // emerald
-    '#3b82f6', // blue
-    '#8b5cf6', // violet
-    '#ec4899', // pink
-    '#06b6d4', // cyan
-    '#84cc16', // lime
-  ];
-
   const accountColors = useMemo(() => {
     if (!data?.byAccount) return {};
     const colors: Record<string, string> = {};
     data.byAccount.forEach((acc, index) => {
-      colors[acc.accountName] = acc.accountColor || defaultColors[index % defaultColors.length];
+      colors[acc.accountName] =
+        acc.accountColor || DEFAULT_ACCOUNT_COLORS[index % DEFAULT_ACCOUNT_COLORS.length];
     });
     return colors;
   }, [data?.byAccount]);

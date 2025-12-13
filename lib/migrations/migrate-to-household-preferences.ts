@@ -158,12 +158,12 @@ export async function migrateUserPreferences(
  *
  * @param userId - The user's ID
  * @param householdId - The household's ID
- * @returns Promise<any> - The household preferences object
+ * @returns The household preferences row
  */
 export async function getOrMigratePreferences(
   userId: string,
   householdId: string
-): Promise<any> {
+): Promise<typeof userHouseholdPreferences.$inferSelect> {
   try {
     // Try to get existing preferences
     let prefs = await db

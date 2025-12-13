@@ -104,7 +104,7 @@ export async function GET(request: Request) {
 
     // Get category names
     const categoryIds = Array.from(byCategory.keys());
-    let categories: any[] = [];
+    let categories: Array<{ id: string; name: string | null }> = [];
 
     if (categoryIds.length > 0) {
       categories = await db

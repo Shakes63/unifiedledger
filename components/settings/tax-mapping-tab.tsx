@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -122,7 +122,7 @@ export function TaxMappingTab() {
     if (selectedHouseholdId) {
       fetchMappings();
     }
-  }, [selectedHouseholdId, taxYear]);
+  }, [selectedHouseholdId, taxYear, fetchMappings]);
 
   const fetchTaxCategories = async () => {
     try {
@@ -143,7 +143,7 @@ export function TaxMappingTab() {
     }
   };
 
-  const fetchMappings = async () => {
+  const fetchMappings = useCallback(async () => {
     if (!selectedHouseholdId) return;
     
     setLoading(true);
@@ -161,7 +161,7 @@ export function TaxMappingTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchWithHousehold, selectedHouseholdId, taxYear]);
 
   const seedTaxCategories = async () => {
     setSeeding(true);

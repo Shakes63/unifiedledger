@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, searchHistory, transactionTags, accounts, budgetCategories } from '@/lib/db/schema';
-import { eq, and, or, gte, lte, like, inArray, sql } from 'drizzle-orm';
+import { eq, and, or, gte, lte, like, inArray, sql, type SQL } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
 
@@ -90,7 +90,7 @@ export async function GET(request: Request) {
     filters.sortOrder = sortOrder;
 
     // Build dynamic WHERE conditions
-    const conditions: any[] = [
+    const conditions: SQL[] = [
       eq(transactions.userId, userId),
       eq(transactions.householdId, householdId)
     ];
@@ -102,7 +102,7 @@ export async function GET(request: Request) {
         or(
           like(transactions.description, searchPattern),
           like(transactions.notes, searchPattern)
-        ) as any
+        )
       );
     }
 
@@ -172,7 +172,7 @@ export async function GET(request: Request) {
 
     // Type filter
     if (filters.types && filters.types.length > 0) {
-      conditions.push(inArray(transactions.type, filters.types as any));
+      conditions.push(inArray(transactions.type, filters.types as Array<typeof transactions.$inferSelect['type']>));
     }
 
     // Amount range filter
@@ -220,7 +220,7 @@ export async function GET(request: Request) {
     }
 
     // Handle tag filtering - if tags are specified, we need a different approach with joins
-    let query_builder: any = db
+    let query_builder = db
       .select()
       .from(transactions);
 
@@ -241,24 +241,24 @@ export async function GET(request: Request) {
         filters.sortOrder === 'asc'
           ? transactions.amount
           : sql`${transactions.amount} DESC`
-      ) as any;
+      );
     } else if (filters.sortBy === 'description') {
       query_builder = query_builder.orderBy(
         filters.sortOrder === 'asc'
           ? transactions.description
           : sql`${transactions.description} DESC`
-      ) as any;
+      );
     } else {
       // Default: date sorting
       query_builder = query_builder.orderBy(
         filters.sortOrder === 'asc'
           ? transactions.date
           : sql`${transactions.date} DESC`
-      ) as any;
+      );
     }
 
     // Get total count first (without limit/offset)
-    let countQuery: any = db
+    let countQuery = db
       .select({ count: sql<number>`COUNT(DISTINCT ${transactions.id})` })
       .from(transactions);
 
@@ -274,13 +274,13 @@ export async function GET(request: Request) {
     const totalCount = countResult[0]?.count || 0;
 
     // Get paginated results
-    let results: any;
+    let results: typeof transactions.$inferSelect[];
     if (filters.tagIds && filters.tagIds.length > 0) {
       const joinResults = await query_builder
         .limit(limit)
         .offset(offset);
       // Extract just the transaction data from the join
-      results = joinResults.map((row: any) => row.transactions);
+      results = joinResults.map((row: { transactions: typeof transactions.$inferSelect }) => row.transactions);
     } else {
       results = await query_builder
         .limit(limit)
@@ -297,13 +297,13 @@ export async function GET(request: Request) {
       const combinedTransferView = await getCombinedTransferViewPreference(userId, householdId);
       
       // Debug logging
-      const transferOutCount = results.filter((tx: any) => tx.type === 'transfer_out').length;
-      const transferInCount = results.filter((tx: any) => tx.type === 'transfer_in').length;
+      const transferOutCount = results.filter((tx) => tx.type === 'transfer_out').length;
+      const transferInCount = results.filter((tx) => tx.type === 'transfer_in').length;
       console.log('[Transfer View Search] Preference:', combinedTransferView, 'Total results:', results.length, 'transfer_out:', transferOutCount, 'transfer_in:', transferInCount);
       
       if (combinedTransferView) {
         // Filter out transfer_in transactions for combined view
-        finalResults = results.filter((tx: any) => tx.type !== 'transfer_in');
+        finalResults = results.filter((tx) => tx.type !== 'transfer_in');
         
         // Recalculate total count (approximate - we'd need to rerun count query for exact)
         // For now, use filtered results length as approximation

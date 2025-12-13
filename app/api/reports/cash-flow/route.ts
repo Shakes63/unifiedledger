@@ -78,7 +78,16 @@ export async function GET(request: NextRequest) {
     if (categoryIds && categoryIds.length > 0) filters.categoryIds = categoryIds;
     if (merchantIds && merchantIds.length > 0) filters.merchantIds = merchantIds;
 
-    const data: any[] = [];
+    type CashFlowPoint = {
+      name: string;
+      inflows: number;
+      outflows: number;
+      netCashFlow: number;
+      week?: string;
+      month?: string;
+    };
+
+    const data: CashFlowPoint[] = [];
 
     // Determine grouping strategy based on date range
     const daysDiff2 = Math.ceil(

@@ -14,7 +14,7 @@ export default function TestAuthPage() {
   const [password, setPassword] = useState('password123');
   const [name, setName] = useState('Test User');
   const [loading, setLoading] = useState(false);
-  const [apiResponse, setApiResponse] = useState<any>(null);
+  const [apiResponse, setApiResponse] = useState<unknown>(null);
   const { data: session, isPending } = betterAuthClient.useSession();
 
   const handleSignUp = async () => {
@@ -26,8 +26,8 @@ export default function TestAuthPage() {
         name,
       });
       toast.success('Signed up successfully with Better Auth!');
-    } catch (error: any) {
-      toast.error(error.message || 'Sign up failed');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Sign up failed');
       console.error('Sign up error:', error);
     } finally {
       setLoading(false);
@@ -42,8 +42,8 @@ export default function TestAuthPage() {
         password,
       });
       toast.success('Signed in successfully with Better Auth!');
-    } catch (error: any) {
-      toast.error(error.message || 'Sign in failed');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Sign in failed');
       console.error('Sign in error:', error);
     } finally {
       setLoading(false);
@@ -56,8 +56,8 @@ export default function TestAuthPage() {
       await betterAuthClient.signOut();
       toast.success('Signed out successfully');
       setApiResponse(null); // Clear API response on sign out
-    } catch (error: any) {
-      toast.error(error.message || 'Sign out failed');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Sign out failed');
     } finally {
       setLoading(false);
     }
@@ -77,9 +77,9 @@ export default function TestAuthPage() {
         setApiResponse(data);
         toast.error(data.error || 'API call failed');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error('Failed to call API');
-      setApiResponse({ error: error.message });
+      setApiResponse({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       setLoading(false);
     }

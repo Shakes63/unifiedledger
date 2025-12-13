@@ -165,10 +165,10 @@ export async function POST(request: Request) {
     // Apply categorization rules if no category provided
     let appliedCategoryId = categoryId;
     let appliedRuleId: string | null = null;
-    let appliedActions: any[] = [];
+    let appliedActions: unknown[] = [];
     let finalDescription = description;
     let finalMerchantId = merchantId;
-    let postCreationMutations: any = null;
+    let postCreationMutations: unknown = null;
 
     if (!appliedCategoryId && type !== 'transfer_in' && type !== 'transfer_out' && type !== 'transfer') {
       try {
@@ -765,7 +765,7 @@ export async function POST(request: Request) {
         ]);
 
         // Build batch update operations
-        const usageUpdates: Promise<any>[] = [];
+        const usageUpdates: Array<Promise<unknown>> = [];
 
         // Category updates
         if (categoryId && categoryData.length > 0) {

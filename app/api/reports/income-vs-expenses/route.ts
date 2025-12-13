@@ -77,7 +77,16 @@ export async function GET(request: NextRequest) {
     if (categoryIds && categoryIds.length > 0) filters.categoryIds = categoryIds;
     if (merchantIds && merchantIds.length > 0) filters.merchantIds = merchantIds;
 
-    const data: any[] = [];
+    type IncomeVsExpensesPoint = {
+      name: string;
+      income: number;
+      expenses: number;
+      net: number;
+      week?: string;
+      month?: string;
+    };
+
+    const data: IncomeVsExpensesPoint[] = [];
 
     // Determine grouping strategy based on date range
     const daysDiff2 = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24));

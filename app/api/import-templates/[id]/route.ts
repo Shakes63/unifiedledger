@@ -88,7 +88,7 @@ export async function PUT(
       );
     }
 
-    const updates: Record<string, any> = {
+    const updates: Partial<typeof importTemplates.$inferInsert> = {
       updatedAt: new Date().toISOString(),
     };
 

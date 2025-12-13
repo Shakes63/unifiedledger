@@ -86,7 +86,7 @@ export default function CategoriesPage() {
   }, [initialized, householdLoading, selectedHouseholdId, householdId, fetchWithHousehold]);
 
   // Create or update category
-  const handleSubmit = async (formData: any) => {
+  const handleSubmit = async (formData: Record<string, unknown>) => {
     try {
       setIsSubmitting(true);
 
@@ -118,7 +118,7 @@ export default function CategoriesPage() {
         const response = await postWithHousehold('/api/categories', formData);
 
         if (response.ok) {
-          const result = await response.json();
+          await response.json();
           toast.success('Category created successfully');
 
           // Refresh categories list

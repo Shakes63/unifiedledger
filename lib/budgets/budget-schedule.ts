@@ -197,8 +197,6 @@ function getBiweeklyPeriod(settings: BudgetScheduleSettings, today: Date): Budge
   const periodStart = addWeeks(referenceDate, biweeklyPeriodsSinceReference * 2);
   const periodEnd = endOfDay(addDays(periodStart, 13)); // 14 days total
 
-  // Calculate period number within the month (1 or 2)
-  const monthStart = startOfMonth(today);
   const dayOfMonth = getDate(periodStart);
   const periodNumber = dayOfMonth <= 15 ? 1 : 2;
 

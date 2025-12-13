@@ -2,7 +2,12 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { householdActivityLog, householdMembers } from '@/lib/db/schema';
 import { user as betterAuthUser } from '@/auth-schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, type SQL } from 'drizzle-orm';
+
+type ActivityType = typeof householdActivityLog.$inferSelect['activityType'];
+type EntityType = typeof householdActivityLog.$inferSelect['entityType'];
+
+const isString = (v: unknown): v is string => typeof v === 'string';
 
 export async function GET(
   request: Request,
@@ -33,12 +38,12 @@ export async function GET(
     const entityType = url.searchParams.get('entityType');
 
     // Build query conditions
-    const conditions = [eq(householdActivityLog.householdId, householdId)];
+    const conditions: SQL[] = [eq(householdActivityLog.householdId, householdId)];
     if (activityType) {
-      conditions.push(eq(householdActivityLog.activityType, activityType as any));
+      conditions.push(eq(householdActivityLog.activityType, activityType as ActivityType));
     }
     if (entityType) {
-      conditions.push(eq(householdActivityLog.entityType, entityType as any));
+      conditions.push(eq(householdActivityLog.entityType, entityType as EntityType));
     }
 
     // Get total count
@@ -73,7 +78,7 @@ export async function GET(
     // Parse metadata for each activity
     const enrichedActivities = activities.map((activity) => ({
       ...activity,
-      metadata: activity.metadata ? JSON.parse(activity.metadata) : null,
+      metadata: isString(activity.metadata) ? JSON.parse(activity.metadata) : null,
     }));
 
     return new Response(

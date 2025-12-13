@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -54,17 +54,6 @@ interface SalesTaxSummary {
   quarters: QuarterlyReport[];
 }
 
-interface TaxSettings {
-  stateRate: number;
-  countyRate: number;
-  cityRate: number;
-  specialDistrictRate: number;
-  stateName: string;
-  countyName: string;
-  cityName: string;
-  specialDistrictName: string;
-}
-
 /**
  * Sales Tax Dashboard Page
  * Quarterly sales tax reporting and filing status tracking
@@ -99,7 +88,7 @@ export default function SalesTaxPage() {
 
   useEffect(() => {
     fetchSalesTaxData();
-  }, [year]);
+  }, [fetchSalesTaxData]);
 
   const fetchTaxRateSettings = async () => {
     try {
@@ -158,7 +147,7 @@ export default function SalesTaxPage() {
     }
   };
 
-  const fetchSalesTaxData = async () => {
+  const fetchSalesTaxData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -177,7 +166,7 @@ export default function SalesTaxPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [year]);
 
   const getYearOptions = () => {
     const currentYear = new Date().getFullYear();
@@ -629,7 +618,7 @@ export default function SalesTaxPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-[var(--color-primary)] mt-1 font-bold">3.</span>
-                <span>Check "Subject to sales tax" when creating income</span>
+                <span>Check &quot;Subject to sales tax&quot; when creating income</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-[var(--color-primary)] mt-1 font-bold">4.</span>

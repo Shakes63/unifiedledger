@@ -7,6 +7,9 @@
  */
 
 import bcrypt from 'bcryptjs';
+import { db } from '@/lib/db';
+import { account as betterAuthAccount } from '@/auth-schema';
+import { eq, and } from 'drizzle-orm';
 
 /**
  * Verify a plaintext password against a bcrypt hash
@@ -47,13 +50,7 @@ export async function hashPassword(plainPassword: string): Promise<string> {
  * @param userId - The user ID to look up
  * @returns The credential account or null if not found
  */
-export async function getCredentialAccount(
-  db: any,
-  betterAuthAccount: any,
-  userId: string
-) {
-  const { eq, and } = await import('drizzle-orm');
-  
+export async function getCredentialAccount(userId: string) {
   const accounts = await db
     .select()
     .from(betterAuthAccount)

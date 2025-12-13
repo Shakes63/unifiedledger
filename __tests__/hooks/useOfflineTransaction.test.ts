@@ -93,7 +93,7 @@ describe('hooks/useOfflineTransaction', () => {
     const { useOfflineTransaction } = await import('@/hooks/useOfflineTransaction');
     const { result } = renderHook(() => useOfflineTransaction());
 
-    let response: any;
+    let response: unknown;
     await act(async () => {
       response = await result.current.submitTransaction({
         type: 'expense',
@@ -113,12 +113,7 @@ describe('hooks/useOfflineTransaction', () => {
         formData: expect.objectContaining({ description: 'Coffee' }),
       })
     );
-    expect(response).toEqual(
-      expect.objectContaining({
-        id: 'offline-1',
-        offline: true,
-      })
-    );
+    expect(response).toEqual(expect.objectContaining({ id: 'offline-1', offline: true }));
   });
 
   it('getPendingCount returns 0 without session user', async () => {

@@ -141,7 +141,7 @@ if (!householdId) {
     }
 
     // Update template
-    const updates: Record<string, any> = {
+    const updates: Partial<typeof transactionTemplates.$inferInsert> = {
       updatedAt: new Date().toISOString(),
     };
 

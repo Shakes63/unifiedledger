@@ -365,7 +365,7 @@ function simulatePayoffParallel(
   }
 
   const paymentDivisor = paymentFrequency === 'biweekly' ? 2 : 1;
-  const periodsPerYear = getPaymentPeriodsPerYear(paymentFrequency);
+  const _periodsPerYear = getPaymentPeriodsPerYear(paymentFrequency);
   
   // Initialize simulation state for all debts
   let activeDebts: DebtSimulationState[] = debts.map(debt => ({
@@ -381,7 +381,7 @@ function simulatePayoffParallel(
   // This is the user's total budget: all minimum payments + extra payment
   const totalMinimums = debts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
   const totalPerDebtExtras = debts.reduce((sum, d) => sum + (d.additionalMonthlyPayment || 0), 0);
-  let availablePayment = (totalMinimums + totalPerDebtExtras + extraPayment) / paymentDivisor;
+  const availablePayment = (totalMinimums + totalPerDebtExtras + extraPayment) / paymentDivisor;
 
   // Track excess payment when focus debt is paid off mid-period with less than allocated
   let excessPayment = new Decimal(0);
@@ -409,7 +409,7 @@ function simulatePayoffParallel(
     // The debt rolldown happens automatically: when a debt is paid off and removed from
     // activeDebts, its minimum is no longer subtracted, so the extra increases
     // Also add any excess from focus debt being paid off with less than its allocation
-    let extraThisPeriod = new Decimal(availablePayment)
+    const extraThisPeriod = new Decimal(availablePayment)
       .minus(activeDebts.reduce((sum, d) => sum + d.effectiveMinimum, 0))
       .plus(excessPayment);
     
@@ -417,7 +417,7 @@ function simulatePayoffParallel(
     excessPayment = new Decimal(0);
 
     // Process each active debt
-    const debtsToPay: { idx: number; payment: Decimal }[] = [];
+    const _debtsToPay: { idx: number; payment: Decimal }[] = [];
     
     for (let i = 0; i < activeDebts.length; i++) {
       const debtState = activeDebts[i];
@@ -495,22 +495,22 @@ function simulatePayoffParallel(
   }
 
   // Build schedules from simulation state
-  const allDebtStates = debts.map(debt => {
+  const _allDebtStates = debts.map(debt => {
     const state = activeDebts.find(s => s.debt.id === debt.id) || 
                   { debt, balance: new Decimal(0), totalInterestPaid: new Decimal(0), monthlyBreakdown: [], paidOffAtPeriod: period, effectiveMinimum: 0 };
     
     // Find original state that was processed (may have been removed from activeDebts)
-    const originalDebt = debts.find(d => d.id === debt.id)!;
+    const _originalDebt = debts.find(d => d.id === debt.id)!;
     
     return state;
   });
 
   // Reconstruct proper state from simulation
   // We need to track all debts that were processed, including paid-off ones
-  const debtStateMap = new Map<string, DebtSimulationState>();
+  const _debtStateMap = new Map<string, DebtSimulationState>();
   
   // Re-run simulation to collect all states properly
-  let simDebts: DebtSimulationState[] = debts.map(debt => ({
+  const simDebts: DebtSimulationState[] = debts.map(debt => ({
     debt,
     balance: new Decimal(debt.remainingBalance),
     totalInterestPaid: new Decimal(0),
@@ -538,7 +538,7 @@ function simulatePayoffParallel(
     
     // Calculate extra available this period:
     // Total budget minus minimums of active debts, plus any excess from previous period
-    let extraThisPeriod = new Decimal(availablePayment)
+    const extraThisPeriod = new Decimal(availablePayment)
       .minus(activeSimDebts.reduce((sum, d) => sum + d.effectiveMinimum, 0))
       .plus(simExcessPayment);
     
@@ -614,7 +614,7 @@ function simulatePayoffParallel(
   ).toNumber();
 
   // Convert periods to months
-  const totalMonths = paymentFrequency === 'biweekly'
+  const _totalMonths = paymentFrequency === 'biweekly'
     ? Math.ceil(simPeriod / 2.17)
     : simPeriod;
 
@@ -657,7 +657,7 @@ function simulatePayoffParallel(
 /**
  * Calculate payoff schedule for a single debt with optional lump sum payments
  */
-function calculateDebtSchedule(
+function _calculateDebtSchedule(
   debt: DebtInput,
   paymentAmount: number,
   startMonth: number,

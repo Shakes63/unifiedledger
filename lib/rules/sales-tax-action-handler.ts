@@ -15,10 +15,13 @@ import { SalesTaxConfig } from './types';
  * @param config - Configuration object to validate (optional)
  * @returns Validated SalesTaxConfig
  */
-export function validateSalesTaxConfig(config?: any): SalesTaxConfig {
+export function validateSalesTaxConfig(config?: unknown): SalesTaxConfig {
+  const cfg = (config && typeof config === 'object' ? (config as Record<string, unknown>) : undefined) as
+    | Record<string, unknown>
+    | undefined;
   // Default to taxable (true) if no value specified
   return {
-    value: typeof config?.value === 'boolean' ? config.value : true,
+    value: typeof cfg?.value === 'boolean' ? (cfg.value as boolean) : true,
   };
 }
 

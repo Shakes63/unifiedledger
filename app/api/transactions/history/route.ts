@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, accounts } from '@/lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, type SQL } from 'drizzle-orm';
 import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     const accountId = url.searchParams.get('accountId');
 
     // Build where conditions
-    const conditions: any[] = [
+    const conditions: SQL[] = [
       eq(transactions.userId, userId),
       eq(transactions.householdId, householdId)
     ];

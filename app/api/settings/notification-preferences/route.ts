@@ -12,7 +12,7 @@ const VALID_CHANNELS = ['push', 'email'];
 /**
  * Validate channel array format and content
  */
-function validateChannels(channels: any, fieldName: string): string | null {
+function validateChannels(channels: unknown, fieldName: string): string | null {
   if (channels === undefined) return null;
 
   // If it's a string, try to parse it as JSON
@@ -33,9 +33,7 @@ function validateChannels(channels: any, fieldName: string): string | null {
     return `${fieldName} must have at least one channel`;
   }
 
-  const invalidChannels = parsedChannels.filter(
-    (ch) => !VALID_CHANNELS.includes(ch)
-  );
+  const invalidChannels = parsedChannels.filter((ch) => !VALID_CHANNELS.includes(String(ch)));
 
   if (invalidChannels.length > 0) {
     return `${fieldName} contains invalid channels: ${invalidChannels.join(', ')}. Valid channels: ${VALID_CHANNELS.join(', ')}`;

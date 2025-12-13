@@ -35,7 +35,7 @@ export interface RuleAction {
   pattern?: string;
 
   /** Additional configuration for complex actions (splits, transfers) */
-  config?: Record<string, any>;
+  config?: Record<string, unknown>;
 }
 
 /**

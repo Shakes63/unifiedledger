@@ -73,7 +73,7 @@ export function useHouseholdFetch() {
    */
   const postWithHousehold = useCallback(async (
     url: string,
-    data: any,
+    data: Record<string, unknown>,
     options: RequestInit = {}
   ): Promise<Response> => {
     if (!selectedHouseholdId) {
@@ -109,7 +109,7 @@ export function useHouseholdFetch() {
    */
   const putWithHousehold = useCallback(async (
     url: string,
-    data: any,
+    data: Record<string, unknown>,
     options: RequestInit = {}
   ): Promise<Response> => {
     if (!selectedHouseholdId) {
@@ -174,7 +174,7 @@ export function useHouseholdFetch() {
    */
   const patchWithHousehold = useCallback(async (
     url: string,
-    data: any,
+    data: Record<string, unknown>,
     options: RequestInit = {}
   ): Promise<Response> => {
     if (!selectedHouseholdId) {

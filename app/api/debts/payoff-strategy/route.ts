@@ -156,7 +156,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate strategy or comparison
     // Transform to base DebtInput (remove source fields for calculator)
-    const debtInputs: DebtInput[] = allDebts.map(({ source, sourceType, ...rest }) => rest);
+    const debtInputs: DebtInput[] = allDebts.map(({ source: _source, sourceType: _sourceType, ...rest }) => rest);
 
     if (compare) {
       const comparison = comparePayoffMethods(debtInputs, effectiveExtraPayment, paymentFrequency);

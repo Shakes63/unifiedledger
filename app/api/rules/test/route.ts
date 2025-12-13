@@ -32,14 +32,33 @@ export async function POST(request: Request) {
       );
     }
 
+    const asRecord = (value: unknown): Record<string, unknown> =>
+      value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+
     // Convert transactions to proper format
-    const formattedTransactions: TransactionData[] = txArray.map((tx: any) => ({
-      description: tx.description || '',
-      amount: typeof tx.amount === 'string' ? parseFloat(tx.amount) : tx.amount || 0,
-      accountName: tx.accountName || '',
-      date: tx.date || new Date().toISOString().split('T')[0],
-      notes: tx.notes,
-    }));
+    const formattedTransactions: TransactionData[] = txArray.map((tx: unknown) => {
+      const record = asRecord(tx);
+      const description = typeof record.description === 'string' ? record.description : '';
+      const accountName = typeof record.accountName === 'string' ? record.accountName : '';
+      const date = typeof record.date === 'string' ? record.date : new Date().toISOString().split('T')[0];
+      const notes = typeof record.notes === 'string' ? record.notes : undefined;
+
+      const rawAmount = record.amount;
+      const amount =
+        typeof rawAmount === 'string'
+          ? parseFloat(rawAmount)
+          : typeof rawAmount === 'number'
+            ? rawAmount
+            : 0;
+
+      return {
+        description,
+        amount,
+        accountName,
+        date,
+        notes,
+      };
+    });
 
     // Test the rule
     if (txArray.length === 1) {

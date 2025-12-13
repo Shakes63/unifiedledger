@@ -38,7 +38,6 @@ export async function getOrCreateFeeCategory(
   type: FeeCategoryType
 ): Promise<string> {
   const categoryName = FEE_CATEGORY_NAMES[type];
-  const normalizedName = categoryName.toLowerCase();
 
   // Check if category already exists in household
   const existing = await db

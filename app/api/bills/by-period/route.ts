@@ -9,7 +9,7 @@ import {
   accounts,
   userHouseholdPreferences,
 } from '@/lib/db/schema';
-import { eq, and, or, inArray, gte, lte, asc } from 'drizzle-orm';
+import { eq, and, inArray, asc } from 'drizzle-orm';
 import {
   getCurrentBudgetPeriod,
   getNextBudgetPeriod,
@@ -20,7 +20,7 @@ import {
   type BudgetCycleFrequency,
   type BudgetPeriod,
 } from '@/lib/budgets/budget-schedule';
-import { addDays, subDays, startOfDay, format, parseISO } from 'date-fns';
+import { addDays, subDays, parseISO } from 'date-fns';
 import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
@@ -120,22 +120,6 @@ export async function GET(request: NextRequest) {
     // Get the requested period
     const period = getPeriodByOffset(settings, periodOffset);
     const periodLabel = getPeriodLabel(period, settings.budgetCycleFrequency);
-
-    // Fetch all active bills for the household
-    const billConditions = [
-      eq(bills.userId, userId),
-      eq(bills.householdId, householdId),
-      eq(bills.isActive, true),
-    ];
-
-    if (billType) {
-      billConditions.push(eq(bills.billType, billType as 'expense' | 'income' | 'savings_transfer'));
-    }
-
-    const allBills = await db
-      .select()
-      .from(bills)
-      .where(and(...billConditions));
 
     // Fetch bill instances with their bills, filtering by status
     // We need to get instances that:

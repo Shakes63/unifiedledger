@@ -20,7 +20,6 @@ import Decimal from 'decimal.js';
 import {
   getCurrentBudgetPeriod,
   BudgetScheduleSettings,
-  BudgetPeriod,
 } from '@/lib/budgets/budget-schedule';
 import { CalendarEvent } from './google-calendar';
 

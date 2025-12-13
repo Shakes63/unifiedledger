@@ -7,6 +7,11 @@ import { nanoid } from 'nanoid';
 import { syncDebtPayoffDate } from '@/lib/debts/payoff-date-utils';
 import { createMerchantForBank } from '@/lib/merchants/auto-create';
 
+type DebtStatus = typeof debts.$inferSelect['status'];
+const isDebtStatus = (value: string): value is DebtStatus => {
+  return ['active', 'paid_off', 'paused', 'closed'].includes(value);
+};
+
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
@@ -19,7 +24,9 @@ export async function GET(request: Request) {
       eq(debts.householdId, householdId)
     ];
     if (status) {
-      conditions.push(eq(debts.status, status as any));
+      if (isDebtStatus(status)) {
+        conditions.push(eq(debts.status, status));
+      }
     }
 
     const debtList = await db

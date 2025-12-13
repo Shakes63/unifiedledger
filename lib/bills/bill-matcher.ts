@@ -90,7 +90,7 @@ const commonWords = new Set([
 /**
  * Extract key words from description for matching
  */
-function extractKeywords(description: string): Set<string> {
+function _extractKeywords(description: string): Set<string> {
   const words = normalizeString(description).split(/\s+/);
   return new Set(words.filter((w) => w.length > 2 && !commonWords.has(w)));
 }
@@ -139,7 +139,7 @@ export async function findMatchingBills(
   }
 
   // Note: keyword extraction available for future enhanced matching
-  // const txKeywords = extractKeywords(transaction.description);
+  // const txKeywords = _extractKeywords(transaction.description);
 
   for (const bill of bills) {
     const reasons: string[] = [];

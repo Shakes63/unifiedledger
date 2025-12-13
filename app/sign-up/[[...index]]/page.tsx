@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { betterAuthClient } from '@/lib/better-auth-client';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +18,6 @@ import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SignUpPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const isFirstSetup = searchParams.get('firstSetup') === 'true';
   
@@ -130,11 +129,11 @@ export default function SignUpPage() {
 
       // Use window.location for a hard redirect to ensure middleware runs
       window.location.href = '/dashboard';
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Sign up error:', error);
 
       // Handle specific error cases
-      if (error?.message?.includes('already exists')) {
+      if (error instanceof Error && error.message.includes('already exists')) {
         toast.error('An account with this email already exists');
       } else {
         toast.error('Failed to create account. Please try again.');

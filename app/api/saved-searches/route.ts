@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 interface SavedSearchInput {
   name: string;
   description?: string;
-  filters: Record<string, any>;
+  filters: Record<string, unknown>;
   isDefault?: boolean;
 }
 
@@ -26,15 +26,16 @@ export async function GET(request: Request) {
     let query = db
       .select()
       .from(savedSearchFilters)
-      .where(eq(savedSearchFilters.userId, userId));
+      .where(eq(savedSearchFilters.userId, userId))
+      .$dynamic();
 
     // Apply sorting
     if (sortBy === 'usageCount') {
-      query = query.orderBy(savedSearchFilters.usageCount) as any;
+      query = query.orderBy(savedSearchFilters.usageCount);
     } else if (sortBy === 'name') {
-      query = query.orderBy(savedSearchFilters.name) as any;
+      query = query.orderBy(savedSearchFilters.name);
     } else {
-      query = query.orderBy(savedSearchFilters.updatedAt) as any;
+      query = query.orderBy(savedSearchFilters.updatedAt);
     }
 
     const searches = await query.limit(limit).offset(offset);

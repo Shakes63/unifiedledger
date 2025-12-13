@@ -10,7 +10,7 @@ import {
   calendarEvents,
   userHouseholdPreferences,
 } from '@/lib/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { format, addMonths } from 'date-fns';
 import {
@@ -29,7 +29,6 @@ import {
 import {
   generateAllEvents,
   getSyncSettings,
-  GeneratedEvent,
 } from './event-generator';
 import { BudgetScheduleSettings } from '@/lib/budgets/budget-schedule';
 
@@ -422,7 +421,7 @@ export async function syncEntity(
                   trackedEvent[0].externalEventId,
                   connection.provider as Provider
                 );
-              } catch (e) {
+              } catch (_e) {
                 // Ignore deletion errors
               }
               await db
@@ -524,7 +523,7 @@ export async function syncEntity(
 export async function syncBudgetPeriod(
   userId: string,
   householdId: string,
-  periodStart: string
+  _periodStart: string
 ): Promise<void> {
   try {
     // Get sync settings

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { RulesManager } from '@/components/rules/rules-manager';
 import { RuleBuilder } from '@/components/rules/rule-builder';
 import { BulkApplyRules } from '@/components/rules/bulk-apply-rules';
@@ -172,8 +172,8 @@ export default function RulesPage() {
 
         // Validate total percentage doesn't exceed 100%
         const totalPercentage = action.config.splits
-          .filter((s: any) => s.isPercentage)
-          .reduce((sum: number, s: any) => sum + (s.percentage || 0), 0);
+          .filter((s: { isPercentage?: boolean }) => s.isPercentage)
+          .reduce((sum: number, s: { percentage?: number }) => sum + (s.percentage || 0), 0);
 
         if (totalPercentage > 100) {
           toast.error('Total split percentage cannot exceed 100%');

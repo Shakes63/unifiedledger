@@ -714,14 +714,18 @@ const helpSections: HelpSectionData[] = [
 
 export default function HelpPage() {
   const searchParams = useSearchParams();
-  const [expandedSections, setExpandedSections] = useState<string[]>([HELP_SECTIONS.GETTING_STARTED]);
+  const [expandedSections, setExpandedSections] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [HELP_SECTIONS.GETTING_STARTED];
+    const hash = window.location.hash.replace('#', '');
+    if (!hash) return [HELP_SECTIONS.GETTING_STARTED];
+    return Array.from(new Set([HELP_SECTIONS.GETTING_STARTED, hash]));
+  });
   const [searchQuery, setSearchQuery] = useState('');
 
   // Handle anchor links on page load
   useEffect(() => {
     const hash = window.location.hash.replace('#', '');
     if (hash) {
-      setExpandedSections((prev) => (prev.includes(hash) ? prev : [...prev, hash]));
       // Scroll to section after a short delay for rendering
       setTimeout(() => {
         const element = document.getElementById(hash);

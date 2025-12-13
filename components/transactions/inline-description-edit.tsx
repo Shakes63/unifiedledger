@@ -60,7 +60,7 @@ export function InlineDescriptionEdit({
       setIsUpdating(true);
       await onUpdate(transactionId, 'description', trimmedValue);
       setIsEditing(false);
-    } catch (error) {
+    } catch (_error) {
       // Revert on error
       setEditValue(value);
       setIsEditing(false);

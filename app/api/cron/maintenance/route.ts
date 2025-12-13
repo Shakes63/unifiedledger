@@ -45,7 +45,14 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const operation = searchParams.get("operation") || "all";
 
-    const results: Record<string, any> = {
+    const results: {
+      timestamp: number;
+      operations: Array<
+        | { name: string; status: 'success'; message: string }
+        | { name: string; status: 'success'; stats: Record<string, number> }
+        | { name: string; status: 'error'; error: string }
+      >;
+    } = {
       timestamp: Date.now(),
       operations: [],
     };
@@ -127,11 +134,19 @@ export async function POST(request: NextRequest) {
           sql`PRAGMA freelist_count`
         );
 
+        const getPragmaNumber = (result: unknown, key: string): number => {
+          if (!Array.isArray(result) || result.length === 0) return 0;
+          const row = result[0];
+          if (!row || typeof row !== 'object') return 0;
+          const value = (row as Record<string, unknown>)[key];
+          return typeof value === 'number' ? value : 0;
+        };
+
         const stats = {
-          pageCount: (pageCount as any)?.[0]?.page_count || 0,
-          pageSize: (pageSize as any)?.[0]?.page_size || 0,
-          freePages: (freePages as any)?.[0]?.freelist_count || 0,
-          estimatedSize: ((pageCount as any)?.[0]?.page_count || 0) * ((pageSize as any)?.[0]?.page_size || 0),
+          pageCount: getPragmaNumber(pageCount, 'page_count'),
+          pageSize: getPragmaNumber(pageSize, 'page_size'),
+          freePages: getPragmaNumber(freePages, 'freelist_count'),
+          estimatedSize: getPragmaNumber(pageCount, 'page_count') * getPragmaNumber(pageSize, 'page_size'),
         };
 
         results.operations.push({

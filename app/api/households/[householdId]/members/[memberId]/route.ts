@@ -132,7 +132,7 @@ export async function PUT(
     // Update role
     const result = await db
       .update(householdMembers)
-      .set({ role: role as any })
+      .set({ role: role as typeof householdMembers.$inferInsert['role'] })
       .where(eq(householdMembers.id, memberId))
       .returning();
 

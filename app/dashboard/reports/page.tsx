@@ -17,8 +17,6 @@ import {
   BarChart,
   PieChart,
   AreaChart,
-  ComposedChart,
-  ProgressChart,
   TreemapChart,
   HeatmapChart,
 } from '@/components/charts';
@@ -35,12 +33,16 @@ import { FeatureGate } from '@/components/experimental/feature-gate';
 type Period = 'month' | 'year' | '12months';
 
 interface ReportData {
-  incomeVsExpenses: any;
-  categoryBreakdown: any;
-  cashFlow: any;
-  netWorth: any;
-  budgetVsActual: any;
-  merchantAnalysis: any;
+  incomeVsExpenses: { data?: Array<Record<string, unknown>> } & Record<string, unknown>;
+  categoryBreakdown: { data?: Array<{ name?: string; value?: number; amount?: number; count?: number; categoryId?: string }> } & Record<string, unknown>;
+  cashFlow: { data?: Array<Record<string, unknown>> } & Record<string, unknown>;
+  netWorth: {
+    history?: Array<Record<string, unknown>>;
+    accountBreakdown?: Array<{ name?: string; balance?: number; type?: string; color?: string }>;
+    currentNetWorth?: number;
+  } & Record<string, unknown>;
+  budgetVsActual: Record<string, unknown>;
+  merchantAnalysis: { data?: Array<{ name?: string; count?: number; amount?: number; percentageOfTotal?: number }> } & Record<string, unknown>;
 }
 
 const COLOR_PALETTE = {
@@ -66,13 +68,9 @@ export default function ReportsPage() {
     period,
     setDateRange,
     setPeriod,
-    selectedAccountIds,
-    selectedCategoryIds,
-    selectedMerchantIds,
     setAccountIds,
     setCategoryIds,
     setMerchantIds,
-    hasActiveFilters,
     clearAllFilters,
     getFilterParams,
   } = useReportFilters();
@@ -83,7 +81,7 @@ export default function ReportsPage() {
   const [showPaymentBreakdown, setShowPaymentBreakdown] = useState(false);
   const [showDebtReduction, setShowDebtReduction] = useState(false);
   const [showAmortization, setShowAmortization] = useState(false);
-  const [payoffStrategy, setPayoffStrategy] = useState<any>(null);
+  const [payoffStrategy, setPayoffStrategy] = useState<unknown>(null);
   
   // Filter data
   const [accounts, setAccounts] = useState<Array<{ id: string; name: string }>>([]);
@@ -238,13 +236,19 @@ export default function ReportsPage() {
       );
 
       // Transform data to use 'name' as x-axis key (required by chart components)
-      const transformData = (data: any[], currentPeriod: Period | null) => {
-        if (!data) return [];
+      const transformData = (raw: unknown, currentPeriod: Period | null) => {
+        if (!Array.isArray(raw)) return [];
         const xKey = currentPeriod === 'month' ? 'week' : 'month';
-        return data.map(item => ({
-          name: item[xKey] || item.name || '',
-          ...item
-        }));
+        return raw.map((item) => {
+          const obj = (item && typeof item === 'object' ? (item as Record<string, unknown>) : {}) as Record<string, unknown>;
+          const name =
+            typeof obj[xKey] === 'string'
+              ? (obj[xKey] as string)
+              : typeof obj.name === 'string'
+              ? obj.name
+              : '';
+          return { name, ...obj };
+        });
       };
 
       const currentPeriod = period || '12months';
@@ -269,9 +273,6 @@ export default function ReportsPage() {
     period,
     startDate,
     endDate,
-    selectedAccountIds,
-    selectedCategoryIds,
-    selectedMerchantIds,
     getFilterParams,
     fetchWithHousehold,
   ]);
@@ -384,7 +385,11 @@ export default function ReportsPage() {
           <CardContent>
             <p className="text-2xl font-bold text-[var(--color-income)]">
               ${data.incomeVsExpenses?.data
-                ?.reduce((sum: number, item: any) => sum + item.income, 0)
+                ?.reduce(
+                  (sum: number, item: Record<string, unknown>) =>
+                    sum + (typeof item.income === 'number' ? item.income : 0),
+                  0
+                )
                 .toFixed(2)}
             </p>
           </CardContent>
@@ -397,7 +402,11 @@ export default function ReportsPage() {
           <CardContent>
             <p className="text-2xl font-bold text-[var(--color-expense)]">
               ${data.incomeVsExpenses?.data
-                ?.reduce((sum: number, item: any) => sum + item.expenses, 0)
+                ?.reduce(
+                  (sum: number, item: Record<string, unknown>) =>
+                    sum + (typeof item.expenses === 'number' ? item.expenses : 0),
+                  0
+                )
                 .toFixed(2)}
             </p>
           </CardContent>
@@ -410,7 +419,11 @@ export default function ReportsPage() {
           <CardContent>
             <p className="text-2xl font-bold text-[var(--color-primary)]">
               ${data.incomeVsExpenses?.data
-                ?.reduce((sum: number, item: any) => sum + item.net, 0)
+                ?.reduce(
+                  (sum: number, item: Record<string, unknown>) =>
+                    sum + (typeof item.net === 'number' ? item.net : 0),
+                  0
+                )
                 .toFixed(2)}
             </p>
           </CardContent>
@@ -496,11 +509,11 @@ export default function ReportsPage() {
           <TreemapChart
             title="Category Spending Treemap"
             description="Hierarchical view of spending by category"
-            data={data.categoryBreakdown?.data?.map((item: any) => ({
-              name: item.name,
-              value: item.value,
+            data={(data.categoryBreakdown?.data || []).map((item) => ({
+              name: item.name || '',
+              value: item.value ?? 0,
               color: COLOR_PALETTE.expense,
-            })) || []}
+            }))}
           />
         </FeatureGate>
 
@@ -512,12 +525,13 @@ export default function ReportsPage() {
             data={(() => {
               // Transform data for heatmap (category x month grid)
               const categories = data.categoryBreakdown?.data || [];
-              const months = data.incomeVsExpenses?.data?.map((d: any) => d.name) || [];
+              const months = (data.incomeVsExpenses?.data || []).map((d) => (typeof d.name === 'string' ? d.name : ''));
 
               // Generate sample heatmap data
-              const heatmapData: any[] = [];
-              categories.forEach((cat: any) => {
-                months.forEach((month: any) => {
+              type HeatmapCell = { category: string; month: string; value: number };
+              const heatmapData: HeatmapCell[] = [];
+              categories.forEach((cat) => {
+                months.forEach((month) => {
                   heatmapData.push({
                     category: cat.name,
                     month: month,
@@ -554,7 +568,7 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {data.netWorth?.accountBreakdown?.map((account: any) => (
+              {(data.netWorth?.accountBreakdown || []).map((account) => (
                 <div key={account.name} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div
@@ -566,7 +580,7 @@ export default function ReportsPage() {
                       <p className="text-xs text-muted-foreground">{account.type}</p>
                     </div>
                   </div>
-                  <p className="text-foreground font-medium">${account.balance.toFixed(2)}</p>
+                  <p className="text-foreground font-medium">${(account.balance ?? 0).toFixed(2)}</p>
                 </div>
               ))}
             </div>
@@ -581,15 +595,15 @@ export default function ReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {data.merchantAnalysis?.data?.slice(0, 5).map((merchant: any, idx: number) => (
+              {(data.merchantAnalysis?.data || []).slice(0, 5).map((merchant, idx: number) => (
                 <div key={idx} className="flex items-center justify-between">
                   <div className="flex-1">
                     <p className="text-foreground font-medium text-sm truncate">{merchant.name}</p>
-                    <p className="text-xs text-muted-foreground">{merchant.count} transactions</p>
+                    <p className="text-xs text-muted-foreground">{merchant.count ?? 0} transactions</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-foreground font-medium">${merchant.amount.toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground">{merchant.percentageOfTotal.toFixed(0)}%</p>
+                    <p className="text-foreground font-medium">${(merchant.amount ?? 0).toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">{(merchant.percentageOfTotal ?? 0).toFixed(0)}%</p>
                   </div>
                 </div>
               ))}
@@ -608,7 +622,10 @@ export default function ReportsPage() {
       />
 
       {/* Debt Analysis Section */}
-      {payoffStrategy && payoffStrategy.schedules && payoffStrategy.schedules.length > 0 && (
+      {(() => {
+        const payoff = payoffStrategy as { schedules?: unknown[] } | null;
+        return payoff?.schedules && payoff.schedules.length > 0;
+      })() && (
         <div className="space-y-4 mt-8">
           <div className="border-t border-border pt-6">
             <h2 className="text-2xl font-bold text-foreground mb-2">Debt Analysis</h2>
@@ -637,7 +654,7 @@ export default function ReportsPage() {
           </button>
 
           {showPaymentBreakdown && (
-            <PaymentBreakdownSection strategy={payoffStrategy} />
+            <PaymentBreakdownSection strategy={payoffStrategy as Record<string, unknown>} />
           )}
 
           {/* Debt Reduction Progress Chart */}
@@ -685,7 +702,7 @@ export default function ReportsPage() {
           </button>
 
           {showAmortization && (
-            <AmortizationScheduleView strategy={payoffStrategy} />
+            <AmortizationScheduleView strategy={payoffStrategy as Record<string, unknown>} />
           )}
         </div>
       )}

@@ -92,7 +92,7 @@ export async function GET(request: Request) {
       .map(r => r.bill!.linkedAccountId as string);
 
     // Fetch linked accounts if any
-    let linkedAccountsMap: Map<string, {
+    const linkedAccountsMap: Map<string, {
       id: string;
       name: string;
       type: string;

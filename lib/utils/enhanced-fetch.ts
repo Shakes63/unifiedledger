@@ -468,7 +468,7 @@ export async function enhancedFetch(
  * @param options - Enhanced fetch options
  * @returns Promise that resolves to parsed JSON data
  */
-export async function enhancedFetchJSON<T = any>(
+export async function enhancedFetchJSON<T = unknown>(
   url: string,
   options: EnhancedFetchOptions = {}
 ): Promise<T> {

@@ -112,7 +112,7 @@ export async function PUT(
       return new Response(JSON.stringify({ error: 'Debt not found' }), { status: 404 });
     }
 
-    const updates: any = { ...body };
+    const updates: Partial<typeof debts.$inferInsert> = { ...(body as Record<string, unknown>) } as Partial<typeof debts.$inferInsert>;
     updates.updatedAt = new Date().toISOString();
 
     // Track if we need to recalculate payoff date

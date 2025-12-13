@@ -122,7 +122,7 @@ export async function GET(request: NextRequest) {
 
     // Get category names
     const categories = await getUserCategories(userId, householdId);
-    const categoryMap = new Map(categories.map((c: any) => [c.id, c]));
+    const categoryMap = new Map(categories.map((c: { id: string; name?: string }) => [c.id, c]));
 
     // Build data
     const data = Array.from(grouped.entries()).map(([categoryId, txns]) => {

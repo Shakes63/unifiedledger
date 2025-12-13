@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { notifications } from '@/lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, type SQL } from 'drizzle-orm';
 import {
   createNotification,
   getUnreadCount,
@@ -9,6 +9,8 @@ import {
 } from '@/lib/notifications/notification-service';
 
 export const dynamic = 'force-dynamic';
+
+type NotificationType = typeof notifications.$inferSelect['type'];
 
 // GET - List user's notifications with pagination
 export async function GET(request: Request) {
@@ -21,7 +23,7 @@ export async function GET(request: Request) {
     const unreadOnly = url.searchParams.get('unreadOnly') === 'true';
     const type = url.searchParams.get('type');
 
-    const conditions: any[] = [eq(notifications.userId, userId)];
+    const conditions: SQL[] = [eq(notifications.userId, userId)];
 
     if (unreadOnly) {
       conditions.push(
@@ -33,13 +35,13 @@ export async function GET(request: Request) {
     }
 
     if (type) {
-      conditions.push(eq(notifications.type, type as any));
+      conditions.push(eq(notifications.type, type as NotificationType));
     }
 
     const userNotifications = await db
       .select()
       .from(notifications)
-      .where(conditions.length === 1 ? conditions[0] : and(...(conditions as any)))
+      .where(conditions.length === 1 ? conditions[0] : and(...conditions))
       .orderBy(desc(notifications.createdAt))
       .limit(limit)
       .offset(offset);

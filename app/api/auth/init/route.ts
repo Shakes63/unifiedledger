@@ -5,7 +5,19 @@ import { eq, and, asc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 export const dynamic = 'force-dynamic';
 
-const DEFAULT_ACCOUNTS = [
+type AccountInsert = typeof accounts.$inferInsert;
+type AccountType = AccountInsert['type'];
+
+type BudgetCategoryInsert = typeof budgetCategories.$inferInsert;
+type BudgetCategoryType = BudgetCategoryInsert['type'];
+
+const DEFAULT_ACCOUNTS: Array<{
+  name: string;
+  type: AccountType;
+  bankName: string;
+  icon: string;
+  color: string;
+}> = [
   {
     name: 'Checking Account',
     type: 'checking',
@@ -22,7 +34,10 @@ const DEFAULT_ACCOUNTS = [
   },
 ];
 
-const DEFAULT_CATEGORIES = [
+const DEFAULT_CATEGORIES: Array<{
+  name: string;
+  type: BudgetCategoryType;
+}> = [
   // Income categories
   { name: 'Salary', type: 'income' },
   { name: 'Bonus', type: 'income' },
@@ -89,7 +104,7 @@ export async function POST(_request: Request) {
       userId,
       householdId,
       name: acc.name,
-      type: acc.type as any,
+      type: acc.type,
       bankName: acc.bankName,
       icon: acc.icon,
       color: acc.color,
@@ -107,8 +122,8 @@ export async function POST(_request: Request) {
       userId,
       householdId,
       name: cat.name,
-      type: cat.type as any,
-      dueDate: (cat as any).dueDate || null,
+      type: cat.type,
+      dueDate: null,
       sortOrder: index,
       createdAt: new Date().toISOString(),
     }));

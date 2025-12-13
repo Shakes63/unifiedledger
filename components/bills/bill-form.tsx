@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { AlertCircle, Plus, X, ChevronDown, ChevronUp, CreditCard, Landmark, Info, DollarSign, ArrowDownCircle, ArrowUpCircle, Sparkles, Check } from 'lucide-react';
+import { AlertCircle, Plus, X, CreditCard, Landmark, Info, ArrowDownCircle, ArrowUpCircle, Sparkles, Check } from 'lucide-react';
 import { parseISO } from 'date-fns';
 import {
   FREQUENCY_LABELS,
@@ -232,7 +232,7 @@ export function BillForm({
   // Collapsible sections state
   const [showDebtSection, setShowDebtSection] = useState(bill?.isDebt || false);
   const [showAutopaySection, setShowAutopaySection] = useState(bill?.isAutopayEnabled || false);
-  const [showAdvancedSection, setShowAdvancedSection] = useState(false);
+  const [_showAdvancedSection, setShowAdvancedSection] = useState(false);
   
   // Classification suggestion state
   const [classificationSuggestion, setClassificationSuggestion] = useState<ClassificationSuggestion | null>(null);

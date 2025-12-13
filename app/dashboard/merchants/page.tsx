@@ -93,7 +93,7 @@ export default function MerchantsPage() {
     };
 
     fetchData();
-  }, [selectedHouseholdId]);
+  }, [selectedHouseholdId, fetchWithHousehold]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {

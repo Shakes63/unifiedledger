@@ -64,7 +64,7 @@ function getNotificationMessage(
 ): { title: string; message: string; priority: 'low' | 'normal' | 'high' | 'urgent' } {
   const isIncrease = newLimit > oldLimit;
   const changeAmount = Math.abs(newLimit - oldLimit);
-  const changePercent = oldLimit > 0 ? (changeAmount / oldLimit) * 100 : 0;
+  const _changePercent = oldLimit > 0 ? (changeAmount / oldLimit) * 100 : 0;
 
   if (isIncrease) {
     const sourceText = changeSource === 'bank_increase' 

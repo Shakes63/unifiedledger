@@ -81,7 +81,7 @@ export async function PUT(
     }
 
     // Update merchant
-    const updateData: any = {
+    const updateData: Partial<typeof merchants.$inferInsert> = {
       updatedAt: new Date().toISOString(),
     };
 

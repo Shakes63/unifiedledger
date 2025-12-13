@@ -16,6 +16,17 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { parseISO } from 'date-fns';
 
+const DEFAULT_ACCOUNT_COLORS = [
+  '#ef4444', // red
+  '#f59e0b', // amber
+  '#10b981', // emerald
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#06b6d4', // cyan
+  '#84cc16', // lime
+];
+
 interface AccountInfo {
   id: string;
   name: string;
@@ -31,7 +42,7 @@ function CustomTooltip({
   active, 
   payload, 
   label,
-  accounts,
+  accounts: _accounts,
 }: { 
   active?: boolean; 
   payload?: { dataKey: string; value: number; color: string }[]; 
@@ -129,22 +140,10 @@ export function BalanceHistoryChart({ className = '' }: BalanceHistoryChartProps
     return `$${value}`;
   };
 
-  // Generate colors for accounts without explicit colors
-  const defaultColors = [
-    '#ef4444', // red
-    '#f59e0b', // amber
-    '#10b981', // emerald
-    '#3b82f6', // blue
-    '#8b5cf6', // violet
-    '#ec4899', // pink
-    '#06b6d4', // cyan
-    '#84cc16', // lime
-  ];
-
   const accountColors = useMemo(() => {
     return accounts.map((acc, index) => ({
       ...acc,
-      color: acc.color || defaultColors[index % defaultColors.length],
+      color: acc.color || DEFAULT_ACCOUNT_COLORS[index % DEFAULT_ACCOUNT_COLORS.length],
     }));
   }, [accounts]);
 

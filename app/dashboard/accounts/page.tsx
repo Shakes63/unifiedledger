@@ -96,7 +96,7 @@ export default function AccountsPage() {
   }, [initialized, householdLoading, selectedHouseholdId, householdId, fetchWithHousehold]);
 
   // Create or update account
-  const handleSubmit = async (formData: any, saveMode: 'save' | 'saveAndAdd' = 'save') => {
+  const handleSubmit = async (formData: Record<string, unknown>, saveMode: 'save' | 'saveAndAdd' = 'save') => {
     try {
       setIsSubmitting(true);
 
@@ -106,11 +106,12 @@ export default function AccountsPage() {
         : await postWithHousehold(url, formData);
 
       if (response.ok || response.status === 201) {
-        const result = await response.json();
+        await response.json();
 
         // Show appropriate toast message
         if (saveMode === 'saveAndAdd') {
-          toast.success(`Account "${formData.name}" saved successfully!`);
+          const accountName = typeof formData.name === 'string' ? formData.name : 'Account';
+          toast.success(`Account "${accountName}" saved successfully!`);
         } else {
           toast.success(selectedAccount ? 'Account updated successfully' : 'Account created successfully');
         }

@@ -256,8 +256,8 @@ export async function GET(request: Request) {
         ]);
 
         const result = await calculationPromise as {
-          originalProjection: any;
-          adjustedProjection: any;
+          originalProjection: { totalMonths: number; totalInterestPaid: number; debtFreeDate: Date };
+          adjustedProjection: { totalMonths: number; totalInterestPaid: number; debtFreeDate: Date };
         };
 
         const monthsAheadOrBehind = result.originalProjection.totalMonths - result.adjustedProjection.totalMonths;

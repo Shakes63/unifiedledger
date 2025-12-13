@@ -615,7 +615,10 @@ export async function PUT(
 
             if (matchingBills.length > 0) {
               // Collect all pending and overdue instances from all matching bills
-              const allPendingInstances: any[] = [];
+              const allPendingInstances: Array<{
+                instance: typeof billInstances.$inferSelect;
+                bill: typeof bills.$inferSelect;
+              }> = [];
 
               for (const bill of matchingBills) {
                 const instances = await db

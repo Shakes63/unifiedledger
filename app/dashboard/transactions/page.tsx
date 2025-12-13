@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload, Plus, Pencil, ShieldOff, Target } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -22,7 +22,6 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { HouseholdLoadingState } from '@/components/household/household-loading-state';
 import { NoHouseholdError } from '@/components/household/no-household-error';
-import { parseISO, format } from 'date-fns';
 
 interface Transaction {
   id: string;
@@ -61,6 +60,25 @@ interface Merchant {
   categoryId?: string;
 }
 
+type TransactionSearchFilters = {
+  query?: string;
+  categoryIds?: string[];
+  accountIds?: string[];
+  tagIds?: string[];
+  customFieldIds?: string[];
+  types?: string[];
+  amountMin?: number;
+  amountMax?: number;
+  dateStart?: string;
+  dateEnd?: string;
+  isPending?: boolean;
+  isSplit?: boolean;
+  hasNotes?: boolean;
+  hasSavingsGoal?: boolean;
+  sortBy?: 'date' | 'amount' | 'description';
+  sortOrder?: 'asc' | 'desc';
+};
+
 function TransactionsContent() {
   const searchParams = useSearchParams();
   const accountIdFromUrl = searchParams.get('accountId');
@@ -81,24 +99,68 @@ function TransactionsContent() {
   const [repeatingTxId, setRepeatingTxId] = useState<string | null>(null);
   const [totalResults, setTotalResults] = useState(0);
   const [paginationOffset, setPaginationOffset] = useState(0);
-  const [pageSize, setPageSize] = useState(50);
+  const [pageSize, _setPageSize] = useState(50);
   const [hasMore, setHasMore] = useState(false);
-  const [currentFilters, setCurrentFilters] = useState<any>(null);
+  const [currentFilters, setCurrentFilters] = useState<TransactionSearchFilters | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [defaultImportTemplateId, setDefaultImportTemplateId] = useState<string | undefined>(undefined);
   const [updatingTxId, setUpdatingTxId] = useState<string | null>(null);
   const [combinedTransferView, setCombinedTransferView] = useState<boolean>(true); // Default to combined view
 
+  const performSearch = useCallback(async (filters: TransactionSearchFilters, offset: number = 0) => {
+    try {
+      setSearchLoading(true);
+
+      const params = new URLSearchParams();
+      if (filters.query) params.append('query', filters.query);
+      if (filters.categoryIds?.length > 0) params.append('categoryIds', filters.categoryIds.join(','));
+      if (filters.accountIds?.length > 0) params.append('accountIds', filters.accountIds.join(','));
+      if (filters.types?.length > 0) params.append('types', filters.types.join(','));
+      if (filters.amountMin !== undefined) params.append('amountMin', filters.amountMin.toString());
+      if (filters.amountMax !== undefined) params.append('amountMax', filters.amountMax.toString());
+      if (filters.dateStart) params.append('dateStart', filters.dateStart);
+      if (filters.dateEnd) params.append('dateEnd', filters.dateEnd);
+      if (filters.isPending) params.append('isPending', 'true');
+      if (filters.isSplit) params.append('isSplit', 'true');
+      if (filters.hasNotes) params.append('hasNotes', 'true');
+      if (filters.hasSavingsGoal) params.append('hasSavingsGoal', 'true'); // Phase 18
+      if (filters.sortBy) params.append('sortBy', filters.sortBy);
+      if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
+      params.append('limit', pageSize.toString());
+      params.append('offset', offset.toString());
+
+      const response = await fetchWithHousehold(`/api/transactions/search?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTransactions(data.transactions);
+        setTotalResults(data.pagination.total);
+        setHasMore(data.pagination.hasMore);
+        setPaginationOffset(offset);
+
+        if (offset === 0) {
+          toast.success(`Found ${data.pagination.total} transaction(s)`);
+        }
+      } else {
+        toast.error('Search failed');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      toast.error('Failed to search transactions');
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [fetchWithHousehold, pageSize]);
+
   // Auto-filter by account if accountId is in URL
   useEffect(() => {
     if (accountIdFromUrl && accounts.length > 0) {
-      const filters = {
+      const filters: TransactionSearchFilters = {
         accountIds: [accountIdFromUrl],
       };
       setCurrentFilters(filters);
-      performSearch(filters, 0);
+      void performSearch(filters, 0);
     }
-  }, [accountIdFromUrl, accounts]);
+  }, [accountIdFromUrl, accounts, performSearch]);
 
   // Fetch initial data
   useEffect(() => {
@@ -192,51 +254,7 @@ function TransactionsContent() {
     fetchPreference();
   }, [selectedHouseholdId, fetchWithHousehold]);
 
-  const performSearch = async (filters: any, offset: number = 0) => {
-    try {
-      setSearchLoading(true);
-
-      const params = new URLSearchParams();
-      if (filters.query) params.append('query', filters.query);
-      if (filters.categoryIds?.length > 0) params.append('categoryIds', filters.categoryIds.join(','));
-      if (filters.accountIds?.length > 0) params.append('accountIds', filters.accountIds.join(','));
-      if (filters.types?.length > 0) params.append('types', filters.types.join(','));
-      if (filters.amountMin !== undefined) params.append('amountMin', filters.amountMin.toString());
-      if (filters.amountMax !== undefined) params.append('amountMax', filters.amountMax.toString());
-      if (filters.dateStart) params.append('dateStart', filters.dateStart);
-      if (filters.dateEnd) params.append('dateEnd', filters.dateEnd);
-      if (filters.isPending) params.append('isPending', 'true');
-      if (filters.isSplit) params.append('isSplit', 'true');
-      if (filters.hasNotes) params.append('hasNotes', 'true');
-      if (filters.hasSavingsGoal) params.append('hasSavingsGoal', 'true'); // Phase 18
-      if (filters.sortBy) params.append('sortBy', filters.sortBy);
-      if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
-      params.append('limit', pageSize.toString());
-      params.append('offset', offset.toString());
-
-      const response = await fetchWithHousehold(`/api/transactions/search?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        setTransactions(data.transactions);
-        setTotalResults(data.pagination.total);
-        setHasMore(data.pagination.hasMore);
-        setPaginationOffset(offset);
-
-        if (offset === 0) {
-          toast.success(`Found ${data.pagination.total} transaction(s)`);
-        }
-      } else {
-        toast.error('Search failed');
-      }
-    } catch (error) {
-      console.error('Search error:', error);
-      toast.error('Failed to search transactions');
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  const handleAdvancedSearch = async (filters: any) => {
+  const handleAdvancedSearch = async (filters: TransactionSearchFilters) => {
     setCurrentFilters(filters);
     setPaginationOffset(0);
     await performSearch(filters, 0);
@@ -337,21 +355,6 @@ function TransactionsContent() {
     }
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'income':
-        return { backgroundColor: 'color-mix(in oklch, var(--color-income) 20%, transparent)', color: 'var(--color-income)' };
-      case 'expense':
-        return { backgroundColor: 'color-mix(in oklch, var(--color-expense) 20%, transparent)', color: 'var(--color-expense)' };
-      case 'transfer':
-      case 'transfer_in':
-      case 'transfer_out':
-        return { backgroundColor: 'color-mix(in oklch, var(--color-transfer) 20%, transparent)', color: 'var(--color-transfer)' };
-      default:
-        return { backgroundColor: 'color-mix(in oklch, var(--color-muted-foreground) 20%, transparent)', color: 'var(--color-muted-foreground)' };
-    }
-  };
-
   const getMerchantName = (merchantId?: string): string | null => {
     if (!merchantId) return null;
     const merchant = merchants.find((m) => m.id === merchantId);
@@ -368,12 +371,6 @@ function TransactionsContent() {
     if (!accountId) return false;
     const account = accounts.find((a) => a.id === accountId);
     return account?.enableSalesTax ?? false;
-  };
-
-  const getCategoryName = (categoryId?: string): string | null => {
-    if (!categoryId) return null;
-    const category = categories.find((c) => c.id === categoryId);
-    return category?.name || null;
   };
 
   const getTransferDisplayProps = (transaction: Transaction): {
@@ -874,6 +871,7 @@ function TransactionsContent() {
                 alt="UnifiedLedger Logo"
                 fill
                 className="object-contain"
+                priority
               />
             </div>
             <div>
@@ -966,7 +964,6 @@ function TransactionsContent() {
             {getFilteredTransactions(transactions).map((transaction) => {
               const display = getTransactionDisplay(transaction);
               const accountName = getAccountName(transaction.accountId);
-              const categoryName = getCategoryName(transaction.categoryId);
               const isTransfer = transaction.type === 'transfer_out' || transaction.type === 'transfer_in';
               const hasMissingInfo = !isTransfer && (!transaction.categoryId || !transaction.merchantId);
 

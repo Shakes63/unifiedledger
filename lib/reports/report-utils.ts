@@ -1,6 +1,6 @@
-import { and, eq, gte, lte, desc, inArray } from 'drizzle-orm';
+import { and, eq, gte, lte, desc, inArray, type SQL } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { transactions, budgetCategories, merchants, accounts } from '@/lib/db/schema';
+import { transactions, budgetCategories, accounts } from '@/lib/db/schema';
 import Decimal from 'decimal.js';
 
 /**
@@ -40,7 +40,7 @@ export async function getTransactionsByDateRange(
     merchantIds?: string[];
   }
 ): Promise<TransactionData[]> {
-  const conditions: any[] = [
+  const conditions: SQL[] = [
     eq(transactions.userId, userId),
     eq(transactions.householdId, householdId),
     gte(transactions.date, startDate),
@@ -291,7 +291,7 @@ export async function calculateNetWorth(userId: string, householdId: string): Pr
 
   let total = new Decimal(0);
 
-  result.forEach((account: any) => {
+  result.forEach((account) => {
     total = total.plus(new Decimal(account.currentBalance || 0));
   });
 

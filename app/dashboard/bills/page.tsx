@@ -151,12 +151,12 @@ export default function BillsDashboard() {
         // Handle empty data safely
         // Extract bill objects from nested structure { bill, category, account }
         const billsList = Array.isArray(billsData?.data)
-          ? billsData.data.map((row: any) => row.bill)
+          ? (billsData.data as Array<{ bill: BillWithInstance }>).map((row) => row.bill)
           : [];
 
         // Extract instance objects from nested structure { instance, bill }
         const rawInstances = Array.isArray(instancesData?.data) ? instancesData.data : [];
-        const instancesList = rawInstances.map((row: any) => ({
+        const instancesList = (rawInstances as Array<{ instance: BillInstance; bill: BillWithInstance }>).map((row) => ({
           ...row.instance,
           bill: row.bill,
         }));
@@ -205,11 +205,11 @@ export default function BillsDashboard() {
 
           // Handle empty data safely
           const billsList = Array.isArray(billsData?.data)
-            ? billsData.data.map((row: any) => row.bill)
+            ? (billsData.data as Array<{ bill: BillWithInstance }>).map((row) => row.bill)
             : [];
 
           const rawInstances = Array.isArray(instancesData?.data) ? instancesData.data : [];
-          const instancesList = rawInstances.map((row: any) => ({
+          const instancesList = (rawInstances as Array<{ instance: BillInstance; bill: BillWithInstance }>).map((row) => ({
             ...row.instance,
             bill: row.bill,
           }));

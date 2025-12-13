@@ -36,6 +36,7 @@ export default async function Home() {
                 alt="UnifiedLedger Logo"
                 fill
                 className="object-contain"
+                priority
               />
             </div>
             <h1 className="text-xl font-bold text-foreground font-sans">Unified Ledger</h1>

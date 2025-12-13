@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { AlertCircle, Trash2, Archive, CheckCircle2, Calendar, DollarSign, BarChart3, TrendingDown, PartyPopper, Bell, Info } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Trash2, Archive, CheckCircle2, Calendar, DollarSign, BarChart3, TrendingDown, PartyPopper, Bell, Info } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -40,32 +40,36 @@ export default function NotificationsPage() {
   const limit = 20;
 
   useEffect(() => {
-    fetchNotifications();
-  }, [filter, page]);
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setLoading(true);
+        const url = new URL('/api/notifications', window.location.origin);
+        url.searchParams.append('limit', String(limit));
+        url.searchParams.append('offset', String(page * limit));
+        if (filter === 'unread') {
+          url.searchParams.append('unreadOnly', 'true');
+        }
 
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const url = new URL('/api/notifications', window.location.origin);
-      url.searchParams.append('limit', String(limit));
-      url.searchParams.append('offset', String(page * limit));
-      if (filter === 'unread') {
-        url.searchParams.append('unreadOnly', 'true');
+        const response = await fetch(url.toString());
+        if (!response.ok) throw new Error('Failed to fetch notifications');
+
+        const data = await response.json();
+        if (cancelled) return;
+        setNotifications(data.data || []);
+        setTotal(data.total || 0);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        toast.error('Failed to load notifications');
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      const response = await fetch(url.toString());
-      if (!response.ok) throw new Error('Failed to fetch notifications');
-
-      const data = await response.json();
-      setNotifications(data.data || []);
-      setTotal(data.total || 0);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      toast.error('Failed to load notifications');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [filter, page]);
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {

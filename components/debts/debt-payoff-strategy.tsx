@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MapPin, BarChart3, DollarSign, Lightbulb, ArrowDown, Target, Clock, Sparkles } from 'lucide-react';
+import { MapPin, DollarSign, Lightbulb, ArrowDown, Target, Clock, Sparkles } from 'lucide-react';
 import type { ComparisonResult, PayoffMethod, PaymentFrequency, RolldownPayment } from '@/lib/debts/payoff-calculator';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';

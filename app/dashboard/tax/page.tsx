@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -95,11 +95,7 @@ export default function TaxPage() {
   const [error, setError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
-  useEffect(() => {
-    fetchTaxData();
-  }, [year, typeFilter]);
-
-  const fetchTaxData = async () => {
+  const fetchTaxData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -128,7 +124,11 @@ export default function TaxPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [typeFilter, year]);
+
+  useEffect(() => {
+    fetchTaxData();
+  }, [fetchTaxData]);
 
   // Get icon for interest deduction type
   const getInterestTypeIcon = (type: string) => {
@@ -342,7 +342,7 @@ export default function TaxPage() {
                 There are no {typeFilter !== 'all' ? typeFilter : ''} transactions with tax-deductible categories for {year}.
               </p>
               <p className="text-sm text-muted-foreground">
-                Start tracking your deductible expenses by marking categories as "Tax Deductible" in the Categories page.
+                Start tracking your deductible expenses by marking categories as &quot;Tax Deductible&quot; in the Categories page.
               </p>
             </CardContent>
           </Card>

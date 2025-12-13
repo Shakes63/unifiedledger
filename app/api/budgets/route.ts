@@ -155,13 +155,13 @@ export async function POST(request: Request) {
       }
 
       // Build update object
-      const updateData: any = {
+      const updateData: Partial<typeof budgetCategories.$inferInsert> = {
         monthlyBudget: new Decimal(budget.monthlyBudget).toNumber(),
       };
 
       // Include income frequency if provided (for income categories)
       if (budget.incomeFrequency !== undefined && existingCategory[0].type === 'income') {
-        updateData.incomeFrequency = budget.incomeFrequency;
+        updateData.incomeFrequency = budget.incomeFrequency as typeof budgetCategories.$inferInsert['incomeFrequency'];
       }
 
       // Update the budget

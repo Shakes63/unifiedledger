@@ -9,7 +9,6 @@
  */
 
 import Decimal from 'decimal.js';
-import { accounts, bills, billInstances } from '@/lib/db/schema';
 
 export type AutopayAmountType = 'fixed' | 'minimum_payment' | 'statement_balance' | 'full_balance';
 

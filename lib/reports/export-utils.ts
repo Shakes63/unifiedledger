@@ -5,7 +5,7 @@
 /**
  * Export data to CSV format
  */
-export function exportToCSV(data: any[], filename: string): void {
+export function exportToCSV(data: Array<Record<string, unknown>>, filename: string): void {
   if (!data || data.length === 0) {
     console.warn('No data to export');
     return;
@@ -39,7 +39,7 @@ export function exportToCSV(data: any[], filename: string): void {
 /**
  * Export chart data to JSON format
  */
-export function exportToJSON(data: any, filename: string): void {
+export function exportToJSON(data: unknown, filename: string): void {
   const jsonContent = JSON.stringify(data, null, 2);
   downloadFile(jsonContent, filename, 'application/json');
 }
@@ -105,11 +105,11 @@ export function getExportFilename(reportName: string, format: string = 'csv'): s
  */
 export function prepareReportForExport(
   reportName: string,
-  data: any,
-  summary?: Record<string, any>
+  data: unknown,
+  summary?: Record<string, unknown>
 ): {
-  data: any;
-  summary: Record<string, any>;
+  data: unknown;
+  summary: Record<string, unknown>;
   exportedAt: string;
   reportName: string;
 } {
@@ -124,8 +124,8 @@ export function prepareReportForExport(
 /**
  * Create a summary row for CSV export
  */
-export function createSummaryRow(summary: Record<string, any>): Record<string, any> {
-  const row: Record<string, any> = {};
+export function createSummaryRow(summary: Record<string, unknown>): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
   row[''] = 'SUMMARY';
 
   Object.entries(summary).forEach(([key, value]) => {

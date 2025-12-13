@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -18,7 +18,7 @@ import { BudgetPeriodWidget } from '@/components/dashboard/budget-period-widget'
 import { betterAuthClient } from '@/lib/better-auth-client';
 
 export default function DashboardPage() {
-  const { data: session, isPending } = betterAuthClient.useSession();
+  const { data: session, isPending: _isPending } = betterAuthClient.useSession();
 
   useEffect(() => {
     // Initialize user on first load
@@ -33,10 +33,10 @@ export default function DashboardPage() {
       }
     };
 
-    if (!isPending && session) {
+    if (session) {
       initializeUser();
     }
-  }, [isPending, session]);
+  }, [session]);
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">

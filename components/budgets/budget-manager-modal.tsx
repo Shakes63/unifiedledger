@@ -18,7 +18,7 @@ import Decimal from 'decimal.js';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
-import { Info, Star, ExternalLink, CreditCard, FolderPlus, Check, X, Plus } from 'lucide-react';
+import { Info, Star, ExternalLink, CreditCard, FolderPlus, X, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { BudgetTemplateSelector } from './budget-template-selector';
 

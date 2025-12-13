@@ -217,7 +217,7 @@ export async function POST(request: Request) {
           );
 
           // Build update object with only changed fields
-          const updates: any = {
+          const updates: Partial<typeof transactions.$inferInsert> = {
             updatedAt: new Date().toISOString(),
           };
 

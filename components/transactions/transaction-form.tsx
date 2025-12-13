@@ -133,7 +133,7 @@ interface TransactionFormProps {
 export function TransactionForm({ defaultType = 'expense', transactionId, onEditSuccess }: TransactionFormProps) {
   const router = useRouter();
   const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
-  const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold, selectedHouseholdId } = useHouseholdFetch();
+  const { fetchWithHousehold, postWithHousehold, putWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -168,7 +168,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [detectionLoading, setDetectionLoading] = useState(false);
   // Phase 5: Auto-detection for credit card payment bills
   const [paymentBillDetection, setPaymentBillDetection] = useState<PaymentBillDetectionResult | null>(null);
-  const [paymentBillLoading, setPaymentBillLoading] = useState(false);
+  const [_paymentBillLoading, setPaymentBillLoading] = useState(false);
   const isEditMode = !!transactionId;
 
   // Helper function to get today's date in YYYY-MM-DD format
@@ -417,7 +417,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     };
 
     detectGoals();
-  }, [formData.type, formData.toAccountId, selectedHouseholdId, fetchWithHousehold]);
+  }, [formData.type, formData.toAccountId, formData.amount, selectedHouseholdId, fetchWithHousehold]);
 
   // Phase 5: Auto-detect payment bills when destination account changes
   useEffect(() => {

@@ -29,7 +29,7 @@ interface RolloverSummaryProps {
   onCategoryEdit?: (categoryId: string) => void;
 }
 
-export function RolloverSummary({ onCategoryEdit }: RolloverSummaryProps) {
+export function RolloverSummary({ onCategoryEdit: _onCategoryEdit }: RolloverSummaryProps) {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, putWithHousehold } = useHouseholdFetch();
   const [data, setData] = useState<RolloverSummaryData | null>(null);

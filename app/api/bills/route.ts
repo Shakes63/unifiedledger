@@ -96,10 +96,8 @@ export async function GET(request: Request) {
     }
 
     // Get upcoming bill instances for each bill
-    let billsWithInstances: any[] = [];
-
-    if (result && result.length > 0) {
-      billsWithInstances = await Promise.all(
+    const billsWithInstances = result && result.length > 0
+      ? await Promise.all(
         result.map(async (row) => {
           const upcomingInstances = await db
             .select()
@@ -119,8 +117,8 @@ export async function GET(request: Request) {
             upcomingInstances,
           };
         })
-      );
-    }
+      )
+      : [];
 
     // Get total count
     const countResult = await db

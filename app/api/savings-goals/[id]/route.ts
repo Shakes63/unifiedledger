@@ -81,7 +81,7 @@ export async function PUT(
       return new Response(JSON.stringify({ error: 'Goal not found' }), { status: 404 });
     }
 
-    const updates: any = { ...body };
+    const updates: Partial<typeof savingsGoals.$inferInsert> = { ...(body as Record<string, unknown>) } as Partial<typeof savingsGoals.$inferInsert>;
     updates.updatedAt = new Date().toISOString();
 
     // If targetAmount changed, recalculate milestone amounts

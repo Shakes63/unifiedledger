@@ -78,7 +78,7 @@ const HOUSEHOLD_TABS = [
 function SettingsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { households, selectedHouseholdId, selectedHousehold, refreshHouseholds, loading: householdsLoading } = useHousehold();
+  const { households, selectedHouseholdId, refreshHouseholds, loading: householdsLoading } = useHousehold();
   const [isOwner, setIsOwner] = useState<boolean | null>(null);
   const [memberCounts, setMemberCounts] = useState<Record<string, number>>({});
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -118,7 +118,7 @@ function SettingsPageContent() {
               const membersData = await response.json();
               counts[household.id] = membersData.length;
             }
-          } catch (error) {
+          } catch (_error) {
             // Silently fail for member counts
           }
         })

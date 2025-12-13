@@ -37,7 +37,7 @@ interface LogActivityParams {
   entityId?: string;
   entityName?: string;
   description?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export async function logActivity({
@@ -78,7 +78,7 @@ export async function logTransactionActivity(
   transactionName: string,
   transactionId: string,
   householdId?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
   const descriptions = {
     transaction_created: `Created transaction: ${transactionName}`,
@@ -104,7 +104,7 @@ export async function logBillActivity(
   billName: string,
   billId: string,
   householdId?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
   const descriptions = {
     bill_created: `Created bill: ${billName}`,
@@ -131,7 +131,7 @@ export async function logGoalActivity(
   goalName: string,
   goalId: string,
   householdId?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
   const descriptions = {
     goal_created: `Created savings goal: ${goalName}`,
@@ -163,7 +163,7 @@ export async function logDebtActivity(
   debtName: string,
   debtId: string,
   householdId?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
   const descriptions = {
     debt_created: `Added debt: ${debtName}`,
@@ -191,7 +191,7 @@ export async function logTransferActivity(
   transferName: string,
   transferId: string,
   householdId?: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
   const descriptions = {
     transfer_created: `Transferred funds: ${transferName}`,
@@ -215,7 +215,7 @@ export async function logMemberActivity(
   type: 'member_added' | 'member_removed' | 'member_left',
   memberName: string,
   householdId: string,
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ) {
   const descriptions = {
     member_added: `Added household member: ${memberName}`,

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { BudgetSummaryCard } from '@/components/budgets/budget-summary-card';
+import { BudgetSummaryCard, type DebtBudgetData } from '@/components/budgets/budget-summary-card';
 import { CategoryBudgetProgress } from '@/components/budgets/category-budget-progress';
 import { BudgetGroupSection } from '@/components/budgets/budget-group-section';
 import { BudgetManagerModal } from '@/components/budgets/budget-manager-modal';
@@ -59,10 +59,10 @@ interface BudgetOverview {
   };
   categories: CategoryData[];
   groupedCategories: {
-    income: Array<any>;
-    expenses: Array<any>;
-    savings: Array<any>;
-    bills: Array<any>;
+    income: CategoryData[];
+    expenses: CategoryData[];
+    savings: CategoryData[];
+    bills?: CategoryData[];
   };
 }
 
@@ -85,6 +85,7 @@ export default function BudgetsPage() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, postWithHousehold } = useHouseholdFetch();
   const [budgetData, setBudgetData] = useState<BudgetOverview | null>(null);
+  const [debtBudgetData, setDebtBudgetData] = useState<DebtBudgetData | null>(null);
   const [budgetGroups, setBudgetGroups] = useState<BudgetGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -118,9 +119,10 @@ export default function BudgetsPage() {
         setError(null);
 
         // Fetch budget overview and budget groups in parallel
-        const [overviewResponse, groupsResponse] = await Promise.all([
+        const [overviewResponse, groupsResponse, debtsResponse] = await Promise.all([
           fetchWithHousehold(`/api/budgets/overview?month=${selectedMonth}`),
           fetchWithHousehold(`/api/budget-groups?month=${selectedMonth}`),
+          fetchWithHousehold(`/api/budgets/debts?month=${selectedMonth}`),
         ]);
 
         if (!overviewResponse.ok) {
@@ -129,6 +131,13 @@ export default function BudgetsPage() {
 
         const data = await overviewResponse.json();
         setBudgetData(data);
+
+        if (debtsResponse.ok) {
+          const debtsData = await debtsResponse.json();
+          setDebtBudgetData(debtsData);
+        } else {
+          setDebtBudgetData(null);
+        }
 
         // Budget groups are optional - don't fail if they don't load
         if (groupsResponse.ok) {
@@ -348,7 +357,7 @@ export default function BudgetsPage() {
         </div>
 
         {/* Monthly Summary */}
-        <BudgetSummaryCard summary={budgetData.summary} month={budgetData.month} />
+        <BudgetSummaryCard summary={budgetData.summary} month={budgetData.month} debtData={debtBudgetData} />
 
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-3">

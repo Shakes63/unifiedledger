@@ -1,12 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import Decimal from 'decimal.js';
 import { CreditCard } from 'lucide-react';
-import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
-import { useHousehold } from '@/contexts/household-context';
 
-interface DebtBudgetData {
+export interface DebtBudgetData {
   totalRecommendedPayments: number;
   totalActualPaid: number;
   debts: { debtId: string }[];
@@ -28,30 +26,10 @@ interface BudgetSummaryCardProps {
     daysElapsed: number;
   };
   month: string;
+  debtData?: DebtBudgetData | null;
 }
 
-export function BudgetSummaryCard({ summary, month }: BudgetSummaryCardProps) {
-  const { selectedHouseholdId } = useHousehold();
-  const { fetchWithHousehold } = useHouseholdFetch();
-  const [debtData, setDebtData] = useState<DebtBudgetData | null>(null);
-
-  // Fetch debt data
-  const fetchDebtData = useCallback(async () => {
-    if (!selectedHouseholdId) return;
-    try {
-      const response = await fetchWithHousehold(`/api/budgets/debts?month=${month}`);
-      if (response.ok) {
-        const data = await response.json();
-        setDebtData(data);
-      }
-    } catch (error) {
-      console.error('Error fetching debt data:', error);
-    }
-  }, [selectedHouseholdId, month, fetchWithHousehold]);
-
-  useEffect(() => {
-    fetchDebtData();
-  }, [fetchDebtData]);
+export function BudgetSummaryCard({ summary, month, debtData }: BudgetSummaryCardProps) {
 
   // Format month for display
   const formatMonth = (monthStr: string) => {

@@ -147,6 +147,7 @@ export function MobileNav() {
                 alt="UnifiedLedger"
                 fill
                 className="object-contain"
+                priority
               />
             </div>
             <span className="font-bold text-foreground text-sm">Unified</span>

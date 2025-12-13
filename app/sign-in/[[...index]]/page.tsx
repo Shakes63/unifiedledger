@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { betterAuthClient } from '@/lib/better-auth-client';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,21 +14,32 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import { toast } from 'sonner';
 import { Loader2, Shield, Globe, Clock, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SignInPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
+
+  type OAuthProvider = { id: string; name: string; enabled: boolean };
   
   // Fetch available OAuth providers on mount
   useEffect(() => {
     fetch('/api/user/oauth/available', { credentials: 'include' })
       .then((res) => res.json())
       .then((data) => {
-        if (data.providers) {
-          setAvailableProviders(data.providers.filter((p: any) => p.enabled));
+        if (Array.isArray(data?.providers)) {
+          const providers = (data.providers as unknown[])
+            .filter((p): p is OAuthProvider => {
+              if (!p || typeof p !== 'object') return false;
+              const obj = p as Record<string, unknown>;
+              return (
+                typeof obj.id === 'string' &&
+                typeof obj.name === 'string' &&
+                typeof obj.enabled === 'boolean'
+              );
+            })
+            .filter((p) => p.enabled);
+          setAvailableProviders(providers);
         }
       })
       .catch(() => {
@@ -93,8 +104,8 @@ export default function SignInPage() {
 
       // No 2FA required - complete login
       await completeLogin();
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Incorrect email or password';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Incorrect email or password';
       setError(errorMessage);
       setLoading(false);
     }
@@ -138,14 +149,14 @@ export default function SignInPage() {
         if (!result) {
           throw new Error('Failed to complete sign-in');
         }
-      } catch (signInError: any) {
+      } catch (_signInError: unknown) {
         throw new Error('Failed to complete sign-in');
       }
 
       // Complete login
       await completeLogin();
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Invalid verification code';
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Invalid verification code';
       setError(errorMessage);
       setTwoFactorCode('');
     } finally {
@@ -163,7 +174,7 @@ export default function SignInPage() {
           body: JSON.stringify({ rememberMe: true }),
           credentials: 'include',
         });
-      } catch (err) {
+      } catch (_err) {
         // Don't block sign-in if this fails
       }
     }
@@ -206,8 +217,8 @@ export default function SignInPage() {
       } else {
         throw new Error('Failed to get OAuth authorization URL');
       }
-    } catch (error: any) {
-      const errorMessage = error?.message || `Failed to sign in with ${providerId}`;
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : `Failed to sign in with ${providerId}`;
       setError(errorMessage);
       setOauthLoading(null);
     }
@@ -362,7 +373,7 @@ export default function SignInPage() {
                     autoFocus
                   />
                   <p className="text-xs text-muted-foreground text-center">
-                    You can also use a backup code if you've lost access to your authenticator app
+                    You can also use a backup code if you&apos;ve lost access to your authenticator app
                   </p>
                 </div>
 
@@ -437,7 +448,7 @@ export default function SignInPage() {
           )}
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link
               href="/sign-up"
               className="text-[var(--color-primary)] hover:underline font-medium"

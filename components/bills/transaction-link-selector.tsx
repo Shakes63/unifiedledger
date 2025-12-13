@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { format, parseISO, addDays, subDays } from 'date-fns';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
-import { Loader2, CheckCircle2, Search, Link2Off } from 'lucide-react';
+import { Loader2, Search, Link2Off } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import Decimal from 'decimal.js';
@@ -39,9 +39,9 @@ export function TransactionLinkSelector({
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const dueDateObj = parseISO(dueDate);
-  const startDate = subDays(dueDateObj, 7);
-  const endDate = addDays(dueDateObj, 7);
+  const dueDateObj = useMemo(() => parseISO(dueDate), [dueDate]);
+  const startDate = useMemo(() => subDays(dueDateObj, 7), [dueDateObj]);
+  const endDate = useMemo(() => addDays(dueDateObj, 7), [dueDateObj]);
 
   useEffect(() => {
     if (!selectedHouseholdId) {
@@ -78,7 +78,7 @@ export function TransactionLinkSelector({
           
           // Calculate match score for each transaction
           const expectedDecimal = new Decimal(expectedAmount);
-          const tolerance = expectedDecimal.times(amountTolerance).dividedBy(100);
+          const _tolerance = expectedDecimal.times(amountTolerance).dividedBy(100);
 
           const scoredTransactions = data
             .filter((tx: Transaction) => {
@@ -123,7 +123,7 @@ export function TransactionLinkSelector({
     };
 
     fetchData();
-  }, [selectedHouseholdId, fetchWithHousehold, dueDate, expectedAmount, amountTolerance, currentTransactionId]);
+  }, [selectedHouseholdId, fetchWithHousehold, dueDateObj, startDate, endDate, expectedAmount, amountTolerance, currentTransactionId]);
 
   const filteredTransactions = transactions.filter((tx) => {
     if (!searchQuery) return true;

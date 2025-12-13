@@ -2,7 +2,7 @@ import { requireOwner } from '@/lib/auth/owner-helpers';
 import { auth } from '@/lib/better-auth';
 import { db } from '@/lib/db';
 import { betterAuthUser, households, householdMembers } from '@/lib/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, type SQL } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { headers } from 'next/headers';
 
@@ -187,7 +187,7 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || '';
 
     // Build where clause
-    let whereClause: any = undefined;
+    let whereClause: SQL | undefined;
     if (search) {
       // Use SQL template for case-insensitive search
       const searchPattern = `%${search}%`;

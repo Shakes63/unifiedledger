@@ -6,12 +6,11 @@
  */
 
 import { db } from '@/lib/db';
-import { bills, billInstances, accounts } from '@/lib/db/schema';
+import { bills, billInstances } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
-import { parseISO, subDays, isSameDay, format } from 'date-fns';
+import { parseISO, subDays, isSameDay } from 'date-fns';
 import { 
   processAutopayForInstance, 
-  AutopayResult, 
   FullBillData, 
   FullInstanceData 
 } from '@/lib/bills/autopay-transaction';
@@ -56,7 +55,6 @@ export interface AutopayProcessingResult {
  */
 export async function processAllAutopayBills(): Promise<AutopayProcessingResult> {
   const today = new Date();
-  const todayStr = format(today, 'yyyy-MM-dd');
   
   const result: AutopayProcessingResult = {
     processed: 0,

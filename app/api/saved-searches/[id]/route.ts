@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 interface UpdateSearchInput {
   name?: string;
   description?: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   isDefault?: boolean;
 }
 
@@ -99,7 +99,7 @@ export async function PUT(
         );
     }
 
-    const updateData: any = {
+    const updateData: Partial<typeof savedSearchFilters.$inferInsert> = {
       updatedAt: new Date().toISOString(),
     };
 

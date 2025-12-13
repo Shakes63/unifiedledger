@@ -420,7 +420,7 @@ interface InstanceItemProps {
   onAction: (instance: BillInstance) => void;
 }
 
-function InstanceItem({ instance, bill, onAction }: InstanceItemProps) {
+function InstanceItem({ instance, bill: _bill, onAction }: InstanceItemProps) {
   const dueDate = parseISO(instance.dueDate);
   const isPending = instance.status === 'pending';
   const isOverdue = instance.status === 'overdue';

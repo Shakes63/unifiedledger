@@ -20,12 +20,14 @@ import Decimal from 'decimal.js';
 import { distance } from 'fastest-levenshtein';
 import type { TransferConversionConfig } from './types';
 
+type TransactionRow = typeof transactions.$inferSelect;
+
 /**
  * Match score breakdown for a potential transfer pair
  */
 export interface MatchScore {
   transactionId: string;
-  transaction: any;
+  transaction: TransactionRow;
   amountScore: number;      // 0-40 points
   dateScore: number;        // 0-30 points
   descriptionScore: number; // 0-20 points
@@ -60,8 +62,8 @@ function calculateDescriptionSimilarity(desc1: string, desc2: string): number {
  * Total possible score: 100 points
  */
 function scoreTransferMatch(
-  sourceTransaction: any,
-  candidateTransaction: any,
+  sourceTransaction: TransactionRow,
+  candidateTransaction: TransactionRow,
   config: TransferConversionConfig
 ): MatchScore {
   // 1. Amount Score (40 points max)
@@ -329,11 +331,11 @@ export async function handleTransferConversion(
  */
 async function findMatchingTransaction(
   userId: string,
-  sourceTx: any,
+  sourceTx: TransactionRow,
   targetAccountId: string | undefined,
   config: TransferConversionConfig
 ): Promise<{
-  bestMatch: any | null;
+  bestMatch: TransactionRow | null;
   allMatches: MatchScore[];
   autoLink: boolean;
 }> {
@@ -355,7 +357,7 @@ async function findMatchingTransaction(
     const maxAmount = txAmount.plus(toleranceAmount).toNumber();
 
     // Build query conditions
-    const conditions = [
+  const conditions = [
       eq(transactions.userId, userId),
       eq(transactions.type, oppositeType),
       // Only match transactions that aren't already transfers

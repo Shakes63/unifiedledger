@@ -63,7 +63,6 @@ export async function PUT(
       creditLimit,
       color,
       icon,
-      isBusinessAccount,
       enableSalesTax,
       enableTaxDeductions,
       // Credit/Line of Credit fields (Phase 2)

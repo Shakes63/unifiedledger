@@ -16,25 +16,26 @@ export function CollapsibleSection({
   defaultExpanded = false,
   storageKey,
 }: CollapsibleSectionProps) {
-  // Initialize with default - hydration safe (no localStorage read during SSR)
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-  const [hasMounted, setHasMounted] = useState(false);
-
-  // Load saved state from localStorage after mount (hydration-safe)
-  useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    if (saved !== null) {
-      setIsExpanded(saved === 'true');
+  // Initialize from localStorage when available (hydration-safe)
+  const [isExpanded, setIsExpanded] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return defaultExpanded;
+    try {
+      const saved = window.localStorage.getItem(storageKey);
+      if (saved !== null) return saved === 'true';
+    } catch {
+      // Ignore localStorage access errors
     }
-    setHasMounted(true);
-  }, [storageKey]);
+    return defaultExpanded;
+  });
 
-  // Save state to localStorage when it changes (only after mount)
+  // Save state to localStorage when it changes
   useEffect(() => {
-    if (hasMounted) {
-      localStorage.setItem(storageKey, String(isExpanded));
+    try {
+      window.localStorage.setItem(storageKey, String(isExpanded));
+    } catch {
+      // Ignore localStorage access errors
     }
-  }, [isExpanded, storageKey, hasMounted]);
+  }, [isExpanded, storageKey]);
 
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);

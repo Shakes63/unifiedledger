@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/tooltip';
 
 // Payment status type for tracking
-type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'overpaid';
+type _PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'overpaid';
 
 interface StatusCounts {
   unpaid: number;

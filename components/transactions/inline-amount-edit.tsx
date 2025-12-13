@@ -19,7 +19,7 @@ interface InlineAmountEditProps {
 export function InlineAmountEdit({
   value,
   transactionId,
-  type,
+  type: _type,
   sign,
   color,
   onUpdate,
@@ -69,7 +69,7 @@ export function InlineAmountEdit({
       setIsUpdating(true);
       await onUpdate(transactionId, 'amount', roundedValue);
       setIsEditing(false);
-    } catch (error) {
+    } catch (_error) {
       // Revert on error
       setEditValue(Math.abs(value).toFixed(2));
       setIsEditing(false);

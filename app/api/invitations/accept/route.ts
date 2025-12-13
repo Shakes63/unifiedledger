@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       userId,
       userEmail: inv.invitedEmail,
       userName: userName || null,
-      role: inv.role as any,
+      role: inv.role as typeof householdMembers.$inferInsert['role'],
       joinedAt: new Date().toISOString(),
       invitedBy: inv.invitedBy,
     });

@@ -19,7 +19,7 @@ import {
   debts, 
   debtPayoffMilestones 
 } from '@/lib/db/schema';
-import { eq, and, inArray, isNull } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 

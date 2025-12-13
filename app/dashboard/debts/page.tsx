@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { DebtPayoffTracker } from '@/components/debts/debt-payoff-tracker';
 import { DebtForm } from '@/components/debts/debt-form';
@@ -73,25 +73,26 @@ type ViewMode = 'unified' | 'legacy';
 export default function DebtsPage() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold } = useHouseholdFetch();
-  const [debts, setDebts] = useState<any[]>([]);
+  type LegacyDebtClient = Record<string, unknown> & { id: string; name?: string; status?: string };
+  const [debts, setDebts] = useState<LegacyDebtClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedDebt, setSelectedDebt] = useState<any>(null);
+  const [selectedDebt, setSelectedDebt] = useState<LegacyDebtClient | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'paid_off'>('active');
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
   const [showMinWarning, setShowMinWarning] = useState(false);
   const [showWhatIf, setShowWhatIf] = useState(false);
   const [showStrategy, setShowStrategy] = useState(false);
   const [showPaymentTracking, setShowPaymentTracking] = useState(false);
   const [showCharts, setShowCharts] = useState(false);
-  const [debtSettings, setDebtSettings] = useState<any>(null);
+  const [debtSettings, setDebtSettings] = useState<Record<string, unknown> | null>(null);
   const [allExpanded, setAllExpanded] = useState<boolean | null>(null);
   // Refresh key forces child components to remount and re-fetch their data
   const [refreshKey, setRefreshKey] = useState(0);
   // Track strategy toggle saving state
   const [savingStrategy, setSavingStrategy] = useState(false);
   // Strategy data for payoff timelines on individual debt cards
-  const [strategyData, setStrategyData] = useState<any>(null);
+  const [strategyData, setStrategyData] = useState<Record<string, unknown> | null>(null);
   // Unified view state
   const [viewMode, setViewMode] = useState<ViewMode>('unified');
   const [unifiedDebts, setUnifiedDebts] = useState<UnifiedDebt[]>([]);
@@ -156,7 +157,7 @@ export default function DebtsPage() {
       if (!response.ok) throw new Error('Failed to fetch debts');
       const data = await response.json();
       setDebts(data);
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to load debts');
     } finally {
       setLoading(false);
@@ -221,13 +222,13 @@ export default function DebtsPage() {
       const response = await fetchWithHousehold(`/api/debts/${debtId}`);
       if (!response.ok) throw new Error('Failed to fetch debt');
       return await response.json();
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to load debt details');
       return null;
     }
   };
 
-  const handleCreateDebt = async (data: any, saveMode: 'save' | 'saveAndAdd' = 'save') => {
+  const handleCreateDebt = async (data: Record<string, unknown>, saveMode: 'save' | 'saveAndAdd' = 'save') => {
     if (!selectedHouseholdId) {
       toast.error('Please select a household');
       return;
@@ -239,7 +240,8 @@ export default function DebtsPage() {
 
       // Show appropriate toast message
       if (saveMode === 'saveAndAdd') {
-        toast.success(`Debt "${data.name}" saved successfully!`);
+        const debtName = typeof data.name === 'string' ? data.name : 'Debt';
+        toast.success(`Debt "${debtName}" saved successfully!`);
         // Keep dialog open for adding another debt
       } else {
         toast.success('Debt added successfully!');
@@ -249,12 +251,12 @@ export default function DebtsPage() {
       loadDebts();
       loadStats();
       triggerRefresh();
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to add debt');
     }
   };
 
-  const handleUpdateDebt = async (data: any) => {
+  const handleUpdateDebt = async (data: Record<string, unknown>) => {
     if (!selectedDebt) return;
     if (!selectedHouseholdId) {
       toast.error('Please select a household');
@@ -272,7 +274,7 @@ export default function DebtsPage() {
       loadDebts();
       loadStats();
       triggerRefresh();
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to update debt');
     }
   };
@@ -293,15 +295,15 @@ export default function DebtsPage() {
       loadDebts();
       loadStats();
       triggerRefresh();
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete debt');
     }
   };
 
-  const handleEditDebt = async (debt: any) => {
+  const handleEditDebt = async (debt: { id: string }) => {
     const details = await loadDebtDetails(debt.id);
     if (details) {
-      setSelectedDebt(details);
+      setSelectedDebt(details as LegacyDebtClient);
       setIsFormOpen(true);
     }
   };
@@ -699,7 +701,7 @@ export default function DebtsPage() {
             </div>
           ) : debts.length === 0 ? (
             <div className="text-center py-12 bg-card border border-border rounded-lg">
-              <p className="text-muted-foreground">No debts yet. You're debt-free!</p>
+              <p className="text-muted-foreground">No debts yet. You&apos;re debt-free!</p>
               <Button
                 onClick={() => setIsFormOpen(true)}
                 className="mt-4 bg-accent hover:bg-accent/90 text-accent-foreground"

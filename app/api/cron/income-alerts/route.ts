@@ -11,7 +11,6 @@
 import { 
   checkAndCreateIncomeAlerts, 
   checkAndCreateIncomeReminders,
-  getLateIncomeForUser 
 } from '@/lib/notifications/income-alerts';
 
 export const dynamic = 'force-dynamic';

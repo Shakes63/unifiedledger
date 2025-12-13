@@ -34,7 +34,7 @@ export interface CreateNotificationInput {
   actionLabel?: string;
   isActionable?: boolean;
   scheduledFor?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   householdId?: string;
 }
 

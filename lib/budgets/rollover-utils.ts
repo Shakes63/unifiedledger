@@ -260,7 +260,7 @@ export async function processMonthlyRollover(
  */
 export async function getRolloverSummary(
   householdId: string,
-  month?: string // Optional: get status for specific month
+  _month?: string // Optional: get status for specific month
 ): Promise<{
   categories: Array<{
     id: string;

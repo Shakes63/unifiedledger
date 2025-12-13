@@ -186,8 +186,6 @@ export async function POST(request: Request) {
         )
       );
 
-    const existingGroupNames = new Set(existingGroups.map(g => g.name.toLowerCase()));
-
     // Create budget groups that don't already exist
     const income = new Decimal(monthlyIncome);
     const createdGroups: Array<{

@@ -28,15 +28,6 @@ const THRESHOLDS: UtilizationThreshold[] = [
   { percentage: 90, field: 'threshold90Notified', severity: 'urgent', priority: 'urgent' },
 ];
 
-interface CreditAccount {
-  id: string;
-  name: string;
-  currentBalance: number;
-  creditLimit: number | null;
-  userId: string;
-  householdId: string;
-}
-
 interface UtilizationAlertResult {
   accountId: string;
   accountName: string;

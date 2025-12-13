@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { customFields } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, type SQL } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const offset = parseInt(url.searchParams.get('offset') || '0');
     const activeOnly = url.searchParams.get('activeOnly') === 'true';
 
-    const conditions: any[] = [eq(customFields.userId, userId)];
+    const conditions: SQL[] = [eq(customFields.userId, userId)];
 
     if (activeOnly) {
       conditions.push(eq(customFields.isActive, true));
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     const userFields = await db
       .select()
       .from(customFields)
-      .where(conditions.length === 1 ? conditions[0] : and(...(conditions as any)))
+      .where(conditions.length === 1 ? conditions[0] : and(...conditions))
       .orderBy(customFields.sortOrder, customFields.name)
       .limit(limit)
       .offset(offset);

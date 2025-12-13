@@ -2,10 +2,16 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { billInstances, bills } from '@/lib/db/schema';
-import { eq, and, asc, inArray, lt, gte } from 'drizzle-orm';
+import { eq, and, asc, inArray, lt, gte, type SQL } from 'drizzle-orm';
 import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
+
+type BillInstanceStatus = typeof billInstances.$inferSelect['status'];
+const BILL_INSTANCE_STATUSES: readonly BillInstanceStatus[] = ['pending', 'paid', 'overdue', 'skipped'] as const;
+function isBillInstanceStatus(value: string): value is BillInstanceStatus {
+  return (BILL_INSTANCE_STATUSES as readonly string[]).includes(value);
+}
 
 // GET - List bill instances with filtering
 export async function GET(request: Request) {
@@ -53,18 +59,22 @@ export async function GET(request: Request) {
     // const dueDateStart = url.searchParams.get('dueDateStart');
     // const dueDateEnd = url.searchParams.get('dueDateEnd');
 
-    const conditions = [
+    const conditions: SQL[] = [
       eq(billInstances.userId, userId),
       eq(billInstances.householdId, householdId)
     ];
 
     if (status) {
       // Handle comma-separated status values (e.g., "pending,paid")
-      const statusValues = status.split(',').map(s => s.trim());
+      const statusValues = status
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s): s is BillInstanceStatus => isBillInstanceStatus(s));
+
       if (statusValues.length > 1) {
-        conditions.push(inArray(billInstances.status, statusValues as any));
-      } else {
-        conditions.push(eq(billInstances.status, status as any));
+        conditions.push(inArray(billInstances.status, statusValues));
+      } else if (statusValues.length === 1) {
+        conditions.push(eq(billInstances.status, statusValues[0]));
       }
     }
 
@@ -79,7 +89,7 @@ export async function GET(request: Request) {
       })
       .from(billInstances)
       .leftJoin(bills, eq(billInstances.billId, bills.id))
-      .where(conditions.length === 1 ? conditions[0] : and(...(conditions as any)))
+      .where(conditions.length === 1 ? conditions[0] : and(...conditions))
       .orderBy(asc(billInstances.dueDate))
       .limit(limit)
       .offset(offset);

@@ -106,7 +106,7 @@ export async function PATCH(request: NextRequest) {
 
     // Update displayName, bio, or avatarUrl in user settings if provided
     if (displayName !== undefined || bio !== undefined || avatarUrl !== undefined) {
-      const updateData: Record<string, any> = {
+      const updateData: Partial<typeof userSettings.$inferInsert> = {
         updatedAt: new Date().toISOString(),
       };
 

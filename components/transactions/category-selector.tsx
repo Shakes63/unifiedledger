@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import {
   Select,
@@ -58,13 +58,13 @@ export function CategorySelector({
   const [categories, setCategories] = useState<Category[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [_isLoading, setIsLoading] = useState(true);
 
   // Notify parent of loading state changes
-  const updateLoading = (loading: boolean) => {
+  const updateLoading = useCallback((loading: boolean) => {
     setIsLoading(loading);
     onLoadingChange?.(loading);
-  };
+  }, [onLoadingChange]);
   const [isCreating, setIsCreating] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [creatingCategory, setCreatingCategory] = useState(false);
@@ -147,7 +147,7 @@ export function CategorySelector({
     };
 
     fetchData();
-  }, [transactionType, selectedHouseholdId, fetchWithHousehold]);
+  }, [transactionType, selectedHouseholdId, fetchWithHousehold, updateLoading]);
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) {

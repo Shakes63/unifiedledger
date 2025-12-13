@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { accountBalanceHistory, accounts } from '@/lib/db/schema';
-import { eq, and, gte, inArray, desc } from 'drizzle-orm';
+import { eq, and, gte, inArray } from 'drizzle-orm';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import Decimal from 'decimal.js';
 import { format, startOfDay, subDays } from 'date-fns';

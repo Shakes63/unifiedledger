@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Node.js utility scripts (CommonJS)
     "scripts/**/*.js",
+    // Generated service worker bundle
+    "public/sw.js",
   ]),
   // Custom rules
   {

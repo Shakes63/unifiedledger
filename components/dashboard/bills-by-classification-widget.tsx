@@ -6,7 +6,7 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import Link from 'next/link';
 import { ChevronRight, Receipt, CreditCard, Zap, Home, Shield, Banknote, Users, Wrench, MoreHorizontal } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface ClassificationSummaryItem {
   classification: string;

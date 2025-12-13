@@ -30,7 +30,6 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHousehold } from '@/contexts/household-context';

@@ -257,10 +257,8 @@ export function TransactionAuditLog({
                 <div className="absolute left-[19px] top-6 bottom-6 w-px bg-border" />
 
                 {/* Entries */}
-                {entries.map((entry, index) => {
+                {entries.map((entry) => {
                   const isEntryExpanded = expandedEntries.has(entry.id);
-                  const isFirst = index === 0;
-                  const isLast = index === entries.length - 1;
                   const hasDetails = entry.changes?.length || entry.snapshot;
 
                   return (

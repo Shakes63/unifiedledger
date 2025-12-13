@@ -11,25 +11,44 @@
 import { requireAuth } from "@/lib/auth-helpers";
 import { NextRequest, NextResponse } from "next/server";
 
+type WebVitalMetric = {
+  name: string;
+  value: number;
+  rating: string;
+  delta: number;
+  id: string;
+  navigationType: string;
+};
+
+type StoredMetricItem = {
+  metric: WebVitalMetric;
+  timestamp: number;
+  url: string;
+  userAgent: string;
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === "object";
+
+const isWebVitalMetric = (value: unknown): value is WebVitalMetric => {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.name === "string" &&
+    typeof value.value === "number" &&
+    typeof value.rating === "string" &&
+    typeof value.delta === "number" &&
+    typeof value.id === "string" &&
+    typeof value.navigationType === "string"
+  );
+};
+
 /**
  * In-memory metrics store (in production, use database)
  * Structure: metrics[userId] = [metric, metric, ...]
  */
 const metricsStore = new Map<
   string,
-  Array<{
-    metric: {
-      name: string;
-      value: number;
-      rating: string;
-      delta: number;
-      id: string;
-      navigationType: string;
-    };
-    timestamp: number;
-    url: string;
-    userAgent: string;
-  }>
+  StoredMetricItem[]
 >();
 
 /**
@@ -58,9 +77,10 @@ export async function POST(request: NextRequest) {
       const metrics = body.metrics;
 
       // Validate all metrics have required fields
-      const validMetrics = metrics.filter(
-        (item: any) => item.metric && item.metric.name
-      );
+      const validMetrics = metrics.filter((item: unknown) => {
+        if (!isRecord(item)) return false;
+        return isWebVitalMetric(item.metric);
+      }) as Array<Record<string, unknown> & { metric: WebVitalMetric }>;
 
       if (validMetrics.length === 0) {
         // No valid metrics, but return success (non-critical)
@@ -74,11 +94,14 @@ export async function POST(request: NextRequest) {
 
       const userMetrics = metricsStore.get(userId)!;
       for (const item of validMetrics) {
+        const timestamp = typeof item.timestamp === "number" ? item.timestamp : Date.now();
+        const url = typeof item.url === "string" ? item.url : "unknown";
+        const userAgent = typeof item.userAgent === "string" ? item.userAgent : "unknown";
         userMetrics.push({
           metric: item.metric,
-          timestamp: item.timestamp || Date.now(),
-          url: item.url || "unknown",
-          userAgent: item.userAgent || "unknown",
+          timestamp,
+          url,
+          userAgent,
         });
       }
 
@@ -96,7 +119,7 @@ export async function POST(request: NextRequest) {
       // Handle single metric (legacy support)
       const { metric, timestamp, url, userAgent } = body;
 
-      if (!metric || !metric.name) {
+      if (!isWebVitalMetric(metric)) {
         // Invalid metric, but return success anyway (non-critical)
         return NextResponse.json({ success: true, stored: false });
       }
@@ -109,9 +132,9 @@ export async function POST(request: NextRequest) {
       const userMetrics = metricsStore.get(userId)!;
       userMetrics.push({
         metric,
-        timestamp: timestamp || Date.now(),
-        url: url || "unknown",
-        userAgent: userAgent || "unknown",
+        timestamp: typeof timestamp === "number" ? timestamp : Date.now(),
+        url: typeof url === "string" ? url : "unknown",
+        userAgent: typeof userAgent === "string" ? userAgent : "unknown",
       });
 
       // Keep only last 500 metrics per user

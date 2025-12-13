@@ -9,6 +9,7 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useHousehold } from '@/contexts/household-context';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import type { BillData } from '@/components/bills/bill-form';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -19,7 +20,7 @@ export default function EditBillPage({ params }: PageProps) {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
   const [isLoading, setIsLoading] = useState(false);
-  const [billData, setBillData] = useState<any>(null);
+  const [billData, setBillData] = useState<BillData | null>(null);
   const [loading, setLoading] = useState(true);
   const [billId, setBillId] = useState<string>('');
 
@@ -40,7 +41,7 @@ export default function EditBillPage({ params }: PageProps) {
           throw new Error('Failed to fetch bill');
         }
         const data = await response.json();
-        setBillData(data.bill);
+        setBillData((data as { bill?: BillData }).bill ?? null);
       } catch (error) {
         console.error('Error fetching bill:', error);
         toast.error('Failed to load bill data');
@@ -53,7 +54,7 @@ export default function EditBillPage({ params }: PageProps) {
     initPage();
   }, [params, router, selectedHouseholdId, fetchWithHousehold]);
 
-  const handleSubmit = async (data: any) => {
+  const handleSubmit = async (data: BillData) => {
     try {
       setIsLoading(true);
 
@@ -70,7 +71,7 @@ export default function EditBillPage({ params }: PageProps) {
         throw new Error(error.error || 'Failed to update bill');
       }
 
-      const result = await response.json();
+      await response.json();
       toast.success('Bill updated successfully');
       router.push(`/dashboard/bills/${billId}`);
     } catch (error) {

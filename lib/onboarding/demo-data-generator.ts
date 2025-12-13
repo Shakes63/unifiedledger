@@ -86,7 +86,9 @@ export async function generateDemoData(
       type: acc.type,
       bankName: acc.bankName,
       currentBalance: acc.balance.toNumber(),
-      creditLimit: acc.type === 'credit' ? (acc as any).creditLimit.toNumber() : null,
+      creditLimit: acc.type === 'credit' && 'creditLimit' in acc && acc.creditLimit instanceof Decimal
+        ? acc.creditLimit.toNumber()
+        : null,
       color: acc.color,
       icon: acc.icon,
       sortOrder: i,
@@ -141,7 +143,9 @@ export async function generateDemoData(
       type: cat.type,
       monthlyBudget: cat.monthlyBudget.toNumber(),
       dueDate: null,
-      incomeFrequency: cat.type === 'income' ? (cat as any).incomeFrequency : 'variable',
+      incomeFrequency: cat.type === 'income' && 'incomeFrequency' in cat && typeof cat.incomeFrequency === 'string'
+        ? cat.incomeFrequency
+        : 'variable',
       isActive: true,
       sortOrder: i,
       createdAt,

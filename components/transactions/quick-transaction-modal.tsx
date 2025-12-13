@@ -326,7 +326,7 @@ export function QuickTransactionModal({
     if (defaults.toAccountId && accounts.some((acc: Account) => acc.id === defaults.toAccountId)) {
       setToAccountId(defaults.toAccountId);
     }
-  }, [type, selectedHouseholdId, open, accounts, selectedBillInstanceId]);
+  }, [type, selectedHouseholdId, open, accounts, selectedBillInstanceId, accountId]);
 
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {

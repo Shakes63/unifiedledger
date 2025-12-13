@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -51,13 +51,7 @@ export function HouseholdFinancialTab() {
     paymentFrequency: 'monthly',
   });
 
-  useEffect(() => {
-    if (selectedHouseholdId) {
-      fetchSettings();
-    }
-  }, [selectedHouseholdId]);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     if (!selectedHouseholdId) return;
     
     try {
@@ -91,7 +85,11 @@ export function HouseholdFinancialTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedHouseholdId]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const handleSave = async () => {
     setSaving(true);

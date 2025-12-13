@@ -505,7 +505,7 @@ export async function PUT(request: Request) {
     }
 
     // Update rule
-    const updates: any = {
+    const updates: Partial<typeof categorizationRules.$inferInsert> = {
       updatedAt: new Date().toISOString(),
     };
 

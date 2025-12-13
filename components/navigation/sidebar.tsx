@@ -154,6 +154,7 @@ export function Sidebar() {
                 alt="UnifiedLedger"
                 fill
                 className="object-contain"
+                priority
               />
             </div>
             <div className="min-w-0 flex items-center gap-2">
@@ -178,6 +179,7 @@ export function Sidebar() {
                 alt="UnifiedLedger"
                 fill
                 className="object-contain"
+                priority
               />
             </div>
             {isDeveloperMode && (

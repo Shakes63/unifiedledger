@@ -144,7 +144,7 @@ export async function GET(request: Request) {
       for (const instance of billInstances) {
         // Parse date string directly to avoid timezone issues
         // (new Date("2026-11-01") parses as UTC, but getMonth/getDate use local timezone)
-        const [yearStr, monthStr, dayStr] = instance.dueDate.split('-');
+        const [_yearStr, monthStr, dayStr] = instance.dueDate.split('-');
         const month = parseInt(monthStr, 10); // Already 1-indexed in ISO format
         const dayOfMonth = parseInt(dayStr, 10);
 

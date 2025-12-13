@@ -98,7 +98,7 @@ export async function PUT(
     }
 
     // Build update object
-    const updateData: any = {};
+    const updateData: Partial<typeof billInstances.$inferInsert> = {};
     if (status !== undefined) {
       if (!['pending', 'paid', 'overdue', 'skipped'].includes(status)) {
         return Response.json(

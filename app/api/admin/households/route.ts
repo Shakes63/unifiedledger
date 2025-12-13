@@ -1,7 +1,7 @@
 import { requireOwner } from '@/lib/auth/owner-helpers';
 import { db } from '@/lib/db';
 import { households, householdMembers } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq, sql, type SQL } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     const search = searchParams.get('search') || '';
 
     // Build where clause for search
-    let whereClause: any = undefined;
+    let whereClause: SQL | undefined;
     if (search) {
       // Case-insensitive search on household name
       const searchPattern = `%${search}%`;

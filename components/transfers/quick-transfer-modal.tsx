@@ -66,7 +66,7 @@ export function QuickTransferModal({
     loadSuggestions();
   }, [open, selectedHouseholdId, fetchWithHousehold]);
 
-  const handleSuccess = (transferId: string) => {
+  const handleSuccess = (_transferId: string) => {
     onOpenChange(false);
     onSuccess?.();
   };

@@ -31,10 +31,6 @@ import { db } from '@/lib/db';
 
 const TEST_USER_ID = 'user-123';
 
-function createRequestWithJson(body: unknown): Request {
-  return { json: async () => body } as Request;
-}
-
 describe('app/api/user/two-factor/status/route', () => {
   beforeEach(() => {
     vi.clearAllMocks();

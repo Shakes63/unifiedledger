@@ -64,7 +64,7 @@ export function InlineDateEdit({
       setIsUpdating(true);
       await onUpdate(transactionId, 'date', editValue);
       setIsEditing(false);
-    } catch (error) {
+    } catch (_error) {
       // Revert on error
       setEditValue(value);
       setIsEditing(false);
@@ -86,7 +86,7 @@ export function InlineDateEdit({
         setIsUpdating(true);
         await onUpdate(transactionId, 'date', newValue);
         setIsEditing(false);
-      } catch (error) {
+      } catch (_error) {
         // Revert on error
         setEditValue(value);
       } finally {

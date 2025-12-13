@@ -7,7 +7,7 @@ import {
   transactions,
   householdSettings,
 } from '@/lib/db/schema';
-import { eq, and, inArray, gte, lte, or } from 'drizzle-orm';
+import { eq, and, inArray, gte, lte } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
 // Types for the unified debt budget response
@@ -150,7 +150,6 @@ export async function GET(request: Request): Promise<Response> {
 
     // Get payments to debt bills (expense transactions with billInstanceId linking to debt bills)
     if (debtBills.length > 0) {
-      const billIds = debtBills.map((b) => b.id);
       // Look for transactions that match by description/merchant and date range
       // OR have a billInstanceId from a debt bill
       const billPayments = await db
@@ -255,11 +254,6 @@ export async function GET(request: Request): Promise<Response> {
       }
 
       // Mark focus debt and calculate recommended payments
-      const totalMinimum = strategyDebts.reduce(
-        (sum, d) => new Decimal(sum).plus(d.minimumPayment).toNumber(),
-        0
-      );
-
       // Focus debt gets all minimum payments + extra payment
       if (strategyDebts.length > 0) {
         strategyDebts[0].isFocusDebt = true;

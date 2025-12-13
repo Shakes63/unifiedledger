@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build account filter conditions
-    const accountConditions: any[] = [
+    const accountConditions = [
       eq(accounts.userId, userId),
       eq(accounts.householdId, householdId),
       eq(accounts.isActive, true),
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
       .where(and(...accountConditions));
 
     // Calculate current net worth by account
-    const accountBreakdown = userAccounts.map((account: any) => ({
+    const accountBreakdown = userAccounts.map((account) => ({
       name: account.name,
       balance: account.currentBalance || 0,
       type: account.type,
@@ -95,13 +95,14 @@ export async function GET(request: NextRequest) {
     // Apply account filter to current net worth if needed
     let filteredNetWorth = currentNetWorth;
     if (accountIds && accountIds.length > 0) {
-      filteredNetWorth = userAccounts.reduce((sum: number, account: any) => {
+      filteredNetWorth = userAccounts.reduce((sum: number, account) => {
         return sum + (account.currentBalance || 0);
       }, 0);
     }
 
     // Calculate historical net worth for chart
-    const historyData: any[] = [];
+    type NetWorthPoint = { name: string; netWorth: number; week?: string; month?: string };
+    const historyData: NetWorthPoint[] = [];
 
     // Determine grouping strategy
     const daysDiff2 = Math.ceil(

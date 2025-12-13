@@ -185,7 +185,7 @@ export async function GET(request: Request) {
       if (category.type === 'income') {
         // Use frequency-based projection for income
         const projection = calculateIncomeProjection(
-          category.incomeFrequency as any,
+          (category.incomeFrequency ?? null) as CategoryBudgetStatus['incomeFrequency'] | null,
           monthlyBudget,
           actualSpent,
           daysElapsed,

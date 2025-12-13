@@ -5,6 +5,11 @@ import { savingsGoals, savingsMilestones, accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
+type SavingsGoalStatus = typeof savingsGoals.$inferSelect['status'];
+const isSavingsGoalStatus = (value: string): value is SavingsGoalStatus => {
+  return ['active', 'completed', 'paused', 'cancelled'].includes(value);
+};
+
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
@@ -18,7 +23,9 @@ export async function GET(request: Request) {
       eq(savingsGoals.householdId, householdId)
     ];
     if (status) {
-      conditions.push(eq(savingsGoals.status, status as any));
+      if (isSavingsGoalStatus(status)) {
+        conditions.push(eq(savingsGoals.status, status));
+      }
     }
 
     const goals = await db
