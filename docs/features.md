@@ -21,7 +21,7 @@ _These features are implemented, but still need dedicated automated test coverag
 - [x] **Notification Delivery & Preferences** [COMPLETED 2025-12-13] - Implemented per-type channel routing, best-effort push/email delivery dispatch, and rate limiting with unit test coverage.
 - [x] **PDF Export** (Tax Dashboard) [COMPLETED 2025-12-13] - Added server-backed PDF export route (`/api/tax/export/pdf`) and automated coverage for generator output + response headers/body.
 - [ ] **Sales Tax Pipeline** - exemption rules (merchant + transaction), multi-jurisdiction rate calculations, quarterly filing aggregation. **Plan:** `docs/sales-tax-pipeline-plan.md` (✅ Phase 1: core util unit tests; next: quarterly endpoint contract tests).
-- [ ] **Email Flows** - verification resend rate limits, email-change verification callbacks, error handling/fallback provider behavior
+- [ ] **Email Flows** - verification resend rate limits, email-change verification callbacks, error handling/fallback provider behavior. **Plan:** `docs/email-flows-plan.md` (✅ Phase 1: API route tests for resend + verify-email-change; next: email provider fallback tests/behavior).
 - [ ] **Backup System** - scheduled backups, retention policies, restore flows, and permissions
 - [ ] **Household Data Isolation (end-to-end)** - cross-household access attempts blocked across all household-scoped modules (beyond unit checks)
 
