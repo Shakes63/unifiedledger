@@ -170,7 +170,13 @@ export async function POST(request: Request) {
             const merchantResult = await db
               .select()
               .from(merchants)
-              .where(eq(merchants.id, txn.merchantId))
+              .where(
+                and(
+                  eq(merchants.id, txn.merchantId),
+                  eq(merchants.userId, userId),
+                  eq(merchants.householdId, householdId)
+                )
+              )
               .limit(1);
             if (merchantResult.length > 0) {
               merchantInfo = {
@@ -186,7 +192,13 @@ export async function POST(request: Request) {
             const categoryResult = await db
               .select()
               .from(budgetCategories)
-              .where(eq(budgetCategories.id, txn.categoryId))
+              .where(
+                and(
+                  eq(budgetCategories.id, txn.categoryId),
+                  eq(budgetCategories.userId, userId),
+                  eq(budgetCategories.householdId, householdId)
+                )
+              )
               .limit(1);
             if (categoryResult.length > 0) {
               categoryInfo = {
@@ -212,7 +224,8 @@ export async function POST(request: Request) {
               isTaxDeductible: txn.isTaxDeductible || false,
             },
             merchantInfo,
-            categoryInfo
+            categoryInfo,
+            householdId
           );
 
           // Build update object with only changed fields

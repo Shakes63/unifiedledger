@@ -124,15 +124,17 @@ async function executeSetCategoryAction(
     return null;
   }
 
-  // Verify category exists and belongs to user
+  // Verify category exists and belongs to user (+ household when available)
+  const categoryFilters = [
+    eq(budgetCategories.id, action.value),
+    eq(budgetCategories.userId, context.userId),
+    ...(context.householdId ? [eq(budgetCategories.householdId, context.householdId)] : []),
+  ];
   const category = await db
     .select()
     .from(budgetCategories)
     .where(
-      and(
-        eq(budgetCategories.id, action.value),
-        eq(budgetCategories.userId, context.userId)
-      )
+      and(...categoryFilters)
     )
     .limit(1);
 
@@ -172,15 +174,17 @@ async function executeSetMerchantAction(
     return null;
   }
 
-  // Verify merchant exists and belongs to user
+  // Verify merchant exists and belongs to user (+ household when available)
+  const merchantFilters = [
+    eq(merchants.id, action.value),
+    eq(merchants.userId, context.userId),
+    ...(context.householdId ? [eq(merchants.householdId, context.householdId)] : []),
+  ];
   const merchant = await db
     .select()
     .from(merchants)
     .where(
-      and(
-        eq(merchants.id, action.value),
-        eq(merchants.userId, context.userId)
-      )
+      and(...merchantFilters)
     )
     .limit(1);
 
@@ -276,15 +280,17 @@ async function executeSetTaxDeductionAction(
     return null;
   }
 
-  // Fetch category to check if it's tax deductible
+  // Fetch category to check if it's tax deductible (+ household when available)
+  const taxDeductionCategoryFilters = [
+    eq(budgetCategories.id, categoryId),
+    eq(budgetCategories.userId, context.userId),
+    ...(context.householdId ? [eq(budgetCategories.householdId, context.householdId)] : []),
+  ];
   const category = await db
     .select()
     .from(budgetCategories)
     .where(
-      and(
-        eq(budgetCategories.id, categoryId),
-        eq(budgetCategories.userId, context.userId)
-      )
+      and(...taxDeductionCategoryFilters)
     )
     .limit(1);
 
@@ -486,7 +492,8 @@ export async function executeRuleActions(
     isTaxDeductible?: boolean;
   },
   existingMerchant?: { id: string; name: string } | null,
-  existingCategory?: { id: string; name: string; type: string } | null
+  existingCategory?: { id: string; name: string; type: string } | null,
+  householdId?: string
 ): Promise<ActionExecutionResult> {
   const mutations: TransactionMutations = {};
   const appliedActions: AppliedAction[] = [];
@@ -495,6 +502,7 @@ export async function executeRuleActions(
   // Create execution context
   const context: ActionExecutionContext = {
     userId,
+    householdId,
     transaction: { ...transaction },
     merchant: existingMerchant || null,
     category: existingCategory || null,

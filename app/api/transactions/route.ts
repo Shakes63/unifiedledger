@@ -253,7 +253,8 @@ export async function POST(request: Request) {
               isTaxDeductible: false,
             },
             merchantInfo,
-            categoryInfo
+            categoryInfo,
+            householdId
           );
 
           // Apply mutations

@@ -3,7 +3,6 @@
 ---
 
 ## New Bugs
-- **Rules action executor lookups aren’t household-scoped** - `executeRuleActions()` validates/fetches categories/merchants by `userId` only (no `householdId`), and apply-bulk’s merchant/category lookups also omit user/household filters. This is risky for multi-household isolation if any cross-household IDs slip through (or future callers reuse the executor). See `lib/rules/actions-executor.ts` (~L127-L137, ~L175-L186, ~L279-L289) and `app/api/rules/apply-bulk/route.ts` (~L171-L191).
 - **Repeat Transaction applies rules incompletely (category only)** - The repeat endpoint runs `findMatchingRule()` but only extracts the first `set_category` action and ignores other rule actions (merchant/description/split/transfer/account/sales tax). This diverges from normal transaction creation. See `app/api/transactions/repeat/route.ts` (~L98-L129).
 - **Repeat Transaction can update category usage across households/users** - Category usage update queries `budgetCategories` by `id` only (no `userId`/`householdId`) before updating usage counts. If an ID from another household slips in, this can mutate another household’s category usage. See `app/api/transactions/repeat/route.ts` (~L174-L190).
 - **CSV import confirm applies rules incompletely (category only) and doesn’t log execution** - Import confirm runs `findMatchingRule()` but only uses `set_category` and does not run `executeRuleActions()` or write a `ruleExecutionLog` entry. See `app/api/csv-import/[importId]/confirm/route.ts` (~L99-L125).
@@ -39,17 +38,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 5 |
+| Active Bugs | 4 |
 | Tests Passing | 901/901 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 755 (179 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 756 (180 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (179 total)
+## Fixed Bugs (180 total)
 
+180. ✅ **Rules action executor lookups aren’t household-scoped** [FIXED 2025-12-13] - `executeRuleActions()` now scopes category/merchant validation lookups by household when householdId is provided, and apply-bulk context lookups are household-filtered.
 179. ✅ **Bulk apply rules endpoint docs mention unsupported query param** [FIXED 2025-12-13] - Removed misleading `categoryId` query param docs from apply-bulk route and added a unit test ensuring extra query params don’t break the handler.
 178. ✅ **Rule action preview shows “Unknown” for merchant/account actions** [FIXED 2025-12-13] - Hydrated merchant/account names once and passed them into the Rules page action preview so merchant/account/transfer actions display correct labels; added regression test.
 177. ✅ **isActionImplemented() is outdated vs actual supported actions** [FIXED 2025-12-13] - Added missing action types to the helper and extended rules executor tests so UI gating can’t drift from actual support.

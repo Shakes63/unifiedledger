@@ -162,6 +162,9 @@ export interface ActionExecutionContext {
   /** User ID (for fetching related entities) */
   userId: string;
 
+  /** Household ID (for household-scoped validation/lookups) */
+  householdId?: string;
+
   /** Current transaction data */
   transaction: {
     categoryId?: string | null;
