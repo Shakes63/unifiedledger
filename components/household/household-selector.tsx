@@ -37,6 +37,10 @@ export function HouseholdSelector() {
   }
 
   const selectedHousehold = households.find((h) => h.id === selectedHouseholdId);
+  const manageHouseholdsId = selectedHouseholdId ?? households[0]?.id ?? null;
+  const manageHouseholdsUrl = manageHouseholdsId
+    ? `/dashboard/settings?section=households&household=${manageHouseholdsId}&tab=members`
+    : `/dashboard/settings?section=households&tab=members`;
 
   // Sort households: favorites first, then by join date (oldest first)
   const sortedHouseholds = [...households].sort((a, b) => {
@@ -92,7 +96,7 @@ export function HouseholdSelector() {
           ))}
           <DropdownMenuSeparator className="bg-border" />
           <DropdownMenuItem
-            onClick={() => router.push('/dashboard/settings?tab=household')}
+            onClick={() => router.push(manageHouseholdsUrl)}
             disabled={isLoading}
             className="text-foreground cursor-pointer"
           >
