@@ -184,7 +184,7 @@ export function InlineTransactionDropdown({
           "text-xs cursor-pointer inline-flex items-center px-1.5 py-0.5 rounded",
           "transition-colors duration-150",
           isMissing
-            ? "border border-(--color-warning) text-muted-foreground bg-transparent hover:bg-elevated"
+            ? "border border-warning text-muted-foreground bg-transparent hover:bg-elevated"
             : "text-foreground hover:bg-elevated hover:underline",
           disabled && "cursor-not-allowed opacity-60",
           className
@@ -213,7 +213,7 @@ export function InlineTransactionDropdown({
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={isCreatingNew}
-          className="h-6 text-xs px-2 py-0.5 min-w-[80px] max-w-[120px] bg-elevated border-(--color-primary)"
+          className="h-6 text-xs px-2 py-0.5 min-w-[80px] max-w-[120px] bg-elevated border-primary"
           onClick={(e) => e.stopPropagation()}
         />
         <Button
@@ -225,7 +225,7 @@ export function InlineTransactionDropdown({
             handleCreate();
           }}
           disabled={isCreatingNew || !newName.trim()}
-          className="h-6 w-6 p-0 bg-(--color-primary) hover:opacity-90"
+          className="h-6 w-6 p-0 bg-primary hover:opacity-90"
         >
           {isCreatingNew ? (
             <Loader2 className="w-3 h-3 animate-spin" />
@@ -285,7 +285,7 @@ export function InlineTransactionDropdown({
           className={cn(
             "h-6 text-xs px-2 py-0.5 min-w-[80px] max-w-[140px] bg-elevated rounded",
             "focus:ring-1 focus:ring-offset-0",
-            "border border-(--color-primary) text-foreground",
+            "border border-primary text-foreground",
             isUpdating && "opacity-60"
           )}
           onClick={(e) => e.stopPropagation()}

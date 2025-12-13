@@ -289,10 +289,10 @@ export default function BudgetsPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
-              <div className="text-(--color-error) mb-2">{error}</div>
+              <div className="text-error mb-2">{error}</div>
               <button
                 onClick={() => window.location.reload()}
-                className="text-sm text-(--color-primary) hover:opacity-80"
+                className="text-sm text-primary hover:opacity-80"
               >
                 Try again
               </button>
@@ -363,7 +363,7 @@ export default function BudgetsPage() {
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setIsManagerModalOpen(true)}
-            className="px-4 py-2 bg-(--color-primary) text-white rounded-lg hover:opacity-90 transition-opacity"
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
           >
             Set Budgets
           </button>
@@ -398,7 +398,7 @@ export default function BudgetsPage() {
             </p>
             <button
               onClick={() => setIsManagerModalOpen(true)}
-              className="px-6 py-2 bg-(--color-primary) text-white rounded-lg hover:opacity-90 transition-opacity"
+              className="px-6 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
             >
               Set Your First Budget
             </button>

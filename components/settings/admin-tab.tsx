@@ -253,14 +253,14 @@ export function AdminTab() {
           <div className="space-y-4 p-4 bg-elevated rounded-lg border border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded bg-(--color-primary) flex items-center justify-center text-white font-bold">
+                <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-bold">
                   G
                 </div>
                 <Label className="text-foreground font-medium">Google OAuth</Label>
               </div>
               <div className="flex items-center gap-2">
                 {googleSettings.enabled ? (
-                  <Badge className="bg-(--color-success) text-white">
+                  <Badge className="bg-success text-white">
                     <CheckCircle2 className="w-3 h-3 mr-1" />
                     Enabled
                   </Badge>
@@ -327,7 +327,7 @@ export function AdminTab() {
                   (googleSettings.enabled &&
                     (!googleSettings.clientId || (!googleSettings.hasClientSecret && !googleSettings.clientSecret)))
                 }
-                className="bg-(--color-primary) hover:opacity-90 text-white"
+                className="bg-primary hover:opacity-90 text-white"
               >
                 {savingGoogle ? (
                   <>
@@ -352,7 +352,7 @@ export function AdminTab() {
               </div>
               <div className="flex items-center gap-2">
                 {githubSettings.enabled ? (
-                  <Badge className="bg-(--color-success) text-white">
+                  <Badge className="bg-success text-white">
                     <CheckCircle2 className="w-3 h-3 mr-1" />
                     Enabled
                   </Badge>
@@ -419,7 +419,7 @@ export function AdminTab() {
                   (githubSettings.enabled &&
                     (!githubSettings.clientId || (!githubSettings.hasClientSecret && !githubSettings.clientSecret)))
                 }
-                className="bg-(--color-primary) hover:opacity-90 text-white"
+                className="bg-primary hover:opacity-90 text-white"
               >
                 {savingGithub ? (
                   <>
@@ -447,7 +447,7 @@ export function AdminTab() {
               </div>
               <div className="flex items-center gap-2">
                 {ticktickSettings.enabled ? (
-                  <Badge className="bg-(--color-success) text-white">
+                  <Badge className="bg-success text-white">
                     <CheckCircle2 className="w-3 h-3 mr-1" />
                     Enabled
                   </Badge>
@@ -509,7 +509,7 @@ export function AdminTab() {
                     (!ticktickSettings.clientId ||
                       (!ticktickSettings.hasClientSecret && !ticktickSettings.clientSecret)))
                 }
-                className="bg-(--color-primary) hover:opacity-90 text-white"
+                className="bg-primary hover:opacity-90 text-white"
               >
                 {savingTicktick ? (
                   <>
@@ -524,9 +524,9 @@ export function AdminTab() {
           </div>
 
           {/* Info Alert */}
-          <div className="p-4 bg-(--color-warning)/10 border border-(--color-warning)/20 rounded-lg">
+          <div className="p-4 bg-warning/10 border border-warning/20 rounded-lg">
             <div className="flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-(--color-warning) mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-warning mt-0.5 flex-shrink-0" />
               <div className="text-sm text-foreground">
                 <p className="font-medium mb-1">Important:</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">

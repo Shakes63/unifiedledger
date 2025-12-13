@@ -76,11 +76,11 @@ export function TransferList({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
-        return 'bg-(--color-success)/10 text-(--color-success)';
+        return 'bg-success/10 text-success';
       case 'pending':
-        return 'bg-(--color-warning)/10 text-(--color-warning)';
+        return 'bg-warning/10 text-warning';
       case 'failed':
-        return 'bg-(--color-error)/10 text-(--color-error)';
+        return 'bg-error/10 text-error';
       default:
         return 'bg-muted text-muted-foreground';
     }
@@ -168,7 +168,7 @@ export function TransferList({
                       handleDelete(transfer.id);
                     }}
                     disabled={isDeleting}
-                    className="text-(--color-error) hover:text-(--color-error) hover:bg-(--color-error)/10"
+                    className="text-error hover:text-error hover:bg-error/10"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -256,7 +256,7 @@ export function TransferList({
                   onClick={() => handleDelete(selectedTransfer.id)}
                   disabled={isDeleting}
                   variant="destructive"
-                  className="flex-1 bg-(--color-error) hover:bg-(--color-error)/90"
+                  className="flex-1 bg-error hover:bg-error/90"
                 >
                   {isDeleting ? 'Deleting...' : 'Delete Transfer'}
                 </Button>

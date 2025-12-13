@@ -166,8 +166,8 @@ export function SplitBuilder({
             variant={splitType === 'amount' ? 'default' : 'outline'}
             className={`flex-1 ${
               splitType === 'amount'
-                ? 'bg-(--color-primary) text-background hover:opacity-90'
-                : 'bg-elevated text-foreground border-border hover:bg-(--color-border)/20'
+                ? 'bg-primary text-background hover:opacity-90'
+                : 'bg-elevated text-foreground border-border hover:bg-border/20'
             }`}
             onClick={() => handleSwitchSplitType('amount')}
           >
@@ -178,8 +178,8 @@ export function SplitBuilder({
             variant={splitType === 'percentage' ? 'default' : 'outline'}
             className={`flex-1 ${
               splitType === 'percentage'
-                ? 'bg-(--color-primary) text-background hover:opacity-90'
-                : 'bg-elevated text-foreground border-border hover:bg-(--color-border)/20'
+                ? 'bg-primary text-background hover:opacity-90'
+                : 'bg-elevated text-foreground border-border hover:bg-border/20'
             }`}
             onClick={() => handleSwitchSplitType('percentage')}
           >
@@ -214,7 +214,7 @@ export function SplitBuilder({
                         {split.isAutoBalanced && (
                           <Badge 
                             variant="outline" 
-                            className="text-[10px] px-1.5 py-0 h-4 border-(--color-primary)/40 text-(--color-primary)"
+                            className="text-[10px] px-1.5 py-0 h-4 border-primary/40 text-primary"
                           >
                             Balanced
                           </Badge>
@@ -226,9 +226,9 @@ export function SplitBuilder({
                       size="sm"
                       variant="ghost"
                       onClick={() => handleRemoveSplit(split.id)}
-                      className="h-8 w-8 p-0 hover:bg-(--color-border)/20"
+                      className="h-8 w-8 p-0 hover:bg-border/20"
                     >
-                      <Trash2 className="w-4 h-4 text-(--color-error)" />
+                      <Trash2 className="w-4 h-4 text-error" />
                     </Button>
                   </div>
 
@@ -272,7 +272,7 @@ export function SplitBuilder({
         type="button"
         onClick={handleAddSplit}
         disabled={categoriesLoading}
-        className="w-full bg-(--color-primary) text-background hover:opacity-90 font-medium disabled:opacity-50"
+        className="w-full bg-primary text-background hover:opacity-90 font-medium disabled:opacity-50"
       >
         {categoriesLoading ? (
           <>
@@ -291,8 +291,8 @@ export function SplitBuilder({
       {validation && (
         <div className={`p-3 rounded-lg border ${
           validation.valid
-            ? 'bg-(--color-success)/20 border-(--color-success)/40 text-(--color-success)'
-            : 'bg-(--color-error)/20 border-(--color-error)/40 text-(--color-error)'
+            ? 'bg-success/20 border-success/40 text-success'
+            : 'bg-error/20 border-error/40 text-error'
         }`}>
           <div className="flex items-start gap-2">
             <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
@@ -330,14 +330,14 @@ export function SplitBuilder({
                 type="button"
                 variant="outline"
                 onClick={handleBalanceSplits}
-                className="w-full mt-2 border-(--color-primary)/40 text-(--color-primary) hover:bg-(--color-primary)/10"
+                className="w-full mt-2 border-primary/40 text-primary hover:bg-primary/10"
               >
                 <Scale className="w-4 h-4 mr-2" />
                 Balance Splits
               </Button>
             )}
             {!hasValidationError && (
-              <Badge variant="outline" className="mt-2 w-full justify-center border-(--color-success)/40 text-(--color-success)">
+              <Badge variant="outline" className="mt-2 w-full justify-center border-success/40 text-success">
                 ✓ Ready to save
               </Badge>
             )}

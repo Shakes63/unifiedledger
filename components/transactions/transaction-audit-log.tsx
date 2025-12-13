@@ -104,19 +104,19 @@ export function TransactionAuditLog({
     switch (actionType) {
       case 'created':
         return (
-          <Badge className="bg-(--color-success)/20 text-(--color-success) border-0">
+          <Badge className="bg-success/20 text-success border-0">
             Created
           </Badge>
         );
       case 'updated':
         return (
-          <Badge className="bg-(--color-primary)/20 text-(--color-primary) border-0">
+          <Badge className="bg-primary/20 text-primary border-0">
             Updated
           </Badge>
         );
       case 'deleted':
         return (
-          <Badge className="bg-(--color-error)/20 text-(--color-error) border-0">
+          <Badge className="bg-error/20 text-error border-0">
             Deleted
           </Badge>
         );
@@ -161,9 +161,9 @@ export function TransactionAuditLog({
     return (
       <div key={change.field} className="flex items-start gap-2 text-sm">
         <span className="text-muted-foreground min-w-[100px]">{label}:</span>
-        <span className="text-(--color-error) line-through">{oldVal}</span>
+        <span className="text-error line-through">{oldVal}</span>
         <span className="text-muted-foreground">→</span>
-        <span className="text-(--color-success)">{newVal}</span>
+        <span className="text-success">{newVal}</span>
       </div>
     );
   };
@@ -238,7 +238,7 @@ export function TransactionAuditLog({
           )}
 
           {error && (
-            <div className="p-4 m-4 bg-(--color-error)/10 border border-(--color-error)/20 rounded-lg text-(--color-error) text-sm">
+            <div className="p-4 m-4 bg-error/10 border border-error/20 rounded-lg text-error text-sm">
               {error}
             </div>
           )}
@@ -267,10 +267,10 @@ export function TransactionAuditLog({
                       <div
                         className={`absolute left-3 w-3 h-3 rounded-full border-2 ${
                           entry.actionType === 'created'
-                            ? 'bg-(--color-success) border-(--color-success)'
+                            ? 'bg-success border-success'
                             : entry.actionType === 'deleted'
-                            ? 'bg-(--color-error) border-(--color-error)'
-                            : 'bg-(--color-primary) border-(--color-primary)'
+                            ? 'bg-error border-error'
+                            : 'bg-primary border-primary'
                         }`}
                         style={{ top: '6px' }}
                       />

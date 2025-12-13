@@ -35,7 +35,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
       <div className="flex flex-col items-center justify-center py-8 text-center space-y-6">
         {/* Demo Mode Banner */}
         {isInvitedUser && (
-          <div className="w-full max-w-md bg-(--color-warning)/10 border border-(--color-warning)/30 rounded-lg p-4">
+          <div className="w-full max-w-md bg-warning/10 border border-warning/30 rounded-lg p-4">
             <p className="text-sm text-foreground font-medium">
               🎯 Demo Mode
             </p>
@@ -45,8 +45,8 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
           </div>
         )}
 
-        <div className="w-20 h-20 rounded-full bg-(--color-primary)/20 flex items-center justify-center">
-          <Sparkles className="w-10 h-10 text-(--color-primary)" />
+        <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
+          <Sparkles className="w-10 h-10 text-primary" />
         </div>
 
         <div className="space-y-4 max-w-md">
@@ -57,20 +57,20 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
               </h3>
               <ul className="space-y-3 text-left text-muted-foreground">
                 <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-(--color-primary)/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-semibold text-(--color-primary)">✓</span>
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-semibold text-primary">✓</span>
                   </div>
                   <span>Demo accounts, categories, and merchants</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-(--color-primary)/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-semibold text-(--color-primary)">✓</span>
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-semibold text-primary">✓</span>
                   </div>
                   <span>Sample bills, goals, and debts</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-(--color-primary)/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-semibold text-(--color-primary)">✓</span>
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-semibold text-primary">✓</span>
                   </div>
                   <span>Practice transactions to explore features</span>
                 </li>
@@ -87,29 +87,29 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
               
               {/* Essential Steps */}
               <div className="space-y-2">
-                <p className="text-xs font-medium text-(--color-primary) uppercase tracking-wide">Getting Started</p>
+                <p className="text-xs font-medium text-primary uppercase tracking-wide">Getting Started</p>
                 <ul className="space-y-2 text-left text-muted-foreground">
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-(--color-primary)/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-semibold text-(--color-primary)">1</span>
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-semibold text-primary">1</span>
                     </div>
                     <span>Household - Organize your finances</span>
                   </li>
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-(--color-primary)/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-semibold text-(--color-primary)">2</span>
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-semibold text-primary">2</span>
                     </div>
                     <span>Account - Track your money</span>
                   </li>
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-(--color-primary)/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-semibold text-(--color-primary)">3</span>
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-semibold text-primary">3</span>
                     </div>
                     <span>Category - Organize spending</span>
                   </li>
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-(--color-primary)/20 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-semibold text-(--color-primary)">4</span>
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-semibold text-primary">4</span>
                     </div>
                     <span>Transaction - Record your spending</span>
                   </li>
@@ -150,7 +150,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
 
         <Button
           onClick={onNext}
-          className="mt-6 bg-(--color-primary) text-background hover:opacity-90"
+          className="mt-6 bg-primary text-background hover:opacity-90"
           size="lg"
         >
           Get Started

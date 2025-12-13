@@ -131,12 +131,12 @@ export function GoalTracker({
               <h3 className="font-semibold text-foreground">{goal.name}</h3>
               <EntityIdBadge id={goal.id} label="Goal" />
               {goal.status === 'completed' && (
-                <span className="text-xs bg-(--color-income)/30 text-(--color-income) px-2 py-1 rounded">
+                <span className="text-xs bg-income/30 text-income px-2 py-1 rounded">
                   Completed
                 </span>
               )}
               {goal.status === 'paused' && (
-                <span className="text-xs bg-(--color-warning)/30 text-(--color-warning) px-2 py-1 rounded">
+                <span className="text-xs bg-warning/30 text-warning px-2 py-1 rounded">
                   Paused
                 </span>
               )}
@@ -161,7 +161,7 @@ export function GoalTracker({
                 size="sm"
                 variant="ghost"
                 onClick={() => onDelete(goal.id)}
-                className="text-muted-foreground hover:text-(--color-error) hover:bg-(--color-error)/20"
+                className="text-muted-foreground hover:text-error hover:bg-error/20"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -192,7 +192,7 @@ export function GoalTracker({
           {daysLeft !== null && (
             <div>
               <p className="text-muted-foreground text-xs">Days Left</p>
-              <p className={`font-semibold ${daysLeft < 0 ? 'text-(--color-error)' : 'text-foreground'}`}>
+              <p className={`font-semibold ${daysLeft < 0 ? 'text-error' : 'text-foreground'}`}>
                 {daysLeft < 0 ? `${Math.abs(daysLeft)} ago` : daysLeft}
               </p>
             </div>
@@ -207,11 +207,11 @@ export function GoalTracker({
         {recommendation?.recommendedMonthly !== null && recommendation?.recommendedMonthly !== undefined && goal.status === 'active' && (
           <div className="bg-elevated/50 border border-border/50 rounded-lg p-3">
             <div className="flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-(--color-primary) flex-shrink-0" />
+              <Lightbulb className="w-4 h-4 text-primary flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline justify-between gap-2">
                   <p className="text-xs text-muted-foreground">Recommended Monthly</p>
-                  <p className="text-sm font-semibold text-(--color-primary) font-mono">
+                  <p className="text-sm font-semibold text-primary font-mono">
                     {formatCurrency(recommendation.recommendedMonthly)}/mo
                   </p>
                 </div>
@@ -226,8 +226,8 @@ export function GoalTracker({
               </div>
             </div>
             {recommendation.isTightTimeline && (
-              <p className="text-xs text-(--color-warning) mt-2 flex items-center gap-1">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-(--color-warning)" />
+              <p className="text-xs text-warning mt-2 flex items-center gap-1">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-warning" />
                 Tight timeline
               </p>
             )}
@@ -265,7 +265,7 @@ export function GoalTracker({
                       />
                     </div>
                     {milestone.achievedAt && (
-                      <Check className="w-4 h-4 text-(--color-income) flex-shrink-0" />
+                      <Check className="w-4 h-4 text-income flex-shrink-0" />
                     )}
                   </div>
                 ))}
@@ -281,7 +281,7 @@ export function GoalTracker({
               <div className="flex gap-2">
                 <Button
                   onClick={() => setShowContribute(true)}
-                  className="flex-1 bg-(--color-primary) hover:opacity-90 text-white"
+                  className="flex-1 bg-primary hover:opacity-90 text-white"
                 >
                   Add Contribution
                 </Button>
@@ -301,13 +301,13 @@ export function GoalTracker({
                   placeholder="Amount"
                   value={contributeAmount}
                   onChange={(e) => setContributeAmount(e.target.value)}
-                  className="flex-1 bg-elevated border border-border rounded px-3 py-2 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-(--color-income)"
+                  className="flex-1 bg-elevated border border-border rounded px-3 py-2 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:border-income"
                   step="0.01"
                   min="0"
                 />
                 <Button
                   onClick={handleContribute}
-                  className="bg-(--color-primary) hover:opacity-90 text-white"
+                  className="bg-primary hover:opacity-90 text-white"
                 >
                   Add
                 </Button>

@@ -194,7 +194,7 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
             ) : (
               <ChevronDown className="w-5 h-5 text-muted-foreground" />
             )}
-            <CreditCard className="w-5 h-5 text-(--color-expense)" />
+            <CreditCard className="w-5 h-5 text-expense" />
             <h2 className="text-lg font-semibold text-foreground">
               Debt Payments
             </h2>
@@ -241,17 +241,17 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
         <>
           {/* Strategy Mode Display */}
           {data.strategyEnabled && data.strategyDebts.items.length > 0 && (
-            <div className="mb-4 p-4 bg-(--color-primary)/10 border border-(--color-primary)/30 rounded-xl">
+            <div className="mb-4 p-4 bg-primary/10 border border-primary/30 rounded-xl">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4 text-(--color-primary)" />
+                  <Star className="w-4 h-4 text-primary" />
                   <span className="text-sm font-medium text-foreground">
                     Managed by{' '}
                     <span className="capitalize">{data.payoffMethod}</span>{' '}
                     Strategy
                   </span>
                 </div>
-                <span className="text-sm font-mono text-(--color-primary)">
+                <span className="text-sm font-mono text-primary">
                   $
                   {data.strategyDebts.totalRecommended.toLocaleString('en-US', {
                     minimumFractionDigits: 2,
@@ -261,9 +261,9 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
 
               {/* Focus Debt Highlight */}
               {data.strategyDebts.items.find((d) => d.isFocusDebt) && (
-                <div className="mb-3 pb-3 border-b border-(--color-primary)/20">
+                <div className="mb-3 pb-3 border-b border-primary/20">
                   <div className="flex items-center gap-2">
-                    <TrendingUp className="w-3 h-3 text-(--color-income)" />
+                    <TrendingUp className="w-3 h-3 text-income" />
                     <span className="text-sm text-muted-foreground">
                       Focus:{' '}
                       <span className="text-foreground font-medium">
@@ -274,7 +274,7 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
                       </span>
                     </span>
                     {data.extraMonthlyPayment > 0 && (
-                      <span className="text-xs text-(--color-income)">
+                      <span className="text-xs text-income">
                         (+$
                         {data.extraMonthlyPayment.toLocaleString('en-US', {
                           minimumFractionDigits: 2,
@@ -293,7 +293,7 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
                     key={debt.id}
                     className={`flex items-center gap-1 px-2 py-1 rounded ${
                       debt.isFocusDebt
-                        ? 'bg-(--color-primary)/20 text-(--color-primary)'
+                        ? 'bg-primary/20 text-primary'
                         : 'bg-background/50 text-muted-foreground'
                     }`}
                   >
@@ -313,14 +313,14 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
               </div>
 
               {/* Strategy Progress */}
-              <div className="mt-3 pt-3 border-t border-(--color-primary)/20">
+              <div className="mt-3 pt-3 border-t border-primary/20">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Paid this month</span>
                   <span
                     className={`font-mono ${
                       data.strategyDebts.totalPaid >=
                       data.strategyDebts.totalRecommended
-                        ? 'text-(--color-success)'
+                        ? 'text-success'
                         : 'text-foreground'
                     }`}
                   >
@@ -329,7 +329,7 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
                       minimumFractionDigits: 2,
                     })}{' '}
                     /{' '}
-                    <span className="text-(--color-primary)">
+                    <span className="text-primary">
                       $
                       {data.strategyDebts.totalRecommended.toLocaleString(
                         'en-US',
@@ -369,7 +369,7 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
               </div>
               <Link
                 href="/dashboard/settings?tab=household-financial"
-                className="inline-flex items-center gap-1 text-sm text-(--color-primary) hover:opacity-80 transition-opacity mt-3"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:opacity-80 transition-opacity mt-3"
               >
                 <TrendingUp className="w-3 h-3" />
                 Enable Payoff Strategy for centralized management
@@ -379,35 +379,35 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
 
           {/* Status Summary */}
           {needsAttention && (
-            <div className="mb-4 p-3 bg-(--color-warning)/10 border border-(--color-warning)/30 rounded-xl">
+            <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-xl">
               <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="w-4 h-4 text-(--color-warning)" />
+                <AlertCircle className="w-4 h-4 text-warning" />
                 <span className="text-sm font-medium text-foreground">
                   Payment Status
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 {statusCounts.unpaid > 0 && (
-                  <span className="flex items-center gap-1 text-(--color-error)">
-                    <span className="w-2 h-2 rounded-full bg-(--color-error)" />
+                  <span className="flex items-center gap-1 text-error">
+                    <span className="w-2 h-2 rounded-full bg-error" />
                     {statusCounts.unpaid} unpaid
                   </span>
                 )}
                 {statusCounts.partial > 0 && (
-                  <span className="flex items-center gap-1 text-(--color-warning)">
-                    <span className="w-2 h-2 rounded-full bg-(--color-warning)" />
+                  <span className="flex items-center gap-1 text-warning">
+                    <span className="w-2 h-2 rounded-full bg-warning" />
                     {statusCounts.partial} partial
                   </span>
                 )}
                 {statusCounts.paid > 0 && (
-                  <span className="flex items-center gap-1 text-(--color-success)">
-                    <span className="w-2 h-2 rounded-full bg-(--color-success)" />
+                  <span className="flex items-center gap-1 text-success">
+                    <span className="w-2 h-2 rounded-full bg-success" />
                     {statusCounts.paid} paid
                   </span>
                 )}
                 {statusCounts.overpaid > 0 && (
-                  <span className="flex items-center gap-1 text-(--color-primary)">
-                    <span className="w-2 h-2 rounded-full bg-(--color-primary)" />
+                  <span className="flex items-center gap-1 text-primary">
+                    <span className="w-2 h-2 rounded-full bg-primary" />
                     {statusCounts.overpaid} overpaid
                   </span>
                 )}
@@ -417,10 +417,10 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
 
           {/* All Paid Success Message */}
           {!needsAttention && data.debtCount > 0 && (
-            <div className="mb-4 p-3 bg-(--color-success)/10 border border-(--color-success)/30 rounded-xl">
+            <div className="mb-4 p-3 bg-success/10 border border-success/30 rounded-xl">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-(--color-success)" />
-                <span className="text-sm font-medium text-(--color-success)">
+                <CheckCircle2 className="w-4 h-4 text-success" />
+                <span className="text-sm font-medium text-success">
                   All {data.debtCount} debt
                   {data.debtCount !== 1 ? 's' : ''} paid this month
                   {statusCounts.overpaid > 0 &&
@@ -443,7 +443,7 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
             </div>
             <div className="bg-card border border-border rounded-lg p-3">
               <p className="text-xs text-muted-foreground">Budgeted</p>
-              <p className="font-mono font-semibold text-(--color-primary)">
+              <p className="font-mono font-semibold text-primary">
                 $
                 {data.totalBudgetedPayments.toLocaleString('en-US', {
                   minimumFractionDigits: 2,
@@ -455,7 +455,7 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
               <p
                 className={`font-mono font-semibold ${
                   percentagePaid >= 100
-                    ? 'text-(--color-success)'
+                    ? 'text-success'
                     : 'text-foreground'
                 }`}
               >
@@ -470,8 +470,8 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
               <p
                 className={`font-mono font-semibold ${
                   totalRemaining <= 0
-                    ? 'text-(--color-success)'
-                    : 'text-(--color-expense)'
+                    ? 'text-success'
+                    : 'text-expense'
                 }`}
               >
                 $
@@ -488,7 +488,7 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
       {!isExpanded && (
         <div
           className={`flex items-center justify-between p-3 bg-card border rounded-lg ${
-            needsAttention ? 'border-(--color-warning)' : 'border-border'
+            needsAttention ? 'border-warning' : 'border-border'
           }`}
         >
           <div className="flex items-center gap-3">
@@ -496,32 +496,32 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
               {data.debtCount} debt{data.debtCount !== 1 ? 's' : ''}
             </span>
             {data.strategyEnabled && (
-              <span className="text-xs text-(--color-primary) bg-(--color-primary)/10 px-2 py-0.5 rounded">
+              <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded">
                 {data.payoffMethod}
               </span>
             )}
             {/* Compact status indicators */}
             <div className="flex items-center gap-2 text-xs">
               {statusCounts.paid > 0 && (
-                <span className="flex items-center gap-1 text-(--color-success)">
-                  <span className="w-1.5 h-1.5 rounded-full bg-(--color-success)" />
+                <span className="flex items-center gap-1 text-success">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
                   {statusCounts.paid}
                 </span>
               )}
               {statusCounts.overpaid > 0 && (
-                <span className="flex items-center gap-1 text-(--color-primary)">
-                  <span className="w-1.5 h-1.5 rounded-full bg-(--color-primary)" />
+                <span className="flex items-center gap-1 text-primary">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                   +{statusCounts.overpaid}
                 </span>
               )}
               {statusCounts.partial > 0 && (
-                <span className="flex items-center gap-1 text-(--color-warning)">
-                  <span className="w-1.5 h-1.5 rounded-full bg-(--color-warning)" />
+                <span className="flex items-center gap-1 text-warning">
+                  <span className="w-1.5 h-1.5 rounded-full bg-warning" />
                   {statusCounts.partial}
                 </span>
               )}
               {statusCounts.unpaid > 0 && (
-                <span className="flex items-center gap-1 text-(--color-error)">
+                <span className="flex items-center gap-1 text-error">
                   <AlertCircle className="w-3 h-3" />
                   {statusCounts.unpaid}
                 </span>
@@ -532,7 +532,7 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
             <span
               className={
                 percentagePaid >= 100
-                  ? 'text-(--color-success)'
+                  ? 'text-success'
                   : 'text-foreground'
               }
             >
@@ -542,7 +542,7 @@ export function UnifiedDebtBudgetSection({ month }: UnifiedDebtBudgetSectionProp
               })}
             </span>
             <span className="text-muted-foreground"> / </span>
-            <span className="text-(--color-primary)">
+            <span className="text-primary">
               $
               {data.totalBudgetedPayments.toLocaleString('en-US', {
                 minimumFractionDigits: 2,
@@ -581,9 +581,9 @@ function ManualDebtRow({ debt }: { debt: UnifiedDebtItem }) {
         <p
           className={`text-sm font-mono ${
             isOverpaid
-              ? 'text-(--color-primary)'
+              ? 'text-primary'
               : isPaid
-              ? 'text-(--color-success)'
+              ? 'text-success'
               : 'text-foreground'
           }`}
         >

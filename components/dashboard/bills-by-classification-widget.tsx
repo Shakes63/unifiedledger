@@ -106,7 +106,7 @@ export function BillsByClassificationWidget() {
             <p className="text-muted-foreground text-sm">No active bills</p>
             <Link
               href="/dashboard/bills/new"
-              className="text-(--color-primary) text-sm hover:underline mt-2 inline-block"
+              className="text-primary text-sm hover:underline mt-2 inline-block"
             >
               Add your first bill
             </Link>
@@ -210,7 +210,7 @@ export function BillsByClassificationWidget() {
                     <p className="text-xs text-muted-foreground">
                       {item.count} bill{item.count !== 1 ? 's' : ''}
                       {item.upcomingCount > 0 && (
-                        <span className="text-(--color-warning)">
+                        <span className="text-warning">
                           {' '}&bull; {item.upcomingCount} upcoming
                         </span>
                       )}
@@ -235,7 +235,7 @@ export function BillsByClassificationWidget() {
           <div className="pt-3 border-t border-border">
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Upcoming (30 days)</span>
-              <span className="text-(--color-warning) font-medium">
+              <span className="text-warning font-medium">
                 {data.totals.totalUpcomingCount} bills &bull; ${data.totals.totalUpcomingAmount.toFixed(2)}
               </span>
             </div>

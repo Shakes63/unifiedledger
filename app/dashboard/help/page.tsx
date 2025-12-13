@@ -137,13 +137,13 @@ const helpSections: HelpSectionData[] = [
         <div className="space-y-3">
           <h4 className="font-medium text-foreground">Category Types</h4>
           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
-            <li><strong className="text-foreground text-(--color-income)">Income</strong> - Money coming in (salary, freelance, investments)</li>
-            <li><strong className="text-foreground text-(--color-expense)">Expense</strong> - Money going out (rent, groceries, entertainment)</li>
-            <li><strong className="text-foreground text-(--color-transfer)">Savings</strong> - Money set aside for future use</li>
+            <li><strong className="text-foreground text-income">Income</strong> - Money coming in (salary, freelance, investments)</li>
+            <li><strong className="text-foreground text-expense">Expense</strong> - Money going out (rent, groceries, entertainment)</li>
+            <li><strong className="text-foreground text-transfer">Savings</strong> - Money set aside for future use</li>
           </ul>
         </div>
-        <div className="p-3 bg-(--color-warning)/10 border border-(--color-warning)/20 rounded-lg">
-          <h4 className="font-medium text-(--color-warning) mb-2">Setting Up Categories for Budgets</h4>
+        <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
+          <h4 className="font-medium text-warning mb-2">Setting Up Categories for Budgets</h4>
           <p className="text-sm text-muted-foreground">
             To use budget templates, you need <strong>expense categories with budget amounts set</strong>. 
             When creating or editing a category:
@@ -213,9 +213,9 @@ const helpSections: HelpSectionData[] = [
         <div className="space-y-3">
           <h4 className="font-medium text-foreground">Transaction Types</h4>
           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
-            <li><strong className="text-foreground text-(--color-income)">Income</strong> - Money received (salary, refunds, gifts)</li>
-            <li><strong className="text-foreground text-(--color-expense)">Expense</strong> - Money spent (purchases, bills, subscriptions)</li>
-            <li><strong className="text-foreground text-(--color-transfer)">Transfer</strong> - Money moved between your accounts</li>
+            <li><strong className="text-foreground text-income">Income</strong> - Money received (salary, refunds, gifts)</li>
+            <li><strong className="text-foreground text-expense">Expense</strong> - Money spent (purchases, bills, subscriptions)</li>
+            <li><strong className="text-foreground text-transfer">Transfer</strong> - Money moved between your accounts</li>
           </ul>
         </div>
         <div className="space-y-3">
@@ -263,8 +263,8 @@ const helpSections: HelpSectionData[] = [
             <li><strong className="text-foreground">Envelope</strong> - Fixed amounts for each spending category</li>
           </ul>
         </div>
-        <div className="p-3 bg-(--color-warning)/10 border border-(--color-warning)/20 rounded-lg">
-          <h4 className="font-medium text-(--color-warning) mb-2">No Budget Suggestions?</h4>
+        <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
+          <h4 className="font-medium text-warning mb-2">No Budget Suggestions?</h4>
           <p className="text-sm text-muted-foreground">
             If budget templates aren&apos;t generating suggestions, make sure you have:
           </p>
@@ -600,8 +600,8 @@ const helpSections: HelpSectionData[] = [
             <li>Duplicate detection prevents double-entry</li>
           </ul>
         </div>
-        <div className="p-3 bg-(--color-info)/10 border border-(--color-info)/20 rounded-lg">
-          <h4 className="font-medium text-(--color-info) mb-2">Import Tips</h4>
+        <div className="p-3 bg-info/10 border border-info/20 rounded-lg">
+          <h4 className="font-medium text-info mb-2">Import Tips</h4>
           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
             <li>Review the preview before importing</li>
             <li>Set up rules to auto-categorize imported transactions</li>

@@ -319,7 +319,7 @@ export function PrivacyTab() {
                         {session.isCurrent && (
                           <Badge
                             variant="secondary"
-                            className="bg-(--color-success) text-white"
+                            className="bg-success text-white"
                           >
                             Current
                           </Badge>
@@ -357,7 +357,7 @@ export function PrivacyTab() {
                       variant="ghost"
                       size="sm"
                       onClick={() => revokeSession(session.id)}
-                      className="text-(--color-error) hover:text-(--color-error) hover:bg-(--color-error)/10"
+                      className="text-error hover:text-error hover:bg-error/10"
                     >
                       <LogOut className="w-4 h-4 mr-1" />
                       Revoke
@@ -373,7 +373,7 @@ export function PrivacyTab() {
           <Button
             variant="outline"
             onClick={revokeAllSessions}
-            className="mt-4 border-(--color-error) text-(--color-error) hover:bg-(--color-error)/10"
+            className="mt-4 border-error text-error hover:bg-error/10"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Revoke All Other Sessions
@@ -435,7 +435,7 @@ export function PrivacyTab() {
             </Select>
             <p className="text-xs text-muted-foreground">
               {sessionTimeout === 0 ? (
-                <span className="flex items-center gap-1 text-(--color-warning)">
+                <span className="flex items-center gap-1 text-warning">
                   <AlertTriangle className="w-3 h-3" />
                   Disabling session timeout reduces account security. Only use on trusted devices.
                 </span>
@@ -497,10 +497,10 @@ export function PrivacyTab() {
 
       {/* Danger Zone Section */}
       <div>
-        <h3 className="text-lg font-semibold text-(--color-error) mb-2">Danger Zone</h3>
-        <Card className="p-4 border-(--color-error) bg-(--color-error)/5">
+        <h3 className="text-lg font-semibold text-error mb-2">Danger Zone</h3>
+        <Card className="p-4 border-error bg-error/5">
           <div className="flex items-start gap-3 mb-4">
-            <AlertTriangle className="w-5 h-5 text-(--color-error) mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-error mt-0.5" />
             <div>
               <h4 className="font-medium text-foreground mb-1">Delete Account</h4>
               <p className="text-sm text-muted-foreground">
@@ -512,7 +512,7 @@ export function PrivacyTab() {
           <Button
             variant="destructive"
             onClick={() => setDeleteDialogOpen(true)}
-            className="bg-(--color-error) hover:bg-(--color-error)/90"
+            className="bg-error hover:bg-error/90"
           >
             <Trash2 className="w-4 h-4 mr-2" />
             Delete My Account
@@ -584,7 +584,7 @@ export function PrivacyTab() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-(--color-error)">
+            <DialogTitle className="text-error">
               Delete Account
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -649,7 +649,7 @@ export function PrivacyTab() {
                 disabled={
                   deleteConfirmation !== 'DELETE MY ACCOUNT' || !deletePassword || deleting
                 }
-                className="bg-(--color-error) hover:bg-(--color-error)/90"
+                className="bg-error hover:bg-error/90"
               >
                 {deleting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

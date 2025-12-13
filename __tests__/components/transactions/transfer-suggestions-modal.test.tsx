@@ -23,6 +23,6 @@ describe('TransferSuggestionsModal', () => {
     const icon = titleEl!.querySelector('svg');
     expect(icon).not.toBeNull();
 
-    expect(icon).toHaveClass('text-(--color-primary)');
+    expect(icon).toHaveClass('text-primary');
   });
 });

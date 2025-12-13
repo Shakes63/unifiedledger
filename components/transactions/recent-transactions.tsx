@@ -140,7 +140,7 @@ export function RecentTransactions({ limit = 5, showViewAll = true }: RecentTran
       <Card className="p-6 border border-[#2a2a2a] bg-[#1a1a1a] rounded-xl">
         <p className="text-gray-400 text-center mb-4">No transactions yet.</p>
         <Link href="/dashboard/transactions/new">
-          <Button className="w-full bg-(--color-primary) text-white hover:opacity-90 font-medium">
+          <Button className="w-full bg-primary text-white hover:opacity-90 font-medium">
             Add Transaction
           </Button>
         </Link>

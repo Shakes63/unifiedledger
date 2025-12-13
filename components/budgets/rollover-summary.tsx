@@ -207,7 +207,7 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit }: RolloverSum
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-elevated transition-colors"
       >
         <div className="flex items-center gap-3">
-          <RefreshCcw className="w-5 h-5 text-(--color-primary)" />
+          <RefreshCcw className="w-5 h-5 text-primary" />
           <div className="text-left">
             <h3 className="text-sm font-medium text-foreground">Budget Rollover</h3>
             <p className="text-xs text-muted-foreground">
@@ -217,12 +217,12 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit }: RolloverSum
         </div>
         <div className="flex items-center gap-2">
           {data.totalRolloverBalance > 0 && (
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-(--color-success)/20 text-(--color-success)">
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-success/20 text-success">
               +${data.totalRolloverBalance.toFixed(2)}
             </span>
           )}
           {data.totalRolloverBalance < 0 && (
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-(--color-error)/20 text-(--color-error)">
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-error/20 text-error">
               ${data.totalRolloverBalance.toFixed(2)}
             </span>
           )}
@@ -241,7 +241,7 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit }: RolloverSum
           <div className="px-4 py-2 bg-muted/50 text-xs text-muted-foreground">
             Rollover allows unused budget from one month to carry forward to the next.
             {data.allowNegativeRollover && (
-              <span className="ml-1 text-(--color-warning)">
+              <span className="ml-1 text-warning">
                 Negative rollover is enabled for this household.
               </span>
             )}
@@ -258,8 +258,8 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit }: RolloverSum
                       <span 
                         className={`px-1.5 py-0.5 text-xs rounded ${
                           category.rolloverBalance > 0
-                            ? 'bg-(--color-success)/20 text-(--color-success)'
-                            : 'bg-(--color-error)/20 text-(--color-error)'
+                            ? 'bg-success/20 text-success'
+                            : 'bg-error/20 text-error'
                         }`}
                       >
                         {category.rolloverBalance >= 0 ? '+' : ''}${category.rolloverBalance.toFixed(2)}
@@ -293,7 +293,7 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit }: RolloverSum
                           />
                           <button
                             onClick={() => handleSaveLimit(category.id)}
-                            className="px-2 py-1 text-xs bg-(--color-primary) text-white rounded hover:opacity-90"
+                            className="px-2 py-1 text-xs bg-primary text-white rounded hover:opacity-90"
                           >
                             Save
                           </button>
@@ -334,7 +334,7 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit }: RolloverSum
                     onClick={() => handleToggleRollover(category.id, !category.rolloverEnabled)}
                     className={`relative w-10 h-5 rounded-full transition-colors ${
                       category.rolloverEnabled 
-                        ? 'bg-(--color-primary)' 
+                        ? 'bg-primary' 
                         : 'bg-muted'
                     }`}
                     title={category.rolloverEnabled ? 'Disable rollover' : 'Enable rollover'}

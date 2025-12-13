@@ -246,17 +246,17 @@ export function PaymentComparisonPieCharts({
               {/* Insight Badge */}
               <div className="mt-4 text-center">
                 {stage.stage === 'first' && stage.interestPercent > 50 && (
-                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-(--color-warning)/10 border border-(--color-warning)/30 rounded-full">
-                    <AlertTriangle className="w-3 h-3 text-(--color-warning)" />
-                    <span className="text-xs text-(--color-warning)">
+                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-warning/10 border border-warning/30 rounded-full">
+                    <AlertTriangle className="w-3 h-3 text-warning" />
+                    <span className="text-xs text-warning">
                       Most interest paid early
                     </span>
                   </div>
                 )}
                 {stage.stage === 'last' && stage.principalPercent > 90 && (
-                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-(--color-success)/10 border border-(--color-success)/30 rounded-full">
-                    <PartyPopper className="w-3 h-3 text-(--color-success)" />
-                    <span className="text-xs text-(--color-success)">
+                  <div className="inline-flex items-center gap-1 px-3 py-1 bg-success/10 border border-success/30 rounded-full">
+                    <PartyPopper className="w-3 h-3 text-success" />
+                    <span className="text-xs text-success">
                       Almost all principal
                     </span>
                   </div>

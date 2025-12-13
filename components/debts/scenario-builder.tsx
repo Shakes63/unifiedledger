@@ -85,7 +85,7 @@ export function ScenarioBuilder({
             variant="ghost"
             size="sm"
             onClick={onDelete}
-            className="text-(--color-error) hover:text-(--color-error)/80 hover:bg-(--color-error)/10"
+            className="text-error hover:text-error/80 hover:bg-error/10"
           >
             <Trash2 className="w-4 h-4" />
           </Button>
@@ -93,7 +93,7 @@ export function ScenarioBuilder({
       </div>
 
       {isBaseline && (
-        <div className="mb-4 p-2 bg-(--color-primary)/10 border border-(--color-primary)/30 rounded text-sm text-(--color-primary)">
+        <div className="mb-4 p-2 bg-primary/10 border border-primary/30 rounded text-sm text-primary">
           This is your baseline scenario for comparison
         </div>
       )}
@@ -131,7 +131,7 @@ export function ScenarioBuilder({
             onClick={() => handleFrequencyChange('weekly')}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
               scenario.paymentFrequency === 'weekly'
-                ? 'bg-(--color-success) text-white'
+                ? 'bg-success text-white'
                 : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
@@ -141,7 +141,7 @@ export function ScenarioBuilder({
             onClick={() => handleFrequencyChange('biweekly')}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
               scenario.paymentFrequency === 'biweekly'
-                ? 'bg-(--color-primary) text-white'
+                ? 'bg-primary text-white'
                 : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
@@ -161,7 +161,7 @@ export function ScenarioBuilder({
             onClick={() => handleFrequencyChange('quarterly')}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
               scenario.paymentFrequency === 'quarterly'
-                ? 'bg-(--color-warning) text-white'
+                ? 'bg-warning text-white'
                 : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
@@ -184,7 +184,7 @@ export function ScenarioBuilder({
             onClick={() => handleMethodChange('snowball')}
             className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               scenario.method === 'snowball'
-                ? 'bg-(--color-transfer) text-primary-foreground'
+                ? 'bg-transfer text-primary-foreground'
                 : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
@@ -194,7 +194,7 @@ export function ScenarioBuilder({
             onClick={() => handleMethodChange('avalanche')}
             className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               scenario.method === 'avalanche'
-                ? 'bg-(--color-transfer) text-primary-foreground'
+                ? 'bg-transfer text-primary-foreground'
                 : 'bg-elevated text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
@@ -217,7 +217,7 @@ export function ScenarioBuilder({
               variant="ghost"
               size="sm"
               onClick={() => setShowLumpSumForm(true)}
-              className="text-(--color-primary) hover:text-(--color-primary)/80 h-auto py-1"
+              className="text-primary hover:text-primary/80 h-auto py-1"
             >
               <Plus className="w-4 h-4 mr-1" />
               Add
@@ -245,7 +245,7 @@ export function ScenarioBuilder({
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemoveLumpSum(index)}
-                  className="text-(--color-error) hover:text-(--color-error)/80 h-auto p-1"
+                  className="text-error hover:text-error/80 h-auto p-1"
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -302,7 +302,7 @@ export function ScenarioBuilder({
             <div className="flex gap-2">
               <Button
                 onClick={handleAddLumpSum}
-                className="flex-1 bg-(--color-primary) hover:opacity-90 text-white"
+                className="flex-1 bg-primary hover:opacity-90 text-white"
                 disabled={newLumpSum.amount <= 0 || newLumpSum.month < 1}
               >
                 Add

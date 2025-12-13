@@ -94,7 +94,7 @@ export function DebtCountdownCard() {
   if (!data.hasDebts) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-4">
-        <PartyPopper className="w-10 h-10 text-(--color-income) mb-2" />
+        <PartyPopper className="w-10 h-10 text-income mb-2" />
         <p className="text-sm font-semibold mb-1" style={{ color: 'var(--color-income)' }}>Debt-Free!</p>
         <p className="text-xs text-muted-foreground">You have no active debts</p>
       </div>
@@ -151,7 +151,7 @@ export function DebtCountdownCard() {
       {/* View Details Link */}
       <Link
         href="/dashboard/debts"
-        className="flex items-center justify-center gap-1 text-xs transition-colors py-2 border-t text-(--color-primary) hover:text-(--color-primary)/80 border-border"
+        className="flex items-center justify-center gap-1 text-xs transition-colors py-2 border-t text-primary hover:text-primary/80 border-border"
       >
         View Details
         <ArrowRight className="w-3 h-3" />

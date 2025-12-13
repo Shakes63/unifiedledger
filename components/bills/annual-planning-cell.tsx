@@ -31,23 +31,23 @@ export function AnnualPlanningCell({ data, onClick }: AnnualPlanningCellProps) {
     switch (data.status) {
       case 'paid':
         return {
-          bg: 'bg-(--color-income)/10 hover:bg-(--color-income)/20',
-          border: 'border-(--color-income)/30',
-          icon: <CheckCircle2 className="w-3 h-3 text-(--color-income)" />,
+          bg: 'bg-income/10 hover:bg-income/20',
+          border: 'border-income/30',
+          icon: <CheckCircle2 className="w-3 h-3 text-income" />,
           iconTitle: 'Paid',
         };
       case 'pending':
         return {
-          bg: 'bg-(--color-warning)/10 hover:bg-(--color-warning)/20',
-          border: 'border-(--color-warning)/30',
-          icon: <Clock className="w-3 h-3 text-(--color-warning)" />,
+          bg: 'bg-warning/10 hover:bg-warning/20',
+          border: 'border-warning/30',
+          icon: <Clock className="w-3 h-3 text-warning" />,
           iconTitle: 'Pending',
         };
       case 'overdue':
         return {
-          bg: 'bg-(--color-error)/10 hover:bg-(--color-error)/20',
-          border: 'border-(--color-error)/30',
-          icon: <AlertCircle className="w-3 h-3 text-(--color-error)" />,
+          bg: 'bg-error/10 hover:bg-error/20',
+          border: 'border-error/30',
+          icon: <AlertCircle className="w-3 h-3 text-error" />,
           iconTitle: 'Overdue',
         };
       case 'skipped':

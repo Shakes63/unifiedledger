@@ -34,8 +34,8 @@ function EmailVerifiedPageContent() {
       <div className="max-w-md w-full">
         <div className="bg-card border border-border rounded-xl p-8 text-center">
           {/* Success Icon */}
-          <div className="mx-auto w-16 h-16 bg-(--color-success)/10 rounded-full flex items-center justify-center mb-6">
-            <CheckCircle2 className="w-10 h-10 text-(--color-success)" />
+          <div className="mx-auto w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mb-6">
+            <CheckCircle2 className="w-10 h-10 text-success" />
           </div>
 
           {/* Title */}
@@ -59,7 +59,7 @@ function EmailVerifiedPageContent() {
           {/* Continue button */}
           <Button
             onClick={handleContinue}
-            className="w-full bg-(--color-primary) hover:bg-(--color-primary)/90 text-white"
+            className="w-full bg-primary hover:bg-primary/90 text-white"
           >
             Continue to Dashboard
           </Button>

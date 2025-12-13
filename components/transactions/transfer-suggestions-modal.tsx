@@ -144,7 +144,7 @@ export function TransferSuggestionsModal({
       <DialogContent className="bg-card border-border max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground flex items-center gap-2">
-            <ArrowRightLeft className="h-5 w-5 text-(--color-primary)" />
+            <ArrowRightLeft className="h-5 w-5 text-primary" />
             Transfer Match Suggestions
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
@@ -222,19 +222,19 @@ function SuggestionCard({
   const getConfidenceBadge = (confidence: string, totalScore: number) => {
     if (confidence === 'high') {
       return (
-        <Badge className="bg-(--color-success) text-white border-none">
+        <Badge className="bg-success text-white border-none">
           {totalScore.toFixed(0)}% Match
         </Badge>
       );
     } else if (confidence === 'medium') {
       return (
-        <Badge className="bg-(--color-warning) text-white border-none">
+        <Badge className="bg-warning text-white border-none">
           {totalScore.toFixed(0)}% Match
         </Badge>
       );
     } else {
       return (
-        <Badge className="bg-(--color-error) text-white border-none">
+        <Badge className="bg-error text-white border-none">
           {totalScore.toFixed(0)}% Match
         </Badge>
       );
@@ -258,7 +258,7 @@ function SuggestionCard({
             <p className="text-sm font-medium text-foreground line-clamp-2">
               {sourceTransaction.description}
             </p>
-            <p className="text-lg font-mono text-(--color-expense)">
+            <p className="text-lg font-mono text-expense">
               {formatCurrency(sourceTransaction.amount)}
             </p>
             <div className="flex items-center gap-2">
@@ -284,7 +284,7 @@ function SuggestionCard({
             <p className="text-sm font-medium text-foreground line-clamp-2">
               {suggestedTransaction.description}
             </p>
-            <p className="text-lg font-mono text-(--color-income)">
+            <p className="text-lg font-mono text-income">
               {formatCurrency(suggestedTransaction.amount)}
             </p>
             <div className="flex items-center gap-2">
@@ -317,7 +317,7 @@ function SuggestionCard({
         <Button
           onClick={onAccept}
           disabled={isProcessing}
-          className="flex-1 bg-(--color-success) hover:opacity-90 text-white"
+          className="flex-1 bg-success hover:opacity-90 text-white"
         >
           {isProcessing ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -357,7 +357,7 @@ function ScoreBar({ label, score, max }: { label: string; score: number; max: nu
       </div>
       <div className="h-2 bg-background rounded-full overflow-hidden">
         <div
-          className="h-full bg-(--color-primary) transition-all duration-300"
+          className="h-full bg-primary transition-all duration-300"
           style={{ width: `${percentage}%` }}
         />
       </div>

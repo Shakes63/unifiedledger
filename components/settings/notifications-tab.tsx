@@ -153,7 +153,7 @@ export function NotificationsTab() {
                   {channel.label}
                 </Label>
                 {!channel.available && (
-                  <span className="text-[10px] text-(--color-warning) ml-auto">
+                  <span className="text-[10px] text-warning ml-auto">
                     {channel.description}
                   </span>
                 )}
@@ -173,7 +173,7 @@ export function NotificationsTab() {
   if (preferencesLoading || !selectedHousehold) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-(--color-primary)" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -181,14 +181,14 @@ export function NotificationsTab() {
   if (!preferences) {
     return (
       <div className="flex flex-col items-center justify-center py-12 space-y-4">
-        <AlertCircle className="h-12 w-12 text-(--color-error)" />
+        <AlertCircle className="h-12 w-12 text-error" />
         <p className="text-foreground font-medium">Failed to load preferences</p>
         <p className="text-sm text-muted-foreground">
           Unable to load notification preferences for this household
         </p>
         <button
           onClick={refreshPreferences}
-          className="px-4 py-2 bg-(--color-primary) text-white rounded-lg hover:opacity-90 transition-opacity"
+          className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
         >
           Retry
         </button>
@@ -220,7 +220,7 @@ export function NotificationsTab() {
       <Card className="border-border bg-card p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div className="mt-1 p-2 rounded-lg bg-elevated">
-            <Receipt className="h-5 w-5 text-(--color-primary)" />
+            <Receipt className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1 space-y-4">
             <div>
@@ -258,7 +258,7 @@ export function NotificationsTab() {
       <Card className="border-border bg-card p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div className="mt-1 p-2 rounded-lg bg-elevated">
-            <AlertTriangle className="h-5 w-5 text-(--color-warning)" />
+            <AlertTriangle className="h-5 w-5 text-warning" />
           </div>
           <div className="flex-1 space-y-4">
             <div>
@@ -347,7 +347,7 @@ export function NotificationsTab() {
       <Card className="border-border bg-card p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div className="mt-1 p-2 rounded-lg bg-elevated">
-            <Wallet className="h-5 w-5 text-(--color-primary)" />
+            <Wallet className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1 space-y-4">
             <div>
@@ -388,7 +388,7 @@ export function NotificationsTab() {
       <Card className="border-border bg-card p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div className="mt-1 p-2 rounded-lg bg-elevated">
-            <TrendingUp className="h-5 w-5 text-(--color-income)" />
+            <TrendingUp className="h-5 w-5 text-income" />
           </div>
           <div className="flex-1 space-y-4">
             <div>
@@ -429,7 +429,7 @@ export function NotificationsTab() {
       <Card className="border-border bg-card p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div className="mt-1 p-2 rounded-lg bg-elevated">
-            <CreditCard className="h-5 w-5 text-(--color-warning)" />
+            <CreditCard className="h-5 w-5 text-warning" />
           </div>
           <div className="flex-1 space-y-4">
             <div>
@@ -524,7 +524,7 @@ export function NotificationsTab() {
       <Card className="border-border bg-card p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div className="mt-1 p-2 rounded-lg bg-elevated">
-            <Target className="h-5 w-5 text-(--color-success)" />
+            <Target className="h-5 w-5 text-success" />
           </div>
           <div className="flex-1 space-y-4">
             <div>
@@ -589,7 +589,7 @@ export function NotificationsTab() {
       <Card className="border-border bg-card p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div className="mt-1 p-2 rounded-lg bg-elevated">
-            <Calendar className="h-5 w-5 text-(--color-primary)" />
+            <Calendar className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1 space-y-4">
             <div>

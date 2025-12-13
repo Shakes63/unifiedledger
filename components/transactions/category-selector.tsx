@@ -392,14 +392,14 @@ export function CategorySelector({
             value={newCategoryName}
             onChange={(e) => setNewCategoryName(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-elevated border border-(--color-primary) text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
+            className="flex-1 bg-elevated border border-primary text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <Button
             type="button"
             size="icon"
             onClick={handleCreateCategory}
             disabled={creatingCategory || !newCategoryName.trim()}
-            className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
+            className="bg-primary hover:opacity-90 text-primary-foreground"
           >
             <Plus className="w-4 h-4" />
           </Button>

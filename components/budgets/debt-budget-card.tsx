@@ -57,12 +57,12 @@ export function DebtBudgetCard({ debt }: DebtBudgetCardProps) {
 
   // Determine status for coloring
   const getProgressColor = () => {
-    if (isUnpaid) return 'bg-(--color-error)';
-    if (isOverpaid) return 'bg-(--color-primary)';
-    if (isPaid) return 'bg-(--color-success)';
-    if (percentage >= 80) return 'bg-(--color-warning)';
-    if (percentage >= 50) return 'bg-(--color-warning)';
-    return 'bg-(--color-error)';
+    if (isUnpaid) return 'bg-error';
+    if (isOverpaid) return 'bg-primary';
+    if (isPaid) return 'bg-success';
+    if (percentage >= 80) return 'bg-warning';
+    if (percentage >= 50) return 'bg-warning';
+    return 'bg-error';
   };
 
   // Format payoff date
@@ -75,7 +75,7 @@ export function DebtBudgetCard({ debt }: DebtBudgetCardProps) {
     <div
       className={`bg-card border rounded-xl p-4 transition-colors ${
         debt.isFocusDebt
-          ? 'border-(--color-primary) bg-(--color-primary)/5'
+          ? 'border-primary bg-primary/5'
           : 'border-border'
       }`}
     >
@@ -89,26 +89,26 @@ export function DebtBudgetCard({ debt }: DebtBudgetCardProps) {
           <h4 className="font-medium text-foreground">{debt.debtName}</h4>
           <EntityIdBadge id={debt.debtId} label="Debt" />
           {debt.isFocusDebt && (
-            <span className="inline-flex items-center gap-1 text-xs bg-(--color-primary) text-(--color-primary-foreground) px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
               <Star className="w-3 h-3" />
               Focus
             </span>
           )}
           {/* Payment Status Badges */}
           {isUnpaid && (
-            <span className="inline-flex items-center gap-1 text-xs bg-(--color-error)/20 text-(--color-error) px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 text-xs bg-error/20 text-error px-2 py-0.5 rounded-full">
               <AlertCircle className="w-3 h-3" />
               Unpaid
             </span>
           )}
           {isOverpaid && (
-            <span className="inline-flex items-center gap-1 text-xs bg-(--color-primary)/20 text-(--color-primary) px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
               <TrendingUp className="w-3 h-3" />
               +${overpaidAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </span>
           )}
           {isPaid && !isOverpaid && (
-            <span className="inline-flex items-center gap-1 text-xs bg-(--color-success)/20 text-(--color-success) px-2 py-0.5 rounded-full">
+            <span className="inline-flex items-center gap-1 text-xs bg-success/20 text-success px-2 py-0.5 rounded-full">
               <CheckCircle2 className="w-3 h-3" />
               Paid
             </span>
@@ -133,7 +133,7 @@ export function DebtBudgetCard({ debt }: DebtBudgetCardProps) {
             ${debt.actualPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })} of $
             {debt.recommendedPayment.toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </span>
-          <span className={`font-semibold ${isPaid || isOverpaid ? 'text-(--color-success)' : 'text-foreground'}`}>
+          <span className={`font-semibold ${isPaid || isOverpaid ? 'text-success' : 'text-foreground'}`}>
             {Math.min(Math.round(percentage), 100)}%
           </span>
         </div>
@@ -151,17 +151,17 @@ export function DebtBudgetCard({ debt }: DebtBudgetCardProps) {
         {debt.isFocusDebt ? (
           <div>
             <span className="text-muted-foreground text-xs flex items-center gap-1">
-              <TrendingUp className="w-3 h-3 text-(--color-primary)" />
+              <TrendingUp className="w-3 h-3 text-primary" />
               Recommended
             </span>
-            <p className="font-mono font-semibold text-(--color-primary)">
+            <p className="font-mono font-semibold text-primary">
               ${debt.recommendedPayment.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </p>
           </div>
         ) : debt.additionalMonthlyPayment > 0 ? (
           <div>
             <span className="text-muted-foreground text-xs">+ Extra</span>
-            <p className="font-mono text-(--color-income)">
+            <p className="font-mono text-income">
               +${debt.additionalMonthlyPayment.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </p>
           </div>
@@ -196,24 +196,24 @@ export function DebtBudgetCard({ debt }: DebtBudgetCardProps) {
 
       {/* Status Indicators */}
       {isUnpaid && (
-        <div className="mt-3 p-2 bg-(--color-error)/10 border border-(--color-error)/30 rounded-lg">
-          <p className="text-xs text-(--color-error) flex items-center gap-1">
+        <div className="mt-3 p-2 bg-error/10 border border-error/30 rounded-lg">
+          <p className="text-xs text-error flex items-center gap-1">
             <AlertCircle className="w-3 h-3" />
             No payment recorded this month - ${debt.recommendedPayment.toLocaleString('en-US', { minimumFractionDigits: 2 })} due
           </p>
         </div>
       )}
       {isPartial && remaining > 0 && (
-        <div className="mt-3 p-2 bg-(--color-warning)/10 border border-(--color-warning)/30 rounded-lg">
-          <p className="text-xs text-(--color-warning) flex items-center gap-1">
+        <div className="mt-3 p-2 bg-warning/10 border border-warning/30 rounded-lg">
+          <p className="text-xs text-warning flex items-center gap-1">
             <TrendingDown className="w-3 h-3" />
             ${remaining.toLocaleString('en-US', { minimumFractionDigits: 2 })} remaining to pay this month
           </p>
         </div>
       )}
       {isOverpaid && (
-        <div className="mt-3 p-2 bg-(--color-primary)/10 border border-(--color-primary)/30 rounded-lg">
-          <p className="text-xs text-(--color-primary) flex items-center gap-1">
+        <div className="mt-3 p-2 bg-primary/10 border border-primary/30 rounded-lg">
+          <p className="text-xs text-primary flex items-center gap-1">
             <TrendingUp className="w-3 h-3" />
             Overpaid by ${overpaidAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} this month
           </p>

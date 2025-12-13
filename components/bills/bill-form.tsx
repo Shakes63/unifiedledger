@@ -696,21 +696,21 @@ export function BillForm({
               className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
                 formData.billType === option.value
                   ? option.value === 'income'
-                    ? 'border-(--color-income) bg-(--color-income)/10'
-                    : 'border-(--color-expense) bg-(--color-expense)/10'
+                    ? 'border-income bg-income/10'
+                    : 'border-expense bg-expense/10'
                   : 'border-border bg-elevated hover:bg-card'
               }`}
             >
               {option.value === 'income' ? (
                 <ArrowDownCircle className={`w-6 h-6 ${
                   formData.billType === option.value 
-                    ? 'text-(--color-income)' 
+                    ? 'text-income' 
                     : 'text-muted-foreground'
                 }`} />
               ) : (
                 <ArrowUpCircle className={`w-6 h-6 ${
                   formData.billType === option.value 
-                    ? 'text-(--color-expense)' 
+                    ? 'text-expense' 
                     : 'text-muted-foreground'
                 }`} />
               )}
@@ -732,7 +732,7 @@ export function BillForm({
       {/* Name and Amount */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label className={`text-sm mb-2 block ${errors.name ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
+          <Label className={`text-sm mb-2 block ${errors.name ? 'text-error' : 'text-muted-foreground'}`}>
             {isIncomeBill ? 'Income Source Name*' : 'Bill Name*'}
           </Label>
           <Input
@@ -745,11 +745,11 @@ export function BillForm({
             }}
             placeholder={isIncomeBill ? "e.g., Monthly Salary" : "e.g., Electric Bill"}
             className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.name ? 'border-(--color-error)' : 'border-border'
+              errors.name ? 'border-error' : 'border-border'
             }`}
           />
           {errors.name && (
-            <p className="text-(--color-error) text-xs mt-1">{errors.name}</p>
+            <p className="text-error text-xs mt-1">{errors.name}</p>
           )}
           {/* Classification Suggestion Banner */}
           {classificationSuggestion && classificationSuggestion.confidence >= 0.7 && (
@@ -803,7 +803,7 @@ export function BillForm({
           )}
         </div>
         <div>
-          <Label className={`text-sm mb-2 block ${errors.expectedAmount ? 'text-(--color-error)' : 'text-muted-foreground'}`}>
+          <Label className={`text-sm mb-2 block ${errors.expectedAmount ? 'text-error' : 'text-muted-foreground'}`}>
             Expected Amount*
           </Label>
           <Input
@@ -817,11 +817,11 @@ export function BillForm({
             placeholder="Enter amount"
             step="0.01"
             className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
-              errors.expectedAmount ? 'border-(--color-error)' : 'border-border'
+              errors.expectedAmount ? 'border-error' : 'border-border'
             }`}
           />
           {errors.expectedAmount && (
-            <p className="text-(--color-error) text-xs mt-1">{errors.expectedAmount}</p>
+            <p className="text-error text-xs mt-1">{errors.expectedAmount}</p>
           )}
         </div>
       </div>
@@ -987,14 +987,14 @@ export function BillForm({
                 value={newCategoryName}
                 onChange={(e) => setNewCategoryName(e.target.value)}
                 onKeyDown={handleCategoryKeyDown}
-                className="flex-1 bg-card border border-(--color-primary) text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
+                className="flex-1 bg-card border border-primary text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <Button
                 type="button"
                 size="icon"
                 onClick={handleCreateCategory}
                 disabled={creatingCategory || !newCategoryName.trim()}
-                className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
+                className="bg-primary hover:opacity-90 text-primary-foreground"
               >
                 <Plus className="w-4 h-4" />
               </Button>
@@ -1068,11 +1068,11 @@ export function BillForm({
             type="button"
             onClick={() => handleCheckboxChange('isVariableAmount')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isVariableAmount ? 'bg-(--color-income)' : 'bg-border'
+              formData.isVariableAmount ? 'bg-income' : 'bg-border'
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-(--color-card) transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
                 formData.isVariableAmount ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
@@ -1094,11 +1094,11 @@ export function BillForm({
             type="button"
             onClick={() => handleCheckboxChange('autoMarkPaid')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.autoMarkPaid ? 'bg-(--color-income)' : 'bg-border'
+              formData.autoMarkPaid ? 'bg-income' : 'bg-border'
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-(--color-card) transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
                 formData.autoMarkPaid ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
@@ -1266,9 +1266,9 @@ export function BillForm({
               )}
             </div>
             {formData.linkedAccountId && (
-              <div className="mt-2 p-2 bg-(--color-primary)/10 rounded-lg flex items-start gap-2">
-                <Info className="w-4 h-4 text-(--color-primary) flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-(--color-primary)">
+              <div className="mt-2 p-2 bg-primary/10 rounded-lg flex items-start gap-2">
+                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-primary">
                   Payments to this bill will reduce the credit card balance
                 </p>
               </div>
@@ -1302,9 +1302,9 @@ export function BillForm({
                 </SelectContent>
               </Select>
               {formData.chargedToAccountId && (
-                <div className="mt-2 p-2 bg-(--color-warning)/10 rounded-lg flex items-start gap-2">
-                  <Info className="w-4 h-4 text-(--color-warning) flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-(--color-warning)">
+                <div className="mt-2 p-2 bg-warning/10 rounded-lg flex items-start gap-2">
+                  <Info className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-warning">
                     When due, expense will be created on the selected card
                   </p>
                 </div>
@@ -1337,11 +1337,11 @@ export function BillForm({
               handleCheckboxChange('isAutopayEnabled');
             }}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isAutopayEnabled ? 'bg-(--color-income)' : 'bg-border'
+              formData.isAutopayEnabled ? 'bg-income' : 'bg-border'
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-(--color-card) transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
                 formData.isAutopayEnabled ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
@@ -1428,9 +1428,9 @@ export function BillForm({
               </div>
             )}
 
-            <div className="p-2 bg-(--color-warning)/10 rounded-lg flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-(--color-warning) flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-(--color-warning)">
+            <div className="p-2 bg-warning/10 rounded-lg flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-warning">
                 Autopay will create transactions automatically. Ensure sufficient funds are available in the source account.
               </p>
             </div>
@@ -1462,11 +1462,11 @@ export function BillForm({
               handleCheckboxChange('isDebt');
             }}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              formData.isDebt ? 'bg-(--color-income)' : 'bg-border'
+              formData.isDebt ? 'bg-income' : 'bg-border'
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-(--color-card) transition-transform ${
+              className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
                 formData.isDebt ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
@@ -1585,11 +1585,11 @@ export function BillForm({
                 type="button"
                 onClick={() => handleCheckboxChange('includeInPayoffStrategy')}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  formData.includeInPayoffStrategy ? 'bg-(--color-income)' : 'bg-border'
+                  formData.includeInPayoffStrategy ? 'bg-income' : 'bg-border'
                 }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-(--color-card) transition-transform ${
+                  className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
                     formData.includeInPayoffStrategy ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
@@ -1607,11 +1607,11 @@ export function BillForm({
                   type="button"
                   onClick={() => handleCheckboxChange('isInterestTaxDeductible')}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    formData.isInterestTaxDeductible ? 'bg-(--color-income)' : 'bg-border'
+                    formData.isInterestTaxDeductible ? 'bg-income' : 'bg-border'
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-(--color-card) transition-transform ${
+                    className={`inline-block h-4 w-4 transform rounded-full bg-card transition-transform ${
                       formData.isInterestTaxDeductible ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
@@ -1677,7 +1677,7 @@ export function BillForm({
               <button
                 type="button"
                 onClick={() => handleRemovePayeePattern(index)}
-                className="text-xs text-(--color-error) hover:text-(--color-error)/80"
+                className="text-xs text-error hover:text-error/80"
               >
                 Remove
               </button>
@@ -1723,14 +1723,14 @@ export function BillForm({
       {/* Info Box */}
       <div className={`p-4 rounded-lg flex gap-2 ${
         isIncomeBill 
-          ? 'bg-(--color-income)/10 border border-(--color-income)/20'
-          : 'bg-(--color-primary)/10 border border-(--color-primary)/20'
+          ? 'bg-income/10 border border-income/20'
+          : 'bg-primary/10 border border-primary/20'
       }`}>
         <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
-          isIncomeBill ? 'text-(--color-income)' : 'text-(--color-primary)'
+          isIncomeBill ? 'text-income' : 'text-primary'
         }`} />
         <div className={`text-sm ${
-          isIncomeBill ? 'text-(--color-income)/80' : 'text-(--color-primary)/80'
+          isIncomeBill ? 'text-income/80' : 'text-primary/80'
         }`}>
           <p className="font-medium mb-1">
             {isIncomeBill ? 'Automatic Income Tracking' : 'Category-Based Bill Matching'}
@@ -1752,7 +1752,7 @@ export function BillForm({
             onClick={() => setSaveMode('save')}
             disabled={isLoading}
             className={`flex-1 text-white hover:opacity-90 font-medium ${
-              isIncomeBill ? 'bg-(--color-income)' : 'bg-(--color-primary)'
+              isIncomeBill ? 'bg-income' : 'bg-primary'
             }`}
           >
             {bill

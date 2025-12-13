@@ -78,7 +78,7 @@ export function PaymentBreakdownSection({
                         p-3 rounded-lg border transition-all text-left
                         ${isActive
                           ? 'bg-accent/20 border-accent ring-2 ring-accent/50'
-                          : 'bg-elevated border-border hover:bg-(--color-border)/20'
+                          : 'bg-elevated border-border hover:bg-border/20'
                         }
                       `}
                     >
@@ -192,7 +192,7 @@ export function PaymentBreakdownSection({
                       strategy.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }
                   }}
-                  className="w-full px-4 py-2 bg-elevated hover:bg-(--color-border)/20 text-foreground border border-border rounded-lg text-sm font-medium transition-colors"
+                  className="w-full px-4 py-2 bg-elevated hover:bg-border/20 text-foreground border border-border rounded-lg text-sm font-medium transition-colors"
                 >
                   View Payoff Strategy
                 </button>
@@ -201,9 +201,9 @@ export function PaymentBreakdownSection({
           </div>
 
           {/* Bottom Insight Banner */}
-          <div className="mt-8 bg-gradient-to-r from-(--color-primary)/10 to-(--color-primary)/5 border border-(--color-primary)/30 rounded-lg p-4">
+          <div className="mt-8 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/30 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <BarChart3 className="w-5 h-5 text-(--color-primary) mt-0.5" />
+              <BarChart3 className="w-5 h-5 text-primary mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-semibold text-foreground mb-1">
                   Understanding Your Payments

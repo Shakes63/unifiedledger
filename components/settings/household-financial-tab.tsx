@@ -147,7 +147,7 @@ export function HouseholdFinancialTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-(--color-primary)" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -191,7 +191,7 @@ export function HouseholdFinancialTab() {
         {/* Budget Schedule Info */}
         <div className="p-4 bg-card border border-border rounded-xl">
           <div className="flex items-start gap-3">
-            <Calendar className="w-5 h-5 text-(--color-primary) mt-0.5 flex-shrink-0" />
+            <Calendar className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground">Budget Schedule</p>
               <p className="text-sm text-muted-foreground mt-1">
@@ -200,7 +200,7 @@ export function HouseholdFinancialTab() {
               </p>
               <Link
                 href="/dashboard/settings?section=households&tab=personal"
-                className="inline-flex items-center gap-1 text-sm text-(--color-primary) hover:opacity-80 transition-opacity mt-2"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:opacity-80 transition-opacity mt-2"
               >
                 Configure Budget Schedule
                 <ExternalLink className="w-3 h-3" />
@@ -243,7 +243,7 @@ export function HouseholdFinancialTab() {
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-(--color-primary) hover:bg-(--color-primary)/90"
+            className="bg-primary hover:bg-primary/90"
           >
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Save Financial Settings
@@ -254,7 +254,7 @@ export function HouseholdFinancialTab() {
       {/* Debt Payoff Strategy Section */}
       <div className="pt-6 border-t border-border">
         <div className="flex items-center gap-2 mb-4">
-          <CreditCard className="w-5 h-5 text-(--color-expense)" />
+          <CreditCard className="w-5 h-5 text-expense" />
           <h3 className="text-lg font-semibold text-foreground">Debt Payoff Strategy</h3>
           <TooltipProvider>
             <Tooltip>
@@ -398,7 +398,7 @@ export function HouseholdFinancialTab() {
               <div className="pt-2">
                 <Link
                   href="/dashboard/debts"
-                  className="inline-flex items-center gap-1 text-sm text-(--color-primary) hover:opacity-80 transition-opacity"
+                  className="inline-flex items-center gap-1 text-sm text-primary hover:opacity-80 transition-opacity"
                 >
                   Manage individual debts
                   <ExternalLink className="w-3 h-3" />
@@ -419,7 +419,7 @@ export function HouseholdFinancialTab() {
               </p>
               <Link
                 href="/dashboard/debts"
-                className="inline-flex items-center gap-1 text-sm text-(--color-primary) hover:opacity-80 transition-opacity mt-2"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:opacity-80 transition-opacity mt-2"
               >
                 View and manage debts
                 <ExternalLink className="w-3 h-3" />
@@ -432,7 +432,7 @@ export function HouseholdFinancialTab() {
             <Button
               onClick={handleSaveDebtStrategy}
               disabled={savingDebt}
-              className="bg-(--color-primary) hover:bg-(--color-primary)/90"
+              className="bg-primary hover:bg-primary/90"
             >
               {savingDebt && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Save Debt Strategy Settings

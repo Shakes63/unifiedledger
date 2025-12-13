@@ -164,15 +164,15 @@ export function BackupHistory() {
     switch (status) {
       case 'completed':
         return (
-          <Badge className="bg-(--color-success) text-white">Completed</Badge>
+          <Badge className="bg-success text-white">Completed</Badge>
         );
       case 'pending':
         return (
-          <Badge className="bg-(--color-warning) text-white">Pending</Badge>
+          <Badge className="bg-warning text-white">Pending</Badge>
         );
       case 'failed':
         return (
-          <Badge className="bg-(--color-error) text-white">Failed</Badge>
+          <Badge className="bg-error text-white">Failed</Badge>
         );
     }
   }
@@ -226,7 +226,7 @@ export function BackupHistory() {
                 <span>{formatDate(backup.createdAt)}</span>
               </div>
               {backup.status === 'failed' && backup.errorMessage && (
-                <div className="mt-2 flex items-start gap-2 text-sm text-(--color-error)">
+                <div className="mt-2 flex items-start gap-2 text-sm text-error">
                   <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <span>{backup.errorMessage}</span>
                 </div>
@@ -251,7 +251,7 @@ export function BackupHistory() {
                   setBackupToDelete(backup);
                   setDeleteDialogOpen(true);
                 }}
-                className="border-border text-(--color-error) hover:bg-(--color-error)/10"
+                className="border-border text-error hover:bg-error/10"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -296,7 +296,7 @@ export function BackupHistory() {
             <Button
               variant="destructive"
               onClick={deleteBackup}
-              className="bg-(--color-error) hover:bg-(--color-error)/90"
+              className="bg-error hover:bg-error/90"
               disabled={deleting}
             >
               {deleting ? (

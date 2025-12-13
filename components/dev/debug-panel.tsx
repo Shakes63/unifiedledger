@@ -43,7 +43,7 @@ export function DebugPanel({ title, data, className = '', defaultOpen = false }:
       <div className="flex items-center justify-between p-3 bg-elevated border-b border-border">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-(--color-primary) transition-colors"
+          className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
           aria-expanded={isOpen}
           aria-label={`Toggle ${title} debug panel`}
         >
@@ -60,7 +60,7 @@ export function DebugPanel({ title, data, className = '', defaultOpen = false }:
           aria-label="Copy JSON to clipboard"
         >
           {copied ? (
-            <Check className="h-4 w-4 text-(--color-success)" />
+            <Check className="h-4 w-4 text-success" />
           ) : (
             <Copy className="h-4 w-4 text-muted-foreground" />
           )}

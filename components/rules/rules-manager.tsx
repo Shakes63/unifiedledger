@@ -134,7 +134,7 @@ function RuleCard({
                 Inactive
               </Badge>
             )}
-            <Badge className="bg-(--color-primary)/20 text-(--color-primary) border-(--color-primary)">
+            <Badge className="bg-primary/20 text-primary border-primary">
               Priority {rule.priority}
             </Badge>
           </div>
@@ -148,7 +148,7 @@ function RuleCard({
             {rule.actions && rule.actions.length > 0 ? (
               <>
                 {/* Action Count Badge */}
-                <Badge className="bg-(--color-primary)/20 text-(--color-primary) border-(--color-primary)/40">
+                <Badge className="bg-primary/20 text-primary border-primary/40">
                   <Zap className="w-3 h-3 mr-1" />
                   {rule.actions.length} action{rule.actions.length !== 1 ? 's' : ''}
                 </Badge>
@@ -160,14 +160,14 @@ function RuleCard({
                   {rule.actions[0].type === 'set_tax_deduction' && <FileText className="w-3 h-3 mr-1" />}
                   {rule.actions[0].type === 'set_sales_tax' && (
                     rule.actions[0].config?.value === false ? (
-                      <XCircle className="w-3 h-3 mr-1 text-(--color-error)" />
+                      <XCircle className="w-3 h-3 mr-1 text-error" />
                     ) : (
-                      <CheckCircle2 className="w-3 h-3 mr-1 text-(--color-success)" />
+                      <CheckCircle2 className="w-3 h-3 mr-1 text-success" />
                     )
                   )}
                   {rule.actions[0].type === 'convert_to_transfer' && <ArrowRightLeft className="w-3 h-3 mr-1" />}
-                  {rule.actions[0].type === 'create_split' && <Scissors className="w-3 h-3 mr-1 text-(--color-primary)" />}
-                  {rule.actions[0].type === 'set_account' && <Banknote className="w-3 h-3 mr-1 text-(--color-primary)" />}
+                  {rule.actions[0].type === 'create_split' && <Scissors className="w-3 h-3 mr-1 text-primary" />}
+                  {rule.actions[0].type === 'set_account' && <Banknote className="w-3 h-3 mr-1 text-primary" />}
                   {getActionLabel(rule.actions[0], rule.categoryName)}
                 </Badge>
 
@@ -226,7 +226,7 @@ function RuleCard({
               size="icon"
               onClick={handleApply}
               disabled={applying || !rule.isActive}
-              className="text-(--color-warning) hover:bg-(--color-warning)/20 disabled:opacity-50"
+              className="text-warning hover:bg-warning/20 disabled:opacity-50"
               title="Apply this rule to existing uncategorized transactions"
             >
               <Zap className="w-4 h-4" />
@@ -237,7 +237,7 @@ function RuleCard({
               variant="ghost"
               size="icon"
               onClick={() => onToggle?.(rule.id, !rule.isActive)}
-              className={rule.isActive ? 'text-(--color-income) hover:bg-(--color-income)/20' : 'text-muted-foreground hover:bg-elevated'}
+              className={rule.isActive ? 'text-income hover:bg-income/20' : 'text-muted-foreground hover:bg-elevated'}
               title={rule.isActive ? 'Deactivate' : 'Activate'}
             >
               {rule.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -248,7 +248,7 @@ function RuleCard({
               variant="ghost"
               size="icon"
               onClick={() => onEdit?.(rule)}
-              className="text-(--color-primary) hover:bg-(--color-primary)/20"
+              className="text-primary hover:bg-primary/20"
             >
               <Edit2 className="w-4 h-4" />
             </Button>
@@ -258,7 +258,7 @@ function RuleCard({
               variant="ghost"
               size="icon"
               onClick={() => onDelete?.(rule.id)}
-              className="text-(--color-error) hover:bg-(--color-error)/20"
+              className="text-error hover:bg-error/20"
             >
               <Trash2 className="w-4 h-4" />
             </Button>
@@ -461,7 +461,7 @@ export function RulesManager({
         </div>
         <Button
           onClick={onCreateRule}
-          className="bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90 font-medium"
+          className="bg-primary text-primary-foreground hover:opacity-90 font-medium"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Rule
@@ -470,7 +470,7 @@ export function RulesManager({
 
       {/* Error Message */}
       {error && (
-        <div className="p-4 bg-(--color-error)/20 border border-(--color-error)/40 rounded-lg text-(--color-error) text-sm flex gap-2">
+        <div className="p-4 bg-error/20 border border-error/40 rounded-lg text-error text-sm flex gap-2">
           <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           {error}
         </div>
@@ -485,7 +485,7 @@ export function RulesManager({
           </div>
           <Button
             onClick={onCreateRule}
-            className="bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90 font-medium"
+            className="bg-primary text-primary-foreground hover:opacity-90 font-medium"
           >
             Create Your First Rule
           </Button>

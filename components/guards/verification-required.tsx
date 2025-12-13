@@ -68,10 +68,10 @@ export function VerificationRequired({
     }
 
     return (
-      <div className="rounded-lg border border-(--color-warning) bg-(--color-warning)/10 p-6">
+      <div className="rounded-lg border border-warning bg-warning/10 p-6">
         <div className="flex items-start gap-4">
-          <div className="rounded-full bg-(--color-warning)/20 p-2">
-            <AlertCircle className="w-6 h-6 text-(--color-warning)" />
+          <div className="rounded-full bg-warning/20 p-2">
+            <AlertCircle className="w-6 h-6 text-warning" />
           </div>
           <div className="flex-1">
             <h3 className="font-semibold text-foreground mb-2">
@@ -84,7 +84,7 @@ export function VerificationRequired({
             <Button
               onClick={handleResendVerification}
               size="sm"
-              className="bg-(--color-warning) hover:bg-(--color-warning)/90 text-white"
+              className="bg-warning hover:bg-warning/90 text-white"
             >
               <Mail className="w-4 h-4 mr-2" />
               Send Verification Email

@@ -292,7 +292,7 @@ export function BillInstanceActionsModal({
                   <Button
                     onClick={() => handleAction('paid')}
                     disabled={loading}
-                    className="flex-1 bg-(--color-success) hover:bg-(--color-success)/90 text-white"
+                    className="flex-1 bg-success hover:bg-success/90 text-white"
                   >
                     {loading ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -364,7 +364,7 @@ export function BillInstanceActionsModal({
             <Button
               onClick={handleLinkTransaction}
               disabled={loading || (selectedTransactionId === instance.transactionId)}
-              className="w-full bg-(--color-primary) hover:bg-(--color-primary)/90"
+              className="w-full bg-primary hover:bg-primary/90"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -405,7 +405,7 @@ export function BillInstanceActionsModal({
             <Button
               onClick={handlePeriodOverride}
               disabled={loading}
-              className="w-full bg-(--color-primary) hover:bg-(--color-primary)/90"
+              className="w-full bg-primary hover:bg-primary/90"
             >
               {loading ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

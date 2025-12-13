@@ -45,7 +45,7 @@ export function TransferSuggestionsWidget() {
       <Card className="bg-card border-border">
         <CardHeader>
           <CardTitle className="text-foreground text-base flex items-center gap-2">
-            <ArrowRightLeft className="h-5 w-5 text-(--color-warning)" />
+            <ArrowRightLeft className="h-5 w-5 text-warning" />
             Transfer Suggestions
           </CardTitle>
         </CardHeader>
@@ -63,7 +63,7 @@ export function TransferSuggestionsWidget() {
                 </p>
                 <Button
                   onClick={() => setModalOpen(true)}
-                  className="w-full bg-(--color-warning) hover:opacity-90 text-white"
+                  className="w-full bg-warning hover:opacity-90 text-white"
                 >
                   Review Suggestions
                   <ChevronRight className="h-4 w-4 ml-2" />

@@ -442,9 +442,9 @@ export function HouseholdTab() {
   function getRoleIcon(role: string) {
     switch (role) {
       case 'owner':
-        return <Crown className="w-4 h-4 text-(--color-warning)" />;
+        return <Crown className="w-4 h-4 text-warning" />;
       case 'admin':
-        return <Shield className="w-4 h-4 text-(--color-primary)" />;
+        return <Shield className="w-4 h-4 text-primary" />;
       case 'viewer':
         return <Eye className="w-4 h-4 text-muted-foreground" />;
       default:
@@ -455,9 +455,9 @@ export function HouseholdTab() {
   function getRoleBadgeColor(role: string) {
     switch (role) {
       case 'owner':
-        return 'bg-(--color-warning) text-white';
+        return 'bg-warning text-white';
       case 'admin':
-        return 'bg-(--color-primary) text-white';
+        return 'bg-primary text-white';
       case 'viewer':
         return 'bg-elevated text-muted-foreground';
       default:
@@ -568,7 +568,7 @@ export function HouseholdTab() {
               className={cn(
                 "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors relative group",
                 activeTab === household.id
-                  ? "bg-card text-(--color-primary) shadow-sm"
+                  ? "bg-card text-primary shadow-sm"
                   : "text-foreground hover:bg-card/50"
               )}
             >
@@ -576,8 +576,8 @@ export function HouseholdTab() {
                 className={cn(
                   "w-4 h-4 cursor-pointer transition-colors shrink-0",
                   household.isFavorite
-                    ? "fill-(--color-warning) text-(--color-warning)"
-                    : "text-muted-foreground hover:text-(--color-warning)"
+                    ? "fill-warning text-warning"
+                    : "text-muted-foreground hover:text-warning"
                 )}
                 onClick={(e) => toggleFavorite(household.id, household.isFavorite, e)}
               />
@@ -595,8 +595,8 @@ export function HouseholdTab() {
             className={cn(
               "flex items-center gap-2 px-3 py-2 rounded-md border border-transparent text-sm font-medium whitespace-nowrap transition-colors",
               activeTab === 'create-new'
-                ? "bg-card text-(--color-primary) shadow-sm"
-                : "text-(--color-primary) hover:bg-card/50"
+                ? "bg-card text-primary shadow-sm"
+                : "text-primary hover:bg-card/50"
             )}
           >
             <Plus className="w-4 h-4" />
@@ -623,8 +623,8 @@ export function HouseholdTab() {
                       className={cn(
                         "w-4 h-4 cursor-pointer transition-colors shrink-0",
                         household.isFavorite
-                          ? "fill-(--color-warning) text-(--color-warning)"
-                          : "text-muted-foreground hover:text-(--color-warning)"
+                          ? "fill-warning text-warning"
+                          : "text-muted-foreground hover:text-warning"
                       )}
                       onClick={(e) => toggleFavorite(household.id, household.isFavorite, e)}
                     />
@@ -639,7 +639,7 @@ export function HouseholdTab() {
                 </SelectItem>
               ))}
               <SelectItem value="create-new">
-                <div className="flex items-center gap-2 text-(--color-primary)">
+                <div className="flex items-center gap-2 text-primary">
                   <Plus className="w-4 h-4" />
                   <span>Create New Household</span>
                 </div>
@@ -681,7 +681,7 @@ export function HouseholdTab() {
                       variant="outline"
                       size="sm"
                       onClick={() => setDeleteDialogOpen(true)}
-                      className="border-(--color-error) text-(--color-error) hover:bg-(--color-error)/10"
+                      className="border-error text-error hover:bg-error/10"
                     >
                       <Trash2 className="w-4 h-4 mr-1" />
                       Delete
@@ -693,7 +693,7 @@ export function HouseholdTab() {
                     variant="outline"
                     size="sm"
                     onClick={() => setLeaveDialogOpen(true)}
-                    className="border-(--color-error) text-(--color-error) hover:bg-(--color-error)/10"
+                    className="border-error text-error hover:bg-error/10"
                   >
                     <LogOut className="w-4 h-4 mr-1" />
                     Leave
@@ -712,7 +712,7 @@ export function HouseholdTab() {
                   <Button
                     size="sm"
                     onClick={() => setInviteDialogOpen(true)}
-                    className="bg-(--color-primary) hover:opacity-90"
+                    className="bg-primary hover:opacity-90"
                   >
                     <UserPlus className="w-4 h-4 mr-1" />
                     Invite Member
@@ -795,7 +795,7 @@ export function HouseholdTab() {
                             variant="ghost"
                             size="sm"
                             onClick={() => removeMember(member.id)}
-                            className="text-(--color-error) hover:bg-(--color-error)/10"
+                            className="text-error hover:bg-error/10"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -818,7 +818,7 @@ export function HouseholdTab() {
                   {invitations.map((invitation) => (
                     <Card
                       key={invitation.id}
-                      className="p-4 bg-elevated border-border border-(--color-warning)/30"
+                      className="p-4 bg-elevated border-border border-warning/30"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
@@ -885,7 +885,7 @@ export function HouseholdTab() {
               <Button
                 onClick={createHousehold}
                 disabled={!householdName.trim() || submitting}
-                className="w-full bg-(--color-primary) hover:opacity-90"
+                className="w-full bg-primary hover:opacity-90"
               >
                 {submitting ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -967,7 +967,7 @@ export function HouseholdTab() {
       <Dialog open={leaveDialogOpen} onOpenChange={setLeaveDialogOpen}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-(--color-error)">
+            <DialogTitle className="text-error">
               Leave Household
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -987,7 +987,7 @@ export function HouseholdTab() {
               variant="destructive"
               onClick={leaveHousehold}
               disabled={submitting}
-              className="bg-(--color-error) hover:bg-(--color-error)/90"
+              className="bg-error hover:bg-error/90"
             >
               {submitting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1042,7 +1042,7 @@ export function HouseholdTab() {
             <Button
               onClick={renameHousehold}
               disabled={!newHouseholdName.trim() || submitting}
-              className="bg-(--color-primary) hover:opacity-90"
+              className="bg-primary hover:opacity-90"
             >
               {submitting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1059,7 +1059,7 @@ export function HouseholdTab() {
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-(--color-error)">
+            <DialogTitle className="text-error">
               Delete Household
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -1098,7 +1098,7 @@ export function HouseholdTab() {
               variant="destructive"
               onClick={deleteHousehold}
               disabled={deleteConfirmName !== currentHousehold?.name || submitting}
-              className="bg-(--color-error) hover:bg-(--color-error)/90"
+              className="bg-error hover:bg-error/90"
             >
               {submitting ? (
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />

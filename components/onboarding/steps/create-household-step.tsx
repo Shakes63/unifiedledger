@@ -94,8 +94,8 @@ export function CreateHouseholdStep({
         isFirstStep={false}
       >
         <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-(--color-primary)/20 flex items-center justify-center">
-            <Users className="w-8 h-8 text-(--color-primary)" />
+          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+            <Users className="w-8 h-8 text-primary" />
           </div>
           <p className="text-muted-foreground">
             Since you&apos;re joining an existing household, we&apos;ll skip household creation.
@@ -119,8 +119,8 @@ export function CreateHouseholdStep({
     >
       <div className="space-y-6">
         <div className="flex items-center justify-center py-4">
-          <div className="w-16 h-16 rounded-full bg-(--color-primary)/20 flex items-center justify-center">
-            <Users className="w-8 h-8 text-(--color-primary)" />
+          <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+            <Users className="w-8 h-8 text-primary" />
           </div>
         </div>
 

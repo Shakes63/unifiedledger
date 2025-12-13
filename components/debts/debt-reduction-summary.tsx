@@ -156,7 +156,7 @@ export function DebtReductionSummary({ summary, isLoading }: DebtReductionSummar
           </p>
         )}
         {monthsRemaining === 0 && (
-          <p className="text-xs text-(--color-success) mt-2 font-semibold flex items-center gap-1 justify-center">
+          <p className="text-xs text-success mt-2 font-semibold flex items-center gap-1 justify-center">
             This month! <PartyPopper className="w-3 h-3" />
           </p>
         )}

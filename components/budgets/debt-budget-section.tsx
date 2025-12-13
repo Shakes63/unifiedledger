@@ -166,7 +166,7 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
             ) : (
               <ChevronDown className="w-5 h-5 text-muted-foreground" />
             )}
-            <CreditCard className="w-5 h-5 text-(--color-expense)" />
+            <CreditCard className="w-5 h-5 text-expense" />
             <h2 className="text-lg font-semibold text-foreground">Debt Payments</h2>
           </button>
 
@@ -201,9 +201,9 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
         <>
           {/* Focus Debt Highlight */}
           {data.focusDebt && (
-            <div className="mb-4 p-4 bg-(--color-primary)/10 border border-(--color-primary)/30 rounded-xl">
+            <div className="mb-4 p-4 bg-primary/10 border border-primary/30 rounded-xl">
               <div className="flex items-center gap-2 mb-2">
-                <Star className="w-4 h-4 text-(--color-primary)" />
+                <Star className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">
                   Focus Debt: {data.focusDebt.debtName}
                 </span>
@@ -213,14 +213,14 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
               </div>
               <p className="text-sm text-muted-foreground">
                 Your payoff strategy recommends paying{' '}
-                <span className="font-mono font-semibold text-(--color-primary)">
+                <span className="font-mono font-semibold text-primary">
                   ${data.focusDebt.recommendedPayment.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </span>{' '}
                 this month to accelerate your debt-free date.
               </p>
               {data.extraPaymentAmount > 0 && (
                 <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3 text-(--color-income)" />
+                  <TrendingUp className="w-3 h-3 text-income" />
                   Includes ${data.extraPaymentAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })} extra payment
                 </p>
               )}
@@ -229,33 +229,33 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
 
           {/* Status Summary - Shows individual debt payment statuses */}
           {needsAttention && (
-            <div className="mb-4 p-3 bg-(--color-warning)/10 border border-(--color-warning)/30 rounded-xl">
+            <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-xl">
               <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="w-4 h-4 text-(--color-warning)" />
+                <AlertCircle className="w-4 h-4 text-warning" />
                 <span className="text-sm font-medium text-foreground">Payment Status</span>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 {statusCounts.unpaid > 0 && (
-                  <span className="flex items-center gap-1 text-(--color-error)">
-                    <span className="w-2 h-2 rounded-full bg-(--color-error)" />
+                  <span className="flex items-center gap-1 text-error">
+                    <span className="w-2 h-2 rounded-full bg-error" />
                     {statusCounts.unpaid} unpaid
                   </span>
                 )}
                 {statusCounts.partial > 0 && (
-                  <span className="flex items-center gap-1 text-(--color-warning)">
-                    <span className="w-2 h-2 rounded-full bg-(--color-warning)" />
+                  <span className="flex items-center gap-1 text-warning">
+                    <span className="w-2 h-2 rounded-full bg-warning" />
                     {statusCounts.partial} partial
                   </span>
                 )}
                 {statusCounts.paid > 0 && (
-                  <span className="flex items-center gap-1 text-(--color-success)">
-                    <span className="w-2 h-2 rounded-full bg-(--color-success)" />
+                  <span className="flex items-center gap-1 text-success">
+                    <span className="w-2 h-2 rounded-full bg-success" />
                     {statusCounts.paid} paid
                   </span>
                 )}
                 {statusCounts.overpaid > 0 && (
-                  <span className="flex items-center gap-1 text-(--color-primary)">
-                    <span className="w-2 h-2 rounded-full bg-(--color-primary)" />
+                  <span className="flex items-center gap-1 text-primary">
+                    <span className="w-2 h-2 rounded-full bg-primary" />
                     {statusCounts.overpaid} overpaid
                   </span>
                 )}
@@ -265,10 +265,10 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
 
           {/* All Paid Success Message */}
           {!needsAttention && data.debts.length > 0 && (
-            <div className="mb-4 p-3 bg-(--color-success)/10 border border-(--color-success)/30 rounded-xl">
+            <div className="mb-4 p-3 bg-success/10 border border-success/30 rounded-xl">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-(--color-success)" />
-                <span className="text-sm font-medium text-(--color-success)">
+                <CheckCircle2 className="w-4 h-4 text-success" />
+                <span className="text-sm font-medium text-success">
                   All {data.debts.length} debt{data.debts.length !== 1 ? 's' : ''} paid this month
                   {statusCounts.overpaid > 0 && ` (${statusCounts.overpaid} with extra payments)`}
                 </span>
@@ -286,14 +286,14 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
             </div>
             <div className="bg-card border border-border rounded-lg p-3">
               <p className="text-xs text-muted-foreground">Recommended</p>
-              <p className="font-mono font-semibold text-(--color-primary)">
+              <p className="font-mono font-semibold text-primary">
                 ${data.totalRecommendedPayments.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </p>
             </div>
             <div className="bg-card border border-border rounded-lg p-3">
               <p className="text-xs text-muted-foreground">Paid This Month</p>
               <p className={`font-mono font-semibold ${
-                percentagePaid >= 100 ? 'text-(--color-success)' : 'text-foreground'
+                percentagePaid >= 100 ? 'text-success' : 'text-foreground'
               }`}>
                 ${data.totalActualPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </p>
@@ -301,7 +301,7 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
             <div className="bg-card border border-border rounded-lg p-3">
               <p className="text-xs text-muted-foreground">Remaining</p>
               <p className={`font-mono font-semibold ${
-                totalRemaining <= 0 ? 'text-(--color-success)' : 'text-(--color-expense)'
+                totalRemaining <= 0 ? 'text-success' : 'text-expense'
               }`}>
                 ${Math.max(0, totalRemaining).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </p>
@@ -320,7 +320,7 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
       {/* Collapsed Summary */}
       {!isExpanded && (
         <div className={`flex items-center justify-between p-3 bg-card border rounded-lg ${
-          needsAttention ? 'border-(--color-warning)' : 'border-border'
+          needsAttention ? 'border-warning' : 'border-border'
         }`}>
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted-foreground">
@@ -329,25 +329,25 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
             {/* Compact status indicators */}
             <div className="flex items-center gap-2 text-xs">
               {statusCounts.paid > 0 && (
-                <span className="flex items-center gap-1 text-(--color-success)">
-                  <span className="w-1.5 h-1.5 rounded-full bg-(--color-success)" />
+                <span className="flex items-center gap-1 text-success">
+                  <span className="w-1.5 h-1.5 rounded-full bg-success" />
                   {statusCounts.paid}
                 </span>
               )}
               {statusCounts.overpaid > 0 && (
-                <span className="flex items-center gap-1 text-(--color-primary)">
-                  <span className="w-1.5 h-1.5 rounded-full bg-(--color-primary)" />
+                <span className="flex items-center gap-1 text-primary">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                   +{statusCounts.overpaid}
                 </span>
               )}
               {statusCounts.partial > 0 && (
-                <span className="flex items-center gap-1 text-(--color-warning)">
-                  <span className="w-1.5 h-1.5 rounded-full bg-(--color-warning)" />
+                <span className="flex items-center gap-1 text-warning">
+                  <span className="w-1.5 h-1.5 rounded-full bg-warning" />
                   {statusCounts.partial}
                 </span>
               )}
               {statusCounts.unpaid > 0 && (
-                <span className="flex items-center gap-1 text-(--color-error)">
+                <span className="flex items-center gap-1 text-error">
                   <AlertCircle className="w-3 h-3" />
                   {statusCounts.unpaid}
                 </span>
@@ -355,11 +355,11 @@ export function DebtBudgetSection({ month }: DebtBudgetSectionProps) {
             </div>
           </div>
           <span className="text-sm font-mono">
-            <span className={percentagePaid >= 100 ? 'text-(--color-success)' : 'text-foreground'}>
+            <span className={percentagePaid >= 100 ? 'text-success' : 'text-foreground'}>
               ${data.totalActualPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </span>
             <span className="text-muted-foreground"> / </span>
-            <span className="text-(--color-primary)">
+            <span className="text-primary">
               ${data.totalRecommendedPayments.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </span>
           </span>

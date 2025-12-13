@@ -40,7 +40,7 @@ export function ExperimentalBadge({ className = '' }: ExperimentalBadgeProps) {
         <TooltipTrigger asChild>
           <Badge
             variant="outline"
-            className={`border-(--color-warning) text-(--color-warning) bg-(--color-warning)/10 ${className}`}
+            className={`border-warning text-warning bg-warning/10 ${className}`}
           >
             <Beaker className="w-3 h-3 mr-1" />
             EXPERIMENTAL

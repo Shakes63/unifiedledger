@@ -243,7 +243,7 @@ export function FinancialTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-(--color-primary)" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -360,7 +360,7 @@ export function FinancialTab() {
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-(--color-primary) hover:bg-(--color-primary)/90"
+            className="bg-primary hover:bg-primary/90"
           >
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Save Financial Settings
@@ -372,7 +372,7 @@ export function FinancialTab() {
       <div className="border-t border-border pt-8 mt-8">
         <div className="mb-6">
           <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-(--color-primary)" />
+            <Calendar className="w-5 h-5 text-primary" />
             <h2 className="text-xl font-semibold text-foreground">Budget Schedule</h2>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
@@ -392,7 +392,7 @@ export function FinancialTab() {
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-(--color-primary)">
+                <p className="text-2xl font-bold text-primary">
                   {currentPeriod.daysRemaining}
                 </p>
                 <p className="text-sm text-muted-foreground">days remaining</p>
@@ -658,7 +658,7 @@ export function FinancialTab() {
             <Button
               onClick={handleSaveSchedule}
               disabled={savingSchedule}
-              className="bg-(--color-primary) hover:bg-(--color-primary)/90"
+              className="bg-primary hover:bg-primary/90"
             >
               {savingSchedule && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Save Budget Schedule

@@ -195,11 +195,11 @@ export function EnhancedBillsWidget() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'paid':
-        return 'bg-(--color-success)/20 text-(--color-success)';
+        return 'bg-success/20 text-success';
       case 'overdue':
-        return 'bg-(--color-error)/20 text-(--color-error)';
+        return 'bg-error/20 text-error';
       default:
-        return 'bg-(--color-warning)/20 text-(--color-warning)';
+        return 'bg-warning/20 text-warning';
     }
   };
 
@@ -231,7 +231,7 @@ export function EnhancedBillsWidget() {
           <Button
             size="sm"
             onClick={() => setBillPayModalOpen(true)}
-            className="bg-(--color-income) hover:opacity-90 text-white"
+            className="bg-income hover:opacity-90 text-white"
           >
             <Wallet className="w-4 h-4 mr-1" />
             Pay Bills
@@ -240,7 +240,7 @@ export function EnhancedBillsWidget() {
             <Button
               variant="ghost"
               size="sm"
-              className="hover:bg-elevated text-(--color-primary)"
+              className="hover:bg-elevated text-primary"
             >
               View All <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
@@ -302,7 +302,7 @@ export function EnhancedBillsWidget() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {overdueCount > 0 && (
-                <span className="px-2 py-1 rounded-md bg-(--color-error)/20 text-(--color-error) font-medium">
+                <span className="px-2 py-1 rounded-md bg-error/20 text-error font-medium">
                   {overdueCount} Overdue
                 </span>
               )}
@@ -389,7 +389,7 @@ export function EnhancedBillsWidget() {
             You&apos;re all set! No bills are due this month.
           </p>
           <Link href="/dashboard/bills/new">
-            <Button size="sm" className="bg-(--color-primary) text-(--color-primary-foreground)">
+            <Button size="sm" className="bg-primary text-primary-foreground">
               Add a Bill
             </Button>
           </Link>

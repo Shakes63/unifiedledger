@@ -222,14 +222,14 @@ export default function TaxPage() {
     switch (type) {
       case 'business':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-(--color-primary)/20 text-(--color-primary)">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/20 text-primary">
             <Building2 className="w-3 h-3" />
             Business
           </span>
         );
       case 'personal':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-(--color-success)/20 text-(--color-success)">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-success/20 text-success">
             <User className="w-3 h-3" />
             Personal
           </span>
@@ -247,7 +247,7 @@ export default function TaxPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary) mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading tax information...</p>
         </div>
       </div>
@@ -258,7 +258,7 @@ export default function TaxPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="text-(--color-error) font-medium mb-2">Error</p>
+          <p className="text-error font-medium mb-2">Error</p>
           <p className="text-muted-foreground mb-4">{error || 'Unknown error'}</p>
           <Button onClick={fetchTaxData}>Try Again</Button>
         </div>
@@ -374,7 +374,7 @@ export default function TaxPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-(--color-income)">
+                <p className="text-2xl font-bold text-income">
                   ${data.summary.totalIncome.toFixed(2)}
                 </p>
               </CardContent>
@@ -388,7 +388,7 @@ export default function TaxPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-(--color-primary)">
+                <p className="text-2xl font-bold text-primary">
                   ${data.summary.totalDeductions.toFixed(2)}
                 </p>
               </CardContent>
@@ -402,7 +402,7 @@ export default function TaxPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-(--color-primary)">
+                <p className="text-2xl font-bold text-primary">
                   ${data.summary.businessDeductions.toFixed(2)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Schedule C</p>
@@ -417,7 +417,7 @@ export default function TaxPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-(--color-success)">
+                <p className="text-2xl font-bold text-success">
                   ${data.summary.personalDeductions.toFixed(2)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">Schedule A</p>
@@ -432,7 +432,7 @@ export default function TaxPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold text-(--color-warning)">
+                <p className="text-2xl font-bold text-warning">
                   ${data.estimates.estimatedQuarterlyPayment.toFixed(2)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -467,9 +467,9 @@ export default function TaxPage() {
                       key={item.type} 
                       className={`p-4 rounded-lg border ${
                         limitStatus?.isAtLimit 
-                          ? 'bg-(--color-error)/10 border-(--color-error)/30' 
+                          ? 'bg-error/10 border-error/30' 
                           : limitStatus?.isApproachingLimit 
-                            ? 'bg-(--color-warning)/10 border-(--color-warning)/30'
+                            ? 'bg-warning/10 border-warning/30'
                             : 'bg-elevated border-border'
                       }`}
                     >
@@ -479,7 +479,7 @@ export default function TaxPage() {
                           {formatInterestType(item.type)}
                         </span>
                       </div>
-                      <p className="text-2xl font-bold text-(--color-income) font-mono">
+                      <p className="text-2xl font-bold text-income font-mono">
                         ${item.totalDeductible.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -492,9 +492,9 @@ export default function TaxPage() {
                             <span className="text-muted-foreground">Annual Limit</span>
                             <span className={`font-medium ${
                               limitStatus?.isAtLimit 
-                                ? 'text-(--color-error)' 
+                                ? 'text-error' 
                                 : limitStatus?.isApproachingLimit 
-                                  ? 'text-(--color-warning)'
+                                  ? 'text-warning'
                                   : 'text-foreground'
                             }`}>
                               {percentUsed.toFixed(0)}% used
@@ -504,10 +504,10 @@ export default function TaxPage() {
                             <div 
                               className={`h-full rounded-full transition-all ${
                                 limitStatus?.isAtLimit 
-                                  ? 'bg-(--color-error)' 
+                                  ? 'bg-error' 
                                   : limitStatus?.isApproachingLimit 
-                                    ? 'bg-(--color-warning)'
-                                    : 'bg-(--color-income)'
+                                    ? 'bg-warning'
+                                    : 'bg-income'
                               }`}
                               style={{ width: `${Math.min(100, percentUsed)}%` }}
                             />
@@ -538,13 +538,13 @@ export default function TaxPage() {
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground">Total Deductible</p>
-                  <p className="text-xl font-bold text-(--color-income) font-mono">
+                  <p className="text-xl font-bold text-income font-mono">
                     ${interestData.summary.totals.totalDeductible.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground">Limited by Caps</p>
-                  <p className="text-xl font-bold text-(--color-warning) font-mono">
+                  <p className="text-xl font-bold text-warning font-mono">
                     ${interestData.summary.totals.totalLimitReductions.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
@@ -585,18 +585,18 @@ export default function TaxPage() {
                     const isBusinessForm = formType === 'schedule_c';
 
                     return (
-                      <div key={formType} className={`border-l-2 pl-4 ${isBusinessForm ? 'border-(--color-primary)' : 'border-(--color-success)'}`}>
+                      <div key={formType} className={`border-l-2 pl-4 ${isBusinessForm ? 'border-primary' : 'border-success'}`}>
                         <div className="flex items-center gap-2">
                           <p className="text-foreground font-semibold">
                             {formType.replace(/_/g, ' ').toUpperCase()}
                           </p>
                           {isBusinessForm ? (
-                            <span className="text-xs text-(--color-primary)">(Business)</span>
+                            <span className="text-xs text-primary">(Business)</span>
                           ) : formType === 'schedule_a' ? (
-                            <span className="text-xs text-(--color-success)">(Personal)</span>
+                            <span className="text-xs text-success">(Personal)</span>
                           ) : null}
                         </div>
-                        <p className={`text-2xl font-bold ${isBusinessForm ? 'text-(--color-primary)' : 'text-(--color-success)'}`}>
+                        <p className={`text-2xl font-bold ${isBusinessForm ? 'text-primary' : 'text-success'}`}>
                           ${total.toFixed(2)}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">{items.length} categories</p>
@@ -623,25 +623,25 @@ export default function TaxPage() {
                   </div>
                   <div className="flex justify-between items-center pb-4 border-b border-border">
                     <span className="text-muted-foreground">Business Deductions:</span>
-                    <span className="text-(--color-primary) font-semibold">
+                    <span className="text-primary font-semibold">
                       -${data.summary.businessDeductions.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center pb-4 border-b border-border">
                     <span className="text-muted-foreground">Personal Deductions:</span>
-                    <span className="text-(--color-success) font-semibold">
+                    <span className="text-success font-semibold">
                       -${data.summary.personalDeductions.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center pb-4 border-b border-border">
                     <span className="text-muted-foreground">Taxable Income:</span>
-                    <span className="text-(--color-warning) font-bold text-lg">
+                    <span className="text-warning font-bold text-lg">
                       ${data.summary.taxableIncome.toFixed(2)}
                     </span>
                   </div>
                   <div className="bg-card rounded-lg p-3 mt-4">
                     <p className="text-xs text-muted-foreground mb-2">ESTIMATED TAX PAYMENT</p>
-                    <p className="text-2xl font-bold text-(--color-warning)">
+                    <p className="text-2xl font-bold text-warning">
                       ${data.estimates.estimatedQuarterlyPayment.toFixed(2)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
@@ -701,9 +701,9 @@ export default function TaxPage() {
 
         {/* Helpful Tips */}
         {hasData && (
-          <Card className="bg-(--color-warning)/10 border-(--color-warning)/30">
+          <Card className="bg-warning/10 border-warning/30">
             <CardHeader>
-              <CardTitle className="text-(--color-warning) flex items-center gap-2">
+              <CardTitle className="text-warning flex items-center gap-2">
                 <AlertCircle className="w-5 h-5" />
                 Tax Preparation Tips
               </CardTitle>

@@ -180,13 +180,13 @@ export default function SalesTaxPage() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'accepted':
-        return <CheckCircle2 className="w-4 h-4 text-(--color-success)" />;
+        return <CheckCircle2 className="w-4 h-4 text-success" />;
       case 'submitted':
-        return <Calendar className="w-4 h-4 text-(--color-transfer)" />;
+        return <Calendar className="w-4 h-4 text-transfer" />;
       case 'pending':
-        return <AlertCircle className="w-4 h-4 text-(--color-warning)" />;
+        return <AlertCircle className="w-4 h-4 text-warning" />;
       case 'rejected':
-        return <AlertCircle className="w-4 h-4 text-(--color-error)" />;
+        return <AlertCircle className="w-4 h-4 text-error" />;
       default:
         return null;
     }
@@ -195,13 +195,13 @@ export default function SalesTaxPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'accepted':
-        return 'text-(--color-success)';
+        return 'text-success';
       case 'submitted':
-        return 'text-(--color-transfer)';
+        return 'text-transfer';
       case 'pending':
-        return 'text-(--color-warning)';
+        return 'text-warning';
       case 'rejected':
-        return 'text-(--color-error)';
+        return 'text-error';
       default:
         return 'text-muted-foreground';
     }
@@ -298,7 +298,7 @@ export default function SalesTaxPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary) mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading sales tax information...</p>
         </div>
       </div>
@@ -309,7 +309,7 @@ export default function SalesTaxPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="text-(--color-error) font-medium mb-2">Error</p>
+          <p className="text-error font-medium mb-2">Error</p>
           <p className="text-muted-foreground mb-4">{error || 'Unknown error'}</p>
           <Button onClick={fetchSalesTaxData}>Try Again</Button>
         </div>
@@ -368,7 +368,7 @@ export default function SalesTaxPage() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2 text-foreground">
-              <Settings className="w-5 h-5 text-(--color-primary)" />
+              <Settings className="w-5 h-5 text-primary" />
               Sales Tax Configuration
             </span>
             {!isEditingRate && (
@@ -485,7 +485,7 @@ export default function SalesTaxPage() {
               <div className="p-3 bg-elevated rounded-lg border border-border">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Combined Total Rate:</span>
-                  <span className="text-xl font-bold text-(--color-primary)">
+                  <span className="text-xl font-bold text-primary">
                     {totalTaxRate.toFixed(2)}%
                   </span>
                 </div>
@@ -500,7 +500,7 @@ export default function SalesTaxPage() {
                 <Button
                   onClick={saveTaxRateSettings}
                   disabled={isSavingRate}
-                  className="bg-(--color-primary) text-white hover:opacity-90"
+                  className="bg-primary text-white hover:opacity-90"
                 >
                   {isSavingRate ? 'Saving...' : 'Save Settings'}
                 </Button>
@@ -521,7 +521,7 @@ export default function SalesTaxPage() {
               {/* Total Rate Display */}
               <div className="flex items-center justify-between p-3 bg-elevated rounded-lg">
                 <span className="text-muted-foreground">Combined Tax Rate</span>
-                <span className="text-2xl font-bold text-(--color-primary)">
+                <span className="text-2xl font-bold text-primary">
                   {totalTaxRate.toFixed(2)}%
                 </span>
               </div>
@@ -532,7 +532,7 @@ export default function SalesTaxPage() {
                   {stateRate > 0 && (
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-(--color-primary)" />
+                        <div className="w-2 h-2 rounded-full bg-primary" />
                         <span className="text-xs text-muted-foreground">State</span>
                       </div>
                       <p className="text-sm font-medium text-foreground">{stateRate.toFixed(2)}%</p>
@@ -542,7 +542,7 @@ export default function SalesTaxPage() {
                   {countyRate > 0 && (
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-(--color-success)" />
+                        <div className="w-2 h-2 rounded-full bg-success" />
                         <span className="text-xs text-muted-foreground">County</span>
                       </div>
                       <p className="text-sm font-medium text-foreground">{countyRate.toFixed(2)}%</p>
@@ -552,7 +552,7 @@ export default function SalesTaxPage() {
                   {cityRate > 0 && (
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-(--color-warning)" />
+                        <div className="w-2 h-2 rounded-full bg-warning" />
                         <span className="text-xs text-muted-foreground">City</span>
                       </div>
                       <p className="text-sm font-medium text-foreground">{cityRate.toFixed(2)}%</p>
@@ -562,7 +562,7 @@ export default function SalesTaxPage() {
                   {specialDistrictRate > 0 && (
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-(--color-transfer)" />
+                        <div className="w-2 h-2 rounded-full bg-transfer" />
                         <span className="text-xs text-muted-foreground">Special</span>
                       </div>
                       <p className="text-sm font-medium text-foreground">{specialDistrictRate.toFixed(2)}%</p>
@@ -575,9 +575,9 @@ export default function SalesTaxPage() {
           )}
 
           {totalTaxRate === 0 && !isEditingRate && (
-            <div className="mt-4 p-3 bg-(--color-warning)/10 border border-(--color-warning) rounded-lg">
+            <div className="mt-4 p-3 bg-warning/10 border border-warning rounded-lg">
               <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-(--color-warning) mt-0.5 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
                 <div className="text-sm">
                   <p className="text-foreground font-medium mb-1">
                     Configure Your Tax Rates
@@ -609,19 +609,19 @@ export default function SalesTaxPage() {
             </p>
             <ul className="text-sm text-muted-foreground text-left max-w-md mx-auto space-y-2">
               <li className="flex items-start gap-2">
-                <span className="text-(--color-primary) mt-1 font-bold">1.</span>
+                <span className="text-primary mt-1 font-bold">1.</span>
                 <span>Configure your sales tax rate above</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-(--color-primary) mt-1 font-bold">2.</span>
+                <span className="text-primary mt-1 font-bold">2.</span>
                 <span>Create income transactions in any account</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-(--color-primary) mt-1 font-bold">3.</span>
+                <span className="text-primary mt-1 font-bold">3.</span>
                 <span>Check &quot;Subject to sales tax&quot; when creating income</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-(--color-primary) mt-1 font-bold">4.</span>
+                <span className="text-primary mt-1 font-bold">4.</span>
                 <span>Or use rules to automatically mark income as taxable</span>
               </li>
             </ul>
@@ -640,7 +640,7 @@ export default function SalesTaxPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-(--color-income)">
+            <p className="text-2xl font-bold text-income">
               ${data.totalSales.toFixed(2)}
             </p>
           </CardContent>
@@ -654,7 +654,7 @@ export default function SalesTaxPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-(--color-success)">
+            <p className="text-2xl font-bold text-success">
               ${data.totalTax.toFixed(2)}
             </p>
           </CardContent>
@@ -668,7 +668,7 @@ export default function SalesTaxPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-(--color-warning)">
+            <p className="text-2xl font-bold text-warning">
               ${data.totalDue.toFixed(2)}
             </p>
           </CardContent>
@@ -682,7 +682,7 @@ export default function SalesTaxPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-(--color-warning)">
+            <p className="text-2xl font-bold text-warning">
               {data.totalSales > 0
                 ? ((data.totalTax / data.totalSales) * 100).toFixed(2)
                 : '0.00'}
@@ -698,7 +698,7 @@ export default function SalesTaxPage() {
         <Card className="bg-card border-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
-              <DollarSign className="w-5 h-5 text-(--color-warning)" />
+              <DollarSign className="w-5 h-5 text-warning" />
               Estimated Quarterly Payment Breakdown
             </CardTitle>
             <CardDescription>
@@ -711,7 +711,7 @@ export default function SalesTaxPage() {
               {data.taxBreakdown.state.rate > 0 && (
                 <div className="flex items-center justify-between py-3 border-b border-border">
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-(--color-primary)" />
+                    <div className="w-3 h-3 rounded-full bg-primary" />
                     <div>
                       <span className="text-foreground font-medium">
                         {data.taxBreakdown.state.name}
@@ -731,7 +731,7 @@ export default function SalesTaxPage() {
               {data.taxBreakdown.county.rate > 0 && (
                 <div className="flex items-center justify-between py-3 border-b border-border">
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-(--color-success)" />
+                    <div className="w-3 h-3 rounded-full bg-success" />
                     <div>
                       <span className="text-foreground font-medium">
                         {data.taxBreakdown.county.name}
@@ -751,7 +751,7 @@ export default function SalesTaxPage() {
               {data.taxBreakdown.city.rate > 0 && (
                 <div className="flex items-center justify-between py-3 border-b border-border">
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-(--color-warning)" />
+                    <div className="w-3 h-3 rounded-full bg-warning" />
                     <div>
                       <span className="text-foreground font-medium">
                         {data.taxBreakdown.city.name}
@@ -771,7 +771,7 @@ export default function SalesTaxPage() {
               {data.taxBreakdown.specialDistrict.rate > 0 && (
                 <div className="flex items-center justify-between py-3 border-b border-border">
                   <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-(--color-transfer)" />
+                    <div className="w-3 h-3 rounded-full bg-transfer" />
                     <div>
                       <span className="text-foreground font-medium">
                         {data.taxBreakdown.specialDistrict.name}
@@ -795,7 +795,7 @@ export default function SalesTaxPage() {
                     ({data.taxBreakdown.total.rate.toFixed(2)}%)
                   </span>
                 </div>
-                <span className="font-mono font-bold text-xl text-(--color-warning)">
+                <span className="font-mono font-bold text-xl text-warning">
                   ${data.taxBreakdown.total.amount.toFixed(2)}
                 </span>
               </div>
@@ -876,7 +876,7 @@ export default function SalesTaxPage() {
                       <p className="text-muted-foreground">Due</p>
                       <p
                         className={`font-medium ${
-                          overdue ? 'text-(--color-error)' : 'text-foreground'
+                          overdue ? 'text-error' : 'text-foreground'
                         }`}
                       >
                         {quarter.dueDate}
@@ -888,16 +888,16 @@ export default function SalesTaxPage() {
                     <div className="flex items-center justify-between pt-2 border-t border-border">
                       <div className="flex items-center gap-2">
                         {quarter.status === 'submitted' ? (
-                          <span className="text-xs text-(--color-success)">
+                          <span className="text-xs text-success">
                             Filed successfully
                           </span>
                         ) : overdue ? (
-                          <span className="flex items-center gap-1 text-xs text-(--color-error)">
+                          <span className="flex items-center gap-1 text-xs text-error">
                             <AlertCircle className="w-3 h-3" />
                             {Math.abs(daysUntil)} days overdue
                           </span>
                         ) : daysUntil > 0 ? (
-                          <span className="text-xs text-(--color-warning)">
+                          <span className="text-xs text-warning">
                             {daysUntil} days until due
                           </span>
                         ) : null}
@@ -925,7 +925,7 @@ export default function SalesTaxPage() {
                             handleMarkFiled(quarter.quarter);
                           }}
                           disabled={isMarkingFiled === `Q${quarter.quarter}`}
-                          className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
+                          className="bg-primary hover:opacity-90 text-primary-foreground"
                         >
                           {isMarkingFiled === `Q${quarter.quarter}` ? 'Saving...' : 'Mark Filed'}
                         </Button>
@@ -972,9 +972,9 @@ export default function SalesTaxPage() {
 
       {/* Tax Compliance Tips */}
       {hasData && (
-      <Card className="bg-(--color-transfer)/10 border-(--color-transfer)/30">
+      <Card className="bg-transfer/10 border-transfer/30">
         <CardHeader>
-          <CardTitle className="text-(--color-transfer) flex items-center gap-2">
+          <CardTitle className="text-transfer flex items-center gap-2">
             <AlertCircle className="w-5 h-5" />
             Sales Tax Compliance Checklist
           </CardTitle>

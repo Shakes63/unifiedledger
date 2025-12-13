@@ -129,7 +129,7 @@ export function PreferencesTab() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-(--color-primary)" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -283,7 +283,7 @@ export function PreferencesTab() {
           <Button
             onClick={handleSave}
             disabled={saving}
-            className="bg-(--color-primary) hover:bg-(--color-primary)/90"
+            className="bg-primary hover:bg-primary/90"
           >
             {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Save Preferences

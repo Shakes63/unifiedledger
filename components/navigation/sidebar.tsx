@@ -162,7 +162,7 @@ export function Sidebar() {
               {isDeveloperMode && (
                 <Badge
                   variant="outline"
-                  className="bg-(--color-warning)/10 text-(--color-warning) border-(--color-warning)/20 text-[10px] px-1.5 py-0.5 flex items-center gap-1"
+                  className="bg-warning/10 text-warning border-warning/20 text-[10px] px-1.5 py-0.5 flex items-center gap-1"
                 >
                   <Code className="w-3 h-3" />
                   DEV
@@ -185,7 +185,7 @@ export function Sidebar() {
             {isDeveloperMode && (
               <Badge
                 variant="outline"
-                className="bg-(--color-warning)/10 text-(--color-warning) border-(--color-warning)/20 text-[8px] px-1 py-0 flex items-center gap-0.5"
+                className="bg-warning/10 text-warning border-warning/20 text-[8px] px-1 py-0 flex items-center gap-0.5"
               >
                 <Code className="w-2.5 h-2.5" />
               </Badge>

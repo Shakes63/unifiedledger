@@ -69,7 +69,7 @@ export function AnnualPlanningSummary({ summary, year }: AnnualPlanningSummaryPr
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-(--color-primary) font-mono">
+          <div className="text-2xl font-bold text-primary font-mono">
             ${summary.totalAnnualAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
@@ -88,7 +88,7 @@ export function AnnualPlanningSummary({ summary, year }: AnnualPlanningSummaryPr
         </CardHeader>
         <CardContent>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-(--color-income)">
+            <span className="text-2xl font-bold text-income">
               {summary.paidCount}
             </span>
             <span className="text-muted-foreground">/</span>
@@ -102,7 +102,7 @@ export function AnnualPlanningSummary({ summary, year }: AnnualPlanningSummaryPr
           {/* Progress Bar */}
           <div className="mt-2 h-2 bg-border rounded-full overflow-hidden">
             <div 
-              className="h-full bg-(--color-income) rounded-full transition-all duration-300"
+              className="h-full bg-income rounded-full transition-all duration-300"
               style={{ width: `${progressPercentage}%` }}
             />
           </div>
@@ -121,20 +121,20 @@ export function AnnualPlanningSummary({ summary, year }: AnnualPlanningSummaryPr
           <div className="flex items-center gap-4">
             {/* Paid */}
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-(--color-income)" />
+              <div className="w-3 h-3 rounded-full bg-income" />
               <span className="text-sm text-foreground font-medium">{summary.paidCount}</span>
               <span className="text-xs text-muted-foreground">Paid</span>
             </div>
             {/* Pending */}
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-(--color-warning)" />
+              <div className="w-3 h-3 rounded-full bg-warning" />
               <span className="text-sm text-foreground font-medium">{summary.pendingCount}</span>
               <span className="text-xs text-muted-foreground">Due</span>
             </div>
             {/* Overdue */}
             {summary.overdueCount > 0 && (
               <div className="flex items-center gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-(--color-error)" />
+                <div className="w-3 h-3 rounded-full bg-error" />
                 <span className="text-sm text-foreground font-medium">{summary.overdueCount}</span>
                 <span className="text-xs text-muted-foreground">Late</span>
               </div>
@@ -144,11 +144,11 @@ export function AnnualPlanningSummary({ summary, year }: AnnualPlanningSummaryPr
       </Card>
 
       {/* Next Due */}
-      <Card className={`bg-card border-border ${summary.overdueCount > 0 ? 'border-(--color-error)/30' : ''}`}>
+      <Card className={`bg-card border-border ${summary.overdueCount > 0 ? 'border-error/30' : ''}`}>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
             {summary.overdueCount > 0 ? (
-              <AlertCircle className="w-4 h-4 text-(--color-error)" />
+              <AlertCircle className="w-4 h-4 text-error" />
             ) : (
               <Calendar className="w-4 h-4" />
             )}
@@ -158,7 +158,7 @@ export function AnnualPlanningSummary({ summary, year }: AnnualPlanningSummaryPr
         <CardContent>
           {summary.overdueCount > 0 ? (
             <div>
-              <div className="text-2xl font-bold text-(--color-error)">
+              <div className="text-2xl font-bold text-error">
                 {summary.overdueCount} Overdue
               </div>
               <p className="text-xs text-muted-foreground mt-1">
@@ -171,7 +171,7 @@ export function AnnualPlanningSummary({ summary, year }: AnnualPlanningSummaryPr
                 {summary.nextDue.billName}
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-sm text-(--color-warning)">
+                <span className="text-sm text-warning">
                   {formatNextDue()}
                 </span>
                 <span className="text-sm text-muted-foreground">•</span>
@@ -185,7 +185,7 @@ export function AnnualPlanningSummary({ summary, year }: AnnualPlanningSummaryPr
               <div className="text-lg font-medium text-muted-foreground">
                 All paid for {year}!
               </div>
-              <p className="text-xs text-(--color-income) mt-1">
+              <p className="text-xs text-income mt-1">
                 Great job staying on top of bills
               </p>
             </div>

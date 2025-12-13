@@ -250,7 +250,7 @@ export default function MerchantsPage() {
         </div>
         <Button
           onClick={handleCreate}
-          className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
+          className="bg-primary hover:opacity-90 text-primary-foreground"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Merchant
@@ -290,7 +290,7 @@ export default function MerchantsPage() {
                     {merchant.isSalesTaxExempt ? (
                       <Badge
                         variant="outline"
-                        className="cursor-pointer bg-(--color-success)/10 text-(--color-success) border-(--color-success)/30 hover:bg-(--color-success)/20"
+                        className="cursor-pointer bg-success/10 text-success border-success/30 hover:bg-success/20"
                         onClick={() => handleToggleTaxExempt(merchant.id, false)}
                       >
                         Exempt
@@ -326,7 +326,7 @@ export default function MerchantsPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleDelete(merchant.id)}
-                        className="bg-elevated border-border text-(--color-error) hover:bg-(--color-error)/10"
+                        className="bg-elevated border-border text-error hover:bg-error/10"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -342,7 +342,7 @@ export default function MerchantsPage() {
           <p className="text-muted-foreground mb-4">No merchants yet</p>
           <Button
             onClick={handleCreate}
-            className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
+            className="bg-primary hover:opacity-90 text-primary-foreground"
           >
             <Plus className="w-4 h-4 mr-2" />
             Create First Merchant
@@ -410,7 +410,7 @@ export default function MerchantsPage() {
                   id="isSalesTaxExempt"
                   checked={formData.isSalesTaxExempt}
                   onChange={(e) => setFormData({ ...formData, isSalesTaxExempt: e.target.checked })}
-                  className="h-4 w-4 rounded border-border bg-input text-(--color-primary) focus:ring-2 focus:ring-(--color-primary) focus:ring-offset-0"
+                  className="h-4 w-4 rounded border-border bg-input text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
                 />
                 <Label htmlFor="isSalesTaxExempt" className="text-sm font-medium text-foreground cursor-pointer">
                   Sales Tax Exempt
@@ -437,7 +437,7 @@ export default function MerchantsPage() {
               <Button
                 type="submit"
                 disabled={isSubmitting || !formData.name.trim()}
-                className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
+                className="bg-primary hover:opacity-90 text-primary-foreground"
               >
                 {isSubmitting ? 'Saving...' : selectedMerchant ? 'Update' : 'Create'}
               </Button>

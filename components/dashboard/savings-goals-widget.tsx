@@ -146,9 +146,9 @@ export function SavingsGoalsWidget() {
   const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
     switch (trend) {
       case 'up':
-        return <TrendingUp className="w-4 h-4 text-(--color-income)" />;
+        return <TrendingUp className="w-4 h-4 text-income" />;
       case 'down':
-        return <TrendingDown className="w-4 h-4 text-(--color-expense)" />;
+        return <TrendingDown className="w-4 h-4 text-expense" />;
       default:
         return <Minus className="w-4 h-4 text-muted-foreground" />;
     }
@@ -169,7 +169,7 @@ export function SavingsGoalsWidget() {
       <Card className="bg-card border-border p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-(--color-primary)" />
+            <Target className="w-5 h-5 text-primary" />
             <h3 className="text-lg font-semibold text-foreground">Savings Goals</h3>
           </div>
           <Link href="/dashboard/goals">
@@ -183,7 +183,7 @@ export function SavingsGoalsWidget() {
           <div className="text-center py-8">
             <p className="text-muted-foreground text-sm mb-3">No active goals yet</p>
             <Link href="/dashboard/goals">
-              <Button size="sm" className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)">
+              <Button size="sm" className="bg-primary hover:opacity-90 text-primary-foreground">
                 Create Your First Goal
               </Button>
             </Link>
@@ -211,7 +211,7 @@ export function SavingsGoalsWidget() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-(--color-primary)"
+                        className="h-6 w-6 text-muted-foreground hover:text-primary"
                         onClick={() => setQuickContributeGoal(goal)}
                         title="Quick contribute"
                       >
@@ -247,7 +247,7 @@ export function SavingsGoalsWidget() {
                 <span className="text-muted-foreground">Savings Rate</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-(--color-primary)">
+                <span className="text-sm font-semibold text-primary">
                   {savingsRate.averageRate.toFixed(1)}%
                 </span>
                 {getTrendIcon(savingsRate.trend)}
@@ -318,7 +318,7 @@ export function SavingsGoalsWidget() {
                 <Button
                   onClick={() => handleQuickContribute()}
                   disabled={contributing || !contributeAmount}
-                  className="bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)"
+                  className="bg-primary hover:opacity-90 text-primary-foreground"
                 >
                   {contributing ? 'Adding...' : 'Add'}
                 </Button>

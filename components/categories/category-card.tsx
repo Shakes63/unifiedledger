@@ -34,9 +34,9 @@ const CATEGORY_TYPE_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_TYPE_COLORS: Record<string, string> = {
-  income: 'bg-(--color-income)/10 text-(--color-income)',
-  expense: 'bg-(--color-expense)/10 text-(--color-expense)',
-  savings: 'bg-(--color-primary)/10 text-(--color-primary)',
+  income: 'bg-income/10 text-income',
+  expense: 'bg-expense/10 text-expense',
+  savings: 'bg-primary/10 text-primary',
 };
 
 export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) {
@@ -74,7 +74,7 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
             {onDelete && (
               <DropdownMenuItem
                 onClick={() => onDelete(category.id)}
-                className="text-(--color-error) cursor-pointer hover:bg-(--color-error)/10 text-xs"
+                className="text-error cursor-pointer hover:bg-error/10 text-xs"
               >
                 <Trash2 className="h-3 w-3 mr-2" />
                 Delete
@@ -90,7 +90,7 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
           {CATEGORY_TYPE_LABELS[category.type]}
         </span>
         {category.isTaxDeductible && (
-          <span className="text-xs font-medium px-1.5 py-0.5 rounded inline-block bg-(--color-primary)/10 text-(--color-primary)">
+          <span className="text-xs font-medium px-1.5 py-0.5 rounded inline-block bg-primary/10 text-primary">
             Tax Deductible
           </span>
         )}

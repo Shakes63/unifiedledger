@@ -129,7 +129,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
               onClick={() => setPaymentFrequency('weekly')}
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 paymentFrequency === 'weekly'
-                  ? 'bg-(--color-success) text-white'
+                  ? 'bg-success text-white'
                   : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
               }`}
             >
@@ -139,7 +139,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
               onClick={() => setPaymentFrequency('biweekly')}
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 paymentFrequency === 'biweekly'
-                  ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
               }`}
             >
@@ -159,7 +159,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
               onClick={() => setPaymentFrequency('quarterly')}
               className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 paymentFrequency === 'quarterly'
-                  ? 'bg-(--color-warning) text-white'
+                  ? 'bg-warning text-white'
                   : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
               }`}
             >
@@ -190,7 +190,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
               onClick={() => setMethod('snowball')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 method === 'snowball'
-                  ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -200,7 +200,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
               onClick={() => setMethod('avalanche')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 method === 'avalanche'
-                  ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                  ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -239,7 +239,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
         {/* Next Recommended Payment */}
         <div className="bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-2 mb-4">
-            <MapPin className="w-6 h-6 text-(--color-primary)" />
+            <MapPin className="w-6 h-6 text-primary" />
             <h3 className="text-lg font-semibold text-foreground">Pay This Next</h3>
           </div>
 
@@ -279,7 +279,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
         {/* Payoff Order with Rolldown Visualization */}
         <div className="bg-card rounded-xl p-6 border border-border">
           <div className="flex items-center gap-2 mb-4">
-            <Target className="w-6 h-6 text-(--color-primary)" />
+            <Target className="w-6 h-6 text-primary" />
             <h3 className="text-lg font-semibold text-foreground">Your Payoff Order</h3>
             <span className="text-xs text-muted-foreground ml-auto capitalize">
               {method} Method
@@ -292,7 +292,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                 {/* Rolldown Arrow for debts after the first */}
                 {index > 0 && (
                   <div className="flex items-center justify-center py-1">
-                    <div className="flex items-center gap-2 text-(--color-income)">
+                    <div className="flex items-center gap-2 text-income">
                       <ArrowDown className="w-4 h-4" />
                       <span className="text-xs font-medium">
                         +${debt.rolldownAmount.toFixed(0)} rolls down
@@ -306,7 +306,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                 <div
                   className={`p-4 rounded-lg border transition-all ${
                     debt.isFocusDebt
-                      ? 'bg-(--color-primary)/10 border-(--color-primary)/30'
+                      ? 'bg-primary/10 border-primary/30'
                       : 'bg-elevated border-border'
                   }`}
                 >
@@ -316,7 +316,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm ${
                           debt.isFocusDebt
-                            ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                            ? 'bg-primary text-primary-foreground'
                             : 'bg-card text-foreground border border-border'
                         }`}
                       >
@@ -326,7 +326,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                         <div className="flex items-center gap-2">
                           <span className="text-foreground font-medium">{debt.debtName}</span>
                           {debt.isFocusDebt && (
-                            <span className="text-xs bg-(--color-primary) text-(--color-primary-foreground) px-2 py-0.5 rounded-full">
+                            <span className="text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
                               Focus
                             </span>
                           )}
@@ -340,8 +340,8 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                     {/* Payoff Timeline */}
                     <div className="text-right">
                       <div className="flex items-center gap-1 justify-end">
-                        <Clock className="w-3 h-3 text-(--color-income)" />
-                        <span className="text-xs font-semibold text-(--color-income)">Month {debt.payoffMonth}</span>
+                        <Clock className="w-3 h-3 text-income" />
+                        <span className="text-xs font-semibold text-income">Month {debt.payoffMonth}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {new Date(debt.payoffDate).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
@@ -350,12 +350,12 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                       {debt.minimumOnlyMonths > 0 && debt.minimumOnlyMonths !== debt.payoffMonth && (
                         <div className="text-xs text-muted-foreground mt-1">
                           {debt.minimumOnlyMonths === -1 ? (
-                            <span className="text-(--color-error)">Min only: Never</span>
+                            <span className="text-error">Min only: Never</span>
                           ) : (
                             <span>
                               Min only: {debt.minimumOnlyMonths} mo
                               {debt.minimumOnlyMonths > debt.payoffMonth && (
-                                <span className="text-(--color-income) ml-1">
+                                <span className="text-income ml-1">
                                   ({debt.minimumOnlyMonths - debt.payoffMonth} faster)
                                 </span>
                               )}
@@ -373,7 +373,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                       <div className="space-y-1">
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-muted-foreground">Current Payment:</span>
-                          <span className="text-lg font-mono font-semibold text-(--color-income)">
+                          <span className="text-lg font-mono font-semibold text-income">
                             ${debt.activePayment.toFixed(2)}/mo
                           </span>
                         </div>
@@ -383,7 +383,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                             <span>+ ${debt.additionalMonthlyPayment.toFixed(0)} committed</span>
                           )}
                           {parseFloat(extraPayment) > 0 && (
-                            <span className="text-(--color-income)">+ ${parseFloat(extraPayment).toFixed(0)} extra</span>
+                            <span className="text-income">+ ${parseFloat(extraPayment).toFixed(0)} extra</span>
                           )}
                         </div>
                       </div>
@@ -398,10 +398,10 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Sparkles className="w-3 h-3 text-(--color-income)" />
+                            <Sparkles className="w-3 h-3 text-income" />
                             After #{debt.order - 1} paid:
                           </span>
-                          <span className="text-sm font-mono font-semibold text-(--color-income)">
+                          <span className="text-sm font-mono font-semibold text-income">
                             ${debt.activePayment.toFixed(2)}/mo
                           </span>
                         </div>
@@ -409,7 +409,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                           (${debt.minimumPayment.toFixed(0)} min
                           {debt.additionalMonthlyPayment > 0 && ` + $${debt.additionalMonthlyPayment.toFixed(0)} committed`}
                           {debt.rolldownAmount > 0 && ` + $${debt.rolldownAmount.toFixed(0)} rolled`}
-                          {parseFloat(extraPayment) > 0 && <span className="text-(--color-income)"> + ${parseFloat(extraPayment).toFixed(0)} extra</span>})
+                          {parseFloat(extraPayment) > 0 && <span className="text-income"> + ${parseFloat(extraPayment).toFixed(0)} extra</span>})
                         </div>
                       </div>
                     )}
@@ -424,7 +424,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
       {/* Comparison Metrics */}
       <div className="mt-6 bg-card rounded-xl p-6 border border-border">
         <div className="flex items-center gap-2 mb-4">
-          <DollarSign className="w-6 h-6 text-(--color-income)" />
+          <DollarSign className="w-6 h-6 text-income" />
           <h3 className="text-lg font-semibold text-foreground">Method Comparison</h3>
         </div>
 
@@ -480,7 +480,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
               <div>
                 <div className="text-sm text-muted-foreground">Time savings:</div>
                 <div className={`text-lg font-semibold ${
-                  comparison.timeSavings > 0 ? 'text-(--color-income)' : 'text-muted-foreground'
+                  comparison.timeSavings > 0 ? 'text-income' : 'text-muted-foreground'
                 }`}>
                   {Math.abs(comparison.timeSavings)} months
                 </div>
@@ -488,7 +488,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
               <div>
                 <div className="text-sm text-muted-foreground">Interest savings:</div>
                 <div className={`text-lg font-mono font-semibold ${
-                  comparison.interestSavings > 0 ? 'text-(--color-income)' : 'text-muted-foreground'
+                  comparison.interestSavings > 0 ? 'text-income' : 'text-muted-foreground'
                 }`}>
                   ${Math.abs(comparison.interestSavings).toFixed(2)}
                 </div>
@@ -499,10 +499,10 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
 
         {/* Recommendation */}
         {comparison.recommendedMethod !== method && (
-          <div className="mt-4 p-3 bg-(--color-transfer)/10 border border-(--color-transfer)/30 rounded-lg">
+          <div className="mt-4 p-3 bg-transfer/10 border border-transfer/30 rounded-lg">
             <div className="flex items-start gap-2">
-              <Lightbulb className="w-4 h-4 text-(--color-transfer) flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-(--color-transfer)">
+              <Lightbulb className="w-4 h-4 text-transfer flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-transfer">
                 The <strong>{comparison.recommendedMethod}</strong> method could save you{' '}
                 {comparison.timeSavings} months and ${comparison.interestSavings.toFixed(2)} in interest!
               </p>

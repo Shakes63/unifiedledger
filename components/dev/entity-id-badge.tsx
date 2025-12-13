@@ -49,7 +49,7 @@ export function EntityIdBadge({ id, label = 'ID', className = '' }: EntityIdBadg
         {truncatedId}
       </span>
       {copied ? (
-        <Check className="h-3 w-3 text-(--color-success)" />
+        <Check className="h-3 w-3 text-success" />
       ) : (
         <Copy className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
       )}

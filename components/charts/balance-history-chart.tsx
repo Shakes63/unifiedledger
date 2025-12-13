@@ -82,7 +82,7 @@ function CustomTooltip({
       
       <div className="pt-2 border-t border-border flex justify-between items-center">
         <span className="text-sm font-medium text-foreground">Total</span>
-        <span className="font-mono font-bold text-(--color-error)">
+        <span className="font-mono font-bold text-error">
           ${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       </div>
@@ -169,7 +169,7 @@ export function BalanceHistoryChart({ className = '' }: BalanceHistoryChartProps
               onClick={() => setDays(value)}
               className={`px-3 py-1 rounded text-sm transition-colors ${
                 days === value
-                  ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-card border border-border text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -185,7 +185,7 @@ export function BalanceHistoryChart({ className = '' }: BalanceHistoryChartProps
               onClick={() => setViewMode('stacked')}
               className={`px-3 py-1 rounded text-sm transition-colors ${
                 viewMode === 'stacked'
-                  ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-card border border-border text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -195,7 +195,7 @@ export function BalanceHistoryChart({ className = '' }: BalanceHistoryChartProps
               onClick={() => setViewMode('individual')}
               className={`px-3 py-1 rounded text-sm transition-colors ${
                 viewMode === 'individual'
-                  ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-card border border-border text-muted-foreground hover:text-foreground'
               }`}
             >

@@ -33,13 +33,13 @@ export function OnboardingProgress({
                 className={cn(
                   'flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors',
                   isCompleted &&
-                    'bg-(--color-success) border-(--color-success) text-background',
+                    'bg-success border-success text-background',
                   isSkipped &&
-                    'bg-(--color-warning)/20 border-(--color-warning) text-(--color-warning)',
+                    'bg-warning/20 border-warning text-warning',
                   isCurrent &&
                     !isCompleted &&
                     !isSkipped &&
-                    'bg-(--color-primary) border-(--color-primary) text-background',
+                    'bg-primary border-primary text-background',
                   !isCompleted &&
                     !isSkipped &&
                     !isCurrent &&
@@ -69,7 +69,7 @@ export function OnboardingProgress({
                 className={cn(
                   'h-0.5 flex-1 mx-2 transition-colors',
                   isPast || isCompleted
-                    ? 'bg-(--color-success)'
+                    ? 'bg-success'
                     : 'bg-border'
                 )}
               />

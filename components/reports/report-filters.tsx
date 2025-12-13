@@ -86,7 +86,7 @@ export function ReportFilters({
             {activeFilterCount > 0 && (
               <Badge
                 variant="default"
-                className="bg-(--color-primary) text-(--color-primary-foreground)"
+                className="bg-primary text-primary-foreground"
               >
                 {activeFilterCount}
               </Badge>
@@ -126,8 +126,8 @@ export function ReportFilters({
                       variant={isSelected ? 'default' : 'outline'}
                       className={`cursor-pointer transition-colors ${
                         isSelected
-                          ? 'bg-(--color-primary) text-(--color-primary-foreground) border-(--color-primary)'
-                          : 'bg-elevated text-muted-foreground border-border hover:bg-(--color-elevated)'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-elevated text-muted-foreground border-border hover:bg-elevated'
                       }`}
                       onClick={() => handleAccountToggle(account.id)}
                       role="button"
@@ -173,8 +173,8 @@ export function ReportFilters({
                       variant={isSelected ? 'default' : 'outline'}
                       className={`cursor-pointer transition-colors ${
                         isSelected
-                          ? 'bg-(--color-primary) text-(--color-primary-foreground) border-(--color-primary)'
-                          : 'bg-elevated text-muted-foreground border-border hover:bg-(--color-elevated)'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-elevated text-muted-foreground border-border hover:bg-elevated'
                       }`}
                       onClick={() => handleCategoryToggle(category.id)}
                       role="button"
@@ -220,8 +220,8 @@ export function ReportFilters({
                       variant={isSelected ? 'default' : 'outline'}
                       className={`cursor-pointer transition-colors ${
                         isSelected
-                          ? 'bg-(--color-primary) text-(--color-primary-foreground) border-(--color-primary)'
-                          : 'bg-elevated text-muted-foreground border-border hover:bg-(--color-elevated)'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-elevated text-muted-foreground border-border hover:bg-elevated'
                       }`}
                       onClick={() => handleMerchantToggle(merchant.id)}
                       role="button"

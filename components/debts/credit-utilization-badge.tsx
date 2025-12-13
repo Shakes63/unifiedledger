@@ -89,7 +89,7 @@ export function CreditUtilizationBadge({
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Available:</span>
-                  <span className="text-sm font-mono text-(--color-success)">
+                  <span className="text-sm font-mono text-success">
                     ${Math.max(0, creditLimit - balance).toFixed(2)}
                   </span>
                 </div>

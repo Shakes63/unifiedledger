@@ -298,7 +298,7 @@ export default function AccountsPage() {
             )}
             <Button
               onClick={handleNewAccount}
-              className="bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90 font-medium"
+              className="bg-primary text-primary-foreground hover:opacity-90 font-medium"
             >
               <Plus className="mr-2 h-5 w-5" />
               Add Account
@@ -312,7 +312,7 @@ export default function AccountsPage() {
             {/* Net Worth */}
             <div className="p-5 border border-border bg-card rounded-xl">
               <p className="text-muted-foreground text-sm mb-2">Net Worth</p>
-              <h3 className={`text-2xl font-bold font-mono ${totalBalance >= 0 ? 'text-(--color-income)' : 'text-(--color-error)'}`}>
+              <h3 className={`text-2xl font-bold font-mono ${totalBalance >= 0 ? 'text-income' : 'text-error'}`}>
                 ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </h3>
               <p className="text-muted-foreground text-xs mt-2">Cash minus credit used</p>
@@ -321,7 +321,7 @@ export default function AccountsPage() {
             {/* Cash Balance */}
             <div className="p-5 border border-border bg-card rounded-xl">
               <p className="text-muted-foreground text-sm mb-2">Cash Balance</p>
-              <h3 className="text-2xl font-bold font-mono text-(--color-income)">
+              <h3 className="text-2xl font-bold font-mono text-income">
                 ${cashTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </h3>
               <p className="text-muted-foreground text-xs mt-2">{cashAccounts.length} account{cashAccounts.length !== 1 ? 's' : ''}</p>
@@ -331,7 +331,7 @@ export default function AccountsPage() {
             {creditAccounts.length > 0 && (
               <div className="p-5 border border-border bg-card rounded-xl">
                 <p className="text-muted-foreground text-sm mb-2">Credit Used</p>
-                <h3 className="text-2xl font-bold font-mono text-(--color-error)">
+                <h3 className="text-2xl font-bold font-mono text-error">
                   ${creditBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h3>
                 <p className="text-muted-foreground text-xs mt-2">{overallUtilization.toFixed(0)}% utilization</p>
@@ -342,7 +342,7 @@ export default function AccountsPage() {
             {creditAccounts.length > 0 && (
               <div className="p-5 border border-border bg-card rounded-xl">
                 <p className="text-muted-foreground text-sm mb-2">Available Credit</p>
-                <h3 className={`text-2xl font-bold font-mono ${availableCredit >= 0 ? 'text-(--color-success)' : 'text-(--color-error)'}`}>
+                <h3 className={`text-2xl font-bold font-mono ${availableCredit >= 0 ? 'text-success' : 'text-error'}`}>
                   ${availableCredit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </h3>
                 <p className="text-muted-foreground text-xs mt-2">of ${totalCreditLimit.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} limit</p>
@@ -367,7 +367,7 @@ export default function AccountsPage() {
             <p className="text-muted-foreground mb-4">No accounts yet. Create your first account to get started.</p>
             <Button
               onClick={handleNewAccount}
-              className="bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90 font-medium"
+              className="bg-primary text-primary-foreground hover:opacity-90 font-medium"
             >
               <Plus className="mr-2 h-5 w-5" />
               Create First Account

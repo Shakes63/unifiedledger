@@ -125,7 +125,7 @@ export function CalendarDay({
         !isCurrentMonth
           ? 'bg-elevated/50 border-border/50 text-muted-foreground opacity-60'
           : isTodayDate
-          ? 'bg-(--color-primary)/10 border-(--color-primary) shadow-lg shadow-(--color-primary)/20'
+          ? 'bg-primary/10 border-primary shadow-lg shadow-primary/20'
           : 'bg-card border-border hover:border-border hover:bg-elevated'
       }`}
     >
@@ -133,7 +133,7 @@ export function CalendarDay({
       <span
         className={`text-sm font-bold mb-2 ${
           isTodayDate 
-            ? 'text-(--color-primary)' 
+            ? 'text-primary' 
             : !isCurrentMonth 
             ? 'text-muted-foreground' 
             : 'text-foreground'
@@ -160,10 +160,10 @@ export function CalendarDay({
                   key={`${bill.name}-${bill.amount}-${idx}`}
                   className={`text-[10px] px-1.5 py-0.5 rounded truncate flex items-center gap-0.5 ${
                     bill.status === 'overdue'
-                      ? 'bg-(--color-error)/20 text-(--color-error) font-semibold'
+                      ? 'bg-error/20 text-error font-semibold'
                       : bill.status === 'paid'
-                      ? 'bg-(--color-income)/20 text-(--color-income)'
-                      : 'bg-(--color-warning)/20 text-(--color-warning)'
+                      ? 'bg-income/20 text-income'
+                      : 'bg-warning/20 text-warning'
                   }`}
                   title={`${bill.name} - $${bill.amount.toFixed(2)}${bill.status === 'paid' ? ' (Paid)' : ''}${bill.linkedAccountName ? ` (for ${bill.linkedAccountName})` : ''}${bill.isAutopayEnabled ? ' - Autopay' : ''}`}
                 >
@@ -181,7 +181,7 @@ export function CalendarDay({
               {summary.autopayEvents.map((autopay) => (
                 <div
                   key={autopay.id}
-                  className="text-[10px] px-1.5 py-0.5 rounded truncate flex items-center gap-0.5 bg-(--color-primary)/20 text-(--color-primary)"
+                  className="text-[10px] px-1.5 py-0.5 rounded truncate flex items-center gap-0.5 bg-primary/20 text-primary"
                   title={`Autopay: ${autopay.billName} - $${autopay.amount.toFixed(2)} from ${autopay.sourceAccountName}${autopay.linkedAccountName ? ` to ${autopay.linkedAccountName}` : ''}`}
                 >
                   <Clock className="w-2.5 h-2.5 shrink-0" />

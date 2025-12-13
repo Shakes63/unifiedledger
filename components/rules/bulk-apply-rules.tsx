@@ -70,7 +70,7 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
     <Card className="bg-card border-border p-6 space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-foreground mb-2 flex items-center gap-2">
-          <Zap className="w-5 h-5 text-(--color-warning)" />
+          <Zap className="w-5 h-5 text-warning" />
           Apply Rules to Existing Transactions
         </h3>
         <p className="text-sm text-muted-foreground">
@@ -115,7 +115,7 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
 
       {/* Error Message */}
       {error && (
-        <div className="p-4 bg-(--color-error)/20 border border-(--color-error)/40 rounded-lg text-(--color-error) text-sm flex gap-2">
+        <div className="p-4 bg-error/20 border border-error/40 rounded-lg text-error text-sm flex gap-2">
           <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           {error}
         </div>
@@ -124,8 +124,8 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
       {/* Result */}
       {result && (
         <div className="space-y-4">
-          <div className="p-4 bg-(--color-income)/20 border border-(--color-income)/40 rounded-lg">
-            <div className="flex items-center gap-2 text-(--color-income) font-semibold mb-2">
+          <div className="p-4 bg-income/20 border border-income/40 rounded-lg">
+            <div className="flex items-center gap-2 text-income font-semibold mb-2">
               <CheckCircle className="w-5 h-5" />
               Operation Complete
             </div>
@@ -136,11 +136,11 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
               </div>
               <div>
                 <p className="text-muted-foreground text-xs">Updated</p>
-                <p className="text-xl font-bold text-(--color-income)">{result.totalUpdated}</p>
+                <p className="text-xl font-bold text-income">{result.totalUpdated}</p>
               </div>
               <div>
                 <p className="text-muted-foreground text-xs">Errors</p>
-                <p className="text-xl font-bold text-(--color-error)">{result.errors.length}</p>
+                <p className="text-xl font-bold text-error">{result.errors.length}</p>
               </div>
             </div>
           </div>
@@ -154,7 +154,7 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
                   <div key={rule.transactionId} className="text-xs text-muted-foreground p-2 bg-card rounded">
                     <span className="font-mono">{rule.transactionId.substring(0, 8)}...</span>
                     {' → Rule: '}
-                    <span className="font-mono text-(--color-primary)">{rule.ruleId.substring(0, 8)}...</span>
+                    <span className="font-mono text-primary">{rule.ruleId.substring(0, 8)}...</span>
                   </div>
                 ))}
                 {result.appliedRules.length > 10 && (
@@ -168,14 +168,14 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
 
           {/* Errors */}
           {result.errors.length > 0 && (
-            <div className="p-4 bg-(--color-error)/10 rounded-lg border border-(--color-error)/30">
-              <h4 className="font-semibold text-(--color-error) mb-3 text-sm">Errors ({result.errors.length})</h4>
+            <div className="p-4 bg-error/10 rounded-lg border border-error/30">
+              <h4 className="font-semibold text-error mb-3 text-sm">Errors ({result.errors.length})</h4>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {result.errors.map((err) => (
-                  <div key={err.transactionId} className="text-xs text-(--color-error)/80 p-2 bg-card rounded">
+                  <div key={err.transactionId} className="text-xs text-error/80 p-2 bg-card rounded">
                     <span className="font-mono">{err.transactionId.substring(0, 8)}...</span>
                     {': '}
-                    <span className="text-(--color-error)/70">{err.error}</span>
+                    <span className="text-error/70">{err.error}</span>
                   </div>
                 ))}
               </div>
@@ -189,7 +189,7 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
         <Button
           onClick={handleApply}
           disabled={loading || !!result || !selectedHouseholdId}
-          className="bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90 font-medium flex-1"
+          className="bg-primary text-primary-foreground hover:opacity-90 font-medium flex-1"
         >
           {loading ? (
             <>

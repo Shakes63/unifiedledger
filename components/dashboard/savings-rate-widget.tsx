@@ -83,9 +83,9 @@ export function SavingsRateWidget({ targetRate = 20 }: SavingsRateWidgetProps) {
   const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
     switch (trend) {
       case 'up':
-        return <TrendingUp className="w-4 h-4 text-(--color-income)" />;
+        return <TrendingUp className="w-4 h-4 text-income" />;
       case 'down':
-        return <TrendingDown className="w-4 h-4 text-(--color-expense)" />;
+        return <TrendingDown className="w-4 h-4 text-expense" />;
       default:
         return <Minus className="w-4 h-4 text-muted-foreground" />;
     }
@@ -93,9 +93,9 @@ export function SavingsRateWidget({ targetRate = 20 }: SavingsRateWidgetProps) {
 
   // Get rate color based on comparison to target
   const getRateColor = (rate: number) => {
-    if (rate >= targetRate) return 'text-(--color-income)';
-    if (rate >= targetRate * 0.5) return 'text-(--color-warning)';
-    return 'text-(--color-expense)';
+    if (rate >= targetRate) return 'text-income';
+    if (rate >= targetRate * 0.5) return 'text-warning';
+    return 'text-expense';
   };
 
   if (loading) {
@@ -115,7 +115,7 @@ export function SavingsRateWidget({ targetRate = 20 }: SavingsRateWidgetProps) {
     <Card className="bg-card border-border p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Wallet className="w-5 h-5 text-(--color-primary)" />
+          <Wallet className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-semibold text-foreground">Savings Rate</h3>
         </div>
         <Link href="/dashboard/reports">
@@ -129,7 +129,7 @@ export function SavingsRateWidget({ targetRate = 20 }: SavingsRateWidgetProps) {
         <div className="text-center py-4">
           <p className="text-muted-foreground text-sm">No savings data yet this month</p>
           <Link href="/dashboard/goals">
-            <Button size="sm" className="mt-2 bg-(--color-primary) hover:opacity-90 text-(--color-primary-foreground)">
+            <Button size="sm" className="mt-2 bg-primary hover:opacity-90 text-primary-foreground">
               Set a Savings Goal
             </Button>
           </Link>

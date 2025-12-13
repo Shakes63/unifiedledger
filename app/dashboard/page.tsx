@@ -49,7 +49,7 @@ export default function DashboardPage() {
         {/* Add Transaction Button */}
         <section className="mb-8">
           <Link href="/dashboard/transactions/new" className="block">
-            <Button className="w-full h-16 text-lg font-medium rounded-lg bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90" size="lg">
+            <Button className="w-full h-16 text-lg font-medium rounded-lg bg-primary text-primary-foreground hover:opacity-90" size="lg">
               <Plus className="mr-2 w-5 h-5" />
               Add Transaction
             </Button>

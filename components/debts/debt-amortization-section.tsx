@@ -134,8 +134,8 @@ export function DebtAmortizationSection({
   // Error state
   if (error || !strategy) {
     return (
-      <div className={`p-4 bg-(--color-error)/10 border border-(--color-error)/30 rounded-lg ${className}`}>
-        <p className="text-sm text-(--color-error)">
+      <div className={`p-4 bg-error/10 border border-error/30 rounded-lg ${className}`}>
+        <p className="text-sm text-error">
           {error || 'Unable to load amortization schedule'}
         </p>
         <p className="text-xs text-muted-foreground mt-1">

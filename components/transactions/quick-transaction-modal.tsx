@@ -626,7 +626,7 @@ export function QuickTransactionModal({
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-(--color-warning)" />
+              <Zap className="w-5 h-5 text-warning" />
               <DialogTitle className="text-foreground">Quick Entry</DialogTitle>
             </div>
             <ExperimentalBadge />
@@ -635,7 +635,7 @@ export function QuickTransactionModal({
             Rapid transaction entry. Tab to navigate, Ctrl+Enter to save, ESC to close. Press 1-5 for transaction type, T/Y for date, N for notes.
           </DialogDescription>
           <p className="text-xs text-muted-foreground mt-2">
-            Fields marked with <span className="text-(--color-error)">*</span> are required
+            Fields marked with <span className="text-error">*</span> are required
           </p>
         </DialogHeader>
 
@@ -643,20 +643,20 @@ export function QuickTransactionModal({
           {(!initialized || householdLoading) && (
             <div className="flex items-center justify-center py-8">
               <div className="text-center">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-(--color-primary)" />
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-primary" />
                 <p className="text-muted-foreground text-sm">Loading household data...</p>
               </div>
             </div>
           )}
           
           {initialized && !householdLoading && (!selectedHouseholdId || !householdId) && (
-            <div className="p-3 bg-(--color-warning)/20 border border-(--color-warning)/40 rounded-lg text-(--color-warning) text-sm">
+            <div className="p-3 bg-warning/20 border border-warning/40 rounded-lg text-warning text-sm">
               Please select a household to create transactions.
             </div>
           )}
 
           {error && (
-            <div className="p-3 bg-(--color-error)/20 border border-(--color-error)/40 rounded-lg text-(--color-error) text-sm">
+            <div className="p-3 bg-error/20 border border-error/40 rounded-lg text-error text-sm">
               {error}
             </div>
           )}
@@ -664,7 +664,7 @@ export function QuickTransactionModal({
           {/* Type */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
-              Type <span className="text-(--color-error)">*</span>
+              Type <span className="text-error">*</span>
             </label>
             <Select value={type} onValueChange={(value) => handleTypeChange(value as TransactionType)}>
               <SelectTrigger>
@@ -684,7 +684,7 @@ export function QuickTransactionModal({
           {type === 'bill' && (
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">
-                Select Bill to Pay <span className="text-(--color-error)">*</span>
+                Select Bill to Pay <span className="text-error">*</span>
               </label>
               <Select value={selectedBillInstanceId || 'none'} onValueChange={handleBillSelect}>
                 <SelectTrigger>
@@ -699,7 +699,7 @@ export function QuickTransactionModal({
                   ) : (
                     unpaidBills.map((item: UnpaidBillWithInstance) => (
                       <SelectItem key={item.instance.id} value={item.instance.id}>
-                        <div className={item.instance.status === 'overdue' ? 'text-(--color-error)' : 'text-foreground'}>
+                        <div className={item.instance.status === 'overdue' ? 'text-error' : 'text-foreground'}>
                           {item.instance.status === 'overdue' && (
                             <span className="font-semibold">OVERDUE - </span>
                           )}
@@ -718,12 +718,12 @@ export function QuickTransactionModal({
 
           {/* Account */}
           <div className="space-y-2">
-            <label className={`text-sm font-medium ${fieldErrors.accountId ? 'text-(--color-error)' : 'text-foreground'}`}>
+            <label className={`text-sm font-medium ${fieldErrors.accountId ? 'text-error' : 'text-foreground'}`}>
               {type === 'transfer_out' || type === 'transfer_in' ? 'From Account' : 'Account'}
-              <span className="text-(--color-error)">*</span>
+              <span className="text-error">*</span>
             </label>
             {accountsError && (
-              <div className="p-2 bg-(--color-error)/20 border border-(--color-error)/40 rounded-lg text-(--color-error) text-xs mb-2">
+              <div className="p-2 bg-error/20 border border-error/40 rounded-lg text-error text-xs mb-2">
                 {accountsError}
               </div>
             )}
@@ -735,7 +735,7 @@ export function QuickTransactionModal({
               }}
               disabled={accountsLoading || !initialized || householdLoading || !selectedHouseholdId || !householdId}
             >
-              <SelectTrigger className={fieldErrors.accountId ? 'border-(--color-error)' : ''}>
+              <SelectTrigger className={fieldErrors.accountId ? 'border-error' : ''}>
                 <SelectValue 
                   placeholder={
                     accountsLoading 
@@ -749,7 +749,7 @@ export function QuickTransactionModal({
               <SelectContent>
                 {accountsLoading ? (
                   <div className="flex items-center justify-center py-4">
-                    <Loader2 className="w-4 h-4 animate-spin text-(--color-primary) mr-2" />
+                    <Loader2 className="w-4 h-4 animate-spin text-primary mr-2" />
                     <span className="text-muted-foreground text-sm">Loading accounts...</span>
                   </div>
                 ) : accounts.length === 0 ? (
@@ -766,15 +766,15 @@ export function QuickTransactionModal({
               </SelectContent>
             </Select>
             {fieldErrors.accountId && (
-              <p className="text-(--color-error) text-xs">{fieldErrors.accountId}</p>
+              <p className="text-error text-xs">{fieldErrors.accountId}</p>
             )}
           </div>
 
           {/* To Account (for transfers) */}
           {(type === 'transfer_out' || type === 'transfer_in') && (
             <div className="space-y-2">
-              <label className={`text-sm font-medium ${fieldErrors.toAccountId ? 'text-(--color-error)' : 'text-foreground'}`}>
-                To Account <span className="text-(--color-error)">*</span>
+              <label className={`text-sm font-medium ${fieldErrors.toAccountId ? 'text-error' : 'text-foreground'}`}>
+                To Account <span className="text-error">*</span>
               </label>
               <Select 
                 value={toAccountId} 
@@ -784,7 +784,7 @@ export function QuickTransactionModal({
                 }}
                 disabled={accountsLoading || !initialized || householdLoading || !selectedHouseholdId || !householdId || accounts.length === 0}
               >
-                <SelectTrigger className={fieldErrors.toAccountId ? 'border-(--color-error)' : ''}>
+                <SelectTrigger className={fieldErrors.toAccountId ? 'border-error' : ''}>
                   <SelectValue 
                     placeholder={
                       accountsLoading 
@@ -798,7 +798,7 @@ export function QuickTransactionModal({
                 <SelectContent>
                   {accountsLoading ? (
                     <div className="flex items-center justify-center py-4">
-                      <Loader2 className="w-4 h-4 animate-spin text-(--color-primary) mr-2" />
+                      <Loader2 className="w-4 h-4 animate-spin text-primary mr-2" />
                       <span className="text-muted-foreground text-sm">Loading accounts...</span>
                     </div>
                   ) : accounts.filter((account) => account.id !== accountId).length === 0 ? (
@@ -817,15 +817,15 @@ export function QuickTransactionModal({
                 </SelectContent>
               </Select>
               {fieldErrors.toAccountId && (
-                <p className="text-(--color-error) text-xs">{fieldErrors.toAccountId}</p>
+                <p className="text-error text-xs">{fieldErrors.toAccountId}</p>
               )}
             </div>
           )}
 
           {/* Amount */}
           <div className="space-y-2">
-            <label className={`text-sm font-medium ${fieldErrors.amount ? 'text-(--color-error)' : 'text-foreground'}`}>
-              Amount <span className="text-(--color-error)">*</span>
+            <label className={`text-sm font-medium ${fieldErrors.amount ? 'text-error' : 'text-foreground'}`}>
+              Amount <span className="text-error">*</span>
             </label>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
@@ -840,20 +840,20 @@ export function QuickTransactionModal({
                   if (fieldErrors.amount) setFieldErrors(prev => ({ ...prev, amount: '' }));
                 }}
                 className={`pl-7 placeholder:text-muted-foreground/50 placeholder:italic ${
-                  fieldErrors.amount ? 'border-(--color-error)' : ''
+                  fieldErrors.amount ? 'border-error' : ''
                 }`}
                 autoFocus
               />
             </div>
             {fieldErrors.amount && (
-              <p className="text-(--color-error) text-xs">{fieldErrors.amount}</p>
+              <p className="text-error text-xs">{fieldErrors.amount}</p>
             )}
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <label className={`text-sm font-medium ${fieldErrors.description ? 'text-(--color-error)' : 'text-foreground'}`}>
-              Description <span className="text-(--color-error)">*</span>
+            <label className={`text-sm font-medium ${fieldErrors.description ? 'text-error' : 'text-foreground'}`}>
+              Description <span className="text-error">*</span>
             </label>
             <Input
               placeholder="e.g., Coffee, Gas, Salary"
@@ -863,11 +863,11 @@ export function QuickTransactionModal({
                 if (fieldErrors.description) setFieldErrors(prev => ({ ...prev, description: '' }));
               }}
               className={`placeholder:text-muted-foreground/50 placeholder:italic ${
-                fieldErrors.description ? 'border-(--color-error)' : ''
+                fieldErrors.description ? 'border-error' : ''
               }`}
             />
             {fieldErrors.description && (
-              <p className="text-(--color-error) text-xs">{fieldErrors.description}</p>
+              <p className="text-error text-xs">{fieldErrors.description}</p>
             )}
           </div>
 
@@ -906,7 +906,7 @@ export function QuickTransactionModal({
             <button
               type="button"
               onClick={() => setShowNotes(!showNotes)}
-              className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-(--color-primary) transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors"
             >
               Notes (Optional)
               {showNotes ? (
@@ -921,7 +921,7 @@ export function QuickTransactionModal({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
-                className="w-full bg-elevated border-border text-foreground rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
+                className="w-full bg-elevated border-border text-foreground rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-primary"
               />
             )}
           </div>
@@ -931,7 +931,7 @@ export function QuickTransactionModal({
             <div className="border-t border-border pt-4 space-y-2">
               {merchantIsSalesTaxExempt ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs px-2 py-0.5 bg-(--color-success)/10 text-(--color-success) border border-(--color-success)/30 rounded">
+                  <span className="text-xs px-2 py-0.5 bg-success/10 text-success border border-success/30 rounded">
                     Tax Exempt Merchant
                   </span>
                   <span className="text-sm text-muted-foreground">
@@ -946,7 +946,7 @@ export function QuickTransactionModal({
                       id="quickSalesTax"
                       checked={salesTaxEnabled}
                       onChange={(e) => setSalesTaxEnabled(e.target.checked)}
-                      className="h-4 w-4 rounded border-border bg-input text-(--color-primary) focus:ring-2 focus:ring-(--color-primary) focus:ring-offset-0"
+                      className="h-4 w-4 rounded border-border bg-input text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
                     />
                     <label
                       htmlFor="quickSalesTax"
@@ -970,7 +970,7 @@ export function QuickTransactionModal({
             <Button
               type="submit"
               disabled={loading || !initialized || householdLoading || !selectedHouseholdId || !householdId}
-              className="flex-1 bg-(--color-primary) hover:bg-(--color-primary)/90"
+              className="flex-1 bg-primary hover:bg-primary/90"
             >
               {loading ? 'Creating...' : 'Add Transaction'}
             </Button>

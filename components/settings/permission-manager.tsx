@@ -304,8 +304,8 @@ export function PermissionManager({
           </DialogHeader>
 
           <div className="py-4">
-            <div className="flex items-start gap-3 p-4 bg-(--color-warning)/10 border border-(--color-warning)/30 rounded-lg">
-              <Info className="w-5 h-5 text-(--color-warning) shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 p-4 bg-warning/10 border border-warning/30 rounded-lg">
+              <Info className="w-5 h-5 text-warning shrink-0 mt-0.5" />
               <div className="text-sm text-foreground">
                 <p className="font-medium mb-1">Owners cannot have custom permissions</p>
                 <p className="text-muted-foreground">
@@ -352,8 +352,8 @@ export function PermissionManager({
           <div className="space-y-6 py-4">
             {/* Security Warning */}
             {hasManagePermissionsOverride && (
-              <div className="flex items-start gap-3 p-4 bg-(--color-error)/10 border border-(--color-error)/30 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-(--color-error) shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 p-4 bg-error/10 border border-error/30 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-error shrink-0 mt-0.5" />
                 <div className="text-sm text-foreground">
                   <p className="font-medium mb-1">Security Warning</p>
                   <p className="text-muted-foreground">
@@ -395,7 +395,7 @@ export function PermissionManager({
                             {hasOverride && (
                               <Badge
                                 variant="outline"
-                                className="text-xs bg-(--color-warning)/10 text-(--color-warning) border-(--color-warning)/30"
+                                className="text-xs bg-warning/10 text-warning border-warning/30"
                               >
                                 Custom
                               </Badge>
@@ -410,8 +410,8 @@ export function PermissionManager({
                               variant="outline"
                               className={
                                 roleDefault
-                                  ? 'bg-(--color-success)/10 text-(--color-success) border-(--color-success)/30'
-                                  : 'bg-(--color-error)/10 text-(--color-error) border-(--color-error)/30'
+                                  ? 'bg-success/10 text-success border-success/30'
+                                  : 'bg-error/10 text-error border-error/30'
                               }
                             >
                               {roleDefault ? 'Allowed' : 'Denied'}
@@ -431,7 +431,7 @@ export function PermissionManager({
                             id={`perm-${permInfo.name}`}
                             checked={effective}
                             onCheckedChange={() => toggleCustomPermission(permInfo.name)}
-                            className="data-[state=checked]:bg-(--color-success)"
+                            className="data-[state=checked]:bg-success"
                           />
                         </div>
                       </div>
@@ -473,7 +473,7 @@ export function PermissionManager({
             <Button
               onClick={handleSave}
               disabled={saving || loading || !hasChanges}
-              className="bg-(--color-primary) text-white hover:opacity-90"
+              className="bg-primary text-white hover:opacity-90"
             >
               {saving ? (
                 <>

@@ -89,7 +89,7 @@ export function ThemeTab() {
   if (loading || !currentTheme) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-(--color-primary)" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -116,7 +116,7 @@ export function ThemeTab() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <h4 className="text-lg font-bold text-foreground">{currentTheme.name}</h4>
-                <span className="px-2 py-1 bg-(--color-primary)/20 text-(--color-primary) text-xs rounded-full flex items-center gap-1">
+                <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full flex items-center gap-1">
                   <Check className="w-3 h-3" />
                   Active
                 </span>
@@ -252,7 +252,7 @@ export function ThemeTab() {
                 key={theme.id}
                 className={`p-6 border transition-all cursor-pointer ${
                   isSelected
-                    ? 'border-(--color-primary) bg-(--color-primary)/10'
+                    ? 'border-primary bg-primary/10'
                     : 'border-border bg-card hover:bg-elevated'
                 } ${!isAvailable ? 'opacity-60 cursor-not-allowed' : ''}`}
                 onClick={() => isAvailable && handleThemeSelect(theme.id)}
@@ -262,7 +262,7 @@ export function ThemeTab() {
                     <div className="flex items-center gap-2 mb-2">
                       <h4 className="text-lg font-bold text-foreground">{theme.name}</h4>
                       {isCurrent && (
-                        <span className="px-2 py-1 bg-(--color-primary)/20 text-(--color-primary) text-xs rounded-full flex items-center gap-1">
+                        <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full flex items-center gap-1">
                           <Check className="w-3 h-3" />
                           Active
                         </span>
@@ -277,8 +277,8 @@ export function ThemeTab() {
                     <p className="text-sm text-muted-foreground">{theme.description}</p>
                   </div>
                   {isSelected && isAvailable && (
-                    <div className="p-2 bg-(--color-primary)/20 rounded-lg shrink-0 ml-3">
-                      <Check className="w-5 h-5 text-(--color-primary)" />
+                    <div className="p-2 bg-primary/20 rounded-lg shrink-0 ml-3">
+                      <Check className="w-5 h-5 text-primary" />
                     </div>
                   )}
                 </div>
@@ -333,7 +333,7 @@ export function ThemeTab() {
             <Button
               onClick={handleSaveTheme}
               disabled={saving}
-              className="bg-(--color-primary) hover:bg-(--color-primary)/90"
+              className="bg-primary hover:bg-primary/90"
             >
               {saving ? 'Saving...' : 'Apply Theme'}
             </Button>

@@ -293,7 +293,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
   if (loading || !currentTheme || !preferences) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-(--color-primary)" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -314,7 +314,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
       {/* Theme Section */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <Palette className="w-5 h-5 text-(--color-primary)" />
+          <Palette className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-semibold text-foreground">Theme</h3>
         </div>
 
@@ -324,7 +324,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <h4 className="text-lg font-bold text-foreground">{currentTheme.name}</h4>
-                <span className="px-2 py-1 bg-(--color-primary)/20 text-(--color-primary) text-xs rounded-full flex items-center gap-1">
+                <span className="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full flex items-center gap-1">
                   <Check className="w-3 h-3" />
                   Active
                 </span>
@@ -346,7 +346,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
                 key={theme.id}
                 className={`p-4 border transition-all cursor-pointer ${
                   isSelected
-                    ? 'border-(--color-primary) bg-(--color-primary)/10'
+                    ? 'border-primary bg-primary/10'
                     : 'border-border bg-card hover:bg-elevated'
                 } ${!isAvailable ? 'opacity-60 cursor-not-allowed' : ''}`}
                 onClick={() => isAvailable && handleThemeSelect(theme.id)}
@@ -356,7 +356,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-bold text-foreground">{theme.name}</h4>
                       {isCurrent && (
-                        <span className="px-2 py-0.5 bg-(--color-primary)/20 text-(--color-primary) text-xs rounded-full">
+                        <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs rounded-full">
                           Active
                         </span>
                       )}
@@ -364,7 +364,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
                     <p className="text-xs text-muted-foreground">{theme.description}</p>
                   </div>
                   {isSelected && isAvailable && (
-                    <Check className="w-5 h-5 text-(--color-primary)" />
+                    <Check className="w-5 h-5 text-primary" />
                   )}
                 </div>
               </Card>
@@ -377,7 +377,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
             <Button
               onClick={handleSaveTheme}
               disabled={saving}
-              className="bg-(--color-primary) hover:bg-(--color-primary)/90"
+              className="bg-primary hover:bg-primary/90"
             >
               {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Apply Theme
@@ -391,7 +391,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
       {/* Financial Display Section */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <DollarSign className="w-5 h-5 text-(--color-primary)" />
+          <DollarSign className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-semibold text-foreground">Financial Display</h3>
         </div>
 
@@ -499,7 +499,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
               <Button
                 onClick={handleSaveFinancial}
                 disabled={saving}
-                className="bg-(--color-primary) hover:bg-(--color-primary)/90"
+                className="bg-primary hover:bg-primary/90"
               >
                 {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Save Financial Settings
@@ -514,7 +514,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
       {/* Budget Schedule Section */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <Calendar className="w-5 h-5 text-(--color-primary)" />
+          <Calendar className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-semibold text-foreground">Budget Schedule</h3>
         </div>
         <p className="text-sm text-muted-foreground mb-4">
@@ -533,7 +533,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
                 </p>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-(--color-primary)">
+                <p className="text-2xl font-bold text-primary">
                   {currentPeriod.daysRemaining}
                 </p>
                 <p className="text-sm text-muted-foreground">days remaining</p>
@@ -726,7 +726,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
               <Button
                 onClick={handleSaveSchedule}
                 disabled={savingSchedule}
-                className="bg-(--color-primary) hover:bg-(--color-primary)/90"
+                className="bg-primary hover:bg-primary/90"
               >
                 {savingSchedule && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Save Budget Schedule

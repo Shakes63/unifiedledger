@@ -414,8 +414,8 @@ export default function DebtsPage() {
         <div className="bg-card border border-border rounded-xl p-4 md:p-5">
           <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
             <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className={`p-2 rounded-lg ${debtSettings.debtStrategyEnabled ? 'bg-(--color-income)/10' : 'bg-muted/50'}`}>
-                <Target className={`w-5 h-5 ${debtSettings.debtStrategyEnabled ? 'text-(--color-income)' : 'text-muted-foreground'}`} />
+              <div className={`p-2 rounded-lg ${debtSettings.debtStrategyEnabled ? 'bg-income/10' : 'bg-muted/50'}`}>
+                <Target className={`w-5 h-5 ${debtSettings.debtStrategyEnabled ? 'text-income' : 'text-muted-foreground'}`} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -445,7 +445,7 @@ export default function DebtsPage() {
             </div>
             <div className="flex items-center gap-3">
               {debtSettings.debtStrategyEnabled && (
-                <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-(--color-income)/10 text-(--color-income) capitalize">
+                <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-income/10 text-income capitalize">
                   {debtSettings.preferredMethod}
                 </span>
               )}
@@ -486,7 +486,7 @@ export default function DebtsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-lg p-4">
             <p className="text-muted-foreground text-sm">Total Debt</p>
-            <p className="text-2xl font-bold font-mono text-(--color-error) mt-1">
+            <p className="text-2xl font-bold font-mono text-error mt-1">
               ${unifiedSummary.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
@@ -498,7 +498,7 @@ export default function DebtsPage() {
           </div>
           <div className="bg-card border border-border rounded-lg p-4">
             <p className="text-muted-foreground text-sm">In Strategy</p>
-            <p className="text-2xl font-bold font-mono text-(--color-success) mt-1">
+            <p className="text-2xl font-bold font-mono text-success mt-1">
               {unifiedSummary.inStrategyCount} of {unifiedSummary.totalCount}
             </p>
           </div>
@@ -516,13 +516,13 @@ export default function DebtsPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-lg p-4">
             <p className="text-muted-foreground text-sm">Total Debt</p>
-            <p className="text-2xl font-bold font-mono text-(--color-error) mt-1">
+            <p className="text-2xl font-bold font-mono text-error mt-1">
               ${stats.totalRemainingBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </p>
           </div>
           <div className="bg-card border border-border rounded-lg p-4">
             <p className="text-muted-foreground text-sm">Paid Off</p>
-            <p className="text-2xl font-bold font-mono text-(--color-income) mt-1">
+            <p className="text-2xl font-bold font-mono text-income mt-1">
               ${stats.totalPaidOff.toLocaleString('en-US', { maximumFractionDigits: 2 })}
             </p>
           </div>
@@ -545,7 +545,7 @@ export default function DebtsPage() {
             onClick={() => setViewMode('unified')}
             className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors ${
               viewMode === 'unified'
-                ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -556,7 +556,7 @@ export default function DebtsPage() {
             onClick={() => setViewMode('legacy')}
             className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors ${
               viewMode === 'legacy'
-                ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -807,7 +807,7 @@ export default function DebtsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <Target className="w-6 h-6 text-(--color-primary)" />
+              <Target className="w-6 h-6 text-primary" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">Debt Payoff Strategy</h3>
                 <p className="text-sm text-muted-foreground">
@@ -834,7 +834,7 @@ export default function DebtsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <BarChart3 className="w-6 h-6 text-(--color-primary)" />
+              <BarChart3 className="w-6 h-6 text-primary" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">Payment Tracking</h3>
                 <p className="text-sm text-muted-foreground">
@@ -866,7 +866,7 @@ export default function DebtsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <TrendingUp className="w-6 h-6 text-(--color-primary)" />
+              <TrendingUp className="w-6 h-6 text-primary" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">Utilization & Balance Trends</h3>
                 <p className="text-sm text-muted-foreground">
@@ -901,7 +901,7 @@ export default function DebtsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <Lightbulb className="w-6 h-6 text-(--color-primary)" />
+              <Lightbulb className="w-6 h-6 text-primary" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">What-If Scenario Calculator</h3>
                 <p className="text-sm text-muted-foreground">
@@ -935,7 +935,7 @@ export default function DebtsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <AlertTriangle className="w-6 h-6 text-(--color-warning)" />
+              <AlertTriangle className="w-6 h-6 text-warning" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">Minimum Payment Warning</h3>
                 <p className="text-sm text-muted-foreground">

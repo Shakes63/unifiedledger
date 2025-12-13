@@ -116,11 +116,11 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
   if (!data.comparison.hasExtraPayment) {
     return (
       <div className={className}>
-        <div className="bg-gradient-to-r from-(--color-warning)/30 to-(--color-warning)/20 border border-(--color-warning)/50 rounded-xl p-6">
+        <div className="bg-gradient-to-r from-warning/30 to-warning/20 border border-warning/50 rounded-xl p-6">
           <div className="flex items-start gap-4">
-            <AlertTriangle className="w-10 h-10 text-(--color-warning)" />
+            <AlertTriangle className="w-10 h-10 text-warning" />
             <div>
-              <h3 className="text-xl font-bold text-(--color-warning) mb-2">
+              <h3 className="text-xl font-bold text-warning mb-2">
                 Only Paying Minimums?
               </h3>
               <p className="text-muted-foreground mb-3">
@@ -135,13 +135,13 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Total interest you&apos;ll pay:</span>
-                  <span className="text-xl font-bold font-mono text-(--color-error)">
+                  <span className="text-xl font-bold font-mono text-error">
                     ${data.minimumOnlyScenario.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
               <div className="mt-4 text-sm text-muted-foreground flex items-start gap-2">
-                <Zap className="w-4 h-4 text-(--color-success) mt-0.5 flex-shrink-0" />
+                <Zap className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
                 <p>
                   <strong>Tip:</strong> Add even a small extra payment in the Payoff Strategy section below to see how much faster you can become debt-free and how much you can save!
                 </p>
@@ -159,12 +159,12 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
 
   return (
     <div className={className}>
-      <div className="bg-gradient-to-r from-(--color-warning)/30 to-(--color-warning)/20 border border-(--color-warning)/50 rounded-xl p-6 space-y-6">
+      <div className="bg-gradient-to-r from-warning/30 to-warning/20 border border-warning/50 rounded-xl p-6 space-y-6">
         {/* Header */}
         <div className="flex items-start gap-3">
-          <AlertTriangle className="w-8 h-8 text-(--color-warning)" />
+          <AlertTriangle className="w-8 h-8 text-warning" />
           <div>
-            <h3 className="text-xl font-bold text-(--color-warning)">The True Cost of Minimum Payments</h3>
+            <h3 className="text-xl font-bold text-warning">The True Cost of Minimum Payments</h3>
             <p className="text-muted-foreground text-sm mt-1">
               See how much your extra ${data.currentPlanScenario.extraPayment.toLocaleString()} payment is saving you
             </p>
@@ -174,16 +174,16 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
         {/* Comparison Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Minimum Only Column */}
-          <div className="bg-gradient-to-br from-(--color-error)/20 to-(--color-error)/10 border border-(--color-error)/30 rounded-lg p-5">
+          <div className="bg-gradient-to-br from-error/20 to-error/10 border border-error/30 rounded-lg p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Turtle className="w-6 h-6 text-(--color-error)" />
-              <h4 className="text-lg font-semibold text-(--color-error)">Minimum Payments Only</h4>
+              <Turtle className="w-6 h-6 text-error" />
+              <h4 className="text-lg font-semibold text-error">Minimum Payments Only</h4>
             </div>
 
             <div className="space-y-4">
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Time to debt-free</div>
-                <div className="text-3xl font-bold text-(--color-error)">
+                <div className="text-3xl font-bold text-error">
                   {data.minimumOnlyScenario.totalYears} years
                 </div>
                 {data.minimumOnlyScenario.remainingMonths > 0 && (
@@ -195,14 +195,14 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
 
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Total interest paid</div>
-                <div className="text-2xl font-bold font-mono text-(--color-error)">
+                <div className="text-2xl font-bold font-mono text-error">
                   ${data.minimumOnlyScenario.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
 
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Monthly payment</div>
-                <div className="text-xl font-mono text-(--color-error)">
+                <div className="text-xl font-mono text-error">
                   ${data.minimumOnlyScenario.monthlyPayment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div className="text-xs text-muted-foreground">(minimums only)</div>
@@ -210,7 +210,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
 
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Debt-free date</div>
-                <div className="text-lg text-(--color-error)">
+                <div className="text-lg text-error">
                   {formatDate(data.minimumOnlyScenario.debtFreeDate)}
                 </div>
               </div>
@@ -218,16 +218,16 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
           </div>
 
           {/* Current Plan Column */}
-          <div className="bg-gradient-to-br from-(--color-income)/20 to-(--color-income)/10 border border-(--color-income)/30 rounded-lg p-5">
+          <div className="bg-gradient-to-br from-income/20 to-income/10 border border-income/30 rounded-lg p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Zap className="w-6 h-6 text-(--color-income)" />
-              <h4 className="text-lg font-semibold text-(--color-income)">Your Current Plan</h4>
+              <Zap className="w-6 h-6 text-income" />
+              <h4 className="text-lg font-semibold text-income">Your Current Plan</h4>
             </div>
 
             <div className="space-y-4">
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Time to debt-free</div>
-                <div className="text-3xl font-bold text-(--color-income)">
+                <div className="text-3xl font-bold text-income">
                   {data.currentPlanScenario.totalYears} years
                 </div>
                 {data.currentPlanScenario.remainingMonths > 0 && (
@@ -239,14 +239,14 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
 
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Total interest paid</div>
-                <div className="text-2xl font-bold font-mono text-(--color-income)">
+                <div className="text-2xl font-bold font-mono text-income">
                   ${data.currentPlanScenario.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
 
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Monthly payment</div>
-                <div className="text-xl font-mono text-(--color-income)">
+                <div className="text-xl font-mono text-income">
                   ${data.currentPlanScenario.monthlyPayment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -256,7 +256,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
 
               <div>
                 <div className="text-sm text-muted-foreground mb-1">Debt-free date</div>
-                <div className="text-lg text-(--color-income)">
+                <div className="text-lg text-income">
                   {formatDate(data.currentPlanScenario.debtFreeDate)}
                 </div>
               </div>
@@ -265,21 +265,21 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
         </div>
 
         {/* Savings Highlight */}
-        <div className="bg-gradient-to-r from-(--color-primary)/30 to-(--color-primary)/20 border border-(--color-primary)/40 rounded-lg p-5">
+        <div className="bg-gradient-to-r from-primary/30 to-primary/20 border border-primary/40 rounded-lg p-5">
           <div className="flex items-start gap-3">
-            <Target className="w-8 h-8 text-(--color-primary)" />
+            <Target className="w-8 h-8 text-primary" />
             <div className="flex-1">
-              <h4 className="text-lg font-semibold text-(--color-primary) mb-3">
+              <h4 className="text-lg font-semibold text-primary mb-3">
                 By paying ${data.currentPlanScenario.extraPayment.toLocaleString()} extra per month, you will:
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-elevated/40 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-5 h-5 text-(--color-primary)" />
+                    <Clock className="w-5 h-5 text-primary" />
                     <div className="text-sm text-muted-foreground">Time Saved</div>
                   </div>
-                  <div className="text-2xl font-bold text-(--color-primary)">
+                  <div className="text-2xl font-bold text-primary">
                     {data.comparison.yearsSaved > 0
                       ? `${data.comparison.yearsSaved} year${data.comparison.yearsSaved !== 1 ? 's' : ''}`
                       : `${data.comparison.monthsSaved} months`
@@ -294,10 +294,10 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
 
                 <div className="bg-elevated/40 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <Banknote className="w-5 h-5 text-(--color-primary)" />
+                    <Banknote className="w-5 h-5 text-primary" />
                     <div className="text-sm text-muted-foreground">Interest Saved</div>
                   </div>
-                  <div className="text-2xl font-bold font-mono text-(--color-primary)">
+                  <div className="text-2xl font-bold font-mono text-primary">
                     ${data.comparison.interestSaved.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                   <div className="text-sm text-muted-foreground">
@@ -307,10 +307,10 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
 
                 <div className="bg-elevated/40 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <PartyPopper className="w-5 h-5 text-(--color-primary)" />
+                    <PartyPopper className="w-5 h-5 text-primary" />
                     <div className="text-sm text-muted-foreground">Debt-Free Sooner</div>
                   </div>
-                  <div className="text-lg font-semibold text-(--color-primary)">
+                  <div className="text-lg font-semibold text-primary">
                     {formatDate(data.currentPlanScenario.debtFreeDate)}
                   </div>
                   <div className="text-sm text-muted-foreground">
@@ -323,19 +323,19 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
         </div>
 
         {/* Warning Message */}
-        <div className="bg-(--color-error)/20 border border-(--color-error)/30 rounded-lg p-4">
+        <div className="bg-error/20 border border-error/30 rounded-lg p-4">
           <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-(--color-error) mt-0.5 flex-shrink-0" />
-            <p className="text-(--color-error) text-sm font-medium">
+            <AlertTriangle className="w-4 h-4 text-error mt-0.5 flex-shrink-0" />
+            <p className="text-error text-sm font-medium">
               <strong>WARNING:</strong> If you only pay minimums, you&apos;ll pay{' '}
-            <span className="text-(--color-error) font-bold">
+            <span className="text-error font-bold">
               {interestMultiplier >= 2
                 ? `${Math.round(interestMultiplier)}x more`
                 : `${Math.round((interestMultiplier - 1) * 100)}% more`
               }
             </span>{' '}
             in interest and stay in debt for{' '}
-            <span className="text-(--color-error) font-bold">
+            <span className="text-error font-bold">
               {timeMultiplier >= 2
                 ? `${Math.round(timeMultiplier)}x longer`
                 : `${Math.round((timeMultiplier - 1) * 100)}% longer`

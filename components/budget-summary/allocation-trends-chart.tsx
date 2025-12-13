@@ -297,7 +297,7 @@ export function AllocationTrendsChart({ data }: AllocationTrendsChartProps) {
               >
                 {formatCurrency(avg)}
               </p>
-              <p className={`text-xs ${change >= 0 ? 'text-(--color-success)' : 'text-(--color-error)'}`}>
+              <p className={`text-xs ${change >= 0 ? 'text-success' : 'text-error'}`}>
                 {change >= 0 ? '+' : ''}{change.toFixed(1)}%
               </p>
             </div>

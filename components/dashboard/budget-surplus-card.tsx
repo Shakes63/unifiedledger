@@ -118,7 +118,7 @@ export function BudgetSurplusCard() {
     return (
       <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <div className="flex flex-col items-center justify-center h-full text-center">
-          <AlertCircle className="w-8 h-8 text-(--color-error) mb-2" />
+          <AlertCircle className="w-8 h-8 text-error mb-2" />
           <p className="text-sm font-medium text-foreground mb-1">Authentication Required</p>
           <p className="text-xs text-muted-foreground">Please sign in to view budget data</p>
         </div>
@@ -144,8 +144,8 @@ export function BudgetSurplusCard() {
       <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <div className="flex items-start justify-between mb-4">
           <p className="text-sm text-muted-foreground">Budget Surplus</p>
-          <div className="p-3 rounded-lg bg-(--color-transfer)/20">
-            <DollarSign className="w-6 h-6 text-(--color-transfer)" />
+          <div className="p-3 rounded-lg bg-transfer/20">
+            <DollarSign className="w-6 h-6 text-transfer" />
           </div>
         </div>
         <div className="space-y-2">
@@ -162,8 +162,8 @@ export function BudgetSurplusCard() {
       <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <div className="flex items-start justify-between mb-4">
           <p className="text-sm text-muted-foreground">Budget Surplus</p>
-          <div className="p-3 rounded-lg bg-(--color-income)/20">
-            <CheckCircle className="w-6 h-6 text-(--color-income)" />
+          <div className="p-3 rounded-lg bg-income/20">
+            <CheckCircle className="w-6 h-6 text-income" />
           </div>
         </div>
         <div>
@@ -183,8 +183,8 @@ export function BudgetSurplusCard() {
       <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <div className="flex items-start justify-between mb-4">
           <p className="text-sm text-muted-foreground">Budget Surplus</p>
-          <div className="p-3 rounded-lg bg-(--color-expense)/20">
-            <AlertCircle className="w-6 h-6 text-(--color-expense)" />
+          <div className="p-3 rounded-lg bg-expense/20">
+            <AlertCircle className="w-6 h-6 text-expense" />
           </div>
         </div>
         <div className="space-y-3">
@@ -213,8 +213,8 @@ export function BudgetSurplusCard() {
       <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
         <div className="flex items-start justify-between mb-4">
           <p className="text-sm text-muted-foreground">Budget Surplus</p>
-          <div className="p-3 rounded-lg bg-(--color-income)/20">
-            <TrendingDown className="w-6 h-6 text-(--color-income)" />
+          <div className="p-3 rounded-lg bg-income/20">
+            <TrendingDown className="w-6 h-6 text-income" />
           </div>
         </div>
 
@@ -243,7 +243,7 @@ export function BudgetSurplusCard() {
           ) : (
             <Button
               onClick={() => setShowModal(true)}
-              className="w-full font-medium bg-(--color-primary) text-(--color-primary-foreground) hover:opacity-90"
+              className="w-full font-medium bg-primary text-primary-foreground hover:opacity-90"
             >
               Apply to Debt
             </Button>

@@ -106,7 +106,7 @@ function MonthlyTooltip({
       
       <div className="pt-2 border-t border-border flex justify-between items-center">
         <span className="text-sm font-medium text-foreground">Total</span>
-        <span className="font-mono font-bold text-(--color-error)">
+        <span className="font-mono font-bold text-error">
           ${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
       </div>
@@ -207,19 +207,19 @@ export function InterestPaidChart({ className = '' }: InterestPaidChartProps) {
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div className="p-3 bg-elevated rounded-lg border border-border">
             <p className="text-xs text-muted-foreground mb-1">Total ({days} days)</p>
-            <p className="text-lg font-bold font-mono text-(--color-error)">
+            <p className="text-lg font-bold font-mono text-error">
               ${data.summary.totalInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
           <div className="p-3 bg-elevated rounded-lg border border-border">
             <p className="text-xs text-muted-foreground mb-1">Year-to-Date</p>
-            <p className="text-lg font-bold font-mono text-(--color-error)">
+            <p className="text-lg font-bold font-mono text-error">
               ${data.summary.ytdInterestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
           <div className="p-3 bg-elevated rounded-lg border border-border">
             <p className="text-xs text-muted-foreground mb-1">Avg Monthly</p>
-            <p className="text-lg font-bold font-mono text-(--color-warning)">
+            <p className="text-lg font-bold font-mono text-warning">
               ${data.summary.averageMonthly.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
@@ -240,7 +240,7 @@ export function InterestPaidChart({ className = '' }: InterestPaidChartProps) {
               onClick={() => setDays(value)}
               className={`px-3 py-1 rounded text-sm transition-colors ${
                 days === value
-                  ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-card border border-border text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -256,7 +256,7 @@ export function InterestPaidChart({ className = '' }: InterestPaidChartProps) {
               onClick={() => setViewMode('monthly')}
               className={`px-3 py-1 rounded text-sm transition-colors ${
                 viewMode === 'monthly'
-                  ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-card border border-border text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -266,7 +266,7 @@ export function InterestPaidChart({ className = '' }: InterestPaidChartProps) {
               onClick={() => setViewMode('byAccount')}
               className={`px-3 py-1 rounded text-sm transition-colors ${
                 viewMode === 'byAccount'
-                  ? 'bg-(--color-primary) text-(--color-primary-foreground)'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-card border border-border text-muted-foreground hover:text-foreground'
               }`}
             >
@@ -387,7 +387,7 @@ export function InterestPaidChart({ className = '' }: InterestPaidChartProps) {
                   )}
                 </div>
                 <div className="text-right">
-                  <span className="font-mono text-sm text-(--color-error)">
+                  <span className="font-mono text-sm text-error">
                     ${acc.interestPaid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   <span className="text-xs text-muted-foreground ml-2">

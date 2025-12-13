@@ -45,7 +45,7 @@ function Skeleton({
     <div
       data-slot="skeleton"
       className={cn(
-        'animate-pulse bg-(--color-elevated)',
+        'animate-pulse bg-elevated',
         variantClasses[variant],
         className
       )}

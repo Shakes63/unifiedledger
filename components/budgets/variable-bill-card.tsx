@@ -78,13 +78,13 @@ export function VariableBillCard({
 
     if (bill.currentMonth.variance < 0) {
       // Under budget (savings)
-      return 'text-(--color-success)';
+      return 'text-success';
     } else if (variancePercent <= 15) {
       // Minor overage
-      return 'text-(--color-warning)';
+      return 'text-warning';
     } else {
       // Significant overage
-      return 'text-(--color-error)';
+      return 'text-error';
     }
   };
 
@@ -126,15 +126,15 @@ export function VariableBillCard({
 
   const getProgressColor = () => {
     const percent = getProgressPercent();
-    if (percent > 115) return 'bg-(--color-error)';
-    if (percent > 100) return 'bg-(--color-warning)';
-    return 'bg-(--color-success)';
+    if (percent > 115) return 'bg-error';
+    if (percent > 100) return 'bg-warning';
+    return 'bg-success';
   };
 
   // Trend indicator
   const getTrendIcon = () => {
-    if (bill.trend.direction === 'improving') return <TrendingDown className="w-5 h-5 text-(--color-success)" />;
-    if (bill.trend.direction === 'worsening') return <TrendingUp className="w-5 h-5 text-(--color-error)" />;
+    if (bill.trend.direction === 'improving') return <TrendingDown className="w-5 h-5 text-success" />;
+    if (bill.trend.direction === 'worsening') return <TrendingUp className="w-5 h-5 text-error" />;
     return <ArrowRight className="w-5 h-5 text-muted-foreground" />;
   };
 
@@ -186,9 +186,9 @@ export function VariableBillCard({
         <div className="flex items-center gap-4">
           {/* Status indicator */}
           {bill.currentMonth.status === 'paid' ? (
-            <span className="text-xs text-(--color-success)">Paid</span>
+            <span className="text-xs text-success">Paid</span>
           ) : bill.currentMonth.status === 'overdue' ? (
-            <span className="text-xs text-(--color-error)">Overdue</span>
+            <span className="text-xs text-error">Overdue</span>
           ) : (
             <span className="text-xs text-muted-foreground">Pending</span>
           )}
@@ -223,14 +223,14 @@ export function VariableBillCard({
                         value={editValue}
                         onChange={e => setEditValue(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        className="w-24 bg-input border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
+                        className="w-24 bg-input border border-border rounded-lg px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                         autoFocus
                         min="0"
                         step="0.01"
                       />
                       <button
                         onClick={handleSave}
-                        className="px-3 py-1.5 bg-(--color-primary) text-white text-xs rounded-lg hover:opacity-90 transition-opacity"
+                        className="px-3 py-1.5 bg-primary text-white text-xs rounded-lg hover:opacity-90 transition-opacity"
                       >
                         Save
                       </button>
@@ -250,7 +250,7 @@ export function VariableBillCard({
                       {onUpdateExpectedAmount && (
                         <button
                           onClick={() => setIsEditing(true)}
-                          className="text-xs text-(--color-primary) hover:opacity-80 transition-opacity ml-2"
+                          className="text-xs text-primary hover:opacity-80 transition-opacity ml-2"
                         >
                           Edit
                         </button>
@@ -357,7 +357,7 @@ export function VariableBillCard({
                   onClick={() => {
                     onUpdateExpectedAmount(bill.id, bill.trend.recommendedBudget);
                   }}
-                  className="flex-1 px-4 py-2 bg-(--color-primary) text-white text-sm rounded-lg hover:opacity-90 transition-opacity"
+                  className="flex-1 px-4 py-2 bg-primary text-white text-sm rounded-lg hover:opacity-90 transition-opacity"
                 >
                   Apply Recommended (${bill.trend.recommendedBudget.toFixed(2)})
                 </button>

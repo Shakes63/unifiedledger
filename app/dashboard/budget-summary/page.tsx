@@ -209,10 +209,10 @@ export default function BudgetSummaryPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
-              <div className="text-(--color-error) mb-2">{error}</div>
+              <div className="text-error mb-2">{error}</div>
               <button
                 onClick={() => window.location.reload()}
-                className="text-sm text-(--color-primary) hover:opacity-80"
+                className="text-sm text-primary hover:opacity-80"
               >
                 Try again
               </button>
@@ -274,7 +274,7 @@ export default function BudgetSummaryPage() {
             </p>
             <Link
               href="/dashboard/budgets"
-              className="inline-flex items-center justify-center px-6 py-2 bg-(--color-primary) text-white rounded-lg hover:opacity-90 transition-opacity"
+              className="inline-flex items-center justify-center px-6 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity"
             >
               Set Up Budget
             </Link>
@@ -426,31 +426,31 @@ export default function BudgetSummaryPage() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="text-center">
               <p className="text-xs text-muted-foreground mb-1">Variable Expenses</p>
-              <p className="text-lg font-bold text-(--color-expense)">
+              <p className="text-lg font-bold text-expense">
                 {data.summary.allocationPercentages.variableExpenses}%
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-muted-foreground mb-1">Monthly Bills</p>
-              <p className="text-lg font-bold text-(--color-transfer)">
+              <p className="text-lg font-bold text-transfer">
                 {data.summary.allocationPercentages.monthlyBills}%
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-muted-foreground mb-1">Non-Monthly Bills</p>
-              <p className="text-lg font-bold text-(--color-warning)">
+              <p className="text-lg font-bold text-warning">
                 {data.summary.allocationPercentages.nonMonthlyBills}%
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-muted-foreground mb-1">Savings</p>
-              <p className="text-lg font-bold text-(--color-success)">
+              <p className="text-lg font-bold text-success">
                 {data.summary.allocationPercentages.savings}%
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-muted-foreground mb-1">Debt Payments</p>
-              <p className="text-lg font-bold text-(--color-error)">
+              <p className="text-lg font-bold text-error">
                 {data.summary.allocationPercentages.debtPayments}%
               </p>
             </div>

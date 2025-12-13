@@ -50,7 +50,7 @@ export function TestModeBadge() {
         <TooltipTrigger asChild>
           <Badge
             variant="outline"
-            className="bg-(--color-warning)/20 text-(--color-warning) border-(--color-warning)/30 text-[10px] px-1.5 py-0.5 flex items-center gap-1 cursor-help"
+            className="bg-warning/20 text-warning border-warning/30 text-[10px] px-1.5 py-0.5 flex items-center gap-1 cursor-help"
           >
             <AlertTriangle className="w-3 h-3" />
             TEST
@@ -106,7 +106,7 @@ export function TestModeBadgeCompact() {
         <TooltipTrigger asChild>
           <Badge
             variant="outline"
-            className="bg-(--color-warning)/20 text-(--color-warning) border-(--color-warning)/30 text-[8px] px-1 py-0 flex items-center justify-center cursor-help"
+            className="bg-warning/20 text-warning border-warning/30 text-[8px] px-1 py-0 flex items-center justify-center cursor-help"
           >
             <AlertTriangle className="w-2.5 h-2.5" />
           </Badge>

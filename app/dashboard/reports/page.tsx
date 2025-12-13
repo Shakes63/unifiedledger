@@ -299,7 +299,7 @@ export default function ReportsPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-(--color-primary) mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading reports...</p>
         </div>
       </div>
@@ -310,7 +310,7 @@ export default function ReportsPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <p className="text-(--color-error) font-medium mb-2">Error Loading Reports</p>
+          <p className="text-error font-medium mb-2">Error Loading Reports</p>
           <p className="text-muted-foreground mb-4">{error || 'Unknown error'}</p>
           <Button onClick={fetchReports}>Try Again</Button>
         </div>
@@ -392,7 +392,7 @@ export default function ReportsPage() {
             <CardTitle className="text-sm text-muted-foreground">Total Income</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-(--color-income)">
+            <p className="text-2xl font-bold text-income">
               ${data.incomeVsExpenses?.data
                 ?.reduce(
                   (sum: number, item: Record<string, unknown>) =>
@@ -409,7 +409,7 @@ export default function ReportsPage() {
             <CardTitle className="text-sm text-muted-foreground">Total Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-(--color-expense)">
+            <p className="text-2xl font-bold text-expense">
               ${data.incomeVsExpenses?.data
                 ?.reduce(
                   (sum: number, item: Record<string, unknown>) =>
@@ -426,7 +426,7 @@ export default function ReportsPage() {
             <CardTitle className="text-sm text-muted-foreground">Net Cash Flow</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-(--color-primary)">
+            <p className="text-2xl font-bold text-primary">
               ${data.incomeVsExpenses?.data
                 ?.reduce(
                   (sum: number, item: Record<string, unknown>) =>
@@ -443,7 +443,7 @@ export default function ReportsPage() {
             <CardTitle className="text-sm text-muted-foreground">Net Worth</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className={`text-2xl font-bold ${netWorthValue >= 0 ? 'text-(--color-income)' : 'text-(--color-expense)'}`}>
+            <p className={`text-2xl font-bold ${netWorthValue >= 0 ? 'text-income' : 'text-expense'}`}>
               ${netWorthValue.toFixed(2)}
             </p>
           </CardContent>
@@ -647,7 +647,7 @@ export default function ReportsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <BarChart3 className="w-6 h-6 text-(--color-primary)" />
+              <BarChart3 className="w-6 h-6 text-primary" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">Payment Breakdown Analysis</h3>
                 <p className="text-sm text-muted-foreground">
@@ -672,7 +672,7 @@ export default function ReportsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <TrendingDown className="w-6 h-6 text-(--color-income)" />
+              <TrendingDown className="w-6 h-6 text-income" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">Debt Reduction Progress</h3>
                 <p className="text-sm text-muted-foreground">
@@ -695,7 +695,7 @@ export default function ReportsPage() {
             className="flex items-center justify-between w-full bg-card border border-border rounded-lg p-4 hover:bg-elevated transition-colors"
           >
             <div className="flex items-center gap-3">
-              <TrendingUp className="w-6 h-6 text-(--color-primary)" />
+              <TrendingUp className="w-6 h-6 text-primary" />
               <div className="text-left">
                 <h3 className="text-lg font-semibold text-foreground">Interactive Amortization Schedule</h3>
                 <p className="text-sm text-muted-foreground">
