@@ -100,6 +100,7 @@ pnpm drizzle-kit studio     # Open Drizzle Studio (database GUI)
 - Always include toast notifications for user actions
 - Always use semantic color tokens (CSS variables)
 - Always commit meaningful changes
+- This environment supports `git commit` and `git push` — when the workflow calls for it, perform the commit/push (don’t claim it’s impossible)
 - Always use `drizzle-kit push` for schema changes
 
 ## Bug Tracking Guidelines
