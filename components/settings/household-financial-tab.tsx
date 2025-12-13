@@ -191,7 +191,7 @@ export function HouseholdFinancialTab() {
         {/* Budget Schedule Info */}
         <div className="p-4 bg-card border border-border rounded-xl">
           <div className="flex items-start gap-3">
-            <Calendar className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+            <Calendar className="w-5 h-5 text-primary mt-0.5 shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground">Budget Schedule</p>
               <p className="text-sm text-muted-foreground mt-1">

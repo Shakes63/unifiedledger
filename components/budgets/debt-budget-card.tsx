@@ -83,7 +83,7 @@ export function DebtBudgetCard({ debt }: DebtBudgetCardProps) {
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2 flex-wrap">
           <div
-            className="w-4 h-4 rounded-full flex-shrink-0"
+            className="w-4 h-4 rounded-full shrink-0"
             style={{ backgroundColor: debt.color }}
           />
           <h4 className="font-medium text-foreground">{debt.debtName}</h4>

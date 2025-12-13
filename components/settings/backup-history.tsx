@@ -214,7 +214,7 @@ export function BackupHistory() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-2">
-                <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                 <span className="font-medium text-foreground truncate">{backup.filename}</span>
                 {getStatusBadge(backup.status)}
               </div>
@@ -227,12 +227,12 @@ export function BackupHistory() {
               </div>
               {backup.status === 'failed' && backup.errorMessage && (
                 <div className="mt-2 flex items-start gap-2 text-sm text-error">
-                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                   <span>{backup.errorMessage}</span>
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               {backup.status === 'completed' && (
                 <Button
                   variant="outline"

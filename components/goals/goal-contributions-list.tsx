@@ -262,7 +262,7 @@ export function GoalContributionsList({
                     </div>
 
                     {/* Running total */}
-                    <div className="text-right flex-shrink-0">
+                    <div className="text-right shrink-0">
                       <p className="text-xs text-muted-foreground">Running total</p>
                       <p className="text-sm font-medium text-foreground">
                         ${calculateRunningTotal(index).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

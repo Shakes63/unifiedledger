@@ -263,7 +263,7 @@ function SuggestionCard({
             </p>
             <div className="flex items-center gap-2">
               <div
-                className="w-2 h-2 rounded-full flex-shrink-0"
+                className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: sourceAccount.color }}
               />
               <p className="text-xs text-muted-foreground truncate">{sourceAccount.name}</p>
@@ -289,7 +289,7 @@ function SuggestionCard({
             </p>
             <div className="flex items-center gap-2">
               <div
-                className="w-2 h-2 rounded-full flex-shrink-0"
+                className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: suggestedAccount.color }}
               />
               <p className="text-xs text-muted-foreground truncate">{suggestedAccount.name}</p>

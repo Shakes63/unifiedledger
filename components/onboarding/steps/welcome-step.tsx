@@ -57,19 +57,19 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
               </h3>
               <ul className="space-y-3 text-left text-muted-foreground">
                 <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                     <span className="text-xs font-semibold text-primary">✓</span>
                   </div>
                   <span>Demo accounts, categories, and merchants</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                     <span className="text-xs font-semibold text-primary">✓</span>
                   </div>
                   <span>Sample bills, goals, and debts</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                     <span className="text-xs font-semibold text-primary">✓</span>
                   </div>
                   <span>Practice transactions to explore features</span>
@@ -90,25 +90,25 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
                 <p className="text-xs font-medium text-primary uppercase tracking-wide">Getting Started</p>
                 <ul className="space-y-2 text-left text-muted-foreground">
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                       <span className="text-xs font-semibold text-primary">1</span>
                     </div>
                     <span>Household - Organize your finances</span>
                   </li>
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                       <span className="text-xs font-semibold text-primary">2</span>
                     </div>
                     <span>Account - Track your money</span>
                   </li>
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                       <span className="text-xs font-semibold text-primary">3</span>
                     </div>
                     <span>Category - Organize spending</span>
                   </li>
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                       <span className="text-xs font-semibold text-primary">4</span>
                     </div>
                     <span>Transaction - Record your spending</span>
@@ -121,19 +121,19 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Optional - Set Up Later</p>
                 <ul className="space-y-2 text-left text-muted-foreground/70">
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-elevated flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-elevated flex items-center justify-center shrink-0">
                       <span className="text-xs text-muted-foreground">+</span>
                     </div>
                     <span>Bill - Recurring payments & reminders</span>
                   </li>
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-elevated flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-elevated flex items-center justify-center shrink-0">
                       <span className="text-xs text-muted-foreground">+</span>
                     </div>
                     <span>Goal - Savings progress tracking</span>
                   </li>
                   <li className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-elevated flex items-center justify-center flex-shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-elevated flex items-center justify-center shrink-0">
                       <span className="text-xs text-muted-foreground">+</span>
                     </div>
                     <span>Debt - Payoff projections</span>

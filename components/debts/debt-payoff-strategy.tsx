@@ -501,7 +501,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
         {comparison.recommendedMethod !== method && (
           <div className="mt-4 p-3 bg-transfer/10 border border-transfer/30 rounded-lg">
             <div className="flex items-start gap-2">
-              <Lightbulb className="w-4 h-4 text-transfer flex-shrink-0 mt-0.5" />
+              <Lightbulb className="w-4 h-4 text-transfer shrink-0 mt-0.5" />
               <p className="text-sm text-transfer">
                 The <strong>{comparison.recommendedMethod}</strong> method could save you{' '}
                 {comparison.timeSavings} months and ${comparison.interestSavings.toFixed(2)} in interest!

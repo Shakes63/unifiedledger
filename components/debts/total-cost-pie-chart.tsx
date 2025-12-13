@@ -216,7 +216,7 @@ export function TotalCostPieChart({
       {costData.interestMultiplier > 1.5 && (
         <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-warning mb-1">
                 High Interest Cost
@@ -234,7 +234,7 @@ export function TotalCostPieChart({
       {costData.interestMultiplier <= 1.2 && costData.interest > 0 && (
         <div className="bg-success/10 border border-success/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-success mb-1">
                 Great Interest Rate
@@ -252,7 +252,7 @@ export function TotalCostPieChart({
       {costData.interest === 0 && (
         <div className="bg-success/10 border border-success/30 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <PartyPopper className="w-5 h-5 text-success flex-shrink-0" />
+            <PartyPopper className="w-5 h-5 text-success shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-semibold text-success mb-1">
                 Interest-Free Debt

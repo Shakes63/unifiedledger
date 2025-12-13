@@ -271,7 +271,7 @@ export function GoalForm({ goal, onSubmit, onCancel, isLoading = false }: GoalFo
       {recommendation && (
         <div className="bg-elevated border border-border rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <div className="p-2 rounded-full bg-primary/10 flex-shrink-0">
+            <div className="p-2 rounded-full bg-primary/10 shrink-0">
               <Lightbulb className="w-4 h-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">

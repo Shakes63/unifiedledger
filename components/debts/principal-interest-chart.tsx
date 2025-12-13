@@ -245,7 +245,7 @@ export function PrincipalInterestChart({
       {/* Insight */}
       <div className="mt-4 p-3 bg-accent/10 border border-accent/30 rounded-lg">
         <div className="flex items-start gap-2 text-sm text-accent">
-          <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <Lightbulb className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
             <span className="font-semibold">Insight:</span>{' '}
             {schedule.monthlyBreakdown.length > 0 && (

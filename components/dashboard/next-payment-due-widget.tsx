@@ -240,7 +240,7 @@ export function NextPaymentDueWidget() {
             <div className="flex items-center gap-2.5 flex-1 min-w-0">
               {/* Status indicator */}
               <div 
-                className="w-1.5 h-8 rounded-full flex-shrink-0"
+                className="w-1.5 h-8 rounded-full shrink-0"
                 style={{ backgroundColor: getStatusColor(bill) }}
               />
               
@@ -254,7 +254,7 @@ export function NextPaymentDueWidget() {
                   {/* Credit card indicator */}
                   {bill.linkedAccount && (
                     <CreditCard 
-                      className="w-3 h-3 flex-shrink-0" 
+                      className="w-3 h-3 shrink-0" 
                       style={{ color: 'var(--color-primary)' }} 
                     />
                   )}
@@ -263,7 +263,7 @@ export function NextPaymentDueWidget() {
                   {bill.isAutopay && (
                     <span title="Autopay enabled">
                       <Zap 
-                        className="w-3 h-3 flex-shrink-0" 
+                        className="w-3 h-3 shrink-0" 
                         style={{ color: 'var(--color-income)' }}
                       />
                     </span>
@@ -285,7 +285,7 @@ export function NextPaymentDueWidget() {
             </div>
 
             {/* Amount and arrow */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 shrink-0">
               <span className="text-sm font-bold font-mono text-foreground">
                 ${formatAmount(bill.expectedAmount)}
               </span>

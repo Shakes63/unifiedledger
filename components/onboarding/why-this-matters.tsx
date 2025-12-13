@@ -44,7 +44,7 @@ export function WhyThisMatters({
         )}
       >
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
             <Lightbulb className="w-4 h-4 text-primary" />
           </div>
           <span className="font-medium text-foreground">{title}</span>
@@ -65,7 +65,7 @@ export function WhyThisMatters({
         <div className="px-4 pb-4 pt-0 space-y-2">
           {benefits.map((benefit, index) => (
             <div key={index} className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-5 h-5 rounded-full bg-success/20 flex items-center justify-center shrink-0 mt-0.5">
                 <Check className="w-3 h-3 text-success" />
               </div>
               <span className="text-sm text-muted-foreground">{benefit}</span>

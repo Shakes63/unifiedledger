@@ -488,7 +488,7 @@ export function RuleBuilder({
       )}
 
       <div className="text-xs text-muted-foreground p-3 bg-card rounded-lg border border-border flex gap-2">
-        <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
+        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
         <div>
           <p className="mb-1">Tips for writing conditions:</p>
           <ul className="list-disc list-inside space-y-1">
@@ -755,7 +755,7 @@ export function RuleBuilder({
 
                         {/* Educational Info */}
                         <div className="flex items-start gap-2 p-3 bg-card border border-border rounded-lg">
-                          <Lightbulb className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+                          <Lightbulb className="h-5 w-5 text-warning shrink-0 mt-0.5" />
                           <div className="text-sm text-muted-foreground">
                             <p className="mb-2">
                               <strong className="text-foreground">How it works:</strong>
@@ -770,7 +770,7 @@ export function RuleBuilder({
 
                         {/* Examples */}
                         <div className="flex items-start gap-2 p-3 bg-card border border-border rounded-lg">
-                          <Lightbulb className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                          <Lightbulb className="h-5 w-5 text-accent shrink-0 mt-0.5" />
                           <div className="text-sm text-muted-foreground">
                             <p className="mb-2">
                               <strong className="text-foreground">Common use cases:</strong>
@@ -784,7 +784,7 @@ export function RuleBuilder({
 
                         {/* Warning for Income Only */}
                         <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                          <AlertCircle className="h-5 w-5 text-warning flex-shrink-0 mt-0.5" />
+                          <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
                           <p className="text-sm text-muted-foreground">
                             This action only applies to <strong className="text-foreground">income</strong> transactions.
                             Expense transactions will be skipped automatically.
@@ -940,7 +940,7 @@ export function RuleBuilder({
                             {Boolean((action.config as ActionConfig | undefined)?.createIfNoMatch ?? true) &&
                               !(action.config as ActionConfig | undefined)?.targetAccountId && (
                               <div className="flex items-start gap-2 bg-warning/10 border border-warning/30 rounded-lg p-3">
-                                <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                                <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                                 <div className="flex-1">
                                   <p className="text-xs text-foreground">
                                     <strong>Note:</strong> To create transfer pairs automatically, you should specify a target account above.
@@ -955,7 +955,7 @@ export function RuleBuilder({
                         {/* Auto-Match Disabled State - Show Info */}
                         {!(action.config?.autoMatch ?? true) && (
                           <div className="flex items-start gap-2 bg-elevated border border-border rounded-lg p-3">
-                            <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                             <div className="flex-1">
                               <p className="text-xs text-muted-foreground">
                                 Auto-matching is disabled. The transaction will be converted to a transfer type,
@@ -968,7 +968,7 @@ export function RuleBuilder({
 
                         {/* General Information Box */}
                         <div className="flex items-start gap-2 bg-elevated rounded-lg p-3 mt-4">
-                          <Lightbulb className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                          <Lightbulb className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                           <div className="flex-1">
                             <p className="text-xs text-foreground leading-relaxed">
                               <strong>How it works:</strong> This action converts transactions to transfers between accounts.
@@ -1253,7 +1253,7 @@ export function RuleBuilder({
 
                         {/* Information Box */}
                         <div className="flex items-start gap-2 bg-elevated rounded-lg p-3">
-                          <Lightbulb className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                          <Lightbulb className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                           <div className="flex-1">
                             <p className="text-xs text-foreground leading-relaxed">
                               <strong>How it works:</strong> This action automatically splits transactions across multiple categories.
@@ -1311,7 +1311,7 @@ export function RuleBuilder({
 
                         {/* Warning Box */}
                         <div className="flex items-start gap-2 bg-warning/10 border border-warning/30 rounded-lg p-3">
-                          <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
+                          <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                           <div className="flex-1">
                             <p className="text-xs text-foreground">
                               <strong>Important:</strong> Changing an account will update account balances automatically.
@@ -1322,7 +1322,7 @@ export function RuleBuilder({
 
                         {/* Information Box */}
                         <div className="flex items-start gap-2 bg-elevated rounded-lg p-3">
-                          <Lightbulb className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                          <Lightbulb className="h-4 w-4 text-primary mt-0.5 shrink-0" />
                           <div className="flex-1">
                             <p className="text-xs text-foreground leading-relaxed">
                               <strong>How it works:</strong> This action moves transactions to a different account.
@@ -1352,7 +1352,7 @@ export function RuleBuilder({
                     variant="ghost"
                     size="icon"
                     onClick={() => removeAction(index)}
-                    className="text-error hover:bg-error/20 flex-shrink-0"
+                    className="text-error hover:bg-error/20 shrink-0"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -1386,7 +1386,7 @@ export function RuleBuilder({
 
         {/* Helper Text */}
         <div className="text-xs text-muted-foreground p-3 bg-card rounded-lg border border-border flex gap-2">
-          <FileEdit className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary" />
+          <FileEdit className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
           <div>
             <p className="mb-1">About actions:</p>
             <ul className="list-disc list-inside space-y-1">

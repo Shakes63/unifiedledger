@@ -415,7 +415,7 @@ export function RecentTransactions() {
             <Card className="p-2 border rounded-lg cursor-pointer transition-colors hover:bg-elevated" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <div className="p-1.5 rounded flex-shrink-0" style={{ backgroundColor: 'var(--color-elevated)' }}>
+                  <div className="p-1.5 rounded shrink-0" style={{ backgroundColor: 'var(--color-elevated)' }}>
                     {getTransactionIcon(transaction.type)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -437,7 +437,7 @@ export function RecentTransactions() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <div className="text-right">
                     {/* Amount */}
                     <p
@@ -468,7 +468,7 @@ export function RecentTransactions() {
                       handleRepeatTransaction(transaction);
                     }}
                     disabled={repeatingTxId === transaction.id}
-                    className="h-7 w-7 flex-shrink-0"
+                    className="h-7 w-7 shrink-0"
                     style={{ color: 'var(--color-muted-foreground)' }}
                     title="Repeat this transaction with today's date"
                   >

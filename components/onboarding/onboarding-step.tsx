@@ -43,7 +43,7 @@ export function OnboardingStep({
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 border-b border-border flex-shrink-0">
+      <div className="px-6 pt-6 pb-4 border-b border-border shrink-0">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
@@ -81,7 +81,7 @@ export function OnboardingStep({
 
       {/* Footer Actions */}
       {!hideFooter && (
-        <div className="px-6 py-4 border-t border-border bg-elevated/50 flex items-center justify-between gap-4 flex-shrink-0">
+        <div className="px-6 py-4 border-t border-border bg-elevated/50 flex items-center justify-between gap-4 shrink-0">
           <Button
             variant="outline"
             onClick={onPrevious}

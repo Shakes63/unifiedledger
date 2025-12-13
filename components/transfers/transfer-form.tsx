@@ -292,7 +292,7 @@ export function TransferForm({
                     ? 'bg-primary/5 border-primary/20'
                     : 'bg-elevated border-border'
             }`}>
-              <CreditCard className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+              <CreditCard className={`w-5 h-5 shrink-0 mt-0.5 ${
                 paymentBillDetection.detectedBill?.status === 'overdue'
                   ? 'text-error'
                   : 'text-primary'

@@ -155,7 +155,7 @@ export function AmortizationScheduleView({
 
             <div className="bg-accent/10 border border-accent/30 rounded-xl p-4">
               <div className="flex items-start gap-3">
-                <Lightbulb className="w-6 h-6 text-accent flex-shrink-0" />
+                <Lightbulb className="w-6 h-6 text-accent shrink-0" />
                 <div>
                   <h4 className="text-sm font-semibold text-accent mb-1">
                     Interactive Amortization Schedule

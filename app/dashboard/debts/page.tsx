@@ -957,7 +957,7 @@ export default function DebtsPage() {
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="bg-card border-border text-foreground max-w-md max-h-[90vh] flex flex-col">
-          <DialogHeader className="flex-shrink-0">
+          <DialogHeader className="shrink-0">
             <DialogTitle>{selectedDebt ? 'Edit Debt' : 'Add New Debt'}</DialogTitle>
             <DialogDescription className="text-muted-foreground">
               {selectedDebt

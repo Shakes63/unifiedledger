@@ -207,7 +207,7 @@ export function GoalTracker({
         {recommendation?.recommendedMonthly !== null && recommendation?.recommendedMonthly !== undefined && goal.status === 'active' && (
           <div className="bg-elevated/50 border border-border/50 rounded-lg p-3">
             <div className="flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-primary flex-shrink-0" />
+              <Lightbulb className="w-4 h-4 text-primary shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline justify-between gap-2">
                   <p className="text-xs text-muted-foreground">Recommended Monthly</p>
@@ -265,7 +265,7 @@ export function GoalTracker({
                       />
                     </div>
                     {milestone.achievedAt && (
-                      <Check className="w-4 h-4 text-income flex-shrink-0" />
+                      <Check className="w-4 h-4 text-income shrink-0" />
                     )}
                   </div>
                 ))}

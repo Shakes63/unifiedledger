@@ -230,7 +230,7 @@ export default function RulesPage() {
     return (
       <div className="p-6">
         <div className="bg-warning/20 border border-warning/40 rounded-lg p-4 text-warning flex gap-2">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div>
             <p className="font-medium">No household selected</p>
             <p className="text-sm mt-1">Please select a household from the sidebar to manage rules.</p>

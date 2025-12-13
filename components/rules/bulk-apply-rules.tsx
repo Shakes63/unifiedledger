@@ -116,7 +116,7 @@ export function BulkApplyRules({ onComplete }: BulkApplyRulesProps) {
       {/* Error Message */}
       {error && (
         <div className="p-4 bg-error/20 border border-error/40 rounded-lg text-error text-sm flex gap-2">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           {error}
         </div>
       )}

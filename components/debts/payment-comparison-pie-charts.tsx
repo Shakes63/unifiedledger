@@ -278,7 +278,7 @@ export function PaymentComparisonPieCharts({
       {/* Key Insight */}
       <div className="mt-6 p-4 bg-accent/10 border border-accent/30 rounded-lg">
         <div className="flex items-start gap-3">
-          <Lightbulb className="w-6 h-6 text-accent flex-shrink-0" />
+          <Lightbulb className="w-6 h-6 text-accent shrink-0" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-accent mb-1">Key Insight</p>
             <p className="text-sm text-foreground">

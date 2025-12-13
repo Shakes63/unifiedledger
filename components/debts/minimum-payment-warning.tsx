@@ -141,7 +141,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
                 </div>
               </div>
               <div className="mt-4 text-sm text-muted-foreground flex items-start gap-2">
-                <Zap className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                <Zap className="w-4 h-4 text-success mt-0.5 shrink-0" />
                 <p>
                   <strong>Tip:</strong> Add even a small extra payment in the Payoff Strategy section below to see how much faster you can become debt-free and how much you can save!
                 </p>
@@ -325,7 +325,7 @@ export function MinimumPaymentWarning({ className }: MinimumPaymentWarningProps)
         {/* Warning Message */}
         <div className="bg-error/20 border border-error/30 rounded-lg p-4">
           <div className="flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-error mt-0.5 flex-shrink-0" />
+            <AlertTriangle className="w-4 h-4 text-error mt-0.5 shrink-0" />
             <p className="text-error text-sm font-medium">
               <strong>WARNING:</strong> If you only pay minimums, you&apos;ll pay{' '}
             <span className="text-error font-bold">

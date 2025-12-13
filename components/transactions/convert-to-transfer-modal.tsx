@@ -246,9 +246,9 @@ export function ConvertToTransferModal({
                   {accounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
                       <div className="flex items-center gap-2 w-full">
-                        <DollarSign className="w-4 h-4 flex-shrink-0" />
+                        <DollarSign className="w-4 h-4 shrink-0" />
                         <span className="flex-1 truncate">{account.name}</span>
-                        <span className="text-xs text-gray-400 flex-shrink-0">
+                        <span className="text-xs text-gray-400 shrink-0">
                           ${account.currentBalance?.toFixed(2) || '0.00'}
                         </span>
                       </div>
@@ -320,7 +320,7 @@ export function ConvertToTransferModal({
                               </div>
                             </div>
                             {selectedMatchingTxId === tx.id && (
-                              <Check className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                              <Check className="w-5 h-5 text-blue-500 shrink-0" />
                             )}
                           </div>
                         </button>
@@ -339,7 +339,7 @@ export function ConvertToTransferModal({
                 {/* Warning if no matches found */}
                 {!loadingMatches && matchMode === 'match' && matchingTransactions.length === 0 && (
                   <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/30 flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                     <div className="flex-1">
                       <p className="text-sm font-medium text-amber-500">No matching transactions found</p>
                       <p className="text-xs text-gray-400 mt-1">

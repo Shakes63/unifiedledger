@@ -364,7 +364,7 @@ export function EnhancedBillsWidget() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-3 shrink-0">
                     <p className="text-sm font-bold text-foreground">
                       ${(bill.actualAmount || bill.expectedAmount).toFixed(2)}
                     </p>

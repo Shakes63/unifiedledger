@@ -56,7 +56,7 @@ export function CategoryCard({ category, onEdit, onDelete }: CategoryCardProps) 
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 hover:bg-elevated text-muted-foreground ml-1 flex-shrink-0"
+              className="h-6 w-6 p-0 hover:bg-elevated text-muted-foreground ml-1 shrink-0"
             >
               <MoreVertical className="h-3 w-3" />
             </Button>

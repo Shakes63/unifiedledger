@@ -55,7 +55,7 @@ export function HouseholdSelector() {
 
   return (
     <div className="flex items-center gap-2 min-w-0">
-      <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+      <Users className="w-4 h-4 text-muted-foreground shrink-0" />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -66,14 +66,14 @@ export function HouseholdSelector() {
             {isLoading ? (
               <>
                 <span className="truncate">Switching...</span>
-                <Loader2 className="w-4 h-4 ml-2 animate-spin flex-shrink-0" />
+                <Loader2 className="w-4 h-4 ml-2 animate-spin shrink-0" />
               </>
             ) : (
               <>
                 <span className="truncate">
                   {selectedHousehold?.name || 'Select household'}
                 </span>
-                <ChevronDown className="w-4 h-4 ml-2 opacity-50 flex-shrink-0" />
+                <ChevronDown className="w-4 h-4 ml-2 opacity-50 shrink-0" />
               </>
             )}
           </Button>

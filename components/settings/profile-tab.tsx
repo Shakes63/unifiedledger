@@ -267,7 +267,7 @@ export function ProfileTab() {
       {profile && !profile.emailVerified && (
         <div className="rounded-lg border border-warning bg-warning/10 p-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-warning mt-0.5 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-warning mt-0.5 shrink-0" />
             <div className="flex-1">
               <h3 className="font-semibold text-foreground mb-1">
                 Verify your email address
@@ -295,7 +295,7 @@ export function ProfileTab() {
       {profile?.pendingEmail && (
         <div className="rounded-lg border border-primary bg-primary/10 p-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-primary mt-0.5 shrink-0" />
             <div className="flex-1">
               <h3 className="font-semibold text-foreground mb-1">
                 Email Change Pending Verification

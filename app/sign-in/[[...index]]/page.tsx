@@ -246,9 +246,9 @@ export default function SignInPage() {
             <div className="mb-4 p-3 rounded-lg bg-warning/10 border border-warning/20">
               <div className="flex items-center gap-2">
                 {searchParams.get('reason') === 'timeout' ? (
-                  <Clock className="w-4 h-4 text-warning flex-shrink-0" />
+                  <Clock className="w-4 h-4 text-warning shrink-0" />
                 ) : (
-                  <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0" />
+                  <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
                 )}
                 <p className="text-sm text-warning font-medium">
                   {searchParams.get('reason') === 'timeout'

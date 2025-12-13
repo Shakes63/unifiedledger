@@ -107,7 +107,7 @@ export function DebtCountdownCard() {
       {/* Main Content - Horizontal Layout */}
       <div className="flex-1 flex items-center gap-4 p-4">
         {/* Left: Progress Ring */}
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <ProgressRing
             percentage={data.percentageComplete}
             size="small"

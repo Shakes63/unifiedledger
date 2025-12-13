@@ -577,7 +577,7 @@ export default function SalesTaxPage() {
           {totalTaxRate === 0 && !isEditingRate && (
             <div className="mt-4 p-3 bg-warning/10 border border-warning rounded-lg">
               <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
                 <div className="text-sm">
                   <p className="text-foreground font-medium mb-1">
                     Configure Your Tax Rates

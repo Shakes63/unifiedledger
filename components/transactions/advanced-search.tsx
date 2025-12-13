@@ -281,7 +281,7 @@ export function AdvancedSearch({
           )}
         </div>
         <ChevronDown
-          className={`w-5 h-5 text-muted-foreground transition-transform flex-shrink-0 ${
+          className={`w-5 h-5 text-muted-foreground transition-transform shrink-0 ${
             isExpanded ? 'rotate-180' : ''
           }`}
         />

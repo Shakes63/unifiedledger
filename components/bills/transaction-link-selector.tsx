@@ -212,7 +212,7 @@ export function TransactionLinkSelector({
               <div className="flex items-center gap-3">
                 {/* Radio indicator */}
                 <div className={cn(
-                  'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0',
+                  'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0',
                   selectedId === tx.id ? 'border-primary' : 'border-muted-foreground'
                 )}>
                   {selectedId === tx.id && (
@@ -226,7 +226,7 @@ export function TransactionLinkSelector({
                     <span className="font-medium text-foreground truncate">
                       {tx.description}
                     </span>
-                    <span className="font-mono text-foreground flex-shrink-0">
+                    <span className="font-mono text-foreground shrink-0">
                       ${tx.amount.toFixed(2)}
                     </span>
                   </div>

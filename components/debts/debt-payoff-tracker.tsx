@@ -149,7 +149,7 @@ export function DebtPayoffTracker({
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <div
-                  className="w-4 h-4 rounded-full flex-shrink-0"
+                  className="w-4 h-4 rounded-full shrink-0"
                   style={{ backgroundColor: debt.color }}
                 />
                 <h3 className="font-semibold text-foreground">{debt.name}</h3>
@@ -186,7 +186,7 @@ export function DebtPayoffTracker({
             </div>
             <div className="flex gap-2 items-start">
               <ChevronDown
-                className={`w-5 h-5 text-muted-foreground transition-transform duration-300 flex-shrink-0 ${
+                className={`w-5 h-5 text-muted-foreground transition-transform duration-300 shrink-0 ${
                   isExpanded ? 'rotate-180' : ''
                 }`}
               />
@@ -400,7 +400,7 @@ export function DebtPayoffTracker({
                 {paymentToTarget > 0 && (
                   <div className="bg-warning/10 border border-warning/30 rounded-lg p-3">
                     <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
+                      <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
                       <div className="flex-1">
                         <p className="text-xs font-semibold text-foreground mb-1">
                           Pay ${paymentToTarget.toLocaleString()} to reach 30%

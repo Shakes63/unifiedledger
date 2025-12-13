@@ -269,7 +269,7 @@ export function BalanceHistoryChart({ className = '' }: BalanceHistoryChartProps
             return (
               <div key={acc.id} className="flex items-center gap-2 text-sm">
                 <div 
-                  className="w-3 h-3 rounded-full flex-shrink-0" 
+                  className="w-3 h-3 rounded-full shrink-0" 
                   style={{ backgroundColor: acc.color }} 
                 />
                 <span className="text-muted-foreground truncate">{acc.name}</span>

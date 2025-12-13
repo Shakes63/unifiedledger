@@ -33,7 +33,7 @@ export function DuplicateWarning({
   if (duplicates.length === 0) {
     return (
       <Card className="bg-green-500/10 border-green-500/30 p-4 flex items-center gap-3">
-        <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+        <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
         <div className="flex-1">
           <p className="text-green-300 font-medium">No duplicates detected</p>
           <p className="text-xs text-green-400/70">This appears to be a new transaction</p>
@@ -106,7 +106,7 @@ export function DuplicateWarning({
           </div>
         </div>
         <ChevronDown
-          className={`w-5 h-5 flex-shrink-0 transition-transform ${
+          className={`w-5 h-5 shrink-0 transition-transform ${
             expanded ? 'rotate-180' : ''
           }`}
         />
@@ -125,7 +125,7 @@ export function DuplicateWarning({
                   <h4 className="font-medium text-white truncate">
                     {duplicate.description}
                   </h4>
-                  <Badge className="bg-[#1a1a1a] text-[#9ca3af] text-xs flex-shrink-0">
+                  <Badge className="bg-[#1a1a1a] text-[#9ca3af] text-xs shrink-0">
                     {Math.round((duplicate.similarity / 100) * 100)}% match
                   </Badge>
                 </div>
@@ -138,7 +138,7 @@ export function DuplicateWarning({
                   onClick={() => onNavigateToDuplicate(duplicate.id)}
                   variant="outline"
                   size="sm"
-                  className="flex-shrink-0 text-xs border-[#2a2a2a] text-[#9ca3af] hover:bg-[#1a1a1a]"
+                  className="shrink-0 text-xs border-[#2a2a2a] text-[#9ca3af] hover:bg-[#1a1a1a]"
                 >
                   View
                 </Button>

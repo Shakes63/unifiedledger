@@ -358,7 +358,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
                 className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
               />
               <div className="flex items-start gap-2 mt-2">
-                <Info className="w-3 h-3 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <Info className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
                 <p className="text-xs text-muted-foreground">
                   Credit utilization is a key factor in credit scores. Experts recommend keeping utilization below 30% per card.
                 </p>

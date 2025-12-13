@@ -255,7 +255,7 @@ export function SavedSearches({
                             {search.name}
                           </h4>
                           {search.isDefault && (
-                            <Badge className="bg-yellow-500/20 text-yellow-400 text-xs flex-shrink-0">
+                            <Badge className="bg-yellow-500/20 text-yellow-400 text-xs shrink-0">
                               Default
                             </Badge>
                           )}
@@ -281,7 +281,7 @@ export function SavedSearches({
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-1 flex-shrink-0">
+                      <div className="flex gap-1 shrink-0">
                         <Button
                           onClick={(e) => {
                             e.stopPropagation();

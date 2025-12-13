@@ -165,7 +165,7 @@ export function ErrorState({
       {/* Icon and Title */}
       <div className="flex items-start gap-3">
         <div
-          className="flex-shrink-0 mt-0.5"
+          className="shrink-0 mt-0.5"
           style={{ color: 'var(--color-error)' }}
         >
           {errorIcon}

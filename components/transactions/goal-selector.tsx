@@ -317,7 +317,7 @@ export function GoalSelector({
                   className="flex items-center gap-2 bg-card border border-border rounded-md p-2"
                 >
                   <div
-                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    className="w-3 h-3 rounded-full shrink-0"
                     style={{ backgroundColor: goal.color }}
                   />
                   <span className="text-sm text-foreground flex-1 truncate">
@@ -400,7 +400,7 @@ function GoalSelectItem({ goal }: { goal: SavingsGoal }) {
     <SelectItem value={goal.id} className="text-foreground">
       <div className="flex items-center gap-2 w-full">
         <div
-          className="w-3 h-3 rounded-full flex-shrink-0"
+          className="w-3 h-3 rounded-full shrink-0"
           style={{ backgroundColor: goal.color }}
         />
         <span className="flex-1 truncate">{goal.name}</span>

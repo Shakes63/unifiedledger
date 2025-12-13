@@ -227,7 +227,7 @@ export default function NotificationsPage() {
               <CardContent className="pt-6">
                 <div className="flex items-start gap-4">
                   {/* Icon */}
-                  <div className="flex-shrink-0 mt-1">{getTypeIcon(notification.type)}</div>
+                  <div className="shrink-0 mt-1">{getTypeIcon(notification.type)}</div>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
@@ -274,7 +274,7 @@ export default function NotificationsPage() {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex gap-1 flex-shrink-0">
+                      <div className="flex gap-1 shrink-0">
                         {!notification.isRead && (
                           <Button
                             variant="ghost"

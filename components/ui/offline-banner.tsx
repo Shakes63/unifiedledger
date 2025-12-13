@@ -218,7 +218,7 @@ export function OfflineBanner({
     >
       {/* Left side: Icon and message */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           {icon}
         </div>
         <p className="text-sm font-medium truncate">
@@ -227,7 +227,7 @@ export function OfflineBanner({
       </div>
 
       {/* Right side: Actions */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         {showRetry && (
           <Button
             onClick={handleRetry}

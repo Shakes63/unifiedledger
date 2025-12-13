@@ -1077,7 +1077,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   <SelectItem key={account.id} value={account.id}>
                     <div className="flex items-center gap-2 w-full">
                       <span className="flex-1 truncate">{account.name}</span>
-                      <span className="text-xs text-muted-foreground flex-shrink-0">
+                      <span className="text-xs text-muted-foreground shrink-0">
                         ${account.currentBalance?.toFixed(2) || '0.00'}
                       </span>
                     </div>
@@ -1099,7 +1099,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   ? 'bg-primary/5 border-primary/20'
                   : 'bg-elevated border-border'
           }`}>
-            <CreditCard className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+            <CreditCard className={`w-5 h-5 shrink-0 mt-0.5 ${
               paymentBillDetection.detectedBill?.status === 'overdue'
                 ? 'text-error'
                 : 'text-primary'
@@ -1169,9 +1169,9 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                 : 'bg-elevated border-border'
           }`}>
             {detectionResult.confidence === 'high' ? (
-              <Target className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+              <Target className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             ) : (
-              <Info className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <Info className="w-5 h-5 text-muted-foreground shrink-0 mt-0.5" />
             )}
             <div className="flex-1 min-w-0">
               <p className={`text-sm ${

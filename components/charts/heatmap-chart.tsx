@@ -71,7 +71,7 @@ export function HeatmapChart({
           <div className="min-w-[600px] py-4">
             {/* Header row with months */}
             <div className="flex items-center mb-2">
-              <div className="w-32 flex-shrink-0" /> {/* Spacer for category labels */}
+              <div className="w-32 shrink-0" /> {/* Spacer for category labels */}
               <div className="flex-1 grid gap-1" style={{ gridTemplateColumns: `repeat(${months.length}, 1fr)` }}>
                 {months.map(month => (
                   <div
@@ -89,7 +89,7 @@ export function HeatmapChart({
               {categories.map(category => (
                 <div key={category} className="flex items-center">
                   {/* Category label */}
-                  <div className="w-32 flex-shrink-0 pr-2">
+                  <div className="w-32 shrink-0 pr-2">
                     <span className="text-xs text-foreground truncate block">
                       {category}
                     </span>

@@ -205,7 +205,7 @@ export function NotificationBell() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <IconComponent className="w-4 h-4 text-foreground flex-shrink-0" />
+                          <IconComponent className="w-4 h-4 text-foreground shrink-0" />
                           <p className="font-medium text-foreground text-sm truncate">
                             {notification.title}
                           </p>
@@ -232,7 +232,7 @@ export function NotificationBell() {
                           e.stopPropagation();
                           handleDismiss(notification.id);
                         }}
-                        className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                        className="text-muted-foreground hover:text-foreground shrink-0"
                       >
                         <X className="w-4 h-4" />
                       </button>

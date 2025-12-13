@@ -295,7 +295,7 @@ export function SplitBuilder({
             : 'bg-error/20 border-error/40 text-error'
         }`}>
           <div className="flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 mt-0.5 shrink-0" />
             <div className="text-sm">
               {validation.valid ? (
                 <p>

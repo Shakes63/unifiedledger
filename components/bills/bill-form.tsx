@@ -762,7 +762,7 @@ export function BillForm({
             >
               <div className="flex items-center gap-2">
                 <Sparkles 
-                  className="w-4 h-4 flex-shrink-0" 
+                  className="w-4 h-4 shrink-0" 
                   style={{ color: CLASSIFICATION_META[classificationSuggestion.classification].color }}
                 />
                 <span 
@@ -1267,7 +1267,7 @@ export function BillForm({
             </div>
             {formData.linkedAccountId && (
               <div className="mt-2 p-2 bg-primary/10 rounded-lg flex items-start gap-2">
-                <Info className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <p className="text-xs text-primary">
                   Payments to this bill will reduce the credit card balance
                 </p>
@@ -1303,7 +1303,7 @@ export function BillForm({
               </Select>
               {formData.chargedToAccountId && (
                 <div className="mt-2 p-2 bg-warning/10 rounded-lg flex items-start gap-2">
-                  <Info className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+                  <Info className="w-4 h-4 text-warning shrink-0 mt-0.5" />
                   <p className="text-xs text-warning">
                     When due, expense will be created on the selected card
                   </p>
@@ -1429,7 +1429,7 @@ export function BillForm({
             )}
 
             <div className="p-2 bg-warning/10 rounded-lg flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
               <p className="text-xs text-warning">
                 Autopay will create transactions automatically. Ensure sufficient funds are available in the source account.
               </p>
@@ -1726,7 +1726,7 @@ export function BillForm({
           ? 'bg-income/10 border border-income/20'
           : 'bg-primary/10 border border-primary/20'
       }`}>
-        <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+        <AlertCircle className={`w-5 h-5 shrink-0 mt-0.5 ${
           isIncomeBill ? 'text-income' : 'text-primary'
         }`} />
         <div className={`text-sm ${
