@@ -24,6 +24,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import {
   User,
   Settings,
@@ -200,7 +201,8 @@ function SettingsPageContent() {
   };
 
   async function createHousehold() {
-    if (!householdName.trim()) {
+    const trimmedName = householdName.trim();
+    if (!trimmedName) {
       return;
     }
 
@@ -209,18 +211,28 @@ function SettingsPageContent() {
       const response = await fetch('/api/households', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: householdName }),
+        credentials: 'include',
+        body: JSON.stringify({ name: trimmedName }),
       });
 
       if (response.ok) {
         const newHousehold = await response.json();
+        toast.success('Household created successfully');
         await refreshHouseholds();
         setCreateDialogOpen(false);
         setHouseholdName('');
-        router.push(`/dashboard/settings?section=households&household=${newHousehold.id}&tab=members`);
+        if (newHousehold?.id) {
+          router.push(`/dashboard/settings?section=households&household=${newHousehold.id}&tab=members`);
+        } else {
+          toast.error('Created household response missing id');
+        }
+      } else {
+        const data = await response.json().catch(() => ({ error: 'Failed to create household' }));
+        toast.error(data?.error || 'Failed to create household');
       }
     } catch (error) {
       console.error('Failed to create household:', error);
+      toast.error('Failed to create household');
     } finally {
       setSubmitting(false);
     }

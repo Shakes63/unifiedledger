@@ -1,11 +1,10 @@
-# Bugs Status (Updated 2025-12-12)
+# Bugs Status (Updated 2025-12-13)
 
 ---
 
 ## New Bugs
 
-- **Manage Households navigates to wrong Settings section** - Sidebar household dropdown “Manage Households” routes to `/dashboard/settings?tab=household` instead of the Households section (`section=households&household=<id>&tab=members`).
-- **Create New Household does not create household** - Settings → Households “Create New Household” modal submits but household is not created (likely missing auth credentials or error handling).
+(None)
 
 ---
 
@@ -32,17 +31,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 1 |
+| Active Bugs | 0 |
 | Tests Passing | 590/590 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 746 (170 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 747 (171 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (170 total)
+## Fixed Bugs (171 total)
 
+171. ✅ **Create New Household does not create household** [FIXED 2025-12-13] - Added `credentials: 'include'`, trimmed payload, and toast-based error handling in Settings; added regression test to ensure create-household POST includes credentials.
 170. ✅ **Manage Households navigates to wrong Settings section** [FIXED 2025-12-13] - Sidebar household dropdown now routes to `section=households&household=<id>&tab=members` and includes a regression test.
 169. ✅ **Cannot Disable OAuth Provider Without Supplying Secret** [FIXED 2025-12-12] - Allowed disabling an existing provider without re-entering secrets in both UI validation and `/api/admin/oauth-settings`.
 168. ✅ **OAuth Link Validation Ignores DB Settings** [FIXED 2025-12-12] - `/api/user/oauth/link/[provider]` now treats DB-configured providers as configured (matches login provider availability).

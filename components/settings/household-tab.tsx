@@ -163,7 +163,8 @@ export function HouseholdTab() {
   }, [households]);
 
   async function createHousehold() {
-    if (!householdName.trim()) {
+    const trimmedName = householdName.trim();
+    if (!trimmedName) {
       toast.error('Household name is required');
       return;
     }
@@ -173,7 +174,8 @@ export function HouseholdTab() {
       const response = await fetch('/api/households', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: householdName }),
+        credentials: 'include',
+        body: JSON.stringify({ name: trimmedName }),
       });
 
       if (response.ok) {
@@ -206,6 +208,7 @@ export function HouseholdTab() {
       const response = await fetch(`/api/households/${activeTab}/invitations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           invitedEmail: inviteEmail,
           role: inviteRole,
