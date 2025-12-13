@@ -3,7 +3,6 @@
 ---
 
 ## New Bugs
-- **Rules list returned in reverse priority order** - `/api/rules` lists rules with `orderBy(desc(categorizationRules.priority))`, but the UI and engine define “lower number = higher priority” and the matcher sorts ascending. This makes the Rules page show the opposite order (and can mislead users when adjusting priorities). See `app/api/rules/route.ts` (~L126-L128) and `lib/rules/rule-matcher.ts` (~L100-L112).
 - **RulesManager N+1 category fetches** - The Rules page fetches `/api/categories` once per rule inside a `Promise.all(data.map(...))`, causing unnecessary repeated requests and slow load with many rules. See `components/rules/rules-manager.tsx` (~L294-L309).
 - **Rule action preview shows “Unknown” for merchant/account actions** - The action preview label helper supports merchant/account names, but the caller only passes `categoryName`, and the manager doesn’t hydrate merchant/account names. This makes `set_merchant`, `set_account`, and `convert_to_transfer` previews display “Unknown”/generic labels even when IDs are set. See `components/rules/rules-manager.tsx` (`getActionLabel()` + call site around ~L42-L74 and ~L157-L172).
 - **Bulk apply rules endpoint docs mention unsupported query param** - `/api/rules/apply-bulk` docstring lists a `categoryId` query param, but the handler never reads it and always filters `categoryId IS NULL`. See `app/api/rules/apply-bulk/route.ts` (comment ~L31-L37; query build ~L50-L63).
@@ -44,17 +43,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 10 |
-| Tests Passing | 897/897 (100%) |
+| Active Bugs | 9 |
+| Tests Passing | 898/898 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 750 (174 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 751 (175 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (174 total)
+## Fixed Bugs (175 total)
 
+175. ✅ **Rules list returned in reverse priority order** [FIXED 2025-12-13] - Changed `/api/rules` to sort by ascending priority to match rule engine semantics and added an API ordering regression test.
 174. ✅ **Rules priority reorder can assign duplicate priorities** [FIXED 2025-12-13] - Made priority swapping immutable in `RulesManager` to prevent duplicate priorities and added a regression test.
 173. ✅ **Tailwind CSS variable class warnings** [FIXED 2025-12-13] - Replaced `*-[var(--...)]` Tailwind classes with v4 shorthand `*-(--...)` and added a regression test to prevent reverting.
 172. ✅ **Logo triggers Next.js LCP warning** [FIXED 2025-12-13] - Marked above-the-fold `/logo.png` usages as `priority` (eager) and added a regression test to prevent removing it.

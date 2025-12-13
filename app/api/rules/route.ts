@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { categorizationRules, budgetCategories, merchants } from '@/lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, asc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { validateConditionGroup } from '@/lib/rules/condition-evaluator';
 import { validateActions } from '@/lib/rules/actions-executor';
@@ -124,7 +124,7 @@ export async function GET(request: Request) {
     }
 
     const rules = await query
-      .orderBy(desc(categorizationRules.priority))
+      .orderBy(asc(categorizationRules.priority))
       .limit(limit);
 
     // Parse actions for all rules
