@@ -4,11 +4,13 @@ import {
   importHistory,
   importStaging,
   transactions,
+  ruleExecutionLog,
 } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import Decimal from 'decimal.js';
+import { executeRuleActions } from '@/lib/rules/actions-executor';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,6 +99,12 @@ export async function POST(
         const now = new Date().toISOString();
 
         let categoryId: string | null = null;
+        let appliedRuleId: string | null = null;
+        let appliedActions: unknown[] = [];
+        let finalDescription: string = mappedData.description;
+        let finalMerchantId: string | null = null;
+        let finalIsTaxDeductible = false;
+        let finalIsSalesTaxable = false;
 
         // Try to match categorization rules (filtered by household)
         const ruleMatch = await findMatchingRule(
@@ -114,10 +122,48 @@ export async function POST(
         );
 
         if (ruleMatch.matched && ruleMatch.rule) {
-          // Extract categoryId from actions (find first set_category action)
-          const setCategoryAction = ruleMatch.rule.actions.find(a => a.type === 'set_category');
-          if (setCategoryAction && setCategoryAction.value) {
-            categoryId = setCategoryAction.value;
+          appliedRuleId = ruleMatch.rule.ruleId;
+
+          const executionResult = await executeRuleActions(
+            userId,
+            ruleMatch.rule.actions,
+            {
+              categoryId,
+              description: finalDescription,
+              merchantId: finalMerchantId,
+              accountId: mappedData.accountId,
+              amount: typeof mappedData.amount === 'number'
+                ? mappedData.amount
+                : new Decimal(mappedData.amount).toNumber(),
+              date: mappedData.date,
+              type: mappedData.type,
+              isTaxDeductible: false,
+            },
+            null,
+            null,
+            householdId
+          );
+
+          if (executionResult.mutations.categoryId !== undefined) {
+            categoryId = executionResult.mutations.categoryId;
+          }
+          if (executionResult.mutations.description) {
+            finalDescription = executionResult.mutations.description;
+          }
+          if (executionResult.mutations.merchantId !== undefined) {
+            finalMerchantId = executionResult.mutations.merchantId;
+          }
+          if (executionResult.mutations.isTaxDeductible !== undefined) {
+            finalIsTaxDeductible = executionResult.mutations.isTaxDeductible;
+          }
+          if (executionResult.mutations.isSalesTaxable !== undefined) {
+            finalIsSalesTaxable = executionResult.mutations.isSalesTaxable;
+          }
+
+          appliedActions = executionResult.appliedActions;
+
+          if (executionResult.errors && executionResult.errors.length > 0) {
+            console.warn('Rule action execution errors during import confirm:', executionResult.errors);
           }
         } else if (mappedData.category) {
           // Use provided category if available
@@ -138,14 +184,36 @@ export async function POST(
           categoryId,
           date: mappedData.date,
           amount: amount.toNumber(),
-          description: mappedData.description,
+          description: finalDescription,
+          merchantId: finalMerchantId,
           notes: mappedData.notes || null,
           type: mappedData.type,
+          isTaxDeductible: finalIsTaxDeductible,
+          isSalesTaxable: finalIsSalesTaxable,
           importHistoryId: importId,
           importRowNumber: stagingRecord.rowNumber,
           createdAt: now,
           updatedAt: now,
         });
+
+        // Log rule execution if a rule was applied
+        if (appliedRuleId) {
+          try {
+            await db.insert(ruleExecutionLog).values({
+              id: nanoid(),
+              userId,
+              householdId,
+              ruleId: appliedRuleId,
+              transactionId: txId,
+              appliedCategoryId: categoryId,
+              appliedActions: appliedActions.length > 0 ? JSON.stringify(appliedActions) : null,
+              matched: true,
+              executedAt: now,
+            });
+          } catch (error) {
+            console.error('Error logging rule execution for imported transaction:', error);
+          }
+        }
 
         // Update staging record status
         await db
