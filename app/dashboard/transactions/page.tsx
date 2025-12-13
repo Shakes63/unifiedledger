@@ -113,9 +113,15 @@ function TransactionsContent() {
 
       const params = new URLSearchParams();
       if (filters.query) params.append('query', filters.query);
-      if (filters.categoryIds?.length > 0) params.append('categoryIds', filters.categoryIds.join(','));
-      if (filters.accountIds?.length > 0) params.append('accountIds', filters.accountIds.join(','));
-      if (filters.types?.length > 0) params.append('types', filters.types.join(','));
+      if (filters.categoryIds && filters.categoryIds.length > 0) {
+        params.append('categoryIds', filters.categoryIds.join(','));
+      }
+      if (filters.accountIds && filters.accountIds.length > 0) {
+        params.append('accountIds', filters.accountIds.join(','));
+      }
+      if (filters.types && filters.types.length > 0) {
+        params.append('types', filters.types.join(','));
+      }
       if (filters.amountMin !== undefined) params.append('amountMin', filters.amountMin.toString());
       if (filters.amountMax !== undefined) params.append('amountMax', filters.amountMax.toString());
       if (filters.dateStart) params.append('dateStart', filters.dateStart);
@@ -939,7 +945,7 @@ function TransactionsContent() {
             onSearch={handleAdvancedSearch}
             onClear={handleClearFilters}
             isLoading={searchLoading}
-            initialFilters={currentFilters}
+            initialFilters={currentFilters ?? undefined}
           />
         </div>
 

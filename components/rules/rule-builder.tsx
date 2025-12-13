@@ -81,6 +81,10 @@ interface ActionConfig {
   splits?: SplitItem[];
   value?: boolean | string;
   targetAccountId?: string;
+  autoMatch?: boolean;
+  matchTolerance?: number;
+  matchDayRange?: number;
+  createIfNoMatch?: boolean;
   description?: string;
   [key: string]: unknown;
 }
@@ -408,21 +412,21 @@ export function RuleBuilder({
     };
 
     const updatedActions = [...actions];
-    if (!updatedActions[actionIndex].config) {
-      updatedActions[actionIndex].config = { splits: [] };
+    const config = (updatedActions[actionIndex].config ?? {}) as ActionConfig;
+    if (!Array.isArray(config.splits)) {
+      config.splits = [];
     }
-    if (!updatedActions[actionIndex].config.splits) {
-      updatedActions[actionIndex].config.splits = [];
-    }
-
-    updatedActions[actionIndex].config.splits.push(newSplit);
+    config.splits.push(newSplit);
+    updatedActions[actionIndex].config = config;
     handleActionsUpdate(updatedActions);
   };
 
   const removeSplit = (actionIndex: number, splitIndex: number) => {
     const updatedActions = [...actions];
-    if (updatedActions[actionIndex].config?.splits) {
-      updatedActions[actionIndex].config.splits.splice(splitIndex, 1);
+    const config = updatedActions[actionIndex].config as ActionConfig | undefined;
+    if (config?.splits) {
+      config.splits.splice(splitIndex, 1);
+      updatedActions[actionIndex].config = config;
       handleActionsUpdate(updatedActions);
     }
   };
@@ -434,8 +438,10 @@ export function RuleBuilder({
     value: SplitFieldValue
   ) => {
     const updatedActions = [...actions];
-    if (updatedActions[actionIndex].config?.splits) {
-      (updatedActions[actionIndex].config.splits[splitIndex] as Record<keyof SplitItem, SplitFieldValue>)[field] = value;
+    const config = updatedActions[actionIndex].config as ActionConfig | undefined;
+    if (config?.splits) {
+      (config.splits[splitIndex] as Record<keyof SplitItem, SplitFieldValue>)[field] = value;
+      updatedActions[actionIndex].config = config;
       handleActionsUpdate(updatedActions);
     }
   };
@@ -796,10 +802,10 @@ export function RuleBuilder({
                             <span className="text-muted-foreground ml-1">(Optional)</span>
                           </Label>
                           <Select
-                            value={action.config?.targetAccountId || ''}
+                            value={(action.config as ActionConfig | undefined)?.targetAccountId || ''}
                             onValueChange={(val) =>
                               updateActionConfig(index, {
-                                ...action.config,
+                                ...(action.config as ActionConfig | undefined),
                                 targetAccountId: val || undefined
                               })
                             }
@@ -848,15 +854,15 @@ export function RuleBuilder({
                             </p>
                           </div>
                           <Switch
-                            checked={action.config?.autoMatch ?? true}
+                            checked={Boolean((action.config as ActionConfig | undefined)?.autoMatch ?? true)}
                             onCheckedChange={(checked) =>
-                              updateActionConfig(index, { ...action.config, autoMatch: checked })
+                              updateActionConfig(index, { ...(action.config as ActionConfig | undefined), autoMatch: checked })
                             }
                           />
                         </div>
 
                         {/* Advanced Options - Only show if Auto-Match is enabled */}
-                        {(action.config?.autoMatch ?? true) && (
+                        {Boolean((action.config as ActionConfig | undefined)?.autoMatch ?? true) && (
                           <div className="space-y-3 border-l-2 border-[var(--color-primary)] pl-4 mt-4">
                             <div className="flex items-center gap-2 mb-2">
                               <Settings className="h-4 w-4 text-[var(--color-primary)]" />
@@ -873,10 +879,10 @@ export function RuleBuilder({
                                 min="0"
                                 max="10"
                                 step="0.1"
-                                value={action.config?.matchTolerance ?? 1}
+                                value={(action.config as ActionConfig | undefined)?.matchTolerance ?? 1}
                                 onChange={(e) =>
                                   updateActionConfig(index, {
-                                    ...action.config,
+                                    ...(action.config as ActionConfig | undefined),
                                     matchTolerance: parseFloat(e.target.value) || 1,
                                   })
                                 }
@@ -897,10 +903,10 @@ export function RuleBuilder({
                                 type="number"
                                 min="1"
                                 max="30"
-                                value={action.config?.matchDayRange ?? 7}
+                                value={(action.config as ActionConfig | undefined)?.matchDayRange ?? 7}
                                 onChange={(e) =>
                                   updateActionConfig(index, {
-                                    ...action.config,
+                                    ...(action.config as ActionConfig | undefined),
                                     matchDayRange: parseInt(e.target.value) || 7,
                                   })
                                 }
@@ -923,15 +929,16 @@ export function RuleBuilder({
                                 </p>
                               </div>
                               <Switch
-                                checked={action.config?.createIfNoMatch ?? true}
+                                checked={Boolean((action.config as ActionConfig | undefined)?.createIfNoMatch ?? true)}
                                 onCheckedChange={(checked) =>
-                                  updateActionConfig(index, { ...action.config, createIfNoMatch: checked })
+                                  updateActionConfig(index, { ...(action.config as ActionConfig | undefined), createIfNoMatch: checked })
                                 }
                               />
                             </div>
 
                             {/* Warning if Create Pair enabled but no target account */}
-                            {(action.config?.createIfNoMatch ?? true) && !action.config?.targetAccountId && (
+                            {Boolean((action.config as ActionConfig | undefined)?.createIfNoMatch ?? true) &&
+                              !(action.config as ActionConfig | undefined)?.targetAccountId && (
                               <div className="flex items-start gap-2 bg-[var(--color-warning)]/10 border border-[var(--color-warning)]/30 rounded-lg p-3">
                                 <AlertCircle className="h-4 w-4 text-[var(--color-warning)] mt-0.5 flex-shrink-0" />
                                 <div className="flex-1">
@@ -976,9 +983,9 @@ export function RuleBuilder({
                     {action.type === 'create_split' && (
                       <div className="flex-1 space-y-4">
                         {/* Split Items List */}
-                        {action.config?.splits && action.config.splits.length > 0 ? (
+                        {(((action.config as ActionConfig | undefined)?.splits ?? []) as SplitItem[]).length > 0 ? (
                           <div className="space-y-3">
-                            {action.config.splits.map((split: SplitItem, splitIndex: number) => (
+                            {(((action.config as ActionConfig | undefined)?.splits ?? []) as SplitItem[]).map((split: SplitItem, splitIndex: number) => (
                               <div key={splitIndex} className="bg-elevated border border-border rounded-lg p-4 space-y-3">
                                 {/* Split Header with Remove Button */}
                                 <div className="flex items-center justify-between">
@@ -1169,11 +1176,12 @@ export function RuleBuilder({
                         </Button>
 
                         {/* Validation Display */}
-                        {action.config?.splits && action.config.splits.length > 0 && (
+                        {(((action.config as ActionConfig | undefined)?.splits ?? []) as SplitItem[]).length > 0 && (
                           <div className="space-y-2">
                             {/* Total Percentage Display */}
                             {(() => {
-                              const percentageSplits = action.config.splits.filter((s: SplitItem) => s.isPercentage);
+                              const splits = ((action.config as ActionConfig | undefined)?.splits ?? []) as SplitItem[];
+                              const percentageSplits = splits.filter((s: SplitItem) => s.isPercentage);
                               const totalPercentage = percentageSplits.reduce(
                                 (sum: number, s: SplitItem) => sum + (s.percentage || 0),
                                 0
@@ -1215,7 +1223,8 @@ export function RuleBuilder({
 
                             {/* Fixed Amount Summary */}
                             {(() => {
-                              const fixedSplits = action.config.splits.filter((s: SplitItem) => !s.isPercentage);
+                              const splits = ((action.config as ActionConfig | undefined)?.splits ?? []) as SplitItem[];
+                              const fixedSplits = splits.filter((s: SplitItem) => !s.isPercentage);
                               const totalFixed = fixedSplits.reduce(
                                 (sum: number, s: SplitItem) => sum + (s.amount || 0),
                                 0

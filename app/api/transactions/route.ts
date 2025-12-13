@@ -11,6 +11,7 @@ import { executeRuleActions } from '@/lib/rules/actions-executor';
 import { handleTransferConversion } from '@/lib/rules/transfer-action-handler';
 import { handleSplitCreation } from '@/lib/rules/split-action-handler';
 import { handleAccountChange } from '@/lib/rules/account-action-handler';
+import type { TransactionMutations } from '@/lib/rules/types';
 import { findMatchingBillInstance } from '@/lib/bills/bill-matching-helpers';
 import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
 import { batchUpdateMilestones } from '@/lib/debts/milestone-utils';
@@ -168,7 +169,7 @@ export async function POST(request: Request) {
     let appliedActions: unknown[] = [];
     let finalDescription = description;
     let finalMerchantId = merchantId;
-    let postCreationMutations: unknown = null;
+    let postCreationMutations: TransactionMutations | null = null;
 
     if (!appliedCategoryId && type !== 'transfer_in' && type !== 'transfer_out' && type !== 'transfer') {
       try {

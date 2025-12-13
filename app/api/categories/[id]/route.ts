@@ -7,6 +7,12 @@ import { count } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
+type CategoryType = NonNullable<typeof budgetCategories.$inferSelect['type']>;
+const CATEGORY_TYPES: readonly CategoryType[] = ['income', 'expense', 'savings'];
+function isCategoryType(value: string): value is CategoryType {
+  return (CATEGORY_TYPES as readonly string[]).includes(value);
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -63,7 +69,7 @@ export async function PUT(
     }
 
     const current = category[0];
-    const nextType: string = type ?? current.type;
+    const nextType: CategoryType = (type ?? current.type) as CategoryType;
     const nextIsBudgetGroup: boolean = isBudgetGroup ?? current.isBudgetGroup;
 
     // Budget groups cannot have parents (prevent nesting/cycles)
@@ -108,8 +114,7 @@ export async function PUT(
 
     // Validate type if provided
     if (type) {
-      const validTypes = ['income', 'expense', 'savings'];
-      if (!validTypes.includes(type)) {
+      if (!isCategoryType(type)) {
         return Response.json(
           { error: 'Invalid category type. Must be income, expense, or savings' },
           { status: 400 }

@@ -26,7 +26,7 @@ interface Milestone {
   achievedAt?: string;
 }
 
-interface DebtData {
+export interface DebtData {
   id: string;
   name: string;
   creditorName: string;

@@ -86,10 +86,6 @@ export default function SalesTaxPage() {
     fetchTaxRateSettings();
   }, []);
 
-  useEffect(() => {
-    fetchSalesTaxData();
-  }, [fetchSalesTaxData]);
-
   const fetchTaxRateSettings = async () => {
     try {
       const response = await fetch('/api/sales-tax/settings', { credentials: 'include' });
@@ -167,6 +163,10 @@ export default function SalesTaxPage() {
       setIsLoading(false);
     }
   }, [year]);
+
+  useEffect(() => {
+    fetchSalesTaxData();
+  }, [fetchSalesTaxData]);
 
   const getYearOptions = () => {
     const currentYear = new Date().getFullYear();

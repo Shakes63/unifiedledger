@@ -10,7 +10,7 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-type NotificationType = typeof notifications.$inferSelect['type'];
+type NotificationType = NonNullable<typeof notifications.$inferSelect['type']>;
 
 // GET - List user's notifications with pagination
 export async function GET(request: Request) {
@@ -26,12 +26,8 @@ export async function GET(request: Request) {
     const conditions: SQL[] = [eq(notifications.userId, userId)];
 
     if (unreadOnly) {
-      conditions.push(
-        and(
-          eq(notifications.isRead, false),
-          eq(notifications.isDismissed, false)
-        )
-      );
+      conditions.push(eq(notifications.isRead, false));
+      conditions.push(eq(notifications.isDismissed, false));
     }
 
     if (type) {
@@ -41,7 +37,7 @@ export async function GET(request: Request) {
     const userNotifications = await db
       .select()
       .from(notifications)
-      .where(conditions.length === 1 ? conditions[0] : and(...conditions))
+      .where(conditions.length === 1 ? conditions[0] : and(...conditions)!)
       .orderBy(desc(notifications.createdAt))
       .limit(limit)
       .offset(offset);
@@ -117,6 +113,10 @@ export async function POST(request: Request) {
       scheduledFor,
       metadata,
     });
+
+    if (!notificationId) {
+      return Response.json({ error: 'Failed to create notification' }, { status: 500 });
+    }
 
     const created = await db
       .select()

@@ -63,7 +63,8 @@ function getActionLabel(action: RuleAction, categoryName?: string, merchantName?
       }
       return 'Convert to Transfer';
     case 'create_split':
-      const splitCount = action.config?.splits?.length || 0;
+      const splitsValue = (action.config as { splits?: unknown } | undefined)?.splits;
+      const splitCount = Array.isArray(splitsValue) ? splitsValue.length : 0;
       return `Split into ${splitCount} ${splitCount === 1 ? 'category' : 'categories'}`;
     case 'set_account':
       return accountName ? `Move to ${accountName}` : 'Set Account';

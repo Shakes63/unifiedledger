@@ -15,6 +15,7 @@ import type {
   ActionExecutionContext,
   ActionExecutionResult,
   SplitConfig,
+  TransferConversionConfig,
 } from './types';
 
 /**
@@ -399,7 +400,7 @@ async function executeCreateSplitAction(
   context: ActionExecutionContext,
   mutations: TransactionMutations
 ): Promise<AppliedAction | null> {
-  const config = action.config || {};
+  const config = (action.config ?? {}) as unknown as { splits?: SplitConfig[] };
 
   if (!config.splits || !Array.isArray(config.splits) || config.splits.length === 0) {
     console.warn('No splits configured for create_split action');
@@ -441,7 +442,7 @@ async function executeConvertToTransferAction(
   context: ActionExecutionContext,
   mutations: TransactionMutations
 ): Promise<AppliedAction | null> {
-  const config = action.config || {};
+  const config = (action.config ?? {}) as unknown as Partial<TransferConversionConfig>;
 
   // Validate: can't convert if already a transfer
   if (context.transaction.type === 'transfer_in' || context.transaction.type === 'transfer_out') {

@@ -14,8 +14,19 @@ export default function TestAuthPage() {
   const [password, setPassword] = useState('password123');
   const [name, setName] = useState('Test User');
   const [loading, setLoading] = useState(false);
-  const [apiResponse, setApiResponse] = useState<unknown>(null);
-  const { data: session, isPending } = betterAuthClient.useSession();
+  type ApiResponse = (Record<string, unknown> & { success?: boolean }) | null;
+  const [apiResponse, setApiResponse] = useState<ApiResponse>(null);
+  type BetterAuthSession = {
+    user: {
+      id: string;
+      name: string | null;
+      email: string | null;
+      emailVerified: boolean | null;
+    };
+  };
+
+  const { data: sessionRaw, isPending } = betterAuthClient.useSession();
+  const session = sessionRaw as BetterAuthSession | null;
 
   const handleSignUp = async () => {
     setLoading(true);

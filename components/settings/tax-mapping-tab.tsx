@@ -117,13 +117,6 @@ export function TaxMappingTab() {
     fetchTaxCategories();
   }, []);
 
-  // Fetch mappings when household or year changes
-  useEffect(() => {
-    if (selectedHouseholdId) {
-      fetchMappings();
-    }
-  }, [selectedHouseholdId, taxYear, fetchMappings]);
-
   const fetchTaxCategories = async () => {
     try {
       const response = await fetch('/api/tax/categories', { credentials: 'include' });
@@ -162,6 +155,13 @@ export function TaxMappingTab() {
       setLoading(false);
     }
   }, [fetchWithHousehold, selectedHouseholdId, taxYear]);
+
+  // Fetch mappings when household or year changes
+  useEffect(() => {
+    if (selectedHouseholdId) {
+      fetchMappings();
+    }
+  }, [selectedHouseholdId, taxYear, fetchMappings]);
 
   const seedTaxCategories = async () => {
     setSeeding(true);

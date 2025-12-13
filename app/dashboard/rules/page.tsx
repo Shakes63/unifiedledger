@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import type { ConditionGroup, Condition } from '@/lib/rules/condition-evaluator';
-import type { RuleAction } from '@/lib/rules/types';
+import type { RuleAction, SplitConfig } from '@/lib/rules/types';
 
 interface Rule {
   id: string;
@@ -112,12 +112,12 @@ export default function RulesPage() {
       if (action.type === 'convert_to_transfer' && action.config) {
         const { matchTolerance, matchDayRange } = action.config;
 
-        if (matchTolerance !== undefined && (matchTolerance < 0 || matchTolerance > 10)) {
+        if (typeof matchTolerance === 'number' && (matchTolerance < 0 || matchTolerance > 10)) {
           toast.error('Amount tolerance must be between 0% and 10%');
           return;
         }
 
-        if (matchDayRange !== undefined && (matchDayRange < 1 || matchDayRange > 30)) {
+        if (typeof matchDayRange === 'number' && (matchDayRange < 1 || matchDayRange > 30)) {
           toast.error('Date range must be between 1 and 30 days');
           return;
         }
@@ -141,14 +141,16 @@ export default function RulesPage() {
 
       // Validate create_split actions
       if (action.type === 'create_split') {
-        if (!action.config?.splits || action.config.splits.length === 0) {
+        const splitsValue = (action.config as { splits?: unknown } | undefined)?.splits;
+        if (!Array.isArray(splitsValue) || splitsValue.length === 0) {
           toast.error('Split action must have at least one split configured');
           return;
         }
+        const splits = splitsValue as SplitConfig[];
 
         // Validate each split
-        for (let i = 0; i < action.config.splits.length; i++) {
-          const split = action.config.splits[i];
+        for (let i = 0; i < splits.length; i++) {
+          const split = splits[i];
 
           // Category required
           if (!split.categoryId) {
@@ -171,9 +173,9 @@ export default function RulesPage() {
         }
 
         // Validate total percentage doesn't exceed 100%
-        const totalPercentage = action.config.splits
-          .filter((s: { isPercentage?: boolean }) => s.isPercentage)
-          .reduce((sum: number, s: { percentage?: number }) => sum + (s.percentage || 0), 0);
+        const totalPercentage = splits
+          .filter((s) => s.isPercentage)
+          .reduce((sum: number, s) => sum + (s.percentage || 0), 0);
 
         if (totalPercentage > 100) {
           toast.error('Total split percentage cannot exceed 100%');

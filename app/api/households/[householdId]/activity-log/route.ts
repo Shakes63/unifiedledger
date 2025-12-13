@@ -4,8 +4,8 @@ import { householdActivityLog, householdMembers } from '@/lib/db/schema';
 import { user as betterAuthUser } from '@/auth-schema';
 import { eq, and, desc, type SQL } from 'drizzle-orm';
 
-type ActivityType = typeof householdActivityLog.$inferSelect['activityType'];
-type EntityType = typeof householdActivityLog.$inferSelect['entityType'];
+type ActivityType = NonNullable<typeof householdActivityLog.$inferSelect['activityType']>;
+type EntityType = NonNullable<typeof householdActivityLog.$inferSelect['entityType']>;
 
 const isString = (v: unknown): v is string => typeof v === 'string';
 

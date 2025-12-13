@@ -7,8 +7,8 @@ import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
-type BillInstanceStatus = typeof billInstances.$inferSelect['status'];
-const BILL_INSTANCE_STATUSES: readonly BillInstanceStatus[] = ['pending', 'paid', 'overdue', 'skipped'] as const;
+type BillInstanceStatus = NonNullable<typeof billInstances.$inferSelect['status']>;
+const BILL_INSTANCE_STATUSES: readonly BillInstanceStatus[] = ['pending', 'paid', 'overdue', 'skipped'];
 function isBillInstanceStatus(value: string): value is BillInstanceStatus {
   return (BILL_INSTANCE_STATUSES as readonly string[]).includes(value);
 }

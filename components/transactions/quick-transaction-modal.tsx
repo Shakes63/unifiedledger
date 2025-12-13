@@ -449,7 +449,10 @@ export function QuickTransactionModal({
         transactionData.isSalesTaxable = salesTaxEnabled;
       }
 
-      const response = await postWithHousehold('/api/transactions', transactionData);
+      const response = await postWithHousehold(
+        '/api/transactions',
+        transactionData as unknown as Record<string, unknown>
+      );
 
       if (!response.ok) {
         const errorData = await response.json();

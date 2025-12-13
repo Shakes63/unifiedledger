@@ -8,6 +8,12 @@ import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-vi
 
 export const dynamic = 'force-dynamic';
 
+const TRANSACTION_TYPES = ['income', 'expense', 'transfer_in', 'transfer_out'] as const;
+type TransactionType = (typeof TRANSACTION_TYPES)[number];
+function isTransactionType(value: string): value is TransactionType {
+  return (TRANSACTION_TYPES as readonly string[]).includes(value);
+}
+
 interface SearchFilters {
   query?: string;
   categoryIds?: string[];
@@ -102,7 +108,7 @@ export async function GET(request: Request) {
         or(
           like(transactions.description, searchPattern),
           like(transactions.notes, searchPattern)
-        )
+        )!
       );
     }
 
@@ -172,7 +178,10 @@ export async function GET(request: Request) {
 
     // Type filter
     if (filters.types && filters.types.length > 0) {
-      conditions.push(inArray(transactions.type, filters.types as Array<typeof transactions.$inferSelect['type']>));
+      const typeValues = filters.types.filter(isTransactionType);
+      if (typeValues.length > 0) {
+        conditions.push(inArray(transactions.type, typeValues));
+      }
     }
 
     // Amount range filter
@@ -219,72 +228,75 @@ export async function GET(request: Request) {
       }
     }
 
-    // Handle tag filtering - if tags are specified, we need a different approach with joins
-    let query_builder = db
-      .select()
-      .from(transactions);
+    type SortableQuery<T> = {
+      where: (condition: unknown) => SortableQuery<T>;
+      orderBy: (...args: unknown[]) => SortableQuery<T>;
+      limit: (n: number) => SortableQuery<T>;
+      offset: (n: number) => Promise<T[]>;
+    };
 
-    if (filters.tagIds && filters.tagIds.length > 0) {
-      // For tag filtering, use inner join and group by transaction
-      query_builder = db
-        .selectDistinct()
-        .from(transactions)
-        .innerJoin(transactionTags, eq(transactions.id, transactionTags.transactionId))
-        .where(and(...conditions, inArray(transactionTags.tagId, filters.tagIds)));
-    } else {
-      query_builder = query_builder.where(and(...conditions));
-    }
-
-    // Add sorting
-    if (filters.sortBy === 'amount') {
-      query_builder = query_builder.orderBy(
-        filters.sortOrder === 'asc'
-          ? transactions.amount
-          : sql`${transactions.amount} DESC`
-      );
-    } else if (filters.sortBy === 'description') {
-      query_builder = query_builder.orderBy(
-        filters.sortOrder === 'asc'
-          ? transactions.description
-          : sql`${transactions.description} DESC`
-      );
-    } else {
+    const applySorting = <T,>(query: SortableQuery<T>): SortableQuery<T> => {
+      if (filters.sortBy === 'amount') {
+        return query.orderBy(
+          filters.sortOrder === 'asc'
+            ? transactions.amount
+            : sql`${transactions.amount} DESC`
+        );
+      }
+      if (filters.sortBy === 'description') {
+        return query.orderBy(
+          filters.sortOrder === 'asc'
+            ? transactions.description
+            : sql`${transactions.description} DESC`
+        );
+      }
       // Default: date sorting
-      query_builder = query_builder.orderBy(
+      return query.orderBy(
         filters.sortOrder === 'asc'
           ? transactions.date
           : sql`${transactions.date} DESC`
       );
-    }
+    };
 
-    // Get total count first (without limit/offset)
-    let countQuery = db
-      .select({ count: sql<number>`COUNT(DISTINCT ${transactions.id})` })
-      .from(transactions);
+    // Get total count + paginated results (join path differs when tags are present)
+    let totalCount = 0;
+    let results: typeof transactions.$inferSelect[] = [];
 
     if (filters.tagIds && filters.tagIds.length > 0) {
-      countQuery = countQuery
+      const countResult = await db
+        .select({ count: sql<number>`COUNT(DISTINCT ${transactions.id})` })
+        .from(transactions)
         .innerJoin(transactionTags, eq(transactions.id, transactionTags.transactionId))
         .where(and(...conditions, inArray(transactionTags.tagId, filters.tagIds)));
-    } else {
-      countQuery = countQuery.where(and(...conditions));
-    }
 
-    const countResult = await countQuery;
-    const totalCount = countResult[0]?.count || 0;
+      totalCount = countResult[0]?.count || 0;
 
-    // Get paginated results
-    let results: typeof transactions.$inferSelect[];
-    if (filters.tagIds && filters.tagIds.length > 0) {
-      const joinResults = await query_builder
-        .limit(limit)
-        .offset(offset);
-      // Extract just the transaction data from the join
-      results = joinResults.map((row: { transactions: typeof transactions.$inferSelect }) => row.transactions);
+      const joinQuery = db
+        .selectDistinct()
+        .from(transactions)
+        .innerJoin(transactionTags, eq(transactions.id, transactionTags.transactionId))
+        .where(and(...conditions, inArray(transactionTags.tagId, filters.tagIds))) as unknown as SortableQuery<{
+        transactions: typeof transactions.$inferSelect;
+      }>;
+
+      const sortedJoinQuery = applySorting(joinQuery);
+      const joinResults = await sortedJoinQuery.limit(limit).offset(offset);
+      results = joinResults.map((row) => row.transactions);
     } else {
-      results = await query_builder
-        .limit(limit)
-        .offset(offset);
+      const countResult = await db
+        .select({ count: sql<number>`COUNT(DISTINCT ${transactions.id})` })
+        .from(transactions)
+        .where(and(...conditions));
+
+      totalCount = countResult[0]?.count || 0;
+
+      const baseQuery = db
+        .select()
+        .from(transactions)
+        .where(and(...conditions)) as unknown as SortableQuery<typeof transactions.$inferSelect>;
+
+      const sortedBaseQuery = applySorting(baseQuery);
+      results = await sortedBaseQuery.limit(limit).offset(offset);
     }
 
     const executionTime = performance.now() - startTime;

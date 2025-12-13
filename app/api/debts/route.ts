@@ -7,7 +7,7 @@ import { nanoid } from 'nanoid';
 import { syncDebtPayoffDate } from '@/lib/debts/payoff-date-utils';
 import { createMerchantForBank } from '@/lib/merchants/auto-create';
 
-type DebtStatus = typeof debts.$inferSelect['status'];
+type DebtStatus = NonNullable<typeof debts.$inferSelect['status']>;
 const isDebtStatus = (value: string): value is DebtStatus => {
   return ['active', 'paid_off', 'paused', 'closed'].includes(value);
 };

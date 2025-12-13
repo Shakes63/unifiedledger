@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { GoalTracker } from '@/components/goals/goal-tracker';
+import { GoalTracker, type GoalData } from '@/components/goals/goal-tracker';
 import { GoalForm } from '@/components/goals/goal-form';
 import {
   Dialog,
@@ -15,16 +15,16 @@ import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import type { GoalFormData } from '@/lib/types';
 
 export default function GoalsPage() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold } = useHouseholdFetch();
-  type SavingsGoalClient = Record<string, unknown> & { id: string; status?: string };
-  const [goals, setGoals] = useState<SavingsGoalClient[]>([]);
+  const [goals, setGoals] = useState<GoalData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedGoal, setSelectedGoal] = useState<SavingsGoalClient | null>(null);
+  const [selectedGoal, setSelectedGoal] = useState<(Partial<GoalFormData> & { id: string }) | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
 
   const loadGoals = useCallback(async () => {
@@ -52,10 +52,10 @@ export default function GoalsPage() {
         return;
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as unknown;
 
       // Empty array is valid - don't show error
-      setGoals(Array.isArray(data) ? data : []);
+      setGoals(Array.isArray(data) ? (data as GoalData[]) : []);
       setError(null);
     } catch (error) {
       // Only network errors reach here
@@ -188,7 +188,7 @@ export default function GoalsPage() {
   const handleEditGoal = async (goal: { id: string }) => {
     const details = await loadGoalDetails(goal.id);
     if (details) {
-      setSelectedGoal(details as SavingsGoalClient);
+      setSelectedGoal(details as Partial<GoalFormData> & { id: string });
       setIsFormOpen(true);
     }
   };

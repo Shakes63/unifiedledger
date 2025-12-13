@@ -29,8 +29,12 @@ import { DebtReductionChart } from '@/components/debts/debt-reduction-chart';
 import { AmortizationScheduleView } from '@/components/debts/amortization-schedule-view';
 import { ChevronDown, ChevronUp, BarChart3, TrendingDown, TrendingUp } from 'lucide-react';
 import { FeatureGate } from '@/components/experimental/feature-gate';
+import type { PayoffStrategyResult } from '@/lib/debts/payoff-calculator';
 
 type Period = 'month' | 'year' | '12months';
+
+type ChartDataPoint = { name: string; [key: string]: string | number };
+type PieDataPoint = { name: string; value: number; [key: string]: string | number };
 
 interface ReportData {
   incomeVsExpenses: { data?: Array<Record<string, unknown>> } & Record<string, unknown>;
@@ -68,6 +72,9 @@ export default function ReportsPage() {
     period,
     setDateRange,
     setPeriod,
+    selectedAccountIds,
+    selectedCategoryIds,
+    selectedMerchantIds,
     setAccountIds,
     setCategoryIds,
     setMerchantIds,
@@ -311,6 +318,8 @@ export default function ReportsPage() {
     );
   }
 
+  const netWorthValue = data.netWorth?.currentNetWorth ?? 0;
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -434,8 +443,8 @@ export default function ReportsPage() {
             <CardTitle className="text-sm text-muted-foreground">Net Worth</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className={`text-2xl font-bold ${data.netWorth?.currentNetWorth >= 0 ? 'text-[var(--color-income)]' : 'text-[var(--color-expense)]'}`}>
-              ${data.netWorth?.currentNetWorth.toFixed(2)}
+            <p className={`text-2xl font-bold ${netWorthValue >= 0 ? 'text-[var(--color-income)]' : 'text-[var(--color-expense)]'}`}>
+              ${netWorthValue.toFixed(2)}
             </p>
           </CardContent>
         </Card>
@@ -447,7 +456,7 @@ export default function ReportsPage() {
         <LineChart
           title="Income vs Expenses"
           description={`Trend comparison for ${period === '12months' ? 'last 12 months' : 'period'}`}
-          data={data.incomeVsExpenses?.data || []}
+          data={(data.incomeVsExpenses?.data || []) as unknown as ChartDataPoint[]}
           lines={[
             { dataKey: 'income', stroke: COLOR_PALETTE.income, name: 'Income' },
             { dataKey: 'expenses', stroke: COLOR_PALETTE.expense, name: 'Expenses' },
@@ -458,7 +467,7 @@ export default function ReportsPage() {
         <PieChart
           title="Spending by Category"
           description={`Distribution of ${period === '12months' ? 'annual' : 'period'} expenses`}
-          data={data.categoryBreakdown?.data || []}
+          data={(data.categoryBreakdown?.data || []) as unknown as PieDataPoint[]}
           colors={[
             COLOR_PALETTE.primary,
             COLOR_PALETTE.income,
@@ -475,7 +484,7 @@ export default function ReportsPage() {
         <AreaChart
           title="Cash Flow Analysis"
           description={`Inflows and outflows ${period === '12months' ? 'over 12 months' : 'for period'}`}
-          data={data.cashFlow?.data || []}
+          data={(data.cashFlow?.data || []) as unknown as ChartDataPoint[]}
           areas={[
             {
               dataKey: 'inflows',
@@ -496,7 +505,7 @@ export default function ReportsPage() {
         <LineChart
           title="Net Worth Trend"
           description={`Historical net worth ${period === '12months' ? 'over 12 months' : 'for period'}`}
-          data={data.netWorth?.history || []}
+          data={(data.netWorth?.history || []) as unknown as ChartDataPoint[]}
           lines={[
             { dataKey: 'netWorth', stroke: COLOR_PALETTE.primary, name: 'Net Worth' },
           ]}
@@ -533,9 +542,9 @@ export default function ReportsPage() {
               categories.forEach((cat) => {
                 months.forEach((month) => {
                   heatmapData.push({
-                    category: cat.name,
+                    category: cat.name || '',
                     month: month,
-                    value: Math.random() * cat.value, // Distribute spending across months
+                    value: Math.random() * (cat.value ?? 0), // Distribute spending across months
                   });
                 });
               });
@@ -550,7 +559,7 @@ export default function ReportsPage() {
       <BarChart
         title="Budget vs Actual Spending"
         description="Compare your budgets against actual spending"
-        data={data.budgetVsActual?.data || []}
+        data={(((data.budgetVsActual as unknown as { data?: unknown })?.data || []) as unknown) as ChartDataPoint[]}
         bars={[
           { dataKey: 'budget', fill: COLOR_PALETTE.primary, name: 'Budget' },
           { dataKey: 'actual', fill: COLOR_PALETTE.expense, name: 'Actual' },
@@ -616,7 +625,7 @@ export default function ReportsPage() {
       <BarChart
         title="Merchant Spending Distribution"
         description="Top 10 merchants by total spending"
-        data={data.merchantAnalysis?.data?.slice(0, 10) || []}
+        data={(data.merchantAnalysis?.data?.slice(0, 10) || []) as unknown as ChartDataPoint[]}
         bars={[{ dataKey: 'amount', fill: COLOR_PALETTE.expense, name: 'Amount' }]}
         layout="vertical"
       />
@@ -654,7 +663,7 @@ export default function ReportsPage() {
           </button>
 
           {showPaymentBreakdown && (
-            <PaymentBreakdownSection strategy={payoffStrategy as Record<string, unknown>} />
+            <PaymentBreakdownSection strategy={payoffStrategy as unknown as PayoffStrategyResult} />
           )}
 
           {/* Debt Reduction Progress Chart */}
@@ -702,7 +711,7 @@ export default function ReportsPage() {
           </button>
 
           {showAmortization && (
-            <AmortizationScheduleView strategy={payoffStrategy as Record<string, unknown>} />
+            <AmortizationScheduleView strategy={payoffStrategy as unknown as PayoffStrategyResult} />
           )}
         </div>
       )}

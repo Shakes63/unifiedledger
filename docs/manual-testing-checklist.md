@@ -223,6 +223,7 @@ All features verified: Settings page, multi-level tax rate configuration (state/
 - [x] "Subject to sales tax" checkbox on income transactions
 - [ ] Exempt transactions show badge on list - NOT TESTED
 - [ ] Exempt transactions excluded from quarterly totals - NOT TESTED
+- [ ] Quarterly report shows per-jurisdiction tax breakdown (state/county/city/special) and totals match configured rates - NOT TESTED
 
 ### Merchant Sales Tax Exemption
 - [x] Tax Exempt column on merchants page with toggle

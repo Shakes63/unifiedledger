@@ -14,6 +14,8 @@ import {
 import { toast } from 'sonner';
 import type { CategoryFormData } from '@/lib/types';
 
+type CategoryType = CategoryFormData['type'];
+
 const CATEGORY_TYPES = [
   { value: 'income', label: 'Income' },
   { value: 'expense', label: 'Expense' },
@@ -162,7 +164,7 @@ export function CategoryForm({
             onValueChange={(value) => {
               setFormData(prev => ({
                 ...prev,
-                type: value,
+                type: value as CategoryType,
                 ...(isParentCategory ? {} : { parentId: '' }),
               }));
               if (errors.type) setErrors(prev => ({ ...prev, type: '' }));

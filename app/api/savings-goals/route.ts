@@ -5,7 +5,7 @@ import { savingsGoals, savingsMilestones, accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
-type SavingsGoalStatus = typeof savingsGoals.$inferSelect['status'];
+type SavingsGoalStatus = NonNullable<typeof savingsGoals.$inferSelect['status']>;
 const isSavingsGoalStatus = (value: string): value is SavingsGoalStatus => {
   return ['active', 'completed', 'paused', 'cancelled'].includes(value);
 };

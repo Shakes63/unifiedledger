@@ -22,7 +22,7 @@ interface Milestone {
   achievedAt?: string;
 }
 
-interface GoalData {
+export interface GoalData {
   id: string;
   name: string;
   description?: string;

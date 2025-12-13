@@ -449,16 +449,16 @@ export default function BudgetsPage() {
               );
 
               // Filter ungrouped categories
-              const ungroupedIncome = budgetData.groupedCategories.income.filter(
+              const ungroupedIncome = (budgetData.groupedCategories.income ?? []).filter(
                 (c: CategoryData) => !groupedCategoryIds.has(c.id) && !c.parentId
               );
-              const ungroupedBills = budgetData.groupedCategories.bills.filter(
+              const ungroupedBills = (budgetData.groupedCategories.bills ?? []).filter(
                 (c: CategoryData) => !groupedCategoryIds.has(c.id) && !c.parentId
               );
-              const ungroupedExpenses = budgetData.groupedCategories.expenses.filter(
+              const ungroupedExpenses = (budgetData.groupedCategories.expenses ?? []).filter(
                 (c: CategoryData) => !groupedCategoryIds.has(c.id) && !c.parentId
               );
-              const ungroupedSavings = budgetData.groupedCategories.savings.filter(
+              const ungroupedSavings = (budgetData.groupedCategories.savings ?? []).filter(
                 (c: CategoryData) => !groupedCategoryIds.has(c.id) && !c.parentId
               );
 

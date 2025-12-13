@@ -187,7 +187,9 @@ export function PendingTransactionsList() {
 
                 <div className="flex-1">
                   <div className="text-[#ffffff]">
-                    {tx.formData.description || 'Unnamed transaction'}
+                    {typeof tx.formData.description === 'string' && tx.formData.description.trim()
+                      ? tx.formData.description
+                      : 'Unnamed transaction'}
                   </div>
                   <div className="text-xs text-[#6b7280]">
                     {new Date(tx.timestamp).toLocaleString()}
@@ -196,7 +198,7 @@ export function PendingTransactionsList() {
 
                 <div className="text-right">
                   <div className="font-mono text-[#ffffff]">
-                    ${Math.abs(tx.formData.amount || 0).toFixed(2)}
+                    ${Math.abs(typeof tx.formData.amount === 'number' ? tx.formData.amount : 0).toFixed(2)}
                   </div>
                   <div className="text-xs text-[#9ca3af] capitalize">{tx.syncStatus}</div>
                 </div>

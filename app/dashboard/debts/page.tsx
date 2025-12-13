@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { DebtPayoffTracker } from '@/components/debts/debt-payoff-tracker';
+import { DebtPayoffTracker, type DebtData } from '@/components/debts/debt-payoff-tracker';
 import { DebtForm } from '@/components/debts/debt-form';
 import { DebtPayoffStrategy } from '@/components/debts/debt-payoff-strategy';
 import { WhatIfCalculator } from '@/components/debts/what-if-calculator';
@@ -31,6 +31,7 @@ import Link from 'next/link';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { UtilizationTrendsChart, BalanceHistoryChart, InterestPaidChart } from '@/components/charts';
+import type { DebtFormData } from '@/lib/types';
 
 // Unified debt type from API
 interface UnifiedDebt {
@@ -67,32 +68,58 @@ interface UnifiedDebtSummary {
   strategyBalance: number;
 }
 
+interface DebtStats {
+  activeDebtCount: number;
+  totalRemainingBalance: number;
+  totalPaidOff: number;
+  percentagePaidOff: number;
+}
+
+interface DebtSettings {
+  debtStrategyEnabled?: boolean;
+  preferredMethod?: 'avalanche' | 'snowball';
+  extraMonthlyPayment?: number;
+  paymentFrequency?: 'weekly' | 'biweekly' | 'monthly';
+}
+
 // View mode type
 type ViewMode = 'unified' | 'legacy';
+type PayoffMethod = 'avalanche' | 'snowball';
+
+interface RolldownPayment {
+  debtId: string;
+  payoffMonth?: number;
+  payoffDate?: string;
+  minimumOnlyMonths?: number;
+  order?: number;
+  monthsToPayoff?: number;
+  totalInterestPaid?: number;
+}
+
+type StrategyData = Partial<Record<PayoffMethod, { rolldownPayments?: RolldownPayment[] }>>;
 
 export default function DebtsPage() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold } = useHouseholdFetch();
-  type LegacyDebtClient = Record<string, unknown> & { id: string; name?: string; status?: string };
-  const [debts, setDebts] = useState<LegacyDebtClient[]>([]);
+  const [debts, setDebts] = useState<DebtData[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedDebt, setSelectedDebt] = useState<LegacyDebtClient | null>(null);
+  const [selectedDebt, setSelectedDebt] = useState<(Partial<DebtFormData> & { id: string }) | null>(null);
   const [filter, setFilter] = useState<'all' | 'active' | 'paid_off'>('active');
-  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+  const [stats, setStats] = useState<DebtStats | null>(null);
   const [showMinWarning, setShowMinWarning] = useState(false);
   const [showWhatIf, setShowWhatIf] = useState(false);
   const [showStrategy, setShowStrategy] = useState(false);
   const [showPaymentTracking, setShowPaymentTracking] = useState(false);
   const [showCharts, setShowCharts] = useState(false);
-  const [debtSettings, setDebtSettings] = useState<Record<string, unknown> | null>(null);
+  const [debtSettings, setDebtSettings] = useState<DebtSettings | null>(null);
   const [allExpanded, setAllExpanded] = useState<boolean | null>(null);
   // Refresh key forces child components to remount and re-fetch their data
   const [refreshKey, setRefreshKey] = useState(0);
   // Track strategy toggle saving state
   const [savingStrategy, setSavingStrategy] = useState(false);
   // Strategy data for payoff timelines on individual debt cards
-  const [strategyData, setStrategyData] = useState<Record<string, unknown> | null>(null);
+  const [strategyData, setStrategyData] = useState<StrategyData | null>(null);
   // Unified view state
   const [viewMode, setViewMode] = useState<ViewMode>('unified');
   const [unifiedDebts, setUnifiedDebts] = useState<UnifiedDebt[]>([]);
@@ -140,7 +167,7 @@ export default function DebtsPage() {
     try {
       const response = await fetchWithHousehold('/api/debts/settings');
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as DebtSettings;
         setDebtSettings(data);
       }
     } catch (error) {
@@ -169,7 +196,7 @@ export default function DebtsPage() {
     try {
       const response = await fetchWithHousehold('/api/debts/stats');
       if (!response.ok) throw new Error('Failed to fetch stats');
-      const data = await response.json();
+      const data = (await response.json()) as DebtStats;
       setStats(data);
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -182,7 +209,7 @@ export default function DebtsPage() {
       const extraPayment = debtSettings.extraMonthlyPayment || 0;
       const response = await fetchWithHousehold(`/api/debts/payoff-strategy?compare=true&extraPayment=${extraPayment}`);
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as StrategyData;
         setStrategyData(data);
       }
     } catch (error) {
@@ -303,7 +330,7 @@ export default function DebtsPage() {
   const handleEditDebt = async (debt: { id: string }) => {
     const details = await loadDebtDetails(debt.id);
     if (details) {
-      setSelectedDebt(details as LegacyDebtClient);
+      setSelectedDebt(details as Partial<DebtFormData> & { id: string });
       setIsFormOpen(true);
     }
   };
@@ -323,7 +350,7 @@ export default function DebtsPage() {
     setSavingStrategy(true);
     try {
       const response = await putWithHousehold('/api/debts/settings', {
-        ...debtSettings,
+        ...(debtSettings ?? {}),
         debtStrategyEnabled: enabled,
       });
       
@@ -333,8 +360,8 @@ export default function DebtsPage() {
       }
       
       // Update local state
-      setDebtSettings((prev: typeof debtSettings) => ({
-        ...prev,
+      setDebtSettings((prev) => ({
+        ...(prev ?? {}),
         debtStrategyEnabled: enabled,
       }));
       
@@ -747,10 +774,10 @@ export default function DebtsPage() {
                     (r: { debtId: string }) => r.debtId === debt.id
                   );
                   const payoffTimeline = rolldownPayment ? {
-                    strategyMonths: rolldownPayment.payoffMonth,
-                    strategyDate: rolldownPayment.payoffDate,
-                    minimumOnlyMonths: rolldownPayment.minimumOnlyMonths,
-                    order: rolldownPayment.order,
+                    strategyMonths: rolldownPayment.payoffMonth ?? 0,
+                    strategyDate: rolldownPayment.payoffDate ?? '',
+                    minimumOnlyMonths: rolldownPayment.minimumOnlyMonths ?? 0,
+                    order: rolldownPayment.order ?? 0,
                     method: currentMethod,
                   } : undefined;
 
