@@ -3,7 +3,6 @@
 ---
 
 ## New Bugs
-- **Rule action preview shows “Unknown” for merchant/account actions** - The action preview label helper supports merchant/account names, but the caller only passes `categoryName`, and the manager doesn’t hydrate merchant/account names. This makes `set_merchant`, `set_account`, and `convert_to_transfer` previews display “Unknown”/generic labels even when IDs are set. See `components/rules/rules-manager.tsx` (`getActionLabel()` + call site around ~L42-L74 and ~L157-L172).
 - **Bulk apply rules endpoint docs mention unsupported query param** - `/api/rules/apply-bulk` docstring lists a `categoryId` query param, but the handler never reads it and always filters `categoryId IS NULL`. See `app/api/rules/apply-bulk/route.ts` (comment ~L31-L37; query build ~L50-L63).
 - **Rules action executor lookups aren’t household-scoped** - `executeRuleActions()` validates/fetches categories/merchants by `userId` only (no `householdId`), and apply-bulk’s merchant/category lookups also omit user/household filters. This is risky for multi-household isolation if any cross-household IDs slip through (or future callers reuse the executor). See `lib/rules/actions-executor.ts` (~L127-L137, ~L175-L186, ~L279-L289) and `app/api/rules/apply-bulk/route.ts` (~L171-L191).
 - **Repeat Transaction applies rules incompletely (category only)** - The repeat endpoint runs `findMatchingRule()` but only extracts the first `set_category` action and ignores other rule actions (merchant/description/split/transfer/account/sales tax). This diverges from normal transaction creation. See `app/api/transactions/repeat/route.ts` (~L98-L129).
@@ -41,17 +40,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 7 |
-| Tests Passing | 899/899 (100%) |
+| Active Bugs | 6 |
+| Tests Passing | 900/900 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 753 (177 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 754 (178 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (177 total)
+## Fixed Bugs (178 total)
 
+178. ✅ **Rule action preview shows “Unknown” for merchant/account actions** [FIXED 2025-12-13] - Hydrated merchant/account names once and passed them into the Rules page action preview so merchant/account/transfer actions display correct labels; added regression test.
 177. ✅ **isActionImplemented() is outdated vs actual supported actions** [FIXED 2025-12-13] - Added missing action types to the helper and extended rules executor tests so UI gating can’t drift from actual support.
 176. ✅ **RulesManager N+1 category fetches** [FIXED 2025-12-13] - Updated `fetchRules()` to load categories once and hydrate rule category names locally; added regression test to ensure only one categories request.
 175. ✅ **Rules list returned in reverse priority order** [FIXED 2025-12-13] - Changed `/api/rules` to sort by ascending priority to match rule engine semantics and added an API ordering regression test.

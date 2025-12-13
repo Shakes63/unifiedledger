@@ -31,6 +31,16 @@ interface CategoryItem {
   type?: string;
 }
 
+interface MerchantItem {
+  id: string;
+  name: string;
+}
+
+interface AccountItem {
+  id: string;
+  name: string;
+}
+
 interface RulesManagerProps {
   onCreateRule?: () => void;
   onEditRule?: (rule: Rule) => void;
@@ -83,6 +93,8 @@ function RuleCard({
   onMoveUp,
   onMoveDown,
   onApply,
+  merchantNameById,
+  accountNameById,
 }: {
   rule: Rule;
   index: number;
@@ -93,6 +105,8 @@ function RuleCard({
   onMoveUp?: (id: string) => void;
   onMoveDown?: (id: string) => void;
   onApply?: (id: string) => void;
+  merchantNameById?: Map<string, string>;
+  accountNameById?: Map<string, string>;
 }) {
   const [applying, setApplying] = useState(false);
 
@@ -168,7 +182,22 @@ function RuleCard({
                   {rule.actions[0].type === 'convert_to_transfer' && <ArrowRightLeft className="w-3 h-3 mr-1" />}
                   {rule.actions[0].type === 'create_split' && <Scissors className="w-3 h-3 mr-1 text-primary" />}
                   {rule.actions[0].type === 'set_account' && <Banknote className="w-3 h-3 mr-1 text-primary" />}
-                  {getActionLabel(rule.actions[0], rule.categoryName)}
+                  {(() => {
+                    const firstAction = rule.actions![0];
+                    const merchantName =
+                      firstAction.type === 'set_merchant' && typeof firstAction.value === 'string'
+                        ? merchantNameById?.get(firstAction.value)
+                        : undefined;
+
+                    const accountName =
+                      firstAction.type === 'set_account' && typeof firstAction.value === 'string'
+                        ? accountNameById?.get(firstAction.value)
+                        : firstAction.type === 'convert_to_transfer' && typeof firstAction.config?.targetAccountId === 'string'
+                          ? accountNameById?.get(firstAction.config.targetAccountId)
+                          : undefined;
+
+                    return getActionLabel(firstAction, rule.categoryName, merchantName, accountName);
+                  })()}
                 </Badge>
 
                 {/* "+X more" Badge */}
@@ -281,6 +310,8 @@ export function RulesManager({
   const [rules, setRules] = useState<Rule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [merchantNameById, setMerchantNameById] = useState<Map<string, string>>(new Map());
+  const [accountNameById, setAccountNameById] = useState<Map<string, string>>(new Map());
 
   const fetchRules = useCallback(async () => {
     if (!selectedHouseholdId) return;
@@ -305,6 +336,36 @@ export function RulesManager({
       const categoryNameById = new Map<string, string>(
         categories.map(c => [c.id, c.name])
       );
+
+      // Fetch merchants + accounts once for action preview name hydration
+      let merchants: MerchantItem[] = [];
+      try {
+        const merchantResponse = await fetchWithHousehold('/api/merchants');
+        if (merchantResponse.ok) {
+          const merchantJson = await merchantResponse.json();
+          merchants = Array.isArray(merchantJson)
+            ? merchantJson
+            : (Array.isArray(merchantJson?.data) ? merchantJson.data : []);
+        }
+      } catch (err) {
+        console.error('Error fetching merchants:', err);
+      }
+
+      let accounts: AccountItem[] = [];
+      try {
+        const accountsResponse = await fetchWithHousehold('/api/accounts');
+        if (accountsResponse.ok) {
+          const accountsJson = await accountsResponse.json();
+          accounts = Array.isArray(accountsJson)
+            ? accountsJson
+            : (Array.isArray(accountsJson?.data) ? accountsJson.data : []);
+        }
+      } catch (err) {
+        console.error('Error fetching accounts:', err);
+      }
+
+      setMerchantNameById(new Map<string, string>(merchants.map(m => [m.id, m.name])));
+      setAccountNameById(new Map<string, string>(accounts.map(a => [a.id, a.name])));
 
       const rulesWithCategories: Rule[] = data.map((rule: Rule) => {
         if (!rule.categoryId) return rule;
@@ -514,6 +575,8 @@ export function RulesManager({
               onMoveUp={() => handleChangePriority(rule.id, 'up')}
               onMoveDown={() => handleChangePriority(rule.id, 'down')}
               onApply={handleApplyRule}
+              merchantNameById={merchantNameById}
+              accountNameById={accountNameById}
             />
           ))}
         </div>
