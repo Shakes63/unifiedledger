@@ -22,7 +22,7 @@ _These features are implemented, but still need dedicated automated test coverag
 - [x] **PDF Export** (Tax Dashboard) [COMPLETED 2025-12-13] - Added server-backed PDF export route (`/api/tax/export/pdf`) and automated coverage for generator output + response headers/body.
 - [ ] **Sales Tax Pipeline** - exemption rules (merchant + transaction), multi-jurisdiction rate calculations, quarterly filing aggregation. **Plan:** `docs/sales-tax-pipeline-plan.md` (✅ Phase 1: core util unit tests; next: quarterly endpoint contract tests).
 - [x] **Email Flows** [COMPLETED 2025-12-13] - Added automated coverage for resend verification rate limiting + email-change verification callback, and implemented tested provider fallback behavior (Resend → SMTP, SMTP → Resend).
-- [ ] **Backup System** - scheduled backups, retention policies, restore flows, and permissions
+- [ ] **Backup System** - scheduled backups, retention policies, restore flows, and permissions. **Plan:** `docs/backup-system-plan.md` (✅ Phase 1: cron + list API contract tests; next: download/delete permission tests + retention/unit coverage).
 - [ ] **Household Data Isolation (end-to-end)** - cross-household access attempts blocked across all household-scoped modules (beyond unit checks)
 
 ---
