@@ -12,7 +12,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart } from '@/components/charts';
 import { FileText, DollarSign, TrendingUp, AlertCircle, Building2, User, Download, Loader2, Landmark, GraduationCap, Home, Briefcase } from 'lucide-react';
-import { exportTaxToPDF, TaxExportData } from '@/lib/tax/tax-pdf-export';
+import { getTaxPdfFilename } from '@/lib/tax/tax-pdf-export';
 import { toast } from 'sonner';
 
 type DeductionTypeFilter = 'all' | 'business' | 'personal';
@@ -179,25 +179,40 @@ export default function TaxPage() {
 
     try {
       setIsExporting(true);
-      
-      const exportData: TaxExportData = {
-        year: data.summary.year,
-        totalIncome: data.summary.totalIncome,
-        totalDeductions: data.summary.totalDeductions,
-        businessDeductions: data.summary.businessDeductions,
-        personalDeductions: data.summary.personalDeductions,
-        taxableIncome: data.summary.taxableIncome,
-        estimatedQuarterlyPayment: data.estimates.estimatedQuarterlyPayment,
-        estimatedAnnualTax: data.estimates.estimatedAnnualTax,
-        categories: data.summary.byCategory,
-        filterType: typeFilter,
-      };
 
-      exportTaxToPDF(exportData);
+      const res = await fetch(`/api/tax/export/pdf?year=${year}&type=${typeFilter}`, {
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        let message = 'Failed to export PDF';
+        try {
+          const json = await res.json();
+          if (json?.error) message = json.error;
+        } catch {
+          // ignore parse failures (non-JSON response)
+        }
+        throw new Error(message);
+      }
+
+      const blob = await res.blob();
+      const headerFilename = res.headers.get('content-disposition')?.match(/filename=\"?([^\";]+)\"?/i)?.[1] || null;
+      const fallbackFilename = getTaxPdfFilename(parseInt(year, 10), typeFilter);
+      const filename = headerFilename || fallbackFilename;
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
       toast.success('Tax report exported to PDF');
     } catch (err) {
       console.error('Error exporting PDF:', err);
-      toast.error('Failed to export PDF');
+      toast.error(err instanceof Error ? err.message : 'Failed to export PDF');
     } finally {
       setIsExporting(false);
     }

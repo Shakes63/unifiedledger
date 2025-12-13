@@ -64,9 +64,20 @@ function getFilterLabel(filterType: 'all' | 'business' | 'personal'): string {
 }
 
 /**
- * Generate and download a PDF report of tax deductions
+ * Build a stable filename for the PDF export.
  */
-export function exportTaxToPDF(data: TaxExportData): void {
+export function getTaxPdfFilename(
+  year: number,
+  filterType: TaxExportData['filterType']
+): string {
+  const filterSuffix = filterType !== 'all' ? `_${filterType}` : '';
+  return `tax_deductions_${year}${filterSuffix}.pdf`;
+}
+
+function createTaxPdfDocument(
+  data: TaxExportData,
+  options?: { generatedAt?: Date }
+): jsPDF {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -102,9 +113,10 @@ export function exportTaxToPDF(data: TaxExportData): void {
   yPos = 45;
 
   // Generation date
+  const generatedAt = options?.generatedAt ?? new Date();
   doc.setTextColor(...mutedColor);
   doc.setFontSize(9);
-  doc.text(`Generated: ${new Date().toLocaleDateString('en-US', {
+  doc.text(`Generated: ${generatedAt.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -302,8 +314,26 @@ export function exportTaxToPDF(data: TaxExportData): void {
   // ============================================
   // DOWNLOAD
   // ============================================
-  const filterSuffix = data.filterType !== 'all' ? `_${data.filterType}` : '';
-  const filename = `tax_deductions_${data.year}${filterSuffix}.pdf`;
+  return doc;
+}
+
+/**
+ * Generate PDF bytes as an ArrayBuffer (server/test friendly).
+ */
+export function generateTaxPdfArrayBuffer(
+  data: TaxExportData,
+  options?: { generatedAt?: Date }
+): ArrayBuffer {
+  const doc = createTaxPdfDocument(data, options);
+  return doc.output('arraybuffer') as ArrayBuffer;
+}
+
+/**
+ * Generate and download a PDF report of tax deductions (client helper).
+ */
+export function exportTaxToPDF(data: TaxExportData): void {
+  const filename = getTaxPdfFilename(data.year, data.filterType);
+  const doc = createTaxPdfDocument(data);
   doc.save(filename);
 }
 

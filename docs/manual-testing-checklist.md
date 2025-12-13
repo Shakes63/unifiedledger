@@ -205,6 +205,8 @@ All features verified: Summary cards, period selection (6 options), all chart ty
 
 All features verified: Tax dashboard, year selector, summary cards, deductions chart, business vs personal filter tabs, tax category mappings (in household settings), PDF export.
 
+- [ ] Export PDF downloads via `/api/tax/export/pdf` and opens as a valid PDF - NOT TESTED (server-backed export)
+
 ### Auto-Classification
 - [ ] Creating expense with mapped category creates tax record - Not tested
 - [ ] Allocation percentage applied correctly - Not tested
