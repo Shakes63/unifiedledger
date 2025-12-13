@@ -67,13 +67,25 @@ Add tests for:
 - `POST /api/calendar-sync/sync`
 Focus: required params, validation and error status codes (`400`, `401`, `207`), and response shapes.
 
+**Status:** ✅ Implemented
+ - `__tests__/api/calendar-sync-settings.test.ts`
+ - `__tests__/api/calendar-sync-sync.test.ts`
+
 ### Phase 4 — Service/unit coverage (optional expansion)
 If coverage still feels thin after route tests:
 - Extract pure helpers from `lib/calendar/google-calendar.ts` (e.g., event payload builder) and unit test them
 - Add focused tests around `lib/calendar/sync-service.ts` branching logic (e.g., `syncEntity` early exits) using DB mocks
 
+**Status:** ✅ Implemented (service-level unit coverage added)
+ - `__tests__/lib/calendar/sync-service.test.ts` (covers `fullSync` early exits + provider dispatch; `syncEntity` early exits + create/update/delete paths, including update fallback-to-create and budget-period bill-instance behavior)
+
 ## First Task to Implement (do this immediately)
-Implement **Phase 2**: `__tests__/api/calendar-sync-google-enable.test.ts` with the full set of cases above.
+Next optional expansion:
+- Add deeper unit coverage for incremental sync paths (create/update when tracked event exists, update failure fallback to create, out-of-range deletes, budget_period path triggers fullSync).
+
+Additional API route coverage added:
+- ✅ `/api/calendar-sync/calendars` (`__tests__/api/calendar-sync-calendars.test.ts`)
+- ✅ `/api/calendar-sync/disconnect` (`__tests__/api/calendar-sync-disconnect.test.ts`)
 
 ## Definition of Done
 - New API tests pass under `pnpm test`

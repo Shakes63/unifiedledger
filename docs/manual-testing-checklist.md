@@ -799,6 +799,7 @@ Phase 6 implements the Autopay System for automatic bill payments. UI configurat
 - [ ] Falls back to expected amount when account data unavailable
 - [ ] Zero/negative amounts return "Nothing Owed" status
 - [ ] Insufficient funds detection works correctly
+- [x] Automated unit tests added: amount calculation + description + validation (`__tests__/lib/bills/autopay-calculator.test.ts`) - Added 2025-12-13
 
 ### Autopay Transaction Creator (`lib/bills/autopay-transaction.ts`)
 - [ ] Creates transfer for credit card payments (linkedAccountId set)
@@ -824,6 +825,7 @@ Phase 6 implements the Autopay System for automatic bill payments. UI configurat
 - [ ] GET returns preview of bills due today
 - [ ] Cron secret validation works in production mode
 - [ ] Returns detailed result with successes and errors
+- [x] Automated API tests added: `/api/cron/autopay` POST/GET contract + cron secret behavior (`__tests__/api/cron-autopay.test.ts`) - Added 2025-12-13
 
 ### Autopay Notifications (`lib/notifications/autopay-notifications.ts`)
 - [ ] Success notification created with correct amount and details
@@ -1014,6 +1016,9 @@ External calendar sync for syncing bills, milestones, and payoff dates to Google
 - [ ] Disconnect button removes connection and optionally deletes remote events - NOT TESTABLE
 - [x] Connection status displays correctly - Shows "Not configured" / "Setup Required" badge when env vars missing
 - [x] Automated API tests added: `GET /api/calendar-sync/google/status` route contract + branches (`__tests__/api/calendar-sync-google-status.test.ts`) - Added 2025-12-13
+- [x] Automated API tests added: `POST /api/calendar-sync/google/enable` route contract + branches (`__tests__/api/calendar-sync-google-enable.test.ts`) - Added 2025-12-13
+- [x] Automated API tests added: `/api/calendar-sync/calendars` route contract + branches (`__tests__/api/calendar-sync-calendars.test.ts`) - Added 2025-12-13
+- [x] Automated API tests added: `/api/calendar-sync/disconnect` route contract + branches (`__tests__/api/calendar-sync-disconnect.test.ts`) - Added 2025-12-13
 
 ### TickTick Integration
 - [x] Connect button visible and clickable
@@ -1023,6 +1028,11 @@ External calendar sync for syncing bills, milestones, and payoff dates to Google
 - [ ] Changing project updates connection - NOT TESTABLE
 - [ ] Disconnect button removes connection - NOT TESTABLE
 - [x] Connection status displays correctly - Shows "Sync to TickTick tasks" when not connected
+- [x] Automated API tests added: `GET /api/calendar-sync/ticktick/connect` route contract + branches (`__tests__/api/calendar-sync-ticktick-connect.test.ts`) - Added 2025-12-13
+- [x] Automated API tests added: `GET/POST /api/calendar-sync/projects` route contract + branches (`__tests__/api/calendar-sync-ticktick-projects.test.ts`) - Added 2025-12-13
+- [x] Automated API tests added: `GET /api/calendar-sync/ticktick/callback` redirect + upsert flow (`__tests__/api/calendar-sync-ticktick-callback.test.ts`) - Added 2025-12-13
+- [x] Automated unit tests added: TickTick provider sync paths (`lib/calendar/sync-service.ts`) - Added 2025-12-13
+- [x] Automated unit tests added: TickTick token refresh + task payload reminders (`lib/calendar/ticktick-calendar.ts`) - Added 2025-12-13
 
 ### Sync Settings (only visible when connected)
 - [ ] Sync Mode selector (Direct dates vs Budget periods) - NOT TESTABLE
@@ -1040,6 +1050,8 @@ External calendar sync for syncing bills, milestones, and payoff dates to Google
 - [ ] Events include deep links back to app - NOT TESTABLE
 - [ ] Reminders set according to user preference - NOT TESTABLE
 - [ ] Auto-sync triggers when source data changes - NOT TESTABLE
+- [x] Automated API tests added: shared calendar sync routes (`GET/PUT /api/calendar-sync/settings`, `POST /api/calendar-sync/sync`) - Added 2025-12-13
+- [x] Automated unit tests added: calendar sync service branching/dispatch (`lib/calendar/sync-service.ts`) - Added 2025-12-13
 
 ### Environment Variables & Error Handling
 - [x] Missing Google credentials show "Setup Required" badge (no Connect button)

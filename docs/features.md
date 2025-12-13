@@ -12,10 +12,10 @@ _Add new feature ideas here_
 
 _These features are implemented, but still need dedicated automated test coverage (unit/integration/component as appropriate)._
 
-- [ ] **Google Calendar Sync** - Add automated coverage for calendar sync API routes + sync service logic (event creation/update/delete, sync modes, error handling). **Plan:** `docs/google-calendar-sync-tests-plan.md` (Phase 1 done: added tests for `GET /api/calendar-sync/google/status`).
-- [ ] **TickTick Calendar Sync** - API routes + sync service logic (OAuth token handling, project selection, task upsert, sync modes)
+- [x] **Google Calendar Sync (Test Coverage)** - Automated coverage for calendar sync API routes + sync service logic (event creation/update/delete, sync modes, error handling). **Plan:** `docs/google-calendar-sync-tests-plan.md` (✅ status/enable/settings/sync/calendars/disconnect route tests, ✅ `lib/calendar/sync-service.ts` unit coverage incl. incremental `syncEntity` branches).
+- [x] **TickTick Calendar Sync (Test Coverage)** - API routes + sync service logic (OAuth token handling, project selection, task upsert, sync modes). **Plan:** `docs/ticktick-calendar-sync-tests-plan.md` (✅ Phase 1: `GET /api/calendar-sync/ticktick/connect` + `GET/POST /api/calendar-sync/projects` tests; ✅ Phase 2: `/api/calendar-sync/ticktick/callback` redirect + token/project upsert coverage; ✅ Phase 3: TickTick provider paths covered in `lib/calendar/sync-service.ts` unit tests; ✅ Optional: `lib/calendar/ticktick-calendar.ts` unit coverage (token refresh + reminders via task payload)).
 - [ ] **Two-Factor Authentication (2FA)** - TOTP setup/verify flows, backup codes lifecycle, enforcement on sign-in, recovery paths
-- [ ] **Autopay System** - cron endpoint behavior, amount calculation (fixed/minimum/statement/full), transaction creation side effects, notifications
+- [ ] **Autopay System** - cron endpoint behavior, amount calculation (fixed/minimum/statement/full), transaction creation side effects, notifications. **Plan:** `docs/autopay-system-tests-plan.md`
 - [ ] **Offline Sync Queue** - IndexedDB queue behaviors (enqueue, retry, reconciliation), API retry/timeout handling, conflict resolution
 - [ ] **Admin User Management** - `/api/admin/users` routes (CRUD, search/pagination), owner/admin gating, validation and error cases
 - [ ] **Notification Delivery & Preferences** - preference validation (channels), per-notification-type routing, send logic + rate limiting
