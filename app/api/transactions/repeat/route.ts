@@ -15,6 +15,11 @@ import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
 import { TransactionData } from '@/lib/rules/condition-evaluator';
+import { executeRuleActions } from '@/lib/rules/actions-executor';
+import type { TransactionMutations } from '@/lib/rules/types';
+import { handleTransferConversion } from '@/lib/rules/transfer-action-handler';
+import { handleSplitCreation } from '@/lib/rules/split-action-handler';
+import { handleAccountChange } from '@/lib/rules/account-action-handler';
 
 export const dynamic = 'force-dynamic';
 
@@ -98,6 +103,12 @@ export async function POST(request: Request) {
     // Apply categorization rules if no category in template
     let appliedCategoryId = categoryId;
     let appliedRuleId: string | null = null;
+    let appliedActions: unknown[] = [];
+    let finalDescription = transactionDescription;
+    let finalMerchantId: string | null = null;
+    let postCreationMutations: TransactionMutations | null = null;
+    let finalIsTaxDeductible = false;
+    let finalIsSalesTaxable = false;
 
     if (
       !appliedCategoryId &&
@@ -106,7 +117,7 @@ export async function POST(request: Request) {
     ) {
       try {
         const transactionData: TransactionData = {
-          description: transactionDescription,
+          description: finalDescription,
           amount: parseFloat(transactionAmount.toString()),
           accountName: account[0].name,
           date: transactionDate,
@@ -116,15 +127,72 @@ export async function POST(request: Request) {
         const ruleMatch = await findMatchingRule(userId, householdId, transactionData);
 
         if (ruleMatch.matched && ruleMatch.rule) {
-          // Extract categoryId from actions (find first set_category action)
-          const setCategoryAction = ruleMatch.rule.actions.find(a => a.type === 'set_category');
-          if (setCategoryAction && setCategoryAction.value) {
-            appliedCategoryId = setCategoryAction.value;
-          }
           appliedRuleId = ruleMatch.rule.ruleId;
+
+          const executionResult = await executeRuleActions(
+            userId,
+            ruleMatch.rule.actions,
+            {
+              categoryId: appliedCategoryId || null,
+              description: finalDescription,
+              merchantId: finalMerchantId,
+              accountId: tmpl.accountId,
+              amount: parseFloat(transactionAmount.toString()),
+              date: transactionDate,
+              type: tmpl.type,
+              isTaxDeductible: false,
+            },
+            null,
+            null,
+            householdId
+          );
+
+          // Apply mutations
+          if (executionResult.mutations.categoryId !== undefined) {
+            appliedCategoryId = executionResult.mutations.categoryId;
+          }
+          if (executionResult.mutations.description) {
+            finalDescription = executionResult.mutations.description;
+          }
+          if (executionResult.mutations.merchantId !== undefined) {
+            finalMerchantId = executionResult.mutations.merchantId;
+          }
+          if (executionResult.mutations.isTaxDeductible !== undefined) {
+            finalIsTaxDeductible = executionResult.mutations.isTaxDeductible;
+          }
+          if (executionResult.mutations.isSalesTaxable !== undefined) {
+            finalIsSalesTaxable = executionResult.mutations.isSalesTaxable;
+          }
+
+          appliedActions = executionResult.appliedActions;
+          postCreationMutations = executionResult.mutations;
+
+          if (executionResult.errors && executionResult.errors.length > 0) {
+            console.warn('Rule action execution errors:', executionResult.errors);
+          }
         }
       } catch (error) {
         console.error('Error applying categorization rules:', error);
+      }
+    }
+
+    // Validate rule-provided merchantId before inserting transaction
+    if (finalMerchantId) {
+      const merchantExists = await db
+        .select()
+        .from(merchants)
+        .where(
+          and(
+            eq(merchants.id, finalMerchantId),
+            eq(merchants.userId, userId),
+            eq(merchants.householdId, householdId)
+          )
+        )
+        .limit(1);
+
+      if (merchantExists.length === 0) {
+        console.warn('Rule set merchantId but merchant not found; ignoring merchant mutation');
+        finalMerchantId = null;
       }
     }
 
@@ -137,10 +205,13 @@ export async function POST(request: Request) {
       categoryId: appliedCategoryId || null,
       date: transactionDate,
       amount: decimalAmount.toNumber(),
-      description: transactionDescription,
+      description: finalDescription,
+      merchantId: finalMerchantId,
       notes: tmpl.notes || null,
       type: tmpl.type,
       isPending: false,
+      isTaxDeductible: finalIsTaxDeductible,
+      isSalesTaxable: finalIsSalesTaxable,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -246,60 +317,101 @@ export async function POST(request: Request) {
     }
 
     // Create or update merchant and track usage (household-scoped)
-    const normalizedDescription = transactionDescription.toLowerCase().trim();
-    const existingMerchant = await db
-      .select()
-      .from(merchants)
-      .where(
-        and(
-          eq(merchants.userId, userId),
-          eq(merchants.householdId, householdId),
-          eq(merchants.normalizedName, normalizedDescription)
+    // - If a rule explicitly set a merchantId, update that merchant directly.
+    // - Otherwise keep the existing "normalized description" merchant upsert behavior.
+    if (finalMerchantId) {
+      const merchantById = await db
+        .select()
+        .from(merchants)
+        .where(
+          and(
+            eq(merchants.id, finalMerchantId),
+            eq(merchants.userId, userId),
+            eq(merchants.householdId, householdId)
+          )
         )
-      )
-      .limit(1);
+        .limit(1);
 
-    if (existingMerchant.length > 0 && existingMerchant[0]) {
-      const currentSpent = new Decimal(existingMerchant[0].totalSpent || 0);
-      const newSpent = currentSpent.plus(decimalAmount);
-      const usageCount = (existingMerchant[0].usageCount || 0);
-      const avgTransaction = newSpent.dividedBy(usageCount + 1);
+      if (merchantById.length > 0 && merchantById[0]) {
+        const currentSpent = new Decimal(merchantById[0].totalSpent || 0);
+        const newSpent = currentSpent.plus(decimalAmount);
+        const usageCount = (merchantById[0].usageCount || 0);
+        const avgTransaction = newSpent.dividedBy(usageCount + 1);
 
-      await db
-        .update(merchants)
-        .set({
-          usageCount: usageCount + 1,
-          lastUsedAt: new Date().toISOString(),
-          totalSpent: newSpent.toNumber(),
-          averageTransaction: avgTransaction.toNumber(),
-        })
+        await db
+          .update(merchants)
+          .set({
+            usageCount: usageCount + 1,
+            lastUsedAt: new Date().toISOString(),
+            totalSpent: newSpent.toNumber(),
+            averageTransaction: avgTransaction.toNumber(),
+          })
+          .where(
+            and(
+              eq(merchants.id, finalMerchantId),
+              eq(merchants.userId, userId),
+              eq(merchants.householdId, householdId)
+            )
+          );
+      }
+    }
+
+    if (!finalMerchantId) {
+      const normalizedDescription = finalDescription.toLowerCase().trim();
+      const existingMerchant = await db
+        .select()
+        .from(merchants)
         .where(
           and(
             eq(merchants.userId, userId),
             eq(merchants.householdId, householdId),
             eq(merchants.normalizedName, normalizedDescription)
           )
-        );
-    } else {
-      const merchantId = nanoid();
-      await db.insert(merchants).values({
-        id: merchantId,
-        userId,
-        householdId,
-        name: transactionDescription,
-        normalizedName: normalizedDescription,
-        categoryId: appliedCategoryId || null,
-        usageCount: 1,
-        lastUsedAt: new Date().toISOString(),
-        totalSpent: decimalAmount.toNumber(),
-        averageTransaction: decimalAmount.toNumber(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+        )
+        .limit(1);
+
+      if (existingMerchant.length > 0 && existingMerchant[0]) {
+        const currentSpent = new Decimal(existingMerchant[0].totalSpent || 0);
+        const newSpent = currentSpent.plus(decimalAmount);
+        const usageCount = (existingMerchant[0].usageCount || 0);
+        const avgTransaction = newSpent.dividedBy(usageCount + 1);
+
+        await db
+          .update(merchants)
+          .set({
+            usageCount: usageCount + 1,
+            lastUsedAt: new Date().toISOString(),
+            totalSpent: newSpent.toNumber(),
+            averageTransaction: avgTransaction.toNumber(),
+          })
+          .where(
+            and(
+              eq(merchants.userId, userId),
+              eq(merchants.householdId, householdId),
+              eq(merchants.normalizedName, normalizedDescription)
+            )
+          );
+      } else {
+        const merchantId = nanoid();
+        await db.insert(merchants).values({
+          id: merchantId,
+          userId,
+          householdId,
+          name: finalDescription,
+          normalizedName: normalizedDescription,
+          categoryId: appliedCategoryId || null,
+          usageCount: 1,
+          lastUsedAt: new Date().toISOString(),
+          totalSpent: decimalAmount.toNumber(),
+          averageTransaction: decimalAmount.toNumber(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
     }
 
     // Log rule execution if a rule was applied
-    if (appliedRuleId && appliedCategoryId) {
+    if (appliedRuleId) {
       try {
         await db.insert(ruleExecutionLog).values({
           id: nanoid(),
@@ -307,12 +419,62 @@ export async function POST(request: Request) {
           householdId,
           ruleId: appliedRuleId,
           transactionId,
-          appliedCategoryId,
+          appliedCategoryId: appliedCategoryId || null,
+          appliedActions: appliedActions.length > 0 ? JSON.stringify(appliedActions) : null,
           matched: true,
           executedAt: new Date().toISOString(),
         });
       } catch (error) {
         console.error('Error logging rule execution:', error);
+      }
+    }
+
+    // Handle post-creation actions (convert to transfer, splits, account change)
+    if (postCreationMutations?.convertToTransfer) {
+      try {
+        const transferResult = await handleTransferConversion(
+          userId,
+          transactionId,
+          postCreationMutations.convertToTransfer
+        );
+
+        if (!transferResult.success) {
+          console.warn('Repeat transaction transfer conversion failed:', transferResult.error);
+        }
+      } catch (error) {
+        console.error('Error converting repeated transaction to transfer:', error);
+      }
+    }
+
+    if (postCreationMutations?.createSplits) {
+      try {
+        const splitResult = await handleSplitCreation(
+          userId,
+          transactionId,
+          postCreationMutations.createSplits
+        );
+
+        if (!splitResult.success) {
+          console.warn('Repeat transaction split creation failed:', splitResult.error);
+        }
+      } catch (error) {
+        console.error('Error creating splits for repeated transaction:', error);
+      }
+    }
+
+    if (postCreationMutations?.changeAccount) {
+      try {
+        const accountResult = await handleAccountChange(
+          userId,
+          transactionId,
+          postCreationMutations.changeAccount.targetAccountId
+        );
+
+        if (!accountResult.success) {
+          console.warn('Repeat transaction account change failed:', accountResult.error);
+        }
+      } catch (error) {
+        console.error('Error changing account for repeated transaction:', error);
       }
     }
 

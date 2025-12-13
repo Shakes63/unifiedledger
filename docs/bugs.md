@@ -3,7 +3,6 @@
 ---
 
 ## New Bugs
-- **Repeat Transaction applies rules incompletely (category only)** - The repeat endpoint runs `findMatchingRule()` but only extracts the first `set_category` action and ignores other rule actions (merchant/description/split/transfer/account/sales tax). This diverges from normal transaction creation. See `app/api/transactions/repeat/route.ts` (~L98-L129).
 - **CSV import confirm applies rules incompletely (category only) and doesn’t log execution** - Import confirm runs `findMatchingRule()` but only uses `set_category` and does not run `executeRuleActions()` or write a `ruleExecutionLog` entry. See `app/api/csv-import/[importId]/confirm/route.ts` (~L99-L125).
 - **Transfer conversion can match transactions across households** - `findMatchingTransaction()` filters by `userId` and `type` but never filters by `householdId`, so a conversion can link transactions from different households. See `lib/rules/transfer-action-handler.ts` (~L359-L383).
 - **Transfer conversion matching is timezone-sensitive** - Uses `new Date(YYYY-MM-DD)` and `toISOString().split('T')[0]` for date windows, which can shift days in some timezones. This can miss/incorrectly include candidates. See `lib/rules/transfer-action-handler.ts` (~L344-L370).
@@ -36,17 +35,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 7 |
+| Active Bugs | 6 |
 | Tests Passing | 903/903 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 758 (182 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 759 (183 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (182 total)
+## Fixed Bugs (183 total)
 
+183. ✅ **Repeat Transaction applies rules incompletely (category only)** [FIXED 2025-12-13] - Reuse `executeRuleActions()` in the repeat endpoint to apply non-category actions and log `appliedActions`; added a regression test.
 182. ✅ **Repeat Transaction can update category usage across households/users** [FIXED 2025-12-13] - Scoped repeat endpoint category usage select/update by `userId + householdId` and added a regression test.
 181. ✅ **findAllMatchingRules ignores household isolation** [FIXED 2025-12-13] - `findAllMatchingRules` now requires householdId and scopes DB rule selection accordingly; added regression test asserting household filtering is included in the query.
 180. ✅ **Rules action executor lookups aren’t household-scoped** [FIXED 2025-12-13] - `executeRuleActions()` now scopes category/merchant validation lookups by household when householdId is provided, and apply-bulk context lookups are household-filtered.
