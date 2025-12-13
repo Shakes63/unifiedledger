@@ -2220,7 +2220,10 @@ describe("Actions Executor - Utility Functions", () => {
     expect(isActionImplemented("set_category")).toBe(true);
     expect(isActionImplemented("set_merchant")).toBe(true);
     expect(isActionImplemented("set_description")).toBe(true);
+    expect(isActionImplemented("set_sales_tax")).toBe(true);
+    expect(isActionImplemented("set_account")).toBe(true);
     expect(isActionImplemented("convert_to_transfer")).toBe(true);
+    expect(isActionImplemented("create_split")).toBe(true);
     expect(isActionImplemented("unknown_action" as any)).toBe(false);
   });
 });

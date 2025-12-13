@@ -630,7 +630,10 @@ export function isActionImplemented(actionType: string): boolean {
     'prepend_description',
     'append_description',
     'set_tax_deduction',
+    'set_sales_tax',
+    'set_account',
     'convert_to_transfer',
+    'create_split',
   ];
   return implementedActions.includes(actionType);
 }
