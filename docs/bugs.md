@@ -3,7 +3,6 @@
 ---
 
 ## New Bugs
-- **RulesManager N+1 category fetches** - The Rules page fetches `/api/categories` once per rule inside a `Promise.all(data.map(...))`, causing unnecessary repeated requests and slow load with many rules. See `components/rules/rules-manager.tsx` (~L294-L309).
 - **Rule action preview shows “Unknown” for merchant/account actions** - The action preview label helper supports merchant/account names, but the caller only passes `categoryName`, and the manager doesn’t hydrate merchant/account names. This makes `set_merchant`, `set_account`, and `convert_to_transfer` previews display “Unknown”/generic labels even when IDs are set. See `components/rules/rules-manager.tsx` (`getActionLabel()` + call site around ~L42-L74 and ~L157-L172).
 - **Bulk apply rules endpoint docs mention unsupported query param** - `/api/rules/apply-bulk` docstring lists a `categoryId` query param, but the handler never reads it and always filters `categoryId IS NULL`. See `app/api/rules/apply-bulk/route.ts` (comment ~L31-L37; query build ~L50-L63).
 - **Rules action executor lookups aren’t household-scoped** - `executeRuleActions()` validates/fetches categories/merchants by `userId` only (no `householdId`), and apply-bulk’s merchant/category lookups also omit user/household filters. This is risky for multi-household isolation if any cross-household IDs slip through (or future callers reuse the executor). See `lib/rules/actions-executor.ts` (~L127-L137, ~L175-L186, ~L279-L289) and `app/api/rules/apply-bulk/route.ts` (~L171-L191).
@@ -43,17 +42,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 9 |
-| Tests Passing | 898/898 (100%) |
+| Active Bugs | 8 |
+| Tests Passing | 899/899 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 751 (175 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 752 (176 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (175 total)
+## Fixed Bugs (176 total)
 
+176. ✅ **RulesManager N+1 category fetches** [FIXED 2025-12-13] - Updated `fetchRules()` to load categories once and hydrate rule category names locally; added regression test to ensure only one categories request.
 175. ✅ **Rules list returned in reverse priority order** [FIXED 2025-12-13] - Changed `/api/rules` to sort by ascending priority to match rule engine semantics and added an API ordering regression test.
 174. ✅ **Rules priority reorder can assign duplicate priorities** [FIXED 2025-12-13] - Made priority swapping immutable in `RulesManager` to prevent duplicate priorities and added a regression test.
 173. ✅ **Tailwind CSS variable class warnings** [FIXED 2025-12-13] - Replaced `*-[var(--...)]` Tailwind classes with v4 shorthand `*-(--...)` and added a regression test to prevent reverting.

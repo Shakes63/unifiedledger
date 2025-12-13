@@ -291,22 +291,25 @@ export function RulesManager({
       if (!response.ok) throw new Error('Failed to fetch rules');
       const data = await response.json();
 
-      // Fetch category names for each rule
-      const rulesWithCategories = await Promise.all(
-        data.map(async (rule: Rule) => {
-          try {
-            const catResponse = await fetchWithHousehold('/api/categories');
-            if (catResponse.ok) {
-              const categories = await catResponse.json();
-              const category = categories.find((c: CategoryItem) => c.id === rule.categoryId);
-              return { ...rule, categoryName: category?.name || 'Unknown' };
-            }
-          } catch (err) {
-            console.error('Error fetching categories:', err);
-          }
-          return rule;
-        })
+      // Fetch categories once, then hydrate categoryName locally (avoid N+1 requests)
+      let categories: CategoryItem[] = [];
+      try {
+        const catResponse = await fetchWithHousehold('/api/categories');
+        if (catResponse.ok) {
+          categories = await catResponse.json();
+        }
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+
+      const categoryNameById = new Map<string, string>(
+        categories.map(c => [c.id, c.name])
       );
+
+      const rulesWithCategories: Rule[] = data.map((rule: Rule) => {
+        if (!rule.categoryId) return rule;
+        return { ...rule, categoryName: categoryNameById.get(rule.categoryId) || 'Unknown' };
+      });
 
       setRules(rulesWithCategories);
       setError(null);
