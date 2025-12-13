@@ -39,22 +39,35 @@ File: `__tests__/api/cron-autopay.test.ts`
 - `GET /api/cron/autopay`
   - returns preview response shape and maps non-sensitive fields only
 
-### Phase 3 — Processor selection logic (optional expansion)
+### Status
+- ✅ **Phase 1 complete**: `__tests__/lib/bills/autopay-calculator.test.ts`
+- ✅ **Phase 2 complete**: `__tests__/api/cron-autopay.test.ts`
+
+### Phase 3 — Processor selection logic
 File: `__tests__/lib/bills/autopay-processor.test.ts`
 - instance eligibility filtering across:
   - autopayDaysBefore offsets
   - pending vs overdue statuses
   - missing autopayAccountId → skipped
+  - success vs failure counters
+  - notification dispatch paths
+  - thrown error handling → SYSTEM_ERROR
 
-### Phase 4 — Transaction creator integration (optional expansion)
+### Phase 4 — Transaction creator integration
 File: `__tests__/lib/bills/autopay-transaction.test.ts`
 - transfer vs expense branches
 - balance updates
 - handles insufficient funds / already paid / invalid config
 - processBillPayment error handling
 
+### Phase 5 — Notifications helpers
+File: `__tests__/lib/notifications/autopay-notifications.test.ts`
+- success notification suppressed for zero-amount
+- failure message includes mapped reason + amount when present
+- summary formatting
+
 ## First Task to Implement (do this immediately)
-Implement **Phase 1**: `__tests__/lib/bills/autopay-calculator.test.ts`.
+Implement **Phase 3**: `__tests__/lib/bills/autopay-processor.test.ts`.
 
 ## Definition of Done
 - New tests pass under `pnpm test`
