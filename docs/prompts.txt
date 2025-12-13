@@ -47,7 +47,7 @@ then
 Update bugs.md and .cursor/rules files with the following rules:
 1. Maintain a "New Bugs" section at the top of bugs.md for easy addition of new issues
 2. For incomplete tasks: mark status, note what remains unfinished, and reference the plan file location
-3. For completed bugs: replace full entry with bug name + "[FIXED]" label + 1-2 line description of the fix, then delete the associated plan file
+3. For completed bugs: replace full entry with bug name + "[FIXED]" label + 1-2 line description of the fix, then delete the associated plan file and add a small Testing Library regression test to lock the behavior in.
 4. Commit and push all changes
 
 ***Manual Testing***
