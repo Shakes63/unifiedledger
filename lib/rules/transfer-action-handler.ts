@@ -18,6 +18,7 @@ import { eq, and, between, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { distance } from 'fastest-levenshtein';
+import { parseISO, addDays, subDays, format, differenceInCalendarDays } from 'date-fns';
 import type { TransferConversionConfig } from './types';
 
 type TransactionRow = typeof transactions.$inferSelect;
@@ -81,10 +82,12 @@ function scoreTransferMatch(
   }
 
   // 2. Date Score (30 points max)
-  const sourceDate = new Date(sourceTransaction.date);
-  const candidateDate = new Date(candidateTransaction.date);
+  // Use calendar day arithmetic to avoid timezone-related off-by-one
   const daysDiff = Math.abs(
-    (sourceDate.getTime() - candidateDate.getTime()) / (1000 * 60 * 60 * 24)
+    differenceInCalendarDays(
+      parseISO(sourceTransaction.date),
+      parseISO(candidateTransaction.date)
+    )
   );
 
   let dateScore = 0;
@@ -208,11 +211,36 @@ export async function handleTransferConversion(
     }
 
     const transaction = sourceTx[0];
+    const householdId = transaction.householdId;
+
+    if (!householdId) {
+      return { success: false, error: 'Transaction missing household ID' };
+    }
+
+    // Validate target account belongs to the same household (if provided)
+    if (config.targetAccountId) {
+      const targetAccount = await db
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, config.targetAccountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        )
+        .limit(1);
+
+      if (targetAccount.length === 0) {
+        return { success: false, error: 'Target account not found in household' };
+      }
+    }
 
     // 2. Search for matching transactions with scoring
     const matchResult = await findMatchingTransaction(
       userId,
       transaction,
+      householdId,
       config.targetAccountId,
       config
     );
@@ -231,7 +259,13 @@ export async function handleTransferConversion(
         transferId: transferId,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(transactions.id, transactionId));
+      .where(
+        and(
+          eq(transactions.id, transactionId),
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
+        )
+      );
 
     // 6. Handle high-confidence auto-link
     if (matchResult.autoLink && matchResult.bestMatch) {
@@ -244,7 +278,13 @@ export async function handleTransferConversion(
           transferId: transferId,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(transactions.id, matchResult.bestMatch.id));
+        .where(
+          and(
+            eq(transactions.id, matchResult.bestMatch.id),
+            eq(transactions.userId, userId),
+            eq(transactions.householdId, householdId)
+          )
+        );
 
       return {
         success: true,
@@ -295,6 +335,7 @@ export async function handleTransferConversion(
       // Update account balances
       await updateAccountBalances(
         userId,
+        householdId,
         transaction.accountId,
         config.targetAccountId,
         transaction.amount,
@@ -332,6 +373,7 @@ export async function handleTransferConversion(
 async function findMatchingTransaction(
   userId: string,
   sourceTx: TransactionRow,
+  householdId: string,
   targetAccountId: string | undefined,
   config: TransferConversionConfig
 ): Promise<{
@@ -341,11 +383,9 @@ async function findMatchingTransaction(
 }> {
   try {
     // Calculate date range
-    const txDate = new Date(sourceTx.date);
-    const startDate = new Date(txDate);
-    startDate.setDate(startDate.getDate() - config.matchDayRange);
-    const endDate = new Date(txDate);
-    endDate.setDate(endDate.getDate() + config.matchDayRange);
+    const txDate = parseISO(sourceTx.date);
+    const startDateStr = format(subDays(txDate, config.matchDayRange), 'yyyy-MM-dd');
+    const endDateStr = format(addDays(txDate, config.matchDayRange), 'yyyy-MM-dd');
 
     // Determine opposite type
     const oppositeType = sourceTx.type === 'expense' ? 'income' : 'expense';
@@ -359,14 +399,17 @@ async function findMatchingTransaction(
     // Build query conditions
   const conditions = [
       eq(transactions.userId, userId),
+      eq(transactions.householdId, householdId),
       eq(transactions.type, oppositeType),
       // Only match transactions that aren't already transfers
       sql`${transactions.transferId} IS NULL`,
+      // Don't match the source transaction itself
+      sql`${transactions.id} != ${sourceTx.id}`,
       // Date range
       between(
         transactions.date,
-        startDate.toISOString().split('T')[0],
-        endDate.toISOString().split('T')[0]
+        startDateStr,
+        endDateStr
       ),
     ];
 
@@ -420,6 +463,7 @@ async function findMatchingTransaction(
  */
 async function updateAccountBalances(
   userId: string,
+  householdId: string,
   sourceAccountId: string,
   targetAccountId: string,
   amount: number,
@@ -436,7 +480,13 @@ async function updateAccountBalances(
           currentBalance: sql`current_balance - ${amountDecimal.toFixed(2)}`,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(accounts.id, sourceAccountId));
+        .where(
+          and(
+            eq(accounts.id, sourceAccountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        );
 
       await db
         .update(accounts)
@@ -444,7 +494,13 @@ async function updateAccountBalances(
           currentBalance: sql`current_balance + ${amountDecimal.toFixed(2)}`,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(accounts.id, targetAccountId));
+        .where(
+          and(
+            eq(accounts.id, targetAccountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        );
     } else {
       // Transfer In: source gains money, target loses money
       await db
@@ -453,7 +509,13 @@ async function updateAccountBalances(
           currentBalance: sql`current_balance + ${amountDecimal.toFixed(2)}`,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(accounts.id, sourceAccountId));
+        .where(
+          and(
+            eq(accounts.id, sourceAccountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        );
 
       await db
         .update(accounts)
@@ -461,7 +523,13 @@ async function updateAccountBalances(
           currentBalance: sql`current_balance - ${amountDecimal.toFixed(2)}`,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(accounts.id, targetAccountId));
+        .where(
+          and(
+            eq(accounts.id, targetAccountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        );
     }
   } catch (error) {
     console.error('Error updating account balances:', error);

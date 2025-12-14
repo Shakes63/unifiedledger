@@ -3,9 +3,6 @@
 ---
 
 ## New Bugs
-- **Transfer conversion can match transactions across households** - `findMatchingTransaction()` filters by `userId` and `type` but never filters by `householdId`, so a conversion can link transactions from different households. See `lib/rules/transfer-action-handler.ts` (~L359-L383).
-- **Transfer conversion matching is timezone-sensitive** - Uses `new Date(YYYY-MM-DD)` and `toISOString().split('T')[0]` for date windows, which can shift days in some timezones. This can miss/incorrectly include candidates. See `lib/rules/transfer-action-handler.ts` (~L344-L370).
-- **Transfer conversion/account balance updates aren’t ownership-scoped** - Several updates select/update `transactions`/`accounts` by `id` only (or `id+userId` without household), which is fragile for household isolation and could corrupt balances if misused. See `lib/rules/transfer-action-handler.ts` (source tx fetch ~L194-L204; account updates ~L433-L465).
 - **Split creation isn’t household-scoped and updates transaction by id only** - `handleSplitCreation()` validates categories by `userId` only (no household) and updates `transactions` with `where(eq(transactions.id, ...))` (no user/household). See `lib/rules/split-action-handler.ts` (~L80-L90, ~L151-L155).
 - **Account change handler can move transactions across households and log to wrong household** - `handleAccountChange()` validates target account by `userId` only (no household), updates accounts/transactions by id only, and logs activity using the *first* `householdMembers` row for the user (not the transaction’s household). This can create incorrect balances and audit logs. See `lib/rules/account-action-handler.ts` (~L61-L71, ~L93-L101, ~L193-L205).
 
@@ -34,17 +31,20 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 5 |
+| Active Bugs | 2 |
 | Tests Passing | 903/903 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 760 (184 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 763 (187 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (184 total)
+## Fixed Bugs (187 total)
 
+187. ✅ **Transfer conversion/account balance updates aren’t ownership-scoped** [FIXED 2025-12-13] - Scoped transfer conversion transaction/account updates by `userId + householdId` and validated target account household; added regression tests.
+186. ✅ **Transfer conversion matching is timezone-sensitive** [FIXED 2025-12-13] - Replaced `new Date()` + UTC string windows with `parseISO` + local `yyyy-MM-dd` date range bounds (and calendar-day scoring); added regression tests.
+185. ✅ **Transfer conversion can match transactions across households** [FIXED 2025-12-13] - Transfer matching now filters candidate transactions by `householdId` and excludes self-matches; added regression tests.
 184. ✅ **CSV import confirm applies rules incompletely (category only) and doesn’t log execution** [FIXED 2025-12-13] - Confirm now runs `executeRuleActions()` for matched rules, applies non-category mutations, and logs `ruleExecutionLog.appliedActions`; added regression test.
 183. ✅ **Repeat Transaction applies rules incompletely (category only)** [FIXED 2025-12-13] - Reuse `executeRuleActions()` in the repeat endpoint to apply non-category actions and log `appliedActions`; added a regression test.
 182. ✅ **Repeat Transaction can update category usage across households/users** [FIXED 2025-12-13] - Scoped repeat endpoint category usage select/update by `userId + householdId` and added a regression test.
