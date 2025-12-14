@@ -320,6 +320,13 @@ All Household tabs verified: Members & Access (member list, roles, invite, renam
 - [ ] Email verification resend: button sends email and enforces 3-per-hour rate limit - NOT TESTED
 - [ ] Email change flow: request email change (password required) → verification link updates email → cancel pending email change works - NOT TESTED
 
+### Backups (Data Management)
+- [ ] Enable automatic backups for a household and confirm schedule fields update (next backup time) - NOT TESTED
+- [ ] Create manual backup and verify it appears in Backup History list - NOT TESTED
+- [ ] Download a completed backup and verify file downloads with correct filename/format - NOT TESTED
+- [ ] Delete a backup and verify it disappears from history and file cannot be downloaded - NOT TESTED
+- [ ] Trigger cleanup and verify backups beyond retention count are removed - NOT TESTED
+
 - [ ] Admin tab (Owner Only) - Not tested
 - [ ] Admin User Management: user list loads (search/pagination)
 - [ ] Admin User Management: create user (validation, success toast)

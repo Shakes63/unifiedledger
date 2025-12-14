@@ -4,7 +4,7 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { backupSettings, backupHistory } from '@/lib/db/schema';
 import { eq, desc, and } from 'drizzle-orm';
-import { deleteBackupFile } from '@/lib/backups/backup-utils';
+import { deleteBackupFile, splitByRetentionCount } from '@/lib/backups/backup-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       .orderBy(desc(backupHistory.createdAt));
 
     // Keep the most recent N backups, delete the rest
-    const backupsToDelete = allBackups.slice(retentionCount);
+    const { remove: backupsToDelete } = splitByRetentionCount(allBackups, retentionCount);
     let deletedCount = 0;
 
     for (const backup of backupsToDelete) {

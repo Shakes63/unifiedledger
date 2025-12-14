@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { handleTransferConversion } from '@/lib/rules/transfer-action-handler';
@@ -59,7 +60,7 @@ describe('transfer-action-handler scoping', () => {
       return { limit: limitMock };
     });
 
-    const fromMock = vi.fn((table: unknown) => {
+    const fromMock = vi.fn((_table: unknown) => {
       return { where: whereMock };
     });
 

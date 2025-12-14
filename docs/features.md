@@ -22,13 +22,14 @@ _These features are implemented, but still need dedicated automated test coverag
 - [x] **PDF Export** (Tax Dashboard) [COMPLETED 2025-12-13] - Added server-backed PDF export route (`/api/tax/export/pdf`) and automated coverage for generator output + response headers/body.
 - [x] **Sales Tax Pipeline (Test Coverage)** [COMPLETED 2025-12-13] - Added API contract tests for `GET /api/sales-tax/quarterly`, covering validation, by-account grouping, quarter filtering, and tax breakdown shape.
 - [x] **Email Flows** [COMPLETED 2025-12-13] - Added automated coverage for resend verification rate limiting + email-change verification callback, and implemented tested provider fallback behavior (Resend → SMTP, SMTP → Resend).
-- [ ] **Backup System** - scheduled backups, retention policies, restore flows, and permissions. **Plan:** `docs/backup-system-plan.md` (✅ Phase 1: cron + list API contract tests; next: download/delete permission tests + retention/unit coverage).
+- [x] **Backup System** [COMPLETED 2025-12-14] - Added automated coverage for backup retention logic and backup download/delete permissions (user + household isolation) across API + lib.
 - [ ] **Household Data Isolation (end-to-end)** - cross-household access attempts blocked across all household-scoped modules (beyond unit checks)
 
 ---
 
 ## Completed Features
 
+61. **Backup System** [COMPLETED 2025-12-14] - Scheduled backups with retention policies and secure download/delete flows, now with automated API + lib test coverage.
 60. **TickTick Calendar Sync** [COMPLETED 2025-12-07] - Sync bills, milestones, and payoff dates to TickTick as tasks with due dates. Uses OAuth2 authentication, project selection, and same sync modes as Google Calendar integration.
 
 59. **Google Calendar Sync** [COMPLETED 2025-12-07] - Sync bill due dates, savings milestones, debt milestones, and payoff dates to Google Calendar. Features two sync modes: Direct (events on actual dates) and Budget Period (grouped by pay period). Includes OAuth integration, auto-sync triggers when data changes, deep links back to app, and reminder configuration.

@@ -5,6 +5,26 @@ import { existsSync } from 'fs';
 const BACKUP_DIR = join(process.cwd(), 'backups');
 
 /**
+ * Split an already-sorted (newest-first) list into items to keep vs delete, based on a retention count.
+ *
+ * This is intentionally pure so callers can reuse it in API routes, schedulers, and unit tests.
+ */
+export function splitByRetentionCount<T>(
+  itemsSortedNewestFirst: T[],
+  retentionCount: number | null | undefined
+): { keep: T[]; remove: T[]; retentionCount: number } {
+  const normalizedRetentionCount = Number.isFinite(retentionCount)
+    ? Math.max(0, Math.floor(retentionCount as number))
+    : 0;
+
+  return {
+    keep: itemsSortedNewestFirst.slice(0, normalizedRetentionCount),
+    remove: itemsSortedNewestFirst.slice(normalizedRetentionCount),
+    retentionCount: normalizedRetentionCount,
+  };
+}
+
+/**
  * Get backup directory path for a user's household
  */
 export function getHouseholdBackupDir(userId: string, householdId: string): string {
