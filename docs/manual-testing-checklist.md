@@ -351,6 +351,7 @@ All Household tabs verified: Members & Access (member list, roles, invite, renam
 - [x] Household switching, create household, data isolation verified
 
 ### Not Tested
+- [ ] Cross-household direct-link protection: copy an Account/Transaction/Category/Merchant ID from Household A, switch to Household B, and try to open/edit via direct URL or UI deep link - should show Not Found / error, not leak data
 - [ ] Favorite/star households
 - [ ] Join household via invitation (link, accept, decline)
 - [ ] Leave household (non-owner only)

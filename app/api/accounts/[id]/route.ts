@@ -286,7 +286,7 @@ export async function PUT(
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error instanceof Error && error.message.includes('Household')) {
+    if (error instanceof Error && (error.message.includes('Household') || error.message.includes('member'))) {
       return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Account update error:', error);
@@ -369,7 +369,7 @@ export async function DELETE(
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error instanceof Error && error.message.includes('Household')) {
+    if (error instanceof Error && (error.message.includes('Household') || error.message.includes('member'))) {
       return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Account deletion error:', error);

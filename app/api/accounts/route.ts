@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error instanceof Error && error.message.includes('Household')) {
+    if (error instanceof Error && (error.message.includes('Household') || error.message.includes('member'))) {
       return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Account fetch error:', error);
@@ -239,7 +239,7 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error instanceof Error && error.message.includes('Household')) {
+    if (error instanceof Error && (error.message.includes('Household') || error.message.includes('member'))) {
       return Response.json({ error: error.message }, { status: 403 });
     }
     console.error('Account creation error:', error);

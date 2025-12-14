@@ -23,12 +23,13 @@ _These features are implemented, but still need dedicated automated test coverag
 - [x] **Sales Tax Pipeline (Test Coverage)** [COMPLETED 2025-12-13] - Added API contract tests for `GET /api/sales-tax/quarterly`, covering validation, by-account grouping, quarter filtering, and tax breakdown shape.
 - [x] **Email Flows** [COMPLETED 2025-12-13] - Added automated coverage for resend verification rate limiting + email-change verification callback, and implemented tested provider fallback behavior (Resend → SMTP, SMTP → Resend).
 - [x] **Backup System** [COMPLETED 2025-12-14] - Added automated coverage for backup retention logic and backup download/delete permissions (user + household isolation) across API + lib.
-- [ ] **Household Data Isolation (end-to-end)** - cross-household access attempts blocked across all household-scoped modules (beyond unit checks)
+- [x] **Household Data Isolation (end-to-end)** [COMPLETED 2025-12-14] - Added route-level integration tests proving list + ID endpoints do not leak across households and non-member access is blocked.
 
 ---
 
 ## Completed Features
 
+62. **Household Data Isolation (End-to-End)** [COMPLETED 2025-12-14] - Route-level integration suite verifying cross-household access is blocked (404) and non-member household access returns 403 on core APIs.
 61. **Backup System** [COMPLETED 2025-12-14] - Scheduled backups with retention policies and secure download/delete flows, now with automated API + lib test coverage.
 60. **TickTick Calendar Sync** [COMPLETED 2025-12-07] - Sync bills, milestones, and payoff dates to TickTick as tasks with due dates. Uses OAuth2 authentication, project selection, and same sync modes as Google Calendar integration.
 
