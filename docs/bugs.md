@@ -3,7 +3,7 @@
 ---
 
 ## New Bugs
-- **Account change handler can move transactions across households and log to wrong household** - `handleAccountChange()` validates target account by `userId` only (no household), updates accounts/transactions by id only, and logs activity using the *first* `householdMembers` row for the user (not the transaction’s household). This can create incorrect balances and audit logs. See `lib/rules/account-action-handler.ts` (~L61-L71, ~L93-L101, ~L193-L205).
+(None)
 
 ---
 
@@ -30,17 +30,18 @@
 
 | Metric | Count |
 |--------|-------|
-| Active Bugs | 1 |
+| Active Bugs | 0 |
 | Tests Passing | 903/903 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 764 (188 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 765 (189 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (188 total)
+## Fixed Bugs (189 total)
 
+189. ✅ **Account change handler can move transactions across households and log to wrong household** [FIXED 2025-12-13] - Derived householdId from the transaction, validated target account household, scoped balance/transaction updates by `userId + householdId`, and logged activity to the transaction’s household; added regression test.
 188. ✅ **Split creation isn’t household-scoped and updates transaction by id only** [FIXED 2025-12-13] - Derived householdId from the source transaction and scoped category validation + transaction updates by `userId + householdId`; added regression test.
 187. ✅ **Transfer conversion/account balance updates aren’t ownership-scoped** [FIXED 2025-12-13] - Scoped transfer conversion transaction/account updates by `userId + householdId` and validated target account household; added regression tests.
 186. ✅ **Transfer conversion matching is timezone-sensitive** [FIXED 2025-12-13] - Replaced `new Date()` + UTC string windows with `parseISO` + local `yyyy-MM-dd` date range bounds (and calendar-day scoring); added regression tests.

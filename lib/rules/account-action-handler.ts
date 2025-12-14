@@ -50,6 +50,11 @@ export async function handleAccountChange(
       return { success: false, error: 'Transaction not found' };
     }
 
+    const householdId = transaction.householdId;
+    if (!householdId) {
+      return { success: false, error: 'Transaction missing household ID' };
+    }
+
     // 2. Validate not a transfer
     if (transaction.type === 'transfer_out' || transaction.type === 'transfer_in') {
       return {
@@ -58,14 +63,15 @@ export async function handleAccountChange(
       };
     }
 
-    // 3. Validate target account exists and belongs to user
+    // 3. Validate target account exists and belongs to user + household
     const targetAccountResult = await db
       .select()
       .from(accounts)
       .where(
         and(
           eq(accounts.id, targetAccountId),
-          eq(accounts.userId, userId)
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
         )
       )
       .limit(1);
@@ -91,17 +97,24 @@ export async function handleAccountChange(
     }
 
     // 6. Update account balances
-    await updateAccountBalances(oldAccountId, targetAccountId, transactionType, amount);
+    await updateAccountBalances(userId, householdId, oldAccountId, targetAccountId, transactionType, amount);
 
     // 7. Update transaction account
     await db
       .update(transactions)
       .set({ accountId: targetAccountId })
-      .where(eq(transactions.id, transactionId));
+      .where(
+        and(
+          eq(transactions.id, transactionId),
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
+        )
+      );
 
     // 8. Log activity
     await logAccountChange(
       userId,
+      householdId,
       transactionId,
       oldAccountId,
       targetAccountId,
@@ -133,6 +146,8 @@ export async function handleAccountChange(
  * @param amount - Transaction amount (Decimal)
  */
 async function updateAccountBalances(
+  userId: string,
+  householdId: string,
   oldAccountId: string,
   newAccountId: string,
   transactionType: string,
@@ -146,13 +161,25 @@ async function updateAccountBalances(
     await db
       .update(accounts)
       .set({ currentBalance: sql`current_balance - ${amountStr}` })
-      .where(eq(accounts.id, oldAccountId));
+      .where(
+        and(
+          eq(accounts.id, oldAccountId),
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
+        )
+      );
   } else if (transactionType === 'expense') {
     // Add back expense to old account (add)
     await db
       .update(accounts)
       .set({ currentBalance: sql`current_balance + ${amountStr}` })
-      .where(eq(accounts.id, oldAccountId));
+      .where(
+        and(
+          eq(accounts.id, oldAccountId),
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
+        )
+      );
   }
 
   // Apply impact to new account
@@ -161,13 +188,25 @@ async function updateAccountBalances(
     await db
       .update(accounts)
       .set({ currentBalance: sql`current_balance + ${amountStr}` })
-      .where(eq(accounts.id, newAccountId));
+      .where(
+        and(
+          eq(accounts.id, newAccountId),
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
+        )
+      );
   } else if (transactionType === 'expense') {
     // Subtract expense from new account (subtract)
     await db
       .update(accounts)
       .set({ currentBalance: sql`current_balance - ${amountStr}` })
-      .where(eq(accounts.id, newAccountId));
+      .where(
+        and(
+          eq(accounts.id, newAccountId),
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
+        )
+      );
   }
 }
 
@@ -183,6 +222,7 @@ async function updateAccountBalances(
  */
 async function logAccountChange(
   userId: string,
+  householdId: string,
   transactionId: string,
   oldAccountId: string,
   newAccountId: string,
@@ -190,11 +230,16 @@ async function logAccountChange(
   transactionType: string
 ): Promise<void> {
   try {
-    // Fetch household ID from householdMembers
+    // Fetch membership for the correct household
     const memberResult = await db
       .select({ householdId: householdMembers.householdId })
       .from(householdMembers)
-      .where(eq(householdMembers.userId, userId))
+      .where(
+        and(
+          eq(householdMembers.userId, userId),
+          eq(householdMembers.householdId, householdId)
+        )
+      )
       .limit(1);
 
     const member = memberResult[0];
@@ -206,8 +251,20 @@ async function logAccountChange(
 
     // Fetch account names
     const [oldAccountResult, newAccountResult] = await Promise.all([
-      db.select({ name: accounts.name }).from(accounts).where(eq(accounts.id, oldAccountId)).limit(1),
-      db.select({ name: accounts.name }).from(accounts).where(eq(accounts.id, newAccountId)).limit(1)
+      db.select({ name: accounts.name }).from(accounts).where(
+        and(
+          eq(accounts.id, oldAccountId),
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
+        )
+      ).limit(1),
+      db.select({ name: accounts.name }).from(accounts).where(
+        and(
+          eq(accounts.id, newAccountId),
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
+        )
+      ).limit(1)
     ]);
 
     const oldAccountName = oldAccountResult[0]?.name || 'Unknown Account';
@@ -216,7 +273,7 @@ async function logAccountChange(
     // Log to household activity
     await db.insert(activityLog).values({
       id: nanoid(),
-      householdId: member.householdId,
+      householdId,
       userId,
       actionType: 'transaction_updated',
       entityType: 'transaction',
