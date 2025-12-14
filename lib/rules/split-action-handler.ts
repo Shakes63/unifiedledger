@@ -75,6 +75,11 @@ export async function handleSplitCreation(
     }
 
     const transaction = txResult[0];
+    const householdId = transaction.householdId;
+
+    if (!householdId) {
+      return { success: false, createdSplits: [], error: 'Transaction missing household ID' };
+    }
     const totalAmount = new Decimal(transaction.amount);
 
     // 3. Validate categories exist
@@ -85,6 +90,7 @@ export async function handleSplitCreation(
       .where(
         and(
           eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId),
           inArray(budgetCategories.id, categoryIds)
         )
       );
@@ -117,7 +123,7 @@ export async function handleSplitCreation(
       return {
         id: nanoid(),
         userId: userId,
-        householdId: transaction.householdId,
+        householdId,
         transactionId: transactionId,
         categoryId: split.categoryId,
         amount: amount,
@@ -151,7 +157,13 @@ export async function handleSplitCreation(
     await db
       .update(transactions)
       .set({ isSplit: true })
-      .where(eq(transactions.id, transactionId));
+      .where(
+        and(
+          eq(transactions.id, transactionId),
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
+        )
+      );
 
     return {
       success: true,
