@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { merchants, transactions, budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -14,6 +15,7 @@ interface CategorizationSuggestion {
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const url = new URL(request.url);
     const description = url.searchParams.get('description');
@@ -31,6 +33,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(merchants.userId, userId),
+          eq(merchants.householdId, householdId),
           eq(merchants.normalizedName, normalizedDescription)
         )
       )
@@ -48,6 +51,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId),
           eq(transactions.description, merchant[0].name)
         )
       );
@@ -87,7 +91,13 @@ export async function GET(request: Request) {
     const category = await db
       .select()
       .from(budgetCategories)
-      .where(eq(budgetCategories.id, topCategoryId))
+      .where(
+        and(
+          eq(budgetCategories.id, topCategoryId),
+          eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId)
+        )
+      )
       .limit(1);
 
     if (category.length === 0) {

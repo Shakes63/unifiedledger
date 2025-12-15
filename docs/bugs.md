@@ -3,7 +3,6 @@
 ---
 
 ## New Bugs
-- **Categorization suggestion API ignores household context and fetches category by id without ownership constraints** - `app/api/categorization/suggest/route.ts` uses `userId` only for merchant + transaction history (lines 27-53) and then queries `budgetCategories` by id only (lines 86-91), which can leak category names across households/users.
 - **Transfers/[id] API leaks account names and can mutate balances without ownership checks** - `app/api/transfers/[id]/route.ts` fetches accounts by id only when enriching (lines 39-51) and when reverting balances in DELETE (lines 194-251); these should be scoped by `userId + householdId` to prevent cross-household/user leaks and unsafe balance mutation.
 - **Transfers/suggest API ignores household context for transfer-pair analytics** - `app/api/transfers/suggest/route.ts` filters usage by `userId` only (lines 22-37) and doesn’t enforce household membership; should scope to current household or otherwise ensure analytics can’t mix households.
 - **Accept transfer suggestion does not validate transaction ownership/household** - `app/api/transfer-suggestions/[id]/accept/route.ts` loads the suggestion by `userId` (lines 21-31) but then fetches and updates the referenced transactions by id only (lines 50-104); this should also validate `transactions.userId + householdId` for both txns.
@@ -38,16 +37,17 @@
 | Metric | Count |
 |--------|-------|
 | Active Bugs | 0 |
-| Tests Passing | 907/907 (100%) |
+| Tests Passing | 908/908 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 769 (193 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 770 (194 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (193 total)
+## Fixed Bugs (194 total)
 
+194. ✅ **Categorization suggestion API ignores household context and fetches category by id without ownership constraints** [FIXED 2025-12-15] - Enforced household membership and scoped merchant/history/category lookups by `userId + householdId`; added regression test.
 193. ✅ **Suggestions API ignores household context** [FIXED 2025-12-15] - Enforced household membership and scoped suggestions queries by `userId + householdId`; added regression test.
 192. ✅ **Calendar month API is not household-scoped + milestone enrichment queries are unscoped** [FIXED 2025-12-15] - Added household membership enforcement and scoped month queries + milestone enrichment lookups by `userId + householdId`; added regression test.
 191. ✅ **Calendar day API is not household-scoped + uses unscoped account/bill lookups by id** [FIXED 2025-12-15] - Added household membership enforcement and scoped all calendar-day queries/enrichment lookups by `userId + householdId`; added regression test.
