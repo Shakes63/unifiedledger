@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { usageAnalytics, accounts } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
@@ -14,6 +15,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '10');
@@ -22,6 +24,7 @@ export async function GET(request: Request) {
     // Get transfer pair usage analytics
     const filters = [
       eq(usageAnalytics.userId, userId),
+      eq(usageAnalytics.householdId, householdId),
       eq(usageAnalytics.itemType, 'transfer_pair'),
     ];
 
@@ -48,7 +51,8 @@ export async function GET(request: Request) {
             .where(
               and(
                 eq(accounts.id, pair.itemId),
-                eq(accounts.userId, userId)
+                eq(accounts.userId, userId),
+                eq(accounts.householdId, householdId)
               )
             )
             .limit(1),
@@ -58,7 +62,8 @@ export async function GET(request: Request) {
             .where(
               and(
                 eq(accounts.id, pair.itemSecondaryId),
-                eq(accounts.userId, userId)
+                eq(accounts.userId, userId),
+                eq(accounts.householdId, householdId)
               )
             )
             .limit(1),
