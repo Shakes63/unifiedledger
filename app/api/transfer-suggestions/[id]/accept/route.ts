@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transferSuggestions, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -15,6 +16,7 @@ export async function POST(
 ) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const { id: suggestionId } = await params;
 
@@ -52,12 +54,24 @@ export async function POST(
       db
         .select()
         .from(transactions)
-        .where(eq(transactions.id, suggestion.sourceTransactionId))
+        .where(
+          and(
+            eq(transactions.id, suggestion.sourceTransactionId),
+            eq(transactions.userId, userId),
+            eq(transactions.householdId, householdId)
+          )
+        )
         .limit(1),
       db
         .select()
         .from(transactions)
-        .where(eq(transactions.id, suggestion.suggestedTransactionId))
+        .where(
+          and(
+            eq(transactions.id, suggestion.suggestedTransactionId),
+            eq(transactions.userId, userId),
+            eq(transactions.householdId, householdId)
+          )
+        )
         .limit(1),
     ]);
 
@@ -92,7 +106,13 @@ export async function POST(
           transferId,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(transactions.id, suggestion.sourceTransactionId)),
+        .where(
+          and(
+            eq(transactions.id, suggestion.sourceTransactionId),
+            eq(transactions.userId, userId),
+            eq(transactions.householdId, householdId)
+          )
+        ),
       db
         .update(transactions)
         .set({
@@ -100,7 +120,13 @@ export async function POST(
           transferId,
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(transactions.id, suggestion.suggestedTransactionId)),
+        .where(
+          and(
+            eq(transactions.id, suggestion.suggestedTransactionId),
+            eq(transactions.userId, userId),
+            eq(transactions.householdId, householdId)
+          )
+        ),
     ]);
 
     // Mark suggestion as accepted

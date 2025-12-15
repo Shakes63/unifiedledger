@@ -35,16 +35,17 @@
 | Metric | Count |
 |--------|-------|
 | Active Bugs | 0 |
-| Tests Passing | 910/910 (100%) |
+| Tests Passing | 911/911 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 772 (196 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 773 (197 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (196 total)
+## Fixed Bugs (197 total)
 
+197. ✅ **Accept transfer suggestion does not validate transaction ownership/household** [FIXED 2025-12-15] - Scoped accept handler transaction selects/updates by `userId + householdId` after enforcing household membership; added regression test.
 196. ✅ **Transfers/suggest API ignores household context for transfer-pair analytics** [FIXED 2025-12-15] - Enforced household membership and scoped transfer-pair analytics + account enrichment by `userId + householdId`; added regression test.
 195. ✅ **Transfers/[id] API leaks account names and can mutate balances without ownership checks** [FIXED 2025-12-15] - Enforced household membership and scoped account/transaction enrichment + balance mutations by validating linked accounts in the active household; added regression test.
 194. ✅ **Categorization suggestion API ignores household context and fetches category by id without ownership constraints** [FIXED 2025-12-15] - Enforced household membership and scoped merchant/history/category lookups by `userId + householdId`; added regression test.
