@@ -3,7 +3,6 @@
 ---
 
 ## New Bugs
-- **Transfers/[id] API leaks account names and can mutate balances without ownership checks** - `app/api/transfers/[id]/route.ts` fetches accounts by id only when enriching (lines 39-51) and when reverting balances in DELETE (lines 194-251); these should be scoped by `userId + householdId` to prevent cross-household/user leaks and unsafe balance mutation.
 - **Transfers/suggest API ignores household context for transfer-pair analytics** - `app/api/transfers/suggest/route.ts` filters usage by `userId` only (lines 22-37) and doesn’t enforce household membership; should scope to current household or otherwise ensure analytics can’t mix households.
 - **Accept transfer suggestion does not validate transaction ownership/household** - `app/api/transfer-suggestions/[id]/accept/route.ts` loads the suggestion by `userId` (lines 21-31) but then fetches and updates the referenced transactions by id only (lines 50-104); this should also validate `transactions.userId + householdId` for both txns.
 - **Transaction tags endpoint can read/write associations without full ownership scoping** - `app/api/transaction-tags/route.ts` does not verify household membership for the referenced transaction and checks/deletes `transactionTags` associations without scoping by `userId` (existing check/delete at lines 62-72 and 148-156), which is an IDOR risk and can cross household boundaries.
@@ -37,16 +36,17 @@
 | Metric | Count |
 |--------|-------|
 | Active Bugs | 0 |
-| Tests Passing | 908/908 (100%) |
+| Tests Passing | 909/909 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 770 (194 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 771 (195 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (194 total)
+## Fixed Bugs (195 total)
 
+195. ✅ **Transfers/[id] API leaks account names and can mutate balances without ownership checks** [FIXED 2025-12-15] - Enforced household membership and scoped account/transaction enrichment + balance mutations by validating linked accounts in the active household; added regression test.
 194. ✅ **Categorization suggestion API ignores household context and fetches category by id without ownership constraints** [FIXED 2025-12-15] - Enforced household membership and scoped merchant/history/category lookups by `userId + householdId`; added regression test.
 193. ✅ **Suggestions API ignores household context** [FIXED 2025-12-15] - Enforced household membership and scoped suggestions queries by `userId + householdId`; added regression test.
 192. ✅ **Calendar month API is not household-scoped + milestone enrichment queries are unscoped** [FIXED 2025-12-15] - Added household membership enforcement and scoped month queries + milestone enrichment lookups by `userId + householdId`; added regression test.

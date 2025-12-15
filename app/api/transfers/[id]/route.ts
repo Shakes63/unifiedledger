@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transfers, accounts, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -17,6 +18,7 @@ export async function GET(
   const { id } = await params;
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const transfer = await db
       .select()
@@ -41,14 +43,33 @@ export async function GET(
       db
         .select()
         .from(accounts)
-        .where(eq(accounts.id, transfer[0].fromAccountId))
+        .where(
+          and(
+            eq(accounts.id, transfer[0].fromAccountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        )
         .limit(1),
       db
         .select()
         .from(accounts)
-        .where(eq(accounts.id, transfer[0].toAccountId))
+        .where(
+          and(
+            eq(accounts.id, transfer[0].toAccountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        )
         .limit(1),
     ]);
+
+    if (fromAccount.length === 0 || toAccount.length === 0) {
+      return Response.json(
+        { error: 'Transfer not found' },
+        { status: 404 }
+      );
+    }
 
     return Response.json({
       ...transfer[0],
@@ -79,6 +100,7 @@ export async function PUT(
   const { id } = await params;
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const transfer = await db
       .select()
@@ -92,6 +114,38 @@ export async function PUT(
       .limit(1);
 
     if (transfer.length === 0) {
+      return Response.json(
+        { error: 'Transfer not found' },
+        { status: 404 }
+      );
+    }
+
+    const [fromAccount, toAccount] = await Promise.all([
+      db
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, transfer[0].fromAccountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        )
+        .limit(1),
+      db
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, transfer[0].toAccountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        )
+        .limit(1),
+    ]);
+
+    if (fromAccount.length === 0 || toAccount.length === 0) {
       return Response.json(
         { error: 'Transfer not found' },
         { status: 404 }
@@ -117,7 +171,7 @@ export async function PUT(
     await db
       .update(transfers)
       .set(updateData)
-      .where(eq(transfers.id, id));
+      .where(and(eq(transfers.id, id), eq(transfers.userId, userId)));
 
     return Response.json({
       message: 'Transfer updated successfully',
@@ -146,6 +200,7 @@ export async function DELETE(
   const { id } = await params;
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const transfer = await db
       .select()
@@ -172,14 +227,18 @@ export async function DELETE(
       // Delete the transfer
       await tx
         .delete(transfers)
-        .where(eq(transfers.id, id));
+        .where(and(eq(transfers.id, id), eq(transfers.userId, userId)));
 
       // Delete associated transactions if they exist
       if (transferData.fromTransactionId) {
         await tx
           .delete(transactions)
           .where(
-            eq(transactions.id, transferData.fromTransactionId)
+            and(
+              eq(transactions.id, transferData.fromTransactionId),
+              eq(transactions.userId, userId),
+              eq(transactions.householdId, householdId)
+            )
           );
       }
 
@@ -187,7 +246,11 @@ export async function DELETE(
         await tx
           .delete(transactions)
           .where(
-            eq(transactions.id, transferData.toTransactionId)
+            and(
+              eq(transactions.id, transferData.toTransactionId),
+              eq(transactions.userId, userId),
+              eq(transactions.householdId, householdId)
+            )
           );
       }
 
@@ -197,14 +260,22 @@ export async function DELETE(
           .select()
           .from(accounts)
           .where(
-            eq(accounts.id, transferData.fromAccountId)
+            and(
+              eq(accounts.id, transferData.fromAccountId),
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId)
+            )
           )
           .limit(1),
         tx
           .select()
           .from(accounts)
           .where(
-            eq(accounts.id, transferData.toAccountId)
+            and(
+              eq(accounts.id, transferData.toAccountId),
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId)
+            )
           )
           .limit(1),
       ]);
@@ -229,7 +300,13 @@ export async function DELETE(
               newFromBalance.toString()
             ),
           })
-          .where(eq(accounts.id, transferData.fromAccountId));
+          .where(
+            and(
+              eq(accounts.id, transferData.fromAccountId),
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId)
+            )
+          );
       }
 
       if (toAccount.length > 0) {
@@ -247,7 +324,13 @@ export async function DELETE(
               newToBalance.toString()
             ),
           })
-          .where(eq(accounts.id, transferData.toAccountId));
+          .where(
+            and(
+              eq(accounts.id, transferData.toAccountId),
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId)
+            )
+          );
       }
     });
 
