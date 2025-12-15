@@ -1,7 +1,8 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { merchants, usageAnalytics, budgetCategories } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 export const dynamic = 'force-dynamic';
 
 interface Suggestion {
@@ -15,6 +16,7 @@ interface Suggestion {
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const url = new URL(request.url);
     const query = url.searchParams.get('q');
@@ -30,7 +32,7 @@ export async function GET(request: Request) {
     const frequentMerchants = await db
       .select()
       .from(merchants)
-      .where(eq(merchants.userId, userId))
+      .where(and(eq(merchants.userId, userId), eq(merchants.householdId, householdId)))
       .orderBy(desc(merchants.usageCount))
       .limit(limit);
 
@@ -48,7 +50,7 @@ export async function GET(request: Request) {
     const frequentCategories = await db
       .select()
       .from(budgetCategories)
-      .where(eq(budgetCategories.userId, userId))
+      .where(and(eq(budgetCategories.userId, userId), eq(budgetCategories.householdId, householdId)))
       .orderBy(desc(budgetCategories.usageCount))
       .limit(limit);
 
@@ -66,7 +68,7 @@ export async function GET(request: Request) {
     const _usageData = await db
       .select()
       .from(usageAnalytics)
-      .where(eq(usageAnalytics.userId, userId))
+      .where(and(eq(usageAnalytics.userId, userId), eq(usageAnalytics.householdId, householdId)))
       .limit(limit);
 
     // Combine and sort suggestions
