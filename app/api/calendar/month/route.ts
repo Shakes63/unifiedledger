@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, billInstances, bills, savingsGoals, debts, debtPayoffMilestones, accounts, billMilestones } from '@/lib/db/schema';
 import { eq, and, gte, lte, lt, isNotNull, inArray } from 'drizzle-orm';
@@ -118,6 +119,7 @@ function createEmptyDaySummary(): DayTransactionSummary {
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const { searchParams } = new URL(request.url);
     const startDateStr = searchParams.get('startDate');
@@ -141,6 +143,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(billInstances.userId, userId),
+          eq(billInstances.householdId, householdId),
           eq(billInstances.status, 'pending'),
           lt(billInstances.dueDate, today)
         )
@@ -155,6 +158,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId),
           gte(transactions.date, format(startDate, 'yyyy-MM-dd')),
           lte(transactions.date, format(endDate, 'yyyy-MM-dd'))
         )
@@ -193,6 +197,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(billInstances.userId, userId),
+          eq(billInstances.householdId, householdId),
           gte(billInstances.dueDate, format(startDate, 'yyyy-MM-dd')),
           lte(billInstances.dueDate, format(endDate, 'yyyy-MM-dd'))
         )
@@ -207,6 +212,7 @@ export async function GET(request: Request) {
           .where(
             and(
               eq(bills.userId, userId),
+              eq(bills.householdId, householdId),
               inArray(bills.id, billIds)
             )
           )
@@ -230,6 +236,7 @@ export async function GET(request: Request) {
           .where(
             and(
               eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId),
               inArray(accounts.id, allAccountIds)
             )
           )
@@ -304,6 +311,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(savingsGoals.userId, userId),
+          eq(savingsGoals.householdId, householdId),
           isNotNull(savingsGoals.targetDate),
           gte(savingsGoals.targetDate, format(startDate, 'yyyy-MM-dd')),
           lte(savingsGoals.targetDate, format(endDate, 'yyyy-MM-dd'))
@@ -344,6 +352,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
           isNotNull(debts.targetPayoffDate),
           gte(debts.targetPayoffDate, format(startDate, 'yyyy-MM-dd')),
           lte(debts.targetPayoffDate, format(endDate, 'yyyy-MM-dd'))
@@ -394,6 +403,9 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(debtPayoffMilestones.userId, userId),
+          eq(debtPayoffMilestones.householdId, householdId),
+          eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
           isNotNull(debtPayoffMilestones.achievedAt),
           gte(debtPayoffMilestones.achievedAt, startDateStr2),
           lte(debtPayoffMilestones.achievedAt, endDateStr2)
@@ -437,6 +449,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId),
           inArray(accounts.type, ['credit', 'line_of_credit']),
           eq(accounts.isActive, true)
         )
@@ -449,6 +462,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(bills.userId, userId),
+          eq(bills.householdId, householdId),
           eq(bills.isDebt, true),
           eq(bills.isActive, true)
         )
@@ -537,6 +551,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(billMilestones.userId, userId),
+          eq(billMilestones.householdId, householdId),
           isNotNull(billMilestones.achievedAt),
           gte(billMilestones.achievedAt, startDateStr2),
           lte(billMilestones.achievedAt, endDateStr2)
@@ -551,14 +566,26 @@ export async function GET(request: Request) {
       ? await db
           .select()
           .from(bills)
-          .where(inArray(bills.id, milestoneBillIds))
+          .where(
+            and(
+              eq(bills.userId, userId),
+              eq(bills.householdId, householdId),
+              inArray(bills.id, milestoneBillIds)
+            )
+          )
       : [];
     
     const milestoneAccounts = milestoneAccountIds.length > 0
       ? await db
           .select()
           .from(accounts)
-          .where(inArray(accounts.id, milestoneAccountIds))
+          .where(
+            and(
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId),
+              inArray(accounts.id, milestoneAccountIds)
+            )
+          )
       : [];
 
     const milestoneBillMap = new Map(milestoneBills.map(b => [b.id, b]));
