@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories, billInstances, bills, accounts, merchants, savingsGoals, debts, debtPayoffMilestones, billMilestones } from '@/lib/db/schema';
 import { eq, and, lt, isNotNull, gte, lte, inArray } from 'drizzle-orm';
@@ -14,6 +15,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const { searchParams } = new URL(request.url);
     const dateStr = searchParams.get('date');
@@ -36,6 +38,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(billInstances.userId, userId),
+          eq(billInstances.householdId, householdId),
           eq(billInstances.status, 'pending'),
           lt(billInstances.dueDate, today)
         )
@@ -48,6 +51,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId),
           eq(transactions.date, dateKey)
         )
       );
@@ -66,7 +70,8 @@ export async function GET(request: Request) {
             .where(
               and(
                 eq(budgetCategories.id, txn.categoryId),
-                eq(budgetCategories.userId, userId)
+                eq(budgetCategories.userId, userId),
+                eq(budgetCategories.householdId, householdId)
               )
             )
             .limit(1);
@@ -84,7 +89,8 @@ export async function GET(request: Request) {
             .where(
               and(
                 eq(merchants.id, txn.merchantId),
-                eq(merchants.userId, userId)
+                eq(merchants.userId, userId),
+                eq(merchants.householdId, householdId)
               )
             )
             .limit(1);
@@ -102,7 +108,8 @@ export async function GET(request: Request) {
             .where(
               and(
                 eq(accounts.id, txn.accountId),
-                eq(accounts.userId, userId)
+                eq(accounts.userId, userId),
+                eq(accounts.householdId, householdId)
               )
             )
             .limit(1);
@@ -135,6 +142,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(billInstances.userId, userId),
+          eq(billInstances.householdId, householdId),
           eq(billInstances.dueDate, dateKey)
         )
       );
@@ -148,7 +156,8 @@ export async function GET(request: Request) {
           .where(
             and(
               eq(bills.id, instance.billId),
-              eq(bills.userId, userId)
+              eq(bills.userId, userId),
+              eq(bills.householdId, householdId)
             )
           )
           .limit(1);
@@ -158,7 +167,13 @@ export async function GET(request: Request) {
           const linkedAccount = await db
             .select()
             .from(accounts)
-            .where(eq(accounts.id, bill[0].linkedAccountId))
+            .where(
+              and(
+                eq(accounts.id, bill[0].linkedAccountId),
+                eq(accounts.userId, userId),
+                eq(accounts.householdId, householdId)
+              )
+            )
             .limit(1);
           linkedAccountName = linkedAccount[0]?.name;
         }
@@ -186,6 +201,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(bills.userId, userId),
+          eq(bills.householdId, householdId),
           eq(bills.isAutopayEnabled, true),
           eq(bills.isActive, true)
         )
@@ -200,6 +216,7 @@ export async function GET(request: Request) {
           .where(
             and(
               eq(billInstances.userId, userId),
+              eq(billInstances.householdId, householdId),
               eq(billInstances.status, 'pending'),
               inArray(billInstances.billId, autopayBillIds)
             )
@@ -235,7 +252,13 @@ export async function GET(request: Request) {
         const sourceAccount = await db
           .select()
           .from(accounts)
-          .where(eq(accounts.id, bill.autopayAccountId))
+          .where(
+            and(
+              eq(accounts.id, bill.autopayAccountId),
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId)
+            )
+          )
           .limit(1);
 
         let linkedAccountName: string | undefined;
@@ -243,7 +266,13 @@ export async function GET(request: Request) {
           const linkedAccount = await db
             .select()
             .from(accounts)
-            .where(eq(accounts.id, bill.linkedAccountId))
+            .where(
+              and(
+                eq(accounts.id, bill.linkedAccountId),
+                eq(accounts.userId, userId),
+                eq(accounts.householdId, householdId)
+              )
+            )
             .limit(1);
           linkedAccountName = linkedAccount[0]?.name;
         }
@@ -273,6 +302,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(savingsGoals.userId, userId),
+          eq(savingsGoals.householdId, householdId),
           eq(savingsGoals.targetDate, dateKey)
         )
       );
@@ -304,6 +334,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
           eq(debts.targetPayoffDate, dateKey)
         )
       );
@@ -362,6 +393,9 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(debtPayoffMilestones.userId, userId),
+          eq(debtPayoffMilestones.householdId, householdId),
+          eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
           isNotNull(debtPayoffMilestones.achievedAt),
           gte(debtPayoffMilestones.achievedAt, dayStart),
           lte(debtPayoffMilestones.achievedAt, dayEnd)
@@ -410,6 +444,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId),
           inArray(accounts.type, ['credit', 'line_of_credit']),
           eq(accounts.isActive, true)
         )
@@ -447,6 +482,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(bills.userId, userId),
+          eq(bills.householdId, householdId),
           eq(bills.isDebt, true),
           eq(bills.isActive, true)
         )
@@ -498,6 +534,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(billMilestones.userId, userId),
+          eq(billMilestones.householdId, householdId),
           isNotNull(billMilestones.achievedAt),
           gte(billMilestones.achievedAt, dayStart),
           lte(billMilestones.achievedAt, dayEnd)
@@ -513,7 +550,13 @@ export async function GET(request: Request) {
         const bill = await db
           .select()
           .from(bills)
-          .where(eq(bills.id, milestone.billId))
+          .where(
+            and(
+              eq(bills.id, milestone.billId),
+              eq(bills.userId, userId),
+              eq(bills.householdId, householdId)
+            )
+          )
           .limit(1);
         if (bill[0]) {
           name = bill[0].name;
@@ -524,7 +567,13 @@ export async function GET(request: Request) {
         const account = await db
           .select()
           .from(accounts)
-          .where(eq(accounts.id, milestone.accountId))
+          .where(
+            and(
+              eq(accounts.id, milestone.accountId),
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId)
+            )
+          )
           .limit(1);
         if (account[0]) {
           name = account[0].name;

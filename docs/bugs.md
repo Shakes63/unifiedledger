@@ -3,7 +3,6 @@
 ---
 
 ## New Bugs
-- **Calendar day API is not household-scoped + uses unscoped account/bill lookups by id** - `app/api/calendar/day/route.ts` filters by `userId` only for transactions/bills/goals/debts (e.g. lines 31-53, 131-140, 269-309) and fetches `accounts`/`bills` by id without `userId + householdId` in multiple places (e.g. lines 156-164, 233-249, 512-534), which can leak names across households (and potentially across users if ids are guessed).
 - **Calendar month API is not household-scoped + milestone enrichment queries are unscoped** - `app/api/calendar/month/route.ts` filters month transactions by `userId` only (lines 151-161) and pulls milestone bills/accounts by ids without `userId + householdId` constraints (lines 546-566), which can leak names across households/users.
 - **Suggestions API ignores household context** - `app/api/suggestions/route.ts` fetches merchants/categories/usageAnalytics by `userId` only (lines 29-70); should enforce household membership + `householdId` filtering for household-scoped tables.
 - **Categorization suggestion API ignores household context and fetches category by id without ownership constraints** - `app/api/categorization/suggest/route.ts` uses `userId` only for merchant + transaction history (lines 27-53) and then queries `budgetCategories` by id only (lines 86-91), which can leak category names across households/users.
@@ -41,16 +40,17 @@
 | Metric | Count |
 |--------|-------|
 | Active Bugs | 0 |
-| Tests Passing | 904/904 (100%) |
+| Tests Passing | 905/905 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 766 (190 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 767 (191 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (190 total)
+## Fixed Bugs (191 total)
 
+191. ✅ **Calendar day API is not household-scoped + uses unscoped account/bill lookups by id** [FIXED 2025-12-15] - Added household membership enforcement and scoped all calendar-day queries/enrichment lookups by `userId + householdId`; added regression test.
 190. ✅ **Household isolation missing in spending summary API** [FIXED 2025-12-15] - Scoped transaction/category queries by `userId + householdId` and added a regression test to prevent cross-household leakage.
 189. ✅ **Account change handler can move transactions across households and log to wrong household** [FIXED 2025-12-13] - Derived householdId from the transaction, validated target account household, scoped balance/transaction updates by `userId + householdId`, and logged activity to the transaction’s household; added regression test.
 188. ✅ **Split creation isn’t household-scoped and updates transaction by id only** [FIXED 2025-12-13] - Derived householdId from the source transaction and scoped category validation + transaction updates by `userId + householdId`; added regression test.
