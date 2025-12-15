@@ -3,7 +3,6 @@
 ---
 
 ## New Bugs
-- **CSV export endpoint is not household-scoped and joins are not ownership-filtered** - `app/api/user/export/csv/route.ts` filters by `transactions.userId` only (lines 23-49) and performs joins without ensuring joined rows match the same `userId + householdId` (lines 44-48); this can export records from other households and risks cross-scope join leakage.
 - **Test data access endpoint exposes user data and isn’t household-scoped** - `app/api/test-data-access/route.ts` returns account/transaction samples filtered only by `userId` (lines 23-59); should be removed, protected behind explicit TEST_MODE/dev guard, and/or household-scoped.
 
 ---
@@ -36,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 775 (199 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 776 (200 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
 ## Fixed Bugs (199 total)
 
+200. ✅ **CSV export endpoint is not household-scoped and joins are not ownership-filtered** [FIXED 2025-12-15] - Required household context and scoped all CSV export joins/queries by `userId + householdId` to prevent cross-household leakage; added regression test.
 199. ✅ **Custom field values endpoint reads values by transactionId without user/household scoping** [FIXED 2025-12-15] - Enforced household membership, scoped transaction validation to household, and scoped custom field value/field operations by `userId`; added regression test.
 198. ✅ **Transaction tags endpoint can read/write associations without full ownership scoping** [FIXED 2025-12-15] - Enforced household membership, validated transaction household, and scoped tag association reads/deletes by `userId`; added regression test.
 197. ✅ **Accept transfer suggestion does not validate transaction ownership/household** [FIXED 2025-12-15] - Scoped accept handler transaction selects/updates by `userId + householdId` after enforcing household membership; added regression test.

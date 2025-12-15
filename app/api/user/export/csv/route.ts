@@ -1,19 +1,14 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, accounts, budgetCategories, merchants } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
-import { headers } from 'next/headers';
 
 export async function GET(request: Request) {
   try {
-    const authResult = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!authResult?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const { searchParams } = new URL(request.url);
     const startDate = searchParams.get('startDate');
@@ -21,7 +16,7 @@ export async function GET(request: Request) {
     const accountId = searchParams.get('accountId');
 
     // Build query conditions
-    const conditions = [eq(transactions.userId, authResult.user.id)];
+    const conditions = [eq(transactions.userId, userId), eq(transactions.householdId, householdId)];
 
     if (startDate) {
       conditions.push(gte(transactions.date, startDate));
@@ -42,9 +37,30 @@ export async function GET(request: Request) {
         merchant: merchants,
       })
       .from(transactions)
-      .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-      .leftJoin(budgetCategories, eq(transactions.categoryId, budgetCategories.id))
-      .leftJoin(merchants, eq(transactions.merchantId, merchants.id))
+      .leftJoin(
+        accounts,
+        and(
+          eq(transactions.accountId, accounts.id),
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId)
+        )
+      )
+      .leftJoin(
+        budgetCategories,
+        and(
+          eq(transactions.categoryId, budgetCategories.id),
+          eq(budgetCategories.userId, userId),
+          eq(budgetCategories.householdId, householdId)
+        )
+      )
+      .leftJoin(
+        merchants,
+        and(
+          eq(transactions.merchantId, merchants.id),
+          eq(merchants.userId, userId),
+          eq(merchants.householdId, householdId)
+        )
+      )
       .where(and(...conditions))
       .orderBy(desc(transactions.date));
 
@@ -77,6 +93,17 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'Unauthorized') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      if (error.message === 'Household ID is required') {
+        return NextResponse.json({ error: 'Household ID is required' }, { status: 400 });
+      }
+      if (error.message.startsWith('Unauthorized:')) {
+        return NextResponse.json({ error: error.message }, { status: 403 });
+      }
+    }
     console.error('Error exporting CSV:', error);
     return NextResponse.json(
       { error: 'Failed to export CSV' },

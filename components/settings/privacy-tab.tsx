@@ -39,6 +39,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHousehold } from '@/contexts/household-context';
 import { useRouter } from 'next/navigation';
 import { TwoFactorSection } from '@/components/settings/two-factor-section';
 import { OAuthProvidersSection } from '@/components/settings/oauth-providers-section';
@@ -58,6 +59,7 @@ interface Session {
 }
 
 export function PrivacyTab() {
+  const { selectedHouseholdId } = useHousehold();
   const router = useRouter();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,7 +187,17 @@ export function PrivacyTab() {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
-      const response = await fetch(`/api/user/export/csv?${params}`, { credentials: 'include' });
+      if (!selectedHouseholdId) {
+        toast.error('Please select a household first');
+        return;
+      }
+
+      const response = await fetch(`/api/user/export/csv?${params}`, {
+        credentials: 'include',
+        headers: {
+          'x-household-id': selectedHouseholdId,
+        },
+      });
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
