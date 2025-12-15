@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactionTags, tags, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const body = await request.json();
     const { transactionId, tagId } = body;
@@ -28,7 +30,8 @@ export async function POST(request: Request) {
       .where(
         and(
           eq(transactions.id, transactionId),
-          eq(transactions.userId, userId)
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
         )
       )
       .limit(1);
@@ -66,7 +69,8 @@ export async function POST(request: Request) {
       .where(
         and(
           eq(transactionTags.transactionId, transactionId),
-          eq(transactionTags.tagId, tagId)
+          eq(transactionTags.tagId, tagId),
+          eq(transactionTags.userId, userId)
         )
       )
       .limit(1);
@@ -98,7 +102,7 @@ export async function POST(request: Request) {
         lastUsedAt: now,
         updatedAt: now,
       })
-      .where(eq(tags.id, tagId));
+      .where(and(eq(tags.id, tagId), eq(tags.userId, userId)));
 
     return Response.json({ success: true }, { status: 201 });
   } catch (error) {
@@ -114,6 +118,7 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const body = await request.json();
     const { transactionId, tagId } = body;
@@ -145,13 +150,34 @@ export async function DELETE(request: Request) {
       );
     }
 
+    // Verify transaction belongs to user + household (prevents cross-household tag ops)
+    const transaction = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.id, transactionId),
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
+        )
+      )
+      .limit(1);
+
+    if (transaction.length === 0) {
+      return Response.json(
+        { error: 'Transaction not found' },
+        { status: 404 }
+      );
+    }
+
     // Delete association
     await db
       .delete(transactionTags)
       .where(
         and(
           eq(transactionTags.transactionId, transactionId),
-          eq(transactionTags.tagId, tagId)
+          eq(transactionTags.tagId, tagId),
+          eq(transactionTags.userId, userId)
         )
       );
 
@@ -159,7 +185,7 @@ export async function DELETE(request: Request) {
     const tag = await db
       .select()
       .from(tags)
-      .where(eq(tags.id, tagId))
+      .where(and(eq(tags.id, tagId), eq(tags.userId, userId)))
       .limit(1);
 
     if (tag.length > 0) {
@@ -170,7 +196,7 @@ export async function DELETE(request: Request) {
           usageCount: Math.max(0, (tag[0].usageCount || 0) - 1),
           updatedAt: now,
         })
-        .where(eq(tags.id, tagId));
+        .where(and(eq(tags.id, tagId), eq(tags.userId, userId)));
     }
 
     return Response.json({ success: true });

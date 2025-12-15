@@ -3,8 +3,6 @@
 ---
 
 ## New Bugs
-- **Accept transfer suggestion does not validate transaction ownership/household** - `app/api/transfer-suggestions/[id]/accept/route.ts` loads the suggestion by `userId` (lines 21-31) but then fetches and updates the referenced transactions by id only (lines 50-104); this should also validate `transactions.userId + householdId` for both txns.
-- **Transaction tags endpoint can read/write associations without full ownership scoping** - `app/api/transaction-tags/route.ts` does not verify household membership for the referenced transaction and checks/deletes `transactionTags` associations without scoping by `userId` (existing check/delete at lines 62-72 and 148-156), which is an IDOR risk and can cross household boundaries.
 - **Custom field values endpoint reads values by transactionId without user/household scoping** - `app/api/custom-field-values/route.ts` verifies the transaction by `userId` (lines 24-35) but reads `customFieldValues` by `transactionId` only (lines 43-46); should include `userId` (and household, where applicable) to prevent cross-scope reads if ids are reused/compromised.
 - **CSV export endpoint is not household-scoped and joins are not ownership-filtered** - `app/api/user/export/csv/route.ts` filters by `transactions.userId` only (lines 23-49) and performs joins without ensuring joined rows match the same `userId + householdId` (lines 44-48); this can export records from other households and risks cross-scope join leakage.
 - **Test data access endpoint exposes user data and isn’t household-scoped** - `app/api/test-data-access/route.ts` returns account/transaction samples filtered only by `userId` (lines 23-59); should be removed, protected behind explicit TEST_MODE/dev guard, and/or household-scoped.
@@ -35,16 +33,17 @@
 | Metric | Count |
 |--------|-------|
 | Active Bugs | 0 |
-| Tests Passing | 911/911 (100%) |
+| Tests Passing | 912/912 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 773 (197 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 774 (198 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (197 total)
+## Fixed Bugs (198 total)
 
+198. ✅ **Transaction tags endpoint can read/write associations without full ownership scoping** [FIXED 2025-12-15] - Enforced household membership, validated transaction household, and scoped tag association reads/deletes by `userId`; added regression test.
 197. ✅ **Accept transfer suggestion does not validate transaction ownership/household** [FIXED 2025-12-15] - Scoped accept handler transaction selects/updates by `userId + householdId` after enforcing household membership; added regression test.
 196. ✅ **Transfers/suggest API ignores household context for transfer-pair analytics** [FIXED 2025-12-15] - Enforced household membership and scoped transfer-pair analytics + account enrichment by `userId + householdId`; added regression test.
 195. ✅ **Transfers/[id] API leaks account names and can mutate balances without ownership checks** [FIXED 2025-12-15] - Enforced household membership and scoped account/transaction enrichment + balance mutations by validating linked accounts in the active household; added regression test.
