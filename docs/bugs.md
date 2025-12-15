@@ -1,9 +1,19 @@
-# Bugs Status (Updated 2025-12-13)
+# Bugs Status (Updated 2025-12-15)
 
 ---
 
 ## New Bugs
-(None)
+- **Calendar day API is not household-scoped + uses unscoped account/bill lookups by id** - `app/api/calendar/day/route.ts` filters by `userId` only for transactions/bills/goals/debts (e.g. lines 31-53, 131-140, 269-309) and fetches `accounts`/`bills` by id without `userId + householdId` in multiple places (e.g. lines 156-164, 233-249, 512-534), which can leak names across households (and potentially across users if ids are guessed).
+- **Calendar month API is not household-scoped + milestone enrichment queries are unscoped** - `app/api/calendar/month/route.ts` filters month transactions by `userId` only (lines 151-161) and pulls milestone bills/accounts by ids without `userId + householdId` constraints (lines 546-566), which can leak names across households/users.
+- **Suggestions API ignores household context** - `app/api/suggestions/route.ts` fetches merchants/categories/usageAnalytics by `userId` only (lines 29-70); should enforce household membership + `householdId` filtering for household-scoped tables.
+- **Categorization suggestion API ignores household context and fetches category by id without ownership constraints** - `app/api/categorization/suggest/route.ts` uses `userId` only for merchant + transaction history (lines 27-53) and then queries `budgetCategories` by id only (lines 86-91), which can leak category names across households/users.
+- **Transfers/[id] API leaks account names and can mutate balances without ownership checks** - `app/api/transfers/[id]/route.ts` fetches accounts by id only when enriching (lines 39-51) and when reverting balances in DELETE (lines 194-251); these should be scoped by `userId + householdId` to prevent cross-household/user leaks and unsafe balance mutation.
+- **Transfers/suggest API ignores household context for transfer-pair analytics** - `app/api/transfers/suggest/route.ts` filters usage by `userId` only (lines 22-37) and doesn’t enforce household membership; should scope to current household or otherwise ensure analytics can’t mix households.
+- **Accept transfer suggestion does not validate transaction ownership/household** - `app/api/transfer-suggestions/[id]/accept/route.ts` loads the suggestion by `userId` (lines 21-31) but then fetches and updates the referenced transactions by id only (lines 50-104); this should also validate `transactions.userId + householdId` for both txns.
+- **Transaction tags endpoint can read/write associations without full ownership scoping** - `app/api/transaction-tags/route.ts` does not verify household membership for the referenced transaction and checks/deletes `transactionTags` associations without scoping by `userId` (existing check/delete at lines 62-72 and 148-156), which is an IDOR risk and can cross household boundaries.
+- **Custom field values endpoint reads values by transactionId without user/household scoping** - `app/api/custom-field-values/route.ts` verifies the transaction by `userId` (lines 24-35) but reads `customFieldValues` by `transactionId` only (lines 43-46); should include `userId` (and household, where applicable) to prevent cross-scope reads if ids are reused/compromised.
+- **CSV export endpoint is not household-scoped and joins are not ownership-filtered** - `app/api/user/export/csv/route.ts` filters by `transactions.userId` only (lines 23-49) and performs joins without ensuring joined rows match the same `userId + householdId` (lines 44-48); this can export records from other households and risks cross-scope join leakage.
+- **Test data access endpoint exposes user data and isn’t household-scoped** - `app/api/test-data-access/route.ts` returns account/transaction samples filtered only by `userId` (lines 23-59); should be removed, protected behind explicit TEST_MODE/dev guard, and/or household-scoped.
 
 ---
 
@@ -31,16 +41,17 @@
 | Metric | Count |
 |--------|-------|
 | Active Bugs | 0 |
-| Tests Passing | 903/903 (100%) |
+| Tests Passing | 904/904 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 765 (189 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 766 (190 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (189 total)
+## Fixed Bugs (190 total)
 
+190. ✅ **Household isolation missing in spending summary API** [FIXED 2025-12-15] - Scoped transaction/category queries by `userId + householdId` and added a regression test to prevent cross-household leakage.
 189. ✅ **Account change handler can move transactions across households and log to wrong household** [FIXED 2025-12-13] - Derived householdId from the transaction, validated target account household, scoped balance/transaction updates by `userId + householdId`, and logged activity to the transaction’s household; added regression test.
 188. ✅ **Split creation isn’t household-scoped and updates transaction by id only** [FIXED 2025-12-13] - Derived householdId from the source transaction and scoped category validation + transaction updates by `userId + householdId`; added regression test.
 187. ✅ **Transfer conversion/account balance updates aren’t ownership-scoped** [FIXED 2025-12-13] - Scoped transfer conversion transaction/account updates by `userId + householdId` and validated target account household; added regression tests.

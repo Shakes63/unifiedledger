@@ -1,7 +1,9 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories } from '@/lib/db/schema';
 import { eq, and, gte, lte, inArray } from 'drizzle-orm';
+import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +30,7 @@ interface SpendingSummary {
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const url = new URL(request.url);
     const period = url.searchParams.get('period') || 'monthly'; // 'weekly' or 'monthly'
@@ -70,6 +73,7 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId),
           gte(transactions.date, dateStart),
           lte(transactions.date, dateEnd)
         )
@@ -78,26 +82,29 @@ export async function GET(request: Request) {
     // Calculate totals by type
     const incomeTotal = txns
       .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+      .reduce((sum, t) => sum.plus(new Decimal(t.amount?.toString() || '0')), new Decimal(0))
+      .toNumber();
 
     const expenseTotal = txns
       .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+      .reduce((sum, t) => sum.plus(new Decimal(t.amount?.toString() || '0')), new Decimal(0))
+      .toNumber();
 
     const transferTotal = txns
       .filter((t) => t.type === 'transfer_in' || t.type === 'transfer_out')
-      .reduce((sum, t) => sum + parseFloat(t.amount.toString()), 0);
+      .reduce((sum, t) => sum.plus(new Decimal(t.amount?.toString() || '0')), new Decimal(0))
+      .toNumber();
 
     // Group by category
-    const byCategory = new Map<string, { amount: number; count: number; categoryName: string }>();
+    const byCategory = new Map<string, { amount: Decimal; count: number; categoryName: string }>();
 
     for (const txn of txns) {
       if (txn.type === 'expense' && txn.categoryId) {
         if (!byCategory.has(txn.categoryId)) {
-          byCategory.set(txn.categoryId, { amount: 0, count: 0, categoryName: '' });
+          byCategory.set(txn.categoryId, { amount: new Decimal(0), count: 0, categoryName: '' });
         }
         const entry = byCategory.get(txn.categoryId)!;
-        entry.amount += parseFloat(txn.amount.toString());
+        entry.amount = entry.amount.plus(new Decimal(txn.amount?.toString() || '0'));
         entry.count += 1;
       }
     }
@@ -110,7 +117,13 @@ export async function GET(request: Request) {
       categories = await db
         .select()
         .from(budgetCategories)
-        .where(and(eq(budgetCategories.userId, userId), inArray(budgetCategories.id, categoryIds)));
+        .where(
+          and(
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId),
+            inArray(budgetCategories.id, categoryIds)
+          )
+        );
     }
 
     const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
@@ -119,8 +132,8 @@ export async function GET(request: Request) {
       .map(([categoryId, { amount, count }]) => ({
         categoryId,
         categoryName: categoryMap.get(categoryId) || 'Uncategorized',
-        amount,
-        percentage: expenseTotal > 0 ? Math.round((amount / expenseTotal) * 100) : 0,
+        amount: amount.toNumber(),
+        percentage: expenseTotal > 0 ? Math.round((amount.toNumber() / expenseTotal) * 100) : 0,
         transactionCount: count,
       }))
       .sort((a, b) => b.amount - a.amount);
@@ -134,7 +147,7 @@ export async function GET(request: Request) {
         merchantSpending.set(merchant, { amount: 0, count: 0 });
       }
       const entry = merchantSpending.get(merchant)!;
-      entry.amount += parseFloat(txn.amount.toString());
+      entry.amount += new Decimal(txn.amount?.toString() || '0').toNumber();
       entry.count += 1;
     }
 
