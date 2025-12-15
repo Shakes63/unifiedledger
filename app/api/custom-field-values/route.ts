@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { customFieldValues, customFields, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const url = new URL(request.url);
     const transactionId = url.searchParams.get('transactionId');
@@ -28,7 +30,8 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(transactions.id, transactionId),
-          eq(transactions.userId, userId)
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
         )
       )
       .limit(1);
@@ -43,7 +46,12 @@ export async function GET(request: Request) {
     const values = await db
       .select()
       .from(customFieldValues)
-      .where(eq(customFieldValues.transactionId, transactionId));
+      .where(
+        and(
+          eq(customFieldValues.transactionId, transactionId),
+          eq(customFieldValues.userId, userId)
+        )
+      );
 
     return Response.json({
       data: values.map((value) => ({
@@ -64,6 +72,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const body = await request.json();
     const { customFieldId, transactionId, value } = body;
@@ -82,7 +91,8 @@ export async function POST(request: Request) {
       .where(
         and(
           eq(transactions.id, transactionId),
-          eq(transactions.userId, userId)
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
         )
       )
       .limit(1);
@@ -120,7 +130,8 @@ export async function POST(request: Request) {
       .where(
         and(
           eq(customFieldValues.customFieldId, customFieldId),
-          eq(customFieldValues.transactionId, transactionId)
+          eq(customFieldValues.transactionId, transactionId),
+          eq(customFieldValues.userId, userId)
         )
       )
       .limit(1);
@@ -136,7 +147,12 @@ export async function POST(request: Request) {
           value: stringValue,
           updatedAt: now,
         })
-        .where(eq(customFieldValues.id, existing[0].id));
+        .where(
+          and(
+            eq(customFieldValues.id, existing[0].id),
+            eq(customFieldValues.userId, userId)
+          )
+        );
 
       return Response.json(existing[0]);
     } else {
@@ -157,12 +173,12 @@ export async function POST(request: Request) {
           usageCount: (field[0].usageCount || 0) + 1,
           updatedAt: now,
         })
-        .where(eq(customFields.id, customFieldId));
+        .where(and(eq(customFields.id, customFieldId), eq(customFields.userId, userId)));
 
       const created = await db
         .select()
         .from(customFieldValues)
-        .where(eq(customFieldValues.id, valueId))
+        .where(and(eq(customFieldValues.id, valueId), eq(customFieldValues.userId, userId)))
         .limit(1);
 
       return Response.json(
@@ -186,6 +202,7 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const url = new URL(request.url);
     const valueId = url.searchParams.get('valueId');
@@ -216,14 +233,36 @@ export async function DELETE(request: Request) {
       );
     }
 
+    // Verify the referenced transaction is in the active household (prevents cross-household deletes)
+    const transaction = await db
+      .select()
+      .from(transactions)
+      .where(
+        and(
+          eq(transactions.id, value[0].transactionId),
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
+        )
+      )
+      .limit(1);
+
+    if (transaction.length === 0) {
+      return Response.json(
+        { error: 'Transaction not found' },
+        { status: 404 }
+      );
+    }
+
     // Delete value
-    await db.delete(customFieldValues).where(eq(customFieldValues.id, valueId));
+    await db
+      .delete(customFieldValues)
+      .where(and(eq(customFieldValues.id, valueId), eq(customFieldValues.userId, userId)));
 
     // Update field usage count
     const field = await db
       .select()
       .from(customFields)
-      .where(eq(customFields.id, value[0].customFieldId))
+      .where(and(eq(customFields.id, value[0].customFieldId), eq(customFields.userId, userId)))
       .limit(1);
 
     if (field.length > 0) {
@@ -234,7 +273,7 @@ export async function DELETE(request: Request) {
           usageCount: Math.max(0, (field[0].usageCount || 0) - 1),
           updatedAt: now,
         })
-        .where(eq(customFields.id, value[0].customFieldId));
+        .where(and(eq(customFields.id, value[0].customFieldId), eq(customFields.userId, userId)));
     }
 
     return Response.json({ success: true });
