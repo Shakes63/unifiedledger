@@ -32,6 +32,9 @@ alwaysApply: false
 - Frontend should use `lib/hooks/use-household-fetch.ts` for household-aware HTTP methods
 - Always filter by `household_id` when querying household-scoped data
 
+## Debug / Test-Only Endpoints
+- Any debug-style endpoint that returns sample data or internal diagnostics must be **TEST_MODE-only** (use `isTestMode()` from `lib/test-mode`) and should return **404** when disabled to avoid exposing sensitive data or endpoint discovery.
+
 ## Error Handling
 - Return consistent error format: `{ error: string }`
 - Use appropriate HTTP status codes

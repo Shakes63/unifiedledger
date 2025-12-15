@@ -3,7 +3,7 @@
 ---
 
 ## New Bugs
-- **Test data access endpoint exposes user data and isn’t household-scoped** - `app/api/test-data-access/route.ts` returns account/transaction samples filtered only by `userId` (lines 23-59); should be removed, protected behind explicit TEST_MODE/dev guard, and/or household-scoped.
+(None)
 
 ---
 
@@ -35,12 +35,13 @@
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 776 (200 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 777 (201 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (199 total)
+## Fixed Bugs (201 total)
 
+201. ✅ **Test data access endpoint exposes user data and isn’t household-scoped** [FIXED 2025-12-15] - Locked `/api/test-data-access` to TEST_MODE-only (404 otherwise) and enforced household context in test mode; added regression test.
 200. ✅ **CSV export endpoint is not household-scoped and joins are not ownership-filtered** [FIXED 2025-12-15] - Required household context and scoped all CSV export joins/queries by `userId + householdId` to prevent cross-household leakage; added regression test.
 199. ✅ **Custom field values endpoint reads values by transactionId without user/household scoping** [FIXED 2025-12-15] - Enforced household membership, scoped transaction validation to household, and scoped custom field value/field operations by `userId`; added regression test.
 198. ✅ **Transaction tags endpoint can read/write associations without full ownership scoping** [FIXED 2025-12-15] - Enforced household membership, validated transaction household, and scoped tag association reads/deletes by `userId`; added regression test.
