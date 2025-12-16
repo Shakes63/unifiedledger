@@ -332,7 +332,7 @@ This template defaults to SQLite but supports Postgres by letting the user chang
 Unified Ledger (Next.js) personal finance app.
 
 Default DB: SQLite persisted in /config/finance.db
-Optional DB: Postgres via DATABASE_URL (install Postgres separately in Unraid CA)
+Optional DB: Postgres via DATABASE_URL (install Postgres separately in Unraid CA; Postgres 17+)
 
 On startup, the container auto-runs migrations for the configured database, enabling 1-click updates.
   </Overview>
@@ -363,6 +363,11 @@ On startup, the container auto-runs migrations for the configured database, enab
   <Config Name="DATABASE_URL (SQLite default, Postgres optional)" Target="DATABASE_URL" Default="file:/config/finance.db" Mode="rw"
           Description="SQLite: file:/config/finance.db  |  Postgres: postgresql://user:pass@host:5432/unifiedledger"
           Type="Variable" Display="always" Required="true"/>
+
+  <!-- Uploads persistence (recommended) -->
+  <Config Name="UPLOADS_DIR" Target="UPLOADS_DIR" Default="/config/uploads" Mode="rw"
+          Description="Filesystem uploads root (avatars at /uploads/avatars/<userId>.jpg). Persist under /config in Unraid."
+          Type="Variable" Display="advanced" Required="false"/>
 
   <!-- Recommended runtime flags -->
   <Config Name="PORT" Target="PORT" Default="3000" Mode="rw"
@@ -515,6 +520,16 @@ Recommended NPM settings:
 - Advanced tab (if needed):
   - Ensure headers preserve `Host` and set `X-Forwarded-Proto $scheme`
 
+Suggested NPM “Advanced” snippet (only if you’re troubleshooting auth loops):
+
+```nginx
+proxy_set_header Host $host;
+proxy_set_header X-Forwarded-Host $host;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Real-IP $remote_addr;
+```
+
 ### SWAG support (nginx config users)
 
 SWAG is also nginx, but config-file oriented. The key support requirements are the same:
@@ -524,6 +539,38 @@ SWAG is also nginx, but config-file oriented. The key support requirements are t
 - Proxy to the app container on port `3000`
 
 Provide a sample `proxy-confs/unifiedledger.subdomain.conf` snippet in docs when publishing the CA app.
+
+Sample SWAG config (subdomain-style):
+
+```nginx
+server {
+  listen 443 ssl;
+  listen [::]:443 ssl;
+  server_name unifiedledger.*;
+
+  include /config/nginx/ssl.conf;
+
+  location / {
+    include /config/nginx/proxy.conf;
+    include /config/nginx/resolver.conf;
+
+    set $upstream_app unifiedledger;
+    set $upstream_port 3000;
+    set $upstream_proto http;
+    proxy_pass $upstream_proto://$upstream_app:$upstream_port;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Real-IP $remote_addr;
+
+    # Websockets (safe even if unused)
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $connection_upgrade;
+  }
+}
+```
 
 ### Traefik support (labels users)
 
@@ -535,6 +582,19 @@ Traefik “support” means documenting required labels and middleware so the ap
 - Ensure forwarded headers are present (Traefik typically sets these by default)
 
 Provide a minimal labels example in docs (v2/v3 depending on user base).
+
+Minimal Traefik labels example (v2):
+
+```yaml
+labels:
+  - "traefik.enable=true"
+  - "traefik.http.routers.unifiedledger.rule=Host(`unifiedledger.example.com`)"
+  - "traefik.http.routers.unifiedledger.entrypoints=websecure"
+  - "traefik.http.routers.unifiedledger.tls=true"
+  - "traefik.http.routers.unifiedledger.tls.certresolver=letsencrypt"
+  - "traefik.http.services.unifiedledger.loadbalancer.server.port=3000"
+  # Traefik already sets forwarded headers by default; only add header middleware if troubleshooting.
+```
 
 ### Websocket / SSE
 
