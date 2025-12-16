@@ -17,6 +17,74 @@ This plan describes how to publish Unified Ledger as an **Unraid Community Apps 
 
 ---
 
+## Decisions to Make (before implementation)
+
+These are the remaining “fork in the road” items where we should pick one approach and then implement consistently.
+
+### 0) Migration strategy for CA upgrades (choose ONE)
+
+Unified Ledger currently uses a Docker “migrator” pattern with `drizzle-kit push` (schema sync) in a one-shot container/step. For Unraid CA, we must decide what’s acceptable for unattended upgrades:
+
+- **Option A — Keep `drizzle-kit push` (schema sync)**
+  - **Pros**: Matches current repo Docker approach; no migration files to manage.
+  - **Cons**: Can become ambiguous for destructive changes; may prompt in edge cases; less auditable/reviewable.
+  - **Decision required**: Are we willing to constrain schema evolution to changes that never require interactive resolution at runtime?
+
+- **Option B — Move to committed migrations + `drizzle-kit migrate`**
+  - **Pros**: Deterministic, auditable, safer for upgrades; aligns with “unattended upgrades” requirement.
+  - **Cons**: Requires generating + committing migrations; must maintain *dialect-specific* outputs for SQLite vs Postgres.
+  - **Decision required**: Are we willing to change the project’s DB workflow to migration-based for production images?
+
+If we pick **Option B**, Step 2 below is the correct direction. If we pick **Option A**, Step 2 should be rewritten to explicitly codify the “push-only” constraints and how to avoid interactive prompts.
+
+**Decision (chosen): Option B — committed migrations + `drizzle-kit migrate` for CA.**
+
+### 1) Where should production data live inside the container?
+
+For CA, the contract is `/config`. The app currently defaults to `/app/data/finance.db` in production when `DATABASE_URL` is not set.
+
+- **Decision required**: Standardize on:
+  - SQLite default: `DATABASE_URL=file:/config/finance.db`
+  - Uploads root: `/config/uploads`
+  - Optional backups/exports: `/config/backups`
+
+This implies updating any Docker docs/examples that mention `/app/data` to `/config` for CA.
+
+**Decision (chosen): Standardize on `/config` for CA (DB at `/config/finance.db`, uploads at `/config/uploads`).**
+
+### 2) Single-container “entrypoint migrates then starts” vs separate migrator step
+
+Unraid CA templates typically run **one container**. There are two common approaches:
+
+- **Option A — Single container entrypoint runs migrations then starts server**
+  - **Recommended for CA**: Easiest “1-click update” UX.
+- **Option B — Separate migrator container/job**
+  - Works in Compose, but is a worse fit for CA’s single-app template model.
+
+**Decision required**: Implement Option A for CA even if local docker-compose keeps Option B.
+
+**Decision (chosen): Option A — single container entrypoint migrates then starts the app.**
+
+### 3) Postgres scope (supported vs “best effort”)
+
+- **Decision required**:
+  - Is Postgres officially supported (CI coverage + migrations), or “advanced/experimental”?
+  - Minimum supported Postgres version (e.g. 15+ or 16+).
+
+**Decision (chosen): Postgres is officially supported; minimum Postgres version is 17+.**
+
+### 4) Reverse proxy / cookie security defaults
+
+Better Auth cookies and redirects depend on the public URL and secure-cookie policy.
+
+- **Decision required**:
+  - Is `FORCE_SECURE_COOKIES=true` the default in CA templates?
+  - Do we document required reverse proxy headers (`Host`, `X-Forwarded-Proto`) as “musts”?
+
+**Decision (chosen): `FORCE_SECURE_COOKIES` defaults to false; rely on `NEXT_PUBLIC_APP_URL` and forwarded headers to enable Secure cookies when appropriate.**
+
+---
+
 ## Target Unraid Runtime Contract
 
 ### Persistent paths
@@ -36,8 +104,9 @@ This plan describes how to publish Unified Ledger as an **Unraid Community Apps 
 - `BETTER_AUTH_SECRET`
   - long random secret (required in production)
 - `FORCE_SECURE_COOKIES` (recommended for public exposure)
-  - Set to `true` when exposed publicly behind HTTPS reverse proxy
-  - If unset/false, cookies will be marked Secure automatically when `NEXT_PUBLIC_APP_URL` starts with `https://`
+  - Default: `false`
+  - If unset/false, cookies should be marked Secure automatically when `NEXT_PUBLIC_APP_URL` starts with `https://` (and/or when proxy forwarded headers indicate HTTPS).
+  - Set to `true` only if you need to force Secure cookies regardless of URL/headers (generally not recommended unless you know why).
 
 ### Optional environment variables (feature-dependent)
 
@@ -66,7 +135,7 @@ Update `lib/db/index.ts` to:
 
 **SQLite behavior**
 - Use `better-sqlite3` + `drizzle-orm/better-sqlite3`
-- Default production path should be `/config/finance.db` (when `DATABASE_URL` is not set).
+- Default production path should be `/config/finance.db` (when `DATABASE_URL` is not set) for CA images/templates.
 
 **Postgres behavior**
 - Add deps: `pg` (+ `@types/pg`)
@@ -98,6 +167,8 @@ Because SQLite and Postgres differ, audit `lib/db/schema.ts` for:
 For unattended upgrades, prefer **`drizzle-kit migrate`** with committed migration files.
 
 `drizzle-kit push` can be ambiguous and may become interactive for certain schema changes; that’s not acceptable for CA updates.
+
+This plan **chooses migration-based upgrades** for CA (see Decisions above).
 
 ### 2.2 Split migration outputs by dialect
 
@@ -143,6 +214,13 @@ Add a startup script (recommended path: `scripts/docker-entrypoint.mjs`) that:
   - migration start/finish
   - failure reason
 
+### 2.5 Prevent concurrent migrations (recommended)
+
+Even on Unraid, users can click “update” rapidly or restart loops can happen.
+
+- **SQLite**: use a simple file lock in `/config` (e.g. `/config/.migrate.lock`) to ensure only one migrator runs at a time.
+- **Postgres**: use an advisory lock (e.g. `pg_advisory_lock`) during migration.
+
 ---
 
 ## Step 3 — Docker image design for CA
@@ -177,6 +255,12 @@ Start with Option 1 to ship quickly; optimize later if desired.
   - `/config` mount
   - `DATABASE_URL=file:/config/finance.db` (SQLite default)
 
+### 3.4 Healthcheck / readiness contract (recommended)
+
+The existing Dockerfile uses `GET /api/health` to determine container health.
+
+**Decision (chosen): `/api/health` should validate DB connectivity** and return non-200 if the DB is unavailable/misconfigured (so Unraid surfaces broken configs quickly).
+
 ---
 
 ## Step 4 — CI: Publish images for Unraid CA
@@ -203,6 +287,8 @@ Not planned initially: `linux/arm64`
 ## Step 5 — CA Template (Option A: user provides full Postgres DATABASE_URL)
 
 This template defaults to SQLite but supports Postgres by letting the user change `DATABASE_URL`.
+
+> Implementation alignment note: the current repo Docker examples default to storing SQLite at `/app/data/finance.db`. For CA, we should standardize on `/config/finance.db` and ensure the image/entrypoint respects that default when `DATABASE_URL` is not provided.
 
 ```xml
 <?xml version="1.0"?>
@@ -244,14 +330,22 @@ On startup, the container auto-runs migrations for the configured database, enab
   <Config Name="Better Auth Secret" Target="BETTER_AUTH_SECRET" Default="" Mode="rw"
           Description="Required. Set a long random secret." Type="Variable" Display="always" Required="true" Mask="true"/>
 
-  <Config Name="Force Secure Cookies (recommended for public HTTPS)" Target="FORCE_SECURE_COOKIES" Default="true" Mode="rw"
-          Description="Set true when exposed publicly behind HTTPS reverse proxy. If false, Secure cookies are enabled automatically when NEXT_PUBLIC_APP_URL starts with https://"
+  <Config Name="Force Secure Cookies (advanced)" Target="FORCE_SECURE_COOKIES" Default="false" Mode="rw"
+          Description="Advanced. If false, Secure cookies should be enabled automatically when NEXT_PUBLIC_APP_URL is https (and/or proxy forwarded headers indicate https). Set true only if you need to force Secure cookies."
           Type="Variable" Display="advanced" Required="false"/>
 
   <!-- Database selection -->
   <Config Name="DATABASE_URL (SQLite default, Postgres optional)" Target="DATABASE_URL" Default="file:/config/finance.db" Mode="rw"
           Description="SQLite: file:/config/finance.db  |  Postgres: postgresql://user:pass@host:5432/unifiedledger"
           Type="Variable" Display="always" Required="true"/>
+
+  <!-- Recommended runtime flags -->
+  <Config Name="PORT" Target="PORT" Default="3000" Mode="rw"
+          Description="Port the app listens on inside the container" Type="Variable" Display="advanced" Required="false"/>
+  <Config Name="HOSTNAME" Target="HOSTNAME" Default="0.0.0.0" Mode="rw"
+          Description="Bind address inside the container" Type="Variable" Display="advanced" Required="false"/>
+  <Config Name="NEXT_TELEMETRY_DISABLED" Target="NEXT_TELEMETRY_DISABLED" Default="1" Mode="rw"
+          Description="Disable Next.js telemetry" Type="Variable" Display="advanced" Required="false"/>
 
   <!-- Optional email -->
   <Config Name="Email Provider" Target="EMAIL_PROVIDER" Default="none" Mode="rw"
@@ -314,6 +408,41 @@ Also include:
 
 - Reverse proxy guidance (set `NEXT_PUBLIC_APP_URL` to the externally reachable URL)
 - How to rotate secrets safely (`BETTER_AUTH_SECRET`)
+
+---
+
+## Additional items to add (recommended)
+
+### A) Add a CA-friendly Docker runtime contract section
+
+Document runtime env vars that are helpful in Unraid deployments:
+
+- `PORT=3000`
+- `HOSTNAME=0.0.0.0`
+- `NODE_ENV=production`
+- `NEXT_TELEMETRY_DISABLED=1`
+
+### B) Clarify uploads + avatars implementation details
+
+This plan recommends `/config/uploads`. To make this actionable:
+
+- **Decision required**: Do we introduce `UPLOADS_DIR` env var (default `/config/uploads`)?
+- Confirm whether avatars are currently stored under `public/uploads` or filesystem outside Next static assets.
+- Document size limits + allowed mime types for avatar uploads and any future attachments.
+
+### C) First-run initialization (what happens on an empty DB?)
+
+For CA, we should explicitly define:
+
+- Does the app auto-create required tables on first run (via migrations/push)?
+- Is there any seed step required for “first household”, categories, etc., or is onboarding entirely user-driven?
+
+### D) Backup/restore guidance (minimum viable)
+
+Add a short doc section for Unraid users:
+
+- How to back up `/config/finance.db` (and `/config/uploads`) safely
+- For SQLite, recommend stopping the container before copying DB (or using SQLite backup API if implemented later)
 
 ---
 
@@ -436,7 +565,7 @@ This structure keeps data private, supports household sharing, and survives cont
 
 ## Optional Postgres: Supported version
 
-Target: **latest major Postgres** release (document minimum supported version once validated in CI).
+Minimum supported Postgres version: **17+** (officially supported).
 
 ---
 
