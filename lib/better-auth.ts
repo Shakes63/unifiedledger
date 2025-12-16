@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { db } from "@/lib/db";
+import { db, getDatabaseDialect } from "@/lib/db";
 import * as authSchema from "@/auth-schema";
 import { sendVerificationEmail } from "@/lib/email/email-service";
 // GeoIP imports commented out - re-enable when Better Auth hooks are fixed
@@ -30,7 +30,11 @@ function shouldUseSecureCookies() {
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
-    provider: "sqlite",
+    provider: (() => {
+      const dialect = getDatabaseDialect(process.env.DATABASE_URL);
+      if (dialect === "postgresql") return "postgresql";
+      return "sqlite";
+    })(),
     schema: authSchema,
   }),
   // Use different base path to avoid conflicts with Clerk
