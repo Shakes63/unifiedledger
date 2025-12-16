@@ -1,18 +1,16 @@
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { join } from 'path';
+import { Pool } from 'pg';
+import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
+import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from './schema';
-
-export type DatabaseDialect = 'sqlite' | 'postgresql';
-
-export function getDatabaseDialect(databaseUrl: string | undefined): DatabaseDialect {
-  const v = databaseUrl?.trim().toLowerCase();
-  if (v?.startsWith('postgres://') || v?.startsWith('postgresql://')) return 'postgresql';
-  return 'sqlite';
-}
+import { getDatabaseDialectFromUrl } from './dialect';
 
 let sqlite: Database.Database;
-let db: ReturnType<typeof drizzle>;
+let pgPool: Pool | undefined;
+let db: BetterSQLite3Database<typeof import('./schema.sqlite')> | NodePgDatabase<typeof import('./schema.pg')>;
 
 function resolveSqlitePath() {
   const envUrl = process.env.DATABASE_URL?.trim();
@@ -45,30 +43,41 @@ const sqlitePath = resolveSqlitePath();
 
 declare global {
   var sqlite: Database.Database | undefined;
-  var db: ReturnType<typeof drizzle> | undefined;
+  var pgPool: Pool | undefined;
+  var db:
+    | BetterSQLite3Database<typeof import('./schema.sqlite')>
+    | NodePgDatabase<typeof import('./schema.pg')>
+    | undefined;
 }
 
-// Postgres support is planned for Unraid CA, but schema + adapter conversion is not implemented yet.
-// Fail fast rather than running with an incompatible driver/schema combination.
-if (getDatabaseDialect(process.env.DATABASE_URL) === 'postgresql') {
-  throw new Error(
-    'Postgres DATABASE_URL detected, but Postgres runtime support is not implemented yet. ' +
-      'Use SQLite (DATABASE_URL=file:/config/finance.db) for now.'
-  );
-}
+const dialect = getDatabaseDialectFromUrl(process.env.DATABASE_URL);
 
-if (process.env.NODE_ENV === 'production') {
-  sqlite = new Database(sqlitePath);
-  db = drizzle(sqlite, { schema });
+if (dialect === 'postgresql') {
+  // Postgres runtime (officially supported 17+ per Unraid plan)
+  // Note: DATABASE_URL must be set to a postgres:// or postgresql:// URL.
+  const url = process.env.DATABASE_URL?.trim();
+  if (!url) throw new Error('DATABASE_URL is required for Postgres mode.');
+
+  if (process.env.NODE_ENV !== 'production') {
+    if (!global.pgPool) global.pgPool = new Pool({ connectionString: url });
+    if (!global.db) global.db = drizzlePg(global.pgPool, { schema: schema as unknown as typeof import('./schema.pg') });
+    pgPool = global.pgPool;
+    db = global.db;
+  } else {
+    pgPool = new Pool({ connectionString: url });
+    db = drizzlePg(pgPool, { schema: schema as unknown as typeof import('./schema.pg') });
+  }
 } else {
-  if (!global.sqlite) {
-    global.sqlite = new Database(sqlitePath);
+  // SQLite runtime (default)
+  if (process.env.NODE_ENV === 'production') {
+    sqlite = new Database(sqlitePath);
+    db = drizzle(sqlite, { schema: schema as unknown as typeof import('./schema.sqlite') });
+  } else {
+    if (!global.sqlite) global.sqlite = new Database(sqlitePath);
+    if (!global.db) global.db = drizzle(global.sqlite, { schema: schema as unknown as typeof import('./schema.sqlite') });
+    sqlite = global.sqlite;
+    db = global.db;
   }
-  if (!global.db) {
-    global.db = drizzle(global.sqlite, { schema });
-  }
-  sqlite = global.sqlite;
-  db = global.db;
 }
 
-export { db, sqlite };
+export { db, sqlite, pgPool };

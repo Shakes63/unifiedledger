@@ -1,16 +1,15 @@
 const drizzleConfig = {
   // NOTE: Postgres support is implemented incrementally.
-  // Once `lib/db/schema.pg.ts` exists, switch this schema list to it.
-  schema: ["./lib/db/schema.ts", "./auth-schema.ts"],
+  schema: ["./lib/db/schema.pg.ts", "./auth-schema.pg.ts"],
   out: "./drizzle/postgres",
   dialect: "postgresql",
   dbCredentials: {
     url: (() => {
       const url = process.env.DATABASE_URL?.trim();
       if (!url) {
-        throw new Error(
-          "DATABASE_URL is required for Postgres migrations. Example: postgresql://USER:PASSWORD@HOST:5432/unifiedledger"
-        );
+        // Allow generation workflows to run locally by providing a safe placeholder.
+        // For runtime migrations, the container must set DATABASE_URL.
+        return "postgresql://postgres:postgres@localhost:5432/unifiedledger";
       }
       return url;
     })(),

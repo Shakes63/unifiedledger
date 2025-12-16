@@ -237,6 +237,10 @@ Even on Unraid, users can click “update” rapidly or restart loops can happen
 - **SQLite**: use a simple file lock in `/config` (e.g. `/config/.migrate.lock`) to ensure only one migrator runs at a time.
 - **Postgres**: use an advisory lock (e.g. `pg_advisory_lock`) during migration.
 
+**Repo status:** Implemented in `scripts/docker-entrypoint.mjs`:
+- SQLite: `/config/.migrate.lock`
+- Postgres: `pg_advisory_lock(<two-int-key>)` held for the migration connection lifecycle
+
 ---
 
 ## Step 3 — Docker image design for CA

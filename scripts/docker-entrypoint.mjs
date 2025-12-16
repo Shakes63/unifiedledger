@@ -2,6 +2,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { Client } from "pg";
 
 function isPostgresUrl(databaseUrl) {
   const v = (databaseUrl ?? "").trim().toLowerCase();
@@ -52,6 +53,26 @@ function acquireSqliteMigrateLock() {
   };
 }
 
+async function withPostgresAdvisoryLock(databaseUrl, fn) {
+  // Use a stable 2-int lock key to avoid bigint parsing differences.
+  // This lock is held for the lifetime of this client connection.
+  const lockKey1 = 8291;
+  const lockKey2 = 33001;
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    await client.query("select pg_advisory_lock($1, $2)", [lockKey1, lockKey2]);
+    return await fn();
+  } finally {
+    try {
+      await client.query("select pg_advisory_unlock($1, $2)", [lockKey1, lockKey2]);
+    } catch {}
+    try {
+      await client.end();
+    } catch {}
+  }
+}
+
 async function main() {
   const databaseUrl = process.env.DATABASE_URL?.trim() || defaultDatabaseUrl();
   process.env.DATABASE_URL = databaseUrl;
@@ -84,12 +105,18 @@ async function main() {
       process.exit(1);
     }
   } else {
-    // Postgres advisory locks will be added once Postgres runtime is wired (pg dependency + DB support).
-    // For now, migrations still run (single-container Unraid CA reduces concurrency risk).
+    // Postgres: use an advisory lock so only one migrator runs at a time.
   }
 
+  const runMigrate = () => run("pnpm", ["drizzle-kit", "migrate", "--config", drizzleConfig]);
   try {
-    run("pnpm", ["drizzle-kit", "migrate", "--config", drizzleConfig]);
+    if (dialect === "postgres") {
+      await withPostgresAdvisoryLock(databaseUrl, async () => {
+        runMigrate();
+      });
+    } else {
+      runMigrate();
+    }
   } finally {
     if (releaseLock) releaseLock();
   }

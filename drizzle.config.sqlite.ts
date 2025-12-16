@@ -13,7 +13,7 @@ function resolveSqliteFilePathFromDatabaseUrl(databaseUrl: string): string {
 }
 
 const drizzleConfig = {
-  schema: ["./lib/db/schema.ts", "./auth-schema.ts"],
+  schema: ["./lib/db/schema.sqlite.ts", "./auth-schema.ts"],
   out: "./drizzle/sqlite",
   dialect: "sqlite",
   dbCredentials: {
