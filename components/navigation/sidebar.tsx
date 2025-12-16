@@ -145,7 +145,12 @@ export function Sidebar() {
       }`}
     >
       {/* Logo Section */}
-      <div className="p-4 border-b border-border flex items-center justify-between gap-2 min-w-0">
+      <div
+        className={`p-4 border-b border-border flex min-w-0 ${
+          sidebarOpen ? 'items-center justify-between gap-2' : 'flex-col items-center gap-2'
+        }`}
+        data-testid="sidebar-header"
+      >
         {sidebarOpen && (
           <Link href="/dashboard" className="flex items-center gap-3 flex-1 min-w-0">
             <div className="relative w-8 h-8 shrink-0">
@@ -172,7 +177,7 @@ export function Sidebar() {
           </Link>
         )}
         {!sidebarOpen && (
-          <Link href="/dashboard" className="flex flex-col items-center justify-center w-full flex-1 gap-1">
+          <Link href="/dashboard" className="flex flex-col items-center justify-center flex-1 min-w-0 gap-1">
             <div className="relative w-8 h-8">
               <Image
                 src="/logo.png"
@@ -197,6 +202,7 @@ export function Sidebar() {
           size="icon"
           onClick={toggleSidebar}
           className="text-muted-foreground hover:text-foreground shrink-0"
+          data-testid="sidebar-collapse-toggle"
         >
           <ChevronLeft className={`w-4 h-4 transition-transform ${sidebarOpen ? '' : 'rotate-180'}`} />
         </Button>
