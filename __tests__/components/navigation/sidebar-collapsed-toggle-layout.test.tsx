@@ -15,7 +15,7 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: (props: { alt: string }) => <img alt={props.alt} />,
+  default: (props: { alt: string }) => <span role="img" aria-label={props.alt} />,
 }));
 
 vi.mock('@/context/navigation-context', () => ({

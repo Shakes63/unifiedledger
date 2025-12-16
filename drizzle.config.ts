@@ -3,7 +3,20 @@ const drizzleConfig = {
   out: './drizzle',
   dialect: 'sqlite',
   dbCredentials: {
-    url: './sqlite.db',
+    url: (() => {
+      const envUrl = process.env.DATABASE_URL?.trim();
+      if (envUrl) {
+        if (envUrl.startsWith('file:')) {
+          try {
+            return new URL(envUrl).pathname;
+          } catch {
+            return envUrl.replace(/^file:/, '');
+          }
+        }
+        return envUrl;
+      }
+      return './sqlite.db';
+    })(),
   },
 };
 

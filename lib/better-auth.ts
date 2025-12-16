@@ -16,6 +16,18 @@ const googleClientSecret = dbOAuthSettings?.google?.clientSecret || process.env.
 const githubClientId = dbOAuthSettings?.github?.clientId || process.env.GITHUB_CLIENT_ID;
 const githubClientSecret = dbOAuthSettings?.github?.clientSecret || process.env.GITHUB_CLIENT_SECRET;
 
+function shouldUseSecureCookies() {
+  // Optional hard override for production environments behind HTTPS reverse proxies.
+  if (process.env.FORCE_SECURE_COOKIES === "true") return true;
+
+  // If the public app URL is HTTPS, we should mark cookies as Secure.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (appUrl?.toLowerCase().startsWith("https://")) return true;
+
+  // Default: local dev / plain HTTP access.
+  return false;
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "sqlite",
@@ -52,7 +64,7 @@ export const auth = betterAuth({
   },
   advanced: {
     cookiePrefix: "better-auth",
-    useSecureCookies: false, // Set to false for localhost development
+    useSecureCookies: shouldUseSecureCookies(),
     crossSubDomainCookies: {
       enabled: false,
     },

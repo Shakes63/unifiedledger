@@ -76,7 +76,7 @@ describe('GET /api/bills/classification-summary', () => {
       url: 'https://example.com/api/bills/classification-summary',
     } as unknown as Request;
 
-    const response = await GET_CLASSIFICATION_SUMMARY(request as unknown as any);
+    const response = await GET_CLASSIFICATION_SUMMARY(request as Request);
     expect(response.status).toBe(200);
 
     const json = (await response.json()) as {

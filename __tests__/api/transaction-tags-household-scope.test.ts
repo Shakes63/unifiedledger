@@ -84,7 +84,7 @@ describe('DELETE /api/transaction-tags household scoping', () => {
     );
 
     (db.update as unknown as { mockImplementation: (fn: (table: unknown) => unknown) => void }).mockImplementation(
-      (table: unknown) => {
+      (_table: unknown) => {
         return {
           set: () => ({
             where: async () => undefined,

@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  # One-shot migrator: runs Drizzle schema sync against the persisted SQLite DB
+  # For "1-click updates" (pull/rebuild + restart), this ensures schema is up to date before app start.
+  finance-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: migrator
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/finance.db
+    volumes:
+      - finance-data:/app/data
+    restart: "no"
+
   # Main application service
   finance-app:
     build:
@@ -20,6 +34,8 @@ services:
     volumes:
       # Persist database across container restarts
       - finance-data:/app/data
+    depends_on:
+      - finance-migrate
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
       interval: 30s

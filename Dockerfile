@@ -20,6 +20,14 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED 1
 RUN pnpm build
 
+# Stage 3.5: Migrator (runs schema sync against the persisted SQLite DB)
+# This stage retains devDependencies so drizzle-kit is available.
+FROM builder AS migrator
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
+WORKDIR /app
+CMD ["pnpm", "drizzle-kit", "push"]
+
 # Stage 4: Runtime - production image
 FROM base AS runner
 WORKDIR /app
