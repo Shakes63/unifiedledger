@@ -124,6 +124,8 @@ export function BillsByClassificationWidget() {
     classification: item.classification,
   }));
 
+  const showChart = data.data.length > 1;
+
   // Custom tooltip
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: { name: string; value: number; color: string } }> }) => {
     if (active && payload && payload.length) {
@@ -160,27 +162,29 @@ export function BillsByClassificationWidget() {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Pie Chart */}
-        <div className="h-[180px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                innerRadius={45}
-                outerRadius={70}
-                paddingAngle={2}
-                dataKey="value"
-              >
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        {/* Pie Chart (hide for single-category to avoid excess empty space) */}
+        {showChart && (
+          <div className="h-[180px]" data-testid="bills-by-category-chart">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={45}
+                  outerRadius={70}
+                  paddingAngle={2}
+                  dataKey="value"
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        )}
 
         {/* Category List */}
         <div className="space-y-2">

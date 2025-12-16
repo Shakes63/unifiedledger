@@ -31,16 +31,17 @@
 | Metric | Count |
 |--------|-------|
 | Active Bugs | 0 |
-| Tests Passing | 947/947 (100%) |
+| Tests Passing | 948/948 (100%) |
 | Linter Errors | 0 |
 | Linter Warnings | 0 |
 | Build Status | Passing |
-| Fixed (All Time) | 778 (202 bugs + 310 warnings + 195 errors + 71 additional) |
+| Fixed (All Time) | 779 (203 bugs + 310 warnings + 195 errors + 71 additional) |
 
 ---
 
-## Fixed Bugs (202 total)
+## Fixed Bugs (203 total)
 
+203. ✅ **Dashboard “Bills by Category” card has excess empty space with a single category** [FIXED 2025-12-16] - Hide the fixed-height pie chart when only one category is present so the card collapses; added regression test.
 202. ✅ **Dashboard “Bills by Category” excludes credit card payment bills** [FIXED 2025-12-16] - Variable credit card payment bills now derive monthly totals from upcoming instances when `expectedAmount=0`, so they appear in the category breakdown; added regression tests.
 201. ✅ **Test data access endpoint exposes user data and isn’t household-scoped** [FIXED 2025-12-15] - Locked `/api/test-data-access` to TEST_MODE-only (404 otherwise) and enforced household context in test mode; added regression test.
 200. ✅ **CSV export endpoint is not household-scoped and joins are not ownership-filtered** [FIXED 2025-12-15] - Required household context and scoped all CSV export joins/queries by `userId + householdId` to prevent cross-household leakage; added regression test.

@@ -66,6 +66,36 @@ describe('BillsByClassificationWidget (Dashboard Bills by Category)', () => {
     expect(await screen.findByText('Loan Payment')).toBeInTheDocument();
     expect(screen.getByText('$123.00')).toBeInTheDocument();
   });
+
+  it('hides the chart when the API returns only one category (regression)', async () => {
+    fetchWithHouseholdMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [
+          {
+            classification: 'loan_payment',
+            label: 'Loan Payment',
+            count: 1,
+            totalMonthly: 123,
+            upcomingCount: 1,
+            upcomingAmount: 123,
+            color: '#3366ff',
+          },
+        ],
+        totals: {
+          totalCount: 1,
+          totalMonthly: 123,
+          totalUpcomingCount: 1,
+          totalUpcomingAmount: 123,
+        },
+      }),
+    });
+
+    render(<BillsByClassificationWidget />);
+
+    expect(await screen.findByText('Loan Payment')).toBeInTheDocument();
+    expect(screen.queryByTestId('bills-by-category-chart')).not.toBeInTheDocument();
+  });
 });
 
 
