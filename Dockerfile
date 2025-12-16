@@ -57,6 +57,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 COPY --chown=nextjs:nodejs drizzle /app/drizzle 2>/dev/null || true
 COPY --chown=nextjs:nodejs drizzle.config.sqlite.ts /app/ 2>/dev/null || true
 COPY --chown=nextjs:nodejs drizzle.config.pg.ts /app/ 2>/dev/null || true
+COPY --from=builder --chown=nextjs:nodejs /app/lib/db /app/lib/db
+COPY --from=builder --chown=nextjs:nodejs /app/auth-schema.ts /app/auth-schema.ts
+COPY --from=builder --chown=nextjs:nodejs /app/auth-schema.pg.ts /app/auth-schema.pg.ts
 COPY --chown=nextjs:nodejs scripts/docker-entrypoint.mjs /app/scripts/docker-entrypoint.mjs 2>/dev/null || true
 
 # Switch to non-root user

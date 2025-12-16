@@ -218,6 +218,11 @@ Add a startup script (recommended path: `scripts/docker-entrypoint.mjs`) that:
   - migration start/finish
   - failure reason
 
+**Runtime image requirement:** because we use `drizzle-kit migrate` in-container, the runtime image must include:
+- `drizzle/` (dialect migrations)
+- `drizzle.config.*.ts`
+- Schema files referenced by those configs (`lib/db/schema.sqlite.ts`, `lib/db/schema.pg.ts`, `auth-schema.ts`, `auth-schema.pg.ts`)
+
 ### Implementation notes (repo alignment)
 
 - The repo now includes:
