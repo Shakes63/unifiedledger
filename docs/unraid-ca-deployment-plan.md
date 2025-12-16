@@ -181,6 +181,8 @@ Create two Drizzle configs:
   - `dialect: "postgresql"`
   - `out: "./drizzle/postgres"`
 
+**Note (current repo status):** SQLite migrations are committed under `drizzle/sqlite`. Postgres migrations will be committed under `drizzle/postgres` once the schema is made Postgres-compatible (the current schema files use `sqliteTable`).
+
 ### 2.3 Migration generation workflow (developer/CI)
 
 When changing schema:

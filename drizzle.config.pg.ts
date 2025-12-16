@@ -5,7 +5,15 @@ const drizzleConfig = {
   out: "./drizzle/postgres",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL?.trim() ?? "",
+    url: (() => {
+      const url = process.env.DATABASE_URL?.trim();
+      if (!url) {
+        throw new Error(
+          "DATABASE_URL is required for Postgres migrations. Example: postgresql://USER:PASSWORD@HOST:5432/unifiedledger"
+        );
+      }
+      return url;
+    })(),
   },
 } as const;
 

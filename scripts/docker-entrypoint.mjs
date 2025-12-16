@@ -58,10 +58,22 @@ async function main() {
 
   const dialect = isPostgresUrl(databaseUrl) ? "postgres" : "sqlite";
   const drizzleConfig = dialect === "postgres" ? "drizzle.config.pg.ts" : "drizzle.config.sqlite.ts";
+  const migrationsRoot = dialect === "postgres" ? "/app/drizzle/postgres" : "/app/drizzle/sqlite";
 
   console.log(`[entrypoint] DATABASE_URL=${dialect === "postgres" ? "<postgresql>" : databaseUrl}`);
   console.log(`[entrypoint] Selected DB dialect: ${dialect}`);
   console.log(`[entrypoint] Running migrations with config: ${drizzleConfig}`);
+
+  if (dialect === "postgres") {
+    // Until Postgres migrations are committed, fail fast with an actionable error.
+    // This prevents a confusing partially-booted container with an unusable DB.
+    if (!fs.existsSync(path.join(migrationsRoot, "meta", "_journal.json"))) {
+      console.error("[entrypoint] Postgres migrations are not present in this image.");
+      console.error("[entrypoint] Expected migrations under:", migrationsRoot);
+      console.error("[entrypoint] Use SQLite (DATABASE_URL=file:/config/finance.db) or wait for Postgres migration support.");
+      process.exit(1);
+    }
+  }
 
   let releaseLock = null;
   if (dialect === "sqlite") {
