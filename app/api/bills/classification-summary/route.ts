@@ -6,7 +6,6 @@ import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/house
 import { CLASSIFICATION_META, type BillClassification } from '@/lib/bills/bill-classification';
 import { addDays, startOfDay, format } from 'date-fns';
 import { requireAuth } from '@/lib/auth-helpers';
-import { isTestMode, TEST_USER_ID, TEST_HOUSEHOLD_ID, logTestModeWarning } from '@/lib/test-mode';
 
 interface ClassificationSummaryItem {
   classification: string;
@@ -58,20 +57,6 @@ export async function GET(request: NextRequest) {
     // Get and verify household
     const householdId = getHouseholdIdFromRequest(request);
 
-    // Test mode bypass - return empty data for test user
-    if (isTestMode() && userId === TEST_USER_ID && householdId === TEST_HOUSEHOLD_ID) {
-      logTestModeWarning('bills/classification-summary');
-      return NextResponse.json({
-        data: [],
-        totals: {
-          totalCount: 0,
-          totalMonthly: 0,
-          totalUpcomingCount: 0,
-          totalUpcomingAmount: 0,
-        },
-      } as ClassificationSummaryResponse);
-    }
-
     if (!householdId) {
       return NextResponse.json({ error: 'Household ID required' }, { status: 400 });
     }
@@ -86,6 +71,7 @@ export async function GET(request: NextRequest) {
         frequency: bills.frequency,
         billType: bills.billType,
         billClassification: bills.billClassification,
+        isVariableAmount: bills.isVariableAmount,
       })
       .from(bills)
       .where(
@@ -105,7 +91,6 @@ export async function GET(request: NextRequest) {
       .select({
         billId: billInstances.billId,
         expectedAmount: billInstances.expectedAmount,
-        status: billInstances.status,
       })
       .from(billInstances)
       .innerJoin(bills, eq(billInstances.billId, bills.id))
@@ -117,6 +102,16 @@ export async function GET(request: NextRequest) {
           lte(billInstances.dueDate, thirtyDaysFromNowStr)
         )
       );
+
+    // Build per-bill upcoming amount stats to estimate variable bill monthly totals
+    const upcomingAmountStatsByBillId = new Map<string, { sum: number; count: number }>();
+    upcomingInstances.forEach((instance) => {
+      const existing = upcomingAmountStatsByBillId.get(instance.billId) || { sum: 0, count: 0 };
+      upcomingAmountStatsByBillId.set(instance.billId, {
+        sum: existing.sum + instance.expectedAmount,
+        count: existing.count + 1,
+      });
+    });
 
     // Create a map of bill IDs to their classification
     const billClassificationMap = new Map<string, BillClassification>();
@@ -159,7 +154,21 @@ export async function GET(request: NextRequest) {
       const classification = (bill.billClassification as BillClassification) || 'other';
       const summary = summaryMap.get(classification)!;
       summary.count += 1;
-      summary.totalMonthly += normalizeToMonthly(bill.expectedAmount, bill.frequency || 'monthly');
+
+      // Variable bills (notably credit card payment bills) often have bills.expectedAmount = 0,
+      // while the real "this month" amount lives on upcoming bill instances.
+      const upcomingStats = upcomingAmountStatsByBillId.get(bill.id);
+      const upcomingAverage =
+        upcomingStats && upcomingStats.count > 0 ? upcomingStats.sum / upcomingStats.count : 0;
+
+      const estimatedAmount =
+        bill.expectedAmount > 0
+          ? bill.expectedAmount
+          : bill.isVariableAmount
+            ? upcomingAverage
+            : bill.expectedAmount;
+
+      summary.totalMonthly += normalizeToMonthly(estimatedAmount, bill.frequency || 'monthly');
     });
 
     // Count upcoming instances

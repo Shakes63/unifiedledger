@@ -19,7 +19,7 @@ alwaysApply: false
 - ✅ Offline mode with automatic sync
 - ✅ PWA support for mobile app experience
 - ✅ Unified Settings Page (restructured to 2-tier: Account/Households with improved organization)
-- ✅ Testing: 590/590 passing (100%)
+- ✅ Testing: 947/947 passing (100%)
 - ✅ Enhanced Error Handling & Network Infrastructure (100% COMPLETE - Core fixes + UI enhancements)
 - ✅ Recent Transactions Infinite Loop Fix (2025-11-15) - Memoized useHouseholdFetch functions with useCallback
 - ✅ 403 Forbidden Errors & Sign-Out Fix (2025-01-XX) - Fixed 5 bugs: transaction sign-out, categories/transactions/accounts/CompactStatsBar 403 errors
@@ -28,7 +28,7 @@ alwaysApply: false
 - ✅ Password Field Form Fix (2025-01-27) - Wrapped all password fields in settings page within proper `<form>` elements for accessibility and HTML validation
 - ✅ Bills API Household Auth Fixes (2025-01-27) - Fixed bills dropdown in transaction form, bill details page, edit bill page, and category-selector to use `fetchWithHousehold` for proper household authentication
 - ✅ Overdue Bill Payment Fixes (2025-01-27) - Fixed overdue bills not being auto-matched when transactions are created/updated, and fixed pending instances with past due dates not being marked as overdue
-- ✅ All bugs fixed (85 total - see docs/bugs.md for complete list)
+- ✅ Bug backlog actively maintained (see `docs/bugs.md` for current status)
 - ✅ Authentication password verification implemented (password change, email change, reset app data)
 - ✅ Session/middleware hardened (cookie parsing, timeout cache, tab visibility handling)
 - ✅ Onboarding flow bugs fixed (2025-11-26): credentials missing in BillForm/invitation decline, modal resume after refresh, unused import cleanup
