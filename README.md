@@ -34,6 +34,7 @@ Mount `/config` as a persistent volume.
 - **`DATABASE_URL`**:
   - SQLite default: `file:/config/finance.db`
   - Postgres optional: `postgresql://USER:PASSWORD@HOST:5432/unifiedledger` (Postgres **17+**)
+    - Note: Postgres is part of the Unraid CA roadmap; if you set a Postgres URL today, the container will fail fast with a clear error until Postgres schema+migrations are shipped.
 - **`FORCE_SECURE_COOKIES`**: defaults to `false`  
   If `NEXT_PUBLIC_APP_URL` starts with `https://`, cookies are marked Secure automatically; set `FORCE_SECURE_COOKIES=true` only if you know you need it.
 

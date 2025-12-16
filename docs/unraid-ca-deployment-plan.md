@@ -3,8 +3,10 @@
 This plan describes how to publish Unified Ledger as an **Unraid Community Apps (CA)** container with:
 
 - **Default DB**: SQLite, persisted under `/config`
-- **Optional DB**: Postgres (users provide a full `DATABASE_URL`)
+- **Optional DB**: Postgres (users provide a full `DATABASE_URL`, Postgres 17+)
 - **1-click updates**: Unraid pulls a new image and the container **auto-runs non-interactive migrations on startup**
+
+> Repo status note: SQLite support is implemented first. Postgres support remains part of this plan, but requires a Postgres-compatible schema + committed `drizzle/postgres` migrations.
 
 ---
 
