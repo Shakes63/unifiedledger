@@ -4,6 +4,7 @@ import { user } from '@/auth-schema';
 import { eq } from 'drizzle-orm';
 import { unlink } from 'fs/promises';
 import { join } from 'path';
+import { getUploadsDir } from '@/lib/uploads/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -74,8 +75,13 @@ export async function DELETE(_request: Request) {
     // Delete avatar file if it exists
     if (currentUser[0].image) {
       try {
-        const filePath = join(process.cwd(), 'public', currentUser[0].image);
-        await unlink(filePath);
+        const filename = currentUser[0].image.split('/').pop();
+        if (filename) {
+          const uploadsPath = join(getUploadsDir(), 'avatars', filename);
+          await unlink(uploadsPath).catch(() => undefined);
+          const legacyPath = join(process.cwd(), 'public', 'uploads', 'avatars', filename);
+          await unlink(legacyPath).catch(() => undefined);
+        }
       } catch (error) {
         // File might not exist, log but continue
         console.log('Avatar file deletion error:', error);

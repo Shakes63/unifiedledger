@@ -446,9 +446,14 @@ Document runtime env vars that are helpful in Unraid deployments:
 
 This plan recommends `/config/uploads`. To make this actionable:
 
-- **Decision required**: Do we introduce `UPLOADS_DIR` env var (default `/config/uploads`)?
+- **Decision (chosen)**: Introduce `UPLOADS_DIR` env var (default `/config/uploads` in production).
 - Confirm whether avatars are currently stored under `public/uploads` or filesystem outside Next static assets.
 - Document size limits + allowed mime types for avatar uploads and any future attachments.
+
+**Implementation (current repo):**
+- Avatars are stored on disk under `${UPLOADS_DIR:-/config/uploads}/avatars/<userId>.jpg` (optimized JPEG).
+- Avatars are served via an authenticated route handler: `GET /uploads/avatars/<userId>.jpg`
+- On upgrades, the avatar route attempts a best-effort copy from legacy `public/uploads/avatars` into `${UPLOADS_DIR}/avatars` when present.
 
 ### C) First-run initialization (what happens on an empty DB?)
 

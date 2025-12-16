@@ -24,7 +24,7 @@ Unified Ledger is designed to run as a **single container** on Unraid CA. The co
 Mount `/config` as a persistent volume.
 
 - **SQLite DB (default)**: `/config/finance.db`
-- **Uploads**: `/config/uploads`
+- **Uploads**: `/config/uploads` (or set `UPLOADS_DIR`)
 
 ### Required environment variables
 
@@ -37,6 +37,12 @@ Mount `/config` as a persistent volume.
     - Postgres migrations are shipped in-image under `drizzle/postgres` and run automatically on startup.
 - **`FORCE_SECURE_COOKIES`**: defaults to `false`  
   If `NEXT_PUBLIC_APP_URL` starts with `https://`, cookies are marked Secure automatically; set `FORCE_SECURE_COOKIES=true` only if you know you need it.
+
+### Uploads directory (recommended)
+
+- **`UPLOADS_DIR`**: defaults to `/config/uploads` in production
+  - Avatars are stored under `${UPLOADS_DIR}/avatars/<userId>.jpg`
+  - Avatars are served via an authenticated route: `/uploads/avatars/<userId>.jpg`
 
 ### First run & upgrades
 

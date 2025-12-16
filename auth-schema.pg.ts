@@ -1,5 +1,4 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, boolean, bigint } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, timestamp } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -10,33 +9,34 @@ export const user = pgTable("user", {
     .notNull(),
   pendingEmail: text("pending_email"),
   image: text("image"),
-  imageUpdatedAt: bigint("image_updated_at", { mode: "number" }),
+  imageUpdatedAt: timestamp("image_updated_at", { mode: "date", withTimezone: true }),
   twoFactorEnabled: boolean("two_factor_enabled")
     .default(false)
     .notNull(),
   twoFactorSecret: text("two_factor_secret"),
   twoFactorBackupCodes: text("two_factor_backup_codes"), // JSON array of hashed codes
-  twoFactorVerifiedAt: bigint("two_factor_verified_at", { mode: "number" }),
+  twoFactorVerifiedAt: timestamp("two_factor_verified_at", { mode: "date", withTimezone: true }),
   isApplicationOwner: boolean("is_application_owner")
     .default(false)
     .notNull(),
-  createdAt: bigint("created_at", { mode: "number" })
-    .default(sql`(cast(extract(epoch from now()) * 1000 as bigint))`)
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
     .notNull(),
-  updatedAt: bigint("updated_at", { mode: "number" })
-    .default(sql`(cast(extract(epoch from now()) * 1000 as bigint))`)
+  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+    .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
 });
 
 export const session = pgTable("session", {
   id: text("id").primaryKey(),
-  expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
+  expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }).notNull(),
   token: text("token").notNull().unique(),
-  createdAt: bigint("created_at", { mode: "number" })
-    .default(sql`(cast(extract(epoch from now()) * 1000 as bigint))`)
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
     .notNull(),
-  updatedAt: bigint("updated_at", { mode: "number" })
+  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+    .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
   ipAddress: text("ip_address"),
@@ -48,8 +48,8 @@ export const session = pgTable("session", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  lastActivityAt: bigint("last_activity_at", { mode: "number" })
-    .default(sql`(cast(extract(epoch from now()) * 1000 as bigint))`)
+  lastActivityAt: timestamp("last_activity_at", { mode: "date", withTimezone: true })
+    .defaultNow()
     .notNull(),
   rememberMe: boolean("remember_me")
     .default(false)
@@ -66,14 +66,15 @@ export const account = pgTable("account", {
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
   idToken: text("id_token"),
-  accessTokenExpiresAt: bigint("access_token_expires_at", { mode: "number" }),
-  refreshTokenExpiresAt: bigint("refresh_token_expires_at", { mode: "number" }),
+  accessTokenExpiresAt: timestamp("access_token_expires_at", { mode: "date", withTimezone: true }),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { mode: "date", withTimezone: true }),
   scope: text("scope"),
   password: text("password"),
-  createdAt: bigint("created_at", { mode: "number" })
-    .default(sql`(cast(extract(epoch from now()) * 1000 as bigint))`)
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
     .notNull(),
-  updatedAt: bigint("updated_at", { mode: "number" })
+  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+    .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
 });
@@ -82,12 +83,12 @@ export const verification = pgTable("verification", {
   id: text("id").primaryKey(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
-  expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
-  createdAt: bigint("created_at", { mode: "number" })
-    .default(sql`(cast(extract(epoch from now()) * 1000 as bigint))`)
+  expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { mode: "date", withTimezone: true })
+    .defaultNow()
     .notNull(),
-  updatedAt: bigint("updated_at", { mode: "number" })
-    .default(sql`(cast(extract(epoch from now()) * 1000 as bigint))`)
+  updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true })
+    .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
 });

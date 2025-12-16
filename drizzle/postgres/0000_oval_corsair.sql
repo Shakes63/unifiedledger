@@ -1229,20 +1229,20 @@ CREATE TABLE "account" (
 	"access_token" text,
 	"refresh_token" text,
 	"id_token" text,
-	"access_token_expires_at" bigint,
-	"refresh_token_expires_at" bigint,
+	"access_token_expires_at" timestamp with time zone,
+	"refresh_token_expires_at" timestamp with time zone,
 	"scope" text,
 	"password" text,
-	"created_at" bigint DEFAULT (cast(extract(epoch from now()) * 1000 as bigint)) NOT NULL,
-	"updated_at" bigint NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "session" (
 	"id" text PRIMARY KEY NOT NULL,
-	"expires_at" bigint NOT NULL,
+	"expires_at" timestamp with time zone NOT NULL,
 	"token" text NOT NULL,
-	"created_at" bigint DEFAULT (cast(extract(epoch from now()) * 1000 as bigint)) NOT NULL,
-	"updated_at" bigint NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"ip_address" text,
 	"user_agent" text,
 	"city" text,
@@ -1250,7 +1250,7 @@ CREATE TABLE "session" (
 	"country" text,
 	"country_code" text,
 	"user_id" text NOT NULL,
-	"last_activity_at" bigint DEFAULT (cast(extract(epoch from now()) * 1000 as bigint)) NOT NULL,
+	"last_activity_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"remember_me" boolean DEFAULT false NOT NULL,
 	CONSTRAINT "session_token_unique" UNIQUE("token")
 );
@@ -1262,14 +1262,14 @@ CREATE TABLE "user" (
 	"email_verified" boolean DEFAULT false NOT NULL,
 	"pending_email" text,
 	"image" text,
-	"image_updated_at" bigint,
+	"image_updated_at" timestamp with time zone,
 	"two_factor_enabled" boolean DEFAULT false NOT NULL,
 	"two_factor_secret" text,
 	"two_factor_backup_codes" text,
-	"two_factor_verified_at" bigint,
+	"two_factor_verified_at" timestamp with time zone,
 	"is_application_owner" boolean DEFAULT false NOT NULL,
-	"created_at" bigint DEFAULT (cast(extract(epoch from now()) * 1000 as bigint)) NOT NULL,
-	"updated_at" bigint DEFAULT (cast(extract(epoch from now()) * 1000 as bigint)) NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "user_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
@@ -1277,9 +1277,9 @@ CREATE TABLE "verification" (
 	"id" text PRIMARY KEY NOT NULL,
 	"identifier" text NOT NULL,
 	"value" text NOT NULL,
-	"expires_at" bigint NOT NULL,
-	"created_at" bigint DEFAULT (cast(extract(epoch from now()) * 1000 as bigint)) NOT NULL,
-	"updated_at" bigint DEFAULT (cast(extract(epoch from now()) * 1000 as bigint)) NOT NULL
+	"expires_at" timestamp with time zone NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

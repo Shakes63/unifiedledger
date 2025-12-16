@@ -8,8 +8,8 @@ import { validateImageFile } from '@/lib/avatar-client-utils';
 import {
   optimizeImage,
   fileToBuffer,
-  getFileExtension,
 } from '@/lib/avatar-utils';
+import { ensureUploadsSubdir, getAvatarFilename, getAvatarUrlPath, getUploadsDir } from '@/lib/uploads/storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,8 +57,13 @@ export async function POST(request: Request) {
     // Delete old avatar file if it exists
     if (currentUser[0].image) {
       try {
-        const oldPath = join(process.cwd(), 'public', currentUser[0].image);
-        await unlink(oldPath);
+        const oldFilename = currentUser[0].image.split('/').pop();
+        if (oldFilename) {
+          const uploadsOldPath = join(getUploadsDir(), 'avatars', oldFilename);
+          await unlink(uploadsOldPath).catch(() => undefined);
+          const legacyOldPath = join(process.cwd(), 'public', 'uploads', 'avatars', oldFilename);
+          await unlink(legacyOldPath).catch(() => undefined);
+        }
       } catch (error) {
         // File might not exist, ignore error
         console.log('No old avatar to delete or deletion failed:', error);
@@ -69,11 +74,11 @@ export async function POST(request: Request) {
     const buffer = await fileToBuffer(file);
     const optimizedBuffer = await optimizeImage(buffer);
 
-    // Determine file extension and create filename
-    const extension = getFileExtension(file);
-    const filename = `${userId}.${extension}`;
-    const avatarPath = `/uploads/avatars/${filename}`;
-    const fullPath = join(process.cwd(), 'public', avatarPath);
+    // We store optimized avatars as JPEG under the persisted uploads directory.
+    await ensureUploadsSubdir('avatars');
+    const filename = getAvatarFilename(userId);
+    const avatarPath = getAvatarUrlPath(filename);
+    const fullPath = join(getUploadsDir(), 'avatars', filename);
 
     // Save file to disk
     await writeFile(fullPath, optimizedBuffer);

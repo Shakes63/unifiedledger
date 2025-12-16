@@ -1,5 +1,5 @@
 {
-  "id": "002eff8c-d6c7-43d3-bb1e-c54ebe5c9d8a",
+  "id": "2b3b2fea-52e6-4a47-a2b5-4a9121b2f8b0",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -11739,13 +11739,13 @@
         },
         "access_token_expires_at": {
           "name": "access_token_expires_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
         "refresh_token_expires_at": {
           "name": "refresh_token_expires_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -11763,16 +11763,17 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
-          "default": "(cast(extract(epoch from now()) * 1000 as bigint))"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -11809,7 +11810,7 @@
         },
         "expires_at": {
           "name": "expires_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
         },
@@ -11821,16 +11822,17 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
-          "default": "(cast(extract(epoch from now()) * 1000 as bigint))"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": "now()"
         },
         "ip_address": {
           "name": "ip_address",
@@ -11876,10 +11878,10 @@
         },
         "last_activity_at": {
           "name": "last_activity_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
-          "default": "(cast(extract(epoch from now()) * 1000 as bigint))"
+          "default": "now()"
         },
         "remember_me": {
           "name": "remember_me",
@@ -11962,7 +11964,7 @@
         },
         "image_updated_at": {
           "name": "image_updated_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -11987,7 +11989,7 @@
         },
         "two_factor_verified_at": {
           "name": "two_factor_verified_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
         },
@@ -12000,17 +12002,17 @@
         },
         "created_at": {
           "name": "created_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
-          "default": "(cast(extract(epoch from now()) * 1000 as bigint))"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
-          "default": "(cast(extract(epoch from now()) * 1000 as bigint))"
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -12053,23 +12055,23 @@
         },
         "expires_at": {
           "name": "expires_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
         },
         "created_at": {
           "name": "created_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
-          "default": "(cast(extract(epoch from now()) * 1000 as bigint))"
+          "default": "now()"
         },
         "updated_at": {
           "name": "updated_at",
-          "type": "bigint",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
-          "default": "(cast(extract(epoch from now()) * 1000 as bigint))"
+          "default": "now()"
         }
       },
       "indexes": {},
