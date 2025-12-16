@@ -10,9 +10,9 @@ function resolveSqlitePath() {
   const envUrl = process.env.DATABASE_URL?.trim();
   if (envUrl) {
     // Supports DATABASE_URL like:
-    // - file:/app/data/finance.db
-    // - file:///app/data/finance.db
-    // - /app/data/finance.db
+    // - file:/config/finance.db
+    // - file:///config/finance.db
+    // - /config/finance.db
     if (envUrl.startsWith('file:')) {
       try {
         return new URL(envUrl).pathname;
@@ -25,10 +25,10 @@ function resolveSqlitePath() {
   }
 
   // Default behavior:
-  // - In Docker we mount /app/data and want the DB there
+  // - In production containers (Unraid CA), persist under /config
   // - In local dev, preserve existing ./sqlite.db behavior
   if (process.env.NODE_ENV === 'production') {
-    return join(process.cwd(), 'data', 'finance.db');
+    return join('/config', 'finance.db');
   }
   return join(process.cwd(), 'sqlite.db');
 }

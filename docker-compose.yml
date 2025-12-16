@@ -1,20 +1,6 @@
 version: '3.8'
 
 services:
-  # One-shot migrator: runs Drizzle schema sync against the persisted SQLite DB
-  # For "1-click updates" (pull/rebuild + restart), this ensures schema is up to date before app start.
-  finance-migrate:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: migrator
-    environment:
-      - NODE_ENV=production
-      - DATABASE_URL=file:/app/data/finance.db
-    volumes:
-      - finance-data:/app/data
-    restart: "no"
-
   # Main application service
   finance-app:
     build:
@@ -24,18 +10,16 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=file:/app/data/finance.db
+      - DATABASE_URL=file:/config/finance.db
       - PORT=3000
       - HOSTNAME=0.0.0.0
-      # Clerk Authentication - set these in .env.production.local
-      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
-      # Add other environment variables as needed
+      # Better Auth (required for production)
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-change-me}
+      - FORCE_SECURE_COOKIES=${FORCE_SECURE_COOKIES:-false}
     volumes:
-      # Persist database across container restarts
-      - finance-data:/app/data
-    depends_on:
-      - finance-migrate
+      # Persist DB/uploads across restarts (Unraid CA contract is /config)
+      - finance-config:/config
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
       interval: 30s
@@ -66,7 +50,7 @@ services:
   #     - finance-network
 
 volumes:
-  finance-data:
+  finance-config:
     driver: local
   # postgres-data:
   #   driver: local

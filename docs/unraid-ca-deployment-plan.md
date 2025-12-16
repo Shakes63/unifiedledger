@@ -214,6 +214,18 @@ Add a startup script (recommended path: `scripts/docker-entrypoint.mjs`) that:
   - migration start/finish
   - failure reason
 
+### Implementation notes (repo alignment)
+
+- The repo now includes:
+  - `drizzle.config.sqlite.ts` → outputs to `drizzle/sqlite`
+  - `drizzle.config.pg.ts` → outputs to `drizzle/postgres` (Postgres schema work is required; see Step 1.3)
+  - `scripts/docker-entrypoint.mjs` → runs `drizzle-kit migrate` on container start then launches the app
+- The Docker runtime contract for CA is `/config`:
+  - SQLite default DB: `/config/finance.db`
+  - Uploads root: `/config/uploads`
+- **Important**: the current schema file (`lib/db/schema.ts`) is defined with `drizzle-orm/sqlite-core` and includes many `default(new Date().toISOString())` defaults.
+  - Before committing migrations, these defaults must be replaced with database-evaluated defaults (e.g. `strftime(..., 'now')` for SQLite) so migrations do not bake build-time timestamps.
+
 ### 2.5 Prevent concurrent migrations (recommended)
 
 Even on Unraid, users can click “update” rapidly or restart loops can happen.

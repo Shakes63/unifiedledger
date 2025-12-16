@@ -26,7 +26,7 @@ FROM builder AS migrator
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 WORKDIR /app
-CMD ["pnpm", "drizzle-kit", "push"]
+CMD ["pnpm", "drizzle-kit", "migrate", "--config", "drizzle.config.sqlite.ts"]
 
 # Stage 4: Runtime - production image
 FROM base AS runner
@@ -41,17 +41,23 @@ ENV HOSTNAME "0.0.0.0"
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Create database directory with proper permissions
-RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
+# Create persistent config directory with proper permissions (Unraid CA contract)
+RUN mkdir -p /config && chown -R nextjs:nodejs /config
 
 # Copy built application from builder
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy database schema files if they exist
+# Copy tooling needed for startup migrations (Option 1: include drizzle-kit in runtime image)
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+
+# Copy migrations + configs + entrypoint
 COPY --chown=nextjs:nodejs drizzle /app/drizzle 2>/dev/null || true
-COPY --chown=nextjs:nodejs drizzle.config.ts /app/ 2>/dev/null || true
+COPY --chown=nextjs:nodejs drizzle.config.sqlite.ts /app/ 2>/dev/null || true
+COPY --chown=nextjs:nodejs drizzle.config.pg.ts /app/ 2>/dev/null || true
+COPY --chown=nextjs:nodejs scripts/docker-entrypoint.mjs /app/scripts/docker-entrypoint.mjs 2>/dev/null || true
 
 # Switch to non-root user
 USER nextjs
@@ -63,4 +69,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
 # Start application
-CMD ["node", "server.js"]
+CMD ["node", "scripts/docker-entrypoint.mjs"]

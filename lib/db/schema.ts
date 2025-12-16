@@ -7,7 +7,13 @@ import {
   uniqueIndex,
   index,
 } from 'drizzle-orm/sqlite-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
+
+// IMPORTANT:
+// - Do NOT use `default(new Date().toISOString())` in schema definitions.
+//   It bakes a build-time timestamp into migrations and produces incorrect DB defaults.
+// - Use a database-evaluated default instead (UTC ISO-ish text).
+const sqliteNowIso = sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`;
 
 // ============================================================================
 // CORE TABLES
@@ -66,8 +72,8 @@ export const accounts = sqliteTable(
     includeInPayoffStrategy: integer('include_in_payoff_strategy', { mode: 'boolean' }).default(true),
     // Budget integration (Phase 7)
     budgetedMonthlyPayment: real('budgeted_monthly_payment'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_accounts_user').on(table.userId),
@@ -96,7 +102,7 @@ export const creditLimitHistory = sqliteTable(
     }).default('user_update'),
     utilizationBefore: real('utilization_before'),
     utilizationAfter: real('utilization_after'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     accountIdIdx: index('idx_credit_limit_history_account').on(table.accountId),
@@ -119,7 +125,7 @@ export const accountBalanceHistory = sqliteTable(
     creditLimit: real('credit_limit'),
     availableCredit: real('available_credit'),
     utilizationPercent: real('utilization_percent'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     accountIdIdx: index('idx_account_balance_history_account').on(table.accountId),
@@ -165,7 +171,7 @@ export const budgetCategories = sqliteTable(
     parentId: text('parent_id'), // null = top-level category, id = child of a budget group
     isBudgetGroup: integer('is_budget_group', { mode: 'boolean' }).default(false), // true = parent group (Needs, Wants, Savings)
     targetAllocation: real('target_allocation'), // percentage allocation for budget groups (e.g., 50 for 50%)
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_budget_categories_user').on(table.userId),
@@ -192,11 +198,11 @@ export const merchants = sqliteTable(
     categoryId: text('category_id'),
     isSalesTaxExempt: integer('is_sales_tax_exempt', { mode: 'boolean' }).default(false),
     usageCount: integer('usage_count').default(1),
-    lastUsedAt: text('last_used_at').default(new Date().toISOString()),
+    lastUsedAt: text('last_used_at').default(sqliteNowIso),
     totalSpent: real('total_spent').default(0),
     averageTransaction: real('average_transaction').default(0),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userHouseholdNormalizedNameUnique: uniqueIndex('idx_merchants_user_household_normalized').on(
@@ -224,9 +230,9 @@ export const usageAnalytics = sqliteTable(
     itemId: text('item_id').notNull(),
     itemSecondaryId: text('item_secondary_id'),
     usageCount: integer('usage_count').default(1),
-    lastUsedAt: text('last_used_at').default(new Date().toISOString()),
+    lastUsedAt: text('last_used_at').default(sqliteNowIso),
     contextData: text('context_data'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     uniqueUsageAnalytics: uniqueIndex('idx_usage_analytics_unique').on(
@@ -286,8 +292,8 @@ export const transactions = sqliteTable(
     syncedAt: text('synced_at'),
     syncError: text('sync_error'),
     syncAttempts: integer('sync_attempts').default(0),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     accountIdIdx: index('idx_transactions_account').on(table.accountId),
@@ -332,8 +338,8 @@ export const transactionSplits = sqliteTable(
     isPercentage: integer('is_percentage', { mode: 'boolean' }).default(false),
     sortOrder: integer('sort_order').default(0),
     notes: text('notes'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     transactionIdIdx: index('idx_transaction_splits').on(table.transactionId),
@@ -418,7 +424,7 @@ export const bills = sqliteTable(
     // Budget period assignment (for bill pay feature)
     // NULL = auto (based on due date), 1 = always period 1, 2 = always period 2, etc.
     budgetPeriodAssignment: integer('budget_period_assignment'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_bills_user').on(table.userId),
@@ -465,8 +471,8 @@ export const billInstances = sqliteTable(
     // Budget period override (for bill pay feature)
     // NULL = use bill default, otherwise specific period number
     budgetPeriodOverride: integer('budget_period_override'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     billIdDueDateUnique: uniqueIndex('idx_bill_instances_unique').on(table.billId, table.dueDate),
@@ -498,7 +504,7 @@ export const billPayments = sqliteTable(
     balanceBeforePayment: real('balance_before_payment'),
     balanceAfterPayment: real('balance_after_payment'),
     notes: text('notes'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     billIdIdx: index('idx_bill_payments_bill').on(table.billId),
@@ -523,7 +529,7 @@ export const billMilestones = sqliteTable(
     milestoneBalance: real('milestone_balance').notNull(),
     achievedAt: text('achieved_at'),
     notificationSentAt: text('notification_sent_at'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     billIdIdx: index('idx_bill_milestones_bill').on(table.billId),
@@ -551,7 +557,7 @@ export const transfers = sqliteTable(
     toTransactionId: text('to_transaction_id'),
     fees: real('fees').default(0),
     notes: text('notes'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_transfers_user').on(table.userId),
@@ -578,7 +584,7 @@ export const transferSuggestions = sqliteTable(
     status: text('status', { enum: ['pending', 'accepted', 'rejected', 'expired'] }).default('pending'),
     reviewedAt: text('reviewed_at'),
 
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_transfer_suggestions_user').on(table.userId),
@@ -617,7 +623,7 @@ export const nonMonthlyBills = sqliteTable(
     novemberAmount: real('november_amount').default(0),
     decemberDue: integer('december_due'),
     decemberAmount: real('december_amount').default(0),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_non_monthly_bills_user').on(table.userId),
@@ -637,7 +643,7 @@ export const budgetPeriods = sqliteTable(
     totalSavings: real('total_savings').default(0),
     totalDebtPayments: real('total_debt_payments').default(0),
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdMonthYearUnique: uniqueIndex('idx_budget_periods_unique').on(
@@ -658,8 +664,8 @@ export const households = sqliteTable(
     id: text('id').primaryKey(),
     name: text('name').notNull(),
     createdBy: text('created_by').notNull(),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   }
 );
 
@@ -674,7 +680,7 @@ export const householdMembers = sqliteTable(
     role: text('role', {
       enum: ['owner', 'admin', 'member', 'viewer'],
     }).default('member'),
-    joinedAt: text('joined_at').default(new Date().toISOString()),
+    joinedAt: text('joined_at').default(sqliteNowIso),
     invitedBy: text('invited_by'),
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
     isFavorite: integer('is_favorite', { mode: 'boolean' }).default(false),
@@ -708,7 +714,7 @@ export const householdInvitations = sqliteTable(
     status: text('status', {
       enum: ['pending', 'accepted', 'declined', 'expired'],
     }).default('pending'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     householdIdIdx: index('idx_household_invitations').on(table.householdId),
@@ -736,7 +742,7 @@ export const activityLog = sqliteTable(
     entityType: text('entity_type').notNull(),
     entityId: text('entity_id').notNull(),
     details: text('details'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     householdActivityIdx: index('idx_household_activity').on(table.householdId, table.createdAt),
@@ -759,7 +765,7 @@ export const resourcePermissions = sqliteTable(
     canEdit: text('can_edit').default('all'),
     allowedUserIds: text('allowed_user_ids'),
     createdBy: text('created_by').notNull(),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     resourcePermissionsUnique: uniqueIndex('idx_resource_permissions_unique').on(
@@ -816,7 +822,7 @@ export const notifications = sqliteTable(
     dismissedAt: text('dismissed_at'),
     expiresAt: text('expires_at'),
     metadata: text('metadata'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userNotificationsIdx: index('idx_user_notifications').on(
@@ -872,8 +878,8 @@ export const notificationPreferences = sqliteTable(
     emailAddress: text('email_address'),
     quietHoursStart: text('quiet_hours_start'),
     quietHoursEnd: text('quiet_hours_end'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   }
 );
 
@@ -888,8 +894,8 @@ export const pushSubscriptions = sqliteTable(
     userAgent: text('user_agent'),
     deviceName: text('device_name'),
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
-    lastUsedAt: text('last_used_at').default(new Date().toISOString()),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    lastUsedAt: text('last_used_at').default(sqliteNowIso),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_push_subscriptions_user').on(table.userId),
@@ -956,8 +962,8 @@ export const userSettings = sqliteTable(
     experimentalFeatures: integer('experimental_features', { mode: 'boolean' }).default(false),
     // Onboarding
     onboardingCompleted: integer('onboarding_completed', { mode: 'boolean' }).default(false),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   }
 );
 
@@ -1052,8 +1058,8 @@ export const userHouseholdPreferences = sqliteTable(
     budgetPeriodRollover: integer('budget_period_rollover', { mode: 'boolean' }).default(false),
     budgetPeriodManualAmount: real('budget_period_manual_amount'), // Optional override per period
 
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     // Composite unique constraint: one record per user per household
@@ -1086,8 +1092,8 @@ export const utilizationAlertState = sqliteTable(
     // Last known utilization for comparison
     lastUtilization: real('last_utilization'),
     lastCheckedAt: text('last_checked_at'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     accountIdIdx: index('idx_utilization_alert_account').on(table.accountId),
@@ -1138,8 +1144,8 @@ export const householdSettings = sqliteTable(
     // Budget Rollover Settings (Phase 17)
     allowNegativeRollover: integer('allow_negative_rollover', { mode: 'boolean' }).default(false),
 
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     householdIdIdx: index('idx_household_settings_household').on(table.householdId),
@@ -1164,7 +1170,7 @@ export const budgetRolloverHistory = sqliteTable(
     newBalance: real('new_balance').notNull().default(0),
     rolloverLimit: real('rollover_limit'), // NULL means unlimited
     wasCapped: integer('was_capped', { mode: 'boolean' }).default(false),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     categoryIdx: index('idx_rollover_history_category').on(table.categoryId),
@@ -1190,8 +1196,8 @@ export const userSessions = sqliteTable(
     country: text('country'),
     countryCode: text('country_code'),
     isCurrent: integer('is_current', { mode: 'boolean' }).default(false),
-    lastActiveAt: text('last_active_at').default(new Date().toISOString()),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    lastActiveAt: text('last_active_at').default(sqliteNowIso),
+    createdAt: text('created_at').default(sqliteNowIso),
     expiresAt: text('expires_at'),
   },
   (table) => ({
@@ -1213,7 +1219,7 @@ export const dataExportRequests = sqliteTable(
     fileUrl: text('file_url'),
     fileSize: integer('file_size'),
     expiresAt: text('expires_at'),
-    requestedAt: text('requested_at').default(new Date().toISOString()),
+    requestedAt: text('requested_at').default(sqliteNowIso),
     completedAt: text('completed_at'),
   }
 );
@@ -1228,7 +1234,7 @@ export const accountDeletionRequests = sqliteTable(
     status: text('status', {
       enum: ['pending', 'cancelled', 'completed'],
     }).default('pending'),
-    requestedAt: text('requested_at').default(new Date().toISOString()),
+    requestedAt: text('requested_at').default(sqliteNowIso),
     cancelledAt: text('cancelled_at'),
     completedAt: text('completed_at'),
   }
@@ -1255,8 +1261,8 @@ export const backupSettings = sqliteTable(
     emailBackups: integer('email_backups', { mode: 'boolean' }).default(false),
     lastBackupAt: text('last_backup_at'),
     nextBackupAt: text('next_backup_at'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_backup_settings_user').on(table.userId),
@@ -1284,7 +1290,7 @@ export const backupHistory = sqliteTable(
       enum: ['pending', 'completed', 'failed'],
     }).default('pending'),
     errorMessage: text('error_message'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_backup_history_user').on(table.userId),
@@ -1320,8 +1326,8 @@ export const transactionTemplates = sqliteTable(
     notes: text('notes'),
     usageCount: integer('usage_count').default(0),
     lastUsedAt: text('last_used_at'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_transaction_templates_user').on(table.userId),
@@ -1348,8 +1354,8 @@ export const categorizationRules = sqliteTable(
     matchCount: integer('match_count').default(0),
     lastMatchedAt: text('last_matched_at'),
     testResults: text('test_results'), // JSON with test run results
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_categorization_rules_user').on(table.userId),
@@ -1370,7 +1376,7 @@ export const ruleExecutionLog = sqliteTable(
     appliedCategoryId: text('applied_category_id'), // Nullable - may not set category
     appliedActions: text('applied_actions'), // JSON array of all actions applied
     matched: integer('matched', { mode: 'boolean' }).notNull(),
-    executedAt: text('executed_at').default(new Date().toISOString()),
+    executedAt: text('executed_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_rule_execution_user').on(table.userId),
@@ -1396,8 +1402,8 @@ export const savedSearchFilters = sqliteTable(
     isDefault: integer('is_default', { mode: 'boolean' }).default(false),
     usageCount: integer('usage_count').default(0),
     lastUsedAt: text('last_used_at'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_saved_search_filters_user').on(table.userId),
@@ -1414,7 +1420,7 @@ export const searchHistory = sqliteTable(
     resultCount: integer('result_count').notNull(),
     executionTimeMs: integer('execution_time_ms'),
     savedSearchId: text('saved_search_id'), // FK to savedSearchFilters if from saved search
-    executedAt: text('executed_at').default(new Date().toISOString()),
+    executedAt: text('executed_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_search_history_user').on(table.userId),
@@ -1455,8 +1461,8 @@ export const importTemplates = sqliteTable(
     }).default('standard'),
     transactionTypePatterns: text('transaction_type_patterns'), // JSON: custom patterns for detecting transaction types
     statementInfoConfig: text('statement_info_config'), // JSON: config for extracting statement info
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_import_templates_user').on(table.userId),
@@ -1488,7 +1494,7 @@ export const importHistory = sqliteTable(
       enum: ['bank', 'credit_card', 'auto'],
     }),
     statementInfo: text('statement_info'), // JSON: { statementBalance, statementDate, dueDate, minimumPayment, creditLimit }
-    startedAt: text('started_at').default(new Date().toISOString()),
+    startedAt: text('started_at').default(sqliteNowIso),
     completedAt: text('completed_at'),
     rolledBackAt: text('rolled_back_at'),
   },
@@ -1518,7 +1524,7 @@ export const importStaging = sqliteTable(
     }),
     potentialTransferId: text('potential_transfer_id'), // ID of matching transfer transaction
     transferMatchConfidence: real('transfer_match_confidence'), // Confidence score for transfer match
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     importHistoryIdIdx: index('idx_import_staging_history').on(table.importHistoryId),
@@ -1543,8 +1549,8 @@ export const tags = sqliteTable(
     usageCount: integer('usage_count').default(0),
     lastUsedAt: text('last_used_at'),
     sortOrder: integer('sort_order').default(0),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_tags_user').on(table.userId),
@@ -1561,7 +1567,7 @@ export const transactionTags = sqliteTable(
     userId: text('user_id').notNull(),
     transactionId: text('transaction_id').notNull(),
     tagId: text('tag_id').notNull(),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     uniqueTransactionTag: uniqueIndex('idx_transaction_tags_unique').on(
@@ -1592,8 +1598,8 @@ export const customFields = sqliteTable(
     placeholder: text('placeholder'),
     validationPattern: text('validation_pattern'), // Regex pattern for validation
     usageCount: integer('usage_count').default(0),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_custom_fields_user').on(table.userId),
@@ -1611,8 +1617,8 @@ export const customFieldValues = sqliteTable(
     customFieldId: text('custom_field_id').notNull(),
     transactionId: text('transaction_id').notNull(),
     value: text('value'), // JSON for complex types (multiselect, arrays, etc.)
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     uniqueCustomFieldValue: uniqueIndex('idx_custom_field_values_unique').on(
@@ -1913,8 +1919,8 @@ export const savingsGoals = sqliteTable(
     priority: integer('priority').default(0),
     monthlyContribution: real('monthly_contribution'),
     notes: text('notes'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_savings_goals_user').on(table.userId),
@@ -1936,7 +1942,7 @@ export const savingsMilestones = sqliteTable(
     achievedAt: text('achieved_at'),
     notificationSentAt: text('notification_sent_at'),
     notes: text('notes'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_savings_milestones_user').on(table.userId),
@@ -1968,7 +1974,7 @@ export const savingsGoalContributions = sqliteTable(
     userId: text('user_id').notNull(),
     householdId: text('household_id').notNull(),
     amount: real('amount').notNull(),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     transactionIdx: index('idx_goal_contributions_transaction').on(table.transactionId),
@@ -2039,8 +2045,8 @@ export const debts = sqliteTable(
     lastStatementBalance: real('last_statement_balance'),
     creditLimit: real('credit_limit'), // Credit limit for credit cards (for utilization tracking)
     notes: text('notes'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_debts_user').on(table.userId),
@@ -2064,7 +2070,7 @@ export const debtPayments = sqliteTable(
     paymentDate: text('payment_date').notNull(),
     transactionId: text('transaction_id'),
     notes: text('notes'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_debt_payments_user').on(table.userId),
@@ -2086,7 +2092,7 @@ export const debtPayoffMilestones = sqliteTable(
     achievedAt: text('achieved_at'),
     notificationSentAt: text('notification_sent_at'),
     notes: text('notes'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_debt_payoff_milestones_user').on(table.userId),
@@ -2109,8 +2115,8 @@ export const debtSettings = sqliteTable(
     paymentFrequency: text('payment_frequency', {
       enum: ['weekly', 'biweekly', 'monthly', 'quarterly'],
     }).default('monthly'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_debt_settings_user').on(table.userId),
@@ -2186,7 +2192,7 @@ export const householdActivityLog = sqliteTable(
     entityName: text('entity_name'), // Denormalized name for display
     description: text('description'),
     metadata: text('metadata'), // JSON string for additional data
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_activity_log_user').on(table.userId),
@@ -2218,7 +2224,7 @@ export const taxCategories = sqliteTable(
     }).notNull(),
     sortOrder: integer('sort_order').default(0),
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     formTypeIdx: index('idx_tax_categories_form').on(table.formType),
@@ -2237,8 +2243,8 @@ export const categoryTaxMappings = sqliteTable(
     // Allow custom allocation if a budget category maps to multiple tax categories
     allocationPercentage: real('allocation_percentage').default(100),
     notes: text('notes'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_category_tax_mappings_user').on(table.userId),
@@ -2262,8 +2268,8 @@ export const transactionTaxClassifications = sqliteTable(
     percentage: real('percentage'),
     isDeductible: integer('is_deductible', { mode: 'boolean' }).default(true),
     notes: text('notes'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_transaction_tax_user').on(table.userId),
@@ -2300,8 +2306,8 @@ export const salesTaxSettings = sqliteTable(
     countyName: text('county_name'), // e.g., "Travis County"
     cityName: text('city_name'), // e.g., "Austin"
     specialDistrictName: text('special_district_name'), // e.g., "CAMPO Transit"
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_sales_tax_settings_user').on(table.userId),
@@ -2318,8 +2324,8 @@ export const salesTaxCategories = sqliteTable(
     description: text('description'),
     isDefault: integer('is_default', { mode: 'boolean' }).default(false),
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_sales_tax_categories_user').on(table.userId),
@@ -2344,8 +2350,8 @@ export const salesTaxTransactions = sqliteTable(
     reportedStatus: text('reported_status', {
       enum: ['pending', 'reported', 'filed', 'paid'],
     }).default('pending'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_sales_tax_transactions_user').on(table.userId),
@@ -2384,8 +2390,8 @@ export const quarterlyFilingRecords = sqliteTable(
     amountPaid: real('amount_paid').default(0),
     balanceDue: real('balance_due').default(0),
     notes: text('notes'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_quarterly_filing_user').on(table.userId),
@@ -2414,8 +2420,8 @@ export const oauthSettings = sqliteTable(
     clientId: text('client_id').notNull(),
     clientSecret: text('client_secret').notNull(), // Encrypted
     enabled: integer('enabled', { mode: 'boolean' }).default(true),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     providerIdIdx: index('idx_oauth_settings_provider').on(table.providerId),
@@ -2443,7 +2449,7 @@ export const transactionAuditLog = sqliteTable(
     snapshot: text('snapshot'),
     ipAddress: text('ip_address'),
     userAgent: text('user_agent'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     transactionIdIdx: index('idx_transaction_audit_log_transaction').on(table.transactionId),
@@ -2487,7 +2493,7 @@ export const interestDeductions = sqliteTable(
     annualLimitApplied: integer('annual_limit_applied', { mode: 'boolean' }).default(false), // IRS annual limit
     paymentDate: text('payment_date').notNull(),
     taxCategoryId: text('tax_category_id'), // Link to tax_categories for reporting
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_interest_deductions_user').on(table.userId),
@@ -2523,8 +2529,8 @@ export const calendarConnections = sqliteTable(
     refreshToken: text('refresh_token'),
     tokenExpiresAt: text('token_expires_at'),
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_calendar_connections_user').on(table.userId),
@@ -2550,8 +2556,8 @@ export const calendarSyncSettings = sqliteTable(
     syncGoalTargetDates: integer('sync_goal_target_dates', { mode: 'boolean' }).default(true),
     reminderMinutes: integer('reminder_minutes').default(1440), // 1 day before (null = no reminder)
     lastFullSyncAt: text('last_full_sync_at'),
-    createdAt: text('created_at').default(new Date().toISOString()),
-    updatedAt: text('updated_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_calendar_sync_settings_user').on(table.userId),
@@ -2578,7 +2584,7 @@ export const calendarEvents = sqliteTable(
     }).notNull(),
     eventTitle: text('event_title'), // Cached title for display
     lastSyncedAt: text('last_synced_at'),
-    createdAt: text('created_at').default(new Date().toISOString()),
+    createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_calendar_events_user').on(table.userId),

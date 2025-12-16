@@ -13,6 +13,10 @@
     "test:coverage": "vitest run --coverage",
     "db:init": "node scripts/init-db.js",
     "db:studio": "drizzle-kit studio",
+    "db:generate:sqlite": "drizzle-kit generate --config drizzle.config.sqlite.ts",
+    "db:generate:pg": "drizzle-kit generate --config drizzle.config.pg.ts",
+    "db:migrate:sqlite": "drizzle-kit migrate --config drizzle.config.sqlite.ts",
+    "db:migrate:pg": "drizzle-kit migrate --config drizzle.config.pg.ts",
     "generate-test-data": "tsx scripts/generate-test-data.ts"
   },
   "dependencies": {

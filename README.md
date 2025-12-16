@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Unified Ledger
 
-## Getting Started
+Unified Ledger is a mobile-first personal finance app built with Next.js (App Router), Drizzle ORM, SQLite (default) and Better Auth.
 
-First, run the development server:
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App: `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Docker / Unraid Community Apps (CA)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Unified Ledger is designed to run as a **single container** on Unraid CA. The container:
 
-## Learn More
+- **Runs migrations automatically on startup** (non-interactive)
+- **Persists data under `/config`** (Unraid appdata mount)
+- Exposes the web UI on **port 3000**
 
-To learn more about Next.js, take a look at the following resources:
+### Persistent data contract
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Mount `/config` as a persistent volume.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **SQLite DB (default)**: `/config/finance.db`
+- **Uploads**: `/config/uploads`
 
-## Deploy on Vercel
+### Required environment variables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **`NEXT_PUBLIC_APP_URL`**: public base URL used for auth redirects and email links  
+  Example: `http://tower:3000` or `https://unifiedledger.example.com`
+- **`BETTER_AUTH_SECRET`**: long random secret (required for production)
+- **`DATABASE_URL`**:
+  - SQLite default: `file:/config/finance.db`
+  - Postgres optional: `postgresql://USER:PASSWORD@HOST:5432/unifiedledger` (Postgres **17+**)
+- **`FORCE_SECURE_COOKIES`**: defaults to `false`  
+  If `NEXT_PUBLIC_APP_URL` starts with `https://`, cookies are marked Secure automatically; set `FORCE_SECURE_COOKIES=true` only if you know you need it.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### First run & upgrades
+
+- **First run**: the container auto-applies DB migrations and creates tables.
+- **Upgrades**: pulling a new image and restarting the container runs migrations again; if there are no pending migrations, startup continues normally.
+- **If migrations fail**: the container exits non-zero and Unraid will show it as unhealthy; check logs for the reason.
+
+### Reverse proxy requirements (NPM / SWAG / Traefik)
+
+When running behind a reverse proxy:
+
+- Set `NEXT_PUBLIC_APP_URL` to the externally reachable URL (typically HTTPS).
+- Ensure the proxy forwards `Host` and `X-Forwarded-Proto` correctly.
+
+Login/session loops are almost always caused by:
+- `NEXT_PUBLIC_APP_URL` not matching the public URL, or
+- missing/incorrect forwarded headers.
+
+### Backup / restore (minimum viable)
+
+- Stop the container
+- Back up the `/config` folder (at minimum `finance.db` + `uploads/`)
+- Restore by putting the files back in `/config` and starting the container; migrations will run on startup.
