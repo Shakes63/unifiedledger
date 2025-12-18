@@ -1,6 +1,65 @@
 # Unified Ledger
 
-Unified Ledger is a mobile-first personal finance app built with Next.js (App Router), Drizzle ORM, SQLite (default) and Better Auth.
+A mobile-first, self-hosted personal finance application that puts you in complete control of your financial data.
+
+## What is Unified Ledger?
+
+Unified Ledger is a comprehensive personal finance management platform designed for privacy-conscious individuals and families who want to track their finances without relying on cloud services. Built to run as a single container on home servers like Unraid, it provides enterprise-grade financial tracking with complete data ownership.
+
+### Key Features
+
+**Core Financial Management**
+- **Transaction Tracking**: Log income and expenses with smart categorization, audit trails, and modification history
+- **Multi-Account Support**: Manage checking, savings, credit cards, loans, and custom account types in one place
+- **Bills Management**: Track recurring and non-monthly bills with due date reminders, payment history, and annual planning
+- **Debt Payoff**: Unified debt tracking with snowball/avalanche strategies, extra payment tracking, and payoff countdowns
+
+**Budgeting & Goals**
+- **Budget Management**: Set and track budgets by category with adherence scoring and surplus tracking
+- **Savings Goals**: Track progress toward financial goals with milestone management and contribution tracking
+- **Financial Planning**: Long-term goal setting with visual progress tracking
+
+**Tax & Business Features**
+- **Tax Deduction Tracking**: Mark transactions as tax-deductible with business vs. personal categorization
+- **Sales Tax Management**: Multi-level tax rate support (state, county, city) with quarterly estimated payments
+- **Tax Dashboard**: PDF export for accountant-ready reporting
+
+**Integrations**
+- **Google Calendar Sync**: Sync bill due dates, savings milestones, and debt milestones
+- **TickTick Integration**: Sync financial obligations as tasks
+- **CSV Import**: Import financial data with reusable templates
+
+**Household Collaboration**
+- **Multi-User Support**: Invite family members to shared household accounts
+- **Role-Based Permissions**: Granular access control for different household members
+- **Complete Data Isolation**: Your financial data stays separate from other households
+
+**Security & Privacy**
+- **Self-Hosted**: Your data never leaves your server
+- **Two-Factor Authentication**: TOTP-based 2FA with backup codes
+- **OAuth Support**: Optional Google and GitHub sign-in
+- **Session Management**: Secure session handling with timeout enforcement
+
+**Mobile & Offline**
+- **Mobile-First Design**: Optimized for smartphones with responsive UI
+- **PWA Support**: Install as an app on your phone or tablet
+- **Offline Mode**: Queue transactions offline and sync when connected
+
+## Who is Unified Ledger For?
+
+**Privacy-Conscious Individuals**: If you want complete ownership of your financial data without trusting third-party cloud services, Unified Ledger keeps everything on your own hardware.
+
+**Home Lab Enthusiasts**: Designed specifically for self-hosters running Unraid, TrueNAS, or Docker environments. One container, persistent storage, automatic migrations.
+
+**Families & Households**: Multi-user support with role-based permissions makes it easy for couples and families to manage shared finances together while maintaining appropriate access controls.
+
+**Small Business Owners**: Tax deduction tracking, business expense categorization, and PDF exports make tax time easier for freelancers and small business operators.
+
+**Budget-Focused Users**: If you want to move beyond spreadsheets with features like debt payoff strategies, savings goal tracking, and spending analysis, Unified Ledger provides the structure you need.
+
+## Technology
+
+Built with Next.js (App Router), Drizzle ORM, SQLite (default) or PostgreSQL, and Better Auth.
 
 ## Local development
 
