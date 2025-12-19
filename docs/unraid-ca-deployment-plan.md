@@ -6,7 +6,7 @@ This plan describes how to publish Unified Ledger as an **Unraid Community Apps 
 - **Optional DB**: Postgres (users provide a full `DATABASE_URL`, Postgres 17+)
 - **1-click updates**: Unraid pulls a new image and the container **auto-runs non-interactive migrations on startup**
 
-> Repo status note: SQLite support is implemented first. Postgres support remains part of this plan, but requires a Postgres-compatible schema + committed `drizzle/postgres` migrations.
+> Repo status note: This plan is now largely implemented in-repo, including dual-dialect schemas (`lib/db/schema.sqlite.ts` + `lib/db/schema.pg.ts`), split Drizzle configs, and committed migrations under both `drizzle/sqlite` and `drizzle/postgres`.
 
 ---
 
@@ -25,7 +25,7 @@ These are the remaining “fork in the road” items where we should pick one ap
 
 ### 0) Migration strategy for CA upgrades (choose ONE)
 
-Unified Ledger currently uses a Docker “migrator” pattern with `drizzle-kit push` (schema sync) in a one-shot container/step. For Unraid CA, we must decide what’s acceptable for unattended upgrades:
+Unified Ledger supports Unraid CA upgrades via startup migrations. For Unraid CA, we must decide what’s acceptable for unattended upgrades:
 
 - **Option A — Keep `drizzle-kit push` (schema sync)**
   - **Pros**: Matches current repo Docker approach; no migration files to manage.
@@ -43,7 +43,7 @@ If we pick **Option B**, Step 2 below is the correct direction. If we pick **Opt
 
 ### 1) Where should production data live inside the container?
 
-For CA, the contract is `/config`. The app currently defaults to `/app/data/finance.db` in production when `DATABASE_URL` is not set.
+For CA, the contract is `/config`. The app defaults to `/config/finance.db` in production when `DATABASE_URL` is not set.
 
 - **Decision required**: Standardize on:
   - SQLite default: `DATABASE_URL=file:/config/finance.db`
@@ -183,7 +183,7 @@ Create two Drizzle configs:
   - `dialect: "postgresql"`
   - `out: "./drizzle/postgres"`
 
-**Note (current repo status):** SQLite migrations are committed under `drizzle/sqlite`. Postgres migrations will be committed under `drizzle/postgres` once the schema is made Postgres-compatible (the current schema files use `sqliteTable`).
+**Note (current repo status):** SQLite migrations are committed under `drizzle/sqlite` and Postgres migrations are committed under `drizzle/postgres`.
 
 ### 2.3 Migration generation workflow (developer/CI)
 
@@ -232,8 +232,9 @@ Add a startup script (recommended path: `scripts/docker-entrypoint.mjs`) that:
 - The Docker runtime contract for CA is `/config`:
   - SQLite default DB: `/config/finance.db`
   - Uploads root: `/config/uploads`
-- **Important**: the current schema file (`lib/db/schema.ts`) is defined with `drizzle-orm/sqlite-core` and includes many `default(new Date().toISOString())` defaults.
-  - Before committing migrations, these defaults must be replaced with database-evaluated defaults (e.g. `strftime(..., 'now')` for SQLite) so migrations do not bake build-time timestamps.
+- **Important**: avoid `default(new Date().toISOString())` in schema definitions.
+  - This bakes build-time timestamps into migrations and produces incorrect DB defaults.
+  - Use DB-evaluated defaults instead (`sqliteNowIso` / `pgNowIso` in the schema files).
 
 ### 2.5 Prevent concurrent migrations (recommended)
 

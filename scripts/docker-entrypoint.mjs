@@ -15,6 +15,18 @@ function defaultDatabaseUrl() {
   return "file:./sqlite.db";
 }
 
+function requireRuntimeSecrets() {
+  // In production containers, secrets must be provided at runtime (not baked into images).
+  if (process.env.NODE_ENV !== "production") return;
+
+  const betterAuthSecret = process.env.BETTER_AUTH_SECRET?.trim();
+  if (!betterAuthSecret) {
+    console.error("[entrypoint] BETTER_AUTH_SECRET is required in production.");
+    console.error("[entrypoint] Set a long random secret in your Unraid template / container environment.");
+    process.exit(1);
+  }
+}
+
 function run(cmd, args, extraEnv = {}) {
   const result = spawnSync(cmd, args, {
     stdio: "inherit",
@@ -74,6 +86,8 @@ async function withPostgresAdvisoryLock(databaseUrl, fn) {
 }
 
 async function main() {
+  requireRuntimeSecrets();
+
   const databaseUrl = process.env.DATABASE_URL?.trim() || defaultDatabaseUrl();
   process.env.DATABASE_URL = databaseUrl;
 
@@ -86,12 +100,10 @@ async function main() {
   console.log(`[entrypoint] Running migrations with config: ${drizzleConfig}`);
 
   if (dialect === "postgres") {
-    // Until Postgres migrations are committed, fail fast with an actionable error.
-    // This prevents a confusing partially-booted container with an unusable DB.
     if (!fs.existsSync(path.join(migrationsRoot, "meta", "_journal.json"))) {
       console.error("[entrypoint] Postgres migrations are not present in this image.");
       console.error("[entrypoint] Expected migrations under:", migrationsRoot);
-      console.error("[entrypoint] Use SQLite (DATABASE_URL=file:/config/finance.db) or wait for Postgres migration support.");
+      console.error("[entrypoint] Use SQLite (DATABASE_URL=file:/config/finance.db) or upgrade to an image that includes Postgres migrations.");
       process.exit(1);
     }
   }

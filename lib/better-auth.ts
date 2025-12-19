@@ -30,6 +30,24 @@ function shouldUseSecureCookies() {
   return false;
 }
 
+function resolveBetterAuthSecret() {
+  const secret = process.env.BETTER_AUTH_SECRET?.trim();
+  // IMPORTANT:
+  // We intentionally do NOT throw here because this module can be evaluated during `next build`,
+  // and Unraid/Docker images should remain buildable without runtime secrets.
+  //
+  // Runtime enforcement for production containers is handled in `scripts/docker-entrypoint.mjs`.
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      console.warn(
+        "[Better Auth] BETTER_AUTH_SECRET is not set. This must be set at runtime in production environments."
+      );
+    }
+    return "fallback-secret-for-development-only-change-in-production";
+  }
+  return secret;
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: (() => {
@@ -119,7 +137,7 @@ export const auth = betterAuth({
   //     },
   //   ],
   // },
-  secret: process.env.BETTER_AUTH_SECRET || "fallback-secret-for-development-only-change-in-production",
+  secret: resolveBetterAuthSecret(),
   plugins: [
     genericOAuth({
       config: [
