@@ -59,3 +59,6 @@ sqlite.db
 /public/uploads/*
 !/public/uploads/**/.gitkeep
 sqlite.db.backup-20251116-192156
+
+# Auto Claude data directory
+.auto-claude/
