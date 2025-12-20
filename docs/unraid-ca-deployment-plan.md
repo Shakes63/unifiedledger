@@ -6,13 +6,14 @@ This plan describes how to publish Unified Ledger as an **Unraid Community Apps 
 - **Optional DB**: Postgres (users provide a full `DATABASE_URL`, Postgres 17+)
 - **1-click updates**: Unraid pulls a new image and the container **auto-runs non-interactive migrations on startup**
 
-> **Implementation status: COMPLETE.** All core infrastructure is implemented in-repo:
+> **Implementation status: Core runtime COMPLETE.** Remaining: CI publishing + CA template submission.
 > - Dual-dialect schemas (`lib/db/schema.sqlite.ts` + `lib/db/schema.pg.ts`)
 > - Split Drizzle configs (`drizzle.config.sqlite.ts` + `drizzle.config.pg.ts`)
 > - Committed migrations under `drizzle/sqlite` and `drizzle/postgres`
 > - Auto-migrating Docker entrypoint (`scripts/docker-entrypoint.mjs`) with concurrent migration locks
 > - Better Auth adapter provider switching (`lib/better-auth.ts`)
 > - Production secret enforcement (BETTER_AUTH_SECRET required at runtime)
+> - CA template artifact: `docs/unraid-ca-template.xml` (fill in your org/repo details)
 
 ---
 

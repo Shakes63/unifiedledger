@@ -69,6 +69,17 @@ Login/session loops are almost always caused by:
 - `NEXT_PUBLIC_APP_URL` not matching the public URL, or
 - missing/incorrect forwarded headers.
 
+### Maintainers: publishing the Unraid image (GHCR)
+
+This repo includes a GitHub Actions workflow that publishes images to GHCR on release tags:
+
+- Tag format: `vX.Y.Z`
+- Image tags pushed:
+  - `ghcr.io/<owner>/<repo>:X.Y.Z`
+  - `ghcr.io/<owner>/<repo>:latest`
+
+Workflow file: `.github/workflows/publish-ghcr.yml`
+
 ### Common Unraid failure modes (quick fixes)
 
 - **Container exits immediately complaining about `BETTER_AUTH_SECRET`**
