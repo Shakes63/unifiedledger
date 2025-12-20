@@ -19,6 +19,10 @@ Unified Ledger is designed to run as a **single container** on Unraid CA. The co
 - **Persists data under `/config`** (Unraid appdata mount)
 - Exposes the web UI on **port 3000**
 
+### Ports
+
+- **3000/tcp**: Web UI
+
 ### Persistent data contract
 
 Mount `/config` as a persistent volume.
@@ -50,6 +54,10 @@ Mount `/config` as a persistent volume.
 - **Upgrades**: pulling a new image and restarting the container runs migrations again; if there are no pending migrations, startup continues normally.
 - **If migrations fail**: the container exits non-zero and Unraid will show it as unhealthy; check logs for the reason.
 
+### Health checks
+
+- `GET /api/health` performs a real DB query and returns `503` if the DB is unreachable/misconfigured.
+
 ### Reverse proxy requirements (NPM / SWAG / Traefik)
 
 When running behind a reverse proxy:
@@ -60,6 +68,17 @@ When running behind a reverse proxy:
 Login/session loops are almost always caused by:
 - `NEXT_PUBLIC_APP_URL` not matching the public URL, or
 - missing/incorrect forwarded headers.
+
+### Common Unraid failure modes (quick fixes)
+
+- **Container exits immediately complaining about `BETTER_AUTH_SECRET`**
+  - Set `BETTER_AUTH_SECRET` in your Unraid template (use a long random secret).
+- **SQLite lock error: `/config/.migrate.lock` already exists**
+  - Ensure only one container instance is running.
+  - If a previous run crashed, delete `/config/.migrate.lock` and restart.
+- **Postgres migrations fail**
+  - Confirm Postgres is reachable and v17+.
+  - Verify `DATABASE_URL` is correct and includes the database name.
 
 ### Backup / restore (minimum viable)
 

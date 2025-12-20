@@ -43,6 +43,36 @@ function run(cmd, args, extraEnv = {}) {
   }
 }
 
+function requireFileExists(filePath, { label }) {
+  if (!fs.existsSync(filePath)) {
+    console.error(`[entrypoint] Missing ${label}: ${filePath}`);
+    console.error(
+      "[entrypoint] This image may be incomplete/corrupted, or you may be running an unexpected working directory."
+    );
+    process.exit(1);
+  }
+}
+
+function requireMigrationArtifacts({ dialect }) {
+  // Fail-fast with clearer messaging than drizzle-kit’s generic errors.
+  const cwd = process.cwd();
+  const configPath =
+    dialect === "postgres"
+      ? path.resolve(cwd, "drizzle.config.pg.ts")
+      : path.resolve(cwd, "drizzle.config.sqlite.ts");
+
+  const migrationsDir =
+    dialect === "postgres"
+      ? path.resolve(cwd, "drizzle", "postgres")
+      : path.resolve(cwd, "drizzle", "sqlite");
+
+  const journalPath = path.resolve(migrationsDir, "meta", "_journal.json");
+
+  requireFileExists(configPath, { label: "Drizzle config file" });
+  requireFileExists(migrationsDir, { label: "migrations directory" });
+  requireFileExists(journalPath, { label: "Drizzle migration journal (meta/_journal.json)" });
+}
+
 function acquireSqliteMigrateLock() {
   const lockDir = "/config";
   const lockPath = path.join(lockDir, ".migrate.lock");
@@ -93,27 +123,26 @@ async function main() {
 
   const dialect = isPostgresUrl(databaseUrl) ? "postgres" : "sqlite";
   const drizzleConfig = dialect === "postgres" ? "drizzle.config.pg.ts" : "drizzle.config.sqlite.ts";
-  const migrationsRoot = dialect === "postgres" ? "/app/drizzle/postgres" : "/app/drizzle/sqlite";
 
   console.log(`[entrypoint] DATABASE_URL=${dialect === "postgres" ? "<postgresql>" : databaseUrl}`);
   console.log(`[entrypoint] Selected DB dialect: ${dialect}`);
   console.log(`[entrypoint] Running migrations with config: ${drizzleConfig}`);
 
-  if (dialect === "postgres") {
-    if (!fs.existsSync(path.join(migrationsRoot, "meta", "_journal.json"))) {
-      console.error("[entrypoint] Postgres migrations are not present in this image.");
-      console.error("[entrypoint] Expected migrations under:", migrationsRoot);
-      console.error("[entrypoint] Use SQLite (DATABASE_URL=file:/config/finance.db) or upgrade to an image that includes Postgres migrations.");
-      process.exit(1);
-    }
-  }
+  requireMigrationArtifacts({ dialect });
 
   let releaseLock = null;
   if (dialect === "sqlite") {
     try {
       releaseLock = acquireSqliteMigrateLock();
     } catch (e) {
-      console.error("[entrypoint] Failed to acquire SQLite migration lock in /config:", e?.message ?? e);
+      const code = e?.code;
+      if (code === "EEXIST") {
+        console.error("[entrypoint] SQLite migration lock already exists at /config/.migrate.lock");
+        console.error("[entrypoint] This usually means another container instance is migrating, or a previous run crashed.");
+        console.error("[entrypoint] Ensure only one instance is running. If safe, delete /config/.migrate.lock and restart.");
+      } else {
+        console.error("[entrypoint] Failed to acquire SQLite migration lock in /config:", e?.message ?? e);
+      }
       process.exit(1);
     }
   } else {

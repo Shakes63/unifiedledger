@@ -6,7 +6,13 @@ This plan describes how to publish Unified Ledger as an **Unraid Community Apps 
 - **Optional DB**: Postgres (users provide a full `DATABASE_URL`, Postgres 17+)
 - **1-click updates**: Unraid pulls a new image and the container **auto-runs non-interactive migrations on startup**
 
-> Repo status note: This plan is now largely implemented in-repo, including dual-dialect schemas (`lib/db/schema.sqlite.ts` + `lib/db/schema.pg.ts`), split Drizzle configs, and committed migrations under both `drizzle/sqlite` and `drizzle/postgres`.
+> **Implementation status: COMPLETE.** All core infrastructure is implemented in-repo:
+> - Dual-dialect schemas (`lib/db/schema.sqlite.ts` + `lib/db/schema.pg.ts`)
+> - Split Drizzle configs (`drizzle.config.sqlite.ts` + `drizzle.config.pg.ts`)
+> - Committed migrations under `drizzle/sqlite` and `drizzle/postgres`
+> - Auto-migrating Docker entrypoint (`scripts/docker-entrypoint.mjs`) with concurrent migration locks
+> - Better Auth adapter provider switching (`lib/better-auth.ts`)
+> - Production secret enforcement (BETTER_AUTH_SECRET required at runtime)
 
 ---
 
@@ -19,71 +25,58 @@ This plan describes how to publish Unified Ledger as an **Unraid Community Apps 
 
 ---
 
-## Decisions to Make (before implementation)
+## Decisions Made
 
-These are the remaining “fork in the road” items where we should pick one approach and then implement consistently.
+These were the key architectural decisions made during implementation.
 
-### 0) Migration strategy for CA upgrades (choose ONE)
+### 0) Migration strategy for CA upgrades
 
-Unified Ledger supports Unraid CA upgrades via startup migrations. For Unraid CA, we must decide what’s acceptable for unattended upgrades:
+**Decision: Committed migrations + `drizzle-kit migrate`**
 
-- **Option A — Keep `drizzle-kit push` (schema sync)**
-  - **Pros**: Matches current repo Docker approach; no migration files to manage.
-  - **Cons**: Can become ambiguous for destructive changes; may prompt in edge cases; less auditable/reviewable.
-  - **Decision required**: Are we willing to constrain schema evolution to changes that never require interactive resolution at runtime?
+For unattended CA upgrades, we use committed migration files rather than `drizzle-kit push`. This ensures:
+- Deterministic, auditable, safe upgrades
+- No interactive prompts during container startup
+- Separate migration files for SQLite and Postgres dialects
 
-- **Option B — Move to committed migrations + `drizzle-kit migrate`**
-  - **Pros**: Deterministic, auditable, safer for upgrades; aligns with “unattended upgrades” requirement.
-  - **Cons**: Requires generating + committing migrations; must maintain *dialect-specific* outputs for SQLite vs Postgres.
-  - **Decision required**: Are we willing to change the project’s DB workflow to migration-based for production images?
+**Implemented in:** `scripts/docker-entrypoint.mjs` runs `drizzle-kit migrate` on startup.
 
-If we pick **Option B**, Step 2 below is the correct direction. If we pick **Option A**, Step 2 should be rewritten to explicitly codify the “push-only” constraints and how to avoid interactive prompts.
+### 1) Production data location
 
-**Decision (chosen): Option B — committed migrations + `drizzle-kit migrate` for CA.**
+**Decision: Standardize on `/config` for CA**
 
-### 1) Where should production data live inside the container?
+- SQLite default: `DATABASE_URL=file:/config/finance.db`
+- Uploads root: `/config/uploads`
+- Optional backups/exports: `/config/backups`
 
-For CA, the contract is `/config`. The app defaults to `/config/finance.db` in production when `DATABASE_URL` is not set.
+**Implemented in:** `lib/db/index.ts`, `scripts/docker-entrypoint.mjs`, and `drizzle.config.sqlite.ts` all default to `/config/finance.db` when `NODE_ENV=production`.
 
-- **Decision required**: Standardize on:
-  - SQLite default: `DATABASE_URL=file:/config/finance.db`
-  - Uploads root: `/config/uploads`
-  - Optional backups/exports: `/config/backups`
+### 2) Migration execution model
 
-This implies updating any Docker docs/examples that mention `/app/data` to `/config` for CA.
+**Decision: Single container entrypoint runs migrations then starts server**
 
-**Decision (chosen): Standardize on `/config` for CA (DB at `/config/finance.db`, uploads at `/config/uploads`).**
+The Docker entrypoint performs migrations and then starts the Next.js server in a single container. This provides the best "1-click update" UX for Unraid CA.
 
-### 2) Single-container “entrypoint migrates then starts” vs separate migrator step
+**Implemented in:** `scripts/docker-entrypoint.mjs` — detects DB dialect, acquires migration lock (file lock for SQLite, `pg_advisory_lock` for Postgres), runs `drizzle-kit migrate`, then starts `node server.js`.
 
-Unraid CA templates typically run **one container**. There are two common approaches:
+### 3) Postgres support
 
-- **Option A — Single container entrypoint runs migrations then starts server**
-  - **Recommended for CA**: Easiest “1-click update” UX.
-- **Option B — Separate migrator container/job**
-  - Works in Compose, but is a worse fit for CA’s single-app template model.
+**Decision: Postgres is officially supported (minimum version 17+)**
 
-**Decision required**: Implement Option A for CA even if local docker-compose keeps Option B.
+- Full Postgres schema (`lib/db/schema.pg.ts`) and auth schema (`auth-schema.pg.ts`)
+- Committed migrations under `drizzle/postgres`
+- Better Auth adapter switches provider based on DATABASE_URL
 
-**Decision (chosen): Option A — single container entrypoint migrates then starts the app.**
+**Implemented in:** `lib/db/index.ts` (connection switching), `lib/db/dialect.ts` (dialect detection), `lib/better-auth.ts` (adapter provider switching).
 
-### 3) Postgres scope (supported vs “best effort”)
+### 4) Cookie security defaults
 
-- **Decision required**:
-  - Is Postgres officially supported (CI coverage + migrations), or “advanced/experimental”?
-  - Minimum supported Postgres version (e.g. 15+ or 16+).
+**Decision: Auto-detect secure cookies from URL scheme**
 
-**Decision (chosen): Postgres is officially supported; minimum Postgres version is 17+.**
+- `FORCE_SECURE_COOKIES` defaults to `false`
+- Cookies are automatically marked `Secure` when `NEXT_PUBLIC_APP_URL` starts with `https://`
+- Manual override available via `FORCE_SECURE_COOKIES=true`
 
-### 4) Reverse proxy / cookie security defaults
-
-Better Auth cookies and redirects depend on the public URL and secure-cookie policy.
-
-- **Decision required**:
-  - Is `FORCE_SECURE_COOKIES=true` the default in CA templates?
-  - Do we document required reverse proxy headers (`Host`, `X-Forwarded-Proto`) as “musts”?
-
-**Decision (chosen): `FORCE_SECURE_COOKIES` defaults to false; rely on `NEXT_PUBLIC_APP_URL` and forwarded headers to enable Secure cookies when appropriate.**
+**Implemented in:** `lib/better-auth.ts` — `shouldUseSecureCookies()` function.
 
 ---
 
@@ -107,8 +100,8 @@ Better Auth cookies and redirects depend on the public URL and secure-cookie pol
   - long random secret (required in production)
 - `FORCE_SECURE_COOKIES` (recommended for public exposure)
   - Default: `false`
-  - If unset/false, cookies should be marked Secure automatically when `NEXT_PUBLIC_APP_URL` starts with `https://` (and/or when proxy forwarded headers indicate HTTPS).
-  - Set to `true` only if you need to force Secure cookies regardless of URL/headers (generally not recommended unless you know why).
+  - If unset/false, cookies are marked Secure automatically when `NEXT_PUBLIC_APP_URL` starts with `https://`.
+  - Set to `true` only if you need to force Secure cookies regardless of URL (generally not recommended unless you know why).
 
 ### Optional environment variables (feature-dependent)
 
@@ -124,168 +117,115 @@ Better Auth cookies and redirects depend on the public URL and secure-cookie pol
 
 ---
 
-## Step 1 — Make the app truly DB-agnostic (SQLite + Postgres)
+## Step 1 — DB-agnostic runtime (SQLite + Postgres) ✅ IMPLEMENTED
 
-### 1.1 Database connection selection (Drizzle)
+### 1.1 Database connection selection (Drizzle) ✅
 
-Update `lib/db/index.ts` to:
+**Implemented in `lib/db/index.ts`:**
 
-- Detect DB type from `DATABASE_URL`:
-  - `postgres://` or `postgresql://` → Postgres driver
-  - `file:` or a filesystem path → SQLite driver
-- Export `db` and `sqlite/pg client` consistently for the rest of the app.
+- Detects DB type from `DATABASE_URL` via `lib/db/dialect.ts`:
+  - `postgres://` or `postgresql://` → Postgres driver (`pg` + `drizzle-orm/node-postgres`)
+  - `file:` or filesystem path → SQLite driver (`better-sqlite3` + `drizzle-orm/better-sqlite3`)
+- Exports `db`, `sqlite`, and `pgPool` for use throughout the app
+- Default production path: `/config/finance.db` when `DATABASE_URL` is not set
 
-**SQLite behavior**
-- Use `better-sqlite3` + `drizzle-orm/better-sqlite3`
-- Default production path should be `/config/finance.db` (when `DATABASE_URL` is not set) for CA images/templates.
+### 1.2 Better Auth adapter provider switch ✅
 
-**Postgres behavior**
-- Add deps: `pg` (+ `@types/pg`)
-- Use `drizzle-orm/node-postgres` and `pg.Pool`
-- Pool config comes from `DATABASE_URL` directly (Option A).
+**Implemented in `lib/better-auth.ts`:**
 
-### 1.2 Better Auth adapter provider switch
+- Drizzle adapter provider dynamically selected based on dialect:
+  - SQLite → `provider: "sqlite"`
+  - Postgres → `provider: "postgresql"`
+- Auth schema also switches: `auth-schema.ts` (SQLite) vs `auth-schema.pg.ts` (Postgres)
 
-Update `lib/better-auth.ts` so the drizzle adapter provider matches the DB:
+### 1.3 Schema compatibility across dialects ✅
 
-- SQLite → `provider: "sqlite"`
-- Postgres → `provider: "postgresql"` (confirm exact string Better Auth expects for Drizzle adapter)
+**Implemented as separate schema files:**
 
-### 1.3 Ensure schema compatibility across dialects
+- `lib/db/schema.sqlite.ts` — SQLite-specific schema
+- `lib/db/schema.pg.ts` — Postgres-specific schema
+- `lib/db/schema.ts` — Re-exports the appropriate schema based on runtime dialect
 
-Because SQLite and Postgres differ, audit `lib/db/schema.ts` for:
-
-- JSON storage strategy (SQLite often uses `text` with JSON encoding)
-- Default values and booleans
-- Index and constraint differences
-- Any raw SQL fragments that are dialect-specific
+Key differences handled:
+- JSON storage (text in SQLite, native JSON in Postgres)
+- Default timestamps use `sqliteNowIso` / `pgNowIso` to avoid baking build-time values
+- Dialect-specific SQL fragments
 
 ---
 
-## Step 2 — Migrations that work for both SQLite and Postgres (non-interactive)
+## Step 2 — Non-interactive migrations for both dialects ✅ IMPLEMENTED
 
-### 2.1 Commit migrations; do not rely on “push” at runtime
+### 2.1 Committed migrations (not push) ✅
 
-For unattended upgrades, prefer **`drizzle-kit migrate`** with committed migration files.
+Production uses `drizzle-kit migrate` with committed migration files, not `drizzle-kit push`. This ensures deterministic, non-interactive upgrades.
 
-`drizzle-kit push` can be ambiguous and may become interactive for certain schema changes; that’s not acceptable for CA updates.
+### 2.2 Split migration outputs by dialect ✅
 
-This plan **chooses migration-based upgrades** for CA (see Decisions above).
+**Implemented Drizzle configs:**
 
-### 2.2 Split migration outputs by dialect
+- `drizzle.config.sqlite.ts` → outputs to `./drizzle/sqlite`
+- `drizzle.config.pg.ts` → outputs to `./drizzle/postgres`
 
-Create two Drizzle configs:
+Both directories contain committed migration SQL files.
 
-- `drizzle.config.sqlite.ts`
-  - `dialect: "sqlite"`
-  - `out: "./drizzle/sqlite"`
-- `drizzle.config.pg.ts`
-  - `dialect: "postgresql"`
-  - `out: "./drizzle/postgres"`
+### 2.3 Migration generation workflow (developer)
 
-**Note (current repo status):** SQLite migrations are committed under `drizzle/sqlite` and Postgres migrations are committed under `drizzle/postgres`.
+When changing schema, generate migrations for both dialects:
 
-### 2.3 Migration generation workflow (developer/CI)
-
-When changing schema:
-
-- Generate SQLite migrations:
-  - `pnpm drizzle-kit generate --config drizzle.config.sqlite.ts`
-- Generate Postgres migrations:
-  - `pnpm drizzle-kit generate --config drizzle.config.pg.ts`
+```bash
+pnpm drizzle-kit generate --config drizzle.config.sqlite.ts
+pnpm drizzle-kit generate --config drizzle.config.pg.ts
+```
 
 Commit both outputs.
 
-### 2.4 Startup auto-migration runner (required for 1-click updates)
+**Important**: Avoid `default(new Date().toISOString())` in schema definitions — use `sqliteNowIso` / `pgNowIso` instead to avoid baking build-time timestamps.
 
-Add a startup script (recommended path: `scripts/docker-entrypoint.mjs`) that:
+### 2.4 Startup auto-migration runner ✅
 
-1. Reads `DATABASE_URL`
-2. Chooses dialect:
-   - Postgres if `DATABASE_URL` starts with `postgres://` or `postgresql://`
-   - Otherwise SQLite
-3. Runs migrations using the correct config:
-   - SQLite: `pnpm drizzle-kit migrate --config drizzle.config.sqlite.ts`
-   - Postgres: `pnpm drizzle-kit migrate --config drizzle.config.pg.ts`
-4. Starts the server (`node server.js`)
+**Implemented in `scripts/docker-entrypoint.mjs`:**
 
-**Behavior requirements**
+1. Enforces `BETTER_AUTH_SECRET` in production (fail-fast)
+2. Detects dialect from `DATABASE_URL`
+3. Acquires migration lock (prevents concurrent migrations)
+4. Runs `drizzle-kit migrate --config <dialect-config>`
+5. Starts `node server.js`
 
-- Must be **non-interactive**
-- Must exit non-zero on migration failure (Unraid will show container unhealthy)
-- Must log:
-  - DB type selected
-  - migration start/finish
-  - failure reason
+**Behavior:**
+- Non-interactive (CI=1 environment variable)
+- Exits non-zero on migration failure
+- Logs DB type, migration status, and any errors
 
-**Runtime image requirement:** because we use `drizzle-kit migrate` in-container, the runtime image must include:
-- `drizzle/` (dialect migrations)
-- `drizzle.config.*.ts`
-- Schema files referenced by those configs (`lib/db/schema.sqlite.ts`, `lib/db/schema.pg.ts`, `auth-schema.ts`, `auth-schema.pg.ts`)
+**Runtime image includes:** `drizzle/`, `drizzle.config.*.ts`, schema files
 
-### Implementation notes (repo alignment)
+### 2.5 Concurrent migration locks ✅
 
-- The repo now includes:
-  - `drizzle.config.sqlite.ts` → outputs to `drizzle/sqlite`
-  - `drizzle.config.pg.ts` → outputs to `drizzle/postgres` (Postgres schema work is required; see Step 1.3)
-  - `scripts/docker-entrypoint.mjs` → runs `drizzle-kit migrate` on container start then launches the app
-- The Docker runtime contract for CA is `/config`:
-  - SQLite default DB: `/config/finance.db`
-  - Uploads root: `/config/uploads`
-- **Important**: avoid `default(new Date().toISOString())` in schema definitions.
-  - This bakes build-time timestamps into migrations and produces incorrect DB defaults.
-  - Use DB-evaluated defaults instead (`sqliteNowIso` / `pgNowIso` in the schema files).
+**Implemented in `scripts/docker-entrypoint.mjs`:**
 
-### 2.5 Prevent concurrent migrations (recommended)
-
-Even on Unraid, users can click “update” rapidly or restart loops can happen.
-
-- **SQLite**: use a simple file lock in `/config` (e.g. `/config/.migrate.lock`) to ensure only one migrator runs at a time.
-- **Postgres**: use an advisory lock (e.g. `pg_advisory_lock`) during migration.
-
-**Repo status:** Implemented in `scripts/docker-entrypoint.mjs`:
-- SQLite: `/config/.migrate.lock`
-- Postgres: `pg_advisory_lock(<two-int-key>)` held for the migration connection lifecycle
+- **SQLite**: File lock at `/config/.migrate.lock`
+- **Postgres**: Advisory lock via `pg_advisory_lock(8291, 33001)` held for migration duration
 
 ---
 
-## Step 3 — Docker image design for CA
+## Step 3 — Docker image design for CA ✅ IMPLEMENTED
 
-### 3.1 Single image supports both DB modes
+### 3.1 Single image supports both DB modes ✅
 
-Publish a single image that can:
+The published image:
+- Runs Next.js standalone
+- Runs migrations on startup for either SQLite or Postgres
+- Includes drizzle-kit for migration execution (Option 1 approach)
 
-- run Next.js standalone
-- run migrations on startup for either dialect
+### 3.2 Persistence expectation ✅
 
-### 3.2 Practical build options
+- `/config` mount is the standard appdata location
+- Default `DATABASE_URL=file:/config/finance.db` when not explicitly set
 
-#### Option 1 (fastest): include drizzle-kit in runtime image
+### 3.3 Healthcheck / readiness contract
 
-- Pros: easy to implement auto-migrate with `drizzle-kit migrate`
-- Cons: larger image (includes tooling)
+The Dockerfile uses `GET /api/health` to determine container health.
 
-#### Option 2 (best long-term): custom lightweight migration runner
-
-- Execute SQL migrations directly with:
-  - `better-sqlite3` for SQLite
-  - `pg` for Postgres
-- Pros: smaller image, more control
-- Cons: more code to maintain
-
-Start with Option 1 to ship quickly; optimize later if desired.
-
-### 3.3 Persistence expectation
-
-- Always document and default to:
-  - `/config` mount
-  - `DATABASE_URL=file:/config/finance.db` (SQLite default)
-
-### 3.4 Healthcheck / readiness contract (recommended)
-
-The existing Dockerfile uses `GET /api/health` to determine container health.
-
-**Decision (chosen): `/api/health` should validate DB connectivity** and return non-200 if the DB is unavailable/misconfigured (so Unraid surfaces broken configs quickly).
+**Recommendation:** `/api/health` should validate DB connectivity and return non-200 if the DB is unavailable/misconfigured.
 
 ---
 
@@ -310,11 +250,9 @@ Not planned initially: `linux/arm64`
 
 ---
 
-## Step 5 — CA Template (Option A: user provides full Postgres DATABASE_URL)
+## Step 5 — CA Template
 
 This template defaults to SQLite but supports Postgres by letting the user change `DATABASE_URL`.
-
-> Implementation alignment note: the current repo Docker examples default to storing SQLite at `/app/data/finance.db`. For CA, we should standardize on `/config/finance.db` and ensure the image/entrypoint respects that default when `DATABASE_URL` is not provided.
 
 ```xml
 <?xml version="1.0"?>
@@ -357,7 +295,7 @@ On startup, the container auto-runs migrations for the configured database, enab
           Description="Required. Set a long random secret." Type="Variable" Display="always" Required="true" Mask="true"/>
 
   <Config Name="Force Secure Cookies (advanced)" Target="FORCE_SECURE_COOKIES" Default="false" Mode="rw"
-          Description="Advanced. If false, Secure cookies should be enabled automatically when NEXT_PUBLIC_APP_URL is https (and/or proxy forwarded headers indicate https). Set true only if you need to force Secure cookies."
+          Description="Advanced. If false, Secure cookies are enabled automatically when NEXT_PUBLIC_APP_URL is https. Set true only if you need to force Secure cookies."
           Type="Variable" Display="advanced" Required="false"/>
 
   <!-- Database selection -->
@@ -442,38 +380,31 @@ Also include:
 
 ---
 
-## Additional items to add (recommended)
+## Additional items (implementation notes)
 
-### A) Add a CA-friendly Docker runtime contract section
+### A) CA-friendly Docker runtime contract ✅
 
-Document runtime env vars that are helpful in Unraid deployments:
+Runtime env vars included in CA template:
 
 - `PORT=3000`
 - `HOSTNAME=0.0.0.0`
 - `NODE_ENV=production`
 - `NEXT_TELEMETRY_DISABLED=1`
 
-### B) Clarify uploads + avatars implementation details
+### B) Uploads + avatars ✅
 
-This plan recommends `/config/uploads`. To make this actionable:
+**Implemented:**
+- `UPLOADS_DIR` env var (default `/config/uploads` in production)
+- Avatars stored at `${UPLOADS_DIR}/avatars/<userId>.jpg` (optimized JPEG)
+- Served via authenticated route handler: `GET /uploads/avatars/<userId>.jpg`
+- Legacy migration: best-effort copy from `public/uploads/avatars` on startup
 
-- **Decision (chosen)**: Introduce `UPLOADS_DIR` env var (default `/config/uploads` in production).
-- Confirm whether avatars are currently stored under `public/uploads` or filesystem outside Next static assets.
-- Document size limits + allowed mime types for avatar uploads and any future attachments.
+### C) First-run initialization
 
-**Implementation (current repo):**
-- Avatars are stored on disk under `${UPLOADS_DIR:-/config/uploads}/avatars/<userId>.jpg` (optimized JPEG).
-- Avatars are served via an authenticated route handler: `GET /uploads/avatars/<userId>.jpg`
-- On upgrades, the avatar route attempts a best-effort copy from legacy `public/uploads/avatars` into `${UPLOADS_DIR}/avatars` when present.
+- Migrations auto-create all required tables on first run
+- Onboarding is entirely user-driven (no seed data required)
 
-### C) First-run initialization (what happens on an empty DB?)
-
-For CA, we should explicitly define:
-
-- Does the app auto-create required tables on first run (via migrations/push)?
-- Is there any seed step required for “first household”, categories, etc., or is onboarding entirely user-driven?
-
-### D) Backup/restore guidance (minimum viable)
+### D) Backup/restore guidance (recommended for docs)
 
 Add a short doc section for Unraid users:
 
@@ -495,7 +426,7 @@ Add a short doc section for Unraid users:
 Unified Ledger uses Better Auth cookies. For production behind HTTPS, confirm the Better Auth cookie settings are appropriate for your deployment:
 
 - If the app is accessed via HTTPS, cookies should be marked `Secure`.
-- If you terminate TLS at the proxy, ensure the upstream container still sees correct forwarded headers (commonly `X-Forwarded-Proto: https`).
+- If you terminate TLS at the proxy, ensure forwarded headers are correct (commonly `X-Forwarded-Proto: https`) and set `NEXT_PUBLIC_APP_URL` to your public `https://` URL.
 
 If you see login loops or sessions not sticking, this is usually one of:
 
@@ -660,13 +591,15 @@ Minimum supported Postgres version: **17+** (officially supported).
 
 ---
 
-## Execution Order (recommended)
+## Implementation Summary
 
-1. Implement dual DB support in `lib/db/index.ts`
-2. Implement Better Auth provider switching in `lib/better-auth.ts`
-3. Introduce split Drizzle migration configs + generation workflow
-4. Add startup auto-migration runner (non-interactive)
-5. Publish images to GHCR with semantic tags
-6. Submit CA template (or provide it for CA maintainers)
+All core infrastructure is complete:
+
+1. ✅ Dual DB support in `lib/db/index.ts` + `lib/db/dialect.ts`
+2. ✅ Better Auth provider switching in `lib/better-auth.ts`
+3. ✅ Split Drizzle migration configs (`drizzle.config.sqlite.ts` + `drizzle.config.pg.ts`)
+4. ✅ Startup auto-migration runner with locking (`scripts/docker-entrypoint.mjs`)
+5. ⏳ Publish images to GHCR with semantic tags (CI/CD setup)
+6. ⏳ Submit CA template (or provide it for CA maintainers)
 
 
