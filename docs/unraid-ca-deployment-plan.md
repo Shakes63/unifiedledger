@@ -249,11 +249,19 @@ Recommended: GitHub Container Registry (GHCR)
 At minimum: `linux/amd64` (most Unraid servers)
 Not planned initially: `linux/arm64`
 
+### 4.4 Repo implementation
+
+- **Workflow**: `.github/workflows/publish-ghcr.yml`
+  - Triggers on tags `vX.Y.Z`
+  - Pushes `ghcr.io/<owner>/<repo>:X.Y.Z` and `:latest`
+
 ---
 
 ## Step 5 — CA Template
 
 This template defaults to SQLite but supports Postgres by letting the user change `DATABASE_URL`.
+
+Repo artifact: `docs/unraid-ca-template.xml` (fill in your org/repo/support URLs).
 
 ```xml
 <?xml version="1.0"?>
