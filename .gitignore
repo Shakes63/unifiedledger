@@ -65,3 +65,9 @@ sqlite.db.backup-20251116-192156
 
 # Ignore local git worktree folders
 .worktrees/
+
+# Local agent status files
+.auto-claude-status
+
+# Local audit artifacts (generated)
+logs/*-audit.json
