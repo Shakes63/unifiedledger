@@ -62,3 +62,6 @@ sqlite.db.backup-20251116-192156
 
 # Auto Claude data directory
 .auto-claude/
+
+# Ignore local git worktree folders
+.worktrees/
