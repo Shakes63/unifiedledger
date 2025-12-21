@@ -2398,7 +2398,7 @@ export const quarterlyFilingRecords = pgTable(
 // Re-export for convenience
 // ============================================================================
 
-export { user as betterAuthUser, session as betterAuthSession, account as betterAuthAccount, verification as betterAuthVerification } from '../../auth-schema';
+export { user as betterAuthUser, session as betterAuthSession, account as betterAuthAccount, verification as betterAuthVerification } from '../../auth-schema.pg';
 
 // ============================================================================
 // ADMIN & SYSTEM TABLES

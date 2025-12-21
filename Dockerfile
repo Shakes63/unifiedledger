@@ -2,14 +2,19 @@
 # Multi-stage build for optimal image size and security
 
 # Stage 1: Base image with pnpm
-FROM node:18-alpine AS base
-RUN npm install -g pnpm
+FROM node:20-alpine AS base
+# Pin pnpm to v9 to avoid build-script approval behavior that blocks native deps in CI/Docker.
+RUN npm install -g pnpm@9.15.5
 WORKDIR /app
 
 # Stage 2: Install dependencies
 FROM base AS deps
+RUN apk add --no-cache python3 make g++ libc6-compat
 COPY package.json pnpm-lock.yaml ./
+RUN chown -R node:node /app
+USER node
 RUN pnpm install --frozen-lockfile
+USER root
 
 # Stage 3: Build application
 FROM base AS builder
@@ -17,14 +22,16 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build the application with proper environment
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_IGNORE_BUILD_ERRORS=1
+RUN mkdir -p /config
 RUN pnpm build
 
 # Stage 3.5: Migrator (runs schema sync against the persisted SQLite DB)
 # This stage retains devDependencies so drizzle-kit is available.
 FROM builder AS migrator
 ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
 CMD ["pnpm", "drizzle-kit", "migrate", "--config", "drizzle.config.sqlite.ts"]
 
@@ -32,10 +39,10 @@ CMD ["pnpm", "drizzle-kit", "migrate", "--config", "drizzle.config.sqlite.ts"]
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \

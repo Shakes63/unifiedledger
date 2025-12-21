@@ -105,3 +105,10 @@ export const userHouseholdPreferences = dialect === "postgresql" ? pg.userHouseh
 export const userSessions = dialect === "postgresql" ? pg.userSessions : sqlite.userSessions;
 export const userSettings = dialect === "postgresql" ? pg.userSettings : sqlite.userSettings;
 export const utilizationAlertState = dialect === "postgresql" ? pg.utilizationAlertState : sqlite.utilizationAlertState;
+
+// Better Auth schema exports (used by a handful of admin/user endpoints)
+export const betterAuthUser = dialect === "postgresql" ? pg.betterAuthUser : sqlite.betterAuthUser;
+export const betterAuthSession = dialect === "postgresql" ? pg.betterAuthSession : sqlite.betterAuthSession;
+export const betterAuthAccount = dialect === "postgresql" ? pg.betterAuthAccount : sqlite.betterAuthAccount;
+export const betterAuthVerification =
+  dialect === "postgresql" ? pg.betterAuthVerification : sqlite.betterAuthVerification;

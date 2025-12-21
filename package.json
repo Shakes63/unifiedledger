@@ -112,9 +112,6 @@
   "pnpm": {
     "ignoredBuiltDependencies": [
       "@clerk/shared",
-      "better-sqlite3",
-      "esbuild",
-      "sharp",
       "unrs-resolver"
     ]
   }

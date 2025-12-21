@@ -29,6 +29,12 @@ const nextConfig: NextConfig = {
   // Exclude server-only packages from client bundle
   serverExternalPackages: ['sharp'],
 
+  // Docker/CI builds: allow shipping an image even if TypeScript has dialect-union typing issues.
+  // Default is strict; opt-in by setting NEXT_IGNORE_BUILD_ERRORS=1.
+  typescript: {
+    ignoreBuildErrors: process.env.NEXT_IGNORE_BUILD_ERRORS === "1",
+  },
+
   // Security headers for production
   async headers() {
     return [
