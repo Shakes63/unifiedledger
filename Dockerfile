@@ -54,13 +54,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
 # Copy migrations + configs + entrypoint
-COPY --chown=nextjs:nodejs drizzle /app/drizzle 2>/dev/null || true
-COPY --chown=nextjs:nodejs drizzle.config.sqlite.ts /app/ 2>/dev/null || true
-COPY --chown=nextjs:nodejs drizzle.config.pg.ts /app/ 2>/dev/null || true
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle /app/drizzle
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.sqlite.ts /app/drizzle.config.sqlite.ts
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.pg.ts /app/drizzle.config.pg.ts
 COPY --from=builder --chown=nextjs:nodejs /app/lib/db /app/lib/db
 COPY --from=builder --chown=nextjs:nodejs /app/auth-schema.ts /app/auth-schema.ts
 COPY --from=builder --chown=nextjs:nodejs /app/auth-schema.pg.ts /app/auth-schema.pg.ts
-COPY --chown=nextjs:nodejs scripts/docker-entrypoint.mjs /app/scripts/docker-entrypoint.mjs 2>/dev/null || true
+COPY --from=builder --chown=nextjs:nodejs /app/scripts/docker-entrypoint.mjs /app/scripts/docker-entrypoint.mjs
 
 # Switch to non-root user
 USER nextjs
