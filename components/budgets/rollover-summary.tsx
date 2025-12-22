@@ -27,9 +27,10 @@ interface RolloverSummaryData {
 
 interface RolloverSummaryProps {
   onCategoryEdit?: (categoryId: string) => void;
+  hideHeader?: boolean;
 }
 
-export function RolloverSummary({ onCategoryEdit: _onCategoryEdit }: RolloverSummaryProps) {
+export function RolloverSummary({ onCategoryEdit: _onCategoryEdit, hideHeader = false }: RolloverSummaryProps) {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, putWithHousehold } = useHouseholdFetch();
   const [data, setData] = useState<RolloverSummaryData | null>(null);
@@ -199,43 +200,48 @@ export function RolloverSummary({ onCategoryEdit: _onCategoryEdit }: RolloverSum
   const expenseCategories = data.categories.filter(c => c.type === 'expense');
   const categoriesWithRollover = expenseCategories.filter(c => c.rolloverEnabled);
 
+  // When hideHeader is true, always show content (controlled by parent)
+  const showContent = hideHeader || isExpanded;
+
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
-      {/* Header - Always visible */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-elevated transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <RefreshCcw className="w-5 h-5 text-primary" />
-          <div className="text-left">
-            <h3 className="text-sm font-medium text-foreground">Budget Rollover</h3>
-            <p className="text-xs text-muted-foreground">
-              {categoriesWithRollover.length} categories with ${data.totalRolloverBalance.toFixed(2)} total
-            </p>
+      {/* Header - Only visible when not hideHeader */}
+      {!hideHeader && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-elevated transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <RefreshCcw className="w-5 h-5 text-primary" />
+            <div className="text-left">
+              <h3 className="text-sm font-medium text-foreground">Budget Rollover</h3>
+              <p className="text-xs text-muted-foreground">
+                {categoriesWithRollover.length} categories with ${data.totalRolloverBalance.toFixed(2)} total
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {data.totalRolloverBalance > 0 && (
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-success/20 text-success">
-              +${data.totalRolloverBalance.toFixed(2)}
-            </span>
-          )}
-          {data.totalRolloverBalance < 0 && (
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-error/20 text-error">
-              ${data.totalRolloverBalance.toFixed(2)}
-            </span>
-          )}
-          {isExpanded ? (
-            <ChevronDown className="w-5 h-5 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          )}
-        </div>
-      </button>
+          <div className="flex items-center gap-2">
+            {data.totalRolloverBalance > 0 && (
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-success/20 text-success">
+                +${data.totalRolloverBalance.toFixed(2)}
+              </span>
+            )}
+            {data.totalRolloverBalance < 0 && (
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-error/20 text-error">
+                ${data.totalRolloverBalance.toFixed(2)}
+              </span>
+            )}
+            {isExpanded ? (
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            )}
+          </div>
+        </button>
+      )}
 
-      {/* Expanded Content */}
-      {isExpanded && (
+      {/* Content - Shown when expanded or when hideHeader is true */}
+      {showContent && (
         <div className="border-t border-border">
           {/* Info Banner */}
           <div className="px-4 py-2 bg-muted/50 text-xs text-muted-foreground">

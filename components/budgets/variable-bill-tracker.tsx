@@ -56,7 +56,11 @@ interface VariableBillSummary {
 
 type FilterType = 'all' | 'under' | 'over' | 'pending';
 
-export function VariableBillTracker() {
+interface VariableBillTrackerProps {
+  hideHeader?: boolean;
+}
+
+export function VariableBillTracker({ hideHeader = false }: VariableBillTrackerProps) {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, putWithHousehold } = useHouseholdFetch();
   const [loading, setLoading] = useState(true);
@@ -292,11 +296,13 @@ export function VariableBillTracker() {
     <div className="space-y-4">
       {/* Header with Month Navigation */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          Variable Bills
-        </h2>
-        <div className="flex items-center gap-2">
+        {!hideHeader && (
+          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Variable Bills
+          </h2>
+        )}
+        <div className={`flex items-center gap-2 ${hideHeader ? 'ml-auto' : ''}`}>
           <button
             onClick={() => navigateMonth('prev')}
             className="p-2 hover:bg-elevated rounded-lg transition-colors"

@@ -71,7 +71,11 @@ interface AnalyticsData {
   }>;
 }
 
-export function BudgetAnalyticsSection() {
+interface BudgetAnalyticsSectionProps {
+  hideHeader?: boolean;
+}
+
+export function BudgetAnalyticsSection({ hideHeader = false }: BudgetAnalyticsSectionProps) {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
@@ -196,17 +200,19 @@ export function BudgetAnalyticsSection() {
     <div className="space-y-6">
       {/* Header with Period Selector */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-          <BarChart3 className="w-5 h-5" />
-          Budget Analytics
-        </h2>
+        {!hideHeader && (
+          <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+            <BarChart3 className="w-5 h-5" />
+            Budget Analytics
+          </h2>
+        )}
         <select
           id="budget-analytics-period"
           name="analytics_period"
           aria-label="Select analytics time period"
           value={monthsPeriod}
           onChange={e => setMonthsPeriod(parseInt(e.target.value))}
-          className="bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+          className={`bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary ${hideHeader ? 'ml-auto' : ''}`}
         >
           <option value={3}>Last 3 Months</option>
           <option value={6}>Last 6 Months</option>

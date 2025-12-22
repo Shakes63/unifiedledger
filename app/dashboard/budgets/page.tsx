@@ -5,16 +5,14 @@ import { BudgetSummaryCard, type DebtBudgetData } from '@/components/budgets/bud
 import { CategoryBudgetProgress } from '@/components/budgets/category-budget-progress';
 import { BudgetGroupSection } from '@/components/budgets/budget-group-section';
 import { BudgetManagerModal } from '@/components/budgets/budget-manager-modal';
-import { BudgetExportModal } from '@/components/budgets/budget-export-modal';
 import { VariableBillTracker } from '@/components/budgets/variable-bill-tracker';
 import { BudgetAnalyticsSection } from '@/components/budgets/budget-analytics-section';
 import { UnifiedDebtBudgetSection } from '@/components/budgets/unified-debt-budget-section';
 import { RolloverSummary } from '@/components/budgets/rollover-summary';
-import { Download, Settings2 } from 'lucide-react';
+import { Settings2, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
-import { BudgetTemplateSelector } from '@/components/budgets/budget-template-selector';
 
 interface CategoryData {
   id: string;
@@ -91,10 +89,34 @@ export default function BudgetsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [isManagerModalOpen, setIsManagerModalOpen] = useState(false);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [templateBudgets, setTemplateBudgets] = useState<
-    Array<{ categoryId: string; categoryName: string; monthlyBudget: number; allocation: string }>
-  >([]);
+  
+  // Collapsible section states (collapsed by default, persist to localStorage)
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    variableBills: false,
+    rollover: false,
+    analytics: false,
+  });
+
+  // Load collapsed state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('budget-section-expanded');
+    if (savedState) {
+      try {
+        setExpandedSections(JSON.parse(savedState));
+      } catch {
+        // Ignore invalid JSON
+      }
+    }
+  }, []);
+
+  // Save collapsed state to localStorage when it changes
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => {
+      const newState = { ...prev, [section]: !prev[section] };
+      localStorage.setItem('budget-section-expanded', JSON.stringify(newState));
+      return newState;
+    });
+  };
 
   // Initialize selected month to current month
   useEffect(() => {
@@ -222,19 +244,6 @@ export default function BudgetsPage() {
       console.error('Error updating budget:', err);
       toast.error('Failed to update budget');
     }
-  };
-
-  // Handle template applied from page dropdown
-  const handlePageTemplateApply = (
-    suggestedBudgets: Array<{
-      categoryId: string;
-      categoryName: string;
-      monthlyBudget: number;
-      allocation: string;
-    }>
-  ) => {
-    setTemplateBudgets(suggestedBudgets);
-    setIsManagerModalOpen(true);
   };
 
   // Handle copy last month
@@ -372,17 +381,6 @@ export default function BudgetsPage() {
             className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors"
           >
             Copy Last Month
-          </button>
-          <BudgetTemplateSelector
-            onApplyTemplate={handlePageTemplateApply}
-            variant="page"
-          />
-          <button
-            onClick={() => setIsExportModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            Export Budget
           </button>
         </div>
 
@@ -559,38 +557,60 @@ export default function BudgetsPage() {
           <UnifiedDebtBudgetSection month={selectedMonth} />
         </div>
 
-        {/* Variable Bill Tracking */}
+        {/* Variable Bill Tracking - Collapsible */}
         <div className="pt-6 border-t border-border">
-          <VariableBillTracker />
+          <button
+            onClick={() => toggleSection('variableBills')}
+            className="flex items-center justify-between w-full text-left mb-4"
+          >
+            <h2 className="text-lg font-semibold text-foreground">Variable Bill Tracking</h2>
+            {expandedSections.variableBills ? (
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
+          {expandedSections.variableBills && <VariableBillTracker hideHeader />}
         </div>
 
-        {/* Budget Rollover Summary */}
+        {/* Budget Rollover Summary - Collapsible */}
         <div className="pt-6 border-t border-border">
-          <RolloverSummary />
+          <button
+            onClick={() => toggleSection('rollover')}
+            className="flex items-center justify-between w-full text-left mb-4"
+          >
+            <h2 className="text-lg font-semibold text-foreground">Budget Rollover</h2>
+            {expandedSections.rollover ? (
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
+          {expandedSections.rollover && <RolloverSummary hideHeader />}
         </div>
 
-        {/* Budget Analytics & Insights */}
+        {/* Budget Analytics & Insights - Collapsible */}
         <div className="pt-6 border-t border-border">
-          <BudgetAnalyticsSection />
+          <button
+            onClick={() => toggleSection('analytics')}
+            className="flex items-center justify-between w-full text-left mb-4"
+          >
+            <h2 className="text-lg font-semibold text-foreground">Budget Analytics & Insights</h2>
+            {expandedSections.analytics ? (
+              <ChevronUp className="w-5 h-5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+            )}
+          </button>
+          {expandedSections.analytics && <BudgetAnalyticsSection hideHeader />}
         </div>
 
         {/* Budget Manager Modal */}
         <BudgetManagerModal
           isOpen={isManagerModalOpen}
-          onClose={() => {
-            setIsManagerModalOpen(false);
-            setTemplateBudgets([]); // Clear template budgets when modal closes
-          }}
+          onClose={() => setIsManagerModalOpen(false)}
           onSave={refreshBudgetData}
           month={selectedMonth}
-          initialBudgets={templateBudgets}
-        />
-
-        {/* Budget Export Modal */}
-        <BudgetExportModal
-          isOpen={isExportModalOpen}
-          onClose={() => setIsExportModalOpen(false)}
-          currentMonth={selectedMonth}
         />
       </div>
     </div>

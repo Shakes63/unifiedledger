@@ -18,9 +18,11 @@ import Decimal from 'decimal.js';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
-import { Info, Star, ExternalLink, CreditCard, FolderPlus, X, Plus } from 'lucide-react';
+import { Info, Star, ExternalLink, CreditCard, FolderPlus, X, Plus, Download } from 'lucide-react';
 import Link from 'next/link';
 import { BudgetTemplateSelector } from './budget-template-selector';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 // Types for unified debt budget
 interface UnifiedDebtItem {
@@ -115,10 +117,18 @@ export function BudgetManagerModal({
   const [saving, setSaving] = useState(false);
   const [debtBudgetData, setDebtBudgetData] = useState<UnifiedDebtBudgetData | null>(null);
   const [manualDebtBudgets, setManualDebtBudgets] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<'budgets' | 'groups'>('budgets');
+  const [activeTab, setActiveTab] = useState<'budgets' | 'groups' | 'export'>('budgets');
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupType, setNewGroupType] = useState<'expense' | 'savings'>('expense');
   const [creatingGroup, setCreatingGroup] = useState(false);
+  
+  // Export tab state
+  const [exportStartMonth, setExportStartMonth] = useState(month);
+  const [exportEndMonth, setExportEndMonth] = useState(month);
+  const [exportIncludeSummary, setExportIncludeSummary] = useState(true);
+  const [exportIncludeVariableBills, setExportIncludeVariableBills] = useState(true);
+  const [exportCategoryFilter, setExportCategoryFilter] = useState<'all' | 'income' | 'expenses' | 'savings'>('all');
+  const [exporting, setExporting] = useState(false);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -481,6 +491,116 @@ export function BudgetManagerModal({
     }
   };
 
+  // Generate list of months for export selection (last 24 months + current month + next 12 months)
+  const generateMonthOptions = () => {
+    const options: Array<{ value: string; label: string }> = [];
+    const now = new Date();
+
+    for (let i = -24; i <= 12; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const value = date.toISOString().slice(0, 7);
+      const label = date.toLocaleDateString('en-US', {
+        month: 'long',
+        year: 'numeric',
+      });
+      options.push({ value, label });
+    }
+
+    return options;
+  };
+
+  const monthOptions = generateMonthOptions();
+
+  // Export preview validation
+  const getExportPreview = () => {
+    const start = new Date(exportStartMonth + '-01');
+    const end = new Date(exportEndMonth + '-01');
+
+    if (start > end) {
+      return { valid: false, message: 'Start month cannot be after end month' };
+    }
+
+    const monthDiff =
+      (end.getFullYear() - start.getFullYear()) * 12 +
+      (end.getMonth() - start.getMonth()) +
+      1;
+
+    if (monthDiff > 12) {
+      return {
+        valid: false,
+        message: 'Cannot export more than 12 months at a time',
+      };
+    }
+
+    return {
+      valid: true,
+      message: `Exporting ${monthDiff} month${monthDiff > 1 ? 's' : ''} of budget data`,
+    };
+  };
+
+  const exportPreview = getExportPreview();
+
+  const handleExport = async () => {
+    if (!exportPreview.valid) {
+      toast.error(exportPreview.message);
+      return;
+    }
+
+    try {
+      setExporting(true);
+
+      const params = new URLSearchParams({
+        startMonth: exportStartMonth,
+        endMonth: exportEndMonth,
+        includeSummary: exportIncludeSummary ? 'true' : 'false',
+        includeVariableBills: exportIncludeVariableBills ? 'true' : 'false',
+      });
+
+      if (exportCategoryFilter !== 'all') {
+        let types: string[] = [];
+        switch (exportCategoryFilter) {
+          case 'income':
+            types = ['income'];
+            break;
+          case 'expenses':
+            types = ['expense'];
+            break;
+          case 'savings':
+            types = ['savings'];
+            break;
+        }
+        if (types.length > 0) {
+          params.append('categoryTypes', types.join(','));
+        }
+      }
+
+      const url = `/api/budgets/export?${params.toString()}`;
+      const response = await fetchWithHousehold(url);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to export budget data');
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `budget-export-${exportStartMonth}${exportStartMonth !== exportEndMonth ? `-to-${exportEndMonth}` : ''}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(downloadUrl);
+      document.body.removeChild(a);
+
+      toast.success('Budget data exported successfully!');
+    } catch (error) {
+      console.error('Error exporting budget:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to export budget');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Calculate totals
   const calculateTotals = () => {
     const incomeTotal = categories
@@ -624,6 +744,17 @@ export function BudgetManagerModal({
                 {budgetGroups.length}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => setActiveTab('export')}
+            className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-1 ${
+              activeTab === 'export'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Download className="w-4 h-4" />
+            Export
           </button>
         </div>
 
@@ -821,6 +952,125 @@ export function BudgetManagerModal({
                 className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors"
               >
                 Done
+              </button>
+            </div>
+          </div>
+        ) : activeTab === 'export' ? (
+          /* Export Tab */
+          <div className="space-y-6">
+            {/* Date Range Selection */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="export-start-month" className="text-sm text-muted-foreground">
+                  Start Month
+                </Label>
+                <select
+                  id="export-start-month"
+                  value={exportStartMonth}
+                  onChange={(e) => setExportStartMonth(e.target.value)}
+                  className="mt-1 w-full bg-input border border-border text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {monthOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label htmlFor="export-end-month" className="text-sm text-muted-foreground">
+                  End Month
+                </Label>
+                <select
+                  id="export-end-month"
+                  value={exportEndMonth}
+                  onChange={(e) => setExportEndMonth(e.target.value)}
+                  className="mt-1 w-full bg-input border border-border text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {monthOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Category Filter */}
+            <div>
+              <Label htmlFor="export-category-filter" className="text-sm text-muted-foreground">
+                Category Filter
+              </Label>
+              <select
+                id="export-category-filter"
+                value={exportCategoryFilter}
+                onChange={(e) => setExportCategoryFilter(e.target.value as 'all' | 'income' | 'expenses' | 'savings')}
+                className="mt-1 w-full bg-input border border-border text-foreground rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="all">All Categories</option>
+                <option value="income">Income Only</option>
+                <option value="expenses">Expenses Only</option>
+                <option value="savings">Savings Only</option>
+              </select>
+            </div>
+
+            {/* Export Options */}
+            <div className="space-y-3">
+              <Label className="text-sm text-muted-foreground">Export Options</Label>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="export-include-summary"
+                  checked={exportIncludeSummary}
+                  onCheckedChange={(checked) => setExportIncludeSummary(checked as boolean)}
+                />
+                <label
+                  htmlFor="export-include-summary"
+                  className="text-sm text-foreground cursor-pointer"
+                >
+                  Include summary row
+                </label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="export-include-variable-bills"
+                  checked={exportIncludeVariableBills}
+                  onCheckedChange={(checked) => setExportIncludeVariableBills(checked as boolean)}
+                />
+                <label
+                  htmlFor="export-include-variable-bills"
+                  className="text-sm text-foreground cursor-pointer"
+                >
+                  Include variable bills section
+                </label>
+              </div>
+            </div>
+
+            {/* Preview */}
+            <div className={`p-3 rounded-lg ${exportPreview.valid ? 'bg-primary/10' : 'bg-error/10'}`}>
+              <p className={`text-sm ${exportPreview.valid ? 'text-foreground' : 'text-error'}`}>
+                {exportPreview.message}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+              <button
+                onClick={onClose}
+                disabled={exporting}
+                className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={!exportPreview.valid || exporting}
+                className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                {exporting ? 'Generating...' : 'Generate CSV'}
               </button>
             </div>
           </div>
