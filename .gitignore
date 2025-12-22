@@ -76,6 +76,21 @@ logs/*-audit.json
 .Claude/
 .Cursor/
 .Playwright-mcp/
+.claude/
+.cursor/
+.playwright-mcp/
+.claude_settings.json
+.cursorrules
+
+# Agent/AI files
+AGENTS.md
+
+# Status/tracking files (kept local)
+CHARTS_AND_REPORTS_STATUS.md
+ANALYSIS_INDEX.md
 
 # Documentation (kept local)
 docs/
+
+# Log files
+logs/
