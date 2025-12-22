@@ -62,6 +62,9 @@ export const auth = betterAuth({
   }),
   // Use different base path to avoid conflicts with Clerk
   basePath: "/api/better-auth",
+  // Allow any origin since we use runtime URL detection on the client
+  // This enables the container to work with any IP/hostname without rebuilding
+  trustedOrigins: ["http://*", "https://*"],
   emailAndPassword: {
     enabled: true,
     // Email verification - Soft launch: emails are sent but not required for login
