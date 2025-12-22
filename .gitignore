@@ -71,3 +71,11 @@ sqlite.db.backup-20251116-192156
 
 # Local audit artifacts (generated)
 logs/*-audit.json
+
+# IDE and tool folders
+.Claude/
+.Cursor/
+.Playwright-mcp/
+
+# Documentation (kept local)
+docs/
