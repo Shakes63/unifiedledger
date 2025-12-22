@@ -29,6 +29,16 @@ export const metadata: Metadata = {
   title: "Unified Ledger | Personal Finance Management",
   description: "A comprehensive personal finance app for tracking transactions, bills, budgets, savings goals, and debt management",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
