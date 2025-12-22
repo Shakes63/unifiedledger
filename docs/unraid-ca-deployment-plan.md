@@ -267,14 +267,14 @@ Repo artifact: `docs/unraid-ca-template.xml` (fill in your org/repo/support URLs
 <?xml version="1.0"?>
 <Container version="2">
   <Name>UnifiedLedger</Name>
-  <Repository>ghcr.io/YOUR_ORG/unifiedledger:latest</Repository>
+  <Repository>ghcr.io/shakes63/unifiedledger:latest</Repository>
   <Registry>https://ghcr.io</Registry>
   <Network>bridge</Network>
   <Shell>bash</Shell>
   <Privileged>false</Privileged>
 
-  <Support>https://github.com/YOUR_ORG/unifiedledger/issues</Support>
-  <Project>https://github.com/YOUR_ORG/unifiedledger</Project>
+  <Support>https://github.com/shakes63/unifiedledger/issues</Support>
+  <Project>https://github.com/shakes63/unifiedledger</Project>
 
   <Overview>
 Unified Ledger (Next.js) personal finance app.
