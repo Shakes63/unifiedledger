@@ -20,15 +20,22 @@ On startup, the container auto-runs migrations for the configured database, enab
   </Overview>
 
   <Category>Finance: Tools</Category>
+  <Icon>https://raw.githubusercontent.com/shakes63/unifiedledger/main/public/logo.png</Icon>
   <WebUI>http://[IP]:[PORT:3000]/</WebUI>
 
   <!-- Persistent appdata -->
   <Config Name="Appdata" Target="/config" Default="/mnt/user/appdata/unifiedledger" Mode="rw"
           Description="Persistent data (SQLite DB, uploads, config)" Type="Path" Display="always" Required="true"/>
 
-  <!-- Port -->
-  <Config Name="Web Port" Target="3000" Default="3000" Mode="tcp"
-          Description="Web UI Port" Type="Port" Display="always" Required="true"/>
+  <!-- Port: Target=container port (fixed), Default=host port (changeable) -->
+  <Config Name="Host Port" Target="3000" Default="3000" Mode="tcp"
+          Description="Port to access UnifiedLedger on your network (container always uses 3000 internally)" Type="Port" Display="always" Required="true"/>
+
+  <!-- User/Group IDs for file permissions (Unraid standard) -->
+  <Config Name="PUID" Target="PUID" Default="99" Mode="rw"
+          Description="User ID for file permissions (99 = nobody on Unraid)" Type="Variable" Display="always" Required="false"/>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="rw"
+          Description="Group ID for file permissions (100 = users on Unraid)" Type="Variable" Display="always" Required="false"/>
 
   <!-- Required app env -->
   <Config Name="App URL" Target="NEXT_PUBLIC_APP_URL" Default="http://[IP]:[PORT:3000]" Mode="rw"
@@ -51,11 +58,7 @@ On startup, the container auto-runs migrations for the configured database, enab
           Description="Filesystem uploads root (avatars at /uploads/avatars/<userId>.jpg). Persist under /config in Unraid."
           Type="Variable" Display="advanced" Required="false"/>
 
-  <!-- Recommended runtime flags -->
-  <Config Name="PORT" Target="PORT" Default="3000" Mode="rw"
-          Description="Port the app listens on inside the container" Type="Variable" Display="advanced" Required="false"/>
-  <Config Name="HOSTNAME" Target="HOSTNAME" Default="0.0.0.0" Mode="rw"
-          Description="Bind address inside the container" Type="Variable" Display="advanced" Required="false"/>
+  <!-- Runtime flags (advanced - typically no need to change) -->
   <Config Name="NEXT_TELEMETRY_DISABLED" Target="NEXT_TELEMETRY_DISABLED" Default="1" Mode="rw"
           Description="Disable Next.js telemetry" Type="Variable" Display="advanced" Required="false"/>
 

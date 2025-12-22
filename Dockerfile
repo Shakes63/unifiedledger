@@ -44,33 +44,36 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-# Create non-root user for security
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+# Install su-exec for privilege dropping (Unraid PUID/PGID support)
+RUN apk add --no-cache su-exec
 
-# Create persistent config directory with proper permissions (Unraid CA contract)
-RUN mkdir -p /config && chown -R nextjs:nodejs /config
+# Create persistent config directory (permissions set at runtime by init script)
+RUN mkdir -p /config
 
 # Copy built application from builder
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
-# Copy tooling needed for startup migrations (Option 1: include drizzle-kit in runtime image)
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+# Copy tooling needed for startup migrations
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
 
 # Copy migrations + configs + entrypoint
-COPY --from=builder --chown=nextjs:nodejs /app/drizzle /app/drizzle
-COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.sqlite.ts /app/drizzle.config.sqlite.ts
-COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.pg.ts /app/drizzle.config.pg.ts
-COPY --from=builder --chown=nextjs:nodejs /app/lib/db /app/lib/db
-COPY --from=builder --chown=nextjs:nodejs /app/auth-schema.ts /app/auth-schema.ts
-COPY --from=builder --chown=nextjs:nodejs /app/auth-schema.pg.ts /app/auth-schema.pg.ts
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/docker-entrypoint.mjs /app/scripts/docker-entrypoint.mjs
+COPY --from=builder /app/drizzle /app/drizzle
+COPY --from=builder /app/drizzle.config.sqlite.ts /app/drizzle.config.sqlite.ts
+COPY --from=builder /app/drizzle.config.pg.ts /app/drizzle.config.pg.ts
+COPY --from=builder /app/lib/db /app/lib/db
+COPY --from=builder /app/auth-schema.ts /app/auth-schema.ts
+COPY --from=builder /app/auth-schema.pg.ts /app/auth-schema.pg.ts
+COPY --from=builder /app/scripts/docker-entrypoint.mjs /app/scripts/docker-entrypoint.mjs
 
-# Switch to non-root user
-USER nextjs
+# Copy init script for PUID/PGID support
+COPY scripts/docker-init.sh /app/scripts/docker-init.sh
+RUN chmod +x /app/scripts/docker-init.sh
+
+# Run as root initially - init script drops to PUID/PGID user
+USER root
 
 EXPOSE 3000
 
@@ -78,5 +81,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
-# Start application
-CMD ["node", "scripts/docker-entrypoint.mjs"]
+# Start with init script (handles PUID/PGID then runs app)
+CMD ["/app/scripts/docker-init.sh"]
