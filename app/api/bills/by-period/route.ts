@@ -8,6 +8,7 @@ import {
   budgetCategories,
   accounts,
   userHouseholdPreferences,
+  billInstanceAllocations,
 } from '@/lib/db/schema';
 import { eq, and, inArray, asc } from 'drizzle-orm';
 import {
@@ -30,6 +31,7 @@ interface BillInstanceWithBill {
   bill: typeof bills.$inferSelect;
   category?: typeof budgetCategories.$inferSelect | null;
   account?: typeof accounts.$inferSelect | null;
+  allocation?: typeof billInstanceAllocations.$inferSelect | null;
 }
 
 /**
@@ -230,21 +232,104 @@ export async function GET(request: NextRequest) {
       parseISO(a.instance.dueDate).getTime() - parseISO(b.instance.dueDate).getTime()
     );
 
-    // Calculate totals
-    const totalAmount = filteredInstances.reduce((sum, row) => {
-      return new Decimal(sum).plus(new Decimal(row.instance.expectedAmount)).toNumber();
+    // Fetch ALL allocations for this user/household (not just for filtered instances)
+    // This is important for split bills that appear in multiple periods
+    const allAllocations = await db
+      .select()
+      .from(billInstanceAllocations)
+      .where(
+        and(
+          eq(billInstanceAllocations.userId, userId),
+          eq(billInstanceAllocations.householdId, householdId)
+        )
+      );
+
+    type AllocationRow = typeof allAllocations[0];
+
+    // Group allocations by instance ID
+    const allocationsByInstance = new Map<string, typeof allAllocations>();
+    for (const allocation of allAllocations) {
+      const existing = allocationsByInstance.get(allocation.billInstanceId) || [];
+      existing.push(allocation);
+      allocationsByInstance.set(allocation.billInstanceId, existing);
+    }
+
+    // Find allocations for THIS period - this may include instances not yet in filteredInstances
+    const allocationsForPeriod = allAllocations.filter(
+      (a: AllocationRow) => a.periodNumber === period.periodNumber
+    );
+
+    // Add instances that have allocations for this period but weren't filtered in
+    // (these are split bills that appear in multiple periods)
+    for (const allocation of allocationsForPeriod) {
+      const alreadyIncluded = filteredInstances.some(
+        (r: BillInstanceWithBill) => r.instance.id === allocation.billInstanceId
+      );
+      
+      if (!alreadyIncluded) {
+        // Find the instance in allInstances
+        const instanceRow = allInstances.find(
+          (r: BillInstanceWithBill) => r.instance.id === allocation.billInstanceId
+        );
+        
+        if (instanceRow && (billType ? instanceRow.bill.billType === billType : true)) {
+          filteredInstances.push(instanceRow);
+        }
+      }
+    }
+
+    // Re-sort after adding split instances
+    filteredInstances.sort((a, b) => 
+      parseISO(a.instance.dueDate).getTime() - parseISO(b.instance.dueDate).getTime()
+    );
+
+    // Add allocations to instances
+    const instancesWithAllocations: BillInstanceWithBill[] = filteredInstances.map(row => {
+      const instanceAllocations = allocationsByInstance.get(row.instance.id) || [];
+      const periodAllocation = instanceAllocations.find(
+        (a: AllocationRow) => a.periodNumber === period.periodNumber
+      );
+      
+      return {
+        ...row,
+        allocation: periodAllocation || null,
+      };
+    });
+
+    // Calculate totals - use allocation amount if present, otherwise full amount
+    const totalAmount = instancesWithAllocations.reduce((sum, row) => {
+      const amount = row.allocation 
+        ? row.allocation.allocatedAmount 
+        : row.instance.expectedAmount;
+      return new Decimal(sum).plus(new Decimal(amount)).toNumber();
     }, 0);
 
-    const pendingAmount = filteredInstances
-      .filter(row => row.instance.status === 'pending' || row.instance.status === 'overdue')
+    const pendingAmount = instancesWithAllocations
+      .filter(row => {
+        if (row.allocation) {
+          return !row.allocation.isPaid;
+        }
+        return row.instance.status === 'pending' || row.instance.status === 'overdue';
+      })
       .reduce((sum, row) => {
-        return new Decimal(sum).plus(new Decimal(row.instance.expectedAmount)).toNumber();
+        const amount = row.allocation 
+          ? new Decimal(row.allocation.allocatedAmount).minus(row.allocation.paidAmount || 0).toNumber()
+          : row.instance.expectedAmount;
+        return new Decimal(sum).plus(new Decimal(amount)).toNumber();
       }, 0);
 
-    const paidAmount = filteredInstances
-      .filter(row => row.instance.status === 'paid')
+    const paidAmount = instancesWithAllocations
+      .filter(row => {
+        if (row.allocation) {
+          return row.allocation.isPaid;
+        }
+        return row.instance.status === 'paid';
+      })
       .reduce((sum, row) => {
-        return new Decimal(sum).plus(new Decimal(row.instance.actualAmount || row.instance.expectedAmount)).toNumber();
+        const amount = row.allocation 
+          ? row.allocation.paidAmount || 0
+          : (row.instance.actualAmount || row.instance.expectedAmount);
+        return new Decimal(sum).plus(new Decimal(amount)).toNumber();
       }, 0);
 
     // Get previous and next period info for navigation
@@ -274,25 +359,50 @@ export async function GET(request: NextRequest) {
         frequency: settings.budgetCycleFrequency,
       },
       summary: {
-        totalBills: filteredInstances.length,
+        totalBills: instancesWithAllocations.length,
         totalAmount,
-        pendingCount: filteredInstances.filter(r => r.instance.status === 'pending').length,
-        overdueCount: filteredInstances.filter(r => r.instance.status === 'overdue').length,
-        paidCount: filteredInstances.filter(r => r.instance.status === 'paid').length,
+        pendingCount: instancesWithAllocations.filter((r: BillInstanceWithBill) => {
+          if (r.allocation) return !r.allocation.isPaid;
+          return r.instance.status === 'pending';
+        }).length,
+        overdueCount: instancesWithAllocations.filter((r: BillInstanceWithBill) => r.instance.status === 'overdue').length,
+        paidCount: instancesWithAllocations.filter((r: BillInstanceWithBill) => {
+          if (r.allocation) return r.allocation.isPaid;
+          return r.instance.status === 'paid';
+        }).length,
         pendingAmount,
         paidAmount,
       },
-      data: filteredInstances.map(row => ({
-        instance: row.instance,
-        bill: row.bill,
-        category: row.category,
-        account: row.account,
-        periodAssignment: {
-          isOverride: row.instance.budgetPeriodOverride !== null,
-          isBillDefault: row.bill.budgetPeriodAssignment !== null && row.instance.budgetPeriodOverride === null,
-          isAutomatic: row.instance.budgetPeriodOverride === null && row.bill.budgetPeriodAssignment === null,
-        },
-      })),
+      data: instancesWithAllocations.map(row => {
+        const instanceAllocations = allocationsByInstance.get(row.instance.id) || [];
+        const isSplit = instanceAllocations.length > 1 || row.bill.splitAcrossPeriods;
+        
+        return {
+          instance: row.instance,
+          bill: row.bill,
+          category: row.category,
+          account: row.account,
+          allocation: row.allocation,
+          allAllocations: instanceAllocations,
+          isSplit,
+          periodAssignment: {
+            isOverride: row.instance.budgetPeriodOverride !== null,
+            isBillDefault: row.bill.budgetPeriodAssignment !== null && row.instance.budgetPeriodOverride === null,
+            isAutomatic: row.instance.budgetPeriodOverride === null && row.bill.budgetPeriodAssignment === null,
+            isSplitAllocation: row.allocation !== null,
+          },
+          // Display amounts for UI
+          displayAmount: row.allocation 
+            ? row.allocation.allocatedAmount 
+            : row.instance.expectedAmount,
+          displayPaidAmount: row.allocation
+            ? row.allocation.paidAmount || 0
+            : (row.instance.paidAmount || 0),
+          displayRemainingAmount: row.allocation
+            ? new Decimal(row.allocation.allocatedAmount).minus(row.allocation.paidAmount || 0).toNumber()
+            : (row.instance.remainingAmount ?? row.instance.expectedAmount),
+        };
+      }),
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

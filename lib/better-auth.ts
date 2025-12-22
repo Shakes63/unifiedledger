@@ -52,7 +52,7 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: (() => {
       const dialect = getDatabaseDialectFromUrl(process.env.DATABASE_URL);
-      if (dialect === "postgresql") return "postgresql";
+      if (dialect === "postgresql") return "pg";
       return "sqlite";
     })(),
     schema: (() => {

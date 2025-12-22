@@ -8,6 +8,7 @@
  */
 
 import { nanoid } from 'nanoid';
+import { expect, vi } from 'vitest';
 import { db } from '@/lib/db';
 import {
   households,
@@ -471,11 +472,11 @@ export async function setupTestUserWithHousehold(): Promise<{
   
   // Create household
   const householdData = createTestHousehold(userId);
-  const [household] = await db.insert(households).values(householdData).returning();
+  const [household] = await db.insert(households).values(householdData as typeof households.$inferInsert).returning();
   
   // Create household member (owner)
   const memberData = createTestHouseholdMember(household.id, userId, userEmail);
-  await db.insert(householdMembers).values(memberData);
+  await db.insert(householdMembers).values(memberData as typeof householdMembers.$inferInsert);
   
   return { userId, householdId: household.id };
 }
