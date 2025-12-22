@@ -95,6 +95,12 @@ export const auth = betterAuth({
   advanced: {
     cookiePrefix: "better-auth",
     useSecureCookies: shouldUseSecureCookies(),
+    // For HTTP access (common on local networks), use SameSite=Lax
+    // This allows cookies to be sent with same-site requests
+    defaultCookieAttributes: {
+      sameSite: "lax",
+      path: "/",
+    },
     crossSubDomainCookies: {
       enabled: false,
     },
