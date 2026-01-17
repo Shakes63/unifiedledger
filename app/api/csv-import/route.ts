@@ -1,9 +1,9 @@
-import { requireAuth } from '@/lib/auth-helpers';
+import { requireHouseholdAuth } from '@/lib/api/household-auth';
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { importHistory, importStaging, transactions } from '@/lib/db/schema';
 import { nanoid } from 'nanoid';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import {
   applyMappings,
   validateMappedTransaction,
@@ -58,7 +58,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await requireAuth();
+    const { userId, householdId } = await requireHouseholdAuth(request);
 
     const body = (await request.json()) as CSVImportRequest;
 
@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
       skipRows = 0,
       defaultAccountId,
       templateId,
-      householdId,
       previewOnly = true,
       // Phase 12: Credit card fields
       sourceType = 'auto',
@@ -233,6 +232,7 @@ export async function POST(request: NextRequest) {
     const errors: string[] = [];
 
     // Phase 12: Fetch existing transactions for transfer detection
+    // Filter by householdId to check against all household transactions
     const existingTransactionsForTransfer = await db
       .select({
         id: transactions.id,
@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
         transferId: transactions.transferId,
       })
       .from(transactions)
-      .where(eq(transactions.userId, userId))
+      .where(eq(transactions.householdId, householdId))
       .limit(500);
 
     for (let i = 0; i < parsed.rows.length; i++) {
@@ -289,6 +289,7 @@ export async function POST(request: NextRequest) {
 
         if (validationErrors.length === 0) {
           // Get existing transactions for duplicate checking
+          // Filter by householdId to check against all household transactions
           const rawExistingTransactions = await db
             .select({
               id: transactions.id,
@@ -298,7 +299,7 @@ export async function POST(request: NextRequest) {
               type: transactions.type,
             })
             .from(transactions)
-            .where(eq(transactions.userId, userId))
+            .where(eq(transactions.householdId, householdId))
             .limit(100);
 
           // Map to ensure type is always a string

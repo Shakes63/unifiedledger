@@ -8,6 +8,32 @@ export const dynamic = 'force-dynamic';
 
 const INVITATION_EXPIRY_DAYS = 30;
 
+/**
+ * Get the base URL from the request headers (for self-hosted environments)
+ * This allows invitation emails to use the correct URL regardless of
+ * how the app is accessed (IP, hostname, port, etc.)
+ */
+function getBaseUrlFromRequest(request: Request): string {
+  // Try to get from X-Forwarded headers (when behind a proxy)
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  
+  // Fall back to Host header
+  const host = forwardedHost || request.headers.get('host');
+  
+  if (host) {
+    // Determine protocol:
+    // 1. Use X-Forwarded-Proto if set (proxy tells us the original protocol)
+    // 2. Default to 'http' for self-hosted environments (most don't have SSL)
+    // Users with HTTPS should set X-Forwarded-Proto in their reverse proxy
+    const proto = forwardedProto || 'http';
+    return `${proto}://${host}`;
+  }
+  
+  // Final fallback to environment variable or localhost
+  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ householdId: string }> }
@@ -134,7 +160,7 @@ export async function POST(
         .limit(1);
 
       if (household.length > 0 && inviter.length > 0) {
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const baseUrl = getBaseUrlFromRequest(request);
         const invitationUrl = `${baseUrl}/invite/${invitationToken}`;
 
         await sendInvitationEmail({

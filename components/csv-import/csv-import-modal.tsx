@@ -39,6 +39,7 @@ import {
   adaptTemplateMappings,
   CREDIT_CARD_TEMPLATES,
 } from '@/lib/csv-import/cc-templates';
+import { useHousehold } from '@/contexts/household-context';
 
 type Step = 'upload' | 'settings' | 'mapping' | 'preview' | 'complete';
 
@@ -57,6 +58,7 @@ export function CSVImportModal({
   accounts,
   defaultTemplateId,
 }: CSVImportModalProps) {
+  const { selectedHouseholdId } = useHousehold();
   const [step, setStep] = useState<Step>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState('');
@@ -258,7 +260,10 @@ export function CSVImportModal({
       // Call preview API
       const response = await fetch('/api/csv-import', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(selectedHouseholdId && { 'x-household-id': selectedHouseholdId }),
+        },
         credentials: 'include',
         body: JSON.stringify({
           file: base64,
@@ -325,7 +330,10 @@ export function CSVImportModal({
       // Call import API with previewOnly: false to save staging records
       const response = await fetch('/api/csv-import', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(selectedHouseholdId && { 'x-household-id': selectedHouseholdId }),
+        },
         credentials: 'include',
         body: JSON.stringify({
           file: base64,
@@ -356,7 +364,11 @@ export function CSVImportModal({
         `/api/csv-import/${importData.importHistoryId}/confirm`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            ...(selectedHouseholdId && { 'x-household-id': selectedHouseholdId }),
+          },
+          credentials: 'include',
           body: JSON.stringify({ recordIds: recordIds || [] }),
         }
       );
