@@ -82,6 +82,8 @@ export async function PUT(
       repaymentPeriodEndDate,
       interestType,
       primeRateMargin,
+      // Budget integration
+      includeInDiscretionary,
     } = body;
 
     // Validate required fields
@@ -183,6 +185,10 @@ export async function PUT(
         primeRateMargin: isLineOfCredit 
           ? (primeRateMargin !== undefined ? (primeRateMargin || null) : existing.primeRateMargin)
           : existing.primeRateMargin,
+        // Budget integration
+        includeInDiscretionary: includeInDiscretionary !== undefined 
+          ? includeInDiscretionary 
+          : existing.includeInDiscretionary,
       })
       .where(eq(accounts.id, id));
 

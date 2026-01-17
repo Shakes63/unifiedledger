@@ -19,17 +19,25 @@ const CREDIT_ACCOUNT_TYPES = ['credit', 'line_of_credit'];
 interface StatCardData {
   label: string;
   value: string;
+  subtitle?: string;
   icon: React.ReactNode;
   color: string;
   loading: boolean;
   tooltip?: string;
 }
 
-interface BudgetPeriodData {
-  available: number;
+interface DiscretionaryData {
+  projectedDiscretionary: number;
+  expectedDiscretionary: number;
   periodLabel: string;
   daysRemaining: number;
   frequency: string;
+  incomeExpected: number;
+  incomeActual: number;
+  billsTotal: number;
+  billsPending: number;
+  budgetAllocation: number;
+  accountBalance: number;
 }
 
 export function CompactStatsBar() {
@@ -44,7 +52,7 @@ export function CompactStatsBar() {
   const [budgetAdherence, setBudgetAdherence] = useState<number | null>(null);
   const [debtProgress, setDebtProgress] = useState<number | null>(null);
   const [goalsProgress, setGoalsProgress] = useState<number | null>(null);
-  const [budgetPeriodData, setBudgetPeriodData] = useState<BudgetPeriodData | null>(null);
+  const [discretionaryData, setDiscretionaryData] = useState<DiscretionaryData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -200,26 +208,31 @@ export function CompactStatsBar() {
           // Goals data not available, skip
         }
 
-        // Fetch budget period available amount
+        // Fetch paycheck balance / discretionary amount
         try {
           const periodResponse = await fetch(
-            `/api/budget-schedule/available?householdId=${selectedHouseholdId}`,
+            `/api/budget-schedule/paycheck-balance?householdId=${selectedHouseholdId}`,
             { credentials: 'include' }
           );
           if (periodResponse.ok) {
             const periodData = await periodResponse.json();
-            // Only show if not using monthly (default) budget cycle
-            if (periodData.settings?.frequency && periodData.settings.frequency !== 'monthly') {
-              setBudgetPeriodData({
-                available: periodData.available,
-                periodLabel: periodData.currentPeriod?.label || 'This Period',
-                daysRemaining: periodData.currentPeriod?.daysRemaining || 0,
-                frequency: periodData.settings.frequency,
-              });
-            }
+            // Show discretionary for all budget frequencies
+            setDiscretionaryData({
+              projectedDiscretionary: periodData.discretionary?.projectedDiscretionary ?? 0,
+              expectedDiscretionary: periodData.discretionary?.expectedDiscretionary ?? 0,
+              periodLabel: periodData.currentPeriod?.label || 'This Period',
+              daysRemaining: periodData.currentPeriod?.daysRemaining ?? 0,
+              frequency: periodData.settings?.frequency || 'monthly',
+              incomeExpected: periodData.income?.expected ?? 0,
+              incomeActual: periodData.income?.actual ?? 0,
+              billsTotal: periodData.bills?.total ?? 0,
+              billsPending: periodData.bills?.pending ?? 0,
+              budgetAllocation: periodData.budget?.periodAllocation ?? 0,
+              accountBalance: periodData.accounts?.includedBalance ?? 0,
+            });
           }
         } catch (_err) {
-          // Budget period data not available, skip
+          // Discretionary data not available, skip
         }
       } catch (error) {
         console.error('Failed to fetch dashboard stats:', error);
@@ -305,29 +318,59 @@ export function CompactStatsBar() {
     });
   }
 
-  // Add budget period available amount if user has a non-monthly budget cycle
-  if (budgetPeriodData !== null) {
-    const availableColor = budgetPeriodData.available >= 0
-      ? 'var(--color-success)'
-      : 'var(--color-error)';
+  // Add discretionary amount at the start (most prominent position)
+  if (discretionaryData !== null) {
+    const discretionary = discretionaryData.projectedDiscretionary;
+    const isPositive = discretionary >= 0;
+    const discretionaryColor = isPositive ? 'var(--color-success)' : 'var(--color-error)';
+    
+    // Build tooltip with breakdown
+    const tooltipLines = [
+      `${discretionaryData.periodLabel}`,
+      `${discretionaryData.daysRemaining} days remaining`,
+      '',
+      'Calculation:',
+      `  Account Balance: $${discretionaryData.accountBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+    ];
+    
+    if (discretionaryData.incomeExpected > 0) {
+      const incomeStatus = discretionaryData.incomeActual > 0 
+        ? `$${discretionaryData.incomeActual.toLocaleString('en-US', { minimumFractionDigits: 2 })} received`
+        : `$${discretionaryData.incomeExpected.toLocaleString('en-US', { minimumFractionDigits: 2 })} expected`;
+      tooltipLines.push(`  + Income: ${incomeStatus}`);
+    }
+    
+    if (discretionaryData.billsTotal > 0) {
+      const billsStatus = discretionaryData.billsPending > 0
+        ? `$${discretionaryData.billsPending.toLocaleString('en-US', { minimumFractionDigits: 2 })} pending`
+        : 'all paid';
+      tooltipLines.push(`  - Bills: ${billsStatus}`);
+    }
+    
+    if (discretionaryData.budgetAllocation > 0) {
+      tooltipLines.push(`  - Budget: $${discretionaryData.budgetAllocation.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
+    }
     
     stats.unshift({
-      label: 'Available This Period',
-      value: loading ? '...' : `$${Math.abs(budgetPeriodData.available).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      label: `Discretionary`,
+      value: loading 
+        ? '...' 
+        : `${isPositive ? '' : '-'}$${Math.abs(discretionary).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      subtitle: `${discretionaryData.daysRemaining} days left`,
       icon: <DollarSign className="w-5 h-5" />,
-      color: availableColor,
+      color: discretionaryColor,
       loading,
-      tooltip: `${budgetPeriodData.periodLabel}\n${budgetPeriodData.daysRemaining} days remaining\n\nCash balance minus paid expenses and upcoming bills due before your next budget period.`,
+      tooltip: tooltipLines.join('\n'),
     });
   }
 
   return (
     <TooltipProvider>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="relative p-4 rounded-lg border transition-all hover:bg-elevated"
+            className="relative px-3 py-2 rounded-lg border transition-all hover:bg-elevated"
             style={{
               backgroundColor: 'var(--color-card)',
               borderColor: 'var(--color-border)',
@@ -335,37 +378,44 @@ export function CompactStatsBar() {
           >
             {stat.loading ? (
               <div className="animate-pulse">
-                <div className="h-4 w-16 rounded mb-2" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
-                <div className="h-6 w-20 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
+                <div className="h-4 w-16 rounded mb-1" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
+                <div className="h-5 w-20 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-2 mb-1">
-                  <div style={{ color: stat.color }}>
-                    {stat.icon}
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <div style={{ color: stat.color }}>
+                      {stat.icon}
+                    </div>
+                    {stat.tooltip ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-1 cursor-help">
+                            <p className="text-xs text-muted-foreground">{stat.label}</p>
+                            <HelpCircle className="w-3 h-3 text-muted-foreground" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs whitespace-pre-line">
+                          <p className="text-sm">{stat.tooltip}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">{stat.label}</p>
+                    )}
                   </div>
-                  {stat.tooltip ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-1 cursor-help">
-                          <p className="text-xs text-muted-foreground">{stat.label}</p>
-                          <HelpCircle className="w-3 h-3 text-muted-foreground" />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs whitespace-pre-line">
-                        <p className="text-sm">{stat.tooltip}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  )}
+                  <p
+                    className="text-lg md:text-base font-bold truncate"
+                    style={{ color: 'var(--color-foreground)' }}
+                  >
+                    {stat.value}
+                  </p>
                 </div>
-                <p
-                  className="text-lg font-bold truncate"
-                  style={{ color: 'var(--color-foreground)' }}
-                >
-                  {stat.value}
-                </p>
+                {stat.subtitle && (
+                  <p className="text-xs text-muted-foreground mt-0.5 md:text-right">
+                    {stat.subtitle}
+                  </p>
+                )}
               </>
             )}
           </div>

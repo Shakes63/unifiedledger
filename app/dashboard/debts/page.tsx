@@ -389,75 +389,62 @@ export default function DebtsPage() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
+    <div className="px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto space-y-4">
+        {/* Header - Compact */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Debt Management</h1>
-          <p className="text-muted-foreground mt-1">Track and pay off your debts</p>
+            <h1 className="text-2xl font-bold text-foreground">Debt Management</h1>
+            <p className="text-muted-foreground text-sm">Track and pay off your debts</p>
+          </div>
+          <Button
+            onClick={() => {
+              setSelectedDebt(null);
+              setIsFormOpen(true);
+            }}
+            size="sm"
+            className="bg-accent hover:bg-accent/90 text-accent-foreground"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Add Debt
+          </Button>
         </div>
-        <Button
-          onClick={() => {
-            setSelectedDebt(null);
-            setIsFormOpen(true);
-          }}
-          className="bg-accent hover:bg-accent/90 text-accent-foreground"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Debt
-        </Button>
-      </div>
 
-      {/* Strategy Toggle Card */}
-      {stats && stats.activeDebtCount > 0 && debtSettings && (
-        <div className="bg-card border border-border rounded-xl p-4 md:p-5">
-          <div className="flex items-center justify-between gap-4 flex-wrap sm:flex-nowrap">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className={`p-2 rounded-lg ${debtSettings.debtStrategyEnabled ? 'bg-income/10' : 'bg-muted/50'}`}>
-                <Target className={`w-5 h-5 ${debtSettings.debtStrategyEnabled ? 'text-income' : 'text-muted-foreground'}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-semibold text-foreground">Debt Payoff Strategy</h3>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button className="text-muted-foreground hover:text-foreground transition-colors">
-                          <Info className="w-4 h-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p>
-                          When enabled, your debts are managed with a centralized payoff strategy 
-                          that prioritizes payments based on your chosen method (Avalanche or Snowball).
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <p className="text-sm text-muted-foreground truncate">
-                  {debtSettings.debtStrategyEnabled
-                    ? `${debtSettings.preferredMethod === 'avalanche' ? 'Avalanche' : 'Snowball'} method with centralized management`
-                    : 'Each debt is tracked individually'}
-                </p>
-              </div>
+        {/* Strategy Toggle - Compact Inline */}
+        {stats && stats.activeDebtCount > 0 && debtSettings && (
+          <div className="flex items-center justify-between gap-3 bg-card border border-border rounded-lg px-3 py-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Target className={`w-4 h-4 shrink-0 ${debtSettings.debtStrategyEnabled ? 'text-income' : 'text-muted-foreground'}`} />
+              <span className="text-sm font-medium text-foreground truncate">
+                {debtSettings.debtStrategyEnabled
+                  ? `${debtSettings.preferredMethod === 'avalanche' ? 'Avalanche' : 'Snowball'} Strategy`
+                  : 'Strategy Disabled'}
+              </span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                      <Info className="w-3.5 h-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>
+                      When enabled, debts are prioritized based on your chosen method (Avalanche = highest rate first, Snowball = smallest balance first).
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
-            <div className="flex items-center gap-3">
-              {debtSettings.debtStrategyEnabled && (
-                <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-income/10 text-income capitalize">
-                  {debtSettings.preferredMethod}
-                </span>
-              )}
+            <div className="flex items-center gap-2 shrink-0">
               <Link
                 href="/dashboard/settings?tab=household-financial"
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                className="text-muted-foreground hover:text-foreground transition-colors"
                 title="Settings"
               >
                 <Settings className="w-4 h-4" />
               </Link>
               {savingStrategy ? (
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               ) : (
                 <Switch
                   checked={debtSettings.debtStrategyEnabled ?? false}
@@ -467,75 +454,88 @@ export default function DebtsPage() {
               )}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Debt-Free Countdown */}
-      {stats && stats.activeDebtCount > 0 && (
-        <div className="mb-6">
+        {/* Summary Stats - Compact with inline layout on larger screens */}
+        {viewMode === 'unified' && unifiedSummary ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="bg-card border border-border rounded-lg px-3 py-2">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
+                <span className="text-muted-foreground text-xs">Total Debt</span>
+                <span className="text-lg md:text-base font-bold font-mono text-error">
+                  ${unifiedSummary.totalBalance.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                </span>
+              </div>
+            </div>
+            <div className="bg-card border border-border rounded-lg px-3 py-2">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
+                <span className="text-muted-foreground text-xs">Min Payments</span>
+                <span className="text-lg md:text-base font-bold font-mono text-foreground">
+                  ${unifiedSummary.totalMinimumPayment.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                </span>
+              </div>
+            </div>
+            <div className="bg-card border border-border rounded-lg px-3 py-2">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
+                <span className="text-muted-foreground text-xs">In Strategy</span>
+                <span className="text-lg md:text-base font-bold font-mono text-success">
+                  {unifiedSummary.inStrategyCount}/{unifiedSummary.totalCount}
+                </span>
+              </div>
+            </div>
+            <div className="bg-card border border-border rounded-lg px-3 py-2">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
+                <span className="text-muted-foreground text-xs">Sources</span>
+                <div className="flex items-center gap-1.5">
+                  <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-sm font-medium">{unifiedSummary.creditAccountCount}</span>
+                  <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-sm font-medium">{unifiedSummary.debtBillCount}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : stats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="bg-card border border-border rounded-lg px-3 py-2">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
+                <span className="text-muted-foreground text-xs">Total Debt</span>
+                <span className="text-lg md:text-base font-bold font-mono text-error">
+                  ${stats.totalRemainingBalance.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                </span>
+              </div>
+            </div>
+            <div className="bg-card border border-border rounded-lg px-3 py-2">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
+                <span className="text-muted-foreground text-xs">Paid Off</span>
+                <span className="text-lg md:text-base font-bold font-mono text-income">
+                  ${stats.totalPaidOff.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                </span>
+              </div>
+            </div>
+            <div className="bg-card border border-border rounded-lg px-3 py-2">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
+                <span className="text-muted-foreground text-xs">Progress</span>
+                <span className="text-lg md:text-base font-bold text-foreground">{Math.round(stats.percentagePaidOff)}%</span>
+              </div>
+            </div>
+            <div className="bg-card border border-border rounded-lg px-3 py-2">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
+                <span className="text-muted-foreground text-xs">Active</span>
+                <span className="text-lg md:text-base font-bold text-foreground">{stats.activeDebtCount}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Debt-Free Countdown */}
+        {stats && stats.activeDebtCount > 0 && (
           <DebtFreeCountdown 
             key={`countdown-${refreshKey}`}
             strategyEnabled={debtSettings?.debtStrategyEnabled ?? false}
             payoffMethod={debtSettings?.preferredMethod ?? 'avalanche'}
           />
-        </div>
-      )}
-
-      {/* Summary Stats */}
-      {viewMode === 'unified' && unifiedSummary ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-muted-foreground text-sm">Total Debt</p>
-            <p className="text-2xl font-bold font-mono text-error mt-1">
-              ${unifiedSummary.totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-muted-foreground text-sm">Min Payments</p>
-            <p className="text-2xl font-bold font-mono text-foreground mt-1">
-              ${unifiedSummary.totalMinimumPayment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-muted-foreground text-sm">In Strategy</p>
-            <p className="text-2xl font-bold font-mono text-success mt-1">
-              {unifiedSummary.inStrategyCount} of {unifiedSummary.totalCount}
-            </p>
-          </div>
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-muted-foreground text-sm">Breakdown</p>
-            <div className="flex items-center gap-2 mt-1">
-              <CreditCard className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{unifiedSummary.creditAccountCount}</span>
-              <FileText className="w-4 h-4 text-muted-foreground ml-2" />
-              <span className="text-sm font-medium">{unifiedSummary.debtBillCount}</span>
-            </div>
-          </div>
-        </div>
-      ) : stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-muted-foreground text-sm">Total Debt</p>
-            <p className="text-2xl font-bold font-mono text-error mt-1">
-              ${stats.totalRemainingBalance.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-muted-foreground text-sm">Paid Off</p>
-            <p className="text-2xl font-bold font-mono text-income mt-1">
-              ${stats.totalPaidOff.toLocaleString('en-US', { maximumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-muted-foreground text-sm">Progress</p>
-            <p className="text-2xl font-bold text-foreground mt-1">{Math.round(stats.percentagePaidOff)}%</p>
-          </div>
-          <div className="bg-card border border-border rounded-lg p-4">
-            <p className="text-muted-foreground text-sm">Active Debts</p>
-            <p className="text-2xl font-bold text-foreground mt-1">{stats.activeDebtCount}</p>
-          </div>
-        </div>
-      )}
+        )}
 
       {/* View Mode Toggle & Filter Tabs */}
       <div className="flex flex-col md:flex-row md:items-center gap-4">

@@ -72,6 +72,8 @@ export const accounts = sqliteTable(
     includeInPayoffStrategy: integer('include_in_payoff_strategy', { mode: 'boolean' }).default(true),
     // Budget integration (Phase 7)
     budgetedMonthlyPayment: real('budgeted_monthly_payment'),
+    // Discretionary calculation (Paycheck Balance Widget)
+    includeInDiscretionary: integer('include_in_discretionary', { mode: 'boolean' }).default(true),
     createdAt: text('created_at').default(sqliteNowIso),
     updatedAt: text('updated_at').default(sqliteNowIso),
   },
@@ -424,6 +426,10 @@ export const bills = sqliteTable(
     // Budget period assignment (for bill pay feature)
     // NULL = auto (based on due date), 1 = always period 1, 2 = always period 2, etc.
     budgetPeriodAssignment: integer('budget_period_assignment'),
+    // Split payment across periods (for partial payment budgeting)
+    splitAcrossPeriods: integer('split_across_periods', { mode: 'boolean' }).default(false),
+    // JSON array of allocations: [{periodNumber: 1, percentage: 50}, {periodNumber: 2, percentage: 50}]
+    splitAllocations: text('split_allocations'),
     createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
@@ -513,6 +519,36 @@ export const billPayments = sqliteTable(
     userIdIdx: index('idx_bill_payments_user').on(table.userId),
     householdIdIdx: index('idx_bill_payments_household').on(table.householdId),
     paymentDateIdx: index('idx_bill_payments_date').on(table.paymentDate),
+  })
+);
+
+// Bill Instance Allocations - Track how bill instances are split across budget periods
+export const billInstanceAllocations = sqliteTable(
+  'bill_instance_allocations',
+  {
+    id: text('id').primaryKey(),
+    billInstanceId: text('bill_instance_id').notNull(),
+    billId: text('bill_id').notNull(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
+    periodNumber: integer('period_number').notNull(), // 1, 2, etc.
+    allocatedAmount: real('allocated_amount').notNull(),
+    isPaid: integer('is_paid', { mode: 'boolean' }).default(false),
+    paidAmount: real('paid_amount').default(0),
+    allocationId: text('allocation_id'), // Links to specific bill payment
+    createdAt: text('created_at').default(sqliteNowIso),
+    updatedAt: text('updated_at').default(sqliteNowIso),
+  },
+  (table) => ({
+    billInstanceIdIdx: index('idx_bill_allocations_instance').on(table.billInstanceId),
+    billIdIdx: index('idx_bill_allocations_bill').on(table.billId),
+    userIdIdx: index('idx_bill_allocations_user').on(table.userId),
+    householdIdIdx: index('idx_bill_allocations_household').on(table.householdId),
+    periodNumberIdx: index('idx_bill_allocations_period').on(table.periodNumber),
+    instancePeriodUnique: uniqueIndex('idx_bill_allocations_unique').on(
+      table.billInstanceId,
+      table.periodNumber
+    ),
   })
 );
 

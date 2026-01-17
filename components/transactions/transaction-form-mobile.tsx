@@ -34,8 +34,8 @@ export function TransactionFormMobile({
   const [_isFormCollapsed, _setIsFormCollapsed] = useState(false);
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden md:overflow-auto md:h-auto">
-      {/* Mobile Header - Fixed */}
+    <div className="flex flex-col bg-background">
+      {/* Mobile Header - Sticky */}
       {showHeader && (
         <div className="sticky top-0 z-40 bg-background border-b border-border px-4 py-3 flex items-center gap-3">
           <button
@@ -51,8 +51,8 @@ export function TransactionFormMobile({
         </div>
       )}
 
-      {/* Form Content - Scrollable with padding for fixed buttons on mobile, normal on desktop */}
-      <div className="flex-1 overflow-y-auto pb-28 md:pb-0">
+      {/* Form Content - Natural height with bottom padding for mobile fixed footer */}
+      <div className="pb-20 md:pb-8">
         <div className="px-4 py-6 max-w-2xl mx-auto">
           <TransactionForm
             defaultType={defaultType === 'transfer_in' || defaultType === 'transfer_out' ? undefined : defaultType}
@@ -63,7 +63,7 @@ export function TransactionFormMobile({
       </div>
 
       {/* Mobile Footer - Fixed with larger buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex gap-3 md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border px-4 py-3 flex gap-3 md:hidden z-40">
         <Button
           variant="outline"
           onClick={() => router.back()}

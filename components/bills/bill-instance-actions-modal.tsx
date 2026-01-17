@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   Dialog,
@@ -33,8 +33,20 @@ import {
   Calendar,
   DollarSign,
   CalendarClock,
+  Split,
+  Receipt,
 } from 'lucide-react';
-import type { Bill, BillInstance, Transaction } from '@/lib/types';
+import type { Bill, BillInstance, Transaction, BillInstanceAllocation } from '@/lib/types';
+import Decimal from 'decimal.js';
+
+interface BillPayment {
+  id: string;
+  amount: number;
+  paymentDate: string;
+  paymentMethod: string;
+  notes?: string | null;
+  transaction?: { description: string; accountId: string } | null;
+}
 
 interface BillInstanceActionsModalProps {
   open: boolean;
@@ -52,7 +64,7 @@ export function BillInstanceActionsModal({
   onSuccess,
 }: BillInstanceActionsModalProps) {
   const { fetchWithHousehold } = useHouseholdFetch();
-  const [activeTab, setActiveTab] = useState<'actions' | 'link' | 'period'>('actions');
+  const [activeTab, setActiveTab] = useState<'actions' | 'link' | 'period' | 'allocations' | 'payments'>('actions');
   const [loading, setLoading] = useState(false);
   const [periodOverride, setPeriodOverride] = useState<string>(
     instance.budgetPeriodOverride !== undefined && instance.budgetPeriodOverride !== null
@@ -67,6 +79,141 @@ export function BillInstanceActionsModal({
     instance.transactionId || null
   );
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  
+  // Allocations state
+  const [allocations, setAllocations] = useState<BillInstanceAllocation[]>([]);
+  const [loadingAllocations, setLoadingAllocations] = useState(false);
+  const [editingAllocations, setEditingAllocations] = useState(false);
+  const [allocationInputs, setAllocationInputs] = useState<{ periodNumber: number; amount: string }[]>([
+    { periodNumber: 1, amount: '' },
+    { periodNumber: 2, amount: '' },
+  ]);
+  
+  // Payments state
+  const [payments, setPayments] = useState<BillPayment[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+
+  // Fetch allocations when tab is opened
+  useEffect(() => {
+    if (open && activeTab === 'allocations') {
+      fetchAllocations();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, activeTab]);
+
+  // Fetch payments when tab is opened
+  useEffect(() => {
+    if (open && activeTab === 'payments') {
+      fetchPayments();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, activeTab]);
+
+  const fetchAllocations = async () => {
+    try {
+      setLoadingAllocations(true);
+      const response = await fetchWithHousehold(`/api/bills/instances/${instance.id}/allocations`);
+      if (response.ok) {
+        const data = await response.json();
+        setAllocations(data.allocations || []);
+        
+        // Initialize inputs from existing allocations
+        if (data.allocations?.length > 0) {
+          setAllocationInputs(
+            data.allocations.map((a: BillInstanceAllocation) => ({
+              periodNumber: a.periodNumber,
+              amount: a.allocatedAmount.toString(),
+            }))
+          );
+        } else {
+          // Default to 50/50 split
+          const halfAmount = new Decimal(instance.expectedAmount).dividedBy(2).toFixed(2);
+          setAllocationInputs([
+            { periodNumber: 1, amount: halfAmount },
+            { periodNumber: 2, amount: halfAmount },
+          ]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching allocations:', error);
+    } finally {
+      setLoadingAllocations(false);
+    }
+  };
+
+  const fetchPayments = async () => {
+    try {
+      setLoadingPayments(true);
+      const response = await fetchWithHousehold(`/api/bills/instances/${instance.id}/payments`);
+      if (response.ok) {
+        const data = await response.json();
+        setPayments(data.payments || []);
+      }
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+    } finally {
+      setLoadingPayments(false);
+    }
+  };
+
+  const handleSaveAllocations = async () => {
+    try {
+      setLoading(true);
+      
+      const allocationsData = allocationInputs
+        .filter(a => a.amount && parseFloat(a.amount) > 0)
+        .map(a => ({
+          periodNumber: a.periodNumber,
+          allocatedAmount: parseFloat(a.amount),
+        }));
+
+      const response = await fetchWithHousehold(`/api/bills/instances/${instance.id}/allocations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allocations: allocationsData }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to save allocations');
+      }
+
+      toast.success('Allocations saved successfully');
+      setEditingAllocations(false);
+      fetchAllocations();
+      onSuccess();
+    } catch (error) {
+      console.error('Error saving allocations:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to save allocations');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveAllocations = async () => {
+    try {
+      setLoading(true);
+      
+      const response = await fetchWithHousehold(`/api/bills/instances/${instance.id}/allocations`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to remove allocations');
+      }
+
+      toast.success('Allocations removed');
+      setAllocations([]);
+      setEditingAllocations(false);
+      onSuccess();
+    } catch (error) {
+      console.error('Error removing allocations:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to remove allocations');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAction = async (action: 'paid' | 'pending' | 'skipped') => {
     try {
@@ -82,7 +229,6 @@ export function BillInstanceActionsModal({
         updateData.actualAmount = actualAmount ? parseFloat(actualAmount) : instance.expectedAmount;
         updateData.isManualOverride = true;
       } else if (action === 'pending') {
-        // Reset paid-related fields
         updateData.paidDate = null;
         updateData.actualAmount = null;
         updateData.transactionId = null;
@@ -126,14 +272,12 @@ export function BillInstanceActionsModal({
         notes: notes || undefined,
       };
 
-      // If linking to a transaction, auto-mark as paid
       if (selectedTransactionId && selectedTransaction) {
         updateData.status = 'paid';
         updateData.paidDate = selectedTransaction.date;
         updateData.actualAmount = selectedTransaction.amount;
         updateData.isManualOverride = true;
       } else {
-        // Unlinking - just clear the transaction link
         updateData.transactionId = null;
       }
 
@@ -203,21 +347,35 @@ export function BillInstanceActionsModal({
   const isOverdue = instance.status === 'overdue';
   const isPaid = instance.status === 'paid';
   const isSkipped = instance.status === 'skipped';
+  const isPartiallyPaid = instance.paymentStatus === 'partial';
+
+  // Calculate allocation total
+  const allocationTotal = allocationInputs.reduce(
+    (sum, a) => sum + (parseFloat(a.amount) || 0),
+    0
+  );
+  const allocationDifference = new Decimal(instance.expectedAmount).minus(allocationTotal);
+  const isAllocationValid = allocationDifference.abs().lessThanOrEqualTo(0.01);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-card border-border">
+      <DialogContent className="sm:max-w-[550px] bg-card border-border max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">Manage Bill Instance</DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {bill.name} - Due {format(parseISO(instance.dueDate), 'MMMM d, yyyy')}
+            {isPartiallyPaid && (
+              <span className="ml-2 text-warning">(Partially Paid)</span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'actions' | 'link' | 'period')}>
-          <TabsList className="grid w-full grid-cols-3 bg-elevated">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)}>
+          <TabsList className="grid w-full grid-cols-5 bg-elevated">
             <TabsTrigger value="actions">Actions</TabsTrigger>
             <TabsTrigger value="link">Link</TabsTrigger>
+            <TabsTrigger value="allocations">Split</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
             <TabsTrigger value="period">Period</TabsTrigger>
           </TabsList>
 
@@ -244,11 +402,29 @@ export function BillInstanceActionsModal({
               </div>
             </div>
 
+            {/* Partial Payment Progress */}
+            {isPartiallyPaid && (
+              <div className="p-3 bg-elevated rounded-lg">
+                <div className="flex justify-between text-xs text-muted-foreground mb-2">
+                  <span>Paid: ${new Decimal(instance.paidAmount || 0).toFixed(2)}</span>
+                  <span>Remaining: ${new Decimal(instance.remainingAmount || 0).toFixed(2)}</span>
+                </div>
+                <div className="h-2 bg-background rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-success transition-all duration-300"
+                    style={{ 
+                      width: `${((instance.paidAmount || 0) / instance.expectedAmount) * 100}%` 
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Actual Amount Input (for marking as paid) */}
-            {(isPending || isOverdue) && (
+            {(isPending || isOverdue || isPartiallyPaid) && (
               <div className="space-y-2">
                 <Label htmlFor="actualAmount" className="text-foreground">
-                  Actual Amount (optional)
+                  {isPartiallyPaid ? 'Additional Payment Amount' : 'Actual Amount (optional)'}
                 </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -261,12 +437,12 @@ export function BillInstanceActionsModal({
                     value={actualAmount}
                     onChange={(e) => setActualAmount(e.target.value)}
                     className="pl-7 bg-background border-border"
-                    placeholder={instance.expectedAmount.toFixed(2)}
+                    placeholder={isPartiallyPaid 
+                      ? (instance.remainingAmount || 0).toFixed(2)
+                      : instance.expectedAmount.toFixed(2)
+                    }
                   />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Leave blank to use expected amount
-                </p>
               </div>
             )}
 
@@ -287,7 +463,7 @@ export function BillInstanceActionsModal({
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-2">
-              {(isPending || isOverdue) && (
+              {(isPending || isOverdue || isPartiallyPaid) && (
                 <>
                   <Button
                     onClick={() => handleAction('paid')}
@@ -299,17 +475,19 @@ export function BillInstanceActionsModal({
                     ) : (
                       <CheckCircle2 className="w-4 h-4 mr-2" />
                     )}
-                    Mark as Paid
+                    {isPartiallyPaid ? 'Mark Fully Paid' : 'Mark as Paid'}
                   </Button>
-                  <Button
-                    onClick={() => handleAction('skipped')}
-                    disabled={loading}
-                    variant="outline"
-                    className="flex-1 border-border hover:bg-elevated"
-                  >
-                    <SkipForward className="w-4 h-4 mr-2" />
-                    Skip
-                  </Button>
+                  {!isPartiallyPaid && (
+                    <Button
+                      onClick={() => handleAction('skipped')}
+                      disabled={loading}
+                      variant="outline"
+                      className="flex-1 border-border hover:bg-elevated"
+                    >
+                      <SkipForward className="w-4 h-4 mr-2" />
+                      Skip
+                    </Button>
+                  )}
                 </>
               )}
               
@@ -349,7 +527,7 @@ export function BillInstanceActionsModal({
 
           <TabsContent value="link" className="space-y-4 mt-4">
             <p className="text-sm text-muted-foreground">
-              Link an existing expense transaction to this bill instance. The bill will be automatically marked as paid.
+              Link an existing expense transaction to this bill instance.
             </p>
 
             <TransactionLinkSelector
@@ -375,11 +553,204 @@ export function BillInstanceActionsModal({
             </Button>
           </TabsContent>
 
+          <TabsContent value="allocations" className="space-y-4 mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Split className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Split this bill across budget periods for partial payments.
+              </p>
+            </div>
+
+            {loadingAllocations ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <>
+                {/* Current Allocations Display */}
+                {allocations.length > 0 && !editingAllocations && (
+                  <div className="space-y-2 p-4 bg-elevated rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-2">Current Split:</p>
+                    {allocations.map(a => (
+                      <div 
+                        key={a.id}
+                        className="flex justify-between items-center text-sm"
+                      >
+                        <span className="text-foreground">Period {a.periodNumber}</span>
+                        <span className="text-foreground font-mono">
+                          ${new Decimal(a.paidAmount || 0).toFixed(2)} / ${new Decimal(a.allocatedAmount).toFixed(2)}
+                          {a.isPaid && (
+                            <CheckCircle2 className="w-4 h-4 ml-2 inline text-success" />
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Edit Allocations Form */}
+                {(allocations.length === 0 || editingAllocations) && (
+                  <div className="space-y-3 p-4 bg-elevated rounded-lg">
+                    <p className="text-xs text-muted-foreground">
+                      Set amount for each period (must equal ${instance.expectedAmount.toFixed(2)}):
+                    </p>
+                    {allocationInputs.map((input, index) => (
+                      <div key={input.periodNumber} className="flex items-center gap-3">
+                        <span className="text-sm text-muted-foreground w-20">
+                          Period {input.periodNumber}
+                        </span>
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                            $
+                          </span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={input.amount}
+                            onChange={(e) => {
+                              const newInputs = [...allocationInputs];
+                              newInputs[index].amount = e.target.value;
+                              setAllocationInputs(newInputs);
+                            }}
+                            className="pl-7 bg-background border-border"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Validation Message */}
+                    <div className={`text-xs ${isAllocationValid ? 'text-success' : 'text-error'}`}>
+                      Total: ${allocationTotal.toFixed(2)}
+                      {!isAllocationValid && (
+                        <span className="ml-2">
+                          (${allocationDifference.abs().toFixed(2)} {allocationDifference.greaterThan(0) ? 'remaining' : 'over'})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  {allocations.length > 0 && !editingAllocations ? (
+                    <>
+                      <Button
+                        onClick={() => setEditingAllocations(true)}
+                        variant="outline"
+                        className="flex-1 border-border"
+                      >
+                        Edit Split
+                      </Button>
+                      <Button
+                        onClick={handleRemoveAllocations}
+                        disabled={loading || allocations.some(a => a.isPaid)}
+                        variant="outline"
+                        className="flex-1 border-border text-error hover:text-error"
+                      >
+                        Remove Split
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={handleSaveAllocations}
+                        disabled={loading || !isAllocationValid}
+                        className="flex-1 bg-primary hover:bg-primary/90"
+                      >
+                        {loading ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Split className="w-4 h-4 mr-2" />
+                        )}
+                        Save Split
+                      </Button>
+                      {editingAllocations && (
+                        <Button
+                          onClick={() => {
+                            setEditingAllocations(false);
+                            fetchAllocations();
+                          }}
+                          variant="outline"
+                          className="border-border"
+                        >
+                          Cancel
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="payments" className="space-y-4 mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Receipt className="w-4 h-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Payment history for this bill instance.
+              </p>
+            </div>
+
+            {loadingPayments ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : payments.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">
+                <Receipt className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No payments recorded yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {payments.map(payment => (
+                  <div 
+                    key={payment.id}
+                    className="p-3 bg-elevated rounded-lg"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          ${new Decimal(payment.amount).toFixed(2)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(parseISO(payment.paymentDate), 'MMM d, yyyy')}
+                          {payment.paymentMethod && ` - ${payment.paymentMethod}`}
+                        </p>
+                      </div>
+                      <CheckCircle2 className="w-4 h-4 text-success" />
+                    </div>
+                    {payment.notes && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {payment.notes}
+                      </p>
+                    )}
+                  </div>
+                ))}
+                
+                {/* Summary */}
+                <div className="p-3 bg-background rounded-lg border border-border">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total Paid</span>
+                    <span className="text-foreground font-mono">
+                      ${payments.reduce((sum, p) => new Decimal(sum).plus(p.amount).toNumber(), 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-1">
+                    <span className="text-muted-foreground">Expected</span>
+                    <span className="text-foreground font-mono">
+                      ${instance.expectedAmount.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
           <TabsContent value="period" className="space-y-4 mt-4">
             <div className="flex items-center gap-2 mb-2">
               <CalendarClock className="w-4 h-4 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
-                Override which budget period this instance appears in for Bill Pay.
+                Override which budget period this instance appears in.
               </p>
             </div>
 
@@ -398,7 +769,7 @@ export function BillInstanceActionsModal({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                This override only affects this specific instance, not the bill itself.
+                This override only affects this specific instance.
               </p>
             </div>
 
@@ -420,4 +791,3 @@ export function BillInstanceActionsModal({
     </Dialog>
   );
 }
-

@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { format, parseISO, differenceInDays, addDays, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
-import { AlertCircle, CheckCircle2, Clock, DollarSign, Plus, ChevronLeft, ChevronRight, CalendarRange, ArrowDownCircle, TrendingUp, CreditCard, Zap, Home, Shield, Banknote, Users, Wrench, MoreHorizontal, Wallet } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertCircle, CheckCircle2, Clock, DollarSign, Plus, ChevronLeft, ChevronRight, CalendarRange, CreditCard, Zap, Home, Shield, Banknote, Users, Wrench, MoreHorizontal, Wallet, Settings2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { type BillClassification, CLASSIFICATION_META } from '@/lib/bills/bill-classification';
 import { BillPayModal } from '@/components/bills/bill-pay-modal';
+import { QuickAddBillModal } from '@/components/bills/quick-add-bill-modal';
 
 interface BillInstance {
   id: string;
@@ -56,7 +57,6 @@ interface Bill {
   classificationSubcategory?: string | null;
 }
 
-type BillTypeFilter = 'all' | 'expense' | 'income';
 type ClassificationFilter = 'all' | BillClassification;
 
 // Classification filter options with icons
@@ -90,25 +90,16 @@ export default function BillsDashboard() {
   const [loading, setLoading] = useState(true);
   const [pendingMonth, setPendingMonth] = useState<Date>(new Date());
   const [paidMonth, setPaidMonth] = useState<Date>(new Date());
-  const [billTypeFilter, setBillTypeFilter] = useState<BillTypeFilter>('all');
   const [classificationFilter, setClassificationFilter] = useState<ClassificationFilter>('all');
   const classificationScrollRef = useRef<HTMLDivElement>(null);
   const [billPayModalOpen, setBillPayModalOpen] = useState(false);
+  const [quickAddModalOpen, setQuickAddModalOpen] = useState(false);
   const [stats, setStats] = useState({
     totalUpcoming: 0,
     totalOverdue: 0,
     totalUpcomingAmount: 0,
     totalOverdueAmount: 0,
     paidThisMonth: 0,
-    // Income-specific stats
-    totalExpectedIncome: 0,
-    totalLateIncome: 0,
-    totalExpectedIncomeAmount: 0,
-    totalLateIncomeAmount: 0,
-    receivedThisMonth: 0,
-    // Bill counts by type
-    expenseBillCount: 0,
-    incomeBillCount: 0,
     // Bill counts by classification
     classificationCounts: {} as Record<string, number>,
   });
@@ -237,11 +228,9 @@ export default function BillsDashboard() {
     const monthStart = startOfMonth(today);
     const monthEnd = endOfMonth(today);
 
-    // Create a map of bill IDs to their type
-    const billTypeMap = new Map<string, string>();
-    billsList.forEach(bill => {
-      billTypeMap.set(bill.id, bill.billType || 'expense');
-    });
+    // Filter to expense bills only (exclude income)
+    const expenseBills = billsList.filter(b => b.billType !== 'income');
+    const expenseBillIds = new Set(expenseBills.map(b => b.id));
 
     // Expense stats
     let totalUpcoming = 0;
@@ -250,61 +239,33 @@ export default function BillsDashboard() {
     let totalOverdueAmount = 0;
     let paidThisMonth = 0;
 
-    // Income stats
-    let totalExpectedIncome = 0;
-    let totalLateIncome = 0;
-    let totalExpectedIncomeAmount = 0;
-    let totalLateIncomeAmount = 0;
-    let receivedThisMonth = 0;
-
     instances.forEach((instance) => {
+      // Skip income bill instances
+      if (!expenseBillIds.has(instance.billId)) return;
+
       const dueDate = parseISO(instance.dueDate);
       const isPaid = instance.status === 'paid';
       const isOverdue = instance.status === 'overdue';
       const isPending = instance.status === 'pending';
-      const billType = billTypeMap.get(instance.billId) || 'expense';
-      const isIncome = billType === 'income';
 
-      if (isIncome) {
-        // Income statistics
-        if (isOverdue) {
-          totalLateIncome++;
-          totalLateIncomeAmount += instance.expectedAmount;
-        }
+      if (isOverdue) {
+        totalOverdue++;
+        totalOverdueAmount += instance.expectedAmount;
+      }
 
-        if (isPending && dueDate <= thirtyDaysFromNow && dueDate >= today) {
-          totalExpectedIncome++;
-          totalExpectedIncomeAmount += instance.expectedAmount;
-        }
+      if (isPending && dueDate <= thirtyDaysFromNow && dueDate >= today) {
+        totalUpcoming++;
+        totalUpcomingAmount += instance.expectedAmount;
+      }
 
-        if (isPaid && dueDate >= monthStart && dueDate <= monthEnd) {
-          receivedThisMonth++;
-        }
-      } else {
-        // Expense statistics
-        if (isOverdue) {
-          totalOverdue++;
-          totalOverdueAmount += instance.expectedAmount;
-        }
-
-        if (isPending && dueDate <= thirtyDaysFromNow && dueDate >= today) {
-          totalUpcoming++;
-          totalUpcomingAmount += instance.expectedAmount;
-        }
-
-        if (isPaid && dueDate >= monthStart && dueDate <= monthEnd) {
-          paidThisMonth++;
-        }
+      if (isPaid && dueDate >= monthStart && dueDate <= monthEnd) {
+        paidThisMonth++;
       }
     });
 
-    // Count bills by type
-    const expenseBillCount = billsList.filter(b => b.billType !== 'income').length;
-    const incomeBillCount = billsList.filter(b => b.billType === 'income').length;
-
-    // Count bills by classification
+    // Count bills by classification (expense only)
     const classificationCounts: Record<string, number> = {};
-    billsList.forEach(bill => {
+    expenseBills.forEach(bill => {
       const classification = bill.billClassification || 'other';
       classificationCounts[classification] = (classificationCounts[classification] || 0) + 1;
     });
@@ -315,28 +276,17 @@ export default function BillsDashboard() {
       totalUpcomingAmount,
       totalOverdueAmount,
       paidThisMonth,
-      totalExpectedIncome,
-      totalLateIncome,
-      totalExpectedIncomeAmount,
-      totalLateIncomeAmount,
-      receivedThisMonth,
-      expenseBillCount,
-      incomeBillCount,
       classificationCounts,
     });
   };
 
-  // Filter instances by bill type and classification
-  const filterByBillType = (instance: BillInstance) => {
+  // Filter instances by classification (expense bills only)
+  const filterBills = (instance: BillInstance) => {
     const bill = bills.find(b => b.id === instance.billId);
-    if (!bill) return true;
+    if (!bill) return false;
 
-    // Filter by bill type
-    if (billTypeFilter !== 'all') {
-      const billType = bill.billType || 'expense';
-      if (billTypeFilter === 'income' && billType !== 'income') return false;
-      if (billTypeFilter === 'expense' && billType === 'income') return false;
-    }
+    // Exclude income bills - they are on the Income page now
+    if (bill.billType === 'income') return false;
 
     // Filter by classification
     if (classificationFilter !== 'all') {
@@ -358,7 +308,7 @@ export default function BillsDashboard() {
           instance.status === 'pending' &&
           dueDate >= monthStart &&
           dueDate <= monthEnd &&
-          filterByBillType(instance)
+          filterBills(instance)
         );
       })
       .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime());
@@ -366,7 +316,7 @@ export default function BillsDashboard() {
 
   const getOverdueBills = () => {
     return billInstances
-      .filter((instance) => instance.status === 'overdue' && filterByBillType(instance))
+      .filter((instance) => instance.status === 'overdue' && filterBills(instance))
       .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime());
   };
 
@@ -381,7 +331,7 @@ export default function BillsDashboard() {
           instance.status === 'paid' &&
           dueDate >= monthStart &&
           dueDate <= monthEnd &&
-          filterByBillType(instance)
+          filterBills(instance)
         );
       })
       .sort((a, b) => parseISO(a.dueDate).getTime() - parseISO(b.dueDate).getTime());
@@ -398,55 +348,29 @@ export default function BillsDashboard() {
     const daysUntil = differenceInDays(dueDate, today);
     const billName = getBillName(instance.billId);
     const bill = bills.find((b) => b.id === instance.billId);
-    const isIncomeBill = bill?.billType === 'income';
 
     return (
       <Link href={`/dashboard/bills/${instance.billId}`}>
-        <div className={`flex items-center justify-between p-3 bg-card border rounded-lg hover:bg-elevated transition-colors cursor-pointer ${
-          isIncomeBill ? 'border-income/30' : 'border-border'
-        }`}>
-          <div className="flex items-start gap-3 flex-1">
-            <div className="mt-0.5">
-              {instance.status === 'paid' && (
-                isIncomeBill 
-                  ? <ArrowDownCircle className="w-5 h-5 text-income" />
-                  : <CheckCircle2 className="w-5 h-5 text-income" />
-              )}
-              {instance.status === 'overdue' && (
-                isIncomeBill
-                  ? <ArrowDownCircle className="w-5 h-5 text-warning" />
-                  : <AlertCircle className="w-5 h-5 text-error" />
-              )}
-              {instance.status === 'pending' && (
-                isIncomeBill
-                  ? <ArrowDownCircle className="w-5 h-5 text-income/50" />
-                  : <Clock className="w-5 h-5 text-warning" />
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="font-medium text-foreground">{billName}</p>
-                {bill && bill.frequency && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                    isIncomeBill
-                      ? 'bg-income/10 text-income border-income/20'
-                      : 'bg-primary/10 text-primary border-primary/20'
-                  }`}>
+        <div className="flex items-center justify-between px-3 py-2 bg-card border border-border rounded-md hover:bg-elevated transition-colors cursor-pointer">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {instance.status === 'paid' && <CheckCircle2 className="w-4 h-4 text-income shrink-0" />}
+            {instance.status === 'overdue' && <AlertCircle className="w-4 h-4 text-error shrink-0" />}
+            {instance.status === 'pending' && <Clock className="w-4 h-4 text-warning shrink-0" />}
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-medium text-sm text-foreground truncate">{billName}</span>
+                {bill?.frequency && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
                     {FREQUENCY_LABELS[bill.frequency] || bill.frequency}
-                  </span>
-                )}
-                {isIncomeBill && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-income/10 text-income border border-income/20">
-                    Income
                   </span>
                 )}
                 {bill?.billClassification && bill.billClassification !== 'other' && (
                   <span 
-                    className="text-xs px-2 py-0.5 rounded-full border"
+                    className="text-[10px] px-1.5 py-0.5 rounded-full"
                     style={{ 
                       backgroundColor: `${CLASSIFICATION_META[bill.billClassification].color}15`,
                       color: CLASSIFICATION_META[bill.billClassification].color,
-                      borderColor: `${CLASSIFICATION_META[bill.billClassification].color}30`
                     }}
                   >
                     {CLASSIFICATION_META[bill.billClassification].label}
@@ -455,31 +379,24 @@ export default function BillsDashboard() {
                 <EntityIdBadge id={instance.billId} label="Bill" />
                 <EntityIdBadge id={instance.id} label="Instance" />
               </div>
-              <p className="text-sm text-muted-foreground">
-                {isIncomeBill ? 'Expected' : 'Due'}: {format(dueDate, 'MMM d, yyyy')}
-              </p>
-              {instance.status === 'overdue' && instance.daysLate > 0 && (
-                <p className={`text-sm ${isIncomeBill ? 'text-warning' : 'text-error'}`}>
-                  {instance.daysLate} day{instance.daysLate !== 1 ? 's' : ''} {isIncomeBill ? 'late' : 'overdue'}
-                  {!isIncomeBill && instance.lateFee > 0 && ` • Late fee: $${instance.lateFee.toFixed(2)}`}
-                </p>
-              )}
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{format(dueDate, 'MMM d')}</span>
+                {instance.status === 'overdue' && instance.daysLate > 0 && (
+                  <span className="text-error">
+                    {instance.daysLate}d late{instance.lateFee > 0 && ` (+$${instance.lateFee.toFixed(0)})`}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-          <div className="text-right">
-            <p className={`font-medium ${isIncomeBill ? 'text-income' : 'text-foreground'}`}>
-              {isIncomeBill ? '+' : ''}${instance.expectedAmount.toFixed(2)}
-            </p>
+          <div className="text-right shrink-0 pl-2">
+            <span className="font-mono text-sm font-medium text-foreground">${instance.expectedAmount.toFixed(2)}</span>
             {showDaysUntil && instance.status === 'pending' && (
-              <p className={`text-sm ${daysUntil <= 3 ? (isIncomeBill ? 'text-income' : 'text-warning') : 'text-muted-foreground'}`}>
-                {daysUntil === 0 && (isIncomeBill ? 'Expected today' : 'Due today')}
-                {daysUntil === 1 && (isIncomeBill ? 'Expected tomorrow' : 'Due tomorrow')}
-                {daysUntil > 1 && `${daysUntil} days`}
+              <p className={`text-xs ${daysUntil <= 3 ? 'text-warning' : 'text-muted-foreground'}`}>
+                {daysUntil === 0 ? 'today' : daysUntil === 1 ? 'tomorrow' : `${daysUntil}d`}
               </p>
             )}
-            {instance.status === 'paid' && (
-              <p className="text-sm text-income">{isIncomeBill ? 'Received' : 'Paid'}</p>
-            )}
+            {instance.status === 'paid' && <p className="text-xs text-income">Paid</p>}
           </div>
         </div>
       </Link>
@@ -503,13 +420,13 @@ export default function BillsDashboard() {
   const paidBills = getPaidBills();
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Bills & Income</h1>
-            <p className="text-muted-foreground mt-2">Track your recurring expenses and expected income</p>
+            <h1 className="text-3xl font-bold text-foreground">Bills</h1>
+            <p className="text-muted-foreground mt-2">Track your recurring expenses</p>
           </div>
           <div className="flex items-center gap-2">
             <Button 
@@ -517,7 +434,7 @@ export default function BillsDashboard() {
               className="bg-income hover:opacity-90 text-white"
             >
               <Wallet className="w-4 h-4 mr-2" />
-              Bill Pay
+              Pay Bills
             </Button>
             <Link href="/dashboard/bills/annual-planning">
               <Button variant="outline" className="bg-elevated border-border text-foreground hover:bg-elevated">
@@ -526,48 +443,19 @@ export default function BillsDashboard() {
               </Button>
             </Link>
             <Link href="/dashboard/bills/new">
-              <Button className="bg-primary hover:opacity-90 text-primary-foreground">
-                <Plus className="w-4 h-4 mr-2" />
-                New
+              <Button variant="outline" className="border-border text-muted-foreground hover:text-foreground">
+                <Settings2 className="w-4 h-4 mr-2" />
+                Advanced
               </Button>
             </Link>
+            <Button 
+              onClick={() => setQuickAddModalOpen(true)}
+              className="bg-primary hover:opacity-90 text-primary-foreground"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New
+            </Button>
           </div>
-        </div>
-
-        {/* Filter Tabs - Bill Type */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setBillTypeFilter('all')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-              billTypeFilter === 'all'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-card border border-border text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            All ({bills.length})
-          </button>
-          <button
-            onClick={() => setBillTypeFilter('expense')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
-              billTypeFilter === 'expense'
-                ? 'bg-expense text-white'
-                : 'bg-card border border-border text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <DollarSign className="w-4 h-4" />
-            Expenses ({stats.expenseBillCount})
-          </button>
-          <button
-            onClick={() => setBillTypeFilter('income')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
-              billTypeFilter === 'income'
-                ? 'bg-income text-white'
-                : 'bg-card border border-border text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <TrendingUp className="w-4 h-4" />
-            Income ({stats.incomeBillCount})
-          </button>
         </div>
 
         {/* Filter Tabs - Classification */}
@@ -578,8 +466,10 @@ export default function BillsDashboard() {
           >
             {CLASSIFICATION_FILTER_OPTIONS.map((option) => {
               const Icon = option.icon;
+              // Count expense bills only
+              const expenseBillCount = bills.filter(b => b.billType !== 'income').length;
               const count = option.value === 'all' 
-                ? bills.length 
+                ? expenseBillCount 
                 : (stats.classificationCounts[option.value] || 0);
               const isActive = classificationFilter === option.value;
               
@@ -609,156 +499,50 @@ export default function BillsDashboard() {
           </div>
         </div>
 
-      {/* Statistics Cards */}
-      {billTypeFilter === 'income' ? (
-        // Income Statistics
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-background border-income/30">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <ArrowDownCircle className="w-4 h-4 text-income" />
-                Expected (30 days)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-income">{stats.totalExpectedIncome}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                +${stats.totalExpectedIncomeAmount.toFixed(2)} total
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-background border-warning/30">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Clock className="w-4 h-4 text-warning" />
-                Late Income
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-warning">{stats.totalLateIncome}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                +${stats.totalLateIncomeAmount.toFixed(2)} pending
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-background border-income/30">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-income" />
-                Received this month
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-income">{stats.receivedThisMonth}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Income received
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-background border-income/30">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-income" />
-                Income sources
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-income">
-                {stats.incomeBillCount}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Active income streams
-              </p>
-            </CardContent>
-          </Card>
+      {/* Compact Statistics Bar */}
+      <div className="flex flex-wrap items-center gap-3 p-3 bg-card border border-border rounded-lg">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-warning/10 rounded-md">
+          <Clock className="w-4 h-4 text-warning" />
+          <span className="text-sm font-medium text-warning">{stats.totalUpcoming}</span>
+          <span className="text-xs text-muted-foreground">due</span>
+          <span className="text-xs text-muted-foreground border-l border-border pl-2">${stats.totalUpcomingAmount.toFixed(0)}</span>
         </div>
-      ) : (
-        // Expense Statistics (default)
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-background border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                {billTypeFilter === 'all' ? 'Upcoming (30 days)' : 'Due (30 days)'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-warning">{stats.totalUpcoming}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                ${stats.totalUpcomingAmount.toFixed(2)} total
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-background border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                Overdue
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-error">{stats.totalOverdue}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                ${stats.totalOverdueAmount.toFixed(2)} total
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-background border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                Paid this month
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-income">{stats.paidThisMonth}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Keep up the great work!
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-background border-border">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                {billTypeFilter === 'all' ? 'Total bills' : 'Expense bills'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary">
-                {billTypeFilter === 'all' ? bills.length : stats.expenseBillCount}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Active {billTypeFilter === 'all' ? 'bills' : 'expense bills'}
-              </p>
-            </CardContent>
-          </Card>
+        
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-error/10 rounded-md">
+          <AlertCircle className="w-4 h-4 text-error" />
+          <span className="text-sm font-medium text-error">{stats.totalOverdue}</span>
+          <span className="text-xs text-muted-foreground">overdue</span>
+          {stats.totalOverdueAmount > 0 && (
+            <span className="text-xs text-muted-foreground border-l border-border pl-2">${stats.totalOverdueAmount.toFixed(0)}</span>
+          )}
         </div>
-      )}
+        
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-income/10 rounded-md">
+          <CheckCircle2 className="w-4 h-4 text-income" />
+          <span className="text-sm font-medium text-income">{stats.paidThisMonth}</span>
+          <span className="text-xs text-muted-foreground">paid</span>
+        </div>
+        
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-md ml-auto">
+          <DollarSign className="w-4 h-4 text-primary" />
+          <span className="text-sm font-medium text-primary">{bills.filter(b => b.billType !== 'income').length}</span>
+          <span className="text-xs text-muted-foreground">active bills</span>
+        </div>
+      </div>
 
-      {/* Overdue/Late Bills Section */}
+      {/* Overdue Bills Section */}
       {overdueBills.length > 0 && (
-        <Card className={`bg-background ${billTypeFilter === 'income' ? 'border-warning/30' : 'border-error/30'}`}>
-          <CardHeader>
-            <CardTitle className={`flex items-center gap-2 ${billTypeFilter === 'income' ? 'text-warning' : 'text-error'}`}>
-              {billTypeFilter === 'income' ? (
-                <Clock className="w-5 h-5" />
-              ) : (
-                <AlertCircle className="w-5 h-5" />
-              )}
-              {billTypeFilter === 'income' ? 'Late Income' : 'Overdue Bills'}
-            </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              {overdueBills.length} {billTypeFilter === 'income' ? 'income source' : 'bill'}{overdueBills.length !== 1 ? 's' : ''} {billTypeFilter === 'income' ? 'not yet received' : 'need immediate attention'}
-            </CardDescription>
+        <Card className="bg-background border-error/30">
+          <CardHeader className="py-2 px-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-error text-sm font-semibold">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Overdue
+                <span className="text-xs font-normal text-muted-foreground">({overdueBills.length})</span>
+              </CardTitle>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="pt-0 px-3 pb-2 space-y-1">
             {overdueBills.map((instance) => (
               <BillItem key={instance.id} instance={instance} showDaysUntil={false} />
             ))}
@@ -766,114 +550,92 @@ export default function BillsDashboard() {
         </Card>
       )}
 
-      {/* Upcoming Bills/Income Section */}
-      <Card className={`bg-background ${billTypeFilter === 'income' ? 'border-income/30' : 'border-border'}`}>
-        <CardHeader>
+      {/* Pending Bills Section */}
+      <Card className="bg-background border-border">
+        <CardHeader className="py-2 px-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              {billTypeFilter === 'income' ? (
-                <ArrowDownCircle className="w-5 h-5 text-income" />
-              ) : (
-                <Clock className="w-5 h-5 text-warning" />
-              )}
-              {billTypeFilter === 'income' ? 'Expected Income' : 'Pending Bills'} ({format(pendingMonth, 'MMMM yyyy')})
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Clock className="w-3.5 h-3.5 text-warning" />
+              Pending
+              <span className="text-xs font-normal text-muted-foreground">({upcomingBills.length})</span>
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0.5">
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
                 onClick={() => setPendingMonth(subMonths(pendingMonth, 1))}
                 disabled={isSameMonth(pendingMonth, new Date())}
-                className="text-muted-foreground hover:text-foreground hover:bg-elevated disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Previous month"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5" />
               </Button>
+              <span className="text-xs text-muted-foreground min-w-[60px] text-center">{format(pendingMonth, 'MMM yyyy')}</span>
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
                 onClick={() => setPendingMonth(addMonths(pendingMonth, 1))}
-                className="text-muted-foreground hover:text-foreground hover:bg-elevated"
                 aria-label="Next month"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>
-          <CardDescription className="text-muted-foreground">
-            {upcomingBills.length > 0
-              ? billTypeFilter === 'income'
-                ? `${upcomingBills.length} income source${upcomingBills.length !== 1 ? 's' : ''} expected`
-                : `${upcomingBills.length} bill${upcomingBills.length !== 1 ? 's' : ''} pending`
-              : billTypeFilter === 'income'
-                ? `No expected income in ${format(pendingMonth, 'MMMM yyyy')}`
-                : `No pending bills in ${format(pendingMonth, 'MMMM yyyy')}`}
-          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="pt-0 px-3 pb-2 space-y-1">
           {upcomingBills.length > 0 ? (
             upcomingBills.map((instance) => (
               <BillItem key={instance.id} instance={instance} />
             ))
           ) : (
-            <p className="text-center text-muted-foreground py-8">
-              {billTypeFilter === 'income'
-                ? `No expected income in ${format(pendingMonth, 'MMMM yyyy')}.`
-                : `No pending bills in ${format(pendingMonth, 'MMMM yyyy')}.`}
+            <p className="text-center text-muted-foreground py-3 text-sm">
+              No pending bills
             </p>
           )}
         </CardContent>
       </Card>
 
-      {/* Paid/Received Bills Section */}
-      <Card className={`bg-background ${billTypeFilter === 'income' ? 'border-income/30' : 'border-border'}`}>
-        <CardHeader>
+      {/* Paid Bills Section */}
+      <Card className="bg-background border-border">
+        <CardHeader className="py-2 px-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-income" />
-              {billTypeFilter === 'income' ? 'Received Income' : 'Paid Bills'} ({format(paidMonth, 'MMMM yyyy')})
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <CheckCircle2 className="w-3.5 h-3.5 text-income" />
+              Paid
+              <span className="text-xs font-normal text-muted-foreground">({paidBills.length})</span>
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0.5">
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
                 onClick={() => setPaidMonth(subMonths(paidMonth, 1))}
-                className="text-muted-foreground hover:text-foreground hover:bg-elevated"
                 aria-label="Previous month"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-3.5 h-3.5" />
               </Button>
+              <span className="text-xs text-muted-foreground min-w-[60px] text-center">{format(paidMonth, 'MMM yyyy')}</span>
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground"
                 onClick={() => setPaidMonth(addMonths(paidMonth, 1))}
-                className="text-muted-foreground hover:text-foreground hover:bg-elevated"
                 aria-label="Next month"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>
-          <CardDescription className="text-muted-foreground">
-            {paidBills.length > 0
-              ? billTypeFilter === 'income'
-                ? `${paidBills.length} income source${paidBills.length !== 1 ? 's' : ''} received`
-                : `${paidBills.length} bill${paidBills.length !== 1 ? 's' : ''} paid`
-              : billTypeFilter === 'income'
-                ? `No income received in ${format(paidMonth, 'MMMM yyyy')}`
-                : `No paid bills in ${format(paidMonth, 'MMMM yyyy')}`}
-          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="pt-0 px-3 pb-2 space-y-1">
           {paidBills.length > 0 ? (
             paidBills.map((instance) => (
               <BillItem key={instance.id} instance={instance} showDaysUntil={false} />
             ))
           ) : (
-            <p className="text-center text-muted-foreground py-8">
-              {billTypeFilter === 'income'
-                ? `No income was received in ${format(paidMonth, 'MMMM yyyy')}.`
-                : `No bills were paid in ${format(paidMonth, 'MMMM yyyy')}.`}
+            <p className="text-center text-muted-foreground py-3 text-sm">
+              No paid bills
             </p>
           )}
         </CardContent>
@@ -885,6 +647,16 @@ export default function BillsDashboard() {
         open={billPayModalOpen}
         onOpenChange={setBillPayModalOpen}
         onBillPaid={() => {
+          // Trigger refresh of bill data
+          window.dispatchEvent(new CustomEvent('bills-refresh'));
+        }}
+      />
+
+      {/* Quick Add Bill Modal */}
+      <QuickAddBillModal
+        open={quickAddModalOpen}
+        onOpenChange={setQuickAddModalOpen}
+        onBillCreated={() => {
           // Trigger refresh of bill data
           window.dispatchEvent(new CustomEvent('bills-refresh'));
         }}

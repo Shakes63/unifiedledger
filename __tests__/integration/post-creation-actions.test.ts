@@ -625,4 +625,283 @@ describe("Integration: Post-Creation Action Handlers", () => {
     expect(new Decimal(account1After[0].currentBalance ?? 0).toNumber()).toBe(1000.00); // Unchanged
     expect(new Decimal(account3After[0].currentBalance ?? 0).toNumber()).toBe(2000.00); // Unchanged
   });
+
+  // ============================================================================
+  // TEST 8: Year Boundary Crossing - Transfer Matching
+  // ============================================================================
+
+  it("should find potential match across year boundary (Dec 31 to Jan 1)", async () => {
+    // Note: 1-day-apart transactions score ~88 points (medium confidence)
+    // due to date scoring: 40 (amount) + ~28 (1-day date) + 20 (description) = ~88
+    // High confidence requires 90+ points (same-day transactions)
+    
+    // 1. Create Transaction B on Jan 1 (the match target)
+    const txnBData = createTestTransaction(testUserId, testHouseholdId, testAccount2Id, {
+      description: "Year End Transfer",
+      amount: 200.00,
+      date: "2025-01-01", // Jan 1
+      type: "income",
+      categoryId: null,
+    });
+    const [txnB] = await db.insert(transactions).values(txnBData).returning();
+
+    // 2. Create Transaction A on Dec 31 (1 day before)
+    const txnAData = createTestTransaction(testUserId, testHouseholdId, testAccount1Id, {
+      description: "Year End Transfer",
+      amount: 200.00,
+      date: "2024-12-31", // Dec 31 - crosses year boundary
+      type: "expense",
+      categoryId: null,
+    });
+    const [txnA] = await db.insert(transactions).values(txnAData).returning();
+
+    // 3. Execute transfer conversion with 7-day match range
+    const result = await handleTransferConversion(
+      testUserId,
+      txnA.id,
+      {
+        targetAccountId: testAccount2Id,
+        autoMatch: true,
+        matchTolerance: 1,
+        matchDayRange: 7,
+        createIfNoMatch: false,
+      }
+    );
+
+    // 4. Verify match found despite year boundary (medium confidence = suggestion)
+    expect(result.success).toBe(true);
+    expect(result.confidence).toBe('medium');
+    expect(result.suggestions).toBeDefined();
+    expect(result.suggestions!.length).toBeGreaterThan(0);
+    
+    // 5. Verify the correct transaction was found as a suggestion
+    const matchedSuggestion = result.suggestions!.find(s => s.transactionId === txnB.id);
+    expect(matchedSuggestion).toBeTruthy();
+    expect(matchedSuggestion!.totalScore).toBeGreaterThanOrEqual(70); // Medium confidence threshold
+  });
+
+  it("should match transactions 7 days across year boundary", async () => {
+    // 1. Create Transaction B on Jan 7 (the match target - 7 days from Dec 31)
+    const txnBData = createTestTransaction(testUserId, testHouseholdId, testAccount2Id, {
+      description: "Year Boundary Test",
+      amount: 150.00,
+      date: "2025-01-07", // 7 days from Dec 31
+      type: "income",
+      categoryId: null,
+    });
+    const [txnB] = await db.insert(transactions).values(txnBData).returning();
+
+    // 2. Create Transaction A on Dec 31
+    const txnAData = createTestTransaction(testUserId, testHouseholdId, testAccount1Id, {
+      description: "Year Boundary Test",
+      amount: 150.00,
+      date: "2024-12-31",
+      type: "expense",
+      categoryId: null,
+    });
+    const [txnA] = await db.insert(transactions).values(txnAData).returning();
+
+    // 3. Execute transfer conversion with 7-day match range
+    const result = await handleTransferConversion(
+      testUserId,
+      txnA.id,
+      {
+        targetAccountId: testAccount2Id,
+        autoMatch: true,
+        matchTolerance: 1,
+        matchDayRange: 7,
+        createIfNoMatch: false,
+      }
+    );
+
+    // 4. Should match (exactly 7 days apart, within range)
+    expect(result.success).toBe(true);
+    // Score breakdown: Amount=40 (exact), Date=~15 (7 days = edge of range), Description=20 (identical)
+    // Total ~75-77 points = medium confidence (date score drops significantly at 7 days)
+    // The result could be high or medium depending on exact scoring
+    expect(result.matchedTransactionId || result.suggestions?.length).toBeTruthy();
+  });
+
+  it("should NOT match transactions 8 days across year boundary", async () => {
+    // 1. Create Transaction B on Jan 8 (the match target - 8 days from Dec 31, out of range)
+    const txnBData = createTestTransaction(testUserId, testHouseholdId, testAccount2Id, {
+      description: "Out Of Range Test",
+      amount: 175.00,
+      date: "2025-01-08", // 8 days from Dec 31 - outside 7-day range
+      type: "income",
+      categoryId: null,
+    });
+    await db.insert(transactions).values(txnBData);
+
+    // 2. Create Transaction A on Dec 31
+    const txnAData = createTestTransaction(testUserId, testHouseholdId, testAccount1Id, {
+      description: "Out Of Range Test",
+      amount: 175.00,
+      date: "2024-12-31",
+      type: "expense",
+      categoryId: null,
+    });
+    const [txnA] = await db.insert(transactions).values(txnAData).returning();
+
+    // 3. Execute transfer conversion with 7-day match range
+    const result = await handleTransferConversion(
+      testUserId,
+      txnA.id,
+      {
+        targetAccountId: testAccount2Id,
+        autoMatch: true,
+        matchTolerance: 1,
+        matchDayRange: 7,
+        createIfNoMatch: false,
+      }
+    );
+
+    // 4. Should NOT match (8 days apart, outside range)
+    expect(result.success).toBe(true);
+    expect(result.matchedTransactionId).toBeUndefined();
+    expect(result.autoLinked).toBe(false);
+  });
+
+  // ============================================================================
+  // TEST 9: Leap Year Handling - Transfer Matching
+  // ============================================================================
+
+  it("should find potential match around leap year Feb 29", async () => {
+    // Note: 1-day-apart transactions score ~88 points (medium confidence)
+    
+    // 1. Create Transaction B on Feb 29 (leap year day)
+    const txnBData = createTestTransaction(testUserId, testHouseholdId, testAccount2Id, {
+      description: "Leap Year Transfer",
+      amount: 250.00,
+      date: "2024-02-29", // Feb 29, 2024 (leap year)
+      type: "income",
+      categoryId: null,
+    });
+    const [txnB] = await db.insert(transactions).values(txnBData).returning();
+
+    // 2. Create Transaction A on Feb 28 (1 day before)
+    const txnAData = createTestTransaction(testUserId, testHouseholdId, testAccount1Id, {
+      description: "Leap Year Transfer",
+      amount: 250.00,
+      date: "2024-02-28",
+      type: "expense",
+      categoryId: null,
+    });
+    const [txnA] = await db.insert(transactions).values(txnAData).returning();
+
+    // 3. Execute transfer conversion
+    const result = await handleTransferConversion(
+      testUserId,
+      txnA.id,
+      {
+        targetAccountId: testAccount2Id,
+        autoMatch: true,
+        matchTolerance: 1,
+        matchDayRange: 7,
+        createIfNoMatch: false,
+      }
+    );
+
+    // 4. Verify match found (medium confidence for 1-day-apart)
+    expect(result.success).toBe(true);
+    expect(result.confidence).toBe('medium');
+    expect(result.suggestions).toBeDefined();
+    
+    // 5. Verify the leap day transaction was correctly found
+    const matchedSuggestion = result.suggestions!.find(s => s.transactionId === txnB.id);
+    expect(matchedSuggestion).toBeTruthy();
+    expect(matchedSuggestion!.totalScore).toBeGreaterThanOrEqual(70);
+  });
+
+  it("should find potential match from leap day to March", async () => {
+    // 1. Create Transaction B on March 1 (day after Feb 29)
+    const txnBData = createTestTransaction(testUserId, testHouseholdId, testAccount2Id, {
+      description: "Leap Day to March",
+      amount: 300.00,
+      date: "2024-03-01",
+      type: "income",
+      categoryId: null,
+    });
+    const [txnB] = await db.insert(transactions).values(txnBData).returning();
+
+    // 2. Create Transaction A on Feb 29 (leap day)
+    const txnAData = createTestTransaction(testUserId, testHouseholdId, testAccount1Id, {
+      description: "Leap Day to March",
+      amount: 300.00,
+      date: "2024-02-29",
+      type: "expense",
+      categoryId: null,
+    });
+    const [txnA] = await db.insert(transactions).values(txnAData).returning();
+
+    // 3. Execute transfer conversion
+    const result = await handleTransferConversion(
+      testUserId,
+      txnA.id,
+      {
+        targetAccountId: testAccount2Id,
+        autoMatch: true,
+        matchTolerance: 1,
+        matchDayRange: 7,
+        createIfNoMatch: false,
+      }
+    );
+
+    // 4. Verify match found (medium confidence for 1-day-apart)
+    expect(result.success).toBe(true);
+    expect(result.confidence).toBe('medium');
+    expect(result.suggestions).toBeDefined();
+    
+    // 5. Verify March 1 transaction was correctly identified as potential match
+    const matchedSuggestion = result.suggestions!.find(s => s.transactionId === txnB.id);
+    expect(matchedSuggestion).toBeTruthy();
+    // Verify date scoring is correct: 1 day apart should give ~28 points for date
+    expect(matchedSuggestion!.dateScore).toBeGreaterThan(25);
+  });
+
+  it("should find potential match around Feb 28 in non-leap year", async () => {
+    // 1. Create Transaction B on March 1 (day after Feb 28 in non-leap year)
+    const txnBData = createTestTransaction(testUserId, testHouseholdId, testAccount2Id, {
+      description: "Non-Leap Year Feb End",
+      amount: 350.00,
+      date: "2025-03-01", // 2025 is not a leap year
+      type: "income",
+      categoryId: null,
+    });
+    const [txnB] = await db.insert(transactions).values(txnBData).returning();
+
+    // 2. Create Transaction A on Feb 28 (last day of Feb in non-leap year)
+    const txnAData = createTestTransaction(testUserId, testHouseholdId, testAccount1Id, {
+      description: "Non-Leap Year Feb End",
+      amount: 350.00,
+      date: "2025-02-28",
+      type: "expense",
+      categoryId: null,
+    });
+    const [txnA] = await db.insert(transactions).values(txnAData).returning();
+
+    // 3. Execute transfer conversion
+    const result = await handleTransferConversion(
+      testUserId,
+      txnA.id,
+      {
+        targetAccountId: testAccount2Id,
+        autoMatch: true,
+        matchTolerance: 1,
+        matchDayRange: 7,
+        createIfNoMatch: false,
+      }
+    );
+
+    // 4. Verify match found (medium confidence for 1-day-apart)
+    expect(result.success).toBe(true);
+    expect(result.confidence).toBe('medium');
+    expect(result.suggestions).toBeDefined();
+    
+    // 5. Verify the March 1 transaction was correctly found (1 day after Feb 28)
+    const matchedSuggestion = result.suggestions!.find(s => s.transactionId === txnB.id);
+    expect(matchedSuggestion).toBeTruthy();
+    // Date score should reflect exactly 1 day difference
+    expect(matchedSuggestion!.dateScore).toBeGreaterThan(25);
+  });
 });

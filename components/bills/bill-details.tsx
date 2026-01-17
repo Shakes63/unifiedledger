@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { Trash2, Edit, ArrowLeft, Calendar, DollarSign, CheckCircle2, AlertCircle, Clock, User, MoreHorizontal, ExternalLink, SkipForward } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -169,21 +169,19 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
   const paidInstances = instances.filter(i => i.status === 'paid').slice(0, 5);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       {/* Header with actions */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard/bills">
-            <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Bills
-            </Button>
-          </Link>
-        </div>
-        <div className="flex gap-2">
+        <Link href="/dashboard/bills">
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground h-7">
+            <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
+            Back
+          </Button>
+        </Link>
+        <div className="flex gap-1.5">
           <Link href={`/dashboard/bills/edit/${billId}`}>
-            <Button variant="outline" size="sm" className="border-[#2a2a2a] hover:bg-[#1a1a1a]">
-              <Edit className="w-4 h-4 mr-2" />
+            <Button variant="outline" size="sm" className="h-7 border-border hover:bg-elevated">
+              <Edit className="w-3.5 h-3.5 mr-1.5" />
               Edit
             </Button>
           </Link>
@@ -192,136 +190,127 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
             size="sm"
             onClick={handleDelete}
             disabled={deleting}
-            className="bg-red-600 hover:bg-red-700"
+            className="h-7 bg-error hover:bg-error/90"
           >
-            <Trash2 className="w-4 h-4 mr-2" />
+            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
             {deleting ? 'Deleting...' : 'Delete'}
           </Button>
         </div>
       </div>
 
       {/* Bill Details Card */}
-      <Card className="bg-[#0a0a0a] border-[#2a2a2a]">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <CardTitle className="text-2xl text-white">{bill.name}</CardTitle>
-              <CardDescription className="text-gray-400 mt-2">
-                {bill.isActive ? (
-                  <span className="text-emerald-400">Active</span>
-                ) : (
-                  <span className="text-red-400">Inactive</span>
-                )}
-              </CardDescription>
+      <Card className="bg-card border-border gap-0 py-0">
+        <CardHeader className="pt-2 pb-1 px-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg text-foreground">{bill.name}</CardTitle>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${bill.isActive ? 'bg-income/10 text-income' : 'bg-error/10 text-error'}`}>
+                {bill.isActive ? 'Active' : 'Inactive'}
+              </span>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-white">
+              <div className="text-xl font-mono font-bold text-foreground leading-tight">
                 ${bill.expectedAmount.toFixed(2)}
               </div>
-              <div className="text-sm text-gray-400">
-                {bill.isVariableAmount ? 'Variable amount' : 'Fixed amount'}
+              <div className="text-xs text-muted-foreground">
+                {bill.isVariableAmount ? 'Variable' : 'Fixed'}
               </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-gray-400">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm font-medium">Frequency</span>
+        <CardContent className="pt-1 px-3 pb-2 space-y-1.5">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-1">
+            <div>
+              <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                <Clock className="w-3 h-3" />
+                Frequency
               </div>
-              <p className="text-white">{FREQUENCY_LABELS[bill.frequency] || bill.frequency}</p>
+              <p className="text-sm text-foreground">{FREQUENCY_LABELS[bill.frequency] || bill.frequency}</p>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-gray-400">
-                <Calendar className="w-4 h-4" />
-                <span className="text-sm font-medium">Due Date</span>
+            <div>
+              <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                <Calendar className="w-3 h-3" />
+                Due Date
               </div>
-              <p className="text-white">
+              <p className="text-sm text-foreground">
                 {formatDueDateDisplay(bill.frequency, bill.dueDate, bill.specificDueDate || null, bill.startMonth)}
               </p>
             </div>
 
             {category && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-gray-400">
-                  <DollarSign className="w-4 h-4" />
-                  <span className="text-sm font-medium">Category</span>
+              <div>
+                <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                  <DollarSign className="w-3 h-3" />
+                  Category
                 </div>
-                <p className="text-white">{category.name}</p>
+                <p className="text-sm text-foreground">{category.name}</p>
               </div>
             )}
 
             {merchant && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-gray-400">
-                  <User className="w-4 h-4" />
-                  <span className="text-sm font-medium">Merchant</span>
+              <div>
+                <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                  <User className="w-3 h-3" />
+                  Merchant
                 </div>
-                <p className="text-white">{merchant.name}</p>
+                <p className="text-sm text-foreground">{merchant.name}</p>
               </div>
             )}
 
             {account && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-gray-400">
-                  <User className="w-4 h-4" />
-                  <span className="text-sm font-medium">Account</span>
+              <div>
+                <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                  <User className="w-3 h-3" />
+                  Account
                 </div>
-                <p className="text-white">{account.name}</p>
+                <p className="text-sm text-foreground">{account.name}</p>
               </div>
             )}
 
             {bill.isVariableAmount && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-gray-400">
-                  <DollarSign className="w-4 h-4" />
-                  <span className="text-sm font-medium">Amount Tolerance</span>
+              <div>
+                <div className="flex items-center gap-1 text-muted-foreground text-xs">
+                  <DollarSign className="w-3 h-3" />
+                  Tolerance
                 </div>
-                <p className="text-white">{bill.amountTolerance}%</p>
+                <p className="text-sm text-foreground">{bill.amountTolerance}%</p>
               </div>
             )}
           </div>
 
           {bill.payeePatterns && (
-            <div className="space-y-2 pt-2 border-t border-[#2a2a2a]">
-              <div className="text-sm font-medium text-gray-400">Payee Patterns</div>
-              <p className="text-white">{bill.payeePatterns}</p>
+            <div className="pt-1 border-t border-border">
+              <span className="text-xs text-muted-foreground">Payee Patterns: </span>
+              <span className="text-sm text-foreground">{bill.payeePatterns}</span>
             </div>
           )}
 
           {bill.notes && (
-            <div className="space-y-2 pt-2 border-t border-[#2a2a2a]">
-              <div className="text-sm font-medium text-gray-400">Notes</div>
-              <p className="text-white">{bill.notes}</p>
+            <div className="pt-1 border-t border-border">
+              <span className="text-xs text-muted-foreground">Notes: </span>
+              <span className="text-sm text-foreground">{bill.notes}</span>
             </div>
           )}
 
-          <div className="pt-2 border-t border-[#2a2a2a] flex items-center gap-4 text-sm">
-            <div>
-              <span className="text-gray-400">Auto-mark paid: </span>
-              <span className="text-white">{bill.autoMarkPaid ? 'Yes' : 'No'}</span>
-            </div>
-            <div>
-              <span className="text-gray-400">Created: </span>
-              <span className="text-white">{format(parseISO(bill.createdAt), 'MMM d, yyyy')}</span>
-            </div>
+          <div className="pt-1 border-t border-border flex items-center gap-4 text-xs text-muted-foreground">
+            <span>Auto-mark: <span className="text-foreground">{bill.autoMarkPaid ? 'Yes' : 'No'}</span></span>
+            <span>Created: <span className="text-foreground">{format(parseISO(bill.createdAt), 'MMM d, yyyy')}</span></span>
           </div>
         </CardContent>
       </Card>
 
       {/* Overdue Instances */}
       {overdueInstances.length > 0 && (
-        <Card className="bg-card border-error/30">
-          <CardHeader>
-            <CardTitle className="text-error flex items-center gap-2">
-              <AlertCircle className="w-5 h-5" />
-              Overdue Instances ({overdueInstances.length})
+        <Card className="bg-card border-error/30 gap-0 py-0">
+          <CardHeader className="py-1.5 px-3">
+            <CardTitle className="text-error flex items-center gap-2 text-sm font-semibold">
+              <AlertCircle className="w-3.5 h-3.5" />
+              Overdue
+              <span className="text-xs font-normal text-muted-foreground">({overdueInstances.length})</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="pt-0 px-3 pb-1.5 space-y-0.5">
             {overdueInstances.map((instance) => (
               <InstanceItem
                 key={instance.id}
@@ -336,14 +325,15 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
 
       {/* Upcoming Instances */}
       {upcomingInstances.length > 0 && (
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-warning" />
-              Upcoming Instances
+        <Card className="bg-card border-border gap-0 py-0">
+          <CardHeader className="py-1.5 px-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <Clock className="w-3.5 h-3.5 text-warning" />
+              Upcoming
+              <span className="text-xs font-normal text-muted-foreground">({upcomingInstances.length})</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="pt-0 px-3 pb-1.5 space-y-0.5">
             {upcomingInstances.map((instance) => (
               <InstanceItem
                 key={instance.id}
@@ -358,14 +348,15 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
 
       {/* Paid Instances */}
       {paidInstances.length > 0 && (
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-success" />
-              Recently Paid
+        <Card className="bg-card border-border gap-0 py-0">
+          <CardHeader className="py-1.5 px-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+              Paid
+              <span className="text-xs font-normal text-muted-foreground">({paidInstances.length})</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="pt-0 px-3 pb-1.5 space-y-0.5">
             {paidInstances.map((instance) => (
               <InstanceItem
                 key={instance.id}
@@ -380,14 +371,15 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
 
       {/* Skipped Instances */}
       {instances.filter(i => i.status === 'skipped').length > 0 && (
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <SkipForward className="w-5 h-5 text-muted-foreground" />
-              Skipped Instances
+        <Card className="bg-card border-border gap-0 py-0">
+          <CardHeader className="py-1.5 px-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+              <SkipForward className="w-3.5 h-3.5 text-muted-foreground" />
+              Skipped
+              <span className="text-xs font-normal text-muted-foreground">({instances.filter(i => i.status === 'skipped').length})</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="pt-0 px-3 pb-1.5 space-y-0.5">
             {instances.filter(i => i.status === 'skipped').map((instance) => (
               <InstanceItem
                 key={instance.id}
@@ -428,50 +420,46 @@ function InstanceItem({ instance, bill: _bill, onAction }: InstanceItemProps) {
   const isSkipped = instance.status === 'skipped';
 
   return (
-    <div className="flex items-center justify-between p-3 bg-elevated border border-border rounded-lg hover:bg-card transition-colors">
-      <div className="flex items-start gap-3 flex-1">
-        <div className="mt-0.5">
-          {isPaid && <CheckCircle2 className="w-5 h-5 text-success" />}
-          {isOverdue && <AlertCircle className="w-5 h-5 text-error" />}
-          {isPending && <Clock className="w-5 h-5 text-warning" />}
-          {isSkipped && <SkipForward className="w-5 h-5 text-muted-foreground" />}
-        </div>
+    <div className="flex items-center justify-between px-2 py-1.5 bg-elevated border border-border rounded-md hover:bg-card transition-colors">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        {isPaid && <CheckCircle2 className="w-4 h-4 text-success shrink-0" />}
+        {isOverdue && <AlertCircle className="w-4 h-4 text-error shrink-0" />}
+        {isPending && <Clock className="w-4 h-4 text-warning shrink-0" />}
+        {isSkipped && <SkipForward className="w-4 h-4 text-muted-foreground shrink-0" />}
+        
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-muted-foreground">Due: {format(dueDate, 'MMM d, yyyy')}</p>
-          {isOverdue && instance.daysLate > 0 && (
-            <p className="text-sm text-error">
-              {instance.daysLate} day{instance.daysLate !== 1 ? 's' : ''} overdue
-              {instance.lateFee > 0 && ` - Late fee: $${instance.lateFee.toFixed(2)}`}
-            </p>
-          )}
-          {isPaid && instance.paidDate && (
-            <p className="text-sm text-success">
-              Paid: {format(parseISO(instance.paidDate), 'MMM d, yyyy')}
-            </p>
-          )}
-          {isSkipped && (
-            <p className="text-sm text-muted-foreground">Skipped</p>
-          )}
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">{format(dueDate, 'MMM d, yyyy')}</span>
+            {isOverdue && instance.daysLate > 0 && (
+              <span className="text-error">
+                {instance.daysLate}d late{instance.lateFee > 0 && ` (+$${instance.lateFee.toFixed(0)})`}
+              </span>
+            )}
+            {isPaid && instance.paidDate && (
+              <span className="text-success">Paid {format(parseISO(instance.paidDate), 'MMM d')}</span>
+            )}
+            {isSkipped && <span className="text-muted-foreground">Skipped</span>}
+          </div>
           {instance.notes && (
-            <p className="text-sm text-muted-foreground mt-1 truncate">{instance.notes}</p>
+            <p className="text-xs text-muted-foreground truncate">{instance.notes}</p>
           )}
           {isPaid && instance.transactionId && (
             <Link
               href={`/dashboard/transactions/${instance.transactionId}`}
-              className="text-sm text-primary hover:underline inline-flex items-center gap-1 mt-1"
+              className="text-xs text-primary hover:underline inline-flex items-center gap-1"
             >
               <ExternalLink className="w-3 h-3" />
-              View Transaction
+              View
             </Link>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 shrink-0 pl-2">
         <div className="text-right">
-          <p className="font-mono font-medium text-foreground">${instance.expectedAmount.toFixed(2)}</p>
+          <p className="font-mono text-sm font-medium text-foreground">${instance.expectedAmount.toFixed(2)}</p>
           {instance.actualAmount && instance.actualAmount !== instance.expectedAmount && (
-            <p className="text-sm text-muted-foreground font-mono">
-              Actual: ${instance.actualAmount.toFixed(2)}
+            <p className="text-xs text-muted-foreground font-mono">
+              ${instance.actualAmount.toFixed(2)}
             </p>
           )}
         </div>
@@ -479,35 +467,26 @@ function InstanceItem({ instance, bill: _bill, onAction }: InstanceItemProps) {
         {/* Action Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <MoreHorizontal className="w-4 h-4" />
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+              <MoreHorizontal className="w-3.5 h-3.5" />
               <span className="sr-only">Open menu</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-card border-border">
             {(isPending || isOverdue) && (
               <>
-                <DropdownMenuItem
-                  onClick={() => onAction(instance)}
-                  className="cursor-pointer"
-                >
-                  <CheckCircle2 className="w-4 h-4 mr-2 text-success" />
-                  Mark as Paid
+                <DropdownMenuItem onClick={() => onAction(instance)} className="cursor-pointer text-sm">
+                  <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-success" />
+                  Mark Paid
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => onAction(instance)}
-                  className="cursor-pointer"
-                >
-                  <SkipForward className="w-4 h-4 mr-2" />
-                  Skip Instance
+                <DropdownMenuItem onClick={() => onAction(instance)} className="cursor-pointer text-sm">
+                  <SkipForward className="w-3.5 h-3.5 mr-2" />
+                  Skip
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => onAction(instance)}
-                  className="cursor-pointer"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Link to Transaction
+                <DropdownMenuItem onClick={() => onAction(instance)} className="cursor-pointer text-sm">
+                  <ExternalLink className="w-3.5 h-3.5 mr-2" />
+                  Link Transaction
                 </DropdownMenuItem>
               </>
             )}
@@ -515,31 +494,22 @@ function InstanceItem({ instance, bill: _bill, onAction }: InstanceItemProps) {
               <>
                 {instance.transactionId && (
                   <DropdownMenuItem asChild>
-                    <Link
-                      href={`/dashboard/transactions/${instance.transactionId}`}
-                      className="cursor-pointer"
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      View Linked Transaction
+                    <Link href={`/dashboard/transactions/${instance.transactionId}`} className="cursor-pointer text-sm">
+                      <ExternalLink className="w-3.5 h-3.5 mr-2" />
+                      View Transaction
                     </Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem
-                  onClick={() => onAction(instance)}
-                  className="cursor-pointer"
-                >
-                  <Clock className="w-4 h-4 mr-2" />
-                  Mark as Pending
+                <DropdownMenuItem onClick={() => onAction(instance)} className="cursor-pointer text-sm">
+                  <Clock className="w-3.5 h-3.5 mr-2" />
+                  Mark Pending
                 </DropdownMenuItem>
               </>
             )}
             {isSkipped && (
-              <DropdownMenuItem
-                onClick={() => onAction(instance)}
-                className="cursor-pointer"
-              >
-                <Clock className="w-4 h-4 mr-2" />
-                Mark as Pending
+              <DropdownMenuItem onClick={() => onAction(instance)} className="cursor-pointer text-sm">
+                <Clock className="w-3.5 h-3.5 mr-2" />
+                Mark Pending
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>

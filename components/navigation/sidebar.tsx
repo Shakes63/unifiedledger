@@ -22,6 +22,7 @@ import {
   LayoutGrid,
   Tags,
   HelpCircle,
+  ArrowDownCircle,
 } from 'lucide-react';
 import Image from 'next/image';
 import { HouseholdSelector } from '@/components/household/household-selector';
@@ -67,6 +68,7 @@ const navSections: NavSection[] = [
       { label: 'Budgets', href: '/dashboard/budgets', icon: <Calculator className="w-4 h-4" /> },
       { label: 'Budget Summary', href: '/dashboard/budget-summary', icon: <LayoutGrid className="w-4 h-4" /> },
       { label: 'Bills', href: '/dashboard/bills', icon: <FileText className="w-4 h-4" /> },
+      { label: 'Income', href: '/dashboard/income', icon: <ArrowDownCircle className="w-4 h-4" /> },
     ],
   },
   {

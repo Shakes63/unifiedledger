@@ -146,6 +146,12 @@ export type BillFrequency =
   | 'semi-annual'
   | 'annual';
 
+// Split allocation template for a bill (stored as JSON in splitAllocations)
+export interface SplitAllocationTemplate {
+  periodNumber: number;
+  percentage: number; // 0-100
+}
+
 export interface Bill {
   id: string;
   userId: string;
@@ -167,10 +173,15 @@ export interface Bill {
   autoMarkPaid: boolean;
   notes?: string | null;
   budgetPeriodAssignment?: number | null;
+  // Split payment across periods (for partial payment budgeting)
+  splitAcrossPeriods?: boolean;
+  splitAllocations?: string | null; // JSON of SplitAllocationTemplate[]
   createdAt: string;
 }
 
 export type BillInstanceStatus = 'pending' | 'paid' | 'overdue' | 'skipped';
+
+export type BillPaymentStatus = 'unpaid' | 'partial' | 'paid' | 'overpaid';
 
 export interface BillInstance {
   id: string;
@@ -188,6 +199,28 @@ export interface BillInstance {
   isManualOverride: boolean;
   notes?: string | null;
   budgetPeriodOverride?: number | null;
+  // Partial payment tracking
+  paidAmount?: number;
+  remainingAmount?: number | null;
+  paymentStatus?: BillPaymentStatus;
+  principalPaid?: number;
+  interestPaid?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Bill instance allocation for tracking period splits
+export interface BillInstanceAllocation {
+  id: string;
+  billInstanceId: string;
+  billId: string;
+  userId: string;
+  householdId: string;
+  periodNumber: number;
+  allocatedAmount: number;
+  isPaid: boolean;
+  paidAmount: number;
+  allocationId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -451,6 +484,8 @@ export interface AccountFormData {
   repaymentPeriodEndDate?: string | null;
   interestType?: InterestType;
   primeRateMargin?: number | null;
+  // Budget integration (Paycheck Balance Widget)
+  includeInDiscretionary?: boolean;
 }
 
 /**

@@ -1,0 +1,412 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+import { Loader2, Plus, Check, X, ArrowDownCircle } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
+import { DAY_OF_WEEK_OPTIONS } from '@/lib/bills/bill-utils';
+
+interface Category {
+  id: string;
+  name: string;
+  type: string;
+}
+
+interface QuickAddIncomeModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onIncomeCreated?: () => void;
+}
+
+// Income classification options
+const INCOME_TYPES = [
+  { value: 'salary', label: 'Salary/Wages' },
+  { value: 'rental', label: 'Rental Income' },
+  { value: 'investment', label: 'Investment/Dividends' },
+  { value: 'freelance', label: 'Freelance/Contract' },
+  { value: 'benefits', label: 'Government Benefits' },
+  { value: 'other', label: 'Other' },
+];
+
+// Only support simple frequencies in Quick Add
+const QUICK_ADD_FREQUENCIES = [
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Every 2 Weeks' },
+];
+
+export function QuickAddIncomeModal({
+  open,
+  onOpenChange,
+  onIncomeCreated,
+}: QuickAddIncomeModalProps) {
+  const { selectedHouseholdId } = useHousehold();
+  const { fetchWithHousehold } = useHouseholdFetch();
+
+  // Form state
+  const [name, setName] = useState('');
+  const [amount, setAmount] = useState('');
+  const [frequency, setFrequency] = useState('monthly');
+  const [expectedDate, setExpectedDate] = useState('1');
+  const [incomeType, setIncomeType] = useState('salary');
+  const [categoryId, setCategoryId] = useState('');
+
+  // UI state
+  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+
+  // Track if form has data for discard confirmation
+  const hasData = name.trim() !== '' || amount !== '';
+
+  // Fetch categories on mount
+  useEffect(() => {
+    if (open && selectedHouseholdId) {
+      fetchWithHousehold('/api/categories')
+        .then((res) => res.json())
+        .then((data) => {
+          setCategories(Array.isArray(data) ? data : []);
+        })
+        .catch(console.error);
+    }
+  }, [open, selectedHouseholdId, fetchWithHousehold]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!open) {
+      const timer = setTimeout(() => {
+        resetForm();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+
+  const resetForm = useCallback(() => {
+    setName('');
+    setAmount('');
+    setFrequency('monthly');
+    setExpectedDate('1');
+    setIncomeType('salary');
+    setCategoryId('');
+  }, []);
+
+  const handleClose = useCallback(() => {
+    if (hasData) {
+      setShowDiscardConfirm(true);
+    } else {
+      onOpenChange(false);
+    }
+  }, [hasData, onOpenChange]);
+
+  const handleConfirmDiscard = useCallback(() => {
+    setShowDiscardConfirm(false);
+    onOpenChange(false);
+  }, [onOpenChange]);
+
+  const handleSubmit = async (saveAndAddAnother: boolean = false) => {
+    // Validation
+    if (!name.trim()) {
+      toast.error('Income source name is required');
+      return;
+    }
+
+    const parsedAmount = parseFloat(amount);
+    if (!amount || isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    const parsedDate = parseInt(expectedDate);
+    if (isNaN(parsedDate)) {
+      toast.error('Please select an expected date');
+      return;
+    }
+
+    // Validate date range
+    const isWeekBased = frequency === 'weekly' || frequency === 'biweekly';
+    if (isWeekBased) {
+      if (parsedDate < 0 || parsedDate > 6) {
+        toast.error('Please select a valid day of week');
+        return;
+      }
+    } else {
+      if (parsedDate < 1 || parsedDate > 31) {
+        toast.error('Day must be between 1 and 31');
+        return;
+      }
+    }
+
+    try {
+      setLoading(true);
+
+      const incomeData: Record<string, unknown> = {
+        name: name.trim(),
+        expectedAmount: parsedAmount,
+        frequency,
+        dueDate: parsedDate,
+        categoryId: categoryId || null,
+        billType: 'income',
+        billClassification: incomeType,
+        autoMarkPaid: true,
+      };
+
+      const response = await fetchWithHousehold('/api/bills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(incomeData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create income source');
+      }
+
+      toast.success(`Income source "${name}" created successfully`);
+
+      if (saveAndAddAnother) {
+        resetForm();
+        setTimeout(() => {
+          document.getElementById('quick-add-income-name')?.focus();
+        }, 100);
+      } else {
+        onOpenChange(false);
+      }
+
+      onIncomeCreated?.();
+    } catch (error) {
+      console.error('Error creating income source:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create income source');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isWeekBased = frequency === 'weekly' || frequency === 'biweekly';
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-[425px] bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-foreground flex items-center gap-2">
+              <ArrowDownCircle className="w-5 h-5 text-income" />
+              Add Income Source
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Add a recurring income source quickly. Use the full form for advanced options.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit(false);
+            }}
+            className="space-y-4 mt-2"
+          >
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="quick-add-income-name" className="text-foreground">
+                Income Source Name
+              </Label>
+              <Input
+                id="quick-add-income-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., Monthly Salary, Rental Income"
+                className="bg-elevated border-border"
+                autoFocus
+              />
+            </div>
+
+            {/* Amount */}
+            <div className="space-y-2">
+              <Label htmlFor="quick-add-income-amount" className="text-foreground">
+                Expected Amount
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  $
+                </span>
+                <Input
+                  id="quick-add-income-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="0.00"
+                  className="pl-7 bg-elevated border-border"
+                />
+              </div>
+            </div>
+
+            {/* Income Type and Frequency Row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-foreground">Type</Label>
+                <Select value={incomeType} onValueChange={setIncomeType}>
+                  <SelectTrigger className="bg-elevated border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {INCOME_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-foreground">Frequency</Label>
+                <Select value={frequency} onValueChange={setFrequency}>
+                  <SelectTrigger className="bg-elevated border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {QUICK_ADD_FREQUENCIES.map((f) => (
+                      <SelectItem key={f.value} value={f.value}>
+                        {f.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Expected Date */}
+            <div className="space-y-2">
+              <Label className="text-foreground">
+                {isWeekBased ? 'Day of Week' : 'Day of Month'}
+              </Label>
+              {isWeekBased ? (
+                <Select value={expectedDate} onValueChange={setExpectedDate}>
+                  <SelectTrigger className="bg-elevated border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    {DAY_OF_WEEK_OPTIONS.map((day) => (
+                      <SelectItem key={day.value} value={day.value.toString()}>
+                        {day.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={expectedDate}
+                  onChange={(e) => setExpectedDate(e.target.value)}
+                  placeholder="1"
+                  className="bg-elevated border-border"
+                />
+              )}
+            </div>
+
+            {/* Category (Optional) */}
+            <div className="space-y-2">
+              <Label className="text-foreground">
+                Category <span className="text-muted-foreground text-xs">(optional)</span>
+              </Label>
+              <Select value={categoryId || 'none'} onValueChange={(val) => setCategoryId(val === 'none' ? '' : val)}>
+                <SelectTrigger className="bg-elevated border-border">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="none">None</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-2 pt-2">
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 bg-income hover:bg-income/90 text-white"
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4 mr-2" />
+                  )}
+                  Save
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => handleSubmit(true)}
+                  disabled={loading}
+                  variant="outline"
+                  className="flex-1 border-border"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Save & Add Another
+                </Button>
+              </div>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Discard Confirmation */}
+      <AlertDialog open={showDiscardConfirm} onOpenChange={setShowDiscardConfirm}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Discard changes?</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              You have unsaved changes. Are you sure you want to close without saving?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-border">Keep Editing</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDiscard}
+              className="bg-error hover:bg-error/90 text-white"
+            >
+              Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+

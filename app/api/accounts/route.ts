@@ -88,6 +88,8 @@ export async function POST(request: Request) {
       repaymentPeriodEndDate,
       interestType = 'fixed',
       primeRateMargin,
+      // Budget integration
+      includeInDiscretionary,
     } = body;
 
     if (!name || !type || !bankName) {
@@ -163,6 +165,10 @@ export async function POST(request: Request) {
         repaymentPeriodEndDate: type === 'line_of_credit' ? (repaymentPeriodEndDate || null) : null,
         interestType: type === 'line_of_credit' ? interestType : 'fixed',
         primeRateMargin: type === 'line_of_credit' ? (primeRateMargin || null) : null,
+        // Budget integration - smart defaults based on type
+        includeInDiscretionary: includeInDiscretionary !== undefined 
+          ? includeInDiscretionary 
+          : ['checking', 'cash'].includes(type),
       });
 
       // Track promises for parallel execution

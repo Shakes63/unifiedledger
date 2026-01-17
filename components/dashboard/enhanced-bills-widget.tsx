@@ -205,13 +205,13 @@ export function EnhancedBillsWidget() {
 
   if (loading) {
     return (
-      <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
-        <div className="animate-pulse space-y-4">
-          <div className="h-6 rounded w-1/3" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
-          <div className="h-4 rounded w-full" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-16 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
+      <Card className="p-4 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+        <div className="animate-pulse space-y-3">
+          <div className="h-5 rounded w-1/3" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
+          <div className="h-3 rounded w-full" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
+          <div className="space-y-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-12 rounded" style={{ backgroundColor: 'var(--color-elevated)' }}></div>
             ))}
           </div>
         </div>
@@ -220,29 +220,29 @@ export function EnhancedBillsWidget() {
   }
 
   return (
-    <Card className="p-6 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
+    <Card className="p-4 border rounded-xl" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-card)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <CalendarIcon className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
-          <h3 className="text-lg font-semibold text-foreground">This Month&apos;s Bills</h3>
+          <CalendarIcon className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
+          <h3 className="text-base font-semibold text-foreground">This Month&apos;s Bills</h3>
         </div>
         <div className="flex items-center gap-2">
           <Button
             size="sm"
             onClick={() => setBillPayModalOpen(true)}
-            className="bg-income hover:opacity-90 text-white"
+            className="bg-income hover:opacity-90 text-white h-8 text-xs"
           >
-            <Wallet className="w-4 h-4 mr-1" />
+            <Wallet className="w-3.5 h-3.5 mr-1" />
             Pay Bills
           </Button>
           <Link href="/dashboard/bills">
             <Button
               variant="ghost"
               size="sm"
-              className="hover:bg-elevated text-primary"
+              className="hover:bg-elevated text-primary h-8 text-xs"
             >
-              View All <ArrowRight className="w-4 h-4 ml-1" />
+              View All <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Button>
           </Link>
         </div>
@@ -258,16 +258,16 @@ export function EnhancedBillsWidget() {
       {bills.length > 0 ? (
         <>
           {/* Progress Bar */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-foreground font-medium">
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs text-foreground font-medium">
                 {paidCount} of {totalCount} bills paid
               </span>
-              <span className="text-sm font-semibold" style={{ color: 'var(--color-success)' }}>
+              <span className="text-xs font-semibold" style={{ color: 'var(--color-success)' }}>
                 {progressPercentage.toFixed(0)}%
               </span>
             </div>
-            <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
               <div
                 className="h-full transition-all duration-300"
                 style={{
@@ -278,28 +278,34 @@ export function EnhancedBillsWidget() {
             </div>
           </div>
 
-          {/* Amount Summary */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
-              <p className="text-muted-foreground text-xs mb-1">Total</p>
-              <p className="text-base font-bold text-foreground">${totalAmount.toFixed(2)}</p>
+          {/* Amount Summary - Inline on larger screens */}
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="px-2 py-1.5 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5">
+                <p className="text-muted-foreground text-xs">Total</p>
+                <p className="text-sm font-bold text-foreground">${totalAmount.toFixed(2)}</p>
+              </div>
             </div>
-            <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
-              <p className="text-muted-foreground text-xs mb-1">Paid</p>
-              <p className="text-base font-bold" style={{ color: 'var(--color-success)' }}>
-                ${paidAmount.toFixed(2)}
-              </p>
+            <div className="px-2 py-1.5 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5">
+                <p className="text-muted-foreground text-xs">Paid</p>
+                <p className="text-sm font-bold" style={{ color: 'var(--color-success)' }}>
+                  ${paidAmount.toFixed(2)}
+                </p>
+              </div>
             </div>
-            <div className="p-3 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
-              <p className="text-muted-foreground text-xs mb-1">Remaining</p>
-              <p className="text-base font-bold" style={{ color: overdueCount > 0 ? 'var(--color-error)' : 'var(--color-warning)' }}>
-                ${remainingAmount.toFixed(2)}
-              </p>
+            <div className="px-2 py-1.5 rounded-lg border" style={{ backgroundColor: 'var(--color-elevated)', borderColor: 'var(--color-border)' }}>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5">
+                <p className="text-muted-foreground text-xs">Remaining</p>
+                <p className="text-sm font-bold" style={{ color: overdueCount > 0 ? 'var(--color-error)' : 'var(--color-warning)' }}>
+                  ${remainingAmount.toFixed(2)}
+                </p>
+              </div>
             </div>
           </div>
 
           {/* Sort Toggle */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               {overdueCount > 0 && (
                 <span className="px-2 py-1 rounded-md bg-error/20 text-error font-medium">
@@ -333,7 +339,7 @@ export function EnhancedBillsWidget() {
           </div>
 
           {/* Bills List */}
-          <div className="space-y-2 max-h-[500px] overflow-y-auto">
+          <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
             {bills.map((bill) => {
               const dueDate = parseISO(bill.dueDate);
               const formattedDate = format(dueDate, 'MMM d');
@@ -347,10 +353,10 @@ export function EnhancedBillsWidget() {
               return (
                 <div
                   key={bill.id}
-                  className="flex items-center justify-between p-4 rounded-lg border transition-all hover:bg-elevated"
+                  className="flex items-center justify-between px-3 py-2 rounded-lg border transition-all hover:bg-elevated"
                   style={{ backgroundColor: 'var(--color-card)', borderColor: 'var(--color-border)' }}
                 >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
                     {getStatusIcon(bill.status)}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground truncate">{bill.bill?.name}</p>
@@ -364,12 +370,12 @@ export function EnhancedBillsWidget() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0">
                     <p className="text-sm font-bold text-foreground">
                       ${(bill.actualAmount || bill.expectedAmount).toFixed(2)}
                     </p>
                     <span
-                      className={`px-3 py-1 rounded-md text-xs font-medium ${getStatusColor(
+                      className={`px-2 py-0.5 rounded-md text-xs font-medium ${getStatusColor(
                         bill.status
                       )}`}
                     >

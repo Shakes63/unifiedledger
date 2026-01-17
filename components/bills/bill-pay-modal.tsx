@@ -23,9 +23,11 @@ import {
   Loader2,
   CreditCard,
   ArrowDownCircle,
+  Split,
 } from 'lucide-react';
 import { BillPayForm } from './bill-pay-form';
 import Decimal from 'decimal.js';
+import type { BillInstanceAllocation } from '@/lib/types';
 
 interface BillInstance {
   id: string;
@@ -35,6 +37,9 @@ interface BillInstance {
   actualAmount?: number;
   status: 'pending' | 'paid' | 'overdue' | 'skipped';
   budgetPeriodOverride?: number | null;
+  paidAmount?: number;
+  remainingAmount?: number | null;
+  paymentStatus?: 'unpaid' | 'partial' | 'paid' | 'overpaid';
 }
 
 interface Bill {
@@ -47,6 +52,7 @@ interface Bill {
   frequency: string;
   billType?: 'expense' | 'income' | 'savings_transfer';
   budgetPeriodAssignment?: number | null;
+  splitAcrossPeriods?: boolean;
 }
 
 interface Category {
@@ -70,7 +76,15 @@ interface BillWithInstance {
     isOverride: boolean;
     isBillDefault: boolean;
     isAutomatic: boolean;
+    isSplitAllocation?: boolean;
   };
+  // Allocation data from API
+  allocation?: BillInstanceAllocation | null;
+  allAllocations?: BillInstanceAllocation[];
+  isSplit?: boolean;
+  displayAmount?: number;
+  displayPaidAmount?: number;
+  displayRemainingAmount?: number;
 }
 
 interface PeriodInfo {
@@ -162,12 +176,13 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
     }
   }, [open, fetchBillsByPeriod, fetchAccounts]);
 
-  const handlePay = async (instanceId: string, accountId: string, amount: number) => {
+  const handlePay = async (instanceId: string, accountId: string, amount: number, allocationId?: string) => {
     try {
       setProcessingPayment(true);
       const response = await postWithHousehold(`/api/bills/instances/${instanceId}/pay`, {
         accountId,
         amount,
+        allocationId,
       });
 
       if (!response.ok) {
@@ -175,7 +190,15 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
         throw new Error(error.error || 'Failed to pay bill');
       }
 
-      toast.success('Bill paid successfully');
+      const result = await response.json();
+      
+      // Show different toast based on payment status
+      if (result.payment?.paymentStatus === 'partial') {
+        toast.success(`Partial payment of $${new Decimal(amount).toFixed(2)} recorded`);
+      } else {
+        toast.success('Bill paid successfully');
+      }
+      
       setPayingBillId(null);
       
       // Refresh the bills list
@@ -219,10 +242,21 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
     }
   };
 
-  const unpaidBills = bills.filter(
-    (b) => b.instance.status === 'pending' || b.instance.status === 'overdue'
-  );
-  const paidBills = bills.filter((b) => b.instance.status === 'paid');
+  // Filter bills based on payment status for this period
+  const unpaidBills = bills.filter((b) => {
+    // If has allocation, check allocation paid status
+    if (b.allocation) {
+      return !b.allocation.isPaid;
+    }
+    return b.instance.status === 'pending' || b.instance.status === 'overdue';
+  });
+  
+  const paidBills = bills.filter((b) => {
+    if (b.allocation) {
+      return b.allocation.isPaid;
+    }
+    return b.instance.status === 'paid';
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -318,7 +352,7 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
                   <div className="space-y-2">
                     {unpaidBills.map((item) => (
                       <BillItem
-                        key={item.instance.id}
+                        key={`${item.instance.id}-${item.allocation?.id || 'full'}`}
                         item={item}
                         accounts={accounts}
                         isPayFormOpen={payingBillId === item.instance.id}
@@ -343,15 +377,24 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
                   <div className="space-y-2 opacity-75">
                     {paidBills.map((item) => (
                       <div
-                        key={item.instance.id}
+                        key={`${item.instance.id}-${item.allocation?.id || 'full'}`}
                         className="flex items-center justify-between p-3 bg-elevated rounded-lg border border-income/20"
                       >
                         <div className="flex items-center gap-3">
                           <CheckCircle2 className="w-5 h-5 text-income" />
                           <div>
-                            <p className="font-medium text-foreground">{item.bill.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-foreground">{item.bill.name}</p>
+                              {item.isSplit && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary flex items-center gap-1">
+                                  <Split className="w-3 h-3" />
+                                  P{item.allocation?.periodNumber}
+                                </span>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground">
-                              Paid {item.instance.actualAmount ? `$${new Decimal(item.instance.actualAmount).toFixed(2)}` : ''}
+                              Paid ${new Decimal(item.displayPaidAmount || item.instance.actualAmount || item.instance.expectedAmount).toFixed(2)}
+                              {item.isSplit && ` of $${new Decimal(item.instance.expectedAmount).toFixed(2)}`}
                             </p>
                           </div>
                         </div>
@@ -385,7 +428,7 @@ interface BillItemProps {
   isPayFormOpen: boolean;
   onOpenPayForm: () => void;
   onClosePayForm: () => void;
-  onPay: (instanceId: string, accountId: string, amount: number) => void;
+  onPay: (instanceId: string, accountId: string, amount: number, allocationId?: string) => void;
   onMarkPaid: (instanceId: string) => void;
   processing: boolean;
 }
@@ -402,7 +445,14 @@ function BillItem({
 }: BillItemProps) {
   const isOverdue = item.instance.status === 'overdue';
   const isIncome = item.bill.billType === 'income';
+  const isPartiallyPaid = item.instance.paymentStatus === 'partial' || 
+    (item.allocation && (item.allocation.paidAmount || 0) > 0 && !item.allocation.isPaid);
   const dueDate = parseISO(item.instance.dueDate);
+  
+  // Use display amounts if available (for split bills)
+  const displayAmount = item.displayAmount ?? item.instance.expectedAmount;
+  const displayRemaining = item.displayRemainingAmount ?? 
+    (item.instance.remainingAmount ?? item.instance.expectedAmount);
 
   return (
     <div
@@ -421,6 +471,8 @@ function BillItem({
               <AlertCircle className="w-5 h-5 text-error" />
             ) : isIncome ? (
               <ArrowDownCircle className="w-5 h-5 text-income/50" />
+            ) : isPartiallyPaid ? (
+              <Clock className="w-5 h-5 text-primary" />
             ) : (
               <Clock className="w-5 h-5 text-warning" />
             )}
@@ -428,6 +480,12 @@ function BillItem({
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <p className="font-medium text-foreground truncate">{item.bill.name}</p>
+              {item.isSplit && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary flex items-center gap-1">
+                  <Split className="w-3 h-3" />
+                  P{item.allocation?.periodNumber}
+                </span>
+              )}
               {item.periodAssignment.isOverride && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                   Override
@@ -442,13 +500,33 @@ function BillItem({
             <p className="text-xs text-muted-foreground">
               {isIncome ? 'Expected' : 'Due'}: {format(dueDate, 'MMM d')}
               {item.category && ` - ${item.category.name}`}
+              {item.isSplit && ` (of $${new Decimal(item.instance.expectedAmount).toFixed(2)} total)`}
             </p>
+            {isPartiallyPaid && (
+              <div className="mt-1">
+                <div className="h-1.5 bg-background rounded-full overflow-hidden w-24">
+                  <div 
+                    className="h-full bg-success transition-all duration-300"
+                    style={{ 
+                      width: `${((item.allocation?.paidAmount || item.instance.paidAmount || 0) / displayAmount) * 100}%` 
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <p className={`font-medium ${isIncome ? 'text-income' : 'text-foreground'}`}>
-            {isIncome ? '+' : ''}${new Decimal(item.instance.expectedAmount).toFixed(2)}
-          </p>
+          <div className="text-right">
+            <p className={`font-medium ${isIncome ? 'text-income' : 'text-foreground'}`}>
+              {isIncome ? '+' : ''}${new Decimal(displayAmount).toFixed(2)}
+            </p>
+            {isPartiallyPaid && (
+              <p className="text-[10px] text-muted-foreground">
+                ${new Decimal(displayRemaining).toFixed(2)} left
+              </p>
+            )}
+          </div>
           {!isPayFormOpen && (
             <Button
               size="sm"
@@ -471,21 +549,17 @@ function BillItem({
             bill={item.bill}
             accounts={accounts}
             defaultAccountId={item.bill.accountId || item.account?.id}
-            onPay={(accountId, amount) => onPay(item.instance.id, accountId, amount)}
+            onPay={(accountId, amount, allocationId) => onPay(item.instance.id, accountId, amount, allocationId)}
             onMarkPaid={() => onMarkPaid(item.instance.id)}
             onCancel={onClosePayForm}
             processing={processing}
+            allocation={item.allocation}
+            allAllocations={item.allAllocations || []}
+            displayAmount={displayAmount}
+            displayRemainingAmount={displayRemaining}
           />
         </div>
       )}
     </div>
   );
 }
-
-
-
-
-
-
-
-

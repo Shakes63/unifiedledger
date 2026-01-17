@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { AlertCircle, Plus, X, CreditCard, Landmark, Info, ArrowDownCircle, ArrowUpCircle, Sparkles, Check } from 'lucide-react';
+import { AlertCircle, Plus, X, CreditCard, Landmark, Info, Sparkles, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { parseISO } from 'date-fns';
 import {
   FREQUENCY_LABELS,
@@ -36,14 +36,8 @@ import {
   getSubcategories
 } from '@/lib/bills/bill-classification';
 
-// Bill type options
-const BILL_TYPE_OPTIONS = [
-  { value: 'expense', label: 'Expense', description: 'Money going out (bills, subscriptions, etc.)' },
-  { value: 'income', label: 'Income', description: 'Money coming in (salary, rent, dividends, etc.)' },
-] as const;
-
-// Bill classification options for expense bills (matches database enum)
-const EXPENSE_CLASSIFICATION_OPTIONS = [
+// Bill classification options (matches database enum)
+const CLASSIFICATION_OPTIONS = [
   { value: 'subscription', label: 'Subscription' },
   { value: 'utility', label: 'Utility' },
   { value: 'housing', label: 'Housing (Rent/Mortgage)' },
@@ -51,17 +45,6 @@ const EXPENSE_CLASSIFICATION_OPTIONS = [
   { value: 'loan_payment', label: 'Loan Payment' },
   { value: 'membership', label: 'Membership' },
   { value: 'service', label: 'Service' },
-  { value: 'other', label: 'Other' },
-] as const;
-
-// Bill classification options for income bills
-const INCOME_CLASSIFICATION_OPTIONS = [
-  { value: 'salary', label: 'Salary/Wages' },
-  { value: 'rental', label: 'Rental Income' },
-  { value: 'investment', label: 'Investment/Dividends' },
-  { value: 'freelance', label: 'Freelance/Contract' },
-  { value: 'benefits', label: 'Government Benefits' },
-  { value: 'refund', label: 'Refunds/Reimbursements' },
   { value: 'other', label: 'Other' },
 ] as const;
 
@@ -142,6 +125,10 @@ export interface BillData {
   
   // Budget period assignment (for bill pay feature)
   budgetPeriodAssignment?: number | null;
+  
+  // Split payment across periods (for partial payment budgeting)
+  splitAcrossPeriods?: boolean;
+  splitAllocations?: string | null; // JSON of [{periodNumber: 1, percentage: 50}, ...]
   
   [key: string]: unknown; // Allow additional properties
 }
@@ -227,12 +214,25 @@ export function BillForm({
     budgetPeriodAssignment: bill?.budgetPeriodAssignment !== undefined && bill?.budgetPeriodAssignment !== null
       ? String(bill.budgetPeriodAssignment)
       : 'auto',
+    
+    // Split payment across periods
+    splitAcrossPeriods: bill?.splitAcrossPeriods || false,
+    splitAllocations: bill?.splitAllocations 
+      ? JSON.parse(bill.splitAllocations)
+      : [{ periodNumber: 1, percentage: 50 }, { periodNumber: 2, percentage: 50 }],
   });
 
-  // Collapsible sections state
+  // Collapsible sections state - auto-expand sections with existing data when editing
+  const [showCategorization, setShowCategorization] = useState(
+    !!(bill?.categoryId || bill?.merchantId || bill?.billClassification !== 'other')
+  );
+  const [showPaymentSettings, setShowPaymentSettings] = useState(
+    !!(bill?.accountId || bill?.linkedAccountId || bill?.chargedToAccountId || bill?.isAutopayEnabled)
+  );
   const [showDebtSection, setShowDebtSection] = useState(bill?.isDebt || false);
-  const [showAutopaySection, setShowAutopaySection] = useState(bill?.isAutopayEnabled || false);
-  const [_showAdvancedSection, setShowAdvancedSection] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(
+    !!(bill?.payeePatterns || bill?.notes || bill?.budgetPeriodAssignment || bill?.splitAcrossPeriods)
+  );
   
   // Classification suggestion state
   const [classificationSuggestion, setClassificationSuggestion] = useState<ClassificationSuggestion | null>(null);
@@ -602,6 +602,12 @@ export function BillForm({
       budgetPeriodAssignment: formData.budgetPeriodAssignment && formData.budgetPeriodAssignment !== 'auto'
         ? parseInt(formData.budgetPeriodAssignment)
         : null,
+      
+      // Split payment across periods
+      splitAcrossPeriods: formData.splitAcrossPeriods,
+      splitAllocations: formData.splitAcrossPeriods 
+        ? JSON.stringify(formData.splitAllocations)
+        : null,
     }, saveMode || 'save');
 
     // If save & add another, reset form
@@ -647,14 +653,17 @@ export function BillForm({
         taxDeductionType: 'none',
         taxDeductionLimit: '',
         budgetPeriodAssignment: 'auto',
+        splitAcrossPeriods: false,
+        splitAllocations: [{ periodNumber: 1, percentage: 50 }, { periodNumber: 2, percentage: 50 }],
       });
       setNewPayeePattern('');
       setIsCreatingCategory(false);
       setNewCategoryName('');
       setSaveMode(null);
+      setShowCategorization(false);
+      setShowPaymentSettings(false);
       setShowDebtSection(false);
-      setShowAutopaySection(false);
-      setShowAdvancedSection(false);
+      setShowAdvanced(false);
 
       // Focus on name field for quick data entry
       setTimeout(() => {
@@ -663,77 +672,13 @@ export function BillForm({
     }
   };
 
-  // Determine if this is an income bill
-  const isIncomeBill = formData.billType === 'income';
-  
-  // Get classification options based on bill type
-  const classificationOptions = isIncomeBill 
-    ? INCOME_CLASSIFICATION_OPTIONS 
-    : EXPENSE_CLASSIFICATION_OPTIONS;
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Bill Type Selector */}
-      <div className="p-4 bg-card rounded-lg border border-border">
-        <Label className="text-muted-foreground text-sm mb-3 block">Bill Type*</Label>
-        <div className="grid grid-cols-2 gap-3">
-          {BILL_TYPE_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => {
-                handleSelectChange('billType', option.value);
-                // Reset classification when switching types
-                handleSelectChange('billClassification', 'other');
-                // Clear income-incompatible fields when switching to income
-                if (option.value === 'income') {
-                  handleSelectChange('isDebt', 'false');
-                  handleSelectChange('linkedAccountId', '');
-                  handleSelectChange('chargedToAccountId', '');
-                  setShowDebtSection(false);
-                }
-              }}
-              className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
-                formData.billType === option.value
-                  ? option.value === 'income'
-                    ? 'border-income bg-income/10'
-                    : 'border-expense bg-expense/10'
-                  : 'border-border bg-elevated hover:bg-card'
-              }`}
-            >
-              {option.value === 'income' ? (
-                <ArrowDownCircle className={`w-6 h-6 ${
-                  formData.billType === option.value 
-                    ? 'text-income' 
-                    : 'text-muted-foreground'
-                }`} />
-              ) : (
-                <ArrowUpCircle className={`w-6 h-6 ${
-                  formData.billType === option.value 
-                    ? 'text-expense' 
-                    : 'text-muted-foreground'
-                }`} />
-              )}
-              <div className="text-left">
-                <p className={`font-medium ${
-                  formData.billType === option.value 
-                    ? 'text-foreground' 
-                    : 'text-muted-foreground'
-                }`}>
-                  {option.label}
-                </p>
-                <p className="text-xs text-muted-foreground">{option.description}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* Name and Amount */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label className={`text-sm mb-2 block ${errors.name ? 'text-error' : 'text-muted-foreground'}`}>
-            {isIncomeBill ? 'Income Source Name*' : 'Bill Name*'}
+            Bill Name*
           </Label>
           <Input
             id="bill-name"
@@ -743,7 +688,7 @@ export function BillForm({
               handleChange(e);
               if (errors.name) setErrors(prev => ({ ...prev, name: '' }));
             }}
-            placeholder={isIncomeBill ? "e.g., Monthly Salary" : "e.g., Electric Bill"}
+            placeholder="e.g., Electric Bill, Netflix"
             className={`bg-elevated text-foreground placeholder:text-muted-foreground/50 placeholder:italic ${
               errors.name ? 'border-error' : 'border-border'
             }`}
@@ -847,9 +792,7 @@ export function BillForm({
         </div>
         <div>
           <Label className="text-muted-foreground text-sm mb-2 block">
-            {isIncomeBill 
-              ? getDueDateLabel(formData.frequency).replace('Due', 'Expected')
-              : getDueDateLabel(formData.frequency)}*
+            {getDueDateLabel(formData.frequency)}*
           </Label>
 
           {isOneTimeFrequency(formData.frequency) ? (
@@ -864,7 +807,7 @@ export function BillForm({
                 required
               />
               <p className="text-xs text-muted-foreground mt-1">
-                {isIncomeBill ? 'Select the specific date you expect this income' : 'Select the specific date for this bill'}
+                Select the specific date for this bill
               </p>
             </>
           ) : isWeekBasedFrequency(formData.frequency) ? (
@@ -935,126 +878,212 @@ export function BillForm({
         </div>
       )}
 
-      {/* Amount Tolerance */}
-      <div>
-        <Label className="text-muted-foreground text-sm mb-2 block">Amount Tolerance (%)</Label>
-        <Input
-          name="amountTolerance"
-          type="number"
-          value={formData.amountTolerance}
-          onChange={handleChange}
-          placeholder="5.0"
-          step="0.1"
-          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-        />
-        <p className="text-xs text-muted-foreground mt-1">For auto-matching (default 5%)</p>
-      </div>
+      {/* ========== CATEGORIZATION SECTION (Collapsible) ========== */}
+      <div className="border border-border rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowCategorization(!showCategorization)}
+          className="w-full flex items-center justify-between p-4 bg-card hover:bg-elevated transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-foreground font-medium">Categorization</span>
+            {(formData.categoryId || formData.merchantId || formData.billClassification !== 'other') && (
+              <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">
+                {[formData.categoryId && 'Category', formData.merchantId && 'Merchant', formData.billClassification !== 'other' && 'Classification'].filter(Boolean).join(', ')}
+              </span>
+            )}
+          </div>
+          {showCategorization ? (
+            <ChevronUp className="w-5 h-5 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+          )}
+        </button>
 
-      {/* Category, Merchant, and Account */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Category (Optional)</Label>
-          {!isCreatingCategory ? (
-            <div className="flex gap-2">
-              <Select value={formData.categoryId} onValueChange={(value) => handleSelectChange('categoryId', value)}>
-                <SelectTrigger className="flex-1 bg-elevated border-border text-foreground">
-                  <SelectValue placeholder="Select category" />
+        {showCategorization && (
+          <div className="p-4 pt-0 space-y-4 border-t border-border bg-card">
+            {/* Category and Merchant */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+              <div>
+                <Label className="text-muted-foreground text-sm mb-2 block">Category</Label>
+                {!isCreatingCategory ? (
+                  <div className="flex gap-2">
+                    <Select value={formData.categoryId} onValueChange={(value) => handleSelectChange('categoryId', value)}>
+                      <SelectTrigger className="flex-1 bg-elevated border-border text-foreground">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setIsCreatingCategory(true)}
+                      className="bg-elevated border-border text-muted-foreground hover:bg-elevated"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      autoFocus
+                      type="text"
+                      placeholder="New category name..."
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      onKeyDown={handleCategoryKeyDown}
+                      className="flex-1 bg-card border border-primary text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <Button
+                      type="button"
+                      size="icon"
+                      onClick={handleCreateCategory}
+                      disabled={creatingCategory || !newCategoryName.trim()}
+                      className="bg-primary hover:opacity-90 text-primary-foreground"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        setIsCreatingCategory(false);
+                        setNewCategoryName('');
+                      }}
+                      className="bg-elevated border-border text-muted-foreground hover:bg-elevated"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <div>
+                <MerchantSelector
+                  selectedMerchant={formData.merchantId || null}
+                  onMerchantChange={(merchantId) => handleSelectChange('merchantId', merchantId || '')}
+                />
+              </div>
+            </div>
+
+            {/* Bill Classification */}
+            <div>
+              <Label className="text-muted-foreground text-sm mb-2 block">Classification</Label>
+              <Select
+                value={formData.billClassification}
+                onValueChange={(value) => {
+                  handleSelectChange('billClassification', value);
+                  setFormData(prev => ({ ...prev, classificationSubcategory: null }));
+                }}
+              >
+                <SelectTrigger className="bg-elevated border-border text-foreground">
+                  <SelectValue placeholder="Select classification" />
                 </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
+                <SelectContent className="bg-card border-border">
+                  {CLASSIFICATION_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value} className="text-foreground">
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => setIsCreatingCategory(true)}
-                className="bg-elevated border-border text-muted-foreground hover:bg-elevated"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
             </div>
-          ) : (
-            <div className="flex gap-2">
-              <Input
-                autoFocus
-                type="text"
-                placeholder="New category name..."
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                onKeyDown={handleCategoryKeyDown}
-                className="flex-1 bg-card border border-primary text-foreground rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              <Button
-                type="button"
-                size="icon"
-                onClick={handleCreateCategory}
-                disabled={creatingCategory || !newCategoryName.trim()}
-                className="bg-primary hover:opacity-90 text-primary-foreground"
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  setIsCreatingCategory(false);
-                  setNewCategoryName('');
-                }}
-                className="bg-elevated border-border text-muted-foreground hover:bg-elevated"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-        </div>
-        <div>
-          <MerchantSelector
-            selectedMerchant={formData.merchantId || null}
-            onMerchantChange={(merchantId) => handleSelectChange('merchantId', merchantId || '')}
-          />
-        </div>
-        <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">Account (Optional)</Label>
-          <Select value={formData.accountId} onValueChange={(value) => handleSelectChange('accountId', value)}>
-            <SelectTrigger className="bg-elevated border-border text-foreground">
-              <SelectValue placeholder="Select account" />
-            </SelectTrigger>
-            <SelectContent>
-              {accounts.map((account) => (
-                <SelectItem key={account.id} value={account.id}>
-                  {account.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+
+            {/* Subcategory */}
+            {getSubcategories(formData.billClassification as BillClassification).length > 0 && (
+              <div>
+                <Label className="text-muted-foreground text-sm mb-2 block">Subcategory</Label>
+                <Select
+                  value={formData.classificationSubcategory || 'none'}
+                  onValueChange={(value) => handleSelectChange('classificationSubcategory', value === 'none' ? '' : value)}
+                >
+                  <SelectTrigger className="bg-elevated border-border text-foreground">
+                    <SelectValue placeholder="Select subcategory" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border">
+                    <SelectItem value="none" className="text-foreground">None</SelectItem>
+                    {getSubcategories(formData.billClassification as BillClassification).map((subcategory) => (
+                      <SelectItem key={subcategory} value={subcategory} className="text-foreground">
+                        {formatSubcategory(subcategory)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Link to Debt */}
-      <div>
-        <Label className="text-muted-foreground text-sm mb-2 block">Link to Debt (Optional)</Label>
-        <p className="text-xs text-muted-foreground mb-2">
-          Link this bill to a debt to automatically track payments and reduce debt balance
-        </p>
-        <Select value={formData.debtId || 'none'} onValueChange={(value) => handleSelectChange('debtId', value === 'none' ? '' : value)}>
-          <SelectTrigger className="bg-elevated border-border text-foreground">
-            <SelectValue placeholder="Select debt (optional)" />
-          </SelectTrigger>
-          <SelectContent className="bg-card border-border">
-            <SelectItem value="none" className="text-foreground">None</SelectItem>
-            {debts.map((debt) => (
-              <SelectItem key={debt.id} value={debt.id} className="text-foreground">
-                {debt.name} - ${debt.remainingBalance?.toFixed(2)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* ========== PAYMENT SETTINGS SECTION (Collapsible) ========== */}
+      <div className="border border-border rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowPaymentSettings(!showPaymentSettings)}
+          className="w-full flex items-center justify-between p-4 bg-card hover:bg-elevated transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-foreground font-medium">Payment Settings</span>
+            {(formData.accountId || formData.linkedAccountId || formData.chargedToAccountId || formData.isAutopayEnabled) && (
+              <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">
+                Configured
+              </span>
+            )}
+          </div>
+          {showPaymentSettings ? (
+            <ChevronUp className="w-5 h-5 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+          )}
+        </button>
+
+        {showPaymentSettings && (
+          <div className="p-4 pt-0 space-y-4 border-t border-border bg-card">
+            {/* Payment Account */}
+            <div className="pt-4">
+              <Label className="text-muted-foreground text-sm mb-2 block">Payment Account</Label>
+              <Select value={formData.accountId} onValueChange={(value) => handleSelectChange('accountId', value)}>
+                <SelectTrigger className="bg-elevated border-border text-foreground">
+                  <SelectValue placeholder="Select account" />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">The account used to pay this bill</p>
+            </div>
+
+            {/* Link to Debt */}
+            <div>
+              <Label className="text-muted-foreground text-sm mb-2 block">Link to Debt</Label>
+              <Select value={formData.debtId || 'none'} onValueChange={(value) => handleSelectChange('debtId', value === 'none' ? '' : value)}>
+                <SelectTrigger className="bg-elevated border-border text-foreground">
+                  <SelectValue placeholder="Select debt (optional)" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="none" className="text-foreground">None</SelectItem>
+                  {debts.map((debt) => (
+                    <SelectItem key={debt.id} value={debt.id} className="text-foreground">
+                      {debt.name} - ${debt.remainingBalance?.toFixed(2)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Payments will reduce the debt balance</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Basic Toggles */}
@@ -1082,12 +1111,10 @@ export function BillForm({
         <div className="flex items-center justify-between pt-2">
           <div>
             <Label className="text-muted-foreground text-sm block">
-              {isIncomeBill ? 'Auto-mark Received' : 'Auto-mark Paid'}
+              Auto-mark Paid
             </Label>
             <p className="text-xs text-muted-foreground">
-              {isIncomeBill 
-                ? 'Automatically mark as received on matching transaction'
-                : 'Automatically mark as paid on match'}
+              Automatically mark as paid when a matching transaction is created
             </p>
           </div>
           <button
@@ -1104,67 +1131,6 @@ export function BillForm({
             />
           </button>
         </div>
-      </div>
-
-      {/* Bill Classification */}
-      <div className="p-4 bg-card rounded-lg border border-border space-y-4">
-        <div>
-          <Label className="text-muted-foreground text-sm mb-2 block">
-            {isIncomeBill ? 'Income Classification' : 'Bill Classification'}
-          </Label>
-          <Select
-            value={formData.billClassification}
-            onValueChange={(value) => {
-              handleSelectChange('billClassification', value);
-              // Clear subcategory when classification changes
-              setFormData(prev => ({ ...prev, classificationSubcategory: null }));
-            }}
-          >
-            <SelectTrigger className="bg-elevated border-border text-foreground">
-              <SelectValue placeholder="Select classification" />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border">
-              {classificationOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value} className="text-foreground">
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground mt-1">
-            {isIncomeBill
-              ? 'Helps organize income sources and track expected vs actual'
-              : 'Helps organize bills and provides better reports'}
-          </p>
-        </div>
-
-        {/* Subcategory - only show for expense bills with subcategories */}
-        {!isIncomeBill && getSubcategories(formData.billClassification as BillClassification).length > 0 && (
-          <div>
-            <Label className="text-muted-foreground text-sm mb-2 block">
-              Subcategory (Optional)
-            </Label>
-            <Select
-              value={formData.classificationSubcategory || 'none'}
-              onValueChange={(value) => handleSelectChange('classificationSubcategory', value === 'none' ? '' : value)}
-            >
-              <SelectTrigger className="bg-elevated border-border text-foreground">
-                <SelectValue placeholder="Select subcategory" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                <SelectItem value="none" className="text-foreground">None</SelectItem>
-                {getSubcategories(formData.billClassification as BillClassification).map((subcategory) => (
-                  <SelectItem key={subcategory} value={subcategory} className="text-foreground">
-                    {formatSubcategory(subcategory)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground mt-1">
-              Further categorize this bill for better organization
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Budget Period Assignment - only show if more than 1 period per month */}
@@ -1207,11 +1173,134 @@ export function BillForm({
           <p className="text-xs text-muted-foreground mt-1">
             Override which budget period this bill appears in for Bill Pay. Useful when you want to pay a bill before its due date.
           </p>
+
+          {/* Split Payment Option */}
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="flex items-center gap-2 mb-2">
+              <input
+                type="checkbox"
+                id="splitAcrossPeriods"
+                checked={formData.splitAcrossPeriods}
+                onChange={() => handleCheckboxChange('splitAcrossPeriods')}
+                className="h-4 w-4 rounded border-border"
+              />
+              <Label htmlFor="splitAcrossPeriods" className="text-sm text-foreground cursor-pointer">
+                Split payment across budget periods
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3">
+              Pay part of this bill in each budget period (e.g., half at the start, half at the end of the month)
+            </p>
+            
+            {formData.splitAcrossPeriods && (
+              <div className="space-y-3 bg-elevated p-3 rounded-lg">
+                <p className="text-xs text-muted-foreground">
+                  Set the percentage of the bill to pay in each period:
+                </p>
+                {budgetSchedule.periodsInMonth === 2 && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">
+                        {budgetSchedule.frequency === 'semi-monthly' ? 'First Half (1st-14th)' : 'Period 1'}
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={formData.splitAllocations[0]?.percentage || 50}
+                          onChange={(e) => {
+                            const period1 = parseInt(e.target.value) || 0;
+                            const period2 = 100 - period1;
+                            setFormData(prev => ({
+                              ...prev,
+                              splitAllocations: [
+                                { periodNumber: 1, percentage: period1 },
+                                { periodNumber: 2, percentage: period2 },
+                              ],
+                            }));
+                          }}
+                          className="w-20 bg-background border-border text-right"
+                        />
+                        <span className="text-sm text-muted-foreground">%</span>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground mb-1 block">
+                        {budgetSchedule.frequency === 'semi-monthly' ? 'Second Half (15th-end)' : 'Period 2'}
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={formData.splitAllocations[1]?.percentage || 50}
+                          onChange={(e) => {
+                            const period2 = parseInt(e.target.value) || 0;
+                            const period1 = 100 - period2;
+                            setFormData(prev => ({
+                              ...prev,
+                              splitAllocations: [
+                                { periodNumber: 1, percentage: period1 },
+                                { periodNumber: 2, percentage: period2 },
+                              ],
+                            }));
+                          }}
+                          className="w-20 bg-background border-border text-right"
+                        />
+                        <span className="text-sm text-muted-foreground">%</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {budgetSchedule.periodsInMonth === 4 && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {[1, 2, 3, 4].map(period => (
+                      <div key={period}>
+                        <Label className="text-xs text-muted-foreground mb-1 block">
+                          Week {period}
+                        </Label>
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={formData.splitAllocations.find((a: { periodNumber: number; percentage: number }) => a.periodNumber === period)?.percentage || 25}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value) || 0;
+                              setFormData(prev => ({
+                                ...prev,
+                                splitAllocations: [1, 2, 3, 4].map(p => ({
+                                  periodNumber: p,
+                                  percentage: p === period 
+                                    ? value 
+                                    : (prev.splitAllocations.find((a: { periodNumber: number; percentage: number }) => a.periodNumber === p)?.percentage || 25),
+                                })),
+                              }));
+                            }}
+                            className="w-14 bg-background border-border text-right text-sm"
+                          />
+                          <span className="text-xs text-muted-foreground">%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {formData.expectedAmount && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Preview: {formData.splitAllocations.map((a: { periodNumber: number; percentage: number }) => 
+                      `Period ${a.periodNumber}: $${((parseFloat(String(formData.expectedAmount)) || 0) * a.percentage / 100).toFixed(2)}`
+                    ).join(' | ')}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Credit Card Linking - For credit card payment bills (not for income bills) */}
-      {creditAccounts.length > 0 && !isIncomeBill && (
+      {/* Credit Card Linking */}
+      {creditAccounts.length > 0 && (
         <div className="p-4 bg-card rounded-lg border border-border space-y-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -1315,27 +1404,15 @@ export function BillForm({
       )}
 
       {/* Autopay Configuration */}
-      <div className="p-4 bg-card rounded-lg border border-border">
-        <div 
-          className="flex items-center justify-between cursor-pointer"
-          onClick={() => {
-            setShowAutopaySection(!showAutopaySection);
-            if (!showAutopaySection) {
-              handleCheckboxChange('isAutopayEnabled');
-            }
-          }}
-        >
+      <div className="p-4 bg-elevated rounded-lg border border-border">
+        <div className="flex items-center justify-between">
           <div>
-            <Label className="text-muted-foreground text-sm block cursor-pointer">Autopay</Label>
+            <Label className="text-muted-foreground text-sm block">Autopay</Label>
             <p className="text-xs text-muted-foreground">Automatically create payment transactions when due</p>
           </div>
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowAutopaySection(!formData.isAutopayEnabled);
-              handleCheckboxChange('isAutopayEnabled');
-            }}
+            onClick={() => handleCheckboxChange('isAutopayEnabled')}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
               formData.isAutopayEnabled ? 'bg-income' : 'bg-border'
             }`}
@@ -1438,8 +1515,7 @@ export function BillForm({
         )}
       </div>
 
-      {/* Debt Configuration - Not shown for income bills */}
-      {!isIncomeBill && (
+      {/* Debt Configuration */}
       <div className="p-4 bg-card rounded-lg border border-border">
         <div 
           className="flex items-center justify-between cursor-pointer"
@@ -1659,86 +1735,117 @@ export function BillForm({
           </div>
         )}
       </div>
-      )}
 
-      {/* Payee Patterns */}
-      <div>
-        <Label className="text-muted-foreground text-sm mb-2 block">Payee Patterns (Optional)</Label>
-        <p className="text-xs text-muted-foreground mb-2">
-          Add patterns to match transaction descriptions (e.g., &quot;Electric&quot;, &quot;Power Company&quot;)
-        </p>
-        <div className="space-y-2">
-          {formData.payeePatterns.map((pattern: string, index: number) => (
-            <div
-              key={index}
-              className="flex items-center justify-between p-2 bg-card border border-border rounded"
-            >
-              <span className="text-sm text-foreground">{pattern}</span>
-              <button
-                type="button"
-                onClick={() => handleRemovePayeePattern(index)}
-                className="text-xs text-error hover:text-error/80"
-              >
-                Remove
-              </button>
-            </div>
-          ))}
-          <div className="flex gap-2">
-            <Input
-              value={newPayeePattern}
-              onChange={(e) => setNewPayeePattern(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddPayeePattern();
-                }
-              }}
-              placeholder="Enter a pattern"
-              className="bg-elevated border-border text-foreground placeholder:text-muted-foreground text-sm"
-            />
-            <Button
-              type="button"
-              onClick={handleAddPayeePattern}
-              className="bg-elevated border-border text-foreground hover:bg-elevated text-sm"
-            >
-              Add
-            </Button>
+      {/* ========== ADVANCED SECTION (Collapsible) ========== */}
+      <div className="border border-border rounded-lg overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="w-full flex items-center justify-between p-4 bg-card hover:bg-elevated transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-foreground font-medium">Advanced Options</span>
+            {(formData.payeePatterns.length > 0 || formData.notes) && (
+              <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">
+                Configured
+              </span>
+            )}
           </div>
-        </div>
-      </div>
+          {showAdvanced ? (
+            <ChevronUp className="w-5 h-5 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-muted-foreground" />
+          )}
+        </button>
 
-      {/* Notes */}
-      <div>
-        <Label className="text-muted-foreground text-sm mb-2 block">Notes (Optional)</Label>
-        <Textarea
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-          placeholder="Add any additional notes..."
-          className="bg-elevated border-border text-foreground placeholder:text-muted-foreground resize-none"
-          rows={3}
-        />
+        {showAdvanced && (
+          <div className="p-4 pt-0 space-y-4 border-t border-border bg-card">
+            {/* Amount Tolerance */}
+            <div className="pt-4">
+              <Label className="text-muted-foreground text-sm mb-2 block">Amount Tolerance (%)</Label>
+              <Input
+                name="amountTolerance"
+                type="number"
+                value={formData.amountTolerance}
+                onChange={handleChange}
+                placeholder="5.0"
+                step="0.1"
+                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+              />
+              <p className="text-xs text-muted-foreground mt-1">For auto-matching transactions (default 5%)</p>
+            </div>
+
+            {/* Payee Patterns */}
+            <div>
+              <Label className="text-muted-foreground text-sm mb-2 block">Payee Patterns</Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Add patterns to match transaction descriptions
+              </p>
+              <div className="space-y-2">
+                {formData.payeePatterns.map((pattern: string, index: number) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-elevated border border-border rounded"
+                  >
+                    <span className="text-sm text-foreground">{pattern}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePayeePattern(index)}
+                      className="text-xs text-error hover:text-error/80"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <div className="flex gap-2">
+                  <Input
+                    value={newPayeePattern}
+                    onChange={(e) => setNewPayeePattern(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddPayeePattern();
+                      }
+                    }}
+                    placeholder="Enter a pattern"
+                    className="bg-elevated border-border text-foreground placeholder:text-muted-foreground text-sm"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAddPayeePattern}
+                    className="bg-elevated border-border text-foreground hover:bg-elevated text-sm"
+                  >
+                    Add
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <Label className="text-muted-foreground text-sm mb-2 block">Notes</Label>
+              <Textarea
+                name="notes"
+                value={formData.notes}
+                onChange={handleChange}
+                placeholder="Add any additional notes..."
+                className="bg-elevated border-border text-foreground placeholder:text-muted-foreground resize-none"
+                rows={3}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Info Box */}
-      <div className={`p-4 rounded-lg flex gap-2 ${
-        isIncomeBill 
-          ? 'bg-income/10 border border-income/20'
-          : 'bg-primary/10 border border-primary/20'
-      }`}>
-        <AlertCircle className={`w-5 h-5 shrink-0 mt-0.5 ${
-          isIncomeBill ? 'text-income' : 'text-primary'
-        }`} />
-        <div className={`text-sm ${
-          isIncomeBill ? 'text-income/80' : 'text-primary/80'
-        }`}>
+      <div className="p-4 rounded-lg flex gap-2 bg-primary/10 border border-primary/20">
+        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-primary" />
+        <div className="text-sm text-primary/80">
           <p className="font-medium mb-1">
-            {isIncomeBill ? 'Automatic Income Tracking' : 'Category-Based Bill Matching'}
+            Category-Based Bill Matching
           </p>
           <p>
-            {isIncomeBill
-              ? 'When you create an income transaction with the selected category, the oldest expected income instance will be automatically marked as received. This tracks salary, rent, dividends, and other recurring income.'
-              : 'When you create an expense transaction with the selected category, the oldest unpaid bill instance will be automatically marked as paid. This handles late payments, early payments, and multiple payments intelligently.'}
+            When you create an expense transaction with the selected category, the oldest unpaid bill instance will be automatically marked as paid. This handles late payments, early payments, and multiple payments intelligently.
           </p>
         </div>
       </div>
@@ -1751,17 +1858,15 @@ export function BillForm({
             type="submit"
             onClick={() => setSaveMode('save')}
             disabled={isLoading}
-            className={`flex-1 text-white hover:opacity-90 font-medium ${
-              isIncomeBill ? 'bg-income' : 'bg-primary'
-            }`}
+            className="flex-1 text-white hover:opacity-90 font-medium bg-primary"
           >
             {bill
               ? isLoading && saveMode === 'save'
                 ? 'Updating...'
-                : isIncomeBill ? 'Update Income' : 'Update Bill'
+                : 'Update Bill'
               : isLoading && saveMode === 'save'
               ? 'Saving...'
-              : isIncomeBill ? 'Save Income' : 'Save'}
+              : 'Save Bill'}
           </Button>
           {!bill && (
             <Button

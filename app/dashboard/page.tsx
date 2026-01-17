@@ -14,7 +14,7 @@ import { BudgetSummaryWidget } from '@/components/dashboard/budget-summary-widge
 import { CreditUtilizationWidget } from '@/components/debts/credit-utilization-widget';
 import { NextPaymentDueWidget } from '@/components/dashboard/next-payment-due-widget';
 import { BillsByClassificationWidget } from '@/components/dashboard/bills-by-classification-widget';
-import { BudgetPeriodWidget } from '@/components/dashboard/budget-period-widget';
+import { PaycheckBalanceWidget } from '@/components/dashboard/paycheck-balance-widget';
 import { betterAuthClient } from '@/lib/better-auth-client';
 
 export default function DashboardPage() {
@@ -39,25 +39,25 @@ export default function DashboardPage() {
   }, [session]);
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
+    <div className="px-4 sm:px-6 lg:px-8 py-6">
       <div className="max-w-7xl mx-auto">
         {/* Compact Stats Bar */}
-        <section className="mb-6">
+        <section className="mb-4">
           <CompactStatsBar />
         </section>
 
         {/* Add Transaction Button */}
-        <section className="mb-8">
+        <section className="mb-4">
           <Link href="/dashboard/transactions/new" className="block">
-            <Button className="w-full h-16 text-lg font-medium rounded-lg bg-primary text-primary-foreground hover:opacity-90" size="lg">
-              <Plus className="mr-2 w-5 h-5" />
+            <Button className="w-full h-12 text-base font-medium rounded-lg bg-primary text-primary-foreground hover:opacity-90" size="default">
+              <Plus className="mr-2 w-4 h-4" />
               Add Transaction
             </Button>
           </Link>
         </section>
 
         {/* Bills Section */}
-        <section className="mb-8">
+        <section className="mb-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Enhanced Bills Widget - Takes 2 columns on large screens */}
             <div className="lg:col-span-2">
@@ -66,8 +66,6 @@ export default function DashboardPage() {
             
             {/* Sidebar widgets - stacked */}
             <div className="lg:col-span-1 space-y-6">
-              {/* Budget Period Widget - shows when user has non-monthly budget cycle */}
-              <BudgetPeriodWidget />
               <NextPaymentDueWidget />
               <BillsByClassificationWidget />
             </div>
@@ -75,9 +73,9 @@ export default function DashboardPage() {
         </section>
 
         {/* Recent Transactions */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-foreground">Recent Transactions</h2>
+        <section className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-foreground">Recent Transactions</h2>
             <Link href="/dashboard/transactions">
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">View All</Button>
             </Link>
@@ -91,9 +89,16 @@ export default function DashboardPage() {
           storageKey="dashboard-budget-details"
           defaultExpanded={false}
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <BudgetSummaryWidget />
-            <BudgetSurplusCard />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Paycheck Balance Widget - Takes full width on mobile, 1 column on desktop */}
+            <div className="lg:col-span-1">
+              <PaycheckBalanceWidget />
+            </div>
+            {/* Budget widgets - Take 2 columns on desktop */}
+            <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <BudgetSummaryWidget />
+              <BudgetSurplusCard />
+            </div>
           </div>
         </CollapsibleSection>
 

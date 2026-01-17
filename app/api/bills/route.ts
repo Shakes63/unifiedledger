@@ -1,10 +1,11 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { bills, billInstances, budgetCategories, accounts, debts, merchants } from '@/lib/db/schema';
+import { bills, billInstances, budgetCategories, accounts, debts, merchants, billInstanceAllocations } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { format } from 'date-fns';
+import Decimal from 'decimal.js';
 import {
   calculateNextDueDate,
   getInstanceCount,
@@ -203,6 +204,10 @@ export async function POST(request: Request) {
       isInterestTaxDeductible = false,
       taxDeductionType = 'none',
       taxDeductionLimit,
+      // Budget period split settings
+      budgetPeriodAssignment,
+      splitAcrossPeriods = false,
+      splitAllocations,
     } = body;
 
     // Validate required fields
@@ -527,6 +532,13 @@ export async function POST(request: Request) {
       taxDeductionLimit: isDebt && isInterestTaxDeductible && taxDeductionLimit 
         ? parseFloat(taxDeductionLimit) 
         : null,
+      // Budget period split settings
+      budgetPeriodAssignment: budgetPeriodAssignment ?? null,
+      splitAcrossPeriods: splitAcrossPeriods || false,
+      // splitAllocations may come as a string (already JSON) or array
+      splitAllocations: splitAllocations 
+        ? (typeof splitAllocations === 'string' ? splitAllocations : JSON.stringify(splitAllocations))
+        : null,
     };
 
     // Generate bill instances using helper functions
@@ -568,6 +580,50 @@ export async function POST(request: Request) {
       db.insert(bills).values(billData),
       db.insert(billInstances).values(instancesData),
     ]);
+
+    // If split across periods is enabled, create allocations for each instance
+    // Parse splitAllocations if it's a string
+    const parsedAllocations = splitAllocations 
+      ? (typeof splitAllocations === 'string' ? JSON.parse(splitAllocations) : splitAllocations)
+      : null;
+    
+    if (splitAcrossPeriods && parsedAllocations && Array.isArray(parsedAllocations)) {
+      const allocationsToCreate = [];
+      
+      for (const instance of instancesData) {
+        for (const allocation of parsedAllocations) {
+          // Calculate allocated amount based on percentage or fixed amount
+          let allocatedAmount: number;
+          if (allocation.percentage) {
+            allocatedAmount = new Decimal(instance.expectedAmount)
+              .mul(new Decimal(allocation.percentage))
+              .div(100)
+              .toDecimalPlaces(2)
+              .toNumber();
+          } else if (allocation.amount) {
+            allocatedAmount = parseFloat(allocation.amount);
+          } else {
+            continue; // Skip if no valid amount
+          }
+          
+          allocationsToCreate.push({
+            id: nanoid(),
+            billInstanceId: instance.id,
+            billId: billId,
+            userId,
+            householdId,
+            periodNumber: allocation.periodNumber,
+            allocatedAmount,
+            isPaid: false,
+            paidAmount: 0,
+          });
+        }
+      }
+      
+      if (allocationsToCreate.length > 0) {
+        await db.insert(billInstanceAllocations).values(allocationsToCreate);
+      }
+    }
 
     // Return the bill data directly without re-fetching from database
     return Response.json({

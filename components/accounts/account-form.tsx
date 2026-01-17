@@ -98,6 +98,8 @@ interface AccountInputData {
   repaymentPeriodEndDate?: string | null;
   interestType?: InterestType;
   primeRateMargin?: number | null;
+  // Budget integration
+  includeInDiscretionary?: boolean;
 }
 
 interface AccountFormProps {
@@ -144,6 +146,9 @@ export function AccountForm({
     repaymentPeriodEndDate: account?.repaymentPeriodEndDate ?? '',
     interestType: account?.interestType ?? 'fixed',
     primeRateMargin: account?.primeRateMargin ?? '',
+    // Budget integration - smart defaults based on account type
+    includeInDiscretionary: account?.includeInDiscretionary ?? 
+      (account?.type ? ['checking', 'cash'].includes(account.type) : true),
   });
 
   // Helper to check if account type is credit-related
@@ -242,6 +247,8 @@ export function AccountForm({
       isBusinessAccount: formData.enableSalesTax || formData.enableTaxDeductions,
       enableSalesTax: formData.enableSalesTax,
       enableTaxDeductions: formData.enableTaxDeductions,
+      // Budget integration
+      includeInDiscretionary: formData.includeInDiscretionary,
     };
 
     // Add credit/line of credit fields if applicable
@@ -298,6 +305,7 @@ export function AccountForm({
         repaymentPeriodEndDate: '',
         interestType: 'fixed',
         primeRateMargin: '',
+        includeInDiscretionary: ['checking', 'cash'].includes(preservedType),
       });
       setSaveMode(null);
 
@@ -874,6 +882,44 @@ export function AccountForm({
             <span
               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                 formData.enableTaxDeductions ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Budget Integration Section */}
+      <div className="p-4 bg-card rounded-lg border border-border space-y-4">
+        <div className="text-sm font-medium text-foreground">Budget Integration</div>
+        
+        {/* Include in Discretionary Toggle */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-start gap-2">
+            <div>
+              <Label className="text-muted-foreground text-sm block font-medium">Include in Discretionary</Label>
+              <p className="text-xs text-muted-foreground mt-1">Include this account&apos;s balance in paycheck balance calculations</p>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help mt-0.5" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">When enabled, this account&apos;s balance will be included when calculating your discretionary spending money for each pay period. Typically enabled for checking/cash accounts, disabled for savings and credit accounts.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleCheckboxChange('includeInDiscretionary')}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              formData.includeInDiscretionary ? 'bg-primary' : 'bg-elevated'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                formData.includeInDiscretionary ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
           </button>
