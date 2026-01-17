@@ -597,28 +597,30 @@ function TransactionsContent() {
     field: 'categoryId' | 'merchantId' | 'accountId' | 'date' | 'amount' | 'description', 
     value: string | number
   ) => {
+    // Store previous state for rollback on error
+    const previousTransactions = [...transactions];
+    
     try {
       setUpdatingTxId(transactionId);
+
+      // Optimistic update: Update local state immediately
+      setTransactions(prev => prev.map(tx => 
+        tx.id === transactionId ? { ...tx, [field]: value } : tx
+      ));
 
       const response = await putWithHousehold(`/api/transactions/${transactionId}`, { [field]: value });
 
       if (response.ok) {
-        // Refresh transactions
-        if (currentFilters) {
-          await performSearch(currentFilters, paginationOffset);
-        } else {
-          const txResponse = await fetchWithHousehold('/api/transactions?limit=100');
-          if (txResponse.ok) {
-            const txData = await txResponse.json();
-            setTransactions(txData);
-            setTotalResults(txData.length);
-          }
-        }
         toast.success(`Transaction updated`);
+        // No need to refresh - optimistic update already applied
       } else {
+        // Revert on error
+        setTransactions(previousTransactions);
         toast.error('Failed to update transaction');
       }
     } catch (error) {
+      // Revert on error
+      setTransactions(previousTransactions);
       console.error('Error updating transaction:', error);
       toast.error('Failed to update transaction');
     } finally {
@@ -641,14 +643,23 @@ function TransactionsContent() {
 
         if (response.ok) {
           const newCategory = await response.json();
-          // Refresh categories
-          const catResponse = await fetchWithHousehold('/api/categories');
-          if (catResponse.ok) {
-            const catData = await catResponse.json();
-            setCategories(catData);
-          }
-          // Update transaction
-          await handleUpdateTransaction(transactionId, 'categoryId', newCategory.id);
+          
+          // Optimistic update: Add new category to local state immediately
+          setCategories(prev => [...prev, { 
+            id: newCategory.id, 
+            name: newCategory.name, 
+            type: newCategory.type 
+          }]);
+          
+          // Optimistic update: Update transaction with new category
+          setTransactions(prev => prev.map(tx => 
+            tx.id === transactionId ? { ...tx, categoryId: newCategory.id } : tx
+          ));
+          
+          // Update transaction in backend (no need to await since we already updated locally)
+          putWithHousehold(`/api/transactions/${transactionId}`, { categoryId: newCategory.id })
+            .catch(err => console.error('Failed to update transaction category:', err));
+          
           toast.success(`Category "${name}" created`);
         } else {
           toast.error('Failed to create category');
@@ -662,14 +673,23 @@ function TransactionsContent() {
 
         if (response.ok) {
           const newMerchant = await response.json();
-          // Refresh merchants
-          const merResponse = await fetchWithHousehold('/api/merchants?limit=1000');
-          if (merResponse.ok) {
-            const merData = await merResponse.json();
-            setMerchants(merData);
-          }
-          // Update transaction
-          await handleUpdateTransaction(transactionId, 'merchantId', newMerchant.id);
+          
+          // Optimistic update: Add new merchant to local state immediately
+          setMerchants(prev => [...prev, { 
+            id: newMerchant.id, 
+            name: newMerchant.name, 
+            categoryId: newMerchant.categoryId 
+          }]);
+          
+          // Optimistic update: Update transaction with new merchant
+          setTransactions(prev => prev.map(tx => 
+            tx.id === transactionId ? { ...tx, merchantId: newMerchant.id } : tx
+          ));
+          
+          // Update transaction in backend (no need to await since we already updated locally)
+          putWithHousehold(`/api/transactions/${transactionId}`, { merchantId: newMerchant.id })
+            .catch(err => console.error('Failed to update transaction merchant:', err));
+          
           toast.success(`Merchant "${name}" created`);
         } else {
           toast.error('Failed to create merchant');
