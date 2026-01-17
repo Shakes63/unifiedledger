@@ -20,8 +20,44 @@ export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
 
+    // Debug: Log request details
+    const contentType = request.headers.get('content-type');
+    console.log('[Avatar Upload] Request details:', {
+      method: request.method,
+      contentType,
+      bodyUsed: request.bodyUsed,
+    });
+
+    // Check if body was already consumed
+    if (request.bodyUsed) {
+      console.error('[Avatar Upload] Request body already consumed!');
+      return Response.json(
+        { error: 'Request body already consumed' },
+        { status: 400 }
+      );
+    }
+
+    // Verify content type is multipart/form-data
+    if (!contentType?.includes('multipart/form-data')) {
+      console.error('[Avatar Upload] Invalid content type:', contentType);
+      return Response.json(
+        { error: `Invalid content type: ${contentType}. Expected multipart/form-data` },
+        { status: 400 }
+      );
+    }
+
     // Get form data
-    const formData = await request.formData();
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+    } catch (formError) {
+      console.error('[Avatar Upload] FormData parse error:', formError);
+      return Response.json(
+        { error: `Failed to parse form data: ${formError instanceof Error ? formError.message : 'Unknown error'}` },
+        { status: 400 }
+      );
+    }
+    
     const file = formData.get('avatar') as File | null;
 
     if (!file) {
