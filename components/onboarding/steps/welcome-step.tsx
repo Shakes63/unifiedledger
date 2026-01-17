@@ -24,27 +24,15 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
       title={isInvitedUser ? `Welcome to ${householdName}!` : "Welcome to Unified Ledger!"}
       description={
         isInvitedUser
-          ? "Practice with demo data before working with real finances - all demo items are clearly marked and safe to explore."
+          ? "You've been invited to join this household. Let's get you set up!"
           : "Set up your finances in minutes with smart automation that learns your spending habits."
       }
       onNext={onNext}
       onPrevious={() => {}}
       isFirstStep={true}
-      nextLabel="Get Started"
+      nextLabel={isInvitedUser ? "Join Household" : "Get Started"}
     >
       <div className="flex flex-col items-center justify-center py-8 text-center space-y-6">
-        {/* Demo Mode Banner */}
-        {isInvitedUser && (
-          <div className="w-full max-w-md bg-warning/10 border border-warning/30 rounded-lg p-4">
-            <p className="text-sm text-foreground font-medium">
-              🎯 Demo Mode
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              All data created during onboarding will be marked as &quot;Demo&quot; and won&apos;t affect real household finances.
-            </p>
-          </div>
-        )}
-
         <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
           <Sparkles className="w-10 h-10 text-primary" />
         </div>
@@ -53,30 +41,30 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
           {isInvitedUser ? (
             <>
               <h3 className="text-xl font-semibold text-foreground">
-                We&apos;ll create demo data so you can explore:
+                You're joining {householdName}
               </h3>
               <ul className="space-y-3 text-left text-muted-foreground">
                 <li className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                     <span className="text-xs font-semibold text-primary">✓</span>
                   </div>
-                  <span>Demo accounts, categories, and merchants</span>
+                  <span>View shared accounts and transactions</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                     <span className="text-xs font-semibold text-primary">✓</span>
                   </div>
-                  <span>Sample bills, goals, and debts</span>
+                  <span>Track bills and budgets together</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
                     <span className="text-xs font-semibold text-primary">✓</span>
                   </div>
-                  <span>Practice transactions to explore features</span>
+                  <span>Collaborate on financial goals</span>
                 </li>
               </ul>
               <p className="text-sm text-muted-foreground pt-4">
-                This will only take a moment. All demo data is clearly marked and safe to explore.
+                Click below to complete your setup and start using the app.
               </p>
             </>
           ) : (

@@ -80,6 +80,25 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
   };
 
   const renderStep = () => {
+    // Invited users have a simplified 2-step flow: Welcome → Complete
+    if (isInvitedUser) {
+      switch (currentStep) {
+        case 1:
+          return <WelcomeStep onNext={nextStep} />;
+        case 2:
+          return (
+            <CompleteStep
+              onComplete={handleComplete}
+              onPrevious={previousStep}
+              isLoading={isLoading}
+            />
+          );
+        default:
+          return null;
+      }
+    }
+
+    // Regular flow for non-invited users
     switch (currentStep) {
       case 1:
         return <WelcomeStep onNext={nextStep} />;

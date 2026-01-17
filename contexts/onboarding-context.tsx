@@ -34,8 +34,10 @@ const OnboardingContext = createContext<OnboardingContextType | undefined>(undef
 
 // Non-demo users: 9 steps (Welcome, Household, Account, Category, Bill, Goal, Debt, Transaction, Complete)
 // Demo users: 10 steps (Welcome, DemoData, Account, Category, Bill, Goal, Debt, Transaction, DemoDataChoice, Complete)
+// Invited users: 2 steps (Welcome, Complete) - they join an existing household, no data creation needed
 const TOTAL_STEPS_NON_DEMO = 9;
 const TOTAL_STEPS_DEMO = 10;
+const TOTAL_STEPS_INVITED = 2;
 
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [isOnboardingActive, setIsOnboardingActive] = useState(false);
@@ -52,8 +54,11 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   // Demo data choice
   const [demoDataCleared, setDemoDataCleared] = useState(false);
 
-  // Calculate total steps based on demo mode
-  const totalSteps = isDemoMode ? TOTAL_STEPS_DEMO : TOTAL_STEPS_NON_DEMO;
+  // Calculate total steps based on user type
+  // Invited users get a simplified 2-step flow (Welcome + Complete)
+  // Demo users get the full demo flow
+  // Regular users get the standard flow
+  const totalSteps = isInvitedUser ? TOTAL_STEPS_INVITED : (isDemoMode ? TOTAL_STEPS_DEMO : TOTAL_STEPS_NON_DEMO);
 
   // Check onboarding status on mount
   const checkOnboardingStatus = useCallback(async () => {
@@ -157,7 +162,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const setInvitationContext = useCallback((householdId: string, token: string) => {
     setIsInvitedUser(true);
     setInvitationHouseholdId(householdId);
-    setIsDemoMode(true);
+    // Don't set demo mode for invited users - they join an existing household
+    // and should not have any data created during onboarding
+    setIsDemoMode(false);
     setInvitationToken(token);
     // Store in localStorage for persistence
     try {
@@ -191,7 +198,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       if (token && householdId) {
         setIsInvitedUser(true);
         setInvitationHouseholdId(householdId);
-        setIsDemoMode(true);
+        // Don't set demo mode for invited users
+        setIsDemoMode(false);
         setInvitationToken(token);
       }
     } catch (error) {
