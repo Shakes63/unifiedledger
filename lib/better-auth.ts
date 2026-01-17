@@ -62,9 +62,6 @@ export const auth = betterAuth({
   }),
   // Use different base path to avoid conflicts with Clerk
   basePath: "/api/better-auth",
-  // Allow any origin since we use runtime URL detection on the client
-  // This enables the container to work with any IP/hostname without rebuilding
-  trustedOrigins: ["http://*", "https://*"],
   emailAndPassword: {
     enabled: true,
     // Email verification - Soft launch: emails are sent but not required for login
@@ -104,6 +101,10 @@ export const auth = betterAuth({
     crossSubDomainCookies: {
       enabled: false,
     },
+    // Disable origin check for self-hosted deployments
+    // This allows the app to work with any IP/hostname without configuration
+    // Safe for self-hosted use cases where the user controls their network
+    disableOriginCheck: true,
   },
   // TODO: Re-enable GeoIP hooks once Better Auth hook structure is fixed
   // The current hook structure causes "hook.handler is not a function" error
