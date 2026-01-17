@@ -37,8 +37,10 @@ const serwist = new Serwist({
       }),
     },
     // API calls - Stale While Revalidate (5 minutes)
+    // Only cache GET requests - POST/PUT/DELETE have bodies that can't be cached
     {
-      matcher: ({ url }) => url.pathname.startsWith('/api/'),
+      matcher: ({ url, request }) => 
+        url.pathname.startsWith('/api/') && request.method === 'GET',
       handler: new StaleWhileRevalidate({
         cacheName: `api-${CACHE_VERSION}`,
         plugins: [
