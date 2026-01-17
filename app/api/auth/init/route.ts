@@ -84,16 +84,18 @@ export async function POST(_request: Request) {
 
     const householdId = userHousehold[0].householdId;
 
-    // Check if user already has accounts in this household
+    // Check if the household already has any accounts (from any member)
+    // This prevents creating duplicate defaults for invited users joining
+    // a household that already has data
     const existingAccounts = await db
       .select()
       .from(accounts)
-      .where(and(eq(accounts.userId, userId), eq(accounts.householdId, householdId)))
+      .where(eq(accounts.householdId, householdId))
       .limit(1);
 
     if (existingAccounts.length > 0) {
       return Response.json(
-        { message: 'User already initialized' },
+        { message: 'Household already has accounts' },
         { status: 200 }
       );
     }
