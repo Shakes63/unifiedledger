@@ -1,9 +1,10 @@
-import { requireHouseholdAuth } from '@/lib/api/household-auth';
+import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { importHistory, importStaging, transactions } from '@/lib/db/schema';
 import { nanoid } from 'nanoid';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import {
   applyMappings,
   validateMappedTransaction,
@@ -58,7 +59,8 @@ export const dynamic = 'force-dynamic';
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId, householdId } = await requireHouseholdAuth(request);
+    const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const body = (await request.json()) as CSVImportRequest;
 
