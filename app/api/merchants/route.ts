@@ -29,15 +29,12 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '100');
 
+    // Return all merchants in the household (shared between all members)
+    // The requireHouseholdAuth check above ensures the user is a member
     const userMerchants = await db
       .select()
       .from(merchants)
-      .where(
-        and(
-          eq(merchants.userId, userId),
-          eq(merchants.householdId, householdId)
-        )
-      )
+      .where(eq(merchants.householdId, householdId))
       .orderBy(desc(merchants.usageCount))
       .limit(limit);
 

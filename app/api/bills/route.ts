@@ -29,6 +29,8 @@ export async function GET(request: Request) {
 
     let result;
 
+    // Return all bills in the household (shared between all members)
+    // The getAndVerifyHousehold check above ensures the user is a member
     if (isActive === 'true') {
       result = await db
         .select({
@@ -43,7 +45,6 @@ export async function GET(request: Request) {
         .leftJoin(accounts, eq(bills.accountId, accounts.id))
         .where(
           and(
-            eq(bills.userId, userId),
             eq(bills.householdId, householdId),
             eq(bills.isActive, true)
           )
@@ -65,7 +66,6 @@ export async function GET(request: Request) {
         .leftJoin(accounts, eq(bills.accountId, accounts.id))
         .where(
           and(
-            eq(bills.userId, userId),
             eq(bills.householdId, householdId),
             eq(bills.isActive, false)
           )
@@ -85,12 +85,7 @@ export async function GET(request: Request) {
         .leftJoin(budgetCategories, eq(bills.categoryId, budgetCategories.id))
         .leftJoin(merchants, eq(bills.merchantId, merchants.id))
         .leftJoin(accounts, eq(bills.accountId, accounts.id))
-        .where(
-          and(
-            eq(bills.userId, userId),
-            eq(bills.householdId, householdId)
-          )
-        )
+        .where(eq(bills.householdId, householdId))
         .orderBy(desc(bills.createdAt))
         .limit(limit)
         .offset(offset);

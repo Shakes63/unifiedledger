@@ -1671,12 +1671,9 @@ export async function GET(request: Request) {
       })
       .from(transactions)
       .leftJoin(savingsGoals, eq(transactions.savingsGoalId, savingsGoals.id))
-      .where(
-        and(
-          eq(transactions.userId, userId),
-          eq(transactions.householdId, householdId)
-        )
-      )
+      // Show all transactions in the household (shared between all members)
+      // The requireHouseholdAuth check above ensures the user is a member
+      .where(eq(transactions.householdId, householdId))
       .orderBy(desc(transactions.date))
       .limit(limit)
       .offset(offset);

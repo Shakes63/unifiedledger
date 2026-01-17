@@ -61,15 +61,12 @@ export async function GET(request: Request) {
       );
     }
 
+    // Return all categories in the household (shared between all members)
+    // The requireHouseholdAuth check above ensures the user is a member
     const userCategories = await db
       .select()
       .from(budgetCategories)
-      .where(
-        and(
-          eq(budgetCategories.userId, userId),
-          eq(budgetCategories.householdId, householdId)
-        )
-      )
+      .where(eq(budgetCategories.householdId, householdId))
       .orderBy(desc(budgetCategories.usageCount), budgetCategories.sortOrder);
 
     return Response.json(userCategories);
