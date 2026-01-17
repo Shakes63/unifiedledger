@@ -27,15 +27,12 @@ export async function GET(request: Request) {
       );
     }
 
+    // Return all accounts in the household (shared between all members)
+    // The requireHouseholdAuth check above ensures the user is a member
     const userAccounts = await db
       .select()
       .from(accounts)
-      .where(
-        and(
-          eq(accounts.userId, userId),
-          eq(accounts.householdId, householdId)
-        )
-      )
+      .where(eq(accounts.householdId, householdId))
       .orderBy(desc(accounts.usageCount), accounts.sortOrder);
 
     return Response.json(userAccounts);
