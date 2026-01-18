@@ -35,7 +35,9 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
   // First, read ALL body data into a buffer
   // This avoids stream piping issues with Web ReadableStream -> Node stream
   const bodyBuffer = await request.arrayBuffer();
+  const nodeBuffer = Buffer.from(bodyBuffer);
   console.log('[Avatar Upload] Body read, size:', bodyBuffer.byteLength, 'bytes');
+  console.log('[Avatar Upload] Body preview (first 500 chars):', nodeBuffer.toString('utf8', 0, 500));
   
   if (bodyBuffer.byteLength === 0) {
     console.error('[Avatar Upload] Body is empty!');
@@ -50,6 +52,11 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
     
     let fileData: ParsedFile | null = null;
     let filePromise: Promise<void> | null = null;
+
+    // Debug: Log all fields (non-file form fields)
+    bb.on('field', (fieldname, val) => {
+      console.log('[Avatar Upload] Field received:', { fieldname, valueLength: val?.length });
+    });
 
     bb.on('file', (fieldname, file, info) => {
       const { filename, mimeType } = info;
@@ -106,7 +113,6 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
     });
 
     // Write the buffer to busboy directly
-    const nodeBuffer = Buffer.from(bodyBuffer);
     console.log('[Avatar Upload] Writing buffer to busboy...');
     bb.write(nodeBuffer);
     bb.end();
@@ -114,16 +120,15 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
 }
 
 export async function POST(request: Request) {
+  // Debug: Log request details BEFORE auth (to debug regardless of auth status)
+  const contentType = request.headers.get('content-type');
+  console.log('[Avatar Upload] Request received:', {
+    method: request.method,
+    contentType,
+  });
+
   try {
     const { userId } = await requireAuth();
-
-    // Debug: Log request details
-    const contentType = request.headers.get('content-type');
-    console.log('[Avatar Upload] Request details:', {
-      method: request.method,
-      contentType,
-      bodyUsed: request.bodyUsed,
-    });
 
     // Verify content type is multipart/form-data
     if (!contentType?.includes('multipart/form-data')) {
