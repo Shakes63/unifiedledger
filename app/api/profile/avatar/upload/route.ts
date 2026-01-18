@@ -4,17 +4,111 @@ import { user } from '@/auth-schema';
 import { eq } from 'drizzle-orm';
 import { writeFile, unlink } from 'fs/promises';
 import { join } from 'path';
-import { validateImageFile } from '@/lib/avatar-client-utils';
 import {
   optimizeImage,
-  fileToBuffer,
 } from '@/lib/avatar-utils';
 import { ensureUploadsSubdir, getAvatarFilename, getAvatarUrlPath, getUploadsDir } from '@/lib/uploads/storage';
+import { Readable } from 'stream';
+import busboy from 'busboy';
 
 export const dynamic = 'force-dynamic';
 
-// Maximum file size: 5MB (used for client-side validation reference)
-const _MAX_FILE_SIZE = 5 * 1024 * 1024;
+// Maximum file size: 5MB
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+interface ParsedFile {
+  buffer: Buffer;
+  filename: string;
+  mimeType: string;
+}
+
+/**
+ * Parse multipart form data using busboy
+ * This is a workaround for Node.js undici's formData() issues
+ */
+async function parseMultipartForm(request: Request): Promise<ParsedFile | null> {
+  const contentType = request.headers.get('content-type');
+  if (!contentType) {
+    throw new Error('Missing content-type header');
+  }
+
+  return new Promise(async (resolve, reject) => {
+    const bb = busboy({ 
+      headers: { 'content-type': contentType },
+      limits: { fileSize: MAX_FILE_SIZE }
+    });
+    
+    let fileData: ParsedFile | null = null;
+    const chunks: Buffer[] = [];
+
+    bb.on('file', (fieldname, file, info) => {
+      const { filename, mimeType } = info;
+      console.log('[Avatar Upload] Receiving file:', { fieldname, filename, mimeType });
+      
+      if (fieldname !== 'avatar') {
+        file.resume(); // Drain the stream
+        return;
+      }
+
+      file.on('data', (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+
+      file.on('end', () => {
+        fileData = {
+          buffer: Buffer.concat(chunks),
+          filename,
+          mimeType,
+        };
+        console.log('[Avatar Upload] File received:', fileData.buffer.length, 'bytes');
+      });
+
+      file.on('error', (err) => {
+        console.error('[Avatar Upload] File stream error:', err);
+        reject(err);
+      });
+    });
+
+    bb.on('finish', () => {
+      resolve(fileData);
+    });
+
+    bb.on('error', (err) => {
+      console.error('[Avatar Upload] Busboy error:', err);
+      reject(err);
+    });
+
+    // Convert Web ReadableStream to Node Readable and pipe to busboy
+    try {
+      const body = request.body;
+      if (!body) {
+        reject(new Error('Request body is null'));
+        return;
+      }
+
+      const reader = body.getReader();
+      const nodeStream = new Readable({
+        async read() {
+          try {
+            const { done, value } = await reader.read();
+            if (done) {
+              this.push(null);
+            } else {
+              this.push(Buffer.from(value));
+            }
+          } catch (err) {
+            this.destroy(err as Error);
+          }
+        }
+      });
+
+      nodeStream.pipe(bb);
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -28,15 +122,6 @@ export async function POST(request: Request) {
       bodyUsed: request.bodyUsed,
     });
 
-    // Check if body was already consumed
-    if (request.bodyUsed) {
-      console.error('[Avatar Upload] Request body already consumed!');
-      return Response.json(
-        { error: 'Request body already consumed' },
-        { status: 400 }
-      );
-    }
-
     // Verify content type is multipart/form-data
     if (!contentType?.includes('multipart/form-data')) {
       console.error('[Avatar Upload] Invalid content type:', contentType);
@@ -46,38 +131,37 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get form data
-    let formData: FormData;
+    // Parse form data using busboy (workaround for Node.js undici issues)
+    let parsedFile: ParsedFile | null;
     try {
-      formData = await request.formData();
-      console.log('[Avatar Upload] FormData parsed successfully');
-      console.log('[Avatar Upload] FormData keys:', [...formData.keys()]);
-    } catch (formError) {
-      console.error('[Avatar Upload] FormData parse error:', formError);
-      console.error('[Avatar Upload] Error name:', formError instanceof Error ? formError.name : 'N/A');
-      console.error('[Avatar Upload] Error message:', formError instanceof Error ? formError.message : String(formError));
-      console.error('[Avatar Upload] Error stack:', formError instanceof Error ? formError.stack : 'N/A');
+      parsedFile = await parseMultipartForm(request);
+    } catch (parseError) {
+      console.error('[Avatar Upload] Form parse error:', parseError);
       return Response.json(
-        { error: `Failed to parse form data: ${formError instanceof Error ? formError.message : 'Unknown error'}` },
+        { error: `Failed to parse form data: ${parseError instanceof Error ? parseError.message : 'Unknown error'}` },
         { status: 400 }
       );
     }
-    
-    const file = formData.get('avatar') as File | null;
-    console.log('[Avatar Upload] File retrieved:', file ? `${file.name} (${file.size} bytes, ${file.type})` : 'null');
 
-    if (!file) {
+    if (!parsedFile) {
       return Response.json(
         { error: 'No file provided' },
         { status: 400 }
       );
     }
 
-    // Validate file
-    const validation = validateImageFile(file);
-    if (!validation.valid) {
+    // Validate file type
+    if (!ALLOWED_TYPES.includes(parsedFile.mimeType)) {
       return Response.json(
-        { error: validation.error },
+        { error: `Invalid file type: ${parsedFile.mimeType}. Allowed: ${ALLOWED_TYPES.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate file size
+    if (parsedFile.buffer.length > MAX_FILE_SIZE) {
+      return Response.json(
+        { error: `File too large. Maximum size: ${MAX_FILE_SIZE / 1024 / 1024}MB` },
         { status: 400 }
       );
     }
@@ -112,9 +196,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // Convert file to buffer and optimize
-    const buffer = await fileToBuffer(file);
-    const optimizedBuffer = await optimizeImage(buffer);
+    // Optimize the uploaded image
+    const optimizedBuffer = await optimizeImage(parsedFile.buffer);
 
     // We store optimized avatars as JPEG under the persisted uploads directory.
     await ensureUploadsSubdir('avatars');
