@@ -33,45 +33,62 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
     throw new Error('Missing content-type header');
   }
 
-  return new Promise(async (resolve, reject) => {
+  return new Promise((resolve, reject) => {
     const bb = busboy({ 
       headers: { 'content-type': contentType },
       limits: { fileSize: MAX_FILE_SIZE }
     });
     
     let fileData: ParsedFile | null = null;
-    const chunks: Buffer[] = [];
+    let filePromise: Promise<void> | null = null;
 
     bb.on('file', (fieldname, file, info) => {
       const { filename, mimeType } = info;
       console.log('[Avatar Upload] Receiving file:', { fieldname, filename, mimeType });
       
       if (fieldname !== 'avatar') {
+        console.log('[Avatar Upload] Skipping non-avatar field:', fieldname);
         file.resume(); // Drain the stream
         return;
       }
 
-      file.on('data', (chunk: Buffer) => {
-        chunks.push(chunk);
-      });
+      const chunks: Buffer[] = [];
+      
+      // Create a promise that resolves when file is fully read
+      filePromise = new Promise<void>((fileResolve, fileReject) => {
+        file.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+        });
 
-      file.on('end', () => {
-        fileData = {
-          buffer: Buffer.concat(chunks),
-          filename,
-          mimeType,
-        };
-        console.log('[Avatar Upload] File received:', fileData.buffer.length, 'bytes');
-      });
+        file.on('end', () => {
+          fileData = {
+            buffer: Buffer.concat(chunks),
+            filename,
+            mimeType,
+          };
+          console.log('[Avatar Upload] File received:', fileData.buffer.length, 'bytes');
+          fileResolve();
+        });
 
-      file.on('error', (err) => {
-        console.error('[Avatar Upload] File stream error:', err);
-        reject(err);
+        file.on('error', (err) => {
+          console.error('[Avatar Upload] File stream error:', err);
+          fileReject(err);
+        });
       });
     });
 
-    bb.on('finish', () => {
-      resolve(fileData);
+    bb.on('close', async () => {
+      console.log('[Avatar Upload] Busboy close event, waiting for file...');
+      try {
+        // Wait for file to be fully processed
+        if (filePromise) {
+          await filePromise;
+        }
+        console.log('[Avatar Upload] Resolving with fileData:', fileData ? 'present' : 'null');
+        resolve(fileData);
+      } catch (err) {
+        reject(err);
+      }
     });
 
     bb.on('error', (err) => {
@@ -80,33 +97,29 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
     });
 
     // Convert Web ReadableStream to Node Readable and pipe to busboy
-    try {
-      const body = request.body;
-      if (!body) {
-        reject(new Error('Request body is null'));
-        return;
-      }
-
-      const reader = body.getReader();
-      const nodeStream = new Readable({
-        async read() {
-          try {
-            const { done, value } = await reader.read();
-            if (done) {
-              this.push(null);
-            } else {
-              this.push(Buffer.from(value));
-            }
-          } catch (err) {
-            this.destroy(err as Error);
-          }
-        }
-      });
-
-      nodeStream.pipe(bb);
-    } catch (err) {
-      reject(err);
+    const body = request.body;
+    if (!body) {
+      reject(new Error('Request body is null'));
+      return;
     }
+
+    const reader = body.getReader();
+    const nodeStream = new Readable({
+      async read() {
+        try {
+          const { done, value } = await reader.read();
+          if (done) {
+            this.push(null);
+          } else {
+            this.push(Buffer.from(value));
+          }
+        } catch (err) {
+          this.destroy(err as Error);
+        }
+      }
+    });
+
+    nodeStream.pipe(bb);
   });
 }
 
