@@ -9,6 +9,7 @@ import {
 } from '@/lib/avatar-utils';
 import { ensureUploadsSubdir, getAvatarFilename, getAvatarUrlPath, getUploadsDir } from '@/lib/uploads/storage';
 import busboy from 'busboy';
+import { inflateSync } from 'zlib';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,11 +42,25 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
   const hexPreview = nodeBuffer.slice(0, 100).toString('hex');
   console.log('[Avatar Upload] Body hex (first 100 bytes):', hexPreview);
   
+  // Check if body is zlib compressed (starts with 0x78)
+  // Cloudflare or other proxies might compress the request body
+  let actualBuffer = nodeBuffer;
+  if (nodeBuffer[0] === 0x78) {
+    console.log('[Avatar Upload] Detected possible zlib compression, attempting to decompress...');
+    try {
+      actualBuffer = inflateSync(nodeBuffer);
+      console.log('[Avatar Upload] Decompressed successfully! New size:', actualBuffer.length, 'bytes');
+      console.log('[Avatar Upload] Decompressed hex (first 100 bytes):', actualBuffer.slice(0, 100).toString('hex'));
+    } catch (zlibError) {
+      console.log('[Avatar Upload] Zlib decompression failed (might not be compressed):', zlibError instanceof Error ? zlibError.message : zlibError);
+    }
+  }
+  
   // Check if body starts with boundary (should start with 0x2d2d = "--")
-  const startsWithDash = nodeBuffer[0] === 0x2d && nodeBuffer[1] === 0x2d;
+  const startsWithDash = actualBuffer[0] === 0x2d && actualBuffer[1] === 0x2d;
   console.log('[Avatar Upload] Starts with "--":', startsWithDash);
   
-  if (bodyBuffer.byteLength === 0) {
+  if (actualBuffer.byteLength === 0) {
     console.error('[Avatar Upload] Body is empty!');
     return null;
   }
@@ -54,13 +69,13 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
   // Try to detect if it's an image directly
   if (!startsWithDash) {
     console.log('[Avatar Upload] Body does not look like multipart data!');
-    console.log('[Avatar Upload] First 4 bytes:', nodeBuffer.slice(0, 4).toString('hex'));
+    console.log('[Avatar Upload] First 4 bytes:', actualBuffer.slice(0, 4).toString('hex'));
     
     // Check for common image signatures
-    const isPNG = nodeBuffer[0] === 0x89 && nodeBuffer[1] === 0x50 && nodeBuffer[2] === 0x4e && nodeBuffer[3] === 0x47;
-    const isJPEG = nodeBuffer[0] === 0xff && nodeBuffer[1] === 0xd8;
-    const isGIF = nodeBuffer[0] === 0x47 && nodeBuffer[1] === 0x49 && nodeBuffer[2] === 0x46;
-    const isWEBP = nodeBuffer[0] === 0x52 && nodeBuffer[1] === 0x49 && nodeBuffer[2] === 0x46 && nodeBuffer[3] === 0x46;
+    const isPNG = actualBuffer[0] === 0x89 && actualBuffer[1] === 0x50 && actualBuffer[2] === 0x4e && actualBuffer[3] === 0x47;
+    const isJPEG = actualBuffer[0] === 0xff && actualBuffer[1] === 0xd8;
+    const isGIF = actualBuffer[0] === 0x47 && actualBuffer[1] === 0x49 && actualBuffer[2] === 0x46;
+    const isWEBP = actualBuffer[0] === 0x52 && actualBuffer[1] === 0x49 && actualBuffer[2] === 0x46 && actualBuffer[3] === 0x46;
     
     console.log('[Avatar Upload] Image detection:', { isPNG, isJPEG, isGIF, isWEBP });
     
@@ -69,7 +84,7 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
       const mimeType = isPNG ? 'image/png' : isJPEG ? 'image/jpeg' : isGIF ? 'image/gif' : 'image/webp';
       console.log('[Avatar Upload] Detected raw image data, treating as direct upload');
       return {
-        buffer: nodeBuffer,
+        buffer: actualBuffer,
         filename: `avatar.${isPNG ? 'png' : isJPEG ? 'jpg' : isGIF ? 'gif' : 'webp'}`,
         mimeType,
       };
@@ -143,7 +158,7 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
     });
 
     console.log('[Avatar Upload] Writing buffer to busboy...');
-    bb.write(nodeBuffer);
+    bb.write(actualBuffer);
     bb.end();
   });
 }
