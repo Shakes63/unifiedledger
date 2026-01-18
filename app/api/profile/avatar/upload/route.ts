@@ -33,134 +33,108 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
     throw new Error('Missing content-type header');
   }
 
-  // First, read ALL body data into a buffer
-  const bodyBuffer = await request.arrayBuffer();
+  // Clone the request so we can try multiple parsing methods
+  const clonedRequest = request.clone();
+
+  // FIRST: Try the native formData() API
+  console.log('[Avatar Upload] Attempting native formData() parsing...');
+  try {
+    const formData = await request.formData();
+    const file = formData.get('avatar');
+    
+    if (file && file instanceof File) {
+      console.log('[Avatar Upload] Native formData() worked! File:', file.name, file.size, 'bytes', file.type);
+      const arrayBuffer = await file.arrayBuffer();
+      return {
+        buffer: Buffer.from(arrayBuffer),
+        filename: file.name,
+        mimeType: file.type || 'application/octet-stream',
+      };
+    } else {
+      console.log('[Avatar Upload] Native formData() returned no file. Keys:', [...formData.keys()]);
+    }
+  } catch (nativeError) {
+    console.log('[Avatar Upload] Native formData() failed:', nativeError instanceof Error ? nativeError.message : nativeError);
+  }
+
+  // FALLBACK: Try reading raw body and parsing with busboy
+  console.log('[Avatar Upload] Trying fallback: raw body + busboy...');
+  
+  const bodyBuffer = await clonedRequest.arrayBuffer();
   const nodeBuffer = Buffer.from(bodyBuffer);
   console.log('[Avatar Upload] Body read, size:', bodyBuffer.byteLength, 'bytes');
+  console.log('[Avatar Upload] Body hex (first 50 bytes):', nodeBuffer.slice(0, 50).toString('hex'));
   
-  // Log first 100 bytes as hex to see actual content
-  const hexPreview = nodeBuffer.slice(0, 100).toString('hex');
-  console.log('[Avatar Upload] Body hex (first 100 bytes):', hexPreview);
-  
-  // Check if body is zlib compressed (starts with 0x78)
-  // Cloudflare or other proxies might compress the request body
-  let actualBuffer = nodeBuffer;
-  if (nodeBuffer[0] === 0x78) {
-    console.log('[Avatar Upload] Detected possible zlib compression, attempting to decompress...');
-    try {
-      actualBuffer = inflateSync(nodeBuffer);
-      console.log('[Avatar Upload] Decompressed successfully! New size:', actualBuffer.length, 'bytes');
-      console.log('[Avatar Upload] Decompressed hex (first 100 bytes):', actualBuffer.slice(0, 100).toString('hex'));
-    } catch (zlibError) {
-      console.log('[Avatar Upload] Zlib decompression failed (might not be compressed):', zlibError instanceof Error ? zlibError.message : zlibError);
-    }
-  }
-  
-  // Check if body starts with boundary (should start with 0x2d2d = "--")
-  const startsWithDash = actualBuffer[0] === 0x2d && actualBuffer[1] === 0x2d;
-  console.log('[Avatar Upload] Starts with "--":', startsWithDash);
-  
-  if (actualBuffer.byteLength === 0) {
+  if (bodyBuffer.byteLength === 0) {
     console.error('[Avatar Upload] Body is empty!');
     return null;
   }
 
-  // If body doesn't look like multipart, it might be raw file data
-  // Try to detect if it's an image directly
-  if (!startsWithDash) {
-    console.log('[Avatar Upload] Body does not look like multipart data!');
-    console.log('[Avatar Upload] First 4 bytes:', actualBuffer.slice(0, 4).toString('hex'));
-    
-    // Check for common image signatures
-    const isPNG = actualBuffer[0] === 0x89 && actualBuffer[1] === 0x50 && actualBuffer[2] === 0x4e && actualBuffer[3] === 0x47;
-    const isJPEG = actualBuffer[0] === 0xff && actualBuffer[1] === 0xd8;
-    const isGIF = actualBuffer[0] === 0x47 && actualBuffer[1] === 0x49 && actualBuffer[2] === 0x46;
-    const isWEBP = actualBuffer[0] === 0x52 && actualBuffer[1] === 0x49 && actualBuffer[2] === 0x46 && actualBuffer[3] === 0x46;
-    
-    console.log('[Avatar Upload] Image detection:', { isPNG, isJPEG, isGIF, isWEBP });
-    
-    // If it's raw image data, return it directly
-    if (isPNG || isJPEG || isGIF || isWEBP) {
-      const mimeType = isPNG ? 'image/png' : isJPEG ? 'image/jpeg' : isGIF ? 'image/gif' : 'image/webp';
-      console.log('[Avatar Upload] Detected raw image data, treating as direct upload');
-      return {
-        buffer: actualBuffer,
-        filename: `avatar.${isPNG ? 'png' : isJPEG ? 'jpg' : isGIF ? 'gif' : 'webp'}`,
-        mimeType,
-      };
-    }
+  // Check if body starts with boundary (should start with 0x2d2d = "--")
+  const startsWithDash = nodeBuffer[0] === 0x2d && nodeBuffer[1] === 0x2d;
+  console.log('[Avatar Upload] Starts with "--":', startsWithDash);
+
+  // Check for common image signatures (in case it's raw image data)
+  const isPNG = nodeBuffer[0] === 0x89 && nodeBuffer[1] === 0x50 && nodeBuffer[2] === 0x4e && nodeBuffer[3] === 0x47;
+  const isJPEG = nodeBuffer[0] === 0xff && nodeBuffer[1] === 0xd8;
+  const isGIF = nodeBuffer[0] === 0x47 && nodeBuffer[1] === 0x49 && nodeBuffer[2] === 0x46;
+  const isWEBP = nodeBuffer[0] === 0x52 && nodeBuffer[1] === 0x49 && nodeBuffer[2] === 0x46 && nodeBuffer[3] === 0x46;
+  
+  if (isPNG || isJPEG || isGIF || isWEBP) {
+    const mimeType = isPNG ? 'image/png' : isJPEG ? 'image/jpeg' : isGIF ? 'image/gif' : 'image/webp';
+    console.log('[Avatar Upload] Detected raw image data:', mimeType);
+    return {
+      buffer: nodeBuffer,
+      filename: `avatar.${isPNG ? 'png' : isJPEG ? 'jpg' : isGIF ? 'gif' : 'webp'}`,
+      mimeType,
+    };
   }
 
-  // Standard multipart parsing with busboy
-  return new Promise((resolve, reject) => {
-    const bb = busboy({ 
-      headers: { 'content-type': contentType },
-      limits: { fileSize: MAX_FILE_SIZE }
-    });
-    
-    let fileData: ParsedFile | null = null;
-    let filePromise: Promise<void> | null = null;
-
-    bb.on('field', (fieldname, val) => {
-      console.log('[Avatar Upload] Field received:', { fieldname, valueLength: val?.length });
-    });
-
-    bb.on('file', (fieldname, file, info) => {
-      const { filename, mimeType } = info;
-      console.log('[Avatar Upload] Receiving file:', { fieldname, filename, mimeType });
+  // If it looks like multipart, try busboy
+  if (startsWithDash) {
+    return new Promise((resolve, reject) => {
+      const bb = busboy({ 
+        headers: { 'content-type': contentType },
+        limits: { fileSize: MAX_FILE_SIZE }
+      });
       
-      if (fieldname !== 'avatar') {
-        console.log('[Avatar Upload] Skipping non-avatar field:', fieldname);
-        file.resume();
-        return;
-      }
+      let fileData: ParsedFile | null = null;
+      let filePromise: Promise<void> | null = null;
 
-      const chunks: Buffer[] = [];
-      
-      filePromise = new Promise<void>((fileResolve, fileReject) => {
-        file.on('data', (chunk: Buffer) => {
-          chunks.push(chunk);
-        });
+      bb.on('file', (fieldname, file, info) => {
+        const { filename, mimeType } = info;
+        console.log('[Avatar Upload] Busboy file:', { fieldname, filename, mimeType });
+        
+        if (fieldname !== 'avatar') {
+          file.resume();
+          return;
+        }
 
-        file.on('end', () => {
-          fileData = {
-            buffer: Buffer.concat(chunks),
-            filename,
-            mimeType,
-          };
-          console.log('[Avatar Upload] File received:', fileData.buffer.length, 'bytes');
-          fileResolve();
-        });
-
-        file.on('error', (err) => {
-          console.error('[Avatar Upload] File stream error:', err);
-          fileReject(err);
+        const chunks: Buffer[] = [];
+        filePromise = new Promise<void>((fileResolve, fileReject) => {
+          file.on('data', (chunk: Buffer) => chunks.push(chunk));
+          file.on('end', () => {
+            fileData = { buffer: Buffer.concat(chunks), filename, mimeType };
+            console.log('[Avatar Upload] File received:', fileData.buffer.length, 'bytes');
+            fileResolve();
+          });
+          file.on('error', fileReject);
         });
       });
-    });
 
-    bb.on('close', async () => {
-      console.log('[Avatar Upload] Busboy close event, waiting for file...');
-      try {
-        if (filePromise) {
-          await filePromise;
-        }
-        console.log('[Avatar Upload] Resolving with fileData:', fileData ? 'present' : 'null');
+      bb.on('close', async () => {
+        if (filePromise) await filePromise;
         resolve(fileData);
-      } catch (err) {
-        reject(err);
-      }
-    });
+      });
 
-    bb.on('error', (err) => {
-      console.error('[Avatar Upload] Busboy error:', err);
-      reject(err);
+      bb.on('error', reject);
+      bb.write(nodeBuffer);
+      bb.end();
     });
+  }
 
-    console.log('[Avatar Upload] Writing buffer to busboy...');
-    bb.write(actualBuffer);
-    bb.end();
-  });
+  console.log('[Avatar Upload] Body format not recognized. Cannot parse.');
+  return null;
 }
 
 export async function POST(request: Request) {
