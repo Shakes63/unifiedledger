@@ -8,7 +8,6 @@ import {
   optimizeImage,
 } from '@/lib/avatar-utils';
 import { ensureUploadsSubdir, getAvatarFilename, getAvatarUrlPath, getUploadsDir } from '@/lib/uploads/storage';
-import { Readable } from 'stream';
 import busboy from 'busboy';
 
 export const dynamic = 'force-dynamic';
@@ -31,6 +30,16 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
   const contentType = request.headers.get('content-type');
   if (!contentType) {
     throw new Error('Missing content-type header');
+  }
+
+  // First, read ALL body data into a buffer
+  // This avoids stream piping issues with Web ReadableStream -> Node stream
+  const bodyBuffer = await request.arrayBuffer();
+  console.log('[Avatar Upload] Body read, size:', bodyBuffer.byteLength, 'bytes');
+  
+  if (bodyBuffer.byteLength === 0) {
+    console.error('[Avatar Upload] Body is empty!');
+    return null;
   }
 
   return new Promise((resolve, reject) => {
@@ -96,30 +105,11 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
       reject(err);
     });
 
-    // Convert Web ReadableStream to Node Readable and pipe to busboy
-    const body = request.body;
-    if (!body) {
-      reject(new Error('Request body is null'));
-      return;
-    }
-
-    const reader = body.getReader();
-    const nodeStream = new Readable({
-      async read() {
-        try {
-          const { done, value } = await reader.read();
-          if (done) {
-            this.push(null);
-          } else {
-            this.push(Buffer.from(value));
-          }
-        } catch (err) {
-          this.destroy(err as Error);
-        }
-      }
-    });
-
-    nodeStream.pipe(bb);
+    // Write the buffer to busboy directly
+    const nodeBuffer = Buffer.from(bodyBuffer);
+    console.log('[Avatar Upload] Writing buffer to busboy...');
+    bb.write(nodeBuffer);
+    bb.end();
   });
 }
 
