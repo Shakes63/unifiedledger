@@ -33,17 +33,50 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
   }
 
   // First, read ALL body data into a buffer
-  // This avoids stream piping issues with Web ReadableStream -> Node stream
   const bodyBuffer = await request.arrayBuffer();
   const nodeBuffer = Buffer.from(bodyBuffer);
   console.log('[Avatar Upload] Body read, size:', bodyBuffer.byteLength, 'bytes');
-  console.log('[Avatar Upload] Body preview (first 500 chars):', nodeBuffer.toString('utf8', 0, 500));
+  
+  // Log first 100 bytes as hex to see actual content
+  const hexPreview = nodeBuffer.slice(0, 100).toString('hex');
+  console.log('[Avatar Upload] Body hex (first 100 bytes):', hexPreview);
+  
+  // Check if body starts with boundary (should start with 0x2d2d = "--")
+  const startsWithDash = nodeBuffer[0] === 0x2d && nodeBuffer[1] === 0x2d;
+  console.log('[Avatar Upload] Starts with "--":', startsWithDash);
   
   if (bodyBuffer.byteLength === 0) {
     console.error('[Avatar Upload] Body is empty!');
     return null;
   }
 
+  // If body doesn't look like multipart, it might be raw file data
+  // Try to detect if it's an image directly
+  if (!startsWithDash) {
+    console.log('[Avatar Upload] Body does not look like multipart data!');
+    console.log('[Avatar Upload] First 4 bytes:', nodeBuffer.slice(0, 4).toString('hex'));
+    
+    // Check for common image signatures
+    const isPNG = nodeBuffer[0] === 0x89 && nodeBuffer[1] === 0x50 && nodeBuffer[2] === 0x4e && nodeBuffer[3] === 0x47;
+    const isJPEG = nodeBuffer[0] === 0xff && nodeBuffer[1] === 0xd8;
+    const isGIF = nodeBuffer[0] === 0x47 && nodeBuffer[1] === 0x49 && nodeBuffer[2] === 0x46;
+    const isWEBP = nodeBuffer[0] === 0x52 && nodeBuffer[1] === 0x49 && nodeBuffer[2] === 0x46 && nodeBuffer[3] === 0x46;
+    
+    console.log('[Avatar Upload] Image detection:', { isPNG, isJPEG, isGIF, isWEBP });
+    
+    // If it's raw image data, return it directly
+    if (isPNG || isJPEG || isGIF || isWEBP) {
+      const mimeType = isPNG ? 'image/png' : isJPEG ? 'image/jpeg' : isGIF ? 'image/gif' : 'image/webp';
+      console.log('[Avatar Upload] Detected raw image data, treating as direct upload');
+      return {
+        buffer: nodeBuffer,
+        filename: `avatar.${isPNG ? 'png' : isJPEG ? 'jpg' : isGIF ? 'gif' : 'webp'}`,
+        mimeType,
+      };
+    }
+  }
+
+  // Standard multipart parsing with busboy
   return new Promise((resolve, reject) => {
     const bb = busboy({ 
       headers: { 'content-type': contentType },
@@ -53,7 +86,6 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
     let fileData: ParsedFile | null = null;
     let filePromise: Promise<void> | null = null;
 
-    // Debug: Log all fields (non-file form fields)
     bb.on('field', (fieldname, val) => {
       console.log('[Avatar Upload] Field received:', { fieldname, valueLength: val?.length });
     });
@@ -64,13 +96,12 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
       
       if (fieldname !== 'avatar') {
         console.log('[Avatar Upload] Skipping non-avatar field:', fieldname);
-        file.resume(); // Drain the stream
+        file.resume();
         return;
       }
 
       const chunks: Buffer[] = [];
       
-      // Create a promise that resolves when file is fully read
       filePromise = new Promise<void>((fileResolve, fileReject) => {
         file.on('data', (chunk: Buffer) => {
           chunks.push(chunk);
@@ -96,7 +127,6 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
     bb.on('close', async () => {
       console.log('[Avatar Upload] Busboy close event, waiting for file...');
       try {
-        // Wait for file to be fully processed
         if (filePromise) {
           await filePromise;
         }
@@ -112,7 +142,6 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
       reject(err);
     });
 
-    // Write the buffer to busboy directly
     console.log('[Avatar Upload] Writing buffer to busboy...');
     bb.write(nodeBuffer);
     bb.end();
