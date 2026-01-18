@@ -50,8 +50,13 @@ export async function POST(request: Request) {
     let formData: FormData;
     try {
       formData = await request.formData();
+      console.log('[Avatar Upload] FormData parsed successfully');
+      console.log('[Avatar Upload] FormData keys:', [...formData.keys()]);
     } catch (formError) {
       console.error('[Avatar Upload] FormData parse error:', formError);
+      console.error('[Avatar Upload] Error name:', formError instanceof Error ? formError.name : 'N/A');
+      console.error('[Avatar Upload] Error message:', formError instanceof Error ? formError.message : String(formError));
+      console.error('[Avatar Upload] Error stack:', formError instanceof Error ? formError.stack : 'N/A');
       return Response.json(
         { error: `Failed to parse form data: ${formError instanceof Error ? formError.message : 'Unknown error'}` },
         { status: 400 }
@@ -59,6 +64,7 @@ export async function POST(request: Request) {
     }
     
     const file = formData.get('avatar') as File | null;
+    console.log('[Avatar Upload] File retrieved:', file ? `${file.name} (${file.size} bytes, ${file.type})` : 'null');
 
     if (!file) {
       return Response.json(
