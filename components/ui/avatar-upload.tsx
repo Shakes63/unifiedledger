@@ -66,11 +66,16 @@ export function AvatarUpload({
     setIsUploading(true);
 
     try {
-      const formData = new FormData();
-      formData.append('avatar', file);
-
-      const response = await fetch('/api/profile/avatar/upload', { credentials: 'include', method: 'POST',
-        body: formData, });
+      // Send file as raw binary - simpler and more reliable than FormData
+      const response = await fetch('/api/profile/avatar/upload', {
+        credentials: 'include',
+        method: 'POST',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+          'X-Filename': encodeURIComponent(file.name),
+        },
+      });
 
       const data = await response.json();
 
