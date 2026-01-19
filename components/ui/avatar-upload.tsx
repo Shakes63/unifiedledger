@@ -106,16 +106,27 @@ export function AvatarUpload({
   const handleUpload = async (file: File) => {
     setIsUploading(true);
 
-    // Retry logic for transient server errors
-    const maxRetries = 3;
+    // Retry logic for network corruption issues
+    // The Docker/Unraid network sometimes corrupts request bodies
+    const maxRetries = 5; // Increased retries since corruption is common
     let lastError: Error | null = null;
+    let base64: string;
+
+    try {
+      // Resize image on client to reduce payload size
+      // This reduces a 3MB photo to ~100-200KB
+      base64 = await resizeImage(file, 800);
+      console.log(`[Avatar Upload] Resized image size: ${Math.round(base64.length / 1024)}KB`);
+    } catch (resizeError) {
+      console.error('Failed to resize image:', resizeError);
+      toast.error('Failed to process image');
+      setIsUploading(false);
+      return;
+    }
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        // Resize image on client to avoid large payload corruption issues
-        // This reduces a 3MB photo to ~100-200KB
-        const base64 = await resizeImage(file, 800);
-        console.log(`[Avatar Upload] Resized image size: ${Math.round(base64.length / 1024)}KB`);
+        console.log(`[Avatar Upload] Attempt ${attempt}/${maxRetries}...`);
         
         const response = await fetch('/api/profile/avatar/upload', {
           credentials: 'include',
@@ -130,53 +141,48 @@ export function AvatarUpload({
           }),
         });
 
-        // Safely parse JSON response
-        const contentType = response.headers.get('content-type');
-        if (!contentType?.includes('application/json')) {
-          if (!response.ok) {
-            // 500 errors might be transient - retry
-            if (response.status === 500 && attempt < maxRetries) {
-              console.log(`Upload attempt ${attempt} failed with 500, retrying...`);
-              await new Promise(resolve => setTimeout(resolve, 500 * attempt));
-              continue;
-            }
-            throw new Error(`Upload failed with status ${response.status}`);
+        // Check response
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          const errorMsg = errorData.error || `Status ${response.status}`;
+          
+          // 400/500 errors might be from network corruption - retry
+          if ((response.status === 400 || response.status === 500) && attempt < maxRetries) {
+            console.log(`[Avatar Upload] Attempt ${attempt} failed (${errorMsg}), retrying in ${attempt}s...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Longer delay
+            continue;
           }
-          // Non-JSON success response - just continue
-        } else {
-          const data = await response.json();
-          if (!response.ok) {
-            // 500 errors might be transient - retry
-            if (response.status === 500 && attempt < maxRetries) {
-              console.log(`Upload attempt ${attempt} failed with 500, retrying...`);
-              await new Promise(resolve => setTimeout(resolve, 500 * attempt));
-              continue;
-            }
-            throw new Error(data.error || 'Upload failed');
-          }
-          // Notify parent component
-          if (onAvatarUpdate) {
-            onAvatarUpdate(data.avatarUrl);
-          }
+          throw new Error(errorMsg);
+        }
+
+        // Success!
+        const data = await response.json();
+        console.log(`[Avatar Upload] Success on attempt ${attempt}!`);
+        
+        // Notify parent component
+        if (onAvatarUpdate) {
+          onAvatarUpdate(data.avatarUrl);
         }
 
         toast.success('Avatar updated successfully!');
         setPreviewUrl(null);
+        setIsUploading(false);
 
-        // Refresh the page to show new avatar everywhere
+        // Small delay before refresh to ensure toast is visible
+        await new Promise(resolve => setTimeout(resolve, 500));
         window.location.reload();
         return; // Success - exit the retry loop
       } catch (error) {
         lastError = error instanceof Error ? error : new Error('Upload failed');
-        console.error(`Upload attempt ${attempt} error:`, error);
+        console.error(`[Avatar Upload] Attempt ${attempt} error:`, error);
         
-        // Don't retry on non-network errors
         if (attempt >= maxRetries) {
           break;
         }
         
-        // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+        // Longer delay for network issues
+        console.log(`[Avatar Upload] Waiting ${attempt}s before retry...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
     }
 
