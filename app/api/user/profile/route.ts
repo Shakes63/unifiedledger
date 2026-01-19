@@ -24,6 +24,7 @@ export async function GET() {
         emailVerified: betterAuthUser.emailVerified,
         pendingEmail: betterAuthUser.pendingEmail,
         image: betterAuthUser.image,
+        imageUpdatedAt: betterAuthUser.imageUpdatedAt,
         createdAt: betterAuthUser.createdAt,
       })
       .from(betterAuthUser)
@@ -47,13 +48,20 @@ export async function GET() {
       .where(eq(userSettings.userId, userId))
       .limit(1);
 
+    // Add cache-busting timestamp to avatar URL if it exists
+    let imageUrl = user.image;
+    if (imageUrl && user.imageUpdatedAt) {
+      const timestamp = new Date(user.imageUpdatedAt).getTime();
+      imageUrl = `${imageUrl}?v=${timestamp}`;
+    }
+
     const profile = {
       id: user.id,
       name: user.name,
       email: user.email,
       emailVerified: user.emailVerified,
       pendingEmail: user.pendingEmail,
-      image: user.image,
+      image: imageUrl,
       displayName: settings[0]?.displayName || null,
       avatarUrl: settings[0]?.avatarUrl || null,
       bio: settings[0]?.bio || null,
@@ -160,20 +168,21 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Fetch updated profile
-    const users = await db
+    const updatedUsers = await db
       .select({
         id: betterAuthUser.id,
         name: betterAuthUser.name,
         email: betterAuthUser.email,
         emailVerified: betterAuthUser.emailVerified,
         image: betterAuthUser.image,
+        imageUpdatedAt: betterAuthUser.imageUpdatedAt,
         createdAt: betterAuthUser.createdAt,
       })
       .from(betterAuthUser)
       .where(eq(betterAuthUser.id, userId))
       .limit(1);
 
-    const settings = await db
+    const updatedSettings = await db
       .select({
         displayName: userSettings.displayName,
         avatarUrl: userSettings.avatarUrl,
@@ -183,16 +192,23 @@ export async function PATCH(request: NextRequest) {
       .where(eq(userSettings.userId, userId))
       .limit(1);
 
+    // Add cache-busting timestamp to avatar URL if it exists
+    let updatedImageUrl = updatedUsers[0].image;
+    if (updatedImageUrl && updatedUsers[0].imageUpdatedAt) {
+      const timestamp = new Date(updatedUsers[0].imageUpdatedAt).getTime();
+      updatedImageUrl = `${updatedImageUrl}?v=${timestamp}`;
+    }
+
     const profile = {
-      id: users[0].id,
-      name: users[0].name,
-      email: users[0].email,
-      emailVerified: users[0].emailVerified,
-      image: users[0].image,
-      displayName: settings[0]?.displayName || null,
-      avatarUrl: settings[0]?.avatarUrl || null,
-      bio: settings[0]?.bio || null,
-      createdAt: users[0].createdAt,
+      id: updatedUsers[0].id,
+      name: updatedUsers[0].name,
+      email: updatedUsers[0].email,
+      emailVerified: updatedUsers[0].emailVerified,
+      image: updatedImageUrl,
+      displayName: updatedSettings[0]?.displayName || null,
+      avatarUrl: updatedSettings[0]?.avatarUrl || null,
+      bio: updatedSettings[0]?.bio || null,
+      createdAt: updatedUsers[0].createdAt,
     };
 
     return NextResponse.json({
