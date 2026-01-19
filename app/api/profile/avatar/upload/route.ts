@@ -24,12 +24,14 @@ export async function POST(request: Request) {
     // Auth first
     const { userId } = await requireAuth();
 
-    // Get content type
+    // Get headers for debugging
     const contentType = request.headers.get('content-type');
+    const contentLength = request.headers.get('content-length');
     
     console.log('[Avatar Upload] Request received:', {
       method: request.method,
       contentType,
+      contentLength,
     });
 
     // Must be JSON with base64 data
@@ -41,10 +43,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Parse JSON body
+    // Parse JSON body - with extra debugging for corruption issues
     let payload: UploadPayload;
     try {
-      payload = await request.json();
+      // Read raw body first to debug
+      const rawBody = await request.text();
+      console.log('[Avatar Upload] Raw body length:', rawBody.length);
+      console.log('[Avatar Upload] Raw body first 100 chars:', rawBody.substring(0, 100));
+      console.log('[Avatar Upload] Raw body starts with {:', rawBody.startsWith('{'));
+      
+      payload = JSON.parse(rawBody);
     } catch (parseError) {
       console.error('[Avatar Upload] Failed to parse JSON:', parseError);
       return Response.json(
