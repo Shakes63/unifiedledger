@@ -9,7 +9,6 @@ import {
 } from '@/lib/avatar-utils';
 import { ensureUploadsSubdir, getAvatarFilename, getAvatarUrlPath, getUploadsDir } from '@/lib/uploads/storage';
 import busboy from 'busboy';
-import { inflateSync } from 'zlib';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,46 +32,55 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
     throw new Error('Missing content-type header');
   }
 
-  // Clone the request so we can try multiple parsing methods
-  const clonedRequest = request.clone();
-
-  // FIRST: Try the native formData() API
-  console.log('[Avatar Upload] Attempting native formData() parsing...');
-  try {
-    const formData = await request.formData();
-    const file = formData.get('avatar');
-    
-    if (file && file instanceof File) {
-      console.log('[Avatar Upload] Native formData() worked! File:', file.name, file.size, 'bytes', file.type);
-      const arrayBuffer = await file.arrayBuffer();
-      return {
-        buffer: Buffer.from(arrayBuffer),
-        filename: file.name,
-        mimeType: file.type || 'application/octet-stream',
-      };
-    } else {
-      console.log('[Avatar Upload] Native formData() returned no file. Keys:', [...formData.keys()]);
-    }
-  } catch (nativeError) {
-    console.log('[Avatar Upload] Native formData() failed:', nativeError instanceof Error ? nativeError.message : nativeError);
-  }
-
-  // FALLBACK: Try reading raw body and parsing with busboy
-  console.log('[Avatar Upload] Trying fallback: raw body + busboy...');
+  // Try reading body as a stream and collecting chunks manually
+  console.log('[Avatar Upload] Reading body via stream...');
   
-  const bodyBuffer = await clonedRequest.arrayBuffer();
-  const nodeBuffer = Buffer.from(bodyBuffer);
-  console.log('[Avatar Upload] Body read, size:', bodyBuffer.byteLength, 'bytes');
-  console.log('[Avatar Upload] Body hex (first 50 bytes):', nodeBuffer.slice(0, 50).toString('hex'));
-  
-  if (bodyBuffer.byteLength === 0) {
-    console.error('[Avatar Upload] Body is empty!');
+  const body = request.body;
+  if (!body) {
+    console.error('[Avatar Upload] No body stream available');
     return null;
   }
+
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalSize = 0;
+  let chunkCount = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      chunks.push(value);
+      totalSize += value.length;
+      chunkCount++;
+      
+      // Log first chunk details
+      if (chunkCount === 1) {
+        console.log('[Avatar Upload] First chunk size:', value.length);
+        console.log('[Avatar Upload] First chunk hex (first 50 bytes):', Buffer.from(value.slice(0, 50)).toString('hex'));
+        console.log('[Avatar Upload] First chunk as string (first 200 chars):', Buffer.from(value.slice(0, 200)).toString('utf8'));
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  console.log('[Avatar Upload] Stream read complete. Chunks:', chunkCount, 'Total size:', totalSize);
+
+  // Combine all chunks into a single buffer
+  const nodeBuffer = Buffer.concat(chunks.map(c => Buffer.from(c)));
+  console.log('[Avatar Upload] Combined buffer size:', nodeBuffer.length);
+  console.log('[Avatar Upload] Combined hex (first 50 bytes):', nodeBuffer.slice(0, 50).toString('hex'));
 
   // Check if body starts with boundary (should start with 0x2d2d = "--")
   const startsWithDash = nodeBuffer[0] === 0x2d && nodeBuffer[1] === 0x2d;
   console.log('[Avatar Upload] Starts with "--":', startsWithDash);
+
+  if (nodeBuffer.length === 0) {
+    console.error('[Avatar Upload] Body is empty!');
+    return null;
+  }
 
   // Check for common image signatures (in case it's raw image data)
   const isPNG = nodeBuffer[0] === 0x89 && nodeBuffer[1] === 0x50 && nodeBuffer[2] === 0x4e && nodeBuffer[3] === 0x47;
@@ -92,6 +100,7 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
 
   // If it looks like multipart, try busboy
   if (startsWithDash) {
+    console.log('[Avatar Upload] Looks like multipart, parsing with busboy...');
     return new Promise((resolve, reject) => {
       const bb = busboy({ 
         headers: { 'content-type': contentType },
@@ -110,11 +119,11 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
           return;
         }
 
-        const chunks: Buffer[] = [];
+        const fileChunks: Buffer[] = [];
         filePromise = new Promise<void>((fileResolve, fileReject) => {
-          file.on('data', (chunk: Buffer) => chunks.push(chunk));
+          file.on('data', (chunk: Buffer) => fileChunks.push(chunk));
           file.on('end', () => {
-            fileData = { buffer: Buffer.concat(chunks), filename, mimeType };
+            fileData = { buffer: Buffer.concat(fileChunks), filename, mimeType };
             console.log('[Avatar Upload] File received:', fileData.buffer.length, 'bytes');
             fileResolve();
           });
@@ -133,7 +142,7 @@ async function parseMultipartForm(request: Request): Promise<ParsedFile | null> 
     });
   }
 
-  console.log('[Avatar Upload] Body format not recognized. Cannot parse.');
+  console.log('[Avatar Upload] Body format not recognized. First 4 bytes:', nodeBuffer.slice(0, 4).toString('hex'));
   return null;
 }
 
