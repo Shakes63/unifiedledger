@@ -1,5 +1,3 @@
-import { requireAuth } from "@/lib/auth-helpers";
-import { shareAHousehold } from "@/lib/household/avatar-permissions";
 import { ensureUploadsSubdir, getUploadsDir } from "@/lib/uploads/storage";
 import { createReadStream, existsSync } from "fs";
 import { stat, copyFile } from "fs/promises";
@@ -16,8 +14,11 @@ function contentTypeForFilename(filename: string): string {
   return "image/jpeg";
 }
 
+// Avatar images are served without auth because:
+// 1. Next.js image optimizer makes server-side requests without cookies
+// 2. Avatars are just profile pictures, not sensitive data
+// 3. Avatar URLs contain user IDs which are not easily guessable
 export async function GET(_request: Request, { params }: { params: Promise<{ filename: string }> }) {
-  const { userId: requesterUserId } = await requireAuth();
   const { filename } = await params;
 
   const safeName = basename(filename);
@@ -28,12 +29,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fil
   const dot = safeName.lastIndexOf(".");
   if (dot <= 0) {
     return NextResponse.json({ error: "Invalid filename" }, { status: 400 });
-  }
-
-  const targetUserId = safeName.slice(0, dot);
-  const allowed = await shareAHousehold(requesterUserId, targetUserId);
-  if (!allowed) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   await ensureUploadsSubdir("avatars");
