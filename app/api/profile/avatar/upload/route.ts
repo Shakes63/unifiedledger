@@ -15,9 +15,10 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 export async function POST(request: Request) {
   try {
+    // Auth first
     const { userId } = await requireAuth();
 
-    // Get content type and filename from headers
+    // Get headers
     const contentType = request.headers.get('content-type');
     const filename = request.headers.get('x-filename');
     
@@ -36,9 +37,33 @@ export async function POST(request: Request) {
       );
     }
 
-    // Read raw binary body
-    const arrayBuffer = await request.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    // Read body using stream to avoid "body disturbed" errors
+    let buffer: Buffer;
+    try {
+      const chunks: Uint8Array[] = [];
+      const reader = request.body?.getReader();
+      
+      if (!reader) {
+        return Response.json(
+          { error: 'No request body' },
+          { status: 400 }
+        );
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) chunks.push(value);
+      }
+      
+      buffer = Buffer.concat(chunks.map(chunk => Buffer.from(chunk)));
+    } catch (bodyError) {
+      console.error('[Avatar Upload] Failed to read body:', bodyError);
+      return Response.json(
+        { error: 'Failed to read upload data. Please try again.' },
+        { status: 400 }
+      );
+    }
     
     console.log('[Avatar Upload] Body received:', buffer.length, 'bytes');
     console.log('[Avatar Upload] First 8 bytes (hex):', buffer.slice(0, 8).toString('hex'));
@@ -99,9 +124,8 @@ export async function POST(request: Request) {
           const legacyOldPath = join(process.cwd(), 'public', 'uploads', 'avatars', oldFilename);
           await unlink(legacyOldPath).catch(() => undefined);
         }
-      } catch (error) {
+      } catch {
         // File might not exist, ignore error
-        console.log('No old avatar to delete or deletion failed:', error);
       }
     }
 

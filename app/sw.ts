@@ -84,6 +84,15 @@ const serwist = new Serwist({
   ],
 });
 
+// Add fetch listener BEFORE serwist to bypass it for non-GET requests
+self.addEventListener('fetch', (event) => {
+  // Let non-GET requests pass through without any service worker involvement
+  if (event.request.method !== 'GET') {
+    // Don't call event.respondWith - this lets the request proceed normally
+    return;
+  }
+});
+
 serwist.addEventListeners();
 
 // Handle background sync for offline transactions

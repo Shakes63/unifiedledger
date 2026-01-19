@@ -14,6 +14,7 @@ export const AVATAR_QUALITY = 90; // JPEG quality
  */
 export async function optimizeImage(buffer: Buffer): Promise<Buffer> {
   return await sharp(buffer)
+    .rotate() // Auto-rotate based on EXIF orientation (fixes phone photos)
     .resize(AVATAR_SIZE, AVATAR_SIZE, {
       fit: 'cover',
       position: 'center',

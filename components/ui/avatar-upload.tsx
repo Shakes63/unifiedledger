@@ -65,44 +65,80 @@ export function AvatarUpload({
   const handleUpload = async (file: File) => {
     setIsUploading(true);
 
-    try {
-      // Send file as raw binary - simpler and more reliable than FormData
-      const response = await fetch('/api/profile/avatar/upload', {
-        credentials: 'include',
-        method: 'POST',
-        body: file,
-        headers: {
-          'Content-Type': file.type,
-          'X-Filename': encodeURIComponent(file.name),
-        },
-      });
+    // Retry logic for transient server errors (Turbopack hot-reload issues)
+    const maxRetries = 3;
+    let lastError: Error | null = null;
 
-      const data = await response.json();
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Send file as raw binary - simpler and more reliable than FormData
+        const response = await fetch('/api/profile/avatar/upload', {
+          credentials: 'include',
+          method: 'POST',
+          body: file,
+          headers: {
+            'Content-Type': file.type,
+            'X-Filename': encodeURIComponent(file.name),
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
+        // Safely parse JSON response
+        const contentType = response.headers.get('content-type');
+        if (!contentType?.includes('application/json')) {
+          if (!response.ok) {
+            // 500 errors might be transient - retry
+            if (response.status === 500 && attempt < maxRetries) {
+              console.log(`Upload attempt ${attempt} failed with 500, retrying...`);
+              await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+              continue;
+            }
+            throw new Error(`Upload failed with status ${response.status}`);
+          }
+          // Non-JSON success response - just continue
+        } else {
+          const data = await response.json();
+          if (!response.ok) {
+            // 500 errors might be transient - retry
+            if (response.status === 500 && attempt < maxRetries) {
+              console.log(`Upload attempt ${attempt} failed with 500, retrying...`);
+              await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+              continue;
+            }
+            throw new Error(data.error || 'Upload failed');
+          }
+          // Notify parent component
+          if (onAvatarUpdate) {
+            onAvatarUpdate(data.avatarUrl);
+          }
+        }
+
+        toast.success('Avatar updated successfully!');
+        setPreviewUrl(null);
+
+        // Refresh the page to show new avatar everywhere
+        window.location.reload();
+        return; // Success - exit the retry loop
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Upload failed');
+        console.error(`Upload attempt ${attempt} error:`, error);
+        
+        // Don't retry on non-network errors
+        if (attempt >= maxRetries) {
+          break;
+        }
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 500 * attempt));
       }
+    }
 
-      toast.success('Avatar updated successfully!');
-      setPreviewUrl(null);
-
-      // Notify parent component
-      if (onAvatarUpdate) {
-        onAvatarUpdate(data.avatarUrl);
-      }
-
-      // Refresh the page to show new avatar everywhere
-      window.location.reload();
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to upload avatar');
-      setPreviewUrl(null);
-    } finally {
-      setIsUploading(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    // All retries failed
+    toast.error(lastError?.message || 'Failed to upload avatar');
+    setPreviewUrl(null);
+    setIsUploading(false);
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
