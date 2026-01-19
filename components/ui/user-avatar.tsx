@@ -90,6 +90,7 @@ export function UserAvatar({
               setImageLoading(false);
             }}
             priority={size === 'xl'} // Prioritize large avatars (settings page)
+            unoptimized // Avatar URLs have cache-busting query params that Next.js optimizer doesn't handle
           />
           {imageLoading && (
             <div className="absolute inset-0 bg-muted animate-pulse" />
