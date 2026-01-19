@@ -32,15 +32,8 @@ export async function GET(_request: Request) {
       );
     }
 
-    // Add cache-busting timestamp to avatar URL if it exists
-    let avatarUrl = currentUser[0].image;
-    if (avatarUrl && currentUser[0].imageUpdatedAt) {
-      const timestamp = new Date(currentUser[0].imageUpdatedAt).getTime();
-      avatarUrl = `${avatarUrl}?v=${timestamp}`;
-    }
-
     return Response.json({
-      avatarUrl,
+      avatarUrl: currentUser[0].image,
       updatedAt: currentUser[0].imageUpdatedAt,
     });
   } catch (error) {

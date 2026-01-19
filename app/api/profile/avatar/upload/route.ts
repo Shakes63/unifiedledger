@@ -190,24 +190,21 @@ export async function POST(request: Request) {
     await writeFile(fullPath, optimizedBuffer);
 
     // Update database with new avatar URL and timestamp
-    const imageUpdatedAt = new Date();
+    const now = new Date();
     await db
       .update(user)
       .set({
         image: avatarPath,
-        imageUpdatedAt,
-        updatedAt: imageUpdatedAt,
+        imageUpdatedAt: now,
+        updatedAt: now,
       })
       .where(eq(user.id, userId));
 
     console.log('[Avatar Upload] Success! Saved to:', avatarPath);
 
-    // Return URL with cache-busting timestamp
-    const avatarUrlWithTimestamp = `${avatarPath}?v=${imageUpdatedAt.getTime()}`;
-
     return Response.json({
       success: true,
-      avatarUrl: avatarUrlWithTimestamp,
+      avatarUrl: avatarPath,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

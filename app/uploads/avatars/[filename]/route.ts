@@ -61,8 +61,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fil
     headers: {
       "Content-Type": contentTypeForFilename(safeName),
       "Content-Length": String(fileStat.size),
-      // Avatar images are user-scoped/private; avoid shared caches.
-      "Cache-Control": "private, max-age=3600",
+      // no-cache means browser must revalidate with server before using cached version
+      // ETag based on mtime ensures browser only re-downloads if file actually changed
+      "Cache-Control": "private, no-cache",
+      "ETag": `"${fileStat.mtimeMs}"`,
+      "Last-Modified": fileStat.mtime.toUTCString(),
     },
   });
 }

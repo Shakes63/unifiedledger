@@ -48,20 +48,13 @@ export async function GET() {
       .where(eq(userSettings.userId, userId))
       .limit(1);
 
-    // Add cache-busting timestamp to avatar URL if it exists
-    let imageUrl = user.image;
-    if (imageUrl && user.imageUpdatedAt) {
-      const timestamp = new Date(user.imageUpdatedAt).getTime();
-      imageUrl = `${imageUrl}?v=${timestamp}`;
-    }
-
     const profile = {
       id: user.id,
       name: user.name,
       email: user.email,
       emailVerified: user.emailVerified,
       pendingEmail: user.pendingEmail,
-      image: imageUrl,
+      image: user.image,
       displayName: settings[0]?.displayName || null,
       avatarUrl: settings[0]?.avatarUrl || null,
       bio: settings[0]?.bio || null,
@@ -192,19 +185,12 @@ export async function PATCH(request: NextRequest) {
       .where(eq(userSettings.userId, userId))
       .limit(1);
 
-    // Add cache-busting timestamp to avatar URL if it exists
-    let updatedImageUrl = updatedUsers[0].image;
-    if (updatedImageUrl && updatedUsers[0].imageUpdatedAt) {
-      const timestamp = new Date(updatedUsers[0].imageUpdatedAt).getTime();
-      updatedImageUrl = `${updatedImageUrl}?v=${timestamp}`;
-    }
-
     const profile = {
       id: updatedUsers[0].id,
       name: updatedUsers[0].name,
       email: updatedUsers[0].email,
       emailVerified: updatedUsers[0].emailVerified,
-      image: updatedImageUrl,
+      image: updatedUsers[0].image,
       displayName: updatedSettings[0]?.displayName || null,
       avatarUrl: updatedSettings[0]?.avatarUrl || null,
       bio: updatedSettings[0]?.bio || null,
