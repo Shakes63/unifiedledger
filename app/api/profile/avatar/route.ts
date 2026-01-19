@@ -1,29 +1,25 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { user } from '@/auth-schema';
+import { userSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/profile/avatar
- * Get current user's avatar URL (data URL)
+ * Get current user's avatar URL (data URL from userSettings)
  */
 export async function GET() {
   try {
     const { userId } = await requireAuth();
 
-    const [currentUser] = await db
-      .select({ image: user.image })
-      .from(user)
-      .where(eq(user.id, userId))
+    const [settings] = await db
+      .select({ avatarUrl: userSettings.avatarUrl })
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
       .limit(1);
 
-    if (!currentUser) {
-      return Response.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    return Response.json({ avatarUrl: currentUser.image });
+    return Response.json({ avatarUrl: settings?.avatarUrl || null });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -42,12 +38,9 @@ export async function DELETE() {
     const { userId } = await requireAuth();
 
     await db
-      .update(user)
-      .set({
-        image: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(user.id, userId));
+      .update(userSettings)
+      .set({ avatarUrl: null, updatedAt: new Date().toISOString() })
+      .where(eq(userSettings.userId, userId));
 
     return Response.json({ success: true });
   } catch (error) {

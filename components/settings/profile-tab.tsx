@@ -17,6 +17,7 @@ interface ProfileData {
   pendingEmail: string | null;
   id: string;
   image: string | null;
+  avatarUrl: string | null;
 }
 
 export function ProfileTab() {
@@ -255,9 +256,9 @@ export function ProfileTab() {
           <AvatarUpload
             userId={profile.id}
             userName={profile.name}
-            avatarUrl={profile.image}
+            avatarUrl={profile.avatarUrl}
             onAvatarUpdate={(newUrl) => {
-              setProfile({ ...profile, image: newUrl });
+              setProfile({ ...profile, avatarUrl: newUrl });
             }}
           />
         </div>

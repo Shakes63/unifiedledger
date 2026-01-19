@@ -1,7 +1,8 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { user } from '@/auth-schema';
+import { userSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,14 +28,27 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Image too large' }, { status: 400 });
     }
 
-    // Store directly in database
-    await db
-      .update(user)
-      .set({
-        image: dataUrl,
-        updatedAt: new Date(),
-      })
-      .where(eq(user.id, userId));
+    // Store in userSettings (not user.image to avoid bloating session cookie)
+    const existing = await db
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(userSettings)
+        .set({ avatarUrl: dataUrl, updatedAt: new Date().toISOString() })
+        .where(eq(userSettings.userId, userId));
+    } else {
+      await db.insert(userSettings).values({
+        id: uuidv4(),
+        userId,
+        avatarUrl: dataUrl,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
 
     return Response.json({
       success: true,
