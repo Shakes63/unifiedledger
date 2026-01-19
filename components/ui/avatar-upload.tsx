@@ -71,15 +71,23 @@ export function AvatarUpload({
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        // Send file as raw binary - simpler and more reliable than FormData
+        // Convert file to base64 to avoid binary data corruption issues
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = btoa(
+          new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+        );
+        
         const response = await fetch('/api/profile/avatar/upload', {
           credentials: 'include',
           method: 'POST',
-          body: file,
           headers: {
-            'Content-Type': file.type,
-            'X-Filename': encodeURIComponent(file.name),
+            'Content-Type': 'application/json',
           },
+          body: JSON.stringify({
+            data: base64,
+            filename: file.name,
+            mimeType: file.type,
+          }),
         });
 
         // Safely parse JSON response

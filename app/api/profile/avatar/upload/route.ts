@@ -9,63 +9,88 @@ import { ensureUploadsSubdir, getAvatarFilename, getAvatarUrlPath, getUploadsDir
 
 export const dynamic = 'force-dynamic';
 
-// Maximum file size: 5MB
+// Maximum file size: 5MB (before base64 encoding, base64 adds ~33% overhead)
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+interface UploadPayload {
+  data: string;      // Base64 encoded image data
+  filename: string;  // Original filename
+  mimeType: string;  // MIME type (image/jpeg, etc.)
+}
 
 export async function POST(request: Request) {
   try {
     // Auth first
     const { userId } = await requireAuth();
 
-    // Get headers
+    // Get content type
     const contentType = request.headers.get('content-type');
-    const filename = request.headers.get('x-filename');
     
     console.log('[Avatar Upload] Request received:', {
       method: request.method,
       contentType,
-      filename: filename ? decodeURIComponent(filename) : null,
     });
 
-    // Validate content type
-    if (!contentType || !ALLOWED_TYPES.includes(contentType)) {
+    // Must be JSON with base64 data
+    if (!contentType?.includes('application/json')) {
       console.error('[Avatar Upload] Invalid content type:', contentType);
       return Response.json(
-        { error: `Invalid file type: ${contentType}. Allowed: ${ALLOWED_TYPES.join(', ')}` },
+        { error: 'Invalid content type. Expected application/json with base64 data.' },
         { status: 400 }
       );
     }
 
-    // Read body using stream to avoid "body disturbed" errors
+    // Parse JSON body
+    let payload: UploadPayload;
+    try {
+      payload = await request.json();
+    } catch (parseError) {
+      console.error('[Avatar Upload] Failed to parse JSON:', parseError);
+      return Response.json(
+        { error: 'Failed to parse upload data.' },
+        { status: 400 }
+      );
+    }
+
+    const { data, filename, mimeType } = payload;
+
+    console.log('[Avatar Upload] Payload received:', {
+      filename,
+      mimeType,
+      dataLength: data?.length || 0,
+    });
+
+    // Validate required fields
+    if (!data || !mimeType) {
+      return Response.json(
+        { error: 'Missing required fields: data, mimeType' },
+        { status: 400 }
+      );
+    }
+
+    // Validate MIME type
+    if (!ALLOWED_TYPES.includes(mimeType)) {
+      console.error('[Avatar Upload] Invalid mime type:', mimeType);
+      return Response.json(
+        { error: `Invalid file type: ${mimeType}. Allowed: ${ALLOWED_TYPES.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Decode base64 to buffer
     let buffer: Buffer;
     try {
-      const chunks: Uint8Array[] = [];
-      const reader = request.body?.getReader();
-      
-      if (!reader) {
-        return Response.json(
-          { error: 'No request body' },
-          { status: 400 }
-        );
-      }
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) chunks.push(value);
-      }
-      
-      buffer = Buffer.concat(chunks.map(chunk => Buffer.from(chunk)));
-    } catch (bodyError) {
-      console.error('[Avatar Upload] Failed to read body:', bodyError);
+      buffer = Buffer.from(data, 'base64');
+    } catch (decodeError) {
+      console.error('[Avatar Upload] Failed to decode base64:', decodeError);
       return Response.json(
-        { error: 'Failed to read upload data. Please try again.' },
+        { error: 'Failed to decode image data.' },
         { status: 400 }
       );
     }
     
-    console.log('[Avatar Upload] Body received:', buffer.length, 'bytes');
+    console.log('[Avatar Upload] Decoded buffer size:', buffer.length, 'bytes');
     console.log('[Avatar Upload] First 8 bytes (hex):', buffer.slice(0, 8).toString('hex'));
 
     // Validate we got data
