@@ -46,12 +46,27 @@ export async function POST(request: Request) {
     // Parse JSON body - with extra debugging for corruption issues
     let payload: UploadPayload;
     try {
-      // Read raw body first to debug
-      const rawBody = await request.text();
-      console.log('[Avatar Upload] Raw body length:', rawBody.length);
+      const rawBuffer = await request.arrayBuffer();
+      const rawByteLength = rawBuffer.byteLength;
+      const declaredLength = contentLength ? Number.parseInt(contentLength, 10) : null;
+      const rawBody = Buffer.from(rawBuffer).toString('utf8');
+
+      console.log('[Avatar Upload] Raw body byte length:', rawByteLength);
+      console.log('[Avatar Upload] Raw body char length:', rawBody.length);
       console.log('[Avatar Upload] Raw body first 100 chars:', rawBody.substring(0, 100));
       console.log('[Avatar Upload] Raw body starts with {:', rawBody.startsWith('{'));
-      
+
+      if (declaredLength && rawByteLength < declaredLength) {
+        console.error('[Avatar Upload] Incomplete body received:', {
+          declaredLength,
+          rawByteLength,
+        });
+        return Response.json(
+          { error: 'Incomplete request body received.' },
+          { status: 400 }
+        );
+      }
+
       payload = JSON.parse(rawBody);
     } catch (parseError) {
       console.error('[Avatar Upload] Failed to parse JSON:', parseError);

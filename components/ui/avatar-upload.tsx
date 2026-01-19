@@ -62,20 +62,60 @@ export function AvatarUpload({
     handleUpload(file);
   };
 
+  // Resize image on client side to avoid large upload corruption
+  const resizeImage = (file: File, maxSize: number = 800): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        // Calculate new dimensions
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+
+        // Create canvas and draw resized image
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to base64 JPEG at 85% quality
+        const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+        resolve(base64);
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleUpload = async (file: File) => {
     setIsUploading(true);
 
-    // Retry logic for transient server errors (Turbopack hot-reload issues)
+    // Retry logic for transient server errors
     const maxRetries = 3;
     let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        // Convert file to base64 to avoid binary data corruption issues
-        const arrayBuffer = await file.arrayBuffer();
-        const base64 = btoa(
-          new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-        );
+        // Resize image on client to avoid large payload corruption issues
+        // This reduces a 3MB photo to ~100-200KB
+        const base64 = await resizeImage(file, 800);
+        console.log(`[Avatar Upload] Resized image size: ${Math.round(base64.length / 1024)}KB`);
         
         const response = await fetch('/api/profile/avatar/upload', {
           credentials: 'include',
@@ -85,8 +125,8 @@ export function AvatarUpload({
           },
           body: JSON.stringify({
             data: base64,
-            filename: file.name,
-            mimeType: file.type,
+            filename: file.name.replace(/\.[^.]+$/, '.jpg'), // Always jpg after resize
+            mimeType: 'image/jpeg', // We convert to JPEG during resize
           }),
         });
 
