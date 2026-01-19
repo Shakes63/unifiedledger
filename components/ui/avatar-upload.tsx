@@ -1,34 +1,83 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { UserAvatar } from './user-avatar';
 import { Button } from './button';
-import { validateImageFile } from '@/lib/avatar-client-utils';
 import { toast } from 'sonner';
 import { Upload, Trash2, Loader2 } from 'lucide-react';
 
 export interface AvatarUploadProps {
-  /** Current user ID */
   userId: string;
-  /** Current user name */
   userName: string;
-  /** Current avatar URL */
   avatarUrl?: string | null;
-  /** Callback when avatar is updated */
   onAvatarUpdate?: (newAvatarUrl: string | null) => void;
 }
 
+// Size for avatar display
+const AVATAR_SIZE = 150; // pixels
+
 /**
- * AvatarUpload component - Allows users to upload, preview, and remove avatars
- *
- * Features:
- * - File picker with validation
- * - Image preview before upload
- * - Upload progress indicator
- * - Remove avatar functionality
- * - Success/error notifications
- * - Fully themed with CSS variables
+ * Resize image to a small square for avatar use
+ * Returns a data URL (e.g., "data:image/jpeg;base64,...")
  */
+function resizeImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      // Create square crop from center
+      const size = Math.min(img.width, img.height);
+      const x = (img.width - size) / 2;
+      const y = (img.height - size) / 2;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = AVATAR_SIZE;
+      canvas.height = AVATAR_SIZE;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('Failed to get canvas context'));
+        return;
+      }
+
+      // Draw cropped and resized image
+      ctx.drawImage(img, x, y, size, size, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
+
+      // Convert to JPEG data URL (good compression)
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      URL.revokeObjectURL(img.src);
+      resolve(dataUrl);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src);
+      reject(new Error('Failed to load image'));
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/**
+ * Get initials from name
+ */
+function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+/**
+ * Generate consistent color from userId
+ */
+function getAvatarColor(userId: string): string {
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash % 360);
+  return `hsl(${hue}, 65%, 45%)`;
+}
+
 export function AvatarUpload({
   userId,
   userName,
@@ -40,159 +89,61 @@ export function AvatarUpload({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const displayUrl = previewUrl || avatarUrl;
+  const initials = getInitials(userName);
+  const bgColor = getAvatarColor(userId);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file
-    const validation = validateImageFile(file);
-    if (!validation.valid) {
-      toast.error(validation.error);
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
       return;
     }
 
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreviewUrl(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Validate file size (10MB max for original)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Image must be less than 10MB');
+      return;
+    }
 
-    // Upload file
-    handleUpload(file);
-  };
-
-  // Resize image on client side to avoid large upload corruption
-  const resizeImage = (file: File, maxSize: number = 800): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        // Calculate new dimensions
-        let width = img.width;
-        let height = img.height;
-        
-        if (width > height) {
-          if (width > maxSize) {
-            height = Math.round((height * maxSize) / width);
-            width = maxSize;
-          }
-        } else {
-          if (height > maxSize) {
-            width = Math.round((width * maxSize) / height);
-            height = maxSize;
-          }
-        }
-
-        // Create canvas and draw resized image
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Could not get canvas context'));
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Convert to base64 JPEG at 85% quality
-        const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-        resolve(base64);
-      };
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = URL.createObjectURL(file);
-    });
-  };
-
-  const handleUpload = async (file: File) => {
     setIsUploading(true);
 
-    // Retry logic for network corruption issues
-    // The Docker/Unraid network sometimes corrupts request bodies
-    const maxRetries = 5; // Increased retries since corruption is common
-    let lastError: Error | null = null;
-    let base64: string;
-
     try {
-      // Resize image on client to reduce payload size
-      // This reduces a 3MB photo to ~100-200KB
-      base64 = await resizeImage(file, 800);
-      console.log(`[Avatar Upload] Resized image size: ${Math.round(base64.length / 1024)}KB`);
-    } catch (resizeError) {
-      console.error('Failed to resize image:', resizeError);
-      toast.error('Failed to process image');
-      setIsUploading(false);
-      return;
-    }
+      // Resize to small data URL
+      const dataUrl = await resizeImage(file);
+      setPreviewUrl(dataUrl);
 
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`[Avatar Upload] Attempt ${attempt}/${maxRetries}...`);
-        
-        const response = await fetch('/api/profile/avatar/upload', {
-          credentials: 'include',
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            data: base64,
-            filename: file.name.replace(/\.[^.]+$/, '.jpg'), // Always jpg after resize
-            mimeType: 'image/jpeg', // We convert to JPEG during resize
-          }),
-        });
+      // Upload to server
+      const response = await fetch('/api/profile/avatar/upload', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataUrl }),
+      });
 
-        // Check response
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-          const errorMsg = errorData.error || `Status ${response.status}`;
-          
-          // 400/500 errors might be from network corruption - retry
-          if ((response.status === 400 || response.status === 500) && attempt < maxRetries) {
-            console.log(`[Avatar Upload] Attempt ${attempt} failed (${errorMsg}), retrying in ${attempt}s...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Longer delay
-            continue;
-          }
-          throw new Error(errorMsg);
-        }
+      const data = await response.json();
 
-        // Success!
-        const data = await response.json();
-        console.log(`[Avatar Upload] Success on attempt ${attempt}!`);
-        
-        // Notify parent component
-        if (onAvatarUpdate) {
-          onAvatarUpdate(data.avatarUrl);
-        }
-
-        toast.success('Avatar updated successfully!');
-        setPreviewUrl(null);
-        setIsUploading(false);
-
-        // Small delay before refresh to ensure toast is visible
-        await new Promise(resolve => setTimeout(resolve, 500));
-        window.location.reload();
-        return; // Success - exit the retry loop
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error('Upload failed');
-        console.error(`[Avatar Upload] Attempt ${attempt} error:`, error);
-        
-        if (attempt >= maxRetries) {
-          break;
-        }
-        
-        // Longer delay for network issues
-        console.log(`[Avatar Upload] Waiting ${attempt}s before retry...`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      if (!response.ok) {
+        throw new Error(data.error || 'Upload failed');
       }
-    }
 
-    // All retries failed
-    toast.error(lastError?.message || 'Failed to upload avatar');
-    setPreviewUrl(null);
-    setIsUploading(false);
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      toast.success('Avatar updated!');
+      onAvatarUpdate?.(data.avatarUrl);
+      
+      // Refresh to show new avatar everywhere
+      window.location.reload();
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to upload');
+      setPreviewUrl(null);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -202,56 +153,46 @@ export function AvatarUpload({
     setIsRemoving(true);
 
     try {
-      const response = await fetch('/api/profile/avatar', { credentials: 'include', method: 'DELETE', });
-
-      const data = await response.json();
+      const response = await fetch('/api/profile/avatar', {
+        method: 'DELETE',
+        credentials: 'include',
+      });
 
       if (!response.ok) {
-        throw new Error(data.error || 'Removal failed');
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to remove');
       }
 
-      toast.success('Avatar removed successfully!');
-
-      // Notify parent component
-      if (onAvatarUpdate) {
-        onAvatarUpdate(null);
-      }
-
-      // Refresh the page to update avatar everywhere
+      toast.success('Avatar removed!');
+      setPreviewUrl(null);
+      onAvatarUpdate?.(null);
+      
       window.location.reload();
     } catch (error) {
-      console.error('Remove error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to remove avatar');
+      console.error('Avatar remove error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to remove');
     } finally {
       setIsRemoving(false);
     }
   };
 
-  const handleButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-
   return (
-    <div className="flex flex-col items-center gap-4 p-6 bg-card border border-border rounded-lg">
+    <div className="flex flex-col items-center gap-4">
       {/* Avatar Display */}
-      <div className="relative">
-        {previewUrl ? (
-          <div className="w-30 h-30 rounded-full overflow-hidden border-2 border-border">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewUrl}
-              alt="Preview"
-              className="w-full h-full object-cover"
-            />
-          </div>
-        ) : (
-          <UserAvatar
-            userId={userId}
-            userName={userName}
-            avatarUrl={avatarUrl}
-            size="xl"
-            showRing={false}
+      <div className="relative w-24 h-24">
+        {displayUrl ? (
+          <img
+            src={displayUrl}
+            alt={`${userName}'s avatar`}
+            className="w-full h-full rounded-full object-cover"
           />
+        ) : (
+          <div
+            className="w-full h-full rounded-full flex items-center justify-center text-white text-2xl font-bold"
+            style={{ backgroundColor: bgColor }}
+          >
+            {initials}
+          </div>
         )}
 
         {/* Loading overlay */}
@@ -262,33 +203,28 @@ export function AvatarUpload({
         )}
       </div>
 
-      {/* Upload Instructions */}
-      <div className="text-center">
-        <p className="text-sm text-muted-foreground">
-          Upload a profile picture (max 5MB)
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          JPG, PNG, or WebP format
-        </p>
-      </div>
+      {/* Instructions */}
+      <p className="text-sm text-muted-foreground text-center">
+        Upload a profile picture (JPG, PNG, WebP)
+      </p>
 
-      {/* Action Buttons */}
+      {/* Buttons */}
       <div className="flex gap-2">
         <Button
-          onClick={handleButtonClick}
+          onClick={() => fileInputRef.current?.click()}
           disabled={isUploading || isRemoving}
           className="gap-2"
         >
           <Upload className="w-4 h-4" />
-          {avatarUrl ? 'Change Photo' : 'Upload Photo'}
+          {avatarUrl ? 'Change' : 'Upload'}
         </Button>
 
         {avatarUrl && (
           <Button
-            variant="destructive"
+            variant="outline"
             onClick={handleRemove}
             disabled={isUploading || isRemoving}
-            className="gap-2"
+            className="gap-2 text-error hover:text-error"
           >
             <Trash2 className="w-4 h-4" />
             Remove
@@ -300,23 +236,10 @@ export function AvatarUpload({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/jpg,image/png,image/webp"
+        accept="image/*"
         onChange={handleFileSelect}
         className="hidden"
-        aria-label="Upload avatar image"
       />
-
-      {/* Upload status */}
-      {isUploading && (
-        <p className="text-sm text-muted-foreground">
-          Uploading and optimizing image...
-        </p>
-      )}
-      {isRemoving && (
-        <p className="text-sm text-muted-foreground">
-          Removing avatar...
-        </p>
-      )}
     </div>
   );
 }
