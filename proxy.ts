@@ -71,14 +71,22 @@ export default async function proxy(request: NextRequest) {
     }
   };
 
+  // Determine if secure cookies are used (same logic as lib/better-auth.ts)
+  const useSecureCookies =
+    process.env.FORCE_SECURE_COOKIES === "true" ||
+    process.env.NEXT_PUBLIC_APP_URL?.toLowerCase().startsWith("https://") ||
+    false;
+
   // Use Better Auth's official cookie helper to extract session token
   // This properly handles the cookie format regardless of cookieCache settings
+  // Must specify useSecureCookies to match the cookie name prefix (__Secure- for HTTPS)
   const sessionToken = getSessionCookie(request, {
     cookieName: "session_token",
     cookiePrefix: "better-auth",
+    useSecureCookies,
   });
 
-  debugLog("Session token extracted:", sessionToken ? "present" : "missing");
+  debugLog("Session token extracted:", sessionToken ? "present" : "missing", { useSecureCookies });
 
   // Define protected routes
   const isProtectedRoute =
