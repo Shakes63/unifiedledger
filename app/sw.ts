@@ -38,9 +38,13 @@ const serwist = new Serwist({
     },
     // API calls - Stale While Revalidate (5 minutes)
     // Only cache GET requests - POST/PUT/DELETE have bodies that can't be cached
+    // EXCLUDE auth endpoints - they must always hit the server
     {
       matcher: ({ url, request }) => 
-        url.pathname.startsWith('/api/') && request.method === 'GET',
+        url.pathname.startsWith('/api/') && 
+        request.method === 'GET' &&
+        !url.pathname.startsWith('/api/better-auth/') &&
+        !url.pathname.includes('/session'),
       handler: new StaleWhileRevalidate({
         cacheName: `api-${CACHE_VERSION}`,
         plugins: [
