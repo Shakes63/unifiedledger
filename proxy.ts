@@ -3,6 +3,7 @@
 // NOTE: Renamed from middleware.ts to proxy.ts per Next.js 16 convention
 
 import { NextResponse, type NextRequest } from "next/server";
+import { getSessionCookie } from "better-auth/cookies";
 import { validateSession, updateSessionActivity, deleteSessionByToken } from "@/lib/session-utils";
 import { isTestMode, logTestModeWarning, TEST_SESSION_TOKEN } from "@/lib/test-mode";
 
@@ -61,69 +62,23 @@ export default async function proxy(request: NextRequest) {
   // ============================================================================
   // NORMAL AUTHENTICATION FLOW
   // ============================================================================
-  
-  // Check if Better Auth session cookie exists
-  // Better Auth stores the full session data in this cookie
-  const sessionDataCookie = request.cookies.get("better-auth.session_data");
-  const sessionTokenCookie = request.cookies.get("better-auth.session_token");
 
   // Debug logging guard (set SESSION_DEBUG=1 to enable)
   const DEBUG = process.env.SESSION_DEBUG === "1";
   const debugLog = (...args: unknown[]) => {
     if (DEBUG) {
-       
-      console.log("[Middleware][Session]", ...args);
+      console.log("[Proxy][Session]", ...args);
     }
   };
 
-  // Extract token from session data if it exists
-  let sessionToken: string | undefined;
-  let tokenSource: string | undefined;
-  if (sessionDataCookie?.value) {
-    const raw = sessionDataCookie.value;
-    const candidates: string[] = [];
-    // Try all dot-delimited segments (JWT-like header.payload.signature) and full string
-    const parts = raw.split(".");
-    for (const part of parts) {
-      if (part) candidates.push(part);
-    }
-    candidates.push(raw);
+  // Use Better Auth's official cookie helper to extract session token
+  // This properly handles the cookie format regardless of cookieCache settings
+  const sessionToken = getSessionCookie(request, {
+    cookieName: "session_token",
+    cookiePrefix: "better-auth",
+  });
 
-    for (let i = 0; i < candidates.length; i++) {
-      const candidate = candidates[i]!;
-      for (const encoding of ["base64url", "base64"] as const) {
-        try {
-          const decoded = Buffer.from(candidate, encoding).toString("utf-8");
-          const obj = JSON.parse(decoded);
-          // Probe common shapes
-          const token =
-            obj?.session?.session?.token ??
-            obj?.session?.token ??
-            obj?.token;
-          if (typeof token === "string" && token.length > 0) {
-            sessionToken = token;
-            tokenSource = i < parts.length ? `session_data.part[${i}]` : "session_data.raw";
-            break;
-          }
-        } catch {
-          // Try next candidate/encoding silently
-        }
-      }
-      if (sessionToken) break;
-    }
-
-    if (!sessionToken) {
-      debugLog("Failed to extract token from session_data cookie");
-    } else {
-      debugLog("Extracted session token from", tokenSource);
-    }
-  }
-
-  // Fallback: explicit token cookie if provided by provider
-  if (!sessionToken && sessionTokenCookie?.value) {
-    sessionToken = sessionTokenCookie.value;
-    debugLog("Fell back to session_token cookie");
-  }
+  debugLog("Session token extracted:", sessionToken ? "present" : "missing");
 
   // Define protected routes
   const isProtectedRoute =
