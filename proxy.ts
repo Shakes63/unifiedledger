@@ -98,7 +98,11 @@ export default async function proxy(request: NextRequest) {
     }
   }
 
-  debugLog("Session token extracted:", sessionToken ? "present" : "missing", { expectSecureCookies });
+  // Log all cookie names for debugging (always log this for now)
+  const allCookies = request.cookies.getAll();
+  const cookieNames = allCookies.map(c => c.name);
+  console.log("[Proxy][Session] All cookies:", cookieNames);
+  console.log("[Proxy][Session] Session token extracted:", sessionToken ? "present" : "missing", { expectSecureCookies });
 
   // Define protected routes
   const isProtectedRoute =
