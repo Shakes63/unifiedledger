@@ -102,7 +102,19 @@ export default async function proxy(request: NextRequest) {
   const allCookies = request.cookies.getAll();
   const cookieNames = allCookies.map(c => c.name);
   console.log("[Proxy][Session] All cookies:", cookieNames);
-  console.log("[Proxy][Session] Session token extracted:", sessionToken ? "present" : "missing", { expectSecureCookies });
+  console.log("[Proxy][Session] Raw cookie value:", sessionToken ? `${sessionToken.substring(0, 20)}...` : "missing", { expectSecureCookies });
+
+  // Better Auth signs cookies in format: <token>.<signature>
+  // Extract the raw token by splitting on '.' and taking the first part
+  // This is safe because UUIDs don't contain dots
+  if (sessionToken && sessionToken.includes('.')) {
+    const parts = sessionToken.split('.');
+    // The token is the first part, signature is the rest
+    sessionToken = parts[0];
+    console.log("[Proxy][Session] Extracted raw token from signed cookie");
+  }
+
+  debugLog("Session token extracted:", sessionToken ? "present" : "missing", { expectSecureCookies });
 
   // Define protected routes
   const isProtectedRoute =
