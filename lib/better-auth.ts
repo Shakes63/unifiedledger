@@ -84,9 +84,10 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24, // Update every 24 hours
+    // Cookie cache disabled - it stores user data in cookies which can cause
+    // 431 errors if user data is large (e.g., avatar data URLs)
     cookieCache: {
-      enabled: true,
-      maxAge: 60 * 5, // 5 minutes
+      enabled: false,
     },
   },
   advanced: {
