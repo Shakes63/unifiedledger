@@ -86,17 +86,6 @@ export default async function proxy(request: NextRequest) {
                      request.cookies.get(nonSecureCookieName)?.value ||
                      null;
 
-  // Log all cookie names for debugging (always log this for now)
-  const allCookies = request.cookies.getAll();
-  const cookieNames = allCookies.map(c => c.name);
-  console.log("[Proxy][Session] Path:", request.nextUrl.pathname);
-  console.log("[Proxy][Session] All cookies:", cookieNames);
-  console.log("[Proxy][Session] Raw cookie value:", sessionToken ? `${sessionToken.substring(0, 20)}...` : "missing", { expectSecureCookies });
-
-  // Also log the actual cookie values for session-related cookies
-  const sessionCookies = allCookies.filter(c => c.name.includes('session') || c.name.includes('better-auth'));
-  console.log("[Proxy][Session] Session cookies:", sessionCookies.map(c => ({ name: c.name, valuePrefix: c.value?.substring(0, 20) })));
-
   // Better Auth signs cookies in format: <token>.<signature>
   // Extract the raw token by splitting on '.' and taking the first part
   // This is safe because UUIDs don't contain dots
@@ -104,7 +93,6 @@ export default async function proxy(request: NextRequest) {
     const parts = sessionToken.split('.');
     // The token is the first part, signature is the rest
     sessionToken = parts[0];
-    console.log("[Proxy][Session] Extracted raw token from signed cookie");
   }
 
   debugLog("Session token extracted:", sessionToken ? "present" : "missing", { expectSecureCookies });
@@ -119,20 +107,19 @@ export default async function proxy(request: NextRequest) {
 
   // Handle protected routes
   if (isProtectedRoute) {
-    console.log("[Proxy][Session] Protected route check - token:", sessionToken ? "present" : "missing");
-
     if (!sessionToken) {
       // No session cookie - redirect to sign-in
       const signInUrl = new URL("/sign-in", request.url);
       signInUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
-      console.log("[Proxy][Session] Redirecting - no token");
+      debugLog("Redirecting unauthenticated request", {
+        path: request.nextUrl.pathname,
+        reason: "no_token",
+      });
       return NextResponse.redirect(signInUrl);
     }
 
     // Validate session against database
-    console.log("[Proxy][Session] Validating token:", sessionToken?.substring(0, 20));
     const validation = await validateSession(sessionToken);
-    console.log("[Proxy][Session] Validation result:", { valid: validation.valid, reason: validation.reason });
 
     if (!validation.valid) {
       // Session is invalid - delete and redirect
