@@ -3,7 +3,6 @@
 // NOTE: Renamed from middleware.ts to proxy.ts per Next.js 16 convention
 
 import { NextResponse, type NextRequest } from "next/server";
-import { getSessionCookie } from "better-auth/cookies";
 import { validateSession, updateSessionActivity, deleteSessionByToken } from "@/lib/session-utils";
 import { isTestMode, logTestModeWarning, TEST_SESSION_TOKEN } from "@/lib/test-mode";
 
@@ -77,26 +76,15 @@ export default async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_APP_URL?.toLowerCase().startsWith("https://") ||
     false;
 
-  // Use Better Auth's official cookie helper to extract session token
-  // Try with expected secure cookie setting first, then fallback to the opposite
-  // This handles cases where env vars might not be set consistently
-  let sessionToken = getSessionCookie(request, {
-    cookieName: "session_token",
-    cookiePrefix: "better-auth",
-    useSecureCookies: expectSecureCookies,
-  });
+  // Manually extract session token from cookies
+  // Better Auth uses cookie name format: [__Secure-]<prefix>.<cookieName>
+  // We need to check both secure and non-secure variants
+  const secureCookieName = "__Secure-better-auth.session_token";
+  const nonSecureCookieName = "better-auth.session_token";
 
-  // Fallback: try the opposite secure cookie setting if first attempt failed
-  if (!sessionToken) {
-    sessionToken = getSessionCookie(request, {
-      cookieName: "session_token",
-      cookiePrefix: "better-auth",
-      useSecureCookies: !expectSecureCookies,
-    });
-    if (sessionToken) {
-      debugLog("Session token found with fallback cookie setting");
-    }
-  }
+  let sessionToken = request.cookies.get(secureCookieName)?.value ||
+                     request.cookies.get(nonSecureCookieName)?.value ||
+                     null;
 
   // Log all cookie names for debugging (always log this for now)
   const allCookies = request.cookies.getAll();
