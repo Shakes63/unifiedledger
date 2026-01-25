@@ -29,7 +29,7 @@ import { useState } from 'react';
 interface UnifiedDebt {
   id: string;
   name: string;
-  source: 'account' | 'bill';
+  source: 'account' | 'bill' | 'debt';
   sourceType: string;
   balance: number;
   originalBalance?: number;
@@ -60,6 +60,7 @@ interface UnifiedDebtCardProps {
 // Map debt types to icons
 const DEBT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   credit: CreditCard,
+  credit_card: CreditCard,
   line_of_credit: Wallet,
   mortgage: Home,
   auto_loan: Car,
@@ -72,6 +73,7 @@ const DEBT_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }
 // Map debt types to labels
 const DEBT_TYPE_LABELS: Record<string, string> = {
   credit: 'Credit Card',
+  credit_card: 'Credit Card',
   line_of_credit: 'Line of Credit',
   mortgage: 'Mortgage',
   auto_loan: 'Auto Loan',
@@ -95,9 +97,9 @@ export function UnifiedDebtCard({
 
   const typeLabel = DEBT_TYPE_LABELS[debt.sourceType] || 'Debt';
 
-  // Progress calculation for loans
+  // Progress calculation for loans and standalone debts
   const payoffProgress = useMemo(() => {
-    if (debt.source === 'bill' && debt.originalBalance && debt.originalBalance > 0) {
+    if ((debt.source === 'bill' || debt.source === 'debt') && debt.originalBalance && debt.originalBalance > 0) {
       const paid = debt.originalBalance - debt.balance;
       return Math.min(100, Math.max(0, (paid / debt.originalBalance) * 100));
     }

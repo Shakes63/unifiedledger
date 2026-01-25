@@ -37,7 +37,7 @@ import type { DebtFormData } from '@/lib/types';
 interface UnifiedDebt {
   id: string;
   name: string;
-  source: 'account' | 'bill';
+  source: 'account' | 'bill' | 'debt';
   sourceType: string;
   balance: number;
   originalBalance?: number;
@@ -64,6 +64,7 @@ interface UnifiedDebtSummary {
   totalCount: number;
   creditAccountCount: number;
   debtBillCount: number;
+  standaloneDebtCount: number;
   inStrategyCount: number;
   strategyBalance: number;
 }

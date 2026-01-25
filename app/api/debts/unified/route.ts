@@ -1,6 +1,6 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { accounts, bills } from '@/lib/db/schema';
+import { accounts, bills, debts } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import Decimal from 'decimal.js';
@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 interface UnifiedDebt {
   id: string;
   name: string;
-  source: 'account' | 'bill';
+  source: 'account' | 'bill' | 'debt';
   sourceType: string;
   balance: number;
   originalBalance?: number;
@@ -78,6 +78,17 @@ export async function GET(request: Request) {
           eq(bills.householdId, householdId),
           eq(bills.isDebt, true),
           eq(bills.isActive, true)
+        )
+      );
+
+    // Fetch standalone debts from debts table
+    const standaloneDebts = await db
+      .select()
+      .from(debts)
+      .where(
+        and(
+          eq(debts.householdId, householdId),
+          eq(debts.status, 'active')
         )
       );
 
@@ -151,6 +162,47 @@ export async function GET(request: Request) {
       }
     }
 
+    // Add standalone debts from debts table
+    // These are shown in the "Loans" filter since they're typically loans/debts being tracked
+    if (!sourceFilter || sourceFilter === 'debt' || sourceFilter === 'bill') {
+      for (const debt of standaloneDebts) {
+        // Apply type filter - map to unified filter categories
+        // 'credit' filter shows only credit card types
+        // 'line_of_credit' filter shows only line of credit types
+        // 'loans' (source === 'bill') shows loans and standalone debts
+        if (typeFilter === 'credit' && debt.type !== 'credit_card') continue;
+        if (typeFilter === 'line_of_credit') continue; // Standalone debts aren't lines of credit
+        // Apply strategy filter if specified (standalone debts are always included by default)
+        if (inStrategyOnly) continue; // TODO: Add includeInPayoffStrategy field to debts table
+
+        // Calculate utilization for credit cards with credit limits
+        let utilization: number | undefined;
+        let availableCredit: number | undefined;
+        if (debt.type === 'credit_card' && debt.creditLimit) {
+          utilization = new Decimal(debt.remainingBalance).div(debt.creditLimit).times(100).toNumber();
+          availableCredit = new Decimal(debt.creditLimit).minus(debt.remainingBalance).toNumber();
+        }
+
+        unifiedDebts.push({
+          id: debt.id,
+          name: debt.name,
+          source: 'debt' as const,
+          sourceType: debt.type || 'other',
+          balance: debt.remainingBalance,
+          originalBalance: debt.originalAmount,
+          creditLimit: debt.creditLimit ?? undefined,
+          interestRate: debt.interestRate ?? undefined,
+          interestType: debt.interestType ?? undefined,
+          minimumPayment: debt.minimumPayment ?? undefined,
+          includeInPayoffStrategy: true, // Standalone debts are always in strategy
+          color: debt.color ?? undefined,
+          debtType: debt.type ?? undefined,
+          utilization,
+          availableCredit,
+        });
+      }
+    }
+
     // Calculate summary stats
     const totalBalance = unifiedDebts.reduce(
       (sum, debt) => new Decimal(sum).plus(new Decimal(debt.balance)).toNumber(),
@@ -173,6 +225,7 @@ export async function GET(request: Request) {
         totalCount: unifiedDebts.length,
         creditAccountCount: unifiedDebts.filter(d => d.source === 'account').length,
         debtBillCount: unifiedDebts.filter(d => d.source === 'bill').length,
+        standaloneDebtCount: unifiedDebts.filter(d => d.source === 'debt').length,
         inStrategyCount,
         strategyBalance,
       },
