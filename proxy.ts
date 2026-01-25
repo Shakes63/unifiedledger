@@ -76,9 +76,30 @@ export default async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_APP_URL?.toLowerCase().startsWith("https://") ||
     false;
 
-  // Manually extract session token from cookies
-  // Better Auth uses cookie name format: [__Secure-]<prefix>.<cookieName>
-  // We need to check both secure and non-secure variants
+  // ============================================================================
+  // SESSION TOKEN EXTRACTION
+  // ============================================================================
+  // Why we read cookies directly instead of using Better Auth's getSessionCookie:
+  //
+  // 1. PERFORMANCE: Direct cookie reading avoids HTTP round-trip overhead.
+  //    Using Better Auth's API (fetch to /api/better-auth/get-session) would add
+  //    15-35ms per request. On pages with multiple protected resource loads,
+  //    this could add 75-350ms of cumulative latency.
+  //
+  // 2. CUSTOM VALIDATION: We need custom session logic not in Better Auth:
+  //    - Per-user inactivity timeouts (configurable in user settings)
+  //    - Activity tracking for session timeout
+  //    - Custom session expiration handling
+  //
+  // 3. getSessionCookie QUIRK: Better Auth's getSessionCookie helper has a bug
+  //    where passing both cookiePrefix and cookieName causes it to look for
+  //    "better-auth-session_token" (with dash) instead of the actual cookie
+  //    name "better-auth.session_token" (with dot).
+  //
+  // Cookie format: Better Auth sets cookies as [__Secure-]<prefix>.<name>
+  // - HTTPS/Production: __Secure-better-auth.session_token
+  // - HTTP/Development: better-auth.session_token
+  // ============================================================================
   const secureCookieName = "__Secure-better-auth.session_token";
   const nonSecureCookieName = "better-auth.session_token";
 
@@ -87,12 +108,10 @@ export default async function proxy(request: NextRequest) {
                      null;
 
   // Better Auth signs cookies in format: <token>.<signature>
-  // Extract the raw token by splitting on '.' and taking the first part
-  // This is safe because UUIDs don't contain dots
+  // Extract the raw token (first part) for database lookup
+  // This is safe because session tokens are UUIDs which don't contain dots
   if (sessionToken && sessionToken.includes('.')) {
-    const parts = sessionToken.split('.');
-    // The token is the first part, signature is the rest
-    sessionToken = parts[0];
+    sessionToken = sessionToken.split('.')[0];
   }
 
   debugLog("Session token extracted:", sessionToken ? "present" : "missing", { expectSecureCookies });
