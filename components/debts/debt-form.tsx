@@ -42,6 +42,7 @@ const INTEREST_TYPES = [
   { value: 'none', label: 'No Interest' },
   { value: 'fixed', label: 'Fixed Rate' },
   { value: 'variable', label: 'Variable Rate' },
+  { value: 'precomputed', label: 'Precomputed (BNPL/Add-On)' },
 ];
 
 const LOAN_TYPES = [
@@ -492,6 +493,11 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
               ))}
             </SelectContent>
           </Select>
+          {formData.interestType === 'precomputed' && (
+            <p className="text-xs text-muted-foreground mt-1">
+              For BNPL or add-on interest loans where interest is calculated upfront. Enter the total amount owed (principal + interest) as the Original Amount.
+            </p>
+          )}
         </div>
       </div>
 

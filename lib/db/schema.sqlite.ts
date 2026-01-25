@@ -405,7 +405,7 @@ export const bills = sqliteTable(
     remainingBalance: real('remaining_balance'),
     billInterestRate: real('bill_interest_rate'),
     interestType: text('interest_type', {
-      enum: ['fixed', 'variable', 'none'],
+      enum: ['fixed', 'variable', 'none', 'precomputed'],
     }).default('none'),
     minimumPayment: real('minimum_payment'),
     billAdditionalMonthlyPayment: real('bill_additional_monthly_payment'),
@@ -2050,7 +2050,7 @@ export const debts = sqliteTable(
     additionalMonthlyPayment: real('additional_monthly_payment').default(0),
     interestRate: real('interest_rate').default(0),
     interestType: text('interest_type', {
-      enum: ['fixed', 'variable', 'none'],
+      enum: ['fixed', 'variable', 'none', 'precomputed'],
     }).default('none'),
     accountId: text('account_id'),
     categoryId: text('category_id'), // Auto-created category for tracking debt payments

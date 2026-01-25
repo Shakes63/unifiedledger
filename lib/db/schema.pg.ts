@@ -397,7 +397,7 @@ export const bills = pgTable(
     remainingBalance: doublePrecision('remaining_balance'),
     billInterestRate: doublePrecision('bill_interest_rate'),
     interestType: text('interest_type', {
-      enum: ['fixed', 'variable', 'none'],
+      enum: ['fixed', 'variable', 'none', 'precomputed'],
     }).default('none'),
     minimumPayment: doublePrecision('minimum_payment'),
     billAdditionalMonthlyPayment: doublePrecision('bill_additional_monthly_payment'),
@@ -2042,7 +2042,7 @@ export const debts = pgTable(
     additionalMonthlyPayment: doublePrecision('additional_monthly_payment').default(0),
     interestRate: doublePrecision('interest_rate').default(0),
     interestType: text('interest_type', {
-      enum: ['fixed', 'variable', 'none'],
+      enum: ['fixed', 'variable', 'none', 'precomputed'],
     }).default('none'),
     accountId: text('account_id'),
     categoryId: text('category_id'), // Auto-created category for tracking debt payments
