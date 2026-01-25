@@ -13,7 +13,7 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
@@ -40,13 +40,15 @@ const serwist = new Serwist({
     // Only cache GET requests - POST/PUT/DELETE have bodies that can't be cached
     // EXCLUDE auth endpoints - they must always hit the server
     // EXCLUDE avatar endpoint - needs fresh data after uploads
+    // EXCLUDE user profile endpoint - includes avatar data that changes
     {
       matcher: ({ url, request }) =>
         url.pathname.startsWith('/api/') &&
         request.method === 'GET' &&
         !url.pathname.startsWith('/api/better-auth/') &&
         !url.pathname.includes('/session') &&
-        !url.pathname.startsWith('/api/profile/avatar'),
+        !url.pathname.startsWith('/api/profile/avatar') &&
+        !url.pathname.startsWith('/api/user/profile'),
       handler: new StaleWhileRevalidate({
         cacheName: `api-${CACHE_VERSION}`,
         plugins: [
