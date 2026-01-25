@@ -116,8 +116,8 @@ export default function AccountsPage() {
           toast.success(selectedAccount ? 'Account updated successfully' : 'Account created successfully');
         }
 
-        // Refresh accounts list
-        const fetchResponse = await fetchWithHousehold('/api/accounts');
+        // Refresh accounts list (skip cache to get fresh data)
+        const fetchResponse = await fetchWithHousehold('/api/accounts', { skipCache: true });
         if (fetchResponse.ok) {
           const data = await fetchResponse.json();
           setAccounts(data);

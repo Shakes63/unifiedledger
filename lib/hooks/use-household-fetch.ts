@@ -38,24 +38,30 @@ export function useHouseholdFetch() {
    * Memoized to prevent infinite loops in useEffect dependencies
    *
    * @param url - The API endpoint URL
-   * @param options - Optional fetch options
+   * @param options - Optional fetch options (use skipCache: true after mutations)
    * @returns Promise<Response>
    * @throws Error if no household is selected
    */
   const fetchWithHousehold = useCallback(async (
     url: string,
-    options: RequestInit = {}
+    options: RequestInit & { skipCache?: boolean } = {}
   ): Promise<Response> => {
     if (!selectedHouseholdId) {
       throw new Error('No household selected');
     }
 
+    const { skipCache, ...fetchOptions } = options;
+
     return fetch(url, {
-      ...options,
+      ...fetchOptions,
       credentials: 'include',
+      // Skip cache when explicitly requested (e.g., after mutations)
+      cache: skipCache ? 'no-store' : fetchOptions.cache,
       headers: {
-        ...options.headers,
+        ...fetchOptions.headers,
         'x-household-id': selectedHouseholdId,
+        // Also add cache-control header to bypass service worker
+        ...(skipCache ? { 'Cache-Control': 'no-cache' } : {}),
       },
     });
   }, [selectedHouseholdId]);

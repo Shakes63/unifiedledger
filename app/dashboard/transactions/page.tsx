@@ -107,7 +107,7 @@ function TransactionsContent() {
   const [updatingTxId, setUpdatingTxId] = useState<string | null>(null);
   const [combinedTransferView, setCombinedTransferView] = useState<boolean>(true); // Default to combined view
 
-  const performSearch = useCallback(async (filters: TransactionSearchFilters, offset: number = 0) => {
+  const performSearch = useCallback(async (filters: TransactionSearchFilters, offset: number = 0, skipCache: boolean = false) => {
     try {
       setSearchLoading(true);
 
@@ -135,7 +135,7 @@ function TransactionsContent() {
       params.append('limit', pageSize.toString());
       params.append('offset', offset.toString());
 
-      const response = await fetchWithHousehold(`/api/transactions/search?${params.toString()}`);
+      const response = await fetchWithHousehold(`/api/transactions/search?${params.toString()}`, { skipCache });
       if (response.ok) {
         const data = await response.json();
         setTransactions(data.transactions);
@@ -270,11 +270,11 @@ function TransactionsContent() {
     setCurrentFilters(null);
     setPaginationOffset(0);
     setHasMore(false);
-    
-    // Refetch all transactions
+
+    // Refetch all transactions (skip cache for fresh data)
     try {
       setSearchLoading(true);
-      const txResponse = await fetchWithHousehold('/api/transactions?limit=100');
+      const txResponse = await fetchWithHousehold('/api/transactions?limit=100', { skipCache: true });
       if (txResponse.ok) {
         const txData = await txResponse.json();
         setTransactions(txData);
@@ -320,13 +320,13 @@ function TransactionsContent() {
 
       if (response.ok) {
         await response.json(); // Get the response but don't use it
-        // Refetch transactions to get accurate data
+        // Refetch transactions to get accurate data (skip cache after mutation)
         if (currentFilters) {
           // If we're in search mode, re-run the search
-          await performSearch(currentFilters, paginationOffset);
+          await performSearch(currentFilters, paginationOffset, true);
         } else {
           // Otherwise, refetch all transactions
-          const txResponse = await fetchWithHousehold('/api/transactions?limit=100');
+          const txResponse = await fetchWithHousehold('/api/transactions?limit=100', { skipCache: true });
           if (txResponse.ok) {
             const txData = await txResponse.json();
             setTransactions(txData); // API already returns newest first
@@ -1213,9 +1213,9 @@ function TransactionsContent() {
         open={importModalOpen}
         onOpenChange={setImportModalOpen}
         onSuccess={async () => {
-          // Refresh transactions after successful import
+          // Refresh transactions after successful import (skip cache to get fresh data)
           try {
-            const txResponse = await fetchWithHousehold('/api/transactions?limit=100');
+            const txResponse = await fetchWithHousehold('/api/transactions?limit=100', { skipCache: true });
             if (txResponse.ok) {
               const txData = await txResponse.json();
               setTransactions(txData); // API already returns newest first

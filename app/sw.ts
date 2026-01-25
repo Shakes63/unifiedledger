@@ -92,11 +92,19 @@ const serwist = new Serwist({
   ],
 });
 
-// Add fetch listener BEFORE serwist to bypass it for non-GET requests
+// Add fetch listener BEFORE serwist to bypass it for non-GET requests and no-cache requests
 self.addEventListener('fetch', (event) => {
   // Let non-GET requests pass through without any service worker involvement
   if (event.request.method !== 'GET') {
     // Don't call event.respondWith - this lets the request proceed normally
+    return;
+  }
+
+  // Bypass cache for requests with Cache-Control: no-cache header
+  // This is used after mutations to ensure fresh data
+  const cacheControl = event.request.headers.get('Cache-Control');
+  if (cacheControl && cacheControl.includes('no-cache')) {
+    // Let the request bypass the service worker cache
     return;
   }
 });
