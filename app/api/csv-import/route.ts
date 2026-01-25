@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { importHistory, importStaging, transactions } from '@/lib/db/schema';
+import { importHistory, importStaging, transactions, accounts, merchants } from '@/lib/db/schema';
 import { nanoid } from 'nanoid';
 import { eq } from 'drizzle-orm';
 import {
@@ -10,11 +10,13 @@ import {
   validateMappedTransaction,
   applyCreditCardProcessing,
   detectPotentialTransfers,
+  detectTransferByAccountNumber,
   type ColumnMapping,
   type MappedTransaction,
   type CCTransactionType,
+  type AccountInfo,
 } from '@/lib/csv-import';
-import { detectDuplicateTransactions } from '@/lib/duplicate-detection';
+import { detectDuplicatesEnhanced, type MerchantInfo, type ExistingTransactionForDuplicates } from '@/lib/duplicate-detection';
 import { extractStatementInfoFromHeaders } from '@/lib/csv-import/credit-card-detection';
 import Decimal from 'decimal.js';
 
@@ -43,12 +45,38 @@ interface StagingRecord {
   mappedData: MappedTransaction;
   duplicateOf?: string;
   duplicateScore?: number;
+  duplicateMatchReason?: 'levenshtein' | 'merchant_name';
+  duplicateMerchantName?: string;
+  // Matched transaction info for UI display
+  matchedTransaction?: {
+    id: string;
+    date: string;
+    description: string;
+    amount: number;
+    accountName?: string;
+  };
   status: 'pending' | 'review' | 'approved' | 'skipped' | 'imported';
   validationErrors: string[];
   // Phase 12: Credit card specific fields
   ccTransactionType?: CCTransactionType;
   potentialTransferId?: string;
   transferMatchConfidence?: number;
+  // Account number transfer detection
+  accountNumberTransfer?: {
+    accountId: string;
+    accountName: string;
+    last4: string;
+    matchReason: string;
+    // If a matching transaction already exists in the target account
+    existingMatch?: {
+      id: string;
+      date: string;
+      description: string;
+      amount: number;
+      type: string;
+      hasTransferLink: boolean; // true if already linked to another transaction
+    };
+  };
 }
 
 export const dynamic = 'force-dynamic';
@@ -233,6 +261,25 @@ export async function POST(request: NextRequest) {
     const stagingRecords: StagingRecord[] = [];
     const errors: string[] = [];
 
+    // Fetch household accounts for account-number-based transfer detection
+    const householdAccounts = await db
+      .select({
+        id: accounts.id,
+        name: accounts.name,
+        accountNumberLast4: accounts.accountNumberLast4,
+      })
+      .from(accounts)
+      .where(eq(accounts.householdId, householdId));
+
+    // Fetch household merchants for enhanced duplicate detection
+    const householdMerchants: MerchantInfo[] = await db
+      .select({
+        id: merchants.id,
+        name: merchants.name,
+      })
+      .from(merchants)
+      .where(eq(merchants.householdId, householdId));
+
     // Phase 12: Fetch existing transactions for transfer detection
     // Filter by householdId to check against all household transactions
     const existingTransactionsForTransfer = await db
@@ -268,79 +315,168 @@ export async function POST(request: NextRequest) {
           mappedData = applyCreditCardProcessing(mappedData, amountSignConvention);
         }
 
-        // Debug: Log first 3 mapped rows
-        if (i < 3) {
-          console.log(`Row ${rowNumber} mapped data:`, {
-            description: mappedData.description,
-            amount: mappedData.amount?.toString(),
-            type: mappedData.type,
-            date: mappedData.date,
-            ccTransactionType: mappedData.ccTransactionType,
-            rawRow: row
-          });
-        }
-
         // Validate
         const validationErrors = validateMappedTransaction(mappedData);
 
         // Check for duplicates
         let duplicateOf: string | undefined;
         let duplicateScore: number | undefined;
+        let duplicateMatchReason: 'levenshtein' | 'merchant_name' | undefined;
+        let duplicateMerchantName: string | undefined;
+        let matchedTransaction: StagingRecord['matchedTransaction'];
         let potentialTransferId: string | undefined;
         let transferMatchConfidence: number | undefined;
+        let accountNumberTransfer: StagingRecord['accountNumberTransfer'];
 
         if (validationErrors.length === 0) {
-          // Get existing transactions for duplicate checking
-          // Filter by householdId to check against all household transactions
-          const rawExistingTransactions = await db
-            .select({
-              id: transactions.id,
-              description: transactions.description,
-              amount: transactions.amount,
-              date: transactions.date,
-              type: transactions.type,
-            })
-            .from(transactions)
-            .where(eq(transactions.householdId, householdId))
-            .limit(100);
+          const transactionAccountId = mappedData.accountId || defaultAccountId || '';
 
-          // Map to ensure type is always a string
-          const existingTransactions = rawExistingTransactions.map((t) => ({
-            ...t,
-            type: t.type || 'expense',
-          }));
+          // Build account name map for display
+          const accountNameMap = new Map(householdAccounts.map(a => [a.id, a.name]));
 
-          const duplicates = detectDuplicateTransactions(
+          // FIRST: Check for account number-based transfer detection
+          // If a transfer is detected, skip duplicate detection entirely
+          const otherAccounts: AccountInfo[] = householdAccounts
+            .filter(a => a.id !== transactionAccountId)
+            .map(a => ({
+              id: a.id,
+              name: a.name,
+              accountNumberLast4: a.accountNumberLast4,
+            }));
+
+          const accountTransferMatch = detectTransferByAccountNumber(
             mappedData.description,
-            mappedData.amount instanceof Decimal
-              ? mappedData.amount.toNumber()
-              : mappedData.amount,
-            mappedData.date,
-            existingTransactions,
-            { dateRangeInDays: 7 }
+            otherAccounts
           );
 
-          if (duplicates && duplicates.length > 0) {
-            const topMatch = duplicates[0];
-            duplicateOf = topMatch.id;
-            duplicateScore = topMatch.similarity;
-          }
+          if (accountTransferMatch) {
+            // This is a transfer - check if matching transaction exists in target account
+            // Look for transactions in the target account with:
+            // - Same amount (opposite sign or same amount for income)
+            // - Similar date (within 3 days)
+            const mappedAmount = mappedData.amount instanceof Decimal
+              ? mappedData.amount.toNumber()
+              : mappedData.amount;
+            const mappedDate = new Date(mappedData.date);
 
-          // Phase 12: Check for potential transfer matches
-          // This helps prevent duplicates when importing both sides of a transfer
-          if (!duplicateOf) {
-            const transferMatches = detectPotentialTransfers(
-              mappedData,
-              existingTransactionsForTransfer.map(t => ({
-                ...t,
-                type: t.type || 'expense',
-              })),
-              { dateRangeInDays: 3, minConfidence: 70 }
+            // Get transactions from the target account
+            const targetAccountTransactions = existingTransactionsForTransfer.filter(
+              (tx) => tx.accountId === accountTransferMatch.accountId
             );
 
-            if (transferMatches.length > 0) {
-              potentialTransferId = transferMatches[0].transactionId;
-              transferMatchConfidence = transferMatches[0].confidence;
+            // Find matching transaction in target account
+            let existingMatch: {
+              id: string;
+              date: string;
+              description: string;
+              amount: number;
+              type: string;
+              hasTransferLink: boolean;
+            } | undefined;
+
+            for (const tx of targetAccountTransactions) {
+              const txDate = new Date(tx.date);
+              const daysDiff = Math.abs((mappedDate.getTime() - txDate.getTime()) / (1000 * 60 * 60 * 24));
+
+              // Check date proximity (within 3 days)
+              if (daysDiff > 3) continue;
+
+              // Check amount match:
+              // - For transfers, the target side should have the same absolute amount
+              // - Could be income (positive) matching the expense (negative) amount
+              const amountDiff = Math.abs(Math.abs(tx.amount) - Math.abs(mappedAmount));
+              const amountPercentDiff = amountDiff / Math.max(Math.abs(tx.amount), Math.abs(mappedAmount));
+
+              if (amountPercentDiff <= 0.01) { // Within 1% tolerance
+                existingMatch = {
+                  id: tx.id,
+                  date: tx.date,
+                  description: tx.description,
+                  amount: tx.amount,
+                  type: tx.type || 'expense',
+                  hasTransferLink: !!tx.transferId,
+                };
+                break; // Take the first match
+              }
+            }
+
+            accountNumberTransfer = {
+              ...accountTransferMatch,
+              existingMatch,
+            };
+          } else {
+            // Not a transfer by account number - check for duplicates
+
+            // Get existing transactions for duplicate checking with account info
+            const rawExistingTransactions = await db
+              .select({
+                id: transactions.id,
+                description: transactions.description,
+                amount: transactions.amount,
+                date: transactions.date,
+                type: transactions.type,
+                accountId: transactions.accountId,
+                merchantId: transactions.merchantId,
+              })
+              .from(transactions)
+              .where(eq(transactions.householdId, householdId))
+              .limit(500);
+
+            // Build merchant name map
+            const merchantNameMap = new Map(householdMerchants.map(m => [m.id, m.name]));
+
+            // Map to enhanced format with account and merchant names
+            const existingTransactionsEnhanced: ExistingTransactionForDuplicates[] = rawExistingTransactions.map((t) => ({
+              ...t,
+              type: t.type || 'expense',
+              accountName: accountNameMap.get(t.accountId),
+              merchantName: t.merchantId ? merchantNameMap.get(t.merchantId) : null,
+            }));
+
+            // Use enhanced duplicate detection with merchant name matching
+            const duplicates = detectDuplicatesEnhanced(
+              mappedData.description,
+              mappedData.amount instanceof Decimal
+                ? mappedData.amount.toNumber()
+                : mappedData.amount,
+              mappedData.date,
+              transactionAccountId,
+              existingTransactionsEnhanced,
+              householdMerchants,
+              { dateRangeInDays: 1 } // Stricter for merchant matching
+            );
+
+            if (duplicates && duplicates.length > 0) {
+              const topMatch = duplicates[0];
+              duplicateOf = topMatch.id;
+              duplicateScore = topMatch.similarity;
+              duplicateMatchReason = topMatch.matchReason;
+              duplicateMerchantName = topMatch.merchantName;
+              matchedTransaction = {
+                id: topMatch.id,
+                date: topMatch.date,
+                description: topMatch.description,
+                amount: topMatch.amount,
+                accountName: topMatch.accountName,
+              };
+            }
+
+            // Phase 12: Check for potential transfer matches (existing behavior)
+            // This helps prevent duplicates when importing both sides of a transfer
+            if (!duplicateOf) {
+              const transferMatches = detectPotentialTransfers(
+                mappedData,
+                existingTransactionsForTransfer.map(t => ({
+                  ...t,
+                  type: t.type || 'expense',
+                })),
+                { dateRangeInDays: 3, minConfidence: 70 }
+              );
+
+              if (transferMatches.length > 0) {
+                potentialTransferId = transferMatches[0].transactionId;
+                transferMatchConfidence = transferMatches[0].confidence;
+              }
             }
           }
         }
@@ -352,8 +488,12 @@ export async function POST(request: NextRequest) {
           mappedData,
           duplicateOf,
           duplicateScore,
-          status: validationErrors.length > 0 ? 'review' : 
-                  duplicateOf ? 'review' : 
+          duplicateMatchReason,
+          duplicateMerchantName,
+          matchedTransaction,
+          status: validationErrors.length > 0 ? 'review' :
+                  duplicateOf ? 'review' :
+                  accountNumberTransfer ? 'review' :
                   (potentialTransferId && transferMatchConfidence && transferMatchConfidence >= 85) ? 'review' :
                   'approved',
           validationErrors,
@@ -361,6 +501,7 @@ export async function POST(request: NextRequest) {
           ccTransactionType: mappedData.ccTransactionType,
           potentialTransferId,
           transferMatchConfidence,
+          accountNumberTransfer,
         });
       } catch (error) {
         const errorMessage =
@@ -409,7 +550,7 @@ export async function POST(request: NextRequest) {
       validRows: stagingRecords.filter((r) => r.status === 'approved').length,
       reviewRows: stagingRecords.filter((r) => r.status === 'review').length,
       duplicateRows: stagingRecords.filter((r) => r.duplicateOf).length,
-      transferMatches: stagingRecords.filter((r) => r.potentialTransferId).length,
+      transferMatches: stagingRecords.filter((r) => r.potentialTransferId || r.accountNumberTransfer).length,
       errors: errors.length > 0 ? errors : undefined,
       // Phase 12: Include credit card info in response
       sourceType,
@@ -421,11 +562,16 @@ export async function POST(request: NextRequest) {
         validationErrors: r.validationErrors,
         duplicateOf: r.duplicateOf,
         duplicateScore: r.duplicateScore,
+        duplicateMatchReason: r.duplicateMatchReason,
+        duplicateMerchantName: r.duplicateMerchantName,
+        matchedTransaction: r.matchedTransaction,
         data: r.mappedData,
         // Phase 12: Credit card fields
         ccTransactionType: r.ccTransactionType,
         potentialTransferId: r.potentialTransferId,
         transferMatchConfidence: r.transferMatchConfidence,
+        // Account number transfer detection
+        accountNumberTransfer: r.accountNumberTransfer,
       })),
     };
 

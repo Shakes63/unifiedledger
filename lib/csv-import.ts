@@ -546,6 +546,106 @@ export const getFileInfo = (file: File): { size: number; name: string } => {
 };
 
 // ============================================================================
+// Account Number Transfer Detection
+// ============================================================================
+
+/**
+ * Account info for transfer detection
+ */
+export interface AccountInfo {
+  id: string;
+  name: string;
+  accountNumberLast4: string | null;
+}
+
+/**
+ * Result of account number-based transfer detection
+ */
+export interface AccountNumberTransferMatch {
+  accountId: string;
+  accountName: string;
+  last4: string;
+  matchReason: string;
+}
+
+/**
+ * Common patterns for account numbers in transaction descriptions
+ * Matches: *1234, x1234, ...1234, ending 1234, ENDING1234, TO 1234, FROM 1234, XXXXXX1234
+ */
+const ACCOUNT_NUMBER_PATTERNS = [
+  /(?:\*|x|\.{3})(\d{4})\b/gi,           // *1234, x1234, ...1234
+  /ending\s*(\d{4})\b/gi,                 // ending 1234, ENDING1234
+  /(?:to|from)\s+(\d{4})\b/gi,            // TO 1234, FROM 1234
+  /acct?\s*#?\s*(\d{4})\b/gi,             // acct 1234, act#1234
+  /X{3,}(\d{4})\b/gi,                     // XXXXXX1234, XXX1234 (X-masked accounts)
+  /X{3,}\d*\s*(\d{4})\b/gi,               // XXXXXX848 1 -> captures last 4 digits after masked portion
+];
+
+/**
+ * Detect potential transfers by checking if the description contains
+ * another account's last 4 digits
+ *
+ * @param description - Transaction description to search
+ * @param accounts - List of household accounts (should exclude the source account)
+ * @returns Matched account info or null if no match
+ */
+export function detectTransferByAccountNumber(
+  description: string,
+  accounts: AccountInfo[]
+): AccountNumberTransferMatch | null {
+  if (!description || accounts.length === 0) {
+    return null;
+  }
+
+  // Extract all 4-digit patterns from the description
+  const foundDigits = new Set<string>();
+
+  for (const pattern of ACCOUNT_NUMBER_PATTERNS) {
+    // Reset regex lastIndex for global patterns
+    pattern.lastIndex = 0;
+    let match;
+    while ((match = pattern.exec(description)) !== null) {
+      foundDigits.add(match[1]);
+    }
+  }
+
+  // Also handle cases where last 4 digits might be split by spaces after X-masking
+  // e.g., "XXXXXX848 1" should match account ending in "8481"
+  // Look for pattern: X's followed by 3 digits, space, 1 digit
+  const splitDigitsPattern = /X{3,}(\d{3})\s+(\d)\b/gi;
+  splitDigitsPattern.lastIndex = 0;
+  let splitMatch;
+  while ((splitMatch = splitDigitsPattern.exec(description)) !== null) {
+    foundDigits.add(splitMatch[1] + splitMatch[2]); // Combine "848" + "1" = "8481"
+  }
+
+  // Also try: X's followed by 2 digits, space, 2 digits (e.g., "XXXXXX84 81")
+  const splitDigitsPattern2 = /X{3,}(\d{2})\s+(\d{2})\b/gi;
+  splitDigitsPattern2.lastIndex = 0;
+  while ((splitMatch = splitDigitsPattern2.exec(description)) !== null) {
+    foundDigits.add(splitMatch[1] + splitMatch[2]);
+  }
+
+  if (foundDigits.size === 0) {
+    return null;
+  }
+
+  // Check if any found digits match an account's last 4
+  for (const account of accounts) {
+    if (account.accountNumberLast4 && foundDigits.has(account.accountNumberLast4)) {
+      return {
+        accountId: account.id,
+        accountName: account.name,
+        last4: account.accountNumberLast4,
+        matchReason: `Account ending in ${account.accountNumberLast4} found in description`,
+      };
+    }
+  }
+
+  return null;
+}
+
+// ============================================================================
 // Phase 12: Transfer Detection
 // ============================================================================
 

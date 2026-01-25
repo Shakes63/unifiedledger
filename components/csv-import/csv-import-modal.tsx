@@ -22,7 +22,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
 import { Upload, AlertCircle, CreditCard, Building2 } from 'lucide-react';
 import { ColumnMapper } from './column-mapper';
-import { ImportPreview, type StagingRecord } from './import-preview';
+import { ImportPreview, type StagingRecord, type TransferDecision } from './import-preview';
 import { autoDetectMappings, type ColumnMapping } from '@/lib/csv-import';
 import { toast } from 'sonner';
 import { toastErrorWithHelp } from '@/lib/help/toast-with-help';
@@ -302,8 +302,8 @@ export function CSVImportModal({
     }
   };
 
-  const handleConfirmImport = async (recordIds?: (string | number)[]) => {
-    console.log('handleConfirmImport called with recordIds:', recordIds);
+  const handleConfirmImport = async (recordIds?: (string | number)[], transferDecisions?: TransferDecision[]) => {
+    console.log('handleConfirmImport called with recordIds:', recordIds, 'transferDecisions:', transferDecisions);
 
     if (!file || !previewData) {
       console.error('Missing file or previewData:', { file: !!file, previewData: !!previewData });
@@ -359,17 +359,20 @@ export function CSVImportModal({
       const importData = await response.json();
       setImportId(importData.importHistoryId);
 
-      // Confirm import with selected records
+      // Confirm import with selected records and transfer decisions
       const confirmResponse = await fetch(
         `/api/csv-import/${importData.importHistoryId}/confirm`,
         {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             ...(selectedHouseholdId && { 'x-household-id': selectedHouseholdId }),
           },
           credentials: 'include',
-          body: JSON.stringify({ recordIds: recordIds || [] }),
+          body: JSON.stringify({
+            recordIds: recordIds || [],
+            transferDecisions: transferDecisions || [],
+          }),
         }
       );
 
