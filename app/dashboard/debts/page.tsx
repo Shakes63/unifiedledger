@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { DebtPayoffTracker, type DebtData } from '@/components/debts/debt-payoff-tracker';
 import { DebtForm } from '@/components/debts/debt-form';
 import { DebtPayoffStrategy } from '@/components/debts/debt-payoff-strategy';
 import { WhatIfCalculator } from '@/components/debts/what-if-calculator';
@@ -10,7 +9,7 @@ import { MinimumPaymentWarning } from '@/components/debts/minimum-payment-warnin
 import { PaymentAdherenceCard } from '@/components/debts/payment-adherence-card';
 import { PaymentStreakWidget } from '@/components/debts/payment-streak-widget';
 import { DebtFreeCountdown } from '@/components/dashboard/debt-free-countdown';
-import { UnifiedDebtCard } from '@/components/debts/unified-debt-card';
+import { UnifiedDebtCard, type UnifiedDebt } from '@/components/debts/unified-debt-card';
 import {
   Dialog,
   DialogContent,
@@ -32,31 +31,6 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { UtilizationTrendsChart, BalanceHistoryChart, InterestPaidChart } from '@/components/charts';
 import type { DebtFormData } from '@/lib/types';
-
-// Unified debt type from API
-interface UnifiedDebt {
-  id: string;
-  name: string;
-  source: 'account' | 'bill' | 'debt';
-  sourceType: string;
-  balance: number;
-  originalBalance?: number;
-  creditLimit?: number;
-  interestRate?: number;
-  interestType?: string;
-  minimumPayment?: number;
-  includeInPayoffStrategy: boolean;
-  color?: string;
-  statementBalance?: number;
-  statementDueDate?: string;
-  drawPeriodEndDate?: string;
-  repaymentPeriodEndDate?: string;
-  debtType?: string;
-  isInterestTaxDeductible?: boolean;
-  taxDeductionType?: string;
-  utilization?: number;
-  availableCredit?: number;
-}
 
 interface UnifiedDebtSummary {
   totalBalance: number;
@@ -83,8 +57,6 @@ interface DebtSettings {
   paymentFrequency?: 'weekly' | 'biweekly' | 'monthly';
 }
 
-// View mode type
-type ViewMode = 'unified' | 'legacy';
 type PayoffMethod = 'avalanche' | 'snowball';
 
 interface RolldownPayment {
@@ -102,11 +74,8 @@ type StrategyData = Partial<Record<PayoffMethod, { rolldownPayments?: RolldownPa
 export default function DebtsPage() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, postWithHousehold, putWithHousehold, deleteWithHousehold } = useHouseholdFetch();
-  const [debts, setDebts] = useState<DebtData[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDebt, setSelectedDebt] = useState<(Partial<DebtFormData> & { id: string }) | null>(null);
-  const [filter, setFilter] = useState<'all' | 'active' | 'paid_off'>('active');
   const [stats, setStats] = useState<DebtStats | null>(null);
   const [showMinWarning, setShowMinWarning] = useState(false);
   const [showWhatIf, setShowWhatIf] = useState(false);
@@ -121,8 +90,7 @@ export default function DebtsPage() {
   const [savingStrategy, setSavingStrategy] = useState(false);
   // Strategy data for payoff timelines on individual debt cards
   const [strategyData, setStrategyData] = useState<StrategyData | null>(null);
-  // Unified view state
-  const [viewMode, setViewMode] = useState<ViewMode>('unified');
+  // Unified debts state
   const [unifiedDebts, setUnifiedDebts] = useState<UnifiedDebt[]>([]);
   const [unifiedSummary, setUnifiedSummary] = useState<UnifiedDebtSummary | null>(null);
   const [unifiedLoading, setUnifiedLoading] = useState(true);
@@ -176,22 +144,6 @@ export default function DebtsPage() {
     }
   }, [selectedHouseholdId, fetchWithHousehold]);
 
-  const loadDebts = useCallback(async () => {
-    if (!selectedHouseholdId) return;
-    try {
-      setLoading(true);
-      const params = filter !== 'all' ? `?status=${filter}` : '';
-      const response = await fetchWithHousehold(`/api/debts${params}`);
-      if (!response.ok) throw new Error('Failed to fetch debts');
-      const data = await response.json();
-      setDebts(data);
-    } catch (_error) {
-      toast.error('Failed to load debts');
-    } finally {
-      setLoading(false);
-    }
-  }, [filter, selectedHouseholdId, fetchWithHousehold]);
-
   const loadStats = useCallback(async () => {
     if (!selectedHouseholdId) return;
     try {
@@ -221,18 +173,15 @@ export default function DebtsPage() {
   // Fetch debts and settings
   useEffect(() => {
     if (!selectedHouseholdId) return;
-    loadDebts();
     loadStats();
     loadSettings();
     loadUnifiedDebts();
-  }, [filter, selectedHouseholdId, loadDebts, loadStats, loadSettings, loadUnifiedDebts]);
+  }, [selectedHouseholdId, loadStats, loadSettings, loadUnifiedDebts]);
 
   // Reload unified debts when filter changes
   useEffect(() => {
-    if (viewMode === 'unified') {
-      loadUnifiedDebts();
-    }
-  }, [viewMode, unifiedFilter, loadUnifiedDebts, refreshKey]);
+    loadUnifiedDebts();
+  }, [unifiedFilter, loadUnifiedDebts, refreshKey]);
 
   // Load strategy data when settings are available
   useEffect(() => {
@@ -276,8 +225,8 @@ export default function DebtsPage() {
         setIsFormOpen(false);
         setSelectedDebt(null);
       }
-      loadDebts();
       loadStats();
+      loadUnifiedDebts();
       triggerRefresh();
     } catch (_error) {
       toast.error('Failed to add debt');
@@ -299,8 +248,8 @@ export default function DebtsPage() {
       toast.success('Debt updated successfully!');
       setIsFormOpen(false);
       setSelectedDebt(null);
-      loadDebts();
       loadStats();
+      loadUnifiedDebts();
       triggerRefresh();
     } catch (_error) {
       toast.error('Failed to update debt');
@@ -320,8 +269,8 @@ export default function DebtsPage() {
       if (!response.ok) throw new Error('Failed to delete debt');
 
       toast.success('Debt deleted successfully!');
-      loadDebts();
       loadStats();
+      loadUnifiedDebts();
       triggerRefresh();
     } catch (_error) {
       toast.error('Failed to delete debt');
@@ -337,8 +286,8 @@ export default function DebtsPage() {
   };
 
   const handlePayment = () => {
-    loadDebts();
     loadStats();
+    loadUnifiedDebts();
     triggerRefresh();
   };
 
@@ -381,7 +330,7 @@ export default function DebtsPage() {
     }
   };
 
-  if (loading && !stats) {
+  if (unifiedLoading && !stats) {
     return (
       <div className="text-center py-12">
         <p className="text-muted-foreground">Loading debts...</p>
@@ -458,7 +407,7 @@ export default function DebtsPage() {
         )}
 
         {/* Summary Stats - Compact with inline layout on larger screens */}
-        {viewMode === 'unified' && unifiedSummary ? (
+        {unifiedSummary && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <div className="bg-card border border-border rounded-lg px-3 py-2">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
@@ -496,37 +445,6 @@ export default function DebtsPage() {
               </div>
             </div>
           </div>
-        ) : stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <div className="bg-card border border-border rounded-lg px-3 py-2">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
-                <span className="text-muted-foreground text-xs">Total Debt</span>
-                <span className="text-lg md:text-base font-bold font-mono text-error">
-                  ${stats.totalRemainingBalance.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                </span>
-              </div>
-            </div>
-            <div className="bg-card border border-border rounded-lg px-3 py-2">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
-                <span className="text-muted-foreground text-xs">Paid Off</span>
-                <span className="text-lg md:text-base font-bold font-mono text-income">
-                  ${stats.totalPaidOff.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                </span>
-              </div>
-            </div>
-            <div className="bg-card border border-border rounded-lg px-3 py-2">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
-                <span className="text-muted-foreground text-xs">Progress</span>
-                <span className="text-lg md:text-base font-bold text-foreground">{Math.round(stats.percentagePaidOff)}%</span>
-              </div>
-            </div>
-            <div className="bg-card border border-border rounded-lg px-3 py-2">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-0.5 md:gap-2">
-                <span className="text-muted-foreground text-xs">Active</span>
-                <span className="text-lg md:text-base font-bold text-foreground">{stats.activeDebtCount}</span>
-              </div>
-            </div>
-          </div>
         )}
 
         {/* Debt-Free Countdown */}
@@ -538,266 +456,152 @@ export default function DebtsPage() {
           />
         )}
 
-      {/* View Mode Toggle & Filter Tabs */}
-      <div className="flex flex-col md:flex-row md:items-center gap-4">
-        {/* View Mode Toggle */}
-        <div className="flex items-center gap-2 bg-card border border-border rounded-lg p-1">
+      {/* Filter Tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {[
+          { key: 'all', label: 'All', icon: Layers },
+          { key: 'credit', label: 'Credit Cards', icon: CreditCard },
+          { key: 'line_of_credit', label: 'Lines of Credit', icon: Wallet },
+          { key: 'loans', label: 'Loans', icon: FileText },
+        ].map(({ key, label, icon: Icon }) => (
           <button
-            onClick={() => setViewMode('unified')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors ${
-              viewMode === 'unified'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground'
+            key={key}
+            onClick={() => setUnifiedFilter(key as typeof unifiedFilter)}
+            className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
+              unifiedFilter === key
+                ? 'bg-accent text-accent-foreground'
+                : 'bg-card text-muted-foreground border border-border hover:bg-elevated'
             }`}
           >
-            <Layers className="w-4 h-4" />
-            Unified View
+            <Icon className="w-4 h-4" />
+            {label}
           </button>
-          <button
-            onClick={() => setViewMode('legacy')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded text-sm transition-colors ${
-              viewMode === 'legacy'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <FileText className="w-4 h-4" />
-            Debt Bills Only
-          </button>
-        </div>
-
-        {/* Filter Tabs - Different based on view mode */}
-        <div className="flex gap-2 flex-wrap">
-          {viewMode === 'unified' ? (
-            <>
-              {[
-                { key: 'all', label: 'All', icon: Layers },
-                { key: 'credit', label: 'Credit Cards', icon: CreditCard },
-                { key: 'line_of_credit', label: 'Lines of Credit', icon: Wallet },
-                { key: 'loans', label: 'Loans', icon: FileText },
-              ].map(({ key, label, icon: Icon }) => (
-                <button
-                  key={key}
-                  onClick={() => setUnifiedFilter(key as typeof unifiedFilter)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded transition-colors ${
-                    unifiedFilter === key
-                      ? 'bg-accent text-accent-foreground'
-                      : 'bg-card text-muted-foreground border border-border hover:bg-elevated'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {label}
-                </button>
-              ))}
-            </>
-          ) : (
-            <>
-              {(['all', 'active', 'paid_off'] as const).map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setFilter(status)}
-                  className={`px-4 py-2 rounded transition-colors capitalize ${
-                    filter === status
-                      ? 'bg-accent text-accent-foreground'
-                      : 'bg-card text-muted-foreground border border-border hover:bg-elevated'
-                  }`}
-                >
-                  {status === 'paid_off' ? 'Paid Off' : status}
-                </button>
-              ))}
-            </>
-          )}
-        </div>
+        ))}
       </div>
 
-      {/* Debts List - Unified View */}
-      {viewMode === 'unified' && (
-        <>
-          {unifiedLoading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Loading debts...</p>
-            </div>
-          ) : unifiedDebts.length === 0 ? (
-            <div className="text-center py-12 bg-card border border-border rounded-lg">
-              <p className="text-muted-foreground">
-                {unifiedFilter === 'all' 
-                  ? "No debts yet. You're debt-free!" 
-                  : `No ${unifiedFilter === 'credit' ? 'credit cards' : unifiedFilter === 'line_of_credit' ? 'lines of credit' : 'loans'} found.`}
-              </p>
-              {unifiedFilter === 'all' && (
-                <Button
-                  onClick={() => setIsFormOpen(true)}
-                  className="mt-4 bg-accent hover:bg-accent/90 text-accent-foreground"
-                >
-                  Add a Debt to Track
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Expand/Collapse All Controls */}
-              {unifiedDebts.length > 1 && (
-                <div className="flex gap-2 items-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAllExpanded(true)}
-                    className="text-sm border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
-                  >
-                    <ChevronDown className="w-4 h-4 mr-1" />
-                    Expand All
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAllExpanded(false)}
-                    className="text-sm border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
-                  >
-                    <ChevronUp className="w-4 h-4 mr-1" />
-                    Collapse All
-                  </Button>
-                  <span className="text-xs text-muted-foreground ml-2">
-                    {unifiedDebts.length} {unifiedDebts.length === 1 ? 'debt' : 'debts'}
-                  </span>
-                </div>
-              )}
-
-              {/* Unified Debts Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {unifiedDebts.map((debt) => (
-                  <UnifiedDebtCard
-                    key={`${debt.source}-${debt.id}`}
-                    debt={debt}
-                    defaultExpanded={allExpanded ?? false}
-                    onToggleStrategy={async (debtId, include) => {
-                      try {
-                        const response = await postWithHousehold('/api/debts/strategy-toggle', {
-                          source: debt.source,
-                          id: debtId,
-                          include,
-                        });
-                        
-                        if (!response.ok) {
-                          const error = await response.json();
-                          throw new Error(error.error || 'Failed to update');
-                        }
-                        
-                        // Update local state optimistically
-                        setUnifiedDebts(prev => 
-                          prev.map(d => 
-                            d.id === debtId 
-                              ? { ...d, includeInPayoffStrategy: include }
-                              : d
-                          )
-                        );
-                        
-                        // Update summary counts
-                        if (unifiedSummary) {
-                          setUnifiedSummary({
-                            ...unifiedSummary,
-                            inStrategyCount: include 
-                              ? unifiedSummary.inStrategyCount + 1 
-                              : unifiedSummary.inStrategyCount - 1,
-                          });
-                        }
-                        
-                        toast.success(include 
-                          ? `${debt.name} added to payoff strategy` 
-                          : `${debt.name} excluded from payoff strategy`
-                        );
-                        
-                        // Refresh strategy data
-                        triggerRefresh();
-                      } catch (error) {
-                        toast.error(error instanceof Error ? error.message : 'Failed to update strategy');
-                      }
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
+      {/* Debts List */}
+      {unifiedLoading ? (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading debts...</p>
+        </div>
+      ) : unifiedDebts.length === 0 ? (
+        <div className="text-center py-12 bg-card border border-border rounded-lg">
+          <p className="text-muted-foreground">
+            {unifiedFilter === 'all'
+              ? "No debts yet. You're debt-free!"
+              : `No ${unifiedFilter === 'credit' ? 'credit cards' : unifiedFilter === 'line_of_credit' ? 'lines of credit' : 'loans'} found.`}
+          </p>
+          {unifiedFilter === 'all' && (
+            <Button
+              onClick={() => setIsFormOpen(true)}
+              className="mt-4 bg-accent hover:bg-accent/90 text-accent-foreground"
+            >
+              Add a Debt to Track
+            </Button>
           )}
-        </>
-      )}
-
-      {/* Debts List - Legacy View */}
-      {viewMode === 'legacy' && (
-        <>
-          {loading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Loading debts...</p>
-            </div>
-          ) : debts.length === 0 ? (
-            <div className="text-center py-12 bg-card border border-border rounded-lg">
-              <p className="text-muted-foreground">No debts yet. You&apos;re debt-free!</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Expand/Collapse All Controls */}
+          {unifiedDebts.length > 1 && (
+            <div className="flex gap-2 items-center">
               <Button
-                onClick={() => setIsFormOpen(true)}
-                className="mt-4 bg-accent hover:bg-accent/90 text-accent-foreground"
+                variant="outline"
+                size="sm"
+                onClick={() => setAllExpanded(true)}
+                className="text-sm border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
               >
-                Add a Debt to Track
+                <ChevronDown className="w-4 h-4 mr-1" />
+                Expand All
               </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Expand/Collapse All Controls */}
-              {debts.length > 1 && (
-                <div className="flex gap-2 items-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAllExpanded(true)}
-                    className="text-sm border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
-                  >
-                    <ChevronDown className="w-4 h-4 mr-1" />
-                    Expand All
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAllExpanded(false)}
-                    className="text-sm border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
-                  >
-                    <ChevronUp className="w-4 h-4 mr-1" />
-                    Collapse All
-                  </Button>
-                  <span className="text-xs text-muted-foreground ml-2">
-                    {debts.length} {debts.length === 1 ? 'debt' : 'debts'}
-                  </span>
-                </div>
-              )}
-
-              {/* Legacy Debts Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {debts.map((debt) => {
-                  // Get payoff timeline from strategy data for this debt
-                  const currentMethod = debtSettings?.preferredMethod || 'avalanche';
-                  const rolldownPayment = strategyData?.[currentMethod]?.rolldownPayments?.find(
-                    (r: { debtId: string }) => r.debtId === debt.id
-                  );
-                  const payoffTimeline = rolldownPayment ? {
-                    strategyMonths: rolldownPayment.payoffMonth ?? 0,
-                    strategyDate: rolldownPayment.payoffDate ?? '',
-                    minimumOnlyMonths: rolldownPayment.minimumOnlyMonths ?? 0,
-                    order: rolldownPayment.order ?? 0,
-                    method: currentMethod,
-                  } : undefined;
-
-                  return (
-                    <DebtPayoffTracker
-                      key={debt.id}
-                      debt={debt}
-                      onEdit={handleEditDebt}
-                      onDelete={handleDeleteDebt}
-                      onPayment={handlePayment}
-                      defaultExpanded={allExpanded ?? false}
-                      payoffTimeline={payoffTimeline}
-                    />
-                  );
-                })}
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAllExpanded(false)}
+                className="text-sm border-border text-muted-foreground hover:text-foreground hover:bg-elevated"
+              >
+                <ChevronUp className="w-4 h-4 mr-1" />
+                Collapse All
+              </Button>
+              <span className="text-xs text-muted-foreground ml-2">
+                {unifiedDebts.length} {unifiedDebts.length === 1 ? 'debt' : 'debts'}
+              </span>
             </div>
           )}
-        </>
+
+          {/* Debts Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {unifiedDebts.map((debt) => {
+              // Get payoff timeline from strategy data for this debt
+              const currentMethod = debtSettings?.preferredMethod || 'avalanche';
+              const rolldownPayment = strategyData?.[currentMethod]?.rolldownPayments?.find(
+                (r: { debtId: string }) => r.debtId === debt.id
+              );
+              const payoffTimeline = rolldownPayment ? {
+                strategyMonths: rolldownPayment.payoffMonth ?? 0,
+                strategyDate: rolldownPayment.payoffDate ?? '',
+                minimumOnlyMonths: rolldownPayment.minimumOnlyMonths ?? 0,
+                order: rolldownPayment.order ?? 0,
+                method: currentMethod,
+              } : undefined;
+
+              return (
+                <UnifiedDebtCard
+                  key={`${debt.source}-${debt.id}`}
+                  debt={debt}
+                  defaultExpanded={allExpanded ?? false}
+                  payoffTimeline={payoffTimeline}
+                  onEdit={debt.source === 'debt' ? (d) => handleEditDebt({ id: d.id }) : undefined}
+                  onDelete={debt.source === 'debt' ? (debtId) => handleDeleteDebt(debtId) : undefined}
+                  onPayment={debt.source === 'debt' ? () => handlePayment() : undefined}
+                  onToggleStrategy={async (debtId, include) => {
+                    try {
+                      const response = await postWithHousehold('/api/debts/strategy-toggle', {
+                        source: debt.source,
+                        id: debtId,
+                        include,
+                      });
+
+                      if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Failed to update');
+                      }
+
+                      // Update local state optimistically
+                      setUnifiedDebts(prev =>
+                        prev.map(d =>
+                          d.id === debtId
+                            ? { ...d, includeInPayoffStrategy: include }
+                            : d
+                        )
+                      );
+
+                      // Update summary counts
+                      if (unifiedSummary) {
+                        setUnifiedSummary({
+                          ...unifiedSummary,
+                          inStrategyCount: include
+                            ? unifiedSummary.inStrategyCount + 1
+                            : unifiedSummary.inStrategyCount - 1,
+                        });
+                      }
+
+                      toast.success(include
+                        ? `${debt.name} added to payoff strategy`
+                        : `${debt.name} excluded from payoff strategy`
+                      );
+
+                      // Refresh strategy data
+                      triggerRefresh();
+                    } catch (error) {
+                      toast.error(error instanceof Error ? error.message : 'Failed to update strategy');
+                    }
+                  }}
+                />
+              );
+            })}
+          </div>
+        </div>
       )}
 
       {/* Payoff Strategy Section */}

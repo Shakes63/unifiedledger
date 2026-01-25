@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Info } from 'lucide-react';
+import { Info, ChevronDown, ChevronRight } from 'lucide-react';
 import { calculateUtilization, getUtilizationLevel, getUtilizationColor } from '@/lib/debts/credit-utilization-utils';
 import type { DebtFormData } from '@/lib/types';
 
@@ -45,17 +45,30 @@ const INTEREST_TYPES = [
   { value: 'precomputed', label: 'Precomputed (BNPL/Add-On)' },
 ];
 
-const LOAN_TYPES = [
-  { value: 'revolving', label: 'Revolving Credit (Credit Card, Line of Credit)' },
-  { value: 'installment', label: 'Installment Loan (Car, Mortgage, Personal)' },
-];
-
 const COMPOUNDING_FREQUENCIES = [
   { value: 'daily', label: 'Daily (Most Credit Cards)' },
   { value: 'monthly', label: 'Monthly' },
   { value: 'quarterly', label: 'Quarterly' },
   { value: 'annually', label: 'Annually' },
 ];
+
+// Derive loan type from debt type
+const deriveLoanType = (debtType: string): 'revolving' | 'installment' => {
+  switch (debtType) {
+    case 'credit_card':
+      return 'revolving';
+    case 'personal_loan':
+    case 'student_loan':
+    case 'mortgage':
+    case 'auto_loan':
+      return 'installment';
+    case 'medical':
+    case 'other':
+    default:
+      // Medical and Other default to installment (most common for these types)
+      return 'installment';
+  }
+};
 
 interface DebtFormProps {
   debt?: Partial<DebtFormData> | null;
@@ -67,6 +80,7 @@ interface DebtFormProps {
 export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFormProps) {
   const [saveMode, setSaveMode] = useState<'save' | 'saveAndAdd' | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [extraPaymentExpanded, setExtraPaymentExpanded] = useState(false);
   const [formData, setFormData] = useState({
     name: debt?.name || '',
     description: debt?.description || '',
@@ -79,11 +93,10 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
     interestType: debt?.interestType || 'none',
     type: debt?.type || 'other',
     color: debt?.color || '#ef4444',
-    startDate: debt?.startDate || '',
+    startDate: debt?.startDate || new Date().toISOString().split('T')[0],
     targetPayoffDate: debt?.targetPayoffDate || '',
     priority: debt?.priority || 0,
-    // New loan tracking fields
-    loanType: debt?.loanType || 'revolving',
+    // Loan tracking fields
     loanTermMonths: debt?.loanTermMonths || '',
     originationDate: debt?.originationDate || '',
     compoundingFrequency: debt?.compoundingFrequency || 'monthly',
@@ -110,6 +123,12 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
 
     return { utilization, level, color };
   }, [formData.type, formData.remainingBalance, formData.creditLimit]);
+
+  // Derive loan type from debt type
+  const loanType = useMemo(() => deriveLoanType(formData.type), [formData.type]);
+
+  // Check if interest rate field should be shown
+  const showInterestRate = formData.interestType !== 'none' && formData.interestType !== 'precomputed';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -179,13 +198,18 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
 
     setErrors({});
 
+    // Set interest rate to 0 for 'none' or 'precomputed' interest types
+    const finalInterestRate = showInterestRate ? parseFloat(String(formData.interestRate)) : 0;
+
     onSubmit({
       ...formData,
       originalAmount: parseFloat(String(formData.originalAmount)),
       remainingBalance: parseFloat(String(formData.remainingBalance)),
       minimumPayment: formData.minimumPayment ? parseFloat(String(formData.minimumPayment)) : undefined,
       additionalMonthlyPayment: formData.additionalMonthlyPayment ? parseFloat(String(formData.additionalMonthlyPayment)) : 0,
-      interestRate: parseFloat(String(formData.interestRate)),
+      interestRate: finalInterestRate,
+      // Loan type derived from debt type
+      loanType,
       // Loan structure fields
       loanTermMonths: formData.loanTermMonths ? parseInt(String(formData.loanTermMonths)) : undefined,
       originationDate: formData.originationDate || undefined,
@@ -201,7 +225,6 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
     // If save & add another, reset form
     if (saveMode === 'saveAndAdd') {
       const preservedType = formData.type;
-      const preservedLoanType = formData.loanType;
       setFormData({
         name: '',
         description: '',
@@ -217,7 +240,6 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
         startDate: '',
         targetPayoffDate: '',
         priority: 0,
-        loanType: preservedLoanType,
         loanTermMonths: '',
         originationDate: '',
         compoundingFrequency: 'monthly',
@@ -242,6 +264,48 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       <p className="text-sm text-muted-foreground">
         Fields marked with <span className="text-error">*</span> are required
       </p>
+
+      {/* Debt Type and Interest Type - at top for dynamic form adjustment */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label className="text-muted-foreground text-sm mb-1">Debt Type</Label>
+          <Select value={formData.type} onValueChange={(v) => handleSelectChange('type', v)}>
+            <SelectTrigger className="bg-elevated border-border text-foreground">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border">
+              {DEBT_TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value} className="text-foreground">
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-muted-foreground text-sm mb-1">Interest Type</Label>
+          <Select
+            value={formData.interestType}
+            onValueChange={(v) => handleSelectChange('interestType', v)}
+          >
+            <SelectTrigger className="bg-elevated border-border text-foreground">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border">
+              {INTEREST_TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value} className="text-foreground">
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {formData.interestType === 'precomputed' && (
+            <p className="text-xs text-muted-foreground mt-1">
+              For BNPL or add-on interest loans where interest is calculated upfront. Enter the total amount owed (principal + interest) as the Original Amount.
+            </p>
+          )}
+        </div>
+      </div>
 
       {/* Name and Creditor */}
       <div className="grid grid-cols-2 gap-4">
@@ -396,7 +460,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       )}
 
       {/* Payment Info */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className={`grid gap-4 ${showInterestRate ? 'grid-cols-2' : 'grid-cols-1'}`}>
         <div>
           <Label className="text-muted-foreground text-sm mb-1">Minimum Payment (Optional)</Label>
           <Input
@@ -410,121 +474,77 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
             className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
           />
         </div>
-        <div>
-          <Label className="text-muted-foreground text-sm mb-1">Interest Rate (%)</Label>
-          <Input
-            name="interestRate"
-            type="number"
-            value={formData.interestRate}
-            onChange={handleChange}
-            placeholder="0.00"
-            step="0.01"
-            min="0"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-          />
-        </div>
+        {showInterestRate && (
+          <div>
+            <Label className="text-muted-foreground text-sm mb-1">Interest Rate (%)</Label>
+            <Input
+              name="interestRate"
+              type="number"
+              value={formData.interestRate}
+              onChange={handleChange}
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+              className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+        )}
       </div>
 
-      {/* Additional Monthly Payment */}
-      <div className="p-4 bg-card rounded-lg border border-border">
-        <div className="flex items-center gap-2 mb-3">
-          <Label className="text-sm text-primary">Extra Payment Commitment</Label>
-          <Info className="w-4 h-4 text-muted-foreground" />
-        </div>
-        <div>
-          <Label className="text-muted-foreground text-sm mb-1">Additional Monthly Payment</Label>
-          <Input
-            name="additionalMonthlyPayment"
-            type="number"
-            value={formData.additionalMonthlyPayment}
-            onChange={handleChange}
-            placeholder="0.00"
-            step="0.01"
-            min="0"
-            className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Extra amount you commit to pay beyond the minimum each month. This will be used for more accurate payoff projections.
-          </p>
-          {formData.minimumPayment && formData.additionalMonthlyPayment && (
-            <div className="mt-3 p-3 bg-elevated rounded-lg border border-border">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Total Planned Payment:</span>
-                <span className="text-sm font-semibold text-income font-mono">
-                  ${(parseFloat(String(formData.minimumPayment)) + parseFloat(String(formData.additionalMonthlyPayment))).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-            </div>
+      {/* Additional Monthly Payment - Collapsible */}
+      <div className="bg-card rounded-lg border border-border overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setExtraPaymentExpanded(!extraPaymentExpanded)}
+          className="w-full flex items-center justify-between p-4 hover:bg-elevated/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            {extraPaymentExpanded ? (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            )}
+            <Label className="text-sm text-primary cursor-pointer">Extra Payment Commitment</Label>
+            <Info className="w-4 h-4 text-muted-foreground" />
+          </div>
+          {!extraPaymentExpanded && formData.additionalMonthlyPayment && parseFloat(String(formData.additionalMonthlyPayment)) > 0 && (
+            <span className="text-sm font-semibold text-income font-mono">
+              +${parseFloat(String(formData.additionalMonthlyPayment)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mo
+            </span>
           )}
-        </div>
-      </div>
-
-      {/* Debt Type and Interest Type */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label className="text-muted-foreground text-sm mb-1">Debt Type</Label>
-          <Select value={formData.type} onValueChange={(v) => handleSelectChange('type', v)}>
-            <SelectTrigger className="bg-elevated border-border text-foreground">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border">
-              {DEBT_TYPES.map((t) => (
-                <SelectItem key={t.value} value={t.value} className="text-foreground">
-                  {t.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label className="text-muted-foreground text-sm mb-1">Interest Type</Label>
-          <Select
-            value={formData.interestType}
-            onValueChange={(v) => handleSelectChange('interestType', v)}
-          >
-            <SelectTrigger className="bg-elevated border-border text-foreground">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border">
-              {INTEREST_TYPES.map((t) => (
-                <SelectItem key={t.value} value={t.value} className="text-foreground">
-                  {t.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {formData.interestType === 'precomputed' && (
+        </button>
+        {extraPaymentExpanded && (
+          <div className="px-4 pb-4">
+            <Label className="text-muted-foreground text-sm mb-1">Additional Monthly Payment</Label>
+            <Input
+              name="additionalMonthlyPayment"
+              type="number"
+              value={formData.additionalMonthlyPayment}
+              onChange={handleChange}
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+              className="bg-elevated border-border text-foreground placeholder:text-muted-foreground"
+            />
             <p className="text-xs text-muted-foreground mt-1">
-              For BNPL or add-on interest loans where interest is calculated upfront. Enter the total amount owed (principal + interest) as the Original Amount.
+              Extra amount you commit to pay beyond the minimum each month. This will be used for more accurate payoff projections.
             </p>
-          )}
-        </div>
-      </div>
-
-      {/* Loan Type */}
-      <div>
-        <Label className="text-muted-foreground text-sm mb-1">Loan Type</Label>
-        <Select value={formData.loanType} onValueChange={(v) => handleSelectChange('loanType', v)}>
-          <SelectTrigger className="bg-elevated border-border text-foreground">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-card border-border">
-            {LOAN_TYPES.map((t) => (
-              <SelectItem key={t.value} value={t.value} className="text-foreground">
-                {t.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground mt-1">
-          {formData.loanType === 'revolving'
-            ? 'Revolving credit has variable balances (credit cards, lines of credit)'
-            : 'Installment loans have fixed payment schedules (mortgages, car loans, personal loans)'}
-        </p>
+            {formData.minimumPayment && formData.additionalMonthlyPayment && (
+              <div className="mt-3 p-3 bg-elevated rounded-lg border border-border">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Total Planned Payment:</span>
+                  <span className="text-sm font-semibold text-income font-mono">
+                    ${(parseFloat(String(formData.minimumPayment)) + parseFloat(String(formData.additionalMonthlyPayment))).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Installment Loan Fields */}
-      {formData.loanType === 'installment' && (
+      {loanType === 'installment' && (
         <div className="grid grid-cols-2 gap-4 p-4 bg-card rounded-lg border border-border">
           <div className="col-span-2">
             <p className="text-sm text-primary mb-3">Installment Loan Details</p>
@@ -559,7 +579,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
       )}
 
       {/* Revolving Credit Fields */}
-      {formData.loanType === 'revolving' && (
+      {loanType === 'revolving' && (
         <div className="space-y-4 p-4 bg-card rounded-lg border border-border">
           <div>
             <p className="text-sm text-primary mb-3">Revolving Credit Details</p>
@@ -650,6 +670,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
           {errors.startDate && (
             <p className="text-error text-xs mt-1">{errors.startDate}</p>
           )}
+          <p className="text-xs text-muted-foreground mt-1">When you started tracking this debt in the app</p>
         </div>
         <div>
           <Label className="text-muted-foreground text-sm mb-1">Target Payoff Date (Optional)</Label>
