@@ -10,7 +10,7 @@ export interface DebtCalculationParams {
   paymentAmount: number;
   remainingBalance: number;
   annualInterestRate: number;
-  interestType: 'fixed' | 'variable' | 'none';
+  interestType: 'fixed' | 'variable' | 'none' | 'precomputed';
   loanType: 'revolving' | 'installment';
   compoundingFrequency?: 'daily' | 'monthly' | 'quarterly' | 'annually';
   billingCycleDays?: number;
@@ -74,13 +74,13 @@ export function calculatePaymentBreakdown(
   paymentAmount: number,
   remainingBalance: number,
   annualInterestRate: number,
-  interestType: 'fixed' | 'variable' | 'none',
+  interestType: 'fixed' | 'variable' | 'none' | 'precomputed',
   loanType: 'revolving' | 'installment' = 'revolving',
   compoundingFrequency: 'daily' | 'monthly' | 'quarterly' | 'annually' = 'monthly',
   billingCycleDays: number = 30
 ): PaymentBreakdown {
-  // If no interest or 0% rate, entire payment goes to principal
-  if (interestType === 'none' || annualInterestRate === 0) {
+  // If no interest, 0% rate, or precomputed (interest was added upfront), entire payment goes to principal
+  if (interestType === 'none' || interestType === 'precomputed' || annualInterestRate === 0) {
     return {
       totalPayment: paymentAmount,
       interestAmount: 0,

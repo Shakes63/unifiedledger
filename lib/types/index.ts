@@ -11,7 +11,7 @@
 
 export type AccountType = 'checking' | 'savings' | 'credit' | 'line_of_credit' | 'investment' | 'cash';
 
-export type InterestType = 'fixed' | 'variable';
+export type InterestType = 'fixed' | 'variable' | 'precomputed';
 
 export type PaymentAmountSource = 'minimum_payment' | 'statement_balance' | 'full_balance' | 'fixed';
 
@@ -419,7 +419,7 @@ export interface DebtFormData {
   minimumPayment: string | number;
   additionalMonthlyPayment: string | number;
   interestRate: number;
-  interestType: 'none' | 'fixed' | 'variable';
+  interestType: 'none' | 'fixed' | 'variable' | 'precomputed';
   type: DebtType;
   color: string;
   startDate: string;

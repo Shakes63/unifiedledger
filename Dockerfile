@@ -7,13 +7,22 @@ FROM node:20-alpine AS base
 RUN npm install -g pnpm@9.15.5
 WORKDIR /app
 
-# Stage 2: Install dependencies
+# Stage 2: Install ALL dependencies (for building)
 FROM base AS deps
 RUN apk add --no-cache python3 make g++ libc6-compat
 COPY package.json pnpm-lock.yaml ./
 RUN chown -R node:node /app
 USER node
 RUN pnpm install --frozen-lockfile
+USER root
+
+# Stage 2.5: Install PRODUCTION dependencies only (for runtime)
+FROM base AS prod-deps
+RUN apk add --no-cache python3 make g++ libc6-compat
+COPY package.json pnpm-lock.yaml ./
+RUN chown -R node:node /app
+USER node
+RUN pnpm install --frozen-lockfile --prod
 USER root
 
 # Stage 3: Build application
@@ -55,18 +64,15 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy tooling needed for startup migrations
-COPY --from=builder /app/node_modules ./node_modules
+# Copy production-only node_modules (much smaller than full deps)
+COPY --from=prod-deps /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
-# Copy migrations + configs + entrypoint
+# Copy migrations (SQL files generated at build time) + scripts
+# Note: We no longer need drizzle.config.* files since we use migrate.mjs (not drizzle-kit)
 COPY --from=builder /app/drizzle /app/drizzle
-COPY --from=builder /app/drizzle.config.sqlite.ts /app/drizzle.config.sqlite.ts
-COPY --from=builder /app/drizzle.config.pg.ts /app/drizzle.config.pg.ts
-COPY --from=builder /app/lib/db /app/lib/db
-COPY --from=builder /app/auth-schema.ts /app/auth-schema.ts
-COPY --from=builder /app/auth-schema.pg.ts /app/auth-schema.pg.ts
 COPY --from=builder /app/scripts/docker-entrypoint.mjs /app/scripts/docker-entrypoint.mjs
+COPY --from=builder /app/scripts/migrate.mjs /app/scripts/migrate.mjs
 
 # Copy init script for PUID/PGID support
 COPY scripts/docker-init.sh /app/scripts/docker-init.sh

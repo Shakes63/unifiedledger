@@ -54,12 +54,8 @@ function requireFileExists(filePath, { label }) {
 }
 
 function requireMigrationArtifacts({ dialect }) {
-  // Fail-fast with clearer messaging than drizzle-kit’s generic errors.
+  // Fail-fast with clearer messaging.
   const cwd = process.cwd();
-  const configPath =
-    dialect === "postgres"
-      ? path.resolve(cwd, "drizzle.config.pg.ts")
-      : path.resolve(cwd, "drizzle.config.sqlite.ts");
 
   const migrationsDir =
     dialect === "postgres"
@@ -68,7 +64,6 @@ function requireMigrationArtifacts({ dialect }) {
 
   const journalPath = path.resolve(migrationsDir, "meta", "_journal.json");
 
-  requireFileExists(configPath, { label: "Drizzle config file" });
   requireFileExists(migrationsDir, { label: "migrations directory" });
   requireFileExists(journalPath, { label: "Drizzle migration journal (meta/_journal.json)" });
 }
@@ -122,11 +117,10 @@ async function main() {
   process.env.DATABASE_URL = databaseUrl;
 
   const dialect = isPostgresUrl(databaseUrl) ? "postgres" : "sqlite";
-  const drizzleConfig = dialect === "postgres" ? "drizzle.config.pg.ts" : "drizzle.config.sqlite.ts";
 
   console.log(`[entrypoint] DATABASE_URL=${dialect === "postgres" ? "<postgresql>" : databaseUrl}`);
   console.log(`[entrypoint] Selected DB dialect: ${dialect}`);
-  console.log(`[entrypoint] Running migrations with config: ${drizzleConfig}`);
+  console.log(`[entrypoint] Running migrations...`);
 
   requireMigrationArtifacts({ dialect });
 
@@ -149,7 +143,8 @@ async function main() {
     // Postgres: use an advisory lock so only one migrator runs at a time.
   }
 
-  const runMigrate = () => run("pnpm", ["drizzle-kit", "migrate", "--config", drizzleConfig]);
+  // Use lightweight migrate script instead of drizzle-kit (saves ~150MB in Docker image)
+  const runMigrate = () => run("node", ["scripts/migrate.mjs"]);
   try {
     if (dialect === "postgres") {
       await withPostgresAdvisoryLock(databaseUrl, async () => {
