@@ -2,12 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { 
-  DollarSign, 
-  ShoppingCart, 
-  Home, 
-  CalendarDays,
-  PiggyBank, 
+import {
+  DollarSign,
+  ShoppingCart,
+  PiggyBank,
   CreditCard,
   ChevronLeft,
   ChevronRight,
@@ -46,17 +44,7 @@ interface AllocationSummary {
       actual: number;
       categories: CategoryDetail[];
     };
-    variableExpenses: {
-      budgeted: number;
-      actual: number;
-      categories: CategoryDetail[];
-    };
-    monthlyBills: {
-      budgeted: number;
-      actual: number;
-      categories: CategoryDetail[];
-    };
-    nonMonthlyBills: {
+    expenses: {
       budgeted: number;
       actual: number;
       categories: CategoryDetail[];
@@ -85,9 +73,7 @@ interface AllocationSummary {
     budgetedSurplus: number;
     actualSurplus: number;
     allocationPercentages: {
-      variableExpenses: number;
-      monthlyBills: number;
-      nonMonthlyBills: number;
+      expenses: number;
       savings: number;
       debtPayments: number;
     };
@@ -286,9 +272,7 @@ export default function BudgetSummaryPage() {
 
   // Build chart data
   const chartData = {
-    variableExpenses: data.allocations.variableExpenses.budgeted,
-    monthlyBills: data.allocations.monthlyBills.budgeted,
-    nonMonthlyBills: data.allocations.nonMonthlyBills.budgeted,
+    expenses: data.allocations.expenses.budgeted,
     savings: data.allocations.savings.budgeted,
     debtPayments: data.summary.totalDebtPaymentsBudgeted,
     surplus: Math.max(0, data.summary.budgetedSurplus),
@@ -360,40 +344,16 @@ export default function BudgetSummaryPage() {
             categories={data.allocations.income.categories}
           />
 
-          {/* Variable Expenses */}
+          {/* Expenses */}
           <BudgetAllocationCard
-            title="Variable Expenses"
+            title="Expenses"
             icon={<ShoppingCart className="w-5 h-5" />}
-            budgeted={data.allocations.variableExpenses.budgeted}
-            actual={data.allocations.variableExpenses.actual}
+            budgeted={data.allocations.expenses.budgeted}
+            actual={data.allocations.expenses.actual}
             color="var(--color-expense)"
             type="expense"
-            categories={data.allocations.variableExpenses.categories}
+            categories={data.allocations.expenses.categories}
           />
-
-          {/* Monthly Bills */}
-          <BudgetAllocationCard
-            title="Monthly Bills"
-            icon={<Home className="w-5 h-5" />}
-            budgeted={data.allocations.monthlyBills.budgeted}
-            actual={data.allocations.monthlyBills.actual}
-            color="var(--color-transfer)"
-            type="expense"
-            categories={data.allocations.monthlyBills.categories}
-          />
-
-          {/* Non-Monthly Bills */}
-          {data.allocations.nonMonthlyBills.budgeted > 0 && (
-            <BudgetAllocationCard
-              title="Non-Monthly Bills"
-              icon={<CalendarDays className="w-5 h-5" />}
-              budgeted={data.allocations.nonMonthlyBills.budgeted}
-              actual={data.allocations.nonMonthlyBills.actual}
-              color="var(--color-warning)"
-              type="expense"
-              categories={data.allocations.nonMonthlyBills.categories}
-            />
-          )}
 
           {/* Savings */}
           <BudgetAllocationCard
@@ -423,23 +383,11 @@ export default function BudgetSummaryPage() {
         {/* Allocation Percentages Summary */}
         <div className="bg-card border border-border rounded-xl p-5">
           <h3 className="font-semibold text-foreground mb-4">Budget Allocation</h3>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="text-center">
-              <p className="text-xs text-muted-foreground mb-1">Variable Expenses</p>
+              <p className="text-xs text-muted-foreground mb-1">Expenses</p>
               <p className="text-lg font-bold text-expense">
-                {data.summary.allocationPercentages.variableExpenses}%
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground mb-1">Monthly Bills</p>
-              <p className="text-lg font-bold text-transfer">
-                {data.summary.allocationPercentages.monthlyBills}%
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground mb-1">Non-Monthly Bills</p>
-              <p className="text-lg font-bold text-warning">
-                {data.summary.allocationPercentages.nonMonthlyBills}%
+                {data.summary.allocationPercentages.expenses}%
               </p>
             </div>
             <div className="text-center">

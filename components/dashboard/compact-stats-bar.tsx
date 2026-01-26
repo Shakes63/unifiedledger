@@ -114,7 +114,8 @@ export function CompactStatsBar() {
         const txResponse = await fetchWithHousehold('/api/transactions?limit=1000');
         if (txResponse.ok) {
           const txData = await txResponse.json();
-          const monthlyExpenses = txData.filter((tx: { date: string; type: string; amount?: number }) => {
+          const transactions = Array.isArray(txData) ? txData : txData.data || [];
+          const monthlyExpenses = transactions.filter((tx: { date: string; type: string; amount?: number }) => {
             const txDate = new Date(tx.date);
             return tx.type === 'expense' &&
                    txDate >= firstDayOfMonth &&

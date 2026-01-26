@@ -231,7 +231,7 @@ export function EnhancedBillsWidget() {
           <Button
             size="sm"
             onClick={() => setBillPayModalOpen(true)}
-            className="bg-income hover:opacity-90 text-white h-8 text-xs"
+            className="bg-primary text-primary-foreground hover:opacity-90 h-8 text-xs"
           >
             <Wallet className="w-3.5 h-3.5 mr-1" />
             Pay Bills

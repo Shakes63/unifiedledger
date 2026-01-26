@@ -5,9 +5,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import Decimal from 'decimal.js';
 
 interface AllocationChartData {
-  variableExpenses: number;
-  monthlyBills: number;
-  nonMonthlyBills: number;
+  expenses: number;
   savings: number;
   debtPayments: number;
   surplus: number;
@@ -86,39 +84,27 @@ export function BudgetAllocationChart({
 }: BudgetAllocationChartProps) {
   // Build chart data - only include segments with positive values
   const chartData = useMemo(() => [
-    { 
-      name: 'Variable Expenses', 
-      value: Math.max(0, data.variableExpenses), 
+    {
+      name: 'Expenses',
+      value: Math.max(0, data.expenses),
       color: 'var(--color-expense)',
       colorValue: '#ef4444', // Fallback for Recharts
     },
-    { 
-      name: 'Monthly Bills', 
-      value: Math.max(0, data.monthlyBills), 
-      color: 'var(--color-transfer)',
-      colorValue: '#3b82f6',
-    },
-    { 
-      name: 'Non-Monthly Bills', 
-      value: Math.max(0, data.nonMonthlyBills), 
-      color: 'var(--color-warning)',
-      colorValue: '#f59e0b',
-    },
-    { 
-      name: 'Savings', 
-      value: Math.max(0, data.savings), 
+    {
+      name: 'Savings',
+      value: Math.max(0, data.savings),
       color: 'var(--color-success)',
       colorValue: '#22c55e',
     },
-    { 
-      name: 'Debt Payments', 
-      value: Math.max(0, data.debtPayments), 
+    {
+      name: 'Debt Payments',
+      value: Math.max(0, data.debtPayments),
       color: 'var(--color-error)',
       colorValue: '#dc2626',
     },
-    { 
-      name: 'Surplus', 
-      value: Math.max(0, data.surplus), 
+    {
+      name: 'Surplus',
+      value: Math.max(0, data.surplus),
       color: 'var(--color-income)',
       colorValue: '#10b981',
     },
@@ -199,12 +185,7 @@ export function BudgetAllocationChart({
         <div>
           <p className="text-xs text-muted-foreground">Total Expenses</p>
           <p className="font-mono font-semibold text-expense">
-            {formatCurrency(
-              new Decimal(data.variableExpenses)
-                .plus(data.monthlyBills)
-                .plus(data.nonMonthlyBills)
-                .toNumber()
-            )}
+            {formatCurrency(data.expenses)}
           </p>
         </div>
         <div>
