@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload, Plus, Pencil, ShieldOff, Target } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, ArrowRightLeft, Copy, Split, Upload, Plus, Pencil, ShieldOff, Target, Zap } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
@@ -19,6 +19,7 @@ import { InlineDateEdit } from '@/components/transactions/inline-date-edit';
 import { InlineAmountEdit } from '@/components/transactions/inline-amount-edit';
 import { InlineAccountSelect } from '@/components/transactions/inline-account-select';
 import { InlineTransferAccountSelect } from '@/components/transactions/inline-transfer-account-select';
+import { CreateRuleSheet } from '@/components/rules/create-rule-sheet';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { HouseholdLoadingState } from '@/components/household/household-loading-state';
@@ -107,6 +108,18 @@ function TransactionsContent() {
   const [defaultImportTemplateId, setDefaultImportTemplateId] = useState<string | undefined>(undefined);
   const [updatingTxId, setUpdatingTxId] = useState<string | null>(null);
   const [combinedTransferView, setCombinedTransferView] = useState<boolean>(true); // Default to combined view
+
+  // Create Rule Sheet state
+  const [createRuleSheetOpen, setCreateRuleSheetOpen] = useState(false);
+  const [createRuleDescription, setCreateRuleDescription] = useState<string>('');
+  const [createRuleTransactionId, setCreateRuleTransactionId] = useState<string>('');
+
+  // Handler to open create rule sheet with transaction description
+  const handleCreateRuleFromTransaction = (transactionId: string, description: string) => {
+    setCreateRuleTransactionId(transactionId);
+    setCreateRuleDescription(description);
+    setCreateRuleSheetOpen(true);
+  };
 
   const performSearch = useCallback(async (filters: TransactionSearchFilters, offset: number = 0, skipCache: boolean = false) => {
     try {
@@ -1314,6 +1327,16 @@ function TransactionsContent() {
                         >
                           <Copy className="w-3 h-3" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleCreateRuleFromTransaction(transaction.id, transaction.description)}
+                          className="h-7 w-7 shrink-0"
+                          style={{ color: 'var(--color-primary)' }}
+                          title="Create rule from this transaction"
+                        >
+                          <Zap className="w-3 h-3" />
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -1374,6 +1397,29 @@ function TransactionsContent() {
         }}
         accounts={accounts}
         defaultTemplateId={defaultImportTemplateId}
+      />
+
+      {/* Create Rule Sheet */}
+      <CreateRuleSheet
+        open={createRuleSheetOpen}
+        onOpenChange={setCreateRuleSheetOpen}
+        prefillDescription={createRuleDescription}
+        transactionId={createRuleTransactionId}
+        onRuleCreated={async () => {
+          // Refresh transactions when a rule is created and applied
+          if (currentFilters) {
+            await performSearch(currentFilters, 0, true);
+          } else {
+            // Refetch current page of transactions
+            const txResponse = await fetchWithHousehold(`/api/transactions?limit=${pageSize}&offset=0`, { skipCache: true });
+            if (txResponse.ok) {
+              const txData = await txResponse.json();
+              setTransactions(txData.data || txData);
+              setTotalResults(txData.total || txData.data?.length || txData.length);
+              setHasMore(pageSize < (txData.total || 0));
+            }
+          }
+        }}
       />
     </div>
   );
