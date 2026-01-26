@@ -279,51 +279,105 @@ export async function POST(
             throw new Error(`Target account not found: ${transferDecision.targetAccountId}`);
           }
 
-          // Create transfer_out from source account (the account in the CSV)
-          await db.insert(transactions).values({
-            id: transferOutId,
-            userId,
-            householdId,
-            accountId: mappedData.accountId,
-            categoryId: null, // Transfers don't have categories
-            date: mappedData.date,
-            amount: amount.abs().toNumber(), // Ensure positive amount
-            description: finalDescription,
-            merchantId: null, // Transfers don't have merchants
-            notes: mappedData.notes || null,
-            type: 'transfer_out',
-            transferId, // Links to the other side of the transfer
-            isTaxDeductible: false,
-            isSalesTaxable: false,
-            importHistoryId: importId,
-            importRowNumber: stagingRecord.rowNumber,
-            createdAt: now,
-            updatedAt: now,
-          });
+          // Determine transfer direction based on mapped type or amount sign
+          // transfer_in = money arriving at CSV account (positive amount)
+          // transfer_out = money leaving CSV account (negative amount)
+          const isIncomingTransfer = mappedData.type === 'transfer_in' ||
+            (mappedData.type !== 'transfer_out' && amount.greaterThanOrEqualTo(0));
 
-          // Create transfer_in to target account
-          await db.insert(transactions).values({
-            id: transferInId,
-            userId,
-            householdId,
-            accountId: transferDecision.targetAccountId,
-            categoryId: null,
-            date: mappedData.date,
-            amount: amount.abs().toNumber(),
-            description: finalDescription,
-            merchantId: null,
-            notes: mappedData.notes || null,
-            type: 'transfer_in',
-            transferId, // Links to the other side of the transfer
-            isTaxDeductible: false,
-            isSalesTaxable: false,
-            importHistoryId: importId,
-            importRowNumber: stagingRecord.rowNumber,
-            createdAt: now,
-            updatedAt: now,
-          });
+          if (isIncomingTransfer) {
+            // Money is coming INTO the CSV account FROM the target account
+            // CSV account gets transfer_in, target account gets transfer_out
+            await db.insert(transactions).values({
+              id: transferInId,
+              userId,
+              householdId,
+              accountId: mappedData.accountId, // CSV account receives money
+              categoryId: null,
+              date: mappedData.date,
+              amount: amount.abs().toNumber(),
+              description: finalDescription,
+              merchantId: null,
+              notes: mappedData.notes || null,
+              type: 'transfer_in',
+              transferId,
+              isTaxDeductible: false,
+              isSalesTaxable: false,
+              importHistoryId: importId,
+              importRowNumber: stagingRecord.rowNumber,
+              createdAt: now,
+              updatedAt: now,
+            });
 
-          console.log(`Created transfer pair for row ${stagingRecord.rowNumber}: ${transferOutId} -> ${transferInId}`);
+            await db.insert(transactions).values({
+              id: transferOutId,
+              userId,
+              householdId,
+              accountId: transferDecision.targetAccountId, // Target account sends money
+              categoryId: null,
+              date: mappedData.date,
+              amount: amount.abs().toNumber(),
+              description: finalDescription,
+              merchantId: null,
+              notes: mappedData.notes || null,
+              type: 'transfer_out',
+              transferId,
+              isTaxDeductible: false,
+              isSalesTaxable: false,
+              importHistoryId: importId,
+              importRowNumber: stagingRecord.rowNumber,
+              createdAt: now,
+              updatedAt: now,
+            });
+
+            console.log(`Created incoming transfer pair for row ${stagingRecord.rowNumber}: ${transferOutId} (target) -> ${transferInId} (CSV account)`);
+          } else {
+            // Money is going OUT of the CSV account TO the target account
+            // CSV account gets transfer_out, target account gets transfer_in
+            await db.insert(transactions).values({
+              id: transferOutId,
+              userId,
+              householdId,
+              accountId: mappedData.accountId, // CSV account sends money
+              categoryId: null,
+              date: mappedData.date,
+              amount: amount.abs().toNumber(),
+              description: finalDescription,
+              merchantId: null,
+              notes: mappedData.notes || null,
+              type: 'transfer_out',
+              transferId,
+              isTaxDeductible: false,
+              isSalesTaxable: false,
+              importHistoryId: importId,
+              importRowNumber: stagingRecord.rowNumber,
+              createdAt: now,
+              updatedAt: now,
+            });
+
+            await db.insert(transactions).values({
+              id: transferInId,
+              userId,
+              householdId,
+              accountId: transferDecision.targetAccountId, // Target account receives money
+              categoryId: null,
+              date: mappedData.date,
+              amount: amount.abs().toNumber(),
+              description: finalDescription,
+              merchantId: null,
+              notes: mappedData.notes || null,
+              type: 'transfer_in',
+              transferId,
+              isTaxDeductible: false,
+              isSalesTaxable: false,
+              importHistoryId: importId,
+              importRowNumber: stagingRecord.rowNumber,
+              createdAt: now,
+              updatedAt: now,
+            });
+
+            console.log(`Created outgoing transfer pair for row ${stagingRecord.rowNumber}: ${transferOutId} (CSV account) -> ${transferInId} (target)`);
+          }
         } else {
           // Import as regular transaction
           await db.insert(transactions).values({

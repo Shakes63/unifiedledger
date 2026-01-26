@@ -2,7 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, accounts, budgetCategories, transactionSplits, bills, billInstances, merchants, debts, tags, transactionTags, customFields, customFieldValues, betterAuthUser } from '@/lib/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, sql } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { deleteSalesTaxRecord } from '@/lib/sales-tax/transaction-sales-tax';
 import { findMatchingBillInstance } from '@/lib/bills/bill-matching-helpers';
@@ -185,10 +185,11 @@ export async function PUT(
       description,
       notes,
       isPending,
+      transferId, // For updating transfer destination account
     } = body;
 
     // Validate at least one field is provided for update
-    if (!accountId && !categoryId && !merchantId && !date && !amount && !description && !notes && isPending === undefined) {
+    if (!accountId && !categoryId && !merchantId && !date && !amount && !description && !notes && isPending === undefined && transferId === undefined) {
       return Response.json(
         { error: 'No fields to update' },
         { status: 400 }
@@ -293,6 +294,116 @@ export async function PUT(
       }
     }
 
+    // Handle transfer destination account update
+    let newTransferId = transaction.transferId;
+    if (transferId !== undefined && (transaction.type === 'transfer_out' || transaction.type === 'transfer_in')) {
+      // Validate the new destination account exists
+      if (transferId) {
+        const destAccount = await db
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.id, transferId),
+              eq(accounts.householdId, householdId)
+            )
+          )
+          .limit(1);
+
+        if (destAccount.length === 0) {
+          return Response.json(
+            { error: 'Destination account not found' },
+            { status: 404 }
+          );
+        }
+
+        // For transfer_out: Find existing or create transfer_in in the destination account
+        if (transaction.type === 'transfer_out') {
+          const now = new Date().toISOString();
+          const txDate = new Date(transaction.date);
+          const dateTolerance = 7; // Days to look around the transaction date
+
+          // First, try to find an existing unlinked transfer_in in the destination account
+          // Match criteria: same account, similar amount (within 1%), similar date (within 7 days), not already linked
+          const existingTransferIn = await db
+            .select()
+            .from(transactions)
+            .where(
+              and(
+                eq(transactions.accountId, transferId),
+                eq(transactions.householdId, householdId),
+                eq(transactions.type, 'transfer_in'),
+                sql`${transactions.transferId} IS NULL OR ${transactions.transferId} = ''`
+              )
+            );
+
+          // Find the best match based on amount and date
+          let matchedTransaction = null;
+          for (const candidate of existingTransferIn) {
+            const amountDiff = Math.abs(candidate.amount - transaction.amount);
+            const amountTolerance = Math.abs(transaction.amount * 0.01); // 1% tolerance
+
+            const candidateDate = new Date(candidate.date);
+            const dateDiff = Math.abs(txDate.getTime() - candidateDate.getTime()) / (1000 * 60 * 60 * 24);
+
+            if (amountDiff <= amountTolerance && dateDiff <= dateTolerance) {
+              matchedTransaction = candidate;
+              break; // Take first match
+            }
+          }
+
+          if (matchedTransaction) {
+            // Link existing transfer_in to this transfer_out
+            await db
+              .update(transactions)
+              .set({
+                transferId: id, // Points back to this transfer_out transaction
+                updatedAt: now,
+              })
+              .where(eq(transactions.id, matchedTransaction.id));
+
+            console.log(`Linked existing transfer_in ${matchedTransaction.id} to transfer_out ${id}`);
+          } else {
+            // No match found, create a new transfer_in
+            const { nanoid } = await import('nanoid');
+            const transferInId = nanoid();
+
+            await db.insert(transactions).values({
+              id: transferInId,
+              userId,
+              householdId,
+              accountId: transferId, // Destination account
+              categoryId: null,
+              merchantId: null,
+              date: transaction.date,
+              amount: transaction.amount,
+              description: transaction.description,
+              notes: transaction.notes,
+              type: 'transfer_in',
+              transferId: id, // Points back to this transfer_out transaction
+              isPending: transaction.isPending,
+              isTaxDeductible: false,
+              isSalesTaxable: false,
+              createdAt: now,
+              updatedAt: now,
+            });
+
+            // Update destination account balance (add the amount) - only for new transactions
+            const destBalance = new Decimal(destAccount[0].currentBalance || 0);
+            const updatedDestBalance = destBalance.plus(new Decimal(transaction.amount));
+
+            await db
+              .update(accounts)
+              .set({ currentBalance: updatedDestBalance.toNumber() })
+              .where(eq(accounts.id, transferId));
+
+            console.log(`Created transfer_in ${transferInId} in account ${transferId} for transfer_out ${id}`);
+          }
+        }
+      }
+      newTransferId = transferId;
+    }
+
     // Check if merchant changed and handle tax exemption for income transactions
     let newIsSalesTaxable = transaction.isSalesTaxable;
     if (
@@ -323,6 +434,7 @@ export async function PUT(
         accountId: newAccountId,
         categoryId: newCategoryId,
         merchantId: newMerchantId,
+        transferId: newTransferId,
         date: newDate,
         amount: newAmount.toNumber(),
         description: newDescription,

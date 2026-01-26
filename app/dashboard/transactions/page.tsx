@@ -18,6 +18,7 @@ import { InlineDescriptionEdit } from '@/components/transactions/inline-descript
 import { InlineDateEdit } from '@/components/transactions/inline-date-edit';
 import { InlineAmountEdit } from '@/components/transactions/inline-amount-edit';
 import { InlineAccountSelect } from '@/components/transactions/inline-account-select';
+import { InlineTransferAccountSelect } from '@/components/transactions/inline-transfer-account-select';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { HouseholdLoadingState } from '@/components/household/household-loading-state';
@@ -186,12 +187,15 @@ function TransactionsContent() {
       try {
         setLoading(true);
 
-        // Fetch transactions
-        const txResponse = await fetchWithHousehold('/api/transactions?limit=100');
+        // Fetch transactions with pagination
+        const txResponse = await fetchWithHousehold(`/api/transactions?limit=${pageSize}&offset=0`);
         if (txResponse.ok) {
           const txData = await txResponse.json();
-          setTransactions(txData); // API already returns newest first
-          setTotalResults(txData.length);
+          // API returns { data: [...], total, limit, offset }
+          setTransactions(txData.data || txData); // Support both new and old format
+          setTotalResults(txData.total || txData.data?.length || txData.length);
+          setHasMore((txData.total || 0) > pageSize);
+          setPaginationOffset(0);
         }
 
         // Fetch categories
@@ -274,11 +278,13 @@ function TransactionsContent() {
     // Refetch all transactions (skip cache for fresh data)
     try {
       setSearchLoading(true);
-      const txResponse = await fetchWithHousehold('/api/transactions?limit=100', { skipCache: true });
+      const txResponse = await fetchWithHousehold(`/api/transactions?limit=${pageSize}&offset=0`, { skipCache: true });
       if (txResponse.ok) {
         const txData = await txResponse.json();
-        setTransactions(txData);
-        setTotalResults(txData.length);
+        setTransactions(txData.data || txData);
+        setTotalResults(txData.total || txData.data?.length || txData.length);
+        setHasMore((txData.total || 0) > pageSize);
+        setPaginationOffset(0);
       }
     } catch (error) {
       console.error('Failed to refresh transactions:', error);
@@ -291,12 +297,50 @@ function TransactionsContent() {
   const handleNextPage = async () => {
     if (currentFilters) {
       await performSearch(currentFilters, paginationOffset + pageSize);
+    } else {
+      // Non-search mode pagination
+      const newOffset = paginationOffset + pageSize;
+      try {
+        setSearchLoading(true);
+        const txResponse = await fetchWithHousehold(`/api/transactions?limit=${pageSize}&offset=${newOffset}`, { skipCache: true });
+        if (txResponse.ok) {
+          const txData = await txResponse.json();
+          setTransactions(txData.data || txData);
+          setTotalResults(txData.total || txData.data?.length || txData.length);
+          setPaginationOffset(newOffset);
+          setHasMore(newOffset + pageSize < (txData.total || 0));
+        }
+      } catch (error) {
+        console.error('Failed to fetch next page:', error);
+        toast.error('Failed to load next page');
+      } finally {
+        setSearchLoading(false);
+      }
     }
   };
 
   const handlePreviousPage = async () => {
     if (currentFilters && paginationOffset >= pageSize) {
       await performSearch(currentFilters, paginationOffset - pageSize);
+    } else if (!currentFilters && paginationOffset >= pageSize) {
+      // Non-search mode pagination
+      const newOffset = paginationOffset - pageSize;
+      try {
+        setSearchLoading(true);
+        const txResponse = await fetchWithHousehold(`/api/transactions?limit=${pageSize}&offset=${newOffset}`, { skipCache: true });
+        if (txResponse.ok) {
+          const txData = await txResponse.json();
+          setTransactions(txData.data || txData);
+          setTotalResults(txData.total || txData.data?.length || txData.length);
+          setPaginationOffset(newOffset);
+          setHasMore(true); // There's always more if we went back
+        }
+      } catch (error) {
+        console.error('Failed to fetch previous page:', error);
+        toast.error('Failed to load previous page');
+      } finally {
+        setSearchLoading(false);
+      }
     }
   };
 
@@ -325,12 +369,13 @@ function TransactionsContent() {
           // If we're in search mode, re-run the search
           await performSearch(currentFilters, paginationOffset, true);
         } else {
-          // Otherwise, refetch all transactions
-          const txResponse = await fetchWithHousehold('/api/transactions?limit=100', { skipCache: true });
+          // Otherwise, refetch current page of transactions
+          const txResponse = await fetchWithHousehold(`/api/transactions?limit=${pageSize}&offset=${paginationOffset}`, { skipCache: true });
           if (txResponse.ok) {
             const txData = await txResponse.json();
-            setTransactions(txData); // API already returns newest first
-            setTotalResults(txData.length);
+            setTransactions(txData.data || txData);
+            setTotalResults(txData.total || txData.data?.length || txData.length);
+            setHasMore(paginationOffset + pageSize < (txData.total || 0));
           }
         }
         toast.success(`Transaction repeated: ${transaction.description}`);
@@ -623,6 +668,41 @@ function TransactionsContent() {
       setTransactions(previousTransactions);
       console.error('Error updating transaction:', error);
       toast.error('Failed to update transaction');
+    } finally {
+      setUpdatingTxId(null);
+    }
+  };
+
+  // Handler for updating transfer's linked account (other side of transfer)
+  const handleUpdateTransferAccount = async (
+    transactionId: string,
+    transactionType: 'transfer_out' | 'transfer_in',
+    accountId: string
+  ) => {
+    const previousTransactions = [...transactions];
+
+    try {
+      setUpdatingTxId(transactionId);
+
+      // Optimistic update: Update local state immediately
+      setTransactions(prev => prev.map(tx =>
+        tx.id === transactionId ? { ...tx, transferId: accountId } : tx
+      ));
+
+      const response = await putWithHousehold(`/api/transactions/${transactionId}`, {
+        transferId: accountId
+      });
+
+      if (response.ok) {
+        toast.success('Transfer account updated');
+      } else {
+        setTransactions(previousTransactions);
+        toast.error('Failed to update transfer account');
+      }
+    } catch (error) {
+      setTransactions(previousTransactions);
+      console.error('Error updating transfer account:', error);
+      toast.error('Failed to update transfer account');
     } finally {
       setUpdatingTxId(null);
     }
@@ -1020,10 +1100,73 @@ function TransactionsContent() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           {isTransfer ? (
-                            // Transfer: show "Account A → Account B" as text
-                            <p className="font-semibold text-foreground text-sm truncate">
-                              {display.merchant}
-                            </p>
+                            // Transfer: show "Account A → Account B" with editable unknown accounts
+                            <div className="font-semibold text-foreground text-sm flex items-center gap-1 flex-wrap">
+                              {transaction.type === 'transfer_out' ? (
+                                // transfer_out: source is accountId (always known), dest is transferId (may be unknown)
+                                <>
+                                  <span>{getAccountName(transaction.accountId)}</span>
+                                  <span className="text-muted-foreground">→</span>
+                                  {getAccountName(transaction.transferId) === 'Unknown' ? (
+                                    <InlineTransferAccountSelect
+                                      value={transaction.transferId}
+                                      transactionId={transaction.id}
+                                      transactionType="transfer_out"
+                                      excludeAccountId={transaction.accountId}
+                                      accounts={accounts}
+                                      onUpdate={handleUpdateTransferAccount}
+                                      disabled={updatingTxId === transaction.id}
+                                    />
+                                  ) : (
+                                    <span>{getAccountName(transaction.transferId)}</span>
+                                  )}
+                                </>
+                              ) : transaction.type === 'transfer_in' ? (
+                                // transfer_in: dest is accountId (always known), source may need lookup
+                                <>
+                                  {transaction.merchantId ? (
+                                    // Source stored in merchantId (converted transfer)
+                                    getAccountName(transaction.merchantId) === 'Unknown' ? (
+                                      <InlineTransferAccountSelect
+                                        value={transaction.merchantId}
+                                        transactionId={transaction.id}
+                                        transactionType="transfer_in"
+                                        excludeAccountId={transaction.accountId}
+                                        accounts={accounts}
+                                        onUpdate={handleUpdateTransferAccount}
+                                        disabled={updatingTxId === transaction.id}
+                                      />
+                                    ) : (
+                                      <span>{getAccountName(transaction.merchantId)}</span>
+                                    )
+                                  ) : (
+                                    // Try to find source from paired transaction
+                                    (() => {
+                                      const pairedTx = transactions.find(t => t.id === transaction.transferId);
+                                      const sourceName = pairedTx ? getAccountName(pairedTx.accountId) : 'Unknown';
+                                      return sourceName === 'Unknown' ? (
+                                        <InlineTransferAccountSelect
+                                          value={transaction.transferId}
+                                          transactionId={transaction.id}
+                                          transactionType="transfer_in"
+                                          excludeAccountId={transaction.accountId}
+                                          accounts={accounts}
+                                          onUpdate={handleUpdateTransferAccount}
+                                          disabled={updatingTxId === transaction.id}
+                                        />
+                                      ) : (
+                                        <span>{sourceName}</span>
+                                      );
+                                    })()
+                                  )}
+                                  <span className="text-muted-foreground">→</span>
+                                  <span>{getAccountName(transaction.accountId)}</span>
+                                </>
+                              ) : (
+                                // Fallback for any other transfer type
+                                <span>{display.merchant}</span>
+                              )}
+                            </div>
                           ) : (
                             // Non-transfer: show merchant dropdown
                             <InlineTransactionDropdown
@@ -1181,10 +1324,10 @@ function TransactionsContent() {
         )}
 
         {/* Pagination Controls */}
-        {currentFilters && transactions.length > 0 && (
+        {transactions.length > 0 && totalResults > pageSize && (
           <div className="mt-8 flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
-              Showing {paginationOffset + 1}-{Math.min(paginationOffset + pageSize, totalResults)} of {totalResults}
+              Showing {paginationOffset + 1}-{Math.min(paginationOffset + transactions.length, totalResults)} of {totalResults}
             </div>
             <div className="flex gap-2">
               <Button
@@ -1214,12 +1357,15 @@ function TransactionsContent() {
         onOpenChange={setImportModalOpen}
         onSuccess={async () => {
           // Refresh transactions after successful import (skip cache to get fresh data)
+          // Reset to first page to see newly imported transactions
           try {
-            const txResponse = await fetchWithHousehold('/api/transactions?limit=100', { skipCache: true });
+            const txResponse = await fetchWithHousehold(`/api/transactions?limit=${pageSize}&offset=0`, { skipCache: true });
             if (txResponse.ok) {
               const txData = await txResponse.json();
-              setTransactions(txData); // API already returns newest first
-              setTotalResults(txData.length);
+              setTransactions(txData.data || txData);
+              setTotalResults(txData.total || txData.data?.length || txData.length);
+              setPaginationOffset(0);
+              setHasMore((txData.total || 0) > pageSize);
               toast.success('Transactions refreshed');
             }
           } catch (error) {

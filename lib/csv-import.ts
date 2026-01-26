@@ -408,7 +408,13 @@ export const applyMappings = (
               typeValue.includes('transfer') ||
               typeValue.includes('trf')
             ) {
-              transaction.type = 'transfer_out';
+              // Determine transfer direction based on amount sign
+              // Positive/deposit = transfer_in (money arriving)
+              // Negative/withdrawal = transfer_out (money leaving)
+              const amountValue = transaction.amount instanceof Decimal
+                ? transaction.amount.toNumber()
+                : (transaction.amount as number);
+              transaction.type = amountValue >= 0 ? 'transfer_in' : 'transfer_out';
             } else {
               transaction.type = 'expense';
             }

@@ -249,6 +249,12 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
           if (!response.ok) throw new Error('Failed to load transaction');
           const transaction = await response.json();
 
+          // Convert transfer_out/transfer_in to 'transfer' for the UI
+          let formType: TransactionType = transaction.type;
+          if (transaction.type === 'transfer_out' || transaction.type === 'transfer_in') {
+            formType = 'transfer';
+          }
+
           setFormData({
             accountId: transaction.accountId,
             categoryId: transaction.categoryId || '',
@@ -257,7 +263,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             amount: transaction.amount.toString(),
             description: transaction.description,
             notes: transaction.notes || '',
-            type: transaction.type,
+            type: formType,
             isPending: transaction.isPending,
             toAccountId: '',
           });
