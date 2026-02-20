@@ -5,8 +5,6 @@ import {
   userHouseholdPreferences,
   accounts,
   transactions,
-  bills,
-  billInstances,
   budgetCategories,
 } from '@/lib/db/schema';
 import { eq, and, gte, lte, inArray, sum, sql } from 'drizzle-orm';
@@ -23,6 +21,7 @@ import {
   type BudgetScheduleSettings,
   type BudgetCycleFrequency,
 } from '@/lib/budgets/budget-schedule';
+import { getPeriodBillsForBudgetPeriod } from '@/lib/budgets/period-bills-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -176,44 +175,55 @@ export async function GET(request: NextRequest) {
     const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
 
     // 3. Get upcoming bills due before period end
-    const upcomingBills = await db
-      .select({
-        billId: bills.id,
-        billName: bills.name,
-        instanceId: billInstances.id,
-        dueDate: billInstances.dueDate,
-        expectedAmount: billInstances.expectedAmount,
-        isAutopay: bills.isAutopayEnabled,
-        categoryId: bills.categoryId,
-        status: billInstances.status,
-      })
-      .from(billInstances)
-      .innerJoin(bills, eq(billInstances.billId, bills.id))
-      .where(
-        and(
-          eq(bills.householdId, householdId),
-          eq(bills.isActive, true),
-          inArray(billInstances.status, ['pending', 'overdue']),
-          gte(billInstances.dueDate, currentPeriod.startStr),
-          lte(billInstances.dueDate, currentPeriod.endStr)
-        )
-      );
+    const upcomingBills = await getPeriodBillsForBudgetPeriod({
+      householdId,
+      settings,
+      period: currentPeriod,
+      statuses: ['pending', 'overdue'],
+      excludeBillType: 'income',
+    });
+
+    const upcomingCategoryIds = [...new Set(upcomingBills.map((row) => row.bill.categoryId).filter((id): id is string => id !== null))];
+    const missingCategoryIds = upcomingCategoryIds.filter((id) => !categoryMap.has(id));
+    if (missingCategoryIds.length > 0) {
+      const upcomingCategories = await db
+        .select({ id: budgetCategories.id, name: budgetCategories.name })
+        .from(budgetCategories)
+        .where(inArray(budgetCategories.id, missingCategoryIds));
+      for (const category of upcomingCategories) {
+        categoryMap.set(category.id, category.name);
+      }
+    }
 
     // Separate autopay vs manual bills
     const autopayBills: BillBreakdownItem[] = [];
     const manualBills: BillBreakdownItem[] = [];
 
-    for (const bill of upcomingBills) {
+    for (const row of upcomingBills) {
+      const { bill, instance, allocation } = row;
+      if (allocation?.isPaid) {
+        continue;
+      }
+
+      const baseRemaining = instance.remainingAmount ?? new Decimal(instance.expectedAmount).minus(instance.paidAmount || 0).toNumber();
+      const amount = allocation
+        ? Decimal.max(new Decimal(allocation.allocatedAmount).minus(allocation.paidAmount || 0), 0).toNumber()
+        : Decimal.max(new Decimal(baseRemaining), 0).toNumber();
+
+      if (amount <= 0) {
+        continue;
+      }
+
       const item: BillBreakdownItem = {
-        id: bill.instanceId,
-        name: bill.billName,
-        amount: bill.expectedAmount,
-        dueDate: bill.dueDate,
-        isAutopay: bill.isAutopay || false,
+        id: instance.id,
+        name: bill.name,
+        amount,
+        dueDate: instance.dueDate,
+        isAutopay: bill.isAutopayEnabled || false,
         categoryName: bill.categoryId ? categoryMap.get(bill.categoryId) : undefined,
       };
 
-      if (bill.isAutopay) {
+      if (bill.isAutopayEnabled) {
         autopayBills.push(item);
       } else {
         manualBills.push(item);

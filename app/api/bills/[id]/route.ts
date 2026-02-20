@@ -164,6 +164,8 @@ export async function PUT(
       taxDeductionLimit,
       // Budget period assignment (for bill pay feature)
       budgetPeriodAssignment,
+      splitAcrossPeriods,
+      splitAllocations,
     } = body;
 
     // Verify bill exists and belongs to user and household
@@ -454,6 +456,16 @@ export async function PUT(
     
     // Budget period assignment
     if (budgetPeriodAssignment !== undefined) updateData.budgetPeriodAssignment = budgetPeriodAssignment;
+    if (splitAcrossPeriods !== undefined) updateData.splitAcrossPeriods = splitAcrossPeriods;
+    if (splitAllocations !== undefined) {
+      updateData.splitAllocations = splitAllocations === null
+        ? null
+        : (typeof splitAllocations === 'string'
+            ? splitAllocations
+            : JSON.stringify(splitAllocations));
+    } else if (splitAcrossPeriods === false) {
+      updateData.splitAllocations = null;
+    }
 
     await db
       .update(bills)

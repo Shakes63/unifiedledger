@@ -2,12 +2,10 @@ import Decimal from 'decimal.js';
 import {
   format,
   addDays,
-  addWeeks,
   startOfDay,
   endOfDay,
   differenceInDays,
   getDay,
-  setDay,
   isAfter,
   isBefore,
   isSameDay,
@@ -136,24 +134,9 @@ export function getDaysUntilNextPeriod(
  */
 function getWeeklyPeriod(settings: BudgetScheduleSettings, today: Date): BudgetPeriod {
   const startDayOfWeek = settings.budgetCycleStartDay ?? 0; // Default to Sunday
-  const currentDayOfWeek = getDay(today);
-
-  // Find the start of the current week period
-  let periodStart: Date;
-  if (currentDayOfWeek >= startDayOfWeek) {
-    // Period started earlier this week
-    periodStart = setDay(today, startDayOfWeek, { weekStartsOn: 0 });
-  } else {
-    // Period started last week
-    periodStart = setDay(addDays(today, -7), startDayOfWeek, { weekStartsOn: 0 });
-  }
-
+  const periodStart = getAlignedPeriodStart(today, startDayOfWeek);
   const periodEnd = endOfDay(addDays(periodStart, 6));
-
-  // Calculate period number within the month (approximate)
-  const monthStart = startOfMonth(today);
-  const dayOfMonth = differenceInDays(periodStart, monthStart);
-  const periodNumber = Math.floor(dayOfMonth / 7) + 1;
+  const { periodNumber, periodsInMonth } = getPeriodPositionInMonth(periodStart, today, 7);
 
   return {
     start: periodStart,
@@ -161,7 +144,7 @@ function getWeeklyPeriod(settings: BudgetScheduleSettings, today: Date): BudgetP
     startStr: format(periodStart, 'yyyy-MM-dd'),
     endStr: format(periodEnd, 'yyyy-MM-dd'),
     periodNumber,
-    periodsInMonth: 4, // Approximately 4 weeks per month
+    periodsInMonth,
   };
 }
 
@@ -178,27 +161,20 @@ function getBiweeklyPeriod(settings: BudgetScheduleSettings, today: Date): Budge
   if (settings.budgetCycleReferenceDate) {
     referenceDate = startOfDay(new Date(settings.budgetCycleReferenceDate));
   } else {
-    // Find the most recent occurrence of the start day
-    referenceDate = setDay(today, startDayOfWeek, { weekStartsOn: 0 });
-    if (isAfter(referenceDate, today)) {
-      referenceDate = addDays(referenceDate, -7);
-    }
+    // Use the latest aligned start day as a stable anchor
+    referenceDate = getAlignedPeriodStart(today, startDayOfWeek);
   }
 
-  // Calculate how many weeks since the reference date
+  referenceDate = getAlignedPeriodStart(referenceDate, startDayOfWeek);
+
+  // Calculate how many 14-day periods since the reference date
   const daysSinceReference = differenceInDays(today, referenceDate);
-  const weeksSinceReference = Math.floor(daysSinceReference / 7);
-  
-  // Determine which biweekly period we're in
-  // If odd number of weeks, we're in the week before a new period
-  const biweeklyPeriodsSinceReference = Math.floor(weeksSinceReference / 2);
+  const biweeklyPeriodsSinceReference = Math.floor(daysSinceReference / 14);
   
   // Calculate period start
-  const periodStart = addWeeks(referenceDate, biweeklyPeriodsSinceReference * 2);
+  const periodStart = startOfDay(addDays(referenceDate, biweeklyPeriodsSinceReference * 14));
   const periodEnd = endOfDay(addDays(periodStart, 13)); // 14 days total
-
-  const dayOfMonth = getDate(periodStart);
-  const periodNumber = dayOfMonth <= 15 ? 1 : 2;
+  const { periodNumber, periodsInMonth } = getPeriodPositionInMonth(periodStart, today, 14);
 
   return {
     start: periodStart,
@@ -206,7 +182,55 @@ function getBiweeklyPeriod(settings: BudgetScheduleSettings, today: Date): Budge
     startStr: format(periodStart, 'yyyy-MM-dd'),
     endStr: format(periodEnd, 'yyyy-MM-dd'),
     periodNumber,
-    periodsInMonth: 2,
+    periodsInMonth,
+  };
+}
+
+/**
+ * Get the latest aligned period start date on/before the reference date.
+ */
+function getAlignedPeriodStart(referenceDate: Date, startDayOfWeek: number): Date {
+  const currentDayOfWeek = getDay(referenceDate);
+  const daysSinceStart = (currentDayOfWeek - startDayOfWeek + 7) % 7;
+  return startOfDay(addDays(referenceDate, -daysSinceStart));
+}
+
+/**
+ * Determine the 1-based period number and total period count for the month that
+ * contains `monthReferenceDate`, based on fixed-length periods.
+ */
+function getPeriodPositionInMonth(
+  periodStart: Date,
+  monthReferenceDate: Date,
+  periodLengthDays: number
+): { periodNumber: number; periodsInMonth: number } {
+  const monthStart = startOfMonth(monthReferenceDate);
+  const monthEnd = endOfMonth(monthReferenceDate);
+
+  let firstPeriodStart = periodStart;
+  while (addDays(firstPeriodStart, periodLengthDays - 1) < monthStart) {
+    firstPeriodStart = addDays(firstPeriodStart, periodLengthDays);
+  }
+  while (firstPeriodStart > monthStart) {
+    firstPeriodStart = addDays(firstPeriodStart, -periodLengthDays);
+  }
+  while (addDays(firstPeriodStart, periodLengthDays - 1) < monthStart) {
+    firstPeriodStart = addDays(firstPeriodStart, periodLengthDays);
+  }
+
+  let periodsInMonth = 0;
+  let cursor = firstPeriodStart;
+  while (cursor <= monthEnd) {
+    periodsInMonth += 1;
+    cursor = addDays(cursor, periodLengthDays);
+  }
+
+  const dayDifference = differenceInDays(periodStart, firstPeriodStart);
+  const periodNumber = Math.floor(dayDifference / periodLengthDays) + 1;
+
+  return {
+    periodNumber: Math.max(1, periodNumber),
+    periodsInMonth,
   };
 }
 
@@ -457,4 +481,3 @@ export function validateBudgetScheduleSettings(
     errors,
   };
 }
-

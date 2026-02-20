@@ -9,7 +9,7 @@ import {
   billInstances,
   budgetCategories,
 } from '@/lib/db/schema';
-import { eq, and, gte, lte, inArray, sum, ne, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, inArray, sum, sql } from 'drizzle-orm';
 import { isMemberOfHousehold } from '@/lib/household/permissions';
 import Decimal from 'decimal.js';
 import { toMoneyCents } from '@/lib/utils/money-cents';
@@ -22,6 +22,7 @@ import {
   type BudgetScheduleSettings,
   type BudgetCycleFrequency,
 } from '@/lib/budgets/budget-schedule';
+import { getPeriodBillsForBudgetPeriod } from '@/lib/budgets/period-bills-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -224,32 +225,16 @@ export async function GET(request: NextRequest) {
     // ========================================================================
     // 3. Get expense bills for the period
     // ========================================================================
-    const expenseBillsData = await db
-      .select({
-        billId: bills.id,
-        billName: bills.name,
-        instanceId: billInstances.id,
-        dueDate: billInstances.dueDate,
-        expectedAmount: billInstances.expectedAmount,
-        isAutopay: bills.isAutopayEnabled,
-        categoryId: bills.categoryId,
-        status: billInstances.status,
-        budgetPeriodAssignment: bills.budgetPeriodAssignment,
-      })
-      .from(billInstances)
-      .innerJoin(bills, eq(billInstances.billId, bills.id))
-      .where(
-        and(
-          eq(bills.householdId, householdId),
-          eq(bills.isActive, true),
-          ne(bills.billType, 'income'), // Exclude income bills
-          gte(billInstances.dueDate, currentPeriod.startStr),
-          lte(billInstances.dueDate, currentPeriod.endStr)
-        )
-      );
+    const periodExpenseBills = await getPeriodBillsForBudgetPeriod({
+      householdId,
+      settings,
+      period: currentPeriod,
+      statuses: ['pending', 'overdue', 'paid'],
+      excludeBillType: 'income',
+    });
 
     // Get category names
-    const categoryIds = [...new Set(expenseBillsData.map((b) => b.categoryId).filter((id): id is string => id !== null))];
+    const categoryIds = [...new Set(periodExpenseBills.map((row) => row.bill.categoryId).filter((id): id is string => id !== null))];
     const categoriesData = categoryIds.length > 0
       ? await db
           .select({ id: budgetCategories.id, name: budgetCategories.name })
@@ -263,19 +248,35 @@ export async function GET(request: NextRequest) {
     const autopayUpcoming: BillBreakdownItem[] = [];
     const manualUpcoming: BillBreakdownItem[] = [];
 
-    for (const bill of expenseBillsData) {
+    for (const row of periodExpenseBills) {
+      const { bill, instance, allocation } = row;
+      const baseRemaining = instance.remainingAmount ?? new Decimal(instance.expectedAmount).minus(instance.paidAmount || 0).toNumber();
+
+      const paidAmount = allocation
+        ? (allocation.paidAmount && allocation.paidAmount > 0 ? allocation.paidAmount : allocation.allocatedAmount)
+        : (instance.actualAmount ?? instance.paidAmount ?? instance.expectedAmount);
+
+      const remainingAmount = allocation
+        ? Decimal.max(new Decimal(allocation.allocatedAmount).minus(allocation.paidAmount || 0), 0).toNumber()
+        : Decimal.max(new Decimal(baseRemaining), 0).toNumber();
+
+      const isPaid = allocation
+        ? allocation.isPaid || remainingAmount <= 0
+        : instance.status === 'paid';
+
+      const displayAmount = isPaid ? paidAmount : remainingAmount;
       const item: BillBreakdownItem = {
-        id: bill.instanceId,
-        name: bill.billName,
-        amount: bill.expectedAmount,
-        dueDate: bill.dueDate,
-        isAutopay: bill.isAutopay || false,
+        id: instance.id,
+        name: bill.name,
+        amount: displayAmount,
+        dueDate: instance.dueDate,
+        isAutopay: bill.isAutopayEnabled || false,
         categoryName: bill.categoryId ? categoryMap.get(bill.categoryId) : undefined,
       };
 
-      if (bill.status === 'paid') {
+      if (isPaid) {
         paidBills.push(item);
-      } else if (bill.isAutopay) {
+      } else if (bill.isAutopayEnabled) {
         autopayUpcoming.push(item);
       } else {
         manualUpcoming.push(item);

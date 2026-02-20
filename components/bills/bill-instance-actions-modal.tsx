@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TransactionLinkSelector } from './transaction-link-selector';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { useHousehold } from '@/contexts/household-context';
 import { getTodayLocalDateString } from '@/lib/utils/local-date';
 import { toast } from 'sonner';
 import {
@@ -64,6 +65,7 @@ export function BillInstanceActionsModal({
   bill,
   onSuccess,
 }: BillInstanceActionsModalProps) {
+  const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
   const [activeTab, setActiveTab] = useState<'actions' | 'link' | 'period' | 'allocations' | 'payments'>('actions');
   const [loading, setLoading] = useState(false);
@@ -93,6 +95,8 @@ export function BillInstanceActionsModal({
   // Payments state
   const [payments, setPayments] = useState<BillPayment[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
+  const [periodOptionCount, setPeriodOptionCount] = useState(4);
+  const [periodFrequency, setPeriodFrequency] = useState('monthly');
 
   // Fetch allocations when tab is opened
   useEffect(() => {
@@ -109,6 +113,25 @@ export function BillInstanceActionsModal({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, activeTab]);
+
+  // Fetch budget schedule to render period override options dynamically
+  useEffect(() => {
+    if (!open || !selectedHouseholdId) return;
+
+    const fetchBudgetSchedule = async () => {
+      try {
+        const response = await fetchWithHousehold(`/api/budget-schedule?householdId=${selectedHouseholdId}`);
+        if (!response.ok) return;
+        const data = await response.json();
+        setPeriodOptionCount(Math.max(1, data.currentPeriod?.periodsInMonth ?? 4));
+        setPeriodFrequency(data.settings?.budgetCycleFrequency || 'monthly');
+      } catch (error) {
+        console.error('Failed to load budget schedule for period overrides:', error);
+      }
+    };
+
+    fetchBudgetSchedule();
+  }, [open, selectedHouseholdId, fetchWithHousehold]);
 
   const fetchAllocations = async () => {
     try {
@@ -214,6 +237,22 @@ export function BillInstanceActionsModal({
     } finally {
       setLoading(false);
     }
+  };
+
+  const getPeriodOptionLabel = (periodNumber: number): string => {
+    if (periodFrequency === 'semi-monthly' && periodOptionCount === 2) {
+      return periodNumber === 1 ? 'Period 1 (first half)' : 'Period 2 (second half)';
+    }
+
+    if (periodFrequency === 'weekly') {
+      return `Week ${periodNumber}`;
+    }
+
+    if (periodFrequency === 'biweekly') {
+      return `Paycheck ${periodNumber}`;
+    }
+
+    return `Period ${periodNumber}`;
   };
 
   const handleAction = async (action: 'paid' | 'pending' | 'skipped') => {
@@ -763,10 +802,14 @@ export function BillInstanceActionsModal({
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   <SelectItem value="">Use bill default or due date</SelectItem>
-                  <SelectItem value="1">Period 1 (first half)</SelectItem>
-                  <SelectItem value="2">Period 2 (second half)</SelectItem>
-                  <SelectItem value="3">Period 3</SelectItem>
-                  <SelectItem value="4">Period 4</SelectItem>
+                  {Array.from({ length: periodOptionCount }, (_, index) => {
+                    const periodNumber = index + 1;
+                    return (
+                      <SelectItem key={periodNumber} value={String(periodNumber)}>
+                        {getPeriodOptionLabel(periodNumber)}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">

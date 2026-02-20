@@ -69,6 +69,90 @@ const DEBT_COLOR_OPTIONS = [
   { value: '#ec4899', label: 'Pink' },
 ] as const;
 
+interface SplitAllocation {
+  periodNumber: number;
+  percentage: number;
+}
+
+function createEqualSplitAllocations(periodCount: number): SplitAllocation[] {
+  const safePeriodCount = Math.max(1, periodCount);
+  const base = Number((100 / safePeriodCount).toFixed(2));
+  const allocations: SplitAllocation[] = [];
+  let runningTotal = 0;
+
+  for (let periodNumber = 1; periodNumber <= safePeriodCount; periodNumber++) {
+    const percentage = periodNumber === safePeriodCount
+      ? Number((100 - runningTotal).toFixed(2))
+      : base;
+    runningTotal = Number((runningTotal + percentage).toFixed(2));
+    allocations.push({ periodNumber, percentage });
+  }
+
+  return allocations;
+}
+
+function parseSplitAllocations(value: string | null | undefined): SplitAllocation[] {
+  if (!value) {
+    return createEqualSplitAllocations(2);
+  }
+
+  try {
+    const parsed = JSON.parse(value) as Array<{ periodNumber?: number; percentage?: number }>;
+    if (!Array.isArray(parsed)) {
+      return createEqualSplitAllocations(2);
+    }
+
+    const valid = parsed
+      .filter((entry) => Number.isFinite(entry?.periodNumber) && Number.isFinite(entry?.percentage))
+      .map((entry) => ({
+        periodNumber: Number(entry.periodNumber),
+        percentage: Number(entry.percentage),
+      }))
+      .sort((a, b) => a.periodNumber - b.periodNumber);
+
+    return valid.length > 0 ? valid : createEqualSplitAllocations(2);
+  } catch {
+    return createEqualSplitAllocations(2);
+  }
+}
+
+function coerceSplitAllocations(raw: SplitAllocation[], periodCount: number): SplitAllocation[] {
+  const safePeriodCount = Math.max(1, periodCount);
+  const fallback = createEqualSplitAllocations(safePeriodCount);
+  const rawMap = new Map(raw.map((entry) => [entry.periodNumber, entry.percentage]));
+
+  return Array.from({ length: safePeriodCount }, (_, index) => {
+    const periodNumber = index + 1;
+    const value = rawMap.get(periodNumber);
+    return {
+      periodNumber,
+      percentage: Number.isFinite(value) ? Number(value) : fallback[index].percentage,
+    };
+  });
+}
+
+function getPeriodAssignmentOptionLabel(
+  periodNumber: number,
+  frequency: string,
+  periodsInMonth: number
+): string {
+  if (frequency === 'semi-monthly' && periodsInMonth === 2) {
+    return periodNumber === 1
+      ? 'Always First Half (1st-14th)'
+      : 'Always Second Half (15th-end)';
+  }
+
+  if (frequency === 'weekly') {
+    return `Always Week ${periodNumber}`;
+  }
+
+  if (frequency === 'biweekly') {
+    return `Always Paycheck ${periodNumber}`;
+  }
+
+  return `Always Period ${periodNumber}`;
+}
+
 // Bill data structure for form
 export interface BillData {
   id?: string;
@@ -217,9 +301,7 @@ export function BillForm({
     
     // Split payment across periods
     splitAcrossPeriods: bill?.splitAcrossPeriods || false,
-    splitAllocations: bill?.splitAllocations 
-      ? JSON.parse(bill.splitAllocations)
-      : [{ periodNumber: 1, percentage: 50 }, { periodNumber: 2, percentage: 50 }],
+    splitAllocations: parseSplitAllocations(bill?.splitAllocations),
   });
 
   // Collapsible sections state - auto-expand sections with existing data when editing
@@ -373,6 +455,25 @@ export function BillForm({
       toast.info('Budget period assignment reset to Automatic (schedule changed)');
     }
   }, [budgetSchedule, formData.budgetPeriodAssignment]);
+
+  // Keep split allocation shape aligned with the current period count
+  useEffect(() => {
+    if (!budgetSchedule || !formData.splitAcrossPeriods) return;
+
+    const normalized = coerceSplitAllocations(
+      formData.splitAllocations as SplitAllocation[],
+      budgetSchedule.periodsInMonth
+    );
+
+    const currentSerialized = JSON.stringify(formData.splitAllocations);
+    const nextSerialized = JSON.stringify(normalized);
+    if (currentSerialized !== nextSerialized) {
+      setFormData(prev => ({
+        ...prev,
+        splitAllocations: normalized,
+      }));
+    }
+  }, [budgetSchedule, formData.splitAcrossPeriods, formData.splitAllocations]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -538,6 +639,21 @@ export function BillForm({
       newErrors.linkedAccountId = 'Cannot be both a payment to a card and charged to a card';
     }
 
+    if (formData.splitAcrossPeriods) {
+      const periodCount = Math.max(1, budgetSchedule?.periodsInMonth ?? 2);
+      const normalizedAllocations = coerceSplitAllocations(
+        formData.splitAllocations as SplitAllocation[],
+        periodCount
+      );
+      const totalPercentage = normalizedAllocations.reduce((sum, allocation) => sum + allocation.percentage, 0);
+
+      if (normalizedAllocations.some((allocation) => allocation.percentage < 0 || allocation.percentage > 100)) {
+        newErrors.splitAllocations = 'Each split percentage must be between 0 and 100';
+      } else if (Math.abs(totalPercentage - 100) > 0.01) {
+        newErrors.splitAllocations = 'Split percentages must add up to 100%';
+      }
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setSaveMode(null);
@@ -616,7 +732,12 @@ export function BillForm({
       // Split payment across periods
       splitAcrossPeriods: formData.splitAcrossPeriods,
       splitAllocations: formData.splitAcrossPeriods 
-        ? JSON.stringify(formData.splitAllocations)
+        ? JSON.stringify(
+            coerceSplitAllocations(
+              formData.splitAllocations as SplitAllocation[],
+              Math.max(1, budgetSchedule?.periodsInMonth ?? 2)
+            )
+          )
         : null,
     }, saveMode || 'save');
 
@@ -664,7 +785,7 @@ export function BillForm({
         taxDeductionLimit: '',
         budgetPeriodAssignment: 'auto',
         splitAcrossPeriods: false,
-        splitAllocations: [{ periodNumber: 1, percentage: 50 }, { periodNumber: 2, percentage: 50 }],
+        splitAllocations: createEqualSplitAllocations(Math.max(1, budgetSchedule?.periodsInMonth ?? 2)),
       });
       setNewPayeePattern('');
       setIsCreatingCategory(false);
@@ -681,6 +802,16 @@ export function BillForm({
       }, 100);
     }
   };
+
+  const currentPeriodCount = Math.max(1, budgetSchedule?.periodsInMonth ?? 2);
+  const splitAllocationsForSchedule = coerceSplitAllocations(
+    formData.splitAllocations as SplitAllocation[],
+    currentPeriodCount
+  );
+  const splitAllocationTotal = splitAllocationsForSchedule.reduce(
+    (sum, allocation) => sum + allocation.percentage,
+    0
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -1158,26 +1289,18 @@ export function BillForm({
             </SelectTrigger>
             <SelectContent className="bg-card border-border">
               <SelectItem value="auto" className="text-foreground">Automatic (based on due date)</SelectItem>
-              {budgetSchedule.periodsInMonth === 2 && budgetSchedule.frequency === 'semi-monthly' && (
-                <>
-                  <SelectItem value="1" className="text-foreground">Always First Half (1st-14th)</SelectItem>
-                  <SelectItem value="2" className="text-foreground">Always Second Half (15th-end)</SelectItem>
-                </>
-              )}
-              {budgetSchedule.periodsInMonth === 2 && budgetSchedule.frequency === 'biweekly' && (
-                <>
-                  <SelectItem value="1" className="text-foreground">Always Period 1 (Week 1-2)</SelectItem>
-                  <SelectItem value="2" className="text-foreground">Always Period 2 (Week 3-4)</SelectItem>
-                </>
-              )}
-              {budgetSchedule.periodsInMonth === 4 && (
-                <>
-                  <SelectItem value="1" className="text-foreground">Always Week 1</SelectItem>
-                  <SelectItem value="2" className="text-foreground">Always Week 2</SelectItem>
-                  <SelectItem value="3" className="text-foreground">Always Week 3</SelectItem>
-                  <SelectItem value="4" className="text-foreground">Always Week 4</SelectItem>
-                </>
-              )}
+              {Array.from({ length: budgetSchedule.periodsInMonth }, (_, index) => {
+                const periodNumber = index + 1;
+                return (
+                  <SelectItem key={periodNumber} value={String(periodNumber)} className="text-foreground">
+                    {getPeriodAssignmentOptionLabel(
+                      periodNumber,
+                      budgetSchedule.frequency,
+                      budgetSchedule.periodsInMonth
+                    )}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground mt-1">
@@ -1207,98 +1330,52 @@ export function BillForm({
                 <p className="text-xs text-muted-foreground">
                   Set the percentage of the bill to pay in each period:
                 </p>
-                {budgetSchedule.periodsInMonth === 2 && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
+                <div className={`grid gap-2 ${budgetSchedule.periodsInMonth <= 2 ? 'grid-cols-2' : budgetSchedule.periodsInMonth <= 4 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'}`}>
+                  {splitAllocationsForSchedule.map((allocation) => (
+                    <div key={allocation.periodNumber}>
                       <Label className="text-xs text-muted-foreground mb-1 block">
-                        {budgetSchedule.frequency === 'semi-monthly' ? 'First Half (1st-14th)' : 'Period 1'}
+                        {getPeriodAssignmentOptionLabel(
+                          allocation.periodNumber,
+                          budgetSchedule.frequency,
+                          budgetSchedule.periodsInMonth
+                        ).replace('Always ', '')}
                       </Label>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <Input
                           type="number"
                           min="0"
                           max="100"
-                          value={formData.splitAllocations[0]?.percentage || 50}
+                          value={allocation.percentage}
                           onChange={(e) => {
-                            const period1 = parseInt(e.target.value) || 0;
-                            const period2 = 100 - period1;
-                            setFormData(prev => ({
+                            const value = Number(e.target.value);
+                            setFormData((prev) => ({
                               ...prev,
-                              splitAllocations: [
-                                { periodNumber: 1, percentage: period1 },
-                                { periodNumber: 2, percentage: period2 },
-                              ],
+                              splitAllocations: coerceSplitAllocations(
+                                (prev.splitAllocations as SplitAllocation[]).map((entry) =>
+                                  entry.periodNumber === allocation.periodNumber
+                                    ? { ...entry, percentage: Number.isFinite(value) ? value : 0 }
+                                    : entry
+                                ),
+                                budgetSchedule.periodsInMonth
+                              ),
                             }));
                           }}
-                          className="w-20 bg-background border-border text-right"
+                          className="w-16 bg-background border-border text-right text-sm"
                         />
-                        <span className="text-sm text-muted-foreground">%</span>
+                        <span className="text-xs text-muted-foreground">%</span>
                       </div>
                     </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground mb-1 block">
-                        {budgetSchedule.frequency === 'semi-monthly' ? 'Second Half (15th-end)' : 'Period 2'}
-                      </Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={formData.splitAllocations[1]?.percentage || 50}
-                          onChange={(e) => {
-                            const period2 = parseInt(e.target.value) || 0;
-                            const period1 = 100 - period2;
-                            setFormData(prev => ({
-                              ...prev,
-                              splitAllocations: [
-                                { periodNumber: 1, percentage: period1 },
-                                { periodNumber: 2, percentage: period2 },
-                              ],
-                            }));
-                          }}
-                          className="w-20 bg-background border-border text-right"
-                        />
-                        <span className="text-sm text-muted-foreground">%</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {budgetSchedule.periodsInMonth === 4 && (
-                  <div className="grid grid-cols-4 gap-2">
-                    {[1, 2, 3, 4].map(period => (
-                      <div key={period}>
-                        <Label className="text-xs text-muted-foreground mb-1 block">
-                          Week {period}
-                        </Label>
-                        <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={formData.splitAllocations.find((a: { periodNumber: number; percentage: number }) => a.periodNumber === period)?.percentage || 25}
-                            onChange={(e) => {
-                              const value = parseInt(e.target.value) || 0;
-                              setFormData(prev => ({
-                                ...prev,
-                                splitAllocations: [1, 2, 3, 4].map(p => ({
-                                  periodNumber: p,
-                                  percentage: p === period 
-                                    ? value 
-                                    : (prev.splitAllocations.find((a: { periodNumber: number; percentage: number }) => a.periodNumber === p)?.percentage || 25),
-                                })),
-                              }));
-                            }}
-                            className="w-14 bg-background border-border text-right text-sm"
-                          />
-                          <span className="text-xs text-muted-foreground">%</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  ))}
+                </div>
+                <p className={`text-xs ${Math.abs(splitAllocationTotal - 100) > 0.01 ? 'text-warning' : 'text-muted-foreground'}`}>
+                  Total allocation: {splitAllocationTotal.toFixed(2)}%
+                </p>
+                {errors.splitAllocations && (
+                  <p className="text-xs text-error">{errors.splitAllocations}</p>
                 )}
                 {formData.expectedAmount && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Preview: {formData.splitAllocations.map((a: { periodNumber: number; percentage: number }) => 
+                    Preview: {splitAllocationsForSchedule.map((a) => 
                       `Period ${a.periodNumber}: $${((parseFloat(String(formData.expectedAmount)) || 0) * a.percentage / 100).toFixed(2)}`
                     ).join(' | ')}
                   </p>

@@ -110,6 +110,17 @@ describe('lib/budgets/budget-schedule', () => {
       // Should start on Sunday Jan 12
       expect(period.startStr).toBe('2025-01-12');
     });
+
+    it('calculates dynamic periodsInMonth for five-week months', () => {
+      const period = getCurrentBudgetPeriod(
+        defaultSettings({ budgetCycleFrequency: 'weekly', budgetCycleStartDay: 1 }), // Monday
+        new Date(2025, 4, 29), // May 29, 2025
+      );
+
+      expect(period.startStr).toBe('2025-05-26');
+      expect(period.periodNumber).toBe(5);
+      expect(period.periodsInMonth).toBe(5);
+    });
   });
 
   describe('getCurrentBudgetPeriod - biweekly', () => {
@@ -127,6 +138,21 @@ describe('lib/budgets/budget-schedule', () => {
       );
       // Should still be in the first biweekly period starting Jan 3
       expect(period.startStr).toBe('2025-01-03');
+    });
+
+    it('calculates dynamic periodsInMonth for three-paycheck months', () => {
+      const period = getCurrentBudgetPeriod(
+        defaultSettings({
+          budgetCycleFrequency: 'biweekly',
+          budgetCycleStartDay: 5, // Friday
+          budgetCycleReferenceDate: '2025-01-03T00:00:00',
+        }),
+        new Date(2025, 2, 29), // March 29, 2025
+      );
+
+      expect(period.startStr).toBe('2025-03-28');
+      expect(period.periodNumber).toBe(3);
+      expect(period.periodsInMonth).toBe(3);
     });
   });
 

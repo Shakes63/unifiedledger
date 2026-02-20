@@ -493,6 +493,16 @@ export const billInstances = pgTable(
     userIdIdx: index('idx_bill_instances_user').on(table.userId),
     householdIdIdx: index('idx_bill_instances_household').on(table.householdId),
     userHouseholdIdx: index('idx_bill_instances_user_household').on(table.userId, table.householdId),
+    householdDueStatusIdx: index('idx_bill_instances_household_due_status').on(
+      table.householdId,
+      table.dueDate,
+      table.status
+    ),
+    userHouseholdDueDateIdx: index('idx_bill_instances_user_household_due').on(
+      table.userId,
+      table.householdId,
+      table.dueDate
+    ),
     paymentStatusIdx: index('idx_bill_instances_payment_status').on(table.paymentStatus),
   })
 );
@@ -553,6 +563,11 @@ export const billInstanceAllocations = pgTable(
     userIdIdx: index('idx_bill_allocations_user').on(table.userId),
     householdIdIdx: index('idx_bill_allocations_household').on(table.householdId),
     periodNumberIdx: index('idx_bill_allocations_period').on(table.periodNumber),
+    householdPeriodInstanceIdx: index('idx_bill_allocations_household_period_instance').on(
+      table.householdId,
+      table.periodNumber,
+      table.billInstanceId
+    ),
     instancePeriodUnique: uniqueIndex('idx_bill_allocations_unique').on(
       table.billInstanceId,
       table.periodNumber
