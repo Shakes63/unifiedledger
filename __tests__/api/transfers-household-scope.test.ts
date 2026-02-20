@@ -271,4 +271,26 @@ describe('Transfers API household scoping', () => {
       expect(whereStr).toContain('user');
     }
   });
+
+  it('POST /api/transfers returns 400 for invalid amount payloads', async () => {
+    const request = {
+      url: 'https://example.com/api/transfers',
+      headers: new Headers({ 'x-household-id': TEST_HOUSEHOLD_ID }),
+      json: async () => ({
+        fromAccountId: 'acct_1',
+        toAccountId: 'acct_2',
+        amount: 'not-a-number',
+        date: '2026-01-01',
+        householdId: TEST_HOUSEHOLD_ID,
+      }),
+    } as unknown as Request;
+
+    const response = await POST_TRANSFERS(request);
+    expect(response.status).toBe(400);
+
+    const json = await response.json();
+    expect(json.error).toContain('Amount and fees');
+    expect(db.select).not.toHaveBeenCalled();
+    expect(db.transaction).not.toHaveBeenCalled();
+  });
 });

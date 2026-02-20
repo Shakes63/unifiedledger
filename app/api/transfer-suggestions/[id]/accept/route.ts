@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { transferSuggestions, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { linkExistingTransactionsAsCanonicalTransfer } from '@/lib/transactions/transfer-service';
+import { handleRouteError } from '@/lib/api/route-helpers';
 
 /**
  * POST /api/transfer-suggestions/[id]/accept
@@ -124,13 +125,9 @@ export async function POST(
       transferId: linkResult.transferGroupId,
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    console.error('Error accepting transfer suggestion:', error);
-    return NextResponse.json(
-      { error: 'Failed to accept suggestion' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Failed to accept suggestion',
+      logLabel: 'Error accepting transfer suggestion:',
+    });
   }
 }

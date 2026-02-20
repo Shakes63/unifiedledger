@@ -133,7 +133,7 @@ export async function POST(request: Request) {
     } = body;
 
     // Validate required fields
-    if (!fromAccountId || !toAccountId || !amount || !date) {
+    if (!fromAccountId || !toAccountId || amount === undefined || amount === null || !date) {
       return Response.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -144,6 +144,32 @@ export async function POST(request: Request) {
     if (fromAccountId === toAccountId) {
       return Response.json(
         { error: 'Cannot transfer to the same account' },
+        { status: 400 }
+      );
+    }
+
+    let transferAmount: Decimal;
+    let transferFees: Decimal;
+    try {
+      transferAmount = new Decimal(amount);
+      transferFees = new Decimal(fees ?? 0);
+    } catch {
+      return Response.json(
+        { error: 'Amount and fees must be valid numbers' },
+        { status: 400 }
+      );
+    }
+
+    if (!transferAmount.isFinite() || transferAmount.lte(0)) {
+      return Response.json(
+        { error: 'Amount must be greater than 0' },
+        { status: 400 }
+      );
+    }
+
+    if (!transferFees.isFinite() || transferFees.lt(0)) {
+      return Response.json(
+        { error: 'Fees must be 0 or greater' },
         { status: 400 }
       );
     }
@@ -181,8 +207,6 @@ export async function POST(request: Request) {
       );
     }
 
-    const transferAmount = new Decimal(amount);
-    const transferFees = new Decimal(fees || 0);
     const transferAmountCents = amountToCents(transferAmount);
     const transferFeesCents = amountToCents(transferFees);
 

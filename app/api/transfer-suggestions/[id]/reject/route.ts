@@ -4,6 +4,7 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transferSuggestions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { handleRouteError } from '@/lib/api/route-helpers';
 
 /**
  * POST /api/transfer-suggestions/[id]/reject
@@ -69,13 +70,9 @@ export async function POST(
       message: 'Suggestion rejected successfully',
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    console.error('Error rejecting transfer suggestion:', error);
-    return NextResponse.json(
-      { error: 'Failed to reject suggestion' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Failed to reject suggestion',
+      logLabel: 'Error rejecting transfer suggestion:',
+    });
   }
 }

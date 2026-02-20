@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transferSuggestions, transactions, accounts } from '@/lib/db/schema';
+import { transferSuggestions, transactions } from '@/lib/db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
+import { handleRouteError } from '@/lib/api/route-helpers';
 
 /**
  * GET /api/transfer-suggestions
@@ -29,8 +30,10 @@ export async function GET(request: NextRequest) {
       ? (statusParam as ValidStatus)
       : 'pending';
 
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const limitParam = Number.parseInt(searchParams.get('limit') || '20', 10);
+    const offsetParam = Number.parseInt(searchParams.get('offset') || '0', 10);
+    const limit = Number.isFinite(limitParam) ? Math.min(Math.max(limitParam, 1), 100) : 20;
+    const offset = Number.isFinite(offsetParam) ? Math.max(offsetParam, 0) : 0;
 
     // Fetch suggestions with joined transaction and account details
     const suggestions = await db
@@ -67,23 +70,29 @@ export async function GET(request: NextRequest) {
       .from(transferSuggestions)
       .leftJoin(
         transactions,
-        eq(transferSuggestions.sourceTransactionId, transactions.id)
-      )
-      .leftJoin(
-        accounts,
-        eq(transactions.accountId, accounts.id)
+        and(
+          eq(transferSuggestions.sourceTransactionId, transactions.id),
+          eq(transactions.userId, userId),
+          eq(transactions.householdId, householdId)
+        )
       )
       .leftJoin(
         sql`transactions as st`,
-        sql`${transferSuggestions.suggestedTransactionId} = st.id`
+        sql`${transferSuggestions.suggestedTransactionId} = st.id
+            AND st.user_id = ${userId}
+            AND st.household_id = ${householdId}`
       )
       .leftJoin(
         sql`accounts as sa`,
-        sql`${transactions.accountId} = sa.id`
+        sql`${transactions.accountId} = sa.id
+            AND sa.user_id = ${userId}
+            AND sa.household_id = ${householdId}`
       )
       .leftJoin(
         sql`accounts as sga`,
-        sql`st.account_id = sga.id`
+        sql`st.account_id = sga.id
+            AND sga.user_id = ${userId}
+            AND sga.household_id = ${householdId}`
       )
       .where(
         and(
@@ -117,13 +126,9 @@ export async function GET(request: NextRequest) {
       offset,
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    console.error('Error fetching transfer suggestions:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch suggestions' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Failed to fetch suggestions',
+      logLabel: 'Error fetching transfer suggestions:',
+    });
   }
 }
