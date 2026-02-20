@@ -83,6 +83,9 @@ logs/*-audit.json
 .cursorrules
 
 # Agent/AI files
+refactor.md
+# accidental scratch file named "-"
+/-
 
 # Status/tracking files (kept local)
 CHARTS_AND_REPORTS_STATUS.md
