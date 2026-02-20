@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TransactionLinkSelector } from './transaction-link-selector';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { getTodayLocalDateString } from '@/lib/utils/local-date';
 import { toast } from 'sonner';
 import {
   Select,
@@ -225,7 +226,7 @@ export function BillInstanceActionsModal({
       };
 
       if (action === 'paid') {
-        updateData.paidDate = new Date().toISOString().split('T')[0];
+        updateData.paidDate = getTodayLocalDateString();
         updateData.actualAmount = actualAmount ? parseFloat(actualAmount) : instance.expectedAmount;
         updateData.isManualOverride = true;
       } else if (action === 'pending') {

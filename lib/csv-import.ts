@@ -1,6 +1,7 @@
 // Note: CSV parsing done by PapaParse in the component, not this module
 // nanoid available for future ID generation needs
 import Decimal from 'decimal.js';
+import { toLocalDateString } from '@/lib/utils/local-date';
 
 /**
  * Column mapping configuration for CSV import
@@ -225,48 +226,35 @@ export const autoDetectMappings = (headers: string[], isCreditCard: boolean = fa
 export const parseDate = (dateStr: string, dateFormat: string): string => {
   if (!dateStr) throw new Error('Date is required');
 
-  // Try to parse based on format
-  const dateObj = new Date(dateStr);
+  const normalize = (year: string, month: string, day: string): string =>
+    `${year.padStart(4, '0')}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
-  // If date is invalid, try parsing with format
-  if (isNaN(dateObj.getTime())) {
-    // Common date formats
-    const formats: Record<string, (str: string) => Date | null> = {
-      'MM/DD/YYYY': (str) => {
-        const [month, day, year] = str.split('/');
-        if (month && day && year) {
-          return new Date(`${year}-${month}-${day}`);
-        }
-        return null;
-      },
-      'DD/MM/YYYY': (str) => {
-        const [day, month, year] = str.split('/');
-        if (month && day && year) {
-          return new Date(`${year}-${month}-${day}`);
-        }
-        return null;
-      },
-      'YYYY-MM-DD': (str) => new Date(str),
-      'MM-DD-YYYY': (str) => {
-        const [month, day, year] = str.split('-');
-        if (month && day && year) {
-          return new Date(`${year}-${month}-${day}`);
-        }
-        return null;
-      },
-    };
-
-    const parser = formats[dateFormat];
-    if (parser) {
-      const parsed = parser(dateStr);
-      if (parsed && !isNaN(parsed.getTime())) {
-        return parsed.toISOString().split('T')[0];
-      }
-    }
+  if (dateFormat === 'MM/DD/YYYY') {
+    const [month, day, year] = dateStr.split('/');
+    if (month && day && year) return normalize(year, month, day);
   }
 
-  // Return ISO format
-  return dateObj.toISOString().split('T')[0];
+  if (dateFormat === 'DD/MM/YYYY') {
+    const [day, month, year] = dateStr.split('/');
+    if (month && day && year) return normalize(year, month, day);
+  }
+
+  if (dateFormat === 'MM-DD-YYYY') {
+    const [month, day, year] = dateStr.split('-');
+    if (month && day && year) return normalize(year, month, day);
+  }
+
+  if (dateFormat === 'YYYY-MM-DD') {
+    const [year, month, day] = dateStr.split('-');
+    if (year && month && day) return normalize(year, month, day);
+  }
+
+  // Fallback for irregular formats: parse with Date and normalize to local YYYY-MM-DD.
+  const dateObj = new Date(dateStr);
+  if (isNaN(dateObj.getTime())) {
+    throw new Error(`Invalid date: ${dateStr}`);
+  }
+  return toLocalDateString(dateObj);
 };
 
 /**

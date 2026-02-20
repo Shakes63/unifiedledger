@@ -3,7 +3,6 @@ import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/house
 import { db } from '@/lib/db';
 import {
   transactionTemplates,
-  transactions,
   accounts,
   budgetCategories,
   merchants,
@@ -20,6 +19,14 @@ import type { TransactionMutations } from '@/lib/rules/types';
 import { handleTransferConversion } from '@/lib/rules/transfer-action-handler';
 import { handleSplitCreation } from '@/lib/rules/split-action-handler';
 import { handleAccountChange } from '@/lib/rules/account-action-handler';
+import { getTodayLocalDateString } from '@/lib/utils/local-date';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
+import {
+  amountToCents,
+  getAccountBalanceCents,
+  insertTransactionMovement,
+  updateScopedAccountBalance,
+} from '@/lib/transactions/money-movement-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,7 +98,7 @@ export async function POST(request: Request) {
     }
 
     // Use provided values or fall back to template values
-    const transactionDate = date || new Date().toISOString().split('T')[0];
+    const transactionDate = date || getTodayLocalDateString();
     const transactionAmount = amount !== undefined ? amount : tmpl.amount;
     const transactionDescription = description || tmpl.description || tmpl.name;
     const categoryId = tmpl.categoryId;
@@ -99,6 +106,7 @@ export async function POST(request: Request) {
     // Create transaction
     const transactionId = nanoid();
     const decimalAmount = new Decimal(transactionAmount);
+    const amountCents = amountToCents(decimalAmount);
 
     // Apply categorization rules if no category in template
     let appliedCategoryId = categoryId;
@@ -196,41 +204,42 @@ export async function POST(request: Request) {
       }
     }
 
-    // Insert transaction (with householdId)
-    await db.insert(transactions).values({
-      id: transactionId,
-      userId,
-      householdId,
-      accountId: tmpl.accountId,
-      categoryId: appliedCategoryId || null,
-      date: transactionDate,
-      amount: decimalAmount.toNumber(),
-      description: finalDescription,
-      merchantId: finalMerchantId,
-      notes: tmpl.notes || null,
-      type: tmpl.type,
-      isPending: false,
-      isTaxDeductible: finalIsTaxDeductible,
-      isSalesTaxable: finalIsSalesTaxable,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
+    await runInDatabaseTransaction(async (tx) => {
+      const nowIso = new Date().toISOString();
+      await insertTransactionMovement(tx, {
+        id: transactionId,
+        userId,
+        householdId,
+        accountId: tmpl.accountId,
+        categoryId: appliedCategoryId || null,
+        date: transactionDate,
+        amountCents,
+        description: finalDescription,
+        merchantId: finalMerchantId,
+        notes: tmpl.notes || null,
+        type: tmpl.type,
+        isPending: false,
+        isTaxDeductible: finalIsTaxDeductible,
+        isSalesTaxable: finalIsSalesTaxable,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      });
 
-    // Update account balance and usage
-    const newBalance = new Decimal(account[0].currentBalance || 0);
-    const updatedBalance =
-      tmpl.type === 'expense' || tmpl.type === 'transfer_out'
-        ? newBalance.minus(decimalAmount)
-        : newBalance.plus(decimalAmount);
+      const currentBalanceCents = getAccountBalanceCents(account[0]);
+      const updatedBalanceCents =
+        tmpl.type === 'expense' || tmpl.type === 'transfer_out'
+          ? currentBalanceCents - amountCents
+          : currentBalanceCents + amountCents;
 
-    await db
-      .update(accounts)
-      .set({
-        currentBalance: updatedBalance.toNumber(),
-        lastUsedAt: new Date().toISOString(),
+      await updateScopedAccountBalance(tx, {
+        accountId: tmpl.accountId,
+        userId,
+        householdId,
+        balanceCents: updatedBalanceCents,
+        lastUsedAt: nowIso,
         usageCount: (account[0].usageCount || 0) + 1,
-      })
-      .where(eq(accounts.id, tmpl.accountId));
+      });
+    });
 
     // Update template usage
     await db

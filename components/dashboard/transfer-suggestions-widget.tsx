@@ -1,30 +1,26 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRightLeft, ChevronRight } from 'lucide-react';
 import { TransferSuggestionsModal } from '@/components/transactions/transfer-suggestions-modal';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 export function TransferSuggestionsWidget() {
+  const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [count, setCount] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchCount();
-  }, []);
-
-  // Refresh count when modal closes
-  useEffect(() => {
-    if (!modalOpen) {
-      fetchCount();
-    }
-  }, [modalOpen]);
-
-  const fetchCount = async () => {
+  const fetchCount = useCallback(async () => {
     try {
-      const response = await fetch('/api/transfer-suggestions?status=pending&limit=1', { credentials: 'include' });
+      if (!selectedHouseholdId) {
+        setCount(0);
+        return;
+      }
+
+      const response = await fetchWithHousehold('/api/transfer-suggestions?status=pending&limit=1');
       if (!response.ok) throw new Error('Failed to fetch count');
 
       const data = await response.json();
@@ -35,7 +31,23 @@ export function TransferSuggestionsWidget() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchWithHousehold, selectedHouseholdId]);
+
+  useEffect(() => {
+    if (!selectedHouseholdId) {
+      setLoading(false);
+      setCount(0);
+      return;
+    }
+    fetchCount();
+  }, [selectedHouseholdId, fetchCount]);
+
+  // Refresh count when modal closes
+  useEffect(() => {
+    if (!modalOpen) {
+      fetchCount();
+    }
+  }, [modalOpen, fetchCount]);
 
   // Don't show widget if no suggestions
   if (!loading && count === 0) return null;

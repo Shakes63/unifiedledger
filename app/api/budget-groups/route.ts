@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { budgetCategories, transactions } from '@/lib/db/schema';
+import { getLocalMonthString } from '@/lib/utils/local-date';
 import { eq, and, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
@@ -43,7 +44,7 @@ export async function GET(request: Request) {
     }
 
     const url = new URL(request.url);
-    const month = url.searchParams.get('month') || new Date().toISOString().slice(0, 7);
+    const month = url.searchParams.get('month') || getLocalMonthString(new Date());
     const startDate = `${month}-01`;
     const endDate = `${month}-31`;
 
@@ -79,7 +80,7 @@ export async function GET(request: Request) {
     const spending = await db
       .select({
         categoryId: transactions.categoryId,
-        total: sql<number>`SUM(CASE WHEN ${transactions.type} IN ('expense', 'transfer_out') THEN ${transactions.amount} ELSE 0 END)`,
+        totalCents: sql<number>`SUM(CASE WHEN ${transactions.type} IN ('expense', 'transfer_out') THEN ${transactions.amountCents} ELSE 0 END)`,
       })
       .from(transactions)
       .where(
@@ -91,9 +92,10 @@ export async function GET(request: Request) {
       )
       .groupBy(transactions.categoryId);
 
-    const spendingMap = new Map(
-      spending.map(s => [s.categoryId, s.total || 0])
-    );
+    const spendingMap = new Map(spending.map((s) => [
+      s.categoryId,
+      new Decimal(s.totalCents || 0).div(100).toNumber(),
+    ]));
 
     // Build groups with children
     const budgetGroups: BudgetGroupWithChildren[] = groups.map(group => {

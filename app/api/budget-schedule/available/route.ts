@@ -9,9 +9,10 @@ import {
   billInstances,
   budgetCategories,
 } from '@/lib/db/schema';
-import { eq, and, gte, lte, inArray, sum } from 'drizzle-orm';
+import { eq, and, gte, lte, inArray, sum, sql } from 'drizzle-orm';
 import { isMemberOfHousehold } from '@/lib/household/permissions';
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 import {
   getCurrentBudgetPeriod,
   getDaysUntilNextPeriod,
@@ -109,6 +110,7 @@ export async function GET(request: NextRequest) {
     const cashAccounts = await db
       .select({
         currentBalance: accounts.currentBalance,
+        currentBalanceCents: accounts.currentBalanceCents,
       })
       .from(accounts)
       .where(
@@ -120,12 +122,13 @@ export async function GET(request: NextRequest) {
       );
 
     const cashBalance = cashAccounts.reduce((sum, acc) => {
-      return new Decimal(sum).plus(new Decimal(acc.currentBalance || 0)).toNumber();
+      const cents = acc.currentBalanceCents ?? toMoneyCents(acc.currentBalance) ?? 0;
+      return new Decimal(sum).plus(new Decimal(cents).div(100)).toNumber();
     }, 0);
 
     // 2. Calculate expenses paid this period
     const expenseResult = await db
-      .select({ total: sum(transactions.amount) })
+      .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
       .from(transactions)
       .where(
         and(
@@ -136,16 +139,14 @@ export async function GET(request: NextRequest) {
         )
       );
 
-    const paidThisPeriod = expenseResult[0]?.total
-      ? new Decimal(expenseResult[0].total.toString()).toNumber()
-      : 0;
+    const paidThisPeriod = new Decimal(expenseResult[0]?.totalCents ?? 0).div(100).toNumber();
 
     // Get expense transactions for breakdown
     const paidTransactions = await db
       .select({
         id: transactions.id,
         description: transactions.description,
-        amount: transactions.amount,
+        amountCents: transactions.amountCents,
         date: transactions.date,
         categoryId: transactions.categoryId,
       })
@@ -285,7 +286,7 @@ export async function GET(request: NextRequest) {
         paid: paidTransactions.map((t) => ({
           id: t.id,
           description: t.description,
-          amount: t.amount || 0,
+          amount: new Decimal(t.amountCents ?? 0).div(100).toNumber(),
           date: t.date,
           categoryName: t.categoryId ? categoryMap.get(t.categoryId) : undefined,
         })),
@@ -323,4 +324,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

@@ -97,6 +97,7 @@ export default function InvitationPage() {
         localStorage.setItem('unified-ledger:invitation-token', token);
         if (invitation?.householdId) {
           localStorage.setItem('unified-ledger:invitation-household-id', invitation.householdId);
+          localStorage.setItem('unified-ledger:selected-household', invitation.householdId);
         }
       }
       // Redirect to sign in, then come back
@@ -148,12 +149,21 @@ export default function InvitationPage() {
         // Store invitation context for onboarding
         if (typeof window !== 'undefined') {
           localStorage.setItem('unified-ledger:invitation-token', token);
-          localStorage.setItem('unified-ledger:invitation-household-id', data.householdId);
+          if (data.householdId) {
+            localStorage.setItem('unified-ledger:invitation-household-id', data.householdId);
+            localStorage.setItem('unified-ledger:selected-household', data.householdId);
+          }
         }
         // Redirect to onboarding with invitation flag
-        router.push('/dashboard?onboarding=true&invited=true');
+        const householdQuery = data.householdId
+          ? `&householdId=${encodeURIComponent(data.householdId)}`
+          : '';
+        router.push(`/dashboard?invited=true${householdQuery}`);
       } else {
-        // Existing user - just redirect to dashboard (household will be switched automatically)
+        // Existing user - switch to invited household and redirect
+        if (typeof window !== 'undefined' && data.householdId) {
+          localStorage.setItem('unified-ledger:selected-household', data.householdId);
+        }
         router.push('/dashboard');
       }
     } catch (err) {

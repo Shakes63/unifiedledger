@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtSettings, debtPayments } from '@/lib/db/schema';
+import { getMonthRangeForDate } from '@/lib/utils/local-date';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { calculatePayoffStrategy, type DebtInput, type PayoffMethod, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
 import Decimal from 'decimal.js';
@@ -88,12 +89,7 @@ export async function GET(request: Request) {
       const monthLabel = monthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 
       // Get start and end of month
-      const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1)
-        .toISOString()
-        .split('T')[0];
-      const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0)
-        .toISOString()
-        .split('T')[0];
+      const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForDate(monthDate);
 
       // Fetch actual payments for this month (filtered by household)
       const payments = await db

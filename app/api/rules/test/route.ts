@@ -1,5 +1,6 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
+import { getTodayLocalDateString } from '@/lib/utils/local-date';
 import { testRule, testRuleOnMultiple } from '@/lib/rules/rule-matcher';
 import { TransactionData } from '@/lib/rules/condition-evaluator';
 export const dynamic = 'force-dynamic';
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
       const record = asRecord(tx);
       const description = typeof record.description === 'string' ? record.description : '';
       const accountName = typeof record.accountName === 'string' ? record.accountName : '';
-      const date = typeof record.date === 'string' ? record.date : new Date().toISOString().split('T')[0];
+      const date = typeof record.date === 'string' ? record.date : getTodayLocalDateString();
       const notes = typeof record.notes === 'string' ? record.notes : undefined;
 
       const rawAmount = record.amount;

@@ -57,7 +57,7 @@ export async function GET(request: Request) {
         accountId: transactions.accountId,
         categoryId: transactions.categoryId,
         date: transactions.date,
-        amount: transactions.amount,
+        amountCents: transactions.amountCents,
         description: transactions.description,
         notes: transactions.notes,
         type: transactions.type,
@@ -69,29 +69,33 @@ export async function GET(request: Request) {
       .orderBy(desc(transactions.date))
       .limit(limit)
       .offset(offset);
+    const normalizedTransactions = userTransactions.map((transaction) => ({
+      ...transaction,
+      amount: (transaction.amountCents ?? 0) / 100,
+    }));
 
     // Respect user's transfer view preference when no account filter is applied
     if (!accountId) {
       const combinedTransferView = await getCombinedTransferViewPreference(userId, householdId);
       
       // Debug logging
-      const transferOutCount = userTransactions.filter(tx => tx.type === 'transfer_out').length;
-      const transferInCount = userTransactions.filter(tx => tx.type === 'transfer_in').length;
-      console.log('[Transfer View History] Preference:', combinedTransferView, 'Total transactions:', userTransactions.length, 'transfer_out:', transferOutCount, 'transfer_in:', transferInCount);
+      const transferOutCount = normalizedTransactions.filter(tx => tx.type === 'transfer_out').length;
+      const transferInCount = normalizedTransactions.filter(tx => tx.type === 'transfer_in').length;
+      console.log('[Transfer View History] Preference:', combinedTransferView, 'Total transactions:', normalizedTransactions.length, 'transfer_out:', transferOutCount, 'transfer_in:', transferInCount);
       
       if (combinedTransferView) {
         // Filter out transfer_in transactions for combined view
-        const filteredTransactions = userTransactions.filter(
+        const filteredTransactions = normalizedTransactions.filter(
           (tx) => tx.type !== 'transfer_in'
         );
         console.log('[Transfer View History] Combined: Filtered to', filteredTransactions.length, 'transactions');
         return Response.json(filteredTransactions);
       }
       
-      console.log('[Transfer View History] Separate: Returning all', userTransactions.length, 'transactions (both transfer_out and transfer_in)');
+      console.log('[Transfer View History] Separate: Returning all', normalizedTransactions.length, 'transactions (both transfer_out and transfer_in)');
     }
 
-    return Response.json(userTransactions);
+    return Response.json(normalizedTransactions);
     } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });

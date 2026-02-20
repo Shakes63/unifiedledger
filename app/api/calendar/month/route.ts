@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { transactions, billInstances, bills, savingsGoals, debts, debtPayoffMilestones, accounts, billMilestones } from '@/lib/db/schema';
 import { eq, and, gte, lte, lt, isNotNull, inArray } from 'drizzle-orm';
 import { format, subDays, addMonths } from 'date-fns';
+import { toLocalDateString } from '@/lib/utils/local-date';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
 
@@ -416,7 +418,7 @@ export async function GET(request: Request) {
     for (const { milestone, debt } of monthMilestones) {
       if (!milestone.achievedAt) continue;
       
-      const dateKey = milestone.achievedAt.split('T')[0];
+      const dateKey = toLocalDateString(new Date(milestone.achievedAt));
 
       if (!daySummaries[dateKey]) {
         daySummaries[dateKey] = createEmptyDaySummary();
@@ -481,7 +483,8 @@ export async function GET(request: Request) {
 
     // Add credit accounts
     for (const acc of creditAccounts) {
-      const balance = Math.abs(acc.currentBalance || 0);
+      const balance =
+        Math.abs(acc.currentBalanceCents ?? toMoneyCents(acc.currentBalance) ?? 0) / 100;
       if (balance <= 0) continue;
 
       const monthlyPayment = acc.budgetedMonthlyPayment || acc.minimumPaymentAmount || 0;
@@ -595,7 +598,7 @@ export async function GET(request: Request) {
     for (const milestone of unifiedMilestones) {
       if (!milestone.achievedAt) continue;
       
-      const dateKey = milestone.achievedAt.split('T')[0];
+      const dateKey = toLocalDateString(new Date(milestone.achievedAt));
 
       if (!daySummaries[dateKey]) {
         daySummaries[dateKey] = createEmptyDaySummary();

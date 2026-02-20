@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { DELETE as DELETE_TRANSFER } from '@/app/api/transfers/[id]/route';
+import { DELETE as DELETE_TRANSFER, PUT as PUT_TRANSFER } from '@/app/api/transfers/[id]/route';
 
 vi.mock('@/lib/auth-helpers', () => ({
   requireAuth: vi.fn(),
@@ -14,6 +14,7 @@ vi.mock('@/lib/db', () => ({
   db: {
     select: vi.fn(),
     transaction: vi.fn(),
+    update: vi.fn(),
   },
 }));
 
@@ -24,7 +25,7 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { accounts, transactions, transfers } from '@/lib/db/schema';
 
-describe('DELETE /api/transfers/[id] household scoping', () => {
+describe('/api/transfers/[id] household scoping', () => {
   const TEST_USER_ID = 'user_1';
   const TEST_HOUSEHOLD_ID = 'hh_1';
 
@@ -53,18 +54,32 @@ describe('DELETE /api/transfers/[id] household scoping', () => {
                   {
                     id: 'tr_1',
                     userId: TEST_USER_ID,
+                    householdId: TEST_HOUSEHOLD_ID,
                     fromAccountId: 'acct_from',
                     toAccountId: 'acct_to',
                     amount: 10,
+                    amountCents: 1000,
                     fees: 0,
+                    feesCents: 0,
                     fromTransactionId: 'tx_from',
                     toTransactionId: 'tx_to',
                   },
                 ];
               }
 
-              // Account existence validation is not done outside the transaction for DELETE,
-              // so we can return empty here.
+              if (table === accounts) {
+                return [
+                  {
+                    id: 'acct_from',
+                    userId: TEST_USER_ID,
+                      householdId: TEST_HOUSEHOLD_ID,
+                      currentBalance: 100,
+                      currentBalanceCents: 10000,
+                      name: 'Checking',
+                    },
+                  ];
+              }
+
               return [];
             },
           };
@@ -95,6 +110,7 @@ describe('DELETE /api/transfers/[id] household scoping', () => {
                       userId: TEST_USER_ID,
                       householdId: TEST_HOUSEHOLD_ID,
                       currentBalance: 100,
+                      currentBalanceCents: 10000,
                     },
                   ];
                 }
@@ -126,10 +142,23 @@ describe('DELETE /api/transfers/[id] household scoping', () => {
       }
     );
 
+    const updateWhereCalls: Array<{ table: unknown; whereArg: unknown }> = [];
+    (db.update as unknown as {
+      mockImplementation: (fn: (table: unknown) => unknown) => void;
+    }).mockImplementation((table: unknown) => ({
+      set: () => ({
+        where: async (whereArg: unknown) => {
+          updateWhereCalls.push({ table, whereArg });
+          return undefined;
+        },
+      }),
+    }));
+
     (db as unknown as { __selectCalls?: typeof selectCalls }).__selectCalls = selectCalls;
     (db as unknown as { __txSelectCalls?: typeof txSelectCalls }).__txSelectCalls = txSelectCalls;
     (db as unknown as { __txDeleteCalls?: typeof txDeleteCalls }).__txDeleteCalls = txDeleteCalls;
     (db as unknown as { __txUpdateCalls?: typeof txUpdateCalls }).__txUpdateCalls = txUpdateCalls;
+    (db as unknown as { __updateWhereCalls?: typeof updateWhereCalls }).__updateWhereCalls = updateWhereCalls;
   });
 
   it('scopes transaction deletes and account balance operations by household', async () => {
@@ -152,7 +181,7 @@ describe('DELETE /api/transfers/[id] household scoping', () => {
     const transferDeleteWhere = util
       .inspect(transferDelete!.whereArg, { depth: 8, colors: false })
       .toLowerCase();
-    // transfers has no householdId, but must be scoped by user
+    expect(transferDeleteWhere).toContain('household');
     expect(transferDeleteWhere).toContain('user');
 
     const txnDeletes = txDeleteCalls.filter((c) => c.table === transactions);
@@ -187,5 +216,57 @@ describe('DELETE /api/transfers/[id] household scoping', () => {
       expect(whereStr).toContain('household');
       expect(whereStr).toContain('user');
     }
+  });
+
+  it('scopes transfer update operations by household', async () => {
+    const request = {
+      url: 'https://example.com/api/transfers/tr_1',
+      headers: new Headers({ 'x-household-id': TEST_HOUSEHOLD_ID }),
+      json: async () => ({ description: 'Updated transfer' }),
+    } as unknown as Request;
+
+    const response = await PUT_TRANSFER(request, { params: Promise.resolve({ id: 'tr_1' }) });
+    expect(response.status).toBe(200);
+
+    const selectCalls = (db as unknown as {
+      __selectCalls: Array<{ table: unknown; whereArg: unknown }>;
+    }).__selectCalls;
+
+    const transferSelect = selectCalls.find((c) => c.table === transfers);
+    expect(transferSelect).toBeTruthy();
+
+    const selectWhere = util.inspect(transferSelect!.whereArg, { depth: 8, colors: false }).toLowerCase();
+    expect(selectWhere).toContain('household');
+    expect(selectWhere).toContain('user');
+
+    const updateWhereCalls = (db as unknown as {
+      __updateWhereCalls: Array<{ table: unknown; whereArg: unknown }>;
+    }).__updateWhereCalls;
+
+    const transferUpdate = updateWhereCalls.find((c) => c.table === transfers);
+    expect(transferUpdate).toBeTruthy();
+
+    const updateWhere = util.inspect(transferUpdate!.whereArg, { depth: 8, colors: false }).toLowerCase();
+    expect(updateWhere).toContain('household');
+    expect(updateWhere).toContain('user');
+  });
+
+  it('DELETE /api/transfers/[id] does not delete transfer outside household scope', async () => {
+    (db.select as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue({
+      from: () => ({
+        where: () => ({
+          limit: async () => [],
+        }),
+      }),
+    });
+
+    const request = {
+      url: 'https://example.com/api/transfers/tr_other_household',
+      headers: new Headers({ 'x-household-id': TEST_HOUSEHOLD_ID }),
+    } as unknown as Request;
+
+    const response = await DELETE_TRANSFER(request, { params: Promise.resolve({ id: 'tr_other_household' }) });
+    expect(response.status).toBe(404);
+    expect(db.transaction).not.toHaveBeenCalled();
   });
 });

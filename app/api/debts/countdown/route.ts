@@ -5,6 +5,7 @@ import { accounts, bills, householdSettings, billPayments } from '@/lib/db/schem
 import { eq, and, inArray } from 'drizzle-orm';
 import { calculatePayoffStrategy, type DebtInput, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,16 +86,26 @@ export async function GET(request: Request) {
 
     // Add credit accounts as debts
     for (const acc of creditAccounts) {
-      const balance = Math.abs(acc.currentBalance || 0);
+      const balance = new Decimal(
+        Math.abs(acc.currentBalanceCents ?? toMoneyCents(acc.currentBalance) ?? 0)
+      )
+        .div(100)
+        .toNumber();
       // Skip accounts with no balance
       if (balance <= 0) continue;
+
+      const originalBalance = new Decimal(
+        acc.creditLimitCents ?? toMoneyCents(acc.creditLimit) ?? toMoneyCents(balance) ?? 0
+      )
+        .div(100)
+        .toNumber();
       
       unifiedDebts.push({
         id: acc.id,
         name: acc.name,
         source: 'account',
         remainingBalance: balance,
-        originalBalance: acc.creditLimit || balance, // Use credit limit as "original" for credit cards
+        originalBalance, // Use credit limit as "original" for credit cards
         minimumPayment: acc.minimumPaymentAmount || 0,
         additionalMonthlyPayment: acc.additionalMonthlyPayment || 0,
         interestRate: acc.interestRate || 0,

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { toLocalDateString } from '@/lib/utils/local-date';
 
 interface CategoryBreakdown {
   categoryId: string;
@@ -43,7 +44,7 @@ export function SpendingSummary({ period = 'monthly' }: SpendingSummaryProps) {
   const fetchSummary = useCallback(async () => {
     try {
       setLoading(true);
-      const dateStr = currentDate.toISOString().split('T')[0];
+      const dateStr = toLocalDateString(currentDate);
       const response = await fetch(`/api/spending-summary?period=${displayPeriod}&date=${dateStr}`, { credentials: 'include' });
 
       if (!response.ok) throw new Error('Failed to fetch summary');

@@ -9,6 +9,7 @@
 
 import { db } from '@/lib/db';
 import { notifications, userHouseholdPreferences, creditLimitHistory } from '@/lib/db/schema';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
@@ -108,7 +109,8 @@ function getNotificationMessage(
 export async function recordCreditLimitChange(
   input: CreditLimitChangeInput
 ): Promise<CreditLimitChangeResult> {
-  const now = new Date().toISOString();
+  const now = new Date();
+  const nowString = now.toISOString();
 
   try {
     // Calculate utilization before and after
@@ -124,11 +126,11 @@ export async function recordCreditLimitChange(
       householdId: input.householdId,
       previousLimit: input.oldLimit,
       newLimit: input.newLimit,
-      changeDate: now.split('T')[0],
+      changeDate: toLocalDateString(now),
       changeReason: input.changeSource,
       utilizationBefore,
       utilizationAfter,
-      createdAt: now,
+      createdAt: nowString,
     });
 
     // Check if notifications are enabled for this user/household
@@ -200,7 +202,7 @@ export async function recordCreditLimitChange(
         notificationType: 'credit_limit_change',
       }),
       isRead: false,
-      createdAt: now,
+      createdAt: nowString,
     });
 
     return {
@@ -330,4 +332,3 @@ export async function getCreditLimitChangeSummary(
     };
   }
 }
-

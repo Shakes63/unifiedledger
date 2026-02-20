@@ -3,6 +3,7 @@ import { billInstances, bills } from '@/lib/db/schema';
 import { eq, and, lte, gte } from 'drizzle-orm';
 import { addDays, parseISO, differenceInDays, startOfDay } from 'date-fns';
 import { createNotification } from '@/lib/notifications/notification-service';
+import { getTodayLocalDateString, toLocalDateString } from '@/lib/utils/local-date';
 
 export async function checkAndCreateBillReminders() {
   try {
@@ -165,8 +166,8 @@ export async function getUpcomingBillsForUser(
   try {
     const today = new Date();
     const futureDate = addDays(today, daysAhead);
-    const todayISO = today.toISOString().split('T')[0];
-    const futureISO = futureDate.toISOString().split('T')[0];
+    const todayISO = toLocalDateString(today);
+    const futureISO = toLocalDateString(futureDate);
 
     return await db
       .select({
@@ -194,7 +195,7 @@ export async function getUpcomingBillsForUser(
  */
 export async function getOverdueBillsForUser(userId: string) {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayLocalDateString();
 
     return await db
       .select({

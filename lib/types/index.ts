@@ -102,6 +102,8 @@ export interface Transaction {
   notes?: string | null;
   type: TransactionType;
   transferId?: string | null;
+  transferSourceAccountId?: string | null;
+  transferDestinationAccountId?: string | null;
   isPending: boolean;
   isRecurring: boolean;
   recurringRule?: string | null;
@@ -952,4 +954,3 @@ export interface BatchSplitResponse {
   /** Final state of all splits for the transaction */
   splits: TransactionSplit[];
 }
-

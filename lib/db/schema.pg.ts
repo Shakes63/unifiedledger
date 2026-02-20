@@ -1,4 +1,4 @@
-import { pgTable, text, integer, doublePrecision, boolean, uniqueIndex, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, integer, bigint, doublePrecision, boolean, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
 // IMPORTANT:
@@ -24,8 +24,11 @@ export const accounts = pgTable(
     bankName: text('bank_name').notNull(),
     accountNumberLast4: text('account_number_last4'),
     currentBalance: doublePrecision('current_balance').default(0),
+    currentBalanceCents: bigint('current_balance_cents', { mode: 'number' }).notNull().default(0),
     availableBalance: doublePrecision('available_balance'),
+    availableBalanceCents: bigint('available_balance_cents', { mode: 'number' }),
     creditLimit: doublePrecision('credit_limit'),
+    creditLimitCents: bigint('credit_limit_cents', { mode: 'number' }),
     isActive: boolean('is_active').default(true),
     isBusinessAccount: boolean('is_business_account').default(false),
     enableSalesTax: boolean('enable_sales_tax').default(false),
@@ -75,6 +78,7 @@ export const accounts = pgTable(
     userHouseholdIdx: index('idx_accounts_user_household').on(table.userId, table.householdId),
     userUsageIdx: index('idx_accounts_user_usage').on(table.userId, table.usageCount),
     userActiveIdx: index('idx_accounts_user_active').on(table.userId, table.isActive),
+    currentBalanceCentsIdx: index('idx_accounts_current_balance_cents').on(table.currentBalanceCents),
     interestRateIdx: index('idx_accounts_interest_rate').on(table.interestRate),
     includeInStrategyIdx: index('idx_accounts_include_in_strategy').on(table.includeInPayoffStrategy),
   })
@@ -256,12 +260,17 @@ export const transactions = pgTable(
     savingsGoalId: text('savings_goal_id'), // Link to savings goal for contributions (Phase 1.5)
     date: text('date').notNull(),
     amount: doublePrecision('amount').notNull(),
+    amountCents: bigint('amount_cents', { mode: 'number' }).notNull().default(0),
     description: text('description').notNull(),
     notes: text('notes'),
     type: text('type', {
       enum: ['income', 'expense', 'transfer_in', 'transfer_out'],
     }).default('expense'),
     transferId: text('transfer_id'),
+    transferGroupId: text('transfer_group_id'),
+    pairedTransactionId: text('paired_transaction_id'),
+    transferSourceAccountId: text('transfer_source_account_id'),
+    transferDestinationAccountId: text('transfer_destination_account_id'),
     isPending: boolean('is_pending').default(false),
     isRecurring: boolean('is_recurring').default(false),
     recurringRule: text('recurring_rule'),
@@ -298,6 +307,11 @@ export const transactions = pgTable(
     dateIdx: index('idx_transactions_date').on(table.date),
     categoryIdIdx: index('idx_transactions_category').on(table.categoryId),
     merchantIdIdx: index('idx_transactions_merchant').on(table.merchantId),
+    transferSourceAccountIdIdx: index('idx_transactions_transfer_source_account').on(table.transferSourceAccountId),
+    transferDestinationAccountIdIdx: index('idx_transactions_transfer_destination_account').on(table.transferDestinationAccountId),
+    transferGroupIdIdx: index('idx_transactions_transfer_group').on(table.transferGroupId),
+    pairedTransactionIdIdx: index('idx_transactions_paired_transaction').on(table.pairedTransactionId),
+    amountCentsIdx: index('idx_transactions_amount_cents').on(table.amountCents),
     typeIdx: index('idx_transactions_type').on(table.type),
     amountIdx: index('idx_transactions_amount').on(table.amount),
     userDateIdx: index('idx_transactions_user_date').on(table.userId, table.date),
@@ -327,6 +341,7 @@ export const transactionSplits = pgTable(
     transactionId: text('transaction_id').notNull(),
     categoryId: text('category_id').notNull(),
     amount: doublePrecision('amount').notNull(),
+    amountCents: bigint('amount_cents', { mode: 'number' }).notNull().default(0),
     description: text('description'),
     percentage: doublePrecision('percentage'),
     isPercentage: boolean('is_percentage').default(false),
@@ -342,6 +357,7 @@ export const transactionSplits = pgTable(
     userHouseholdIdx: index('idx_transaction_splits_user_household').on(table.userId, table.householdId),
     categoryIdIdx: index('idx_transaction_splits_category').on(table.categoryId),
     userTransactionIdx: index('idx_transaction_splits_user_tx').on(table.userId, table.transactionId),
+    amountCentsIdx: index('idx_transaction_splits_amount_cents').on(table.amountCents),
   })
 );
 
@@ -573,9 +589,11 @@ export const transfers = pgTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     fromAccountId: text('from_account_id').notNull(),
     toAccountId: text('to_account_id').notNull(),
     amount: doublePrecision('amount').notNull(),
+    amountCents: bigint('amount_cents', { mode: 'number' }).notNull().default(0),
     description: text('description'),
     date: text('date').notNull(),
     status: text('status', {
@@ -584,11 +602,16 @@ export const transfers = pgTable(
     fromTransactionId: text('from_transaction_id'),
     toTransactionId: text('to_transaction_id'),
     fees: doublePrecision('fees').default(0),
+    feesCents: bigint('fees_cents', { mode: 'number' }).notNull().default(0),
     notes: text('notes'),
     createdAt: text('created_at').default(pgNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_transfers_user').on(table.userId),
+    householdIdIdx: index('idx_transfers_household').on(table.householdId),
+    userHouseholdIdx: index('idx_transfers_user_household').on(table.userId, table.householdId),
+    amountCentsIdx: index('idx_transfers_amount_cents').on(table.amountCents),
+    feesCentsIdx: index('idx_transfers_fees_cents').on(table.feesCents),
   })
 );
 
@@ -597,6 +620,7 @@ export const transferSuggestions = pgTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     sourceTransactionId: text('source_transaction_id').notNull(),
     suggestedTransactionId: text('suggested_transaction_id').notNull(),
 
@@ -616,6 +640,8 @@ export const transferSuggestions = pgTable(
   },
   (table) => ({
     userIdIdx: index('idx_transfer_suggestions_user').on(table.userId),
+    householdIdIdx: index('idx_transfer_suggestions_household').on(table.householdId),
+    userHouseholdIdx: index('idx_transfer_suggestions_user_household').on(table.userId, table.householdId),
     sourceIdx: index('idx_transfer_suggestions_source').on(table.sourceTransactionId),
     statusIdx: index('idx_transfer_suggestions_status').on(table.status),
   })
@@ -1729,7 +1755,7 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
     references: [debts.id],
   }),
   transfer: one(transfers, {
-    fields: [transactions.transferId],
+    fields: [transactions.transferGroupId],
     references: [transfers.id],
   }),
   splits: many(transactionSplits),

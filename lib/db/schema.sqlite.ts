@@ -32,8 +32,11 @@ export const accounts = sqliteTable(
     bankName: text('bank_name').notNull(),
     accountNumberLast4: text('account_number_last4'),
     currentBalance: real('current_balance').default(0),
+    currentBalanceCents: integer('current_balance_cents').notNull().default(0),
     availableBalance: real('available_balance'),
+    availableBalanceCents: integer('available_balance_cents'),
     creditLimit: real('credit_limit'),
+    creditLimitCents: integer('credit_limit_cents'),
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
     isBusinessAccount: integer('is_business_account', { mode: 'boolean' }).default(false),
     enableSalesTax: integer('enable_sales_tax', { mode: 'boolean' }).default(false),
@@ -83,6 +86,7 @@ export const accounts = sqliteTable(
     userHouseholdIdx: index('idx_accounts_user_household').on(table.userId, table.householdId),
     userUsageIdx: index('idx_accounts_user_usage').on(table.userId, table.usageCount),
     userActiveIdx: index('idx_accounts_user_active').on(table.userId, table.isActive),
+    currentBalanceCentsIdx: index('idx_accounts_current_balance_cents').on(table.currentBalanceCents),
     interestRateIdx: index('idx_accounts_interest_rate').on(table.interestRate),
     includeInStrategyIdx: index('idx_accounts_include_in_strategy').on(table.includeInPayoffStrategy),
   })
@@ -264,12 +268,17 @@ export const transactions = sqliteTable(
     savingsGoalId: text('savings_goal_id'), // Link to savings goal for contributions (Phase 1.5)
     date: text('date').notNull(),
     amount: real('amount').notNull(),
+    amountCents: integer('amount_cents').notNull().default(0),
     description: text('description').notNull(),
     notes: text('notes'),
     type: text('type', {
       enum: ['income', 'expense', 'transfer_in', 'transfer_out'],
     }).default('expense'),
     transferId: text('transfer_id'),
+    transferGroupId: text('transfer_group_id'),
+    pairedTransactionId: text('paired_transaction_id'),
+    transferSourceAccountId: text('transfer_source_account_id'),
+    transferDestinationAccountId: text('transfer_destination_account_id'),
     isPending: integer('is_pending', { mode: 'boolean' }).default(false),
     isRecurring: integer('is_recurring', { mode: 'boolean' }).default(false),
     recurringRule: text('recurring_rule'),
@@ -306,6 +315,11 @@ export const transactions = sqliteTable(
     dateIdx: index('idx_transactions_date').on(table.date),
     categoryIdIdx: index('idx_transactions_category').on(table.categoryId),
     merchantIdIdx: index('idx_transactions_merchant').on(table.merchantId),
+    transferSourceAccountIdIdx: index('idx_transactions_transfer_source_account').on(table.transferSourceAccountId),
+    transferDestinationAccountIdIdx: index('idx_transactions_transfer_destination_account').on(table.transferDestinationAccountId),
+    transferGroupIdIdx: index('idx_transactions_transfer_group').on(table.transferGroupId),
+    pairedTransactionIdIdx: index('idx_transactions_paired_transaction').on(table.pairedTransactionId),
+    amountCentsIdx: index('idx_transactions_amount_cents').on(table.amountCents),
     typeIdx: index('idx_transactions_type').on(table.type),
     amountIdx: index('idx_transactions_amount').on(table.amount),
     userDateIdx: index('idx_transactions_user_date').on(table.userId, table.date),
@@ -335,6 +349,7 @@ export const transactionSplits = sqliteTable(
     transactionId: text('transaction_id').notNull(),
     categoryId: text('category_id').notNull(),
     amount: real('amount').notNull(),
+    amountCents: integer('amount_cents').notNull().default(0),
     description: text('description'),
     percentage: real('percentage'),
     isPercentage: integer('is_percentage', { mode: 'boolean' }).default(false),
@@ -350,6 +365,7 @@ export const transactionSplits = sqliteTable(
     userHouseholdIdx: index('idx_transaction_splits_user_household').on(table.userId, table.householdId),
     categoryIdIdx: index('idx_transaction_splits_category').on(table.categoryId),
     userTransactionIdx: index('idx_transaction_splits_user_tx').on(table.userId, table.transactionId),
+    amountCentsIdx: index('idx_transaction_splits_amount_cents').on(table.amountCents),
   })
 );
 
@@ -581,9 +597,11 @@ export const transfers = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     fromAccountId: text('from_account_id').notNull(),
     toAccountId: text('to_account_id').notNull(),
     amount: real('amount').notNull(),
+    amountCents: integer('amount_cents').notNull().default(0),
     description: text('description'),
     date: text('date').notNull(),
     status: text('status', {
@@ -592,11 +610,16 @@ export const transfers = sqliteTable(
     fromTransactionId: text('from_transaction_id'),
     toTransactionId: text('to_transaction_id'),
     fees: real('fees').default(0),
+    feesCents: integer('fees_cents').notNull().default(0),
     notes: text('notes'),
     createdAt: text('created_at').default(sqliteNowIso),
   },
   (table) => ({
     userIdIdx: index('idx_transfers_user').on(table.userId),
+    householdIdIdx: index('idx_transfers_household').on(table.householdId),
+    userHouseholdIdx: index('idx_transfers_user_household').on(table.userId, table.householdId),
+    amountCentsIdx: index('idx_transfers_amount_cents').on(table.amountCents),
+    feesCentsIdx: index('idx_transfers_fees_cents').on(table.feesCents),
   })
 );
 
@@ -605,6 +628,7 @@ export const transferSuggestions = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     sourceTransactionId: text('source_transaction_id').notNull(),
     suggestedTransactionId: text('suggested_transaction_id').notNull(),
 
@@ -624,6 +648,8 @@ export const transferSuggestions = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_transfer_suggestions_user').on(table.userId),
+    householdIdIdx: index('idx_transfer_suggestions_household').on(table.householdId),
+    userHouseholdIdx: index('idx_transfer_suggestions_user_household').on(table.userId, table.householdId),
     sourceIdx: index('idx_transfer_suggestions_source').on(table.sourceTransactionId),
     statusIdx: index('idx_transfer_suggestions_status').on(table.status),
   })
@@ -1737,7 +1763,7 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
     references: [debts.id],
   }),
   transfer: one(transfers, {
-    fields: [transactions.transferId],
+    fields: [transactions.transferGroupId],
     references: [transfers.id],
   }),
   splits: many(transactionSplits),

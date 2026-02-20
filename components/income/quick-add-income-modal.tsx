@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Loader2, Plus, Check, X, ArrowDownCircle } from 'lucide-react';
+import { Loader2, Plus, Check, ArrowDownCircle } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { DAY_OF_WEEK_OPTIONS } from '@/lib/bills/bill-utils';
@@ -99,16 +99,6 @@ export function QuickAddIncomeModal({
     }
   }, [open, selectedHouseholdId, fetchWithHousehold]);
 
-  // Reset form when modal closes
-  useEffect(() => {
-    if (!open) {
-      const timer = setTimeout(() => {
-        resetForm();
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [open]);
-
   const resetForm = useCallback(() => {
     setName('');
     setAmount('');
@@ -117,6 +107,16 @@ export function QuickAddIncomeModal({
     setIncomeType('salary');
     setCategoryId('');
   }, []);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!open) {
+      const timer = setTimeout(() => {
+        resetForm();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [open, resetForm]);
 
   const handleClose = useCallback(() => {
     if (hasData) {
@@ -409,4 +409,3 @@ export function QuickAddIncomeModal({
     </>
   );
 }
-

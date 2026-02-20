@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import NextImage from 'next/image';
 import { cn } from '@/lib/utils';
 
 export interface UserAvatarProps {
@@ -17,6 +18,13 @@ const sizeClasses = {
   md: 'w-10 h-10 text-sm',
   lg: 'w-20 h-20 text-2xl',
   xl: 'w-30 h-30 text-4xl',
+};
+
+const sizePixels = {
+  sm: 32,
+  md: 40,
+  lg: 80,
+  xl: 120,
 };
 
 /**
@@ -59,6 +67,7 @@ export function UserAvatar({
   const initials = getInitials(userName);
   const bgColor = getAvatarColor(userId);
   const showImage = avatarUrl && !imageError;
+  const imageSrc = avatarUrl ?? '';
 
   return (
     <div
@@ -72,9 +81,12 @@ export function UserAvatar({
       aria-label={`${userName}'s avatar`}
     >
       {showImage ? (
-        <img
-          src={avatarUrl}
+        <NextImage
+          src={imageSrc}
           alt={`${userName}'s avatar`}
+          fill
+          unoptimized
+          sizes={`${sizePixels[size]}px`}
           className="w-full h-full object-cover"
           onError={() => setImageError(true)}
         />

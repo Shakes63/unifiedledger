@@ -4,6 +4,8 @@ import { db } from '@/lib/db';
 import { transactions, bills, billInstances } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { toLocalDateString } from '@/lib/utils/local-date';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +26,8 @@ export async function POST(request: Request) {
       amountVariance = 0.2, // 20% variance in amounts
       lookbackMonths = 12,
     } = body;
+    const minAmountCents = toMoneyCents(minAmount) ?? 0;
+    const maxAmountCents = toMoneyCents(maxAmount) ?? Number.MAX_SAFE_INTEGER;
 
     // Get transactions from the past X months (filtered by household)
     // Note: startDate calculation available for future date range filtering
@@ -35,7 +39,7 @@ export async function POST(request: Request) {
         id: transactions.id,
         merchantId: transactions.description,
         description: transactions.description,
-        amount: transactions.amount,
+        amountCents: transactions.amountCents,
         date: transactions.date,
         type: transactions.type,
       })
@@ -54,12 +58,11 @@ export async function POST(request: Request) {
       string,
       {
         description: string;
-        amounts: number[];
+        amountsCents: number[];
         dates: string[];
         dayOfMonth: number[];
-        minAmount: number;
-        maxAmount: number;
-        avgAmount: number;
+        minAmountCents: number;
+        maxAmountCents: number;
         occurrences: number;
       }
     > = {};
@@ -70,22 +73,22 @@ export async function POST(request: Request) {
       if (!billCandidates[key]) {
         billCandidates[key] = {
           description: tx.description,
-          amounts: [],
+          amountsCents: [],
           dates: [],
           dayOfMonth: [],
-          minAmount: tx.amount,
-          maxAmount: tx.amount,
-          avgAmount: 0,
+          minAmountCents: tx.amountCents ?? 0,
+          maxAmountCents: tx.amountCents ?? 0,
           occurrences: 0,
         };
       }
 
       const candidate = billCandidates[key];
-      candidate.amounts.push(tx.amount);
+      const amountCents = tx.amountCents ?? 0;
+      candidate.amountsCents.push(amountCents);
       candidate.dates.push(tx.date);
       candidate.occurrences++;
-      candidate.minAmount = Math.min(candidate.minAmount, tx.amount);
-      candidate.maxAmount = Math.max(candidate.maxAmount, tx.amount);
+      candidate.minAmountCents = Math.min(candidate.minAmountCents, amountCents);
+      candidate.maxAmountCents = Math.max(candidate.maxAmountCents, amountCents);
 
       // Extract day of month
       const dayOfMonth = new Date(tx.date).getDate();
@@ -99,20 +102,20 @@ export async function POST(request: Request) {
         if (candidate.occurrences < minOccurrences) return false;
 
         // Check amount variance
-        const avgAmount =
-          candidate.amounts.reduce((a, b) => a + b, 0) / candidate.amounts.length;
-        const variance = (candidate.maxAmount - candidate.minAmount) / avgAmount;
+        const avgAmountCents =
+          candidate.amountsCents.reduce((a, b) => a + b, 0) / candidate.amountsCents.length;
+        const variance = (candidate.maxAmountCents - candidate.minAmountCents) / avgAmountCents;
 
         if (variance > amountVariance) return false;
 
         // Check amount is within range
-        if (avgAmount < minAmount || avgAmount > maxAmount) return false;
+        if (avgAmountCents < minAmountCents || avgAmountCents > maxAmountCents) return false;
 
         return true;
       })
       .map((candidate) => {
-        const avgAmount =
-          candidate.amounts.reduce((a, b) => a + b, 0) / candidate.amounts.length;
+        const avgAmountCents =
+          candidate.amountsCents.reduce((a, b) => a + b, 0) / candidate.amountsCents.length;
 
         // Find most common day of month
         const dayFrequency: Record<number, number> = {};
@@ -125,11 +128,11 @@ export async function POST(request: Request) {
 
         return {
           name: candidate.description,
-          expectedAmount: Math.round(avgAmount * 100) / 100,
+          expectedAmount: Math.round(avgAmountCents) / 100,
           dueDate: parseInt(mostCommonDay),
           occurrences: candidate.occurrences,
-          minAmount: candidate.minAmount,
-          maxAmount: candidate.maxAmount,
+          minAmount: candidate.minAmountCents / 100,
+          maxAmount: candidate.maxAmountCents / 100,
           confidence: Math.min(
             100,
             (candidate.occurrences / lookbackMonths) * 30
@@ -231,9 +234,7 @@ export async function PUT(request: Request) {
 
           const daysInMonth = new Date(year, month + 1, 0).getDate();
           const instanceDueDate = Math.min(dueDate, daysInMonth);
-          const dueDateString = new Date(year, month, instanceDueDate)
-            .toISOString()
-            .split('T')[0];
+          const dueDateString = toLocalDateString(new Date(year, month, instanceDueDate));
 
           await db.insert(billInstances).values({
             id: nanoid(),

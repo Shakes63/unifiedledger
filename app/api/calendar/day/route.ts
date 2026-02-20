@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { transactions, budgetCategories, billInstances, bills, accounts, merchants, savingsGoals, debts, debtPayoffMilestones, billMilestones } from '@/lib/db/schema';
 import { eq, and, lt, isNotNull, gte, lte, inArray } from 'drizzle-orm';
 import { format, addMonths, subDays } from 'date-fns';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
 
@@ -451,7 +452,8 @@ export async function GET(request: Request) {
       );
 
     for (const acc of creditAccounts) {
-      const balance = Math.abs(acc.currentBalance || 0);
+      const balance =
+        Math.abs(acc.currentBalanceCents ?? toMoneyCents(acc.currentBalance) ?? 0) / 100;
       if (balance <= 0) continue;
 
       const monthlyPayment = acc.budgetedMonthlyPayment || acc.minimumPaymentAmount || 0;

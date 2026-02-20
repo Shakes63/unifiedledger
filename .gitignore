@@ -83,7 +83,6 @@ logs/*-audit.json
 .cursorrules
 
 # Agent/AI files
-AGENTS.md
 
 # Status/tracking files (kept local)
 CHARTS_AND_REPORTS_STATUS.md

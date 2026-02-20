@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, savingsGoalContributions, accounts } from '@/lib/db/schema';
+import { getTodayLocalDateString, toLocalDateString } from '@/lib/utils/local-date';
 import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
@@ -53,8 +54,8 @@ export async function GET(request: Request) {
     // Default date range: last 6 months
     const now = new Date();
     const defaultStartDate = new Date(now.getFullYear(), now.getMonth() - 6, 1);
-    const startDateStr = url.searchParams.get('startDate') || defaultStartDate.toISOString().split('T')[0];
-    const endDateStr = url.searchParams.get('endDate') || now.toISOString().split('T')[0];
+    const startDateStr = url.searchParams.get('startDate') || toLocalDateString(defaultStartDate);
+    const endDateStr = url.searchParams.get('endDate') || getTodayLocalDateString();
 
     // Get total income by period
     const incomeData = await db
@@ -64,7 +65,7 @@ export async function GET(request: Request) {
           : period === 'quarterly'
             ? sql<string>`strftime('%Y', ${transactions.date}) || '-Q' || ((cast(strftime('%m', ${transactions.date}) as integer) + 2) / 3)`
             : sql<string>`strftime('%Y-%m', ${transactions.date})`,
-        total: sql<number>`SUM(${transactions.amount})`,
+        totalCents: sql<number>`SUM(${transactions.amountCents})`,
       })
       .from(transactions)
       .where(
@@ -126,7 +127,7 @@ export async function GET(request: Request) {
         )
       );
 
-    let transferContributions: { period: string; total: number }[] = [];
+    let transferContributions: { period: string; totalCents: number }[] = [];
     
     if (savingsAccountIds.length > 0) {
       // Get transfer_in transactions to savings accounts
@@ -143,7 +144,7 @@ export async function GET(request: Request) {
             : period === 'quarterly'
               ? sql<string>`strftime('%Y', ${transactions.date}) || '-Q' || ((cast(strftime('%m', ${transactions.date}) as integer) + 2) / 3)`
               : sql<string>`strftime('%Y-%m', ${transactions.date})`,
-          total: sql<number>`SUM(${transactions.amount})`,
+          totalCents: sql<number>`SUM(${transactions.amountCents})`,
         })
         .from(transactions)
         .where(
@@ -173,19 +174,31 @@ export async function GET(request: Request) {
     transferContributions.forEach(d => allPeriods.add(d.period));
 
     // Create lookup maps
-    const incomeByPeriod = new Map(incomeData.map(d => [d.period, d.total || 0]));
-    const directContribByPeriod = new Map(directContributions.map(d => [d.period, d.total || 0]));
-    const transferContribByPeriod = new Map(transferContributions.map(d => [d.period, d.total || 0]));
+    const incomeByPeriod = new Map(
+      incomeData.map((d) => [
+        d.period,
+        new Decimal(d.totalCents || 0).div(100),
+      ])
+    );
+    const directContribByPeriod = new Map(
+      directContributions.map((d) => [d.period, new Decimal(d.total || 0)])
+    );
+    const transferContribByPeriod = new Map(
+      transferContributions.map((d) => [
+        d.period,
+        new Decimal(d.totalCents || 0).div(100),
+      ])
+    );
 
     // Calculate savings rate per period
     const sortedPeriods = Array.from(allPeriods).sort();
     const data: SavingsRateData[] = sortedPeriods.map(periodStr => {
-      const income = new Decimal(incomeByPeriod.get(periodStr) || 0);
+      const income = incomeByPeriod.get(periodStr) || new Decimal(0);
       // Combine contributions (avoiding double-counting by using direct contributions as primary source)
       // Direct contributions are the authoritative source from savingsGoalContributions
       // Transfer contributions are backup for transfers to savings accounts without goal linking
-      const directContrib = new Decimal(directContribByPeriod.get(periodStr) || 0);
-      const transferContrib = new Decimal(transferContribByPeriod.get(periodStr) || 0);
+      const directContrib = directContribByPeriod.get(periodStr) || new Decimal(0);
+      const transferContrib = transferContribByPeriod.get(periodStr) || new Decimal(0);
       
       // Use the maximum to avoid under-counting while preventing obvious double-counting
       // A more sophisticated approach would deduplicate by transactionId
@@ -244,4 +257,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

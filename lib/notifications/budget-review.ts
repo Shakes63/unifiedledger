@@ -1,7 +1,9 @@
 import { db } from '@/lib/db';
 import { budgetCategories, transactions } from '@/lib/db/schema';
-import { eq, and, gte, lte, sum } from 'drizzle-orm';
+import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import { createNotification, getOrCreatePreferences } from './notification-service';
+import { getLocalMonthString, getMonthRangeForYearMonth } from '@/lib/utils/local-date';
+import Decimal from 'decimal.js';
 
 interface BudgetReviewMetrics {
   adherenceScore: number;
@@ -125,8 +127,7 @@ async function getBudgetOverviewForMonth(
   month: number
 ): Promise<CategoryBudgetStatus[]> {
   // Get month boundaries
-  const monthStart = new Date(year, month - 1, 1).toISOString().split('T')[0];
-  const monthEnd = new Date(year, month, 0).toISOString().split('T')[0];
+  const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForYearMonth(year, month);
 
   // Get all budget categories for this user
   const categories = await db
@@ -145,7 +146,7 @@ async function getBudgetOverviewForMonth(
     // Calculate actual spending from transactions
     const categoryTransactions = await db
       .select({
-        total: sum(transactions.amount),
+        totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)`,
       })
       .from(transactions)
       .where(
@@ -158,9 +159,10 @@ async function getBudgetOverviewForMonth(
         )
       );
 
-    const actualSpent = categoryTransactions[0]?.total
-      ? Math.abs(Number(categoryTransactions[0].total))
-      : 0;
+    const actualSpent = new Decimal(categoryTransactions[0]?.totalCents ?? 0)
+      .abs()
+      .div(100)
+      .toNumber();
 
     const monthlyBudget = category.monthlyBudget || 0;
     const remaining = monthlyBudget - actualSpent;
@@ -369,7 +371,7 @@ export async function sendBudgetReviewNotifications(): Promise<number> {
     // Get the previous month (since this runs at the end of the month)
     const now = new Date();
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const month = lastMonth.toISOString().slice(0, 7); // YYYY-MM format
+    const month = getLocalMonthString(lastMonth); // YYYY-MM format
 
     console.log(`Sending budget review notifications for ${month}...`);
 

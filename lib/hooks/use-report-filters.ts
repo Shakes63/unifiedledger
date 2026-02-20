@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useHousehold } from '@/contexts/household-context';
+import { getMonthRangeForDate, getYearRangeForDate, toLocalDateString } from '@/lib/utils/local-date';
 
 type Period = 'month' | 'year' | '12months' | null;
 
@@ -30,21 +31,21 @@ function calculateDateRange(
 
   if (period === 'month') {
     // Current month
-    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const monthRange = getMonthRangeForDate(now);
+    return monthRange;
   } else if (period === 'year') {
     // Current year
-    startDate = new Date(now.getFullYear(), 0, 1);
-    endDate = new Date(now.getFullYear(), 11, 31);
+    const yearRange = getYearRangeForDate(now);
+    return yearRange;
   } else {
     // Default: last 12 months
-    endDate = new Date();
+    endDate = new Date(now);
     startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 11, 1);
   }
 
   return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
+    startDate: toLocalDateString(startDate),
+    endDate: toLocalDateString(endDate),
   };
 }
 
@@ -254,4 +255,3 @@ export function useReportFilters(): UseReportFiltersReturn {
     getFilterParams,
   };
 }
-

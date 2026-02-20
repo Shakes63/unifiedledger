@@ -23,7 +23,7 @@ interface OnboardingContextType {
   invitationHouseholdId: string | null;
   isDemoMode: boolean;
   invitationToken: string | null;
-  setInvitationContext: (householdId: string, token: string) => void;
+  setInvitationContext: (householdId: string, token?: string | null) => void;
   clearInvitationContext: () => void;
   // Demo data choice
   demoDataCleared: boolean;
@@ -107,7 +107,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         setIsOnboardingActive(false);
-        const steps = isDemoMode ? TOTAL_STEPS_DEMO : TOTAL_STEPS_NON_DEMO;
+        const steps = isInvitedUser
+          ? TOTAL_STEPS_INVITED
+          : (isDemoMode ? TOTAL_STEPS_DEMO : TOTAL_STEPS_NON_DEMO);
         setCurrentStep(steps);
         setCompletedSteps(new Set([...Array(steps).keys()].map(i => i + 1)));
       } else {
@@ -121,7 +123,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [isDemoMode]);
+  }, [isDemoMode, isInvitedUser]);
 
   // Navigation functions
   const nextStep = useCallback(() => {
@@ -159,17 +161,21 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Invitation context methods
-  const setInvitationContext = useCallback((householdId: string, token: string) => {
+  const setInvitationContext = useCallback((householdId: string, token?: string | null) => {
     setIsInvitedUser(true);
     setInvitationHouseholdId(householdId);
     // Don't set demo mode for invited users - they join an existing household
     // and should not have any data created during onboarding
     setIsDemoMode(false);
-    setInvitationToken(token);
+    setInvitationToken(token ?? null);
     // Store in localStorage for persistence
     try {
-      localStorage.setItem('unified-ledger:invitation-token', token);
       localStorage.setItem('unified-ledger:invitation-household-id', householdId);
+      if (token) {
+        localStorage.setItem('unified-ledger:invitation-token', token);
+      } else {
+        localStorage.removeItem('unified-ledger:invitation-token');
+      }
     } catch (error) {
       console.error('Failed to store invitation context in localStorage:', error);
     }
@@ -195,12 +201,12 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem('unified-ledger:invitation-token');
       const householdId = localStorage.getItem('unified-ledger:invitation-household-id');
       
-      if (token && householdId) {
+      if (householdId) {
         setIsInvitedUser(true);
         setInvitationHouseholdId(householdId);
         // Don't set demo mode for invited users
         setIsDemoMode(false);
-        setInvitationToken(token);
+        setInvitationToken(token ?? null);
       }
     } catch (error) {
       console.error('Failed to read invitation context from localStorage:', error);
@@ -253,4 +259,3 @@ export function useOnboarding() {
   }
   return context;
 }
-

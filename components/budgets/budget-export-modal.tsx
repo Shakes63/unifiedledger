@@ -16,6 +16,7 @@ import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { getLocalMonthString } from '@/lib/utils/local-date';
 
 interface BudgetExportModalProps {
   isOpen: boolean;
@@ -45,7 +46,7 @@ export function BudgetExportModal({
     // Generate from 24 months ago to 12 months in future
     for (let i = -24; i <= 12; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      const value = date.toISOString().slice(0, 7); // YYYY-MM
+      const value = getLocalMonthString(date); // YYYY-MM
       const label = date.toLocaleDateString('en-US', {
         month: 'long',
         year: 'numeric',

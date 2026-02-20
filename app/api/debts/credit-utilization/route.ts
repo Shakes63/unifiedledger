@@ -2,7 +2,8 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { accounts } from '@/lib/db/schema';
-import { eq, and, isNotNull, inArray } from 'drizzle-orm';
+import { eq, and, isNotNull, inArray, or } from 'drizzle-orm';
+import Decimal from 'decimal.js';
 import {
   getUtilizationLevel,
   getUtilizationColor,
@@ -11,8 +12,13 @@ import {
   estimateCreditScoreImpact,
   calculateCreditStats,
 } from '@/lib/debts/credit-utilization-utils';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
+
+function toAmount(cents: number): number {
+  return new Decimal(cents).div(100).toNumber();
+}
 
 export async function GET(request: Request) {
   try {
@@ -29,7 +35,7 @@ export async function GET(request: Request) {
           eq(accounts.householdId, householdId),
           inArray(accounts.type, ['credit', 'line_of_credit']),
           eq(accounts.isActive, true),
-          isNotNull(accounts.creditLimit)
+          or(isNotNull(accounts.creditLimitCents), isNotNull(accounts.creditLimit))
         )
       );
 
@@ -58,8 +64,8 @@ export async function GET(request: Request) {
     const cardData = creditAccounts.map((acc) => ({
       id: acc.id,
       name: acc.name || 'Unknown Account',
-      balance: Math.abs(acc.currentBalance || 0),
-      limit: acc.creditLimit || 0,
+      balance: toAmount(Math.abs(acc.currentBalanceCents ?? toMoneyCents(acc.currentBalance) ?? 0)),
+      limit: toAmount(acc.creditLimitCents ?? toMoneyCents(acc.creditLimit) ?? 0),
       color: acc.color || undefined,
       type: acc.type, // Include type for UI differentiation
     }));

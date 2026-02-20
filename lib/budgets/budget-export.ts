@@ -1,7 +1,9 @@
 import { db } from '@/lib/db';
 import { budgetCategories, transactions } from '@/lib/db/schema';
-import { eq, and, gte, lte, sum } from 'drizzle-orm';
+import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import Papa from 'papaparse';
+import { getMonthRangeForYearMonth } from '@/lib/utils/local-date';
+import Decimal from 'decimal.js';
 
 export interface BudgetExportOptions {
   startMonth: string; // 'YYYY-MM'
@@ -49,8 +51,7 @@ async function getBudgetDataForMonth(
 ): Promise<CategoryBudgetData[]> {
   // Get month boundaries
   const daysInMonth = new Date(year, month, 0).getDate();
-  const monthStart = new Date(year, month - 1, 1).toISOString().split('T')[0];
-  const monthEnd = new Date(year, month, 0).toISOString().split('T')[0];
+  const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForYearMonth(year, month);
 
   // Calculate days elapsed in month
   const now = new Date();
@@ -89,7 +90,7 @@ async function getBudgetDataForMonth(
 
     const categoryTransactions = await db
       .select({
-        total: sum(transactions.amount),
+        totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)`,
       })
       .from(transactions)
       .where(
@@ -103,9 +104,10 @@ async function getBudgetDataForMonth(
         )
       );
 
-    const actualSpent = categoryTransactions[0]?.total
-      ? Math.abs(Number(categoryTransactions[0].total))
-      : 0;
+    const actualSpent = new Decimal(categoryTransactions[0]?.totalCents ?? 0)
+      .abs()
+      .div(100)
+      .toNumber();
 
     const monthlyBudget = category.monthlyBudget || 0;
 

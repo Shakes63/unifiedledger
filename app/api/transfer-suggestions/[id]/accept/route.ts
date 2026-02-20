@@ -4,7 +4,7 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transferSuggestions, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
+import { linkExistingTransactionsAsCanonicalTransfer } from '@/lib/transactions/transfer-service';
 
 /**
  * POST /api/transfer-suggestions/[id]/accept
@@ -27,7 +27,8 @@ export async function POST(
       .where(
         and(
           eq(transferSuggestions.id, suggestionId),
-          eq(transferSuggestions.userId, userId)
+          eq(transferSuggestions.userId, userId),
+          eq(transferSuggestions.householdId, householdId)
         )
       )
       .limit(1);
@@ -82,52 +83,25 @@ export async function POST(
       );
     }
 
+    const isAlreadyLinked = (tx: typeof transactions.$inferSelect) =>
+      !!tx.transferGroupId
+      || !!tx.pairedTransactionId
+      || !!tx.transferId;
+
     // Check if either transaction is already part of a transfer
-    if (sourceTx[0].transferId || suggestedTx[0].transferId) {
+    if (isAlreadyLinked(sourceTx[0]) || isAlreadyLinked(suggestedTx[0])) {
       return NextResponse.json(
         { error: 'One or both transactions are already part of a transfer' },
         { status: 400 }
       );
     }
 
-    // Create transfer link
-    const transferId = nanoid();
-
-    // Determine transfer types based on original types
-    const sourceType = sourceTx[0].type === 'income' ? 'transfer_in' : 'transfer_out';
-    const suggestedType = suggestedTx[0].type === 'income' ? 'transfer_in' : 'transfer_out';
-
-    // Update both transactions to link them as a transfer
-    await Promise.all([
-      db
-        .update(transactions)
-        .set({
-          type: sourceType,
-          transferId,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(transactions.id, suggestion.sourceTransactionId),
-            eq(transactions.userId, userId),
-            eq(transactions.householdId, householdId)
-          )
-        ),
-      db
-        .update(transactions)
-        .set({
-          type: suggestedType,
-          transferId,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(transactions.id, suggestion.suggestedTransactionId),
-            eq(transactions.userId, userId),
-            eq(transactions.householdId, householdId)
-          )
-        ),
-    ]);
+    const linkResult = await linkExistingTransactionsAsCanonicalTransfer({
+      userId,
+      householdId,
+      firstTransactionId: suggestion.sourceTransactionId,
+      secondTransactionId: suggestion.suggestedTransactionId,
+    });
 
     // Mark suggestion as accepted
     await db
@@ -136,12 +110,18 @@ export async function POST(
         status: 'accepted',
         reviewedAt: new Date().toISOString(),
       })
-      .where(eq(transferSuggestions.id, suggestionId));
+      .where(
+        and(
+          eq(transferSuggestions.id, suggestionId),
+          eq(transferSuggestions.userId, userId),
+          eq(transferSuggestions.householdId, householdId)
+        )
+      );
 
     return NextResponse.json({
       success: true,
       message: 'Transfer link created successfully',
-      transferId,
+      transferId: linkResult.transferGroupId,
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

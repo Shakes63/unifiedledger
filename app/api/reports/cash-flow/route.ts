@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import {
   getTransactionsByDateRange,
   getLast12MonthsRanges,
   formatMonthLabel,
   calculateDateRange,
+  calculateByType,
 } from '@/lib/reports/report-utils';
 
 /**
@@ -89,6 +91,17 @@ export async function GET(request: NextRequest) {
 
     const data: CashFlowPoint[] = [];
 
+    const toCashFlow = (txns: Awaited<ReturnType<typeof getTransactionsByDateRange>>) => {
+      const byType = calculateByType(txns);
+      const inflows = (byType.income || 0) + (byType.transfer_in || 0);
+      const outflows = Math.abs(byType.expense || 0) + Math.abs(byType.transfer_out || 0);
+      return {
+        inflows,
+        outflows,
+        netCashFlow: inflows - outflows,
+      };
+    };
+
     // Determine grouping strategy based on date range
     const daysDiff2 = Math.ceil(
       (new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 60 * 60 * 24)
@@ -105,8 +118,8 @@ export async function GET(request: NextRequest) {
         weekEnd.setDate(weekEnd.getDate() + 6);
         if (weekEnd > end) weekEnd.setTime(end.getTime());
 
-        const startStr = currentDate.toISOString().split('T')[0];
-        const endStr = weekEnd.toISOString().split('T')[0];
+        const startStr = toLocalDateString(currentDate);
+        const endStr = toLocalDateString(weekEnd);
 
         const txns = await getTransactionsByDateRange(
           userId,
@@ -116,22 +129,14 @@ export async function GET(request: NextRequest) {
           filters
         );
 
-        const inflows = txns
-          .filter((t) => t.type === 'income' || t.type === 'transfer_in')
-          .reduce((sum, t) => sum + t.amount, 0);
-
-        const outflows = Math.abs(
-          txns
-            .filter((t) => t.type === 'expense' || t.type === 'transfer_out')
-            .reduce((sum, t) => sum - t.amount, 0)
-        );
+        const { inflows, outflows, netCashFlow } = toCashFlow(txns);
 
         data.push({
           week: startStr,
           name: startStr,
           inflows,
           outflows,
-          netCashFlow: inflows - outflows,
+          netCashFlow,
         });
 
         currentDate = new Date(weekEnd);
@@ -150,8 +155,8 @@ export async function GET(request: NextRequest) {
         const rangeStart = monthStart < start ? start : monthStart;
         const rangeEnd = monthEnd > end ? end : monthEnd;
 
-        const startStr = rangeStart.toISOString().split('T')[0];
-        const endStr = rangeEnd.toISOString().split('T')[0];
+        const startStr = toLocalDateString(rangeStart);
+        const endStr = toLocalDateString(rangeEnd);
 
         const txns = await getTransactionsByDateRange(
           userId,
@@ -161,15 +166,7 @@ export async function GET(request: NextRequest) {
           filters
         );
 
-        const inflows = txns
-          .filter((t) => t.type === 'income' || t.type === 'transfer_in')
-          .reduce((sum, t) => sum + t.amount, 0);
-
-        const outflows = Math.abs(
-          txns
-            .filter((t) => t.type === 'expense' || t.type === 'transfer_out')
-            .reduce((sum, t) => sum - t.amount, 0)
-        );
+        const { inflows, outflows, netCashFlow } = toCashFlow(txns);
 
         const monthName = new Date(startStr + 'T00:00:00').toLocaleDateString('en-US', {
           month: 'short',
@@ -180,7 +177,7 @@ export async function GET(request: NextRequest) {
           name: monthName,
           inflows,
           outflows,
-          netCashFlow: inflows - outflows,
+          netCashFlow,
         });
 
         currentDate = new Date(monthEnd);
@@ -205,8 +202,8 @@ export async function GET(request: NextRequest) {
           const rangeEnd = monthEnd > end ? end : monthEnd;
 
           monthlyRanges.push({
-            startDate: rangeStart.toISOString().split('T')[0],
-            endDate: rangeEnd.toISOString().split('T')[0],
+            startDate: toLocalDateString(rangeStart),
+            endDate: toLocalDateString(rangeEnd),
           });
 
           current = new Date(monthEnd);
@@ -228,22 +225,14 @@ export async function GET(request: NextRequest) {
           filters
         );
 
-        const inflows = txns
-          .filter((t) => t.type === 'income' || t.type === 'transfer_in')
-          .reduce((sum, t) => sum + t.amount, 0);
-
-        const outflows = Math.abs(
-          txns
-            .filter((t) => t.type === 'expense' || t.type === 'transfer_out')
-            .reduce((sum, t) => sum - t.amount, 0)
-        );
+        const { inflows, outflows, netCashFlow } = toCashFlow(txns);
 
         data.push({
           month: formatMonthLabel(range.startDate),
           name: formatMonthLabel(range.startDate),
           inflows,
           outflows,
-          netCashFlow: inflows - outflows,
+          netCashFlow,
         });
       }
     }

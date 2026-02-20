@@ -7,7 +7,9 @@
 
 import { db } from '@/lib/db';
 import { creditLimitHistory } from '@/lib/db/schema';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import { nanoid } from 'nanoid';
+import Decimal from 'decimal.js';
 
 export type CreditLimitChangeReason = 'user_update' | 'bank_increase' | 'bank_decrease' | 'initial';
 
@@ -37,17 +39,17 @@ export async function trackCreditLimitChange({
   currentBalance = 0,
 }: TrackCreditLimitChangeParams): Promise<void> {
   // Calculate utilization percentages
-  const utilizationBefore = previousLimit && previousLimit > 0 
-    ? (currentBalance / previousLimit) * 100 
+  const utilizationBefore = previousLimit && previousLimit > 0
+    ? new Decimal(currentBalance).dividedBy(previousLimit).times(100).toDecimalPlaces(2).toNumber()
     : null;
-  
-  const utilizationAfter = newLimit > 0 
-    ? (currentBalance / newLimit) * 100 
+
+  const utilizationAfter = newLimit > 0
+    ? new Decimal(currentBalance).dividedBy(newLimit).times(100).toDecimalPlaces(2).toNumber()
     : 0;
 
   const now = new Date();
   const nowString = now.toISOString();
-  const dateString = nowString.split('T')[0]; // YYYY-MM-DD format
+  const dateString = toLocalDateString(now);
 
   await db.insert(creditLimitHistory).values({
     id: nanoid(),
@@ -119,4 +121,3 @@ export async function trackInitialCreditLimit({
     currentBalance,
   });
 }
-

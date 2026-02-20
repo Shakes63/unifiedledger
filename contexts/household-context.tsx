@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { applyTheme } from '@/lib/themes/theme-utils';
 import { enhancedFetch, FetchError, FetchErrorType } from '@/lib/utils/enhanced-fetch';
 import { toast } from 'sonner';
@@ -79,6 +79,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   const [preferencesLoading, setPreferencesLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const selectedHouseholdIdRef = useRef<string | null>(selectedHouseholdId);
 
   // Computed value for selected household
   const selectedHousehold = selectedHouseholdId
@@ -86,7 +87,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     : null;
 
   // Load user preferences for a household
-  const loadPreferences = async (householdId: string) => {
+  const loadPreferences = useCallback(async (householdId: string) => {
     try {
       setPreferencesLoading(true);
 
@@ -157,17 +158,17 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     } finally {
       setPreferencesLoading(false);
     }
-  };
+  }, []);
 
   // Refresh preferences for current household
-  const refreshPreferences = async () => {
+  const refreshPreferences = useCallback(async () => {
     if (selectedHouseholdId) {
       await loadPreferences(selectedHouseholdId);
     }
-  };
+  }, [loadPreferences, selectedHouseholdId]);
 
   // Set selected household with preference loading
-  const setSelectedHouseholdId = async (id: string) => {
+  const setSelectedHouseholdId = useCallback(async (id: string) => {
     setSelectedHouseholdIdState(id);
 
     // Persist to localStorage
@@ -179,9 +180,9 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
     // Load preferences for new household
     await loadPreferences(id);
-  };
+  }, [loadPreferences]);
 
-  const refreshHouseholds = async () => {
+  const refreshHouseholds = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -198,6 +199,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
+        const currentSelectedHouseholdId = selectedHouseholdIdRef.current;
         setHouseholds(data);
         setInitialized(true);
         setError(null);
@@ -211,7 +213,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         }
 
         // If no household is selected or the selected one no longer exists, select appropriately
-        if (!selectedHouseholdId || !data.find((h: Household) => h.id === selectedHouseholdId)) {
+        if (!currentSelectedHouseholdId || !data.find((h: Household) => h.id === currentSelectedHouseholdId)) {
           if (data.length > 0) {
             // Try to use persisted household if it exists
             const householdToSelect = initialHouseholdId && data.find((h: Household) => h.id === initialHouseholdId)
@@ -226,7 +228,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
           }
         } else {
           // Load preferences for currently selected household
-          await loadPreferences(selectedHouseholdId);
+          await loadPreferences(currentSelectedHouseholdId);
         }
       } else {
         // Handle non-ok response
@@ -248,7 +250,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
             description: 'Please check your internet connection',
             action: {
               label: 'Retry',
-              onClick: () => refreshHouseholds(),
+              onClick: () => { void refreshHouseholds(); },
             },
           });
         } else if (error.type === FetchErrorType.TIMEOUT) {
@@ -256,7 +258,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
             description: 'Loading households took too long',
             action: {
               label: 'Retry',
-              onClick: () => refreshHouseholds(),
+              onClick: () => { void refreshHouseholds(); },
             },
           });
         } else if (error.statusCode === 401) {
@@ -267,7 +269,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
             description: error.getUserMessage(),
             action: {
               label: 'Retry',
-              onClick: () => refreshHouseholds(),
+              onClick: () => { void refreshHouseholds(); },
             },
           });
         }
@@ -275,18 +277,20 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Retry function for manual retries
-  const retry = async () => {
-    await refreshHouseholds();
-  };
+  }, [loadPreferences]);
 
   useEffect(() => {
-    refreshHouseholds();
-    // Intentionally run only on mount - refreshHouseholds is stable and including it would cause infinite loops
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    selectedHouseholdIdRef.current = selectedHouseholdId;
+  }, [selectedHouseholdId]);
+
+  // Retry function for manual retries
+  const retry = useCallback(async () => {
+    await refreshHouseholds();
+  }, [refreshHouseholds]);
+
+  useEffect(() => {
+    void refreshHouseholds();
+  }, [refreshHouseholds]);
 
   return (
     <HouseholdContext.Provider

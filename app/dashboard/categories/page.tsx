@@ -118,15 +118,11 @@ export default function CategoriesPage() {
         const response = await postWithHousehold('/api/categories', formData);
 
         if (response.ok) {
-          await response.json();
+          const newCategory = await response.json();
           toast.success('Category created successfully');
 
-          // Refresh categories list
-          const fetchResponse = await fetchWithHousehold('/api/categories');
-          if (fetchResponse.ok) {
-            const data = await fetchResponse.json();
-            setCategories(data);
-          }
+          // Add new category to state directly (avoids caching issues with re-fetch)
+          setCategories(prevCategories => [...prevCategories, newCategory]);
 
           // Close dialog
           setIsDialogOpen(false);

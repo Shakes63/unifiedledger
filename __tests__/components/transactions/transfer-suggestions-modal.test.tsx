@@ -3,6 +3,19 @@ import { render, screen } from '@testing-library/react';
 
 import { TransferSuggestionsModal } from '@/components/transactions/transfer-suggestions-modal';
 
+vi.mock('@/lib/hooks/use-household-fetch', () => ({
+  useHouseholdFetch: () => ({
+    selectedHouseholdId: 'hh-test',
+    fetchWithHousehold: (url: string, options?: RequestInit) => fetch(url, options),
+    postWithHousehold: (url: string, data: Record<string, unknown>, options?: RequestInit) =>
+      fetch(url, {
+        method: 'POST',
+        body: JSON.stringify(data),
+        ...options,
+      }),
+  }),
+}));
+
 describe('TransferSuggestionsModal', () => {
   beforeEach(() => {
     const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;

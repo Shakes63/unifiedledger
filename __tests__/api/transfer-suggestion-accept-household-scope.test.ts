@@ -18,6 +18,7 @@ vi.mock('@/lib/db', () => ({
   db: {
     select: vi.fn(),
     update: vi.fn(),
+    transaction: vi.fn(),
   },
 }));
 
@@ -67,12 +68,24 @@ describe('POST /api/transfer-suggestions/[id]/accept household scoping', () => {
               }
 
               if (table === transactions) {
+                const whereStr = util.inspect(whereArg, { depth: 8, colors: false });
+                if (whereStr.includes('tx_1')) {
+                  return [
+                    {
+                      id: 'tx_1',
+                      userId: TEST_USER_ID,
+                      householdId: TEST_HOUSEHOLD_ID,
+                      type: 'expense',
+                      transferId: null,
+                    },
+                  ];
+                }
                 return [
                   {
-                    id: 'tx_1',
+                    id: 'tx_2',
                     userId: TEST_USER_ID,
                     householdId: TEST_HOUSEHOLD_ID,
-                    type: 'expense',
+                    type: 'income',
                     transferId: null,
                   },
                 ];
@@ -104,8 +117,70 @@ describe('POST /api/transfer-suggestions/[id]/accept household scoping', () => {
       };
     });
 
+    const txUpdateWhereCalls: Array<{ table: unknown; whereArg: unknown }> = [];
+    const tx = {
+      select: () => ({
+        from: (table: unknown) => ({
+          where: (whereArg: unknown) => ({
+            limit: async () => {
+              if (table !== transactions) return [];
+              const whereStr = util.inspect(whereArg, { depth: 8, colors: false });
+              if (whereStr.includes('tx_1')) {
+                return [
+                  {
+                    id: 'tx_1',
+                    userId: TEST_USER_ID,
+                    householdId: TEST_HOUSEHOLD_ID,
+                    accountId: 'acc_1',
+                    type: 'expense',
+                    transferId: null,
+                    transferGroupId: null,
+                    pairedTransactionId: null,
+                    amount: 100,
+                    amountCents: 10000,
+                  },
+                ];
+              }
+              return [
+                {
+                  id: 'tx_2',
+                  userId: TEST_USER_ID,
+                  householdId: TEST_HOUSEHOLD_ID,
+                  accountId: 'acc_2',
+                  type: 'income',
+                  transferId: null,
+                  transferGroupId: null,
+                  pairedTransactionId: null,
+                  amount: 100,
+                  amountCents: 10000,
+                },
+              ];
+            },
+          }),
+        }),
+      }),
+      update: (table: unknown) => ({
+        set: () => ({
+          where: async (whereArg: unknown) => {
+            txUpdateWhereCalls.push({ table, whereArg });
+            return undefined;
+          },
+        }),
+      }),
+      insert: () => ({
+        values: async () => undefined,
+      }),
+    };
+
+    (db.transaction as unknown as {
+      mockImplementation: (fn: (tx: unknown) => Promise<unknown>) => void;
+    }).mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
+      return await fn(tx);
+    });
+
     (db as unknown as { __selectCalls?: typeof selectCalls }).__selectCalls = selectCalls;
     (db as unknown as { __updateWhereCalls?: typeof updateWhereCalls }).__updateWhereCalls = updateWhereCalls;
+    (db as unknown as { __txUpdateWhereCalls?: typeof txUpdateWhereCalls }).__txUpdateWhereCalls = txUpdateWhereCalls;
   });
 
   it('scopes transaction selects and updates by household', async () => {
@@ -135,7 +210,9 @@ describe('POST /api/transfer-suggestions/[id]/accept household scoping', () => {
       __updateWhereCalls: Array<{ table: unknown; whereArg: unknown }>;
     }).__updateWhereCalls;
 
-    const txnUpdates = updateWhereCalls.filter((c) => c.table === transactions);
+    const txnUpdates = (db as unknown as {
+      __txUpdateWhereCalls: Array<{ table: unknown; whereArg: unknown }>;
+    }).__txUpdateWhereCalls.filter((c) => c.table === transactions);
     expect(txnUpdates.length).toBeGreaterThan(0);
 
     for (const upd of txnUpdates) {
@@ -143,6 +220,9 @@ describe('POST /api/transfer-suggestions/[id]/accept household scoping', () => {
       expect(whereStr).toContain('household');
       expect(whereStr).toContain('user');
     }
+
+    const suggestionUpdates = updateWhereCalls.filter((c) => c.table === transferSuggestions);
+    expect(suggestionUpdates.length).toBeGreaterThan(0);
 
     expect(getAndVerifyHousehold).toHaveBeenCalledTimes(1);
   });

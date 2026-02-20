@@ -16,6 +16,13 @@ import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { format } from 'date-fns';
 import { processBillPayment } from '@/lib/bills/bill-payment-utils';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
+import {
+  amountToCents,
+  getAccountBalanceCents,
+  insertTransactionMovement,
+  updateScopedAccountBalance,
+} from '@/lib/transactions/money-movement-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -164,47 +171,44 @@ export async function POST(
     // Generate transaction ID
     const transactionId = nanoid();
 
-    // Create the transaction
-    const transactionData = {
-      id: transactionId,
-      userId,
-      householdId,
-      accountId,
-      categoryId: bill.categoryId || null,
-      merchantId: bill.merchantId || null,
-      amount: paymentAmount,
-      date: paymentDate,
-      description: bill.name,
-      notes: notes || null,
-      type: transactionType,
-      isPending: false,
-      syncStatus: 'synced' as const,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const paymentAmountCents = amountToCents(paymentAmount);
+    const signedAmountCents = transactionType === 'income' ? paymentAmountCents : -paymentAmountCents;
+    const newBalanceCents = getAccountBalanceCents(account) + signedAmountCents;
+    const nowIso = new Date().toISOString();
 
-    // Calculate balance change
-    const balanceChange = transactionType === 'income'
-      ? new Decimal(paymentAmount)
-      : new Decimal(paymentAmount).negated();
+    // Calculate balance change for response payload
+    const balanceChange = new Decimal(signedAmountCents).div(100);
+    const newBalance = new Decimal(newBalanceCents).div(100).toNumber();
 
-    const newBalance = new Decimal(account.currentBalance || 0)
-      .plus(balanceChange)
-      .toNumber();
+    await runInDatabaseTransaction(async (tx) => {
+      await insertTransactionMovement(tx, {
+        id: transactionId,
+        userId,
+        householdId,
+        accountId,
+        categoryId: bill.categoryId || null,
+        merchantId: bill.merchantId || null,
+        date: paymentDate,
+        amountCents: paymentAmountCents,
+        description: bill.name,
+        notes: notes || null,
+        type: transactionType,
+        isPending: false,
+        syncStatus: 'synced',
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      });
 
-    // Create transaction and update account balance
-    await Promise.all([
-      db.insert(transactions).values(transactionData),
-      db
-        .update(accounts)
-        .set({
-          currentBalance: newBalance,
-          lastUsedAt: new Date().toISOString(),
-          usageCount: (account.usageCount || 0) + 1,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(accounts.id, accountId)),
-    ]);
+      await updateScopedAccountBalance(tx, {
+        accountId,
+        userId,
+        householdId,
+        balanceCents: newBalanceCents,
+        lastUsedAt: nowIso,
+        usageCount: (account.usageCount || 0) + 1,
+        updatedAt: nowIso,
+      });
+    });
 
     // Process the bill payment using the utility
     const paymentResult = await processBillPayment({

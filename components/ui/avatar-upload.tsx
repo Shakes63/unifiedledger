@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import NextImage from 'next/image';
 import { Button } from './button';
 import { toast } from 'sonner';
 import { Upload, Trash2, Loader2 } from 'lucide-react';
@@ -181,9 +182,12 @@ export function AvatarUpload({
       {/* Avatar Display */}
       <div className="relative w-24 h-24">
         {displayUrl ? (
-          <img
+          <NextImage
             src={displayUrl}
             alt={`${userName}'s avatar`}
+            fill
+            unoptimized
+            sizes="96px"
             className="w-full h-full rounded-full object-cover"
           />
         ) : (

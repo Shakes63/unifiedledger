@@ -426,16 +426,25 @@ export function BillForm({
       return;
     }
 
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household first');
+      return;
+    }
+
     setCreatingCategory(true);
     try {
       const response = await fetch('/api/categories', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-household-id': selectedHouseholdId,
+        },
         credentials: 'include',
         body: JSON.stringify({
           name: newCategoryName,
-          type: 'monthly_bill',
+          type: 'expense',
           monthlyBudget: 0,
+          householdId: selectedHouseholdId,
         }),
       });
 
@@ -450,7 +459,8 @@ export function BillForm({
         setIsCreatingCategory(false);
         toast.success(`Category "${newCategory.name}" created!`);
       } else {
-        toast.error('Failed to create category');
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || 'Failed to create category');
       }
     } catch (error) {
       console.error('Error creating category:', error);

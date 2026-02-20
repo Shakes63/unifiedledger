@@ -18,6 +18,7 @@ import Decimal from 'decimal.js';
 import { toast } from 'sonner';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { getLocalMonthString } from '@/lib/utils/local-date';
 import { Info, Star, ExternalLink, CreditCard, FolderPlus, X, Plus, Download } from 'lucide-react';
 import Link from 'next/link';
 import { BudgetTemplateSelector } from './budget-template-selector';
@@ -498,7 +499,7 @@ export function BudgetManagerModal({
 
     for (let i = -24; i <= 12; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      const value = date.toISOString().slice(0, 7);
+      const value = getLocalMonthString(date);
       const label = date.toLocaleDateString('en-US', {
         month: 'long',
         year: 'numeric',

@@ -1,7 +1,13 @@
 import { and, eq, gte, lte, desc, inArray, type SQL } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories, accounts } from '@/lib/db/schema';
+import {
+  getMonthRangeForDate,
+  getYearRangeForDate,
+  toLocalDateString,
+} from '@/lib/utils/local-date';
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 /**
  * Utility functions for generating reports
@@ -21,8 +27,54 @@ export interface TransactionData {
   merchantId: string | null;
   date: string;
   amount: number;
+  amountCents?: number | string | bigint | null;
   description: string;
   type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+}
+
+function asCents(value: number | string | bigint | null | undefined): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  const parsed = typeof value === 'bigint' ? Number(value) : Number(value);
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  return Math.trunc(parsed);
+}
+
+export function getTransactionAmountCents(
+  txn: Pick<TransactionData, 'amount' | 'amountCents'>
+): number {
+  const cents = asCents(txn.amountCents);
+  if (cents !== null) {
+    return cents;
+  }
+  return toMoneyCents(txn.amount) ?? 0;
+}
+
+export function getTransactionAmountValue(
+  txn: Pick<TransactionData, 'amount' | 'amountCents'>
+): number {
+  return new Decimal(getTransactionAmountCents(txn)).div(100).toNumber();
+}
+
+export function getAccountBalanceCents(account: {
+  currentBalance: number | null;
+  currentBalanceCents?: number | string | bigint | null;
+}): number {
+  const cents = asCents(account.currentBalanceCents);
+  if (cents !== null) {
+    return cents;
+  }
+  return toMoneyCents(account.currentBalance) ?? 0;
+}
+
+export function getAccountBalanceValue(account: {
+  currentBalance: number | null;
+  currentBalanceCents?: number | string | bigint | null;
+}): number {
+  return new Decimal(getAccountBalanceCents(account)).div(100).toNumber();
 }
 
 /**
@@ -74,10 +126,7 @@ export async function getTransactionsByDateRange(
  */
 export function getCurrentMonthRange(): DateRange {
   const now = new Date();
-  const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-  const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-
-  return { startDate, endDate };
+  return getMonthRangeForDate(now);
 }
 
 /**
@@ -85,10 +134,7 @@ export function getCurrentMonthRange(): DateRange {
  */
 export function getCurrentYearRange(): DateRange {
   const now = new Date();
-  const startDate = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
-  const endDate = new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0];
-
-  return { startDate, endDate };
+  return getYearRangeForDate(now);
 }
 
 /**
@@ -100,10 +146,7 @@ export function getLast12MonthsRanges(): DateRange[] {
 
   for (let i = 11; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const startDate = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
-    const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
-
-    ranges.push({ startDate, endDate });
+    ranges.push(getMonthRangeForDate(date));
   }
 
   return ranges;
@@ -133,21 +176,21 @@ export function calculateDateRange(
 
   if (period === 'month') {
     // Current month
-    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const monthRange = getMonthRangeForDate(now);
+    return monthRange;
   } else if (period === 'year') {
     // Current year
-    startDate = new Date(now.getFullYear(), 0, 1);
-    endDate = new Date(now.getFullYear(), 11, 31);
+    const yearRange = getYearRangeForDate(now);
+    return yearRange;
   } else {
     // Default: last 12 months
-    endDate = new Date();
+    endDate = new Date(now);
     startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 11, 1);
   }
 
   return {
-    startDate: startDate.toISOString().split('T')[0],
-    endDate: endDate.toISOString().split('T')[0],
+    startDate: toLocalDateString(startDate),
+    endDate: toLocalDateString(endDate),
   };
 }
 
@@ -191,20 +234,15 @@ export function groupByMerchant(txns: TransactionData[]): Map<string, Transactio
  * Calculate sum of amounts using Decimal for precision
  */
 export function calculateSum(txns: TransactionData[]): number {
-  let sum = new Decimal(0);
-
-  txns.forEach((txn) => {
-    sum = sum.plus(new Decimal(txn.amount));
-  });
-
-  return sum.toNumber();
+  const totalCents = txns.reduce((sum, txn) => sum + getTransactionAmountCents(txn), 0);
+  return new Decimal(totalCents).div(100).toNumber();
 }
 
 /**
  * Calculate sum by type
  */
 export function calculateByType(txns: TransactionData[]): Record<string, number> {
-  const result: Record<string, number> = {
+  const resultCents: Record<string, number> = {
     income: 0,
     expense: 0,
     transfer_in: 0,
@@ -212,10 +250,15 @@ export function calculateByType(txns: TransactionData[]): Record<string, number>
   };
 
   txns.forEach((txn) => {
-    result[txn.type] = (result[txn.type] || 0) + txn.amount;
+    resultCents[txn.type] = (resultCents[txn.type] || 0) + getTransactionAmountCents(txn);
   });
 
-  return result;
+  return {
+    income: new Decimal(resultCents.income).div(100).toNumber(),
+    expense: new Decimal(resultCents.expense).div(100).toNumber(),
+    transfer_in: new Decimal(resultCents.transfer_in).div(100).toNumber(),
+    transfer_out: new Decimal(resultCents.transfer_out).div(100).toNumber(),
+  };
 }
 
 /**
@@ -289,11 +332,6 @@ export async function calculateNetWorth(userId: string, householdId: string): Pr
       )
     );
 
-  let total = new Decimal(0);
-
-  result.forEach((account) => {
-    total = total.plus(new Decimal(account.currentBalance || 0));
-  });
-
-  return total.toNumber();
+  const totalCents = result.reduce((sum, account) => sum + getAccountBalanceCents(account), 0);
+  return new Decimal(totalCents).div(100).toNumber();
 }

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import {
   getTransactionsByDateRange,
   getCurrentMonthRange,
   getCurrentYearRange,
   getTopMerchants,
+  calculateSum,
 } from '@/lib/reports/report-utils';
 import { db } from '@/lib/db';
 import { merchants } from '@/lib/db/schema';
@@ -61,8 +63,8 @@ export async function GET(request: NextRequest) {
       const endDate = new Date();
       const startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 11, 1);
       range = {
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0],
+        startDate: toLocalDateString(startDate),
+        endDate: toLocalDateString(endDate),
       };
     } else {
       range = getCurrentMonthRange();
@@ -132,7 +134,7 @@ export async function GET(request: NextRequest) {
     const merchantMap = new Map(merchantRecords.map((m) => [m.id, m.name]));
 
     // Calculate statistics
-    const totalSpending = expenses.reduce((sum, t) => sum + t.amount, 0);
+    const totalSpending = Math.abs(calculateSum(expenses));
     const averageTransaction = expenses.length > 0 ? totalSpending / expenses.length : 0;
 
     // Convert to display format

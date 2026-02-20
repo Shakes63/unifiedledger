@@ -186,13 +186,15 @@ describe('Integration: Household Data Isolation (API)', () => {
 
     const resA = await GET(req('http://localhost/api/transactions?limit=100&offset=0', undefined, hhA) as any);
     expect(resA.status).toBe(200);
-    const dataA = (await resA.json()) as any[];
+    const payloadA = await resA.json() as { data?: any[] } | any[];
+    const dataA = Array.isArray(payloadA) ? payloadA : (payloadA.data || []);
     expect(dataA.map(t => t.id)).toContain(txA);
     expect(dataA.map(t => t.id)).not.toContain(txB);
 
     const resB = await GET(req('http://localhost/api/transactions?limit=100&offset=0', undefined, hhB) as any);
     expect(resB.status).toBe(200);
-    const dataB = (await resB.json()) as any[];
+    const payloadB = await resB.json() as { data?: any[] } | any[];
+    const dataB = Array.isArray(payloadB) ? payloadB : (payloadB.data || []);
     expect(dataB.map(t => t.id)).toContain(txB);
     expect(dataB.map(t => t.id)).not.toContain(txA);
   });

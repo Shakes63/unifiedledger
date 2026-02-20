@@ -73,7 +73,7 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
                 Welcome to the Team!
               </h3>
               <p className="text-muted-foreground">
-                You've successfully joined the household. You can now view shared accounts, 
+                You&apos;ve successfully joined the household. You can now view shared accounts, 
                 transactions, and collaborate on budgets and goals.
               </p>
             </>
@@ -83,7 +83,7 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
                 Welcome to Unified Ledger!
               </h3>
               <p className="text-muted-foreground">
-                You've chosen to start fresh. Create your first account and begin tracking your finances right away.
+                You&apos;ve chosen to start fresh. Create your first account and begin tracking your finances right away.
               </p>
             </>
           ) : (
@@ -92,7 +92,7 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
                 Welcome to Unified Ledger!
               </h3>
               <p className="text-muted-foreground">
-                You've set up the basics. Now you can start tracking your finances, managing budgets,
+                You&apos;ve set up the basics. Now you can start tracking your finances, managing budgets,
                 and achieving your financial goals.
               </p>
             </>
@@ -163,4 +163,3 @@ export function CompleteStep({ onComplete, onPrevious, isLoading, demoDataCleare
     </OnboardingStep>
   );
 }
-

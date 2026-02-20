@@ -1,6 +1,7 @@
 /**
  * Utilities for exporting report data to various formats
  */
+import { getTodayLocalDateString } from '@/lib/utils/local-date';
 
 /**
  * Export data to CSV format
@@ -96,7 +97,7 @@ export async function exportTableToCSV(
  * Format date for export filename
  */
 export function getExportFilename(reportName: string, format: string = 'csv'): string {
-  const date = new Date().toISOString().split('T')[0];
+  const date = getTodayLocalDateString();
   return `${reportName}_${date}.${format}`;
 }
 

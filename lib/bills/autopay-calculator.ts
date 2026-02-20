@@ -9,6 +9,7 @@
  */
 
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export type AutopayAmountType = 'fixed' | 'minimum_payment' | 'statement_balance' | 'full_balance';
 
@@ -32,13 +33,16 @@ export interface BillForAutopay {
 
 export interface LinkedAccountData {
   currentBalance: number | null;
+  currentBalanceCents?: number | null;
   statementBalance: number | null;
   minimumPaymentAmount: number | null;
   creditLimit: number | null;
+  creditLimitCents?: number | null;
 }
 
 export interface PayingAccountData {
   currentBalance: number | null;
+  currentBalanceCents?: number | null;
   type: string;
 }
 
@@ -63,7 +67,9 @@ export function calculateAutopayAmount(
   linkedAccount: LinkedAccountData | null,
   payingAccount: PayingAccountData
 ): AutopayAmountResult {
-  const payingAccountBalance = new Decimal(payingAccount.currentBalance || 0);
+  const payingAccountBalance = new Decimal(
+    payingAccount.currentBalanceCents ?? toMoneyCents(payingAccount.currentBalance) ?? 0
+  ).div(100);
   
   // Calculate remaining amount if partially paid
   const remainingToPay = instance.remainingAmount !== null 
@@ -115,20 +121,24 @@ export function calculateAutopayAmount(
 
     case 'full_balance':
       // For linked credit accounts, pay the full current balance
-      if (linkedAccount?.currentBalance !== null && linkedAccount?.currentBalance !== undefined) {
-        // Credit card balances are negative in our schema (debt)
-        // Use absolute value to get the amount owed
-        amount = Math.abs(linkedAccount.currentBalance);
-        amountSource = 'Full Balance';
-        
-        // Minimum required is still the minimum payment
-        if (linkedAccount.minimumPaymentAmount !== null && linkedAccount.minimumPaymentAmount !== undefined) {
-          minimumRequired = linkedAccount.minimumPaymentAmount;
+      {
+        const linkedBalanceCents =
+          linkedAccount?.currentBalanceCents ?? toMoneyCents(linkedAccount?.currentBalance);
+        if (linkedBalanceCents !== null && linkedBalanceCents !== undefined) {
+          // Credit card balances are negative in our schema (debt)
+          // Use absolute value to get the amount owed
+          amount = Math.abs(linkedBalanceCents) / 100;
+          amountSource = 'Full Balance';
+
+          // Minimum required is still the minimum payment
+          if (linkedAccount?.minimumPaymentAmount !== null && linkedAccount?.minimumPaymentAmount !== undefined) {
+            minimumRequired = linkedAccount.minimumPaymentAmount;
+          }
+        } else {
+          // Fall back to expected amount
+          amount = remainingToPay;
+          amountSource = 'Full Balance (Expected)';
         }
-      } else {
-        // Fall back to expected amount
-        amount = remainingToPay;
-        amountSource = 'Full Balance (Expected)';
       }
       break;
 
@@ -233,4 +243,3 @@ export function validateAutopayConfiguration(
 
   return null;
 }
-

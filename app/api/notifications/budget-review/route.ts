@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { NextResponse } from 'next/server';
 import { generateMonthlyBudgetReview } from '@/lib/notifications/budget-review';
+import { getLocalMonthString } from '@/lib/utils/local-date';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,12 +36,12 @@ export async function POST(request: Request) {
       // Default to last month
       const now = new Date();
       const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      month = lastMonth.toISOString().slice(0, 7);
+      month = getLocalMonthString(lastMonth);
     }
 
     // Validate month is not in the future
     const now = new Date();
-    const currentMonth = now.toISOString().slice(0, 7);
+    const currentMonth = getLocalMonthString(now);
     if (month > currentMonth) {
       return NextResponse.json(
         { error: 'Cannot generate budget review for future months' },

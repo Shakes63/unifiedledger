@@ -2,7 +2,8 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories, bills, billInstances } from '@/lib/db/schema';
-import { eq, and, gte, lte, sum } from 'drizzle-orm';
+import { getMonthRangeForYearMonth } from '@/lib/utils/local-date';
+import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
@@ -89,8 +90,7 @@ export async function GET(request: Request) {
     }
 
     // Calculate month start and end dates
-    const monthStart = new Date(year, month - 1, 1).toISOString().split('T')[0];
-    const monthEnd = new Date(year, month, 0).toISOString().split('T')[0];
+    const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForYearMonth(year, month);
     const daysInMonth = new Date(year, month, 0).getDate();
 
     // Calculate days elapsed and remaining
@@ -145,7 +145,7 @@ export async function GET(request: Request) {
 
       // Get actual spending/income for this category in this month
       const spendingResult = await db
-        .select({ total: sum(transactions.amount) })
+        .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
         .from(transactions)
         .where(
           and(
@@ -158,9 +158,7 @@ export async function GET(request: Request) {
           )
         );
 
-      const actualSpent = spendingResult[0]?.total
-        ? new Decimal(spendingResult[0].total.toString()).toNumber()
-        : 0;
+      const actualSpent = new Decimal(spendingResult[0]?.totalCents ?? 0).div(100).toNumber();
 
       // Use effective budget for remaining calculation when rollover is enabled
       const budgetForCalculation = rolloverEnabled && category.type === 'expense' ? effectiveBudget : monthlyBudget;

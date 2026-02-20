@@ -1,4 +1,5 @@
 import { distance } from 'fastest-levenshtein';
+import Decimal from 'decimal.js';
 
 /**
  * Transaction data structure for bill matching
@@ -104,9 +105,12 @@ function checkAmountMatch(
   tolerance: number | null
 ): boolean {
   const tol = tolerance || 5.0; // Default 5% tolerance
-  const variance =
-    (Math.abs(transactionAmount - billExpectedAmount) / billExpectedAmount) *
-    100;
+  const variance = new Decimal(transactionAmount)
+    .minus(billExpectedAmount)
+    .abs()
+    .dividedBy(billExpectedAmount)
+    .times(100)
+    .toNumber();
   return variance <= tol;
 }
 

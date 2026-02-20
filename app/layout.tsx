@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
 import { NavigationProvider } from "@/context/navigation-context";
 import { PerformanceProvider } from "@/components/providers/performance-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -10,20 +9,6 @@ import { TestModeInitializer } from "@/components/dev/test-mode-initializer";
 import { DEFAULT_THEME_ID } from "@/lib/themes/theme-config";
 import { Toaster } from "sonner";
 import "./globals.css";
-
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  display: "swap",
-  preload: true,
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-  display: "swap",
-  preload: false, // Only preload the primary font, load mono on demand
-});
 
 export const metadata: Metadata = {
   title: "Unified Ledger | Personal Finance Management",
@@ -80,7 +65,7 @@ export default function RootLayout({
             <meta name="theme-color" content="#0a0a0a" />
           </head>
           <body
-            className={`${inter.variable} ${jetbrainsMono.variable} antialiased text-white overflow-x-hidden w-full`}
+            className="antialiased text-white overflow-x-hidden w-full"
             style={{ maxWidth: '100vw', position: 'relative' }}
           >
             <ThemeProvider>

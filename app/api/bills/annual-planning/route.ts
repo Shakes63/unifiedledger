@@ -11,6 +11,7 @@ import { bills, billInstances } from '@/lib/db/schema';
 import { eq, and, gte, lte, inArray } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
+import { toLocalDateString } from '@/lib/utils/local-date';
 
 export const dynamic = 'force-dynamic';
 
@@ -205,7 +206,7 @@ export async function GET(request: Request) {
 
     // Find the next due bill
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = toLocalDateString(today);
     
     const upcomingInstances = yearInstances
       .filter(i => i.status === 'pending' && i.dueDate >= todayStr)
@@ -256,4 +257,3 @@ function createEmptyMonthlySummary(): MonthlySummary {
     overdueCount: 0,
   };
 }
-

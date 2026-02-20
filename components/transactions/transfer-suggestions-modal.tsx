@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRightLeft, Check, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface _MatchScore {
   amountScore: number;
@@ -71,20 +72,15 @@ export function TransferSuggestionsModal({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { fetchWithHousehold, postWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [suggestions, setSuggestions] = useState<TransferSuggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (open) {
-      fetchSuggestions();
-    }
-  }, [open]);
-
-  const fetchSuggestions = async () => {
+  const fetchSuggestions = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/transfer-suggestions?status=pending&limit=20', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/transfer-suggestions?status=pending&limit=20');
       if (!response.ok) throw new Error('Failed to fetch suggestions');
 
       const data = await response.json();
@@ -95,12 +91,18 @@ export function TransferSuggestionsModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchWithHousehold]);
+
+  useEffect(() => {
+    if (open && selectedHouseholdId) {
+      fetchSuggestions();
+    }
+  }, [open, selectedHouseholdId, fetchSuggestions]);
 
   const handleAccept = async (suggestionId: string) => {
     setProcessingId(suggestionId);
     try {
-      const response = await fetch(`/api/transfer-suggestions/${suggestionId}/accept`, { credentials: 'include', method: 'POST', });
+      const response = await postWithHousehold(`/api/transfer-suggestions/${suggestionId}/accept`, {});
 
       if (!response.ok) {
         const error = await response.json();
@@ -121,7 +123,7 @@ export function TransferSuggestionsModal({
   const handleReject = async (suggestionId: string) => {
     setProcessingId(suggestionId);
     try {
-      const response = await fetch(`/api/transfer-suggestions/${suggestionId}/reject`, { credentials: 'include', method: 'POST', });
+      const response = await postWithHousehold(`/api/transfer-suggestions/${suggestionId}/reject`, {});
 
       if (!response.ok) {
         const error = await response.json();

@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
+import { getMonthRangeForYearMonth } from '@/lib/utils/local-date';
 import {
   accounts,
   bills,
@@ -9,6 +10,7 @@ import {
 } from '@/lib/db/schema';
 import { eq, and, inArray, gte, lte } from 'drizzle-orm';
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 // Types for the unified debt budget response
 interface UnifiedDebtItem {
@@ -51,6 +53,24 @@ interface UnifiedDebtBudgetResponse {
   debtCount: number;
 }
 
+function centsToAmount(cents: number): number {
+  return new Decimal(cents).div(100).toNumber();
+}
+
+function getAccountBalanceAmount(account: {
+  currentBalance: number | null;
+  currentBalanceCents: number | null;
+}): number {
+  return centsToAmount(Math.abs(account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0));
+}
+
+function getTransactionAmountAmount(transaction: {
+  amount: number;
+  amountCents: number | null;
+}): number {
+  return centsToAmount(transaction.amountCents ?? toMoneyCents(transaction.amount) ?? 0);
+}
+
 export async function GET(request: Request): Promise<Response> {
   try {
     const { userId } = await requireAuth();
@@ -74,8 +94,7 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     // Calculate month start and end dates
-    const monthStart = new Date(year, month - 1, 1).toISOString().split('T')[0];
-    const monthEnd = new Date(year, month, 0).toISOString().split('T')[0];
+    const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForYearMonth(year, month);
 
     // Fetch household settings
     const settings = await db
@@ -143,7 +162,7 @@ export async function GET(request: Request): Promise<Response> {
         const current = paymentMap.get(payment.accountId) ?? 0;
         paymentMap.set(
           payment.accountId,
-          new Decimal(current).plus(payment.amount).toNumber()
+          new Decimal(current).plus(getTransactionAmountAmount(payment)).toNumber()
         );
       }
     }
@@ -179,7 +198,7 @@ export async function GET(request: Request): Promise<Response> {
             const current = paymentMap.get(bill.id) ?? 0;
             paymentMap.set(
               bill.id,
-              new Decimal(current).plus(payment.amount).toNumber()
+              new Decimal(current).plus(getTransactionAmountAmount(payment)).toNumber()
             );
             break;
           }
@@ -192,7 +211,7 @@ export async function GET(request: Request): Promise<Response> {
 
     // Process credit accounts
     for (const account of creditAccounts) {
-      const balance = Math.abs(account.currentBalance ?? 0);
+      const balance = getAccountBalanceAmount(account);
       const minimumPayment = account.minimumPaymentAmount ?? 0;
       const budgetedPayment = account.budgetedMonthlyPayment;
       const actualPaid = paymentMap.get(account.id) ?? 0;
@@ -333,4 +352,3 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
 }
-

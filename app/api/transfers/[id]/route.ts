@@ -3,7 +3,18 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transfers, accounts, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import Decimal from 'decimal.js';
+import { handleRouteError } from '@/lib/api/route-helpers';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
+import {
+  getAccountBalanceCents,
+  getTransferAmountCents,
+  getTransferFeesCents,
+  updateScopedAccountBalance,
+} from '@/lib/transactions/money-movement-service';
+import {
+  deleteCanonicalTransferPairByTransactionId,
+  updateCanonicalTransferPairByTransactionId,
+} from '@/lib/transactions/transfer-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +37,8 @@ export async function GET(
       .where(
         and(
           eq(transfers.id, id),
-          eq(transfers.userId, userId)
+          eq(transfers.userId, userId),
+          eq(transfers.householdId, householdId)
         )
       )
       .limit(1);
@@ -77,14 +89,10 @@ export async function GET(
       toAccountName: toAccount[0]?.name,
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    console.error('Error fetching transfer:', error);
-    return Response.json(
-      { error: 'Failed to fetch transfer' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Failed to fetch transfer',
+      logLabel: 'Error fetching transfer:',
+    });
   }
 }
 
@@ -108,7 +116,8 @@ export async function PUT(
       .where(
         and(
           eq(transfers.id, id),
-          eq(transfers.userId, userId)
+          eq(transfers.userId, userId),
+          eq(transfers.householdId, householdId)
         )
       )
       .limit(1);
@@ -120,40 +129,7 @@ export async function PUT(
       );
     }
 
-    const [fromAccount, toAccount] = await Promise.all([
-      db
-        .select()
-        .from(accounts)
-        .where(
-          and(
-            eq(accounts.id, transfer[0].fromAccountId),
-            eq(accounts.userId, userId),
-            eq(accounts.householdId, householdId)
-          )
-        )
-        .limit(1),
-      db
-        .select()
-        .from(accounts)
-        .where(
-          and(
-            eq(accounts.id, transfer[0].toAccountId),
-            eq(accounts.userId, userId),
-            eq(accounts.householdId, householdId)
-          )
-        )
-        .limit(1),
-    ]);
-
-    if (fromAccount.length === 0 || toAccount.length === 0) {
-      return Response.json(
-        { error: 'Transfer not found' },
-        { status: 404 }
-      );
-    }
-
     // Only allow updating metadata like description and notes
-    // Amount, accounts, and date cannot be changed
     const body = await request.json();
     const { description, notes } = body;
 
@@ -168,23 +144,56 @@ export async function PUT(
       );
     }
 
-    await db
-      .update(transfers)
-      .set(updateData)
-      .where(and(eq(transfers.id, id), eq(transfers.userId, userId)));
+    const transferData = transfer[0];
+    const canonicalAnchorTransactionId = transferData.fromTransactionId || transferData.toTransactionId;
+
+    if (canonicalAnchorTransactionId) {
+      try {
+        await updateCanonicalTransferPairByTransactionId({
+          userId,
+          householdId,
+          transactionId: canonicalAnchorTransactionId,
+          description,
+          notes,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        if (!message.includes('not found')) {
+          throw error;
+        }
+
+        await db
+          .update(transfers)
+          .set(updateData)
+          .where(
+            and(
+              eq(transfers.id, id),
+              eq(transfers.userId, userId),
+              eq(transfers.householdId, householdId)
+            )
+          );
+      }
+    } else {
+      await db
+        .update(transfers)
+        .set(updateData)
+        .where(
+          and(
+            eq(transfers.id, id),
+            eq(transfers.userId, userId),
+            eq(transfers.householdId, householdId)
+          )
+        );
+    }
 
     return Response.json({
       message: 'Transfer updated successfully',
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    console.error('Error updating transfer:', error);
-    return Response.json(
-      { error: 'Failed to update transfer' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Failed to update transfer',
+      logLabel: 'Error updating transfer:',
+    });
   }
 }
 
@@ -208,7 +217,8 @@ export async function DELETE(
       .where(
         and(
           eq(transfers.id, id),
-          eq(transfers.userId, userId)
+          eq(transfers.userId, userId),
+          eq(transfers.householdId, householdId)
         )
       )
       .limit(1);
@@ -221,13 +231,39 @@ export async function DELETE(
     }
 
     const transferData = transfer[0];
+    const canonicalAnchorTransactionId = transferData.fromTransactionId || transferData.toTransactionId;
+
+    if (canonicalAnchorTransactionId) {
+      try {
+        await deleteCanonicalTransferPairByTransactionId({
+          userId,
+          householdId,
+          transactionId: canonicalAnchorTransactionId,
+        });
+
+        return Response.json({
+          message: 'Transfer deleted successfully',
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '';
+        if (!message.includes('not found')) {
+          throw error;
+        }
+      }
+    }
 
     // Start transaction to delete transfer and revert balances
-    await db.transaction(async (tx) => {
+    await runInDatabaseTransaction(async (tx) => {
       // Delete the transfer
       await tx
         .delete(transfers)
-        .where(and(eq(transfers.id, id), eq(transfers.userId, userId)));
+        .where(
+          and(
+            eq(transfers.id, id),
+            eq(transfers.userId, userId),
+            eq(transfers.householdId, householdId)
+          )
+        );
 
       // Delete associated transactions if they exist
       if (transferData.fromTransactionId) {
@@ -281,56 +317,29 @@ export async function DELETE(
       ]);
 
       if (fromAccount.length > 0) {
-        const transferAmount = new Decimal(
-          transferData.amount || 0
-        );
-        const transferFees = new Decimal(
-          transferData.fees || 0
-        );
-        const totalDebit = transferAmount.plus(transferFees);
+        const transferAmountCents = getTransferAmountCents(transferData);
+        const transferFeesCents = getTransferFeesCents(transferData);
+        const totalDebitCents = transferAmountCents + transferFeesCents;
+        const newFromBalanceCents = getAccountBalanceCents(fromAccount[0]) + totalDebitCents;
 
-        const newFromBalance = new Decimal(
-          fromAccount[0].currentBalance || 0
-        ).plus(totalDebit);
-
-        await tx
-          .update(accounts)
-          .set({
-            currentBalance: parseFloat(
-              newFromBalance.toString()
-            ),
-          })
-          .where(
-            and(
-              eq(accounts.id, transferData.fromAccountId),
-              eq(accounts.userId, userId),
-              eq(accounts.householdId, householdId)
-            )
-          );
+        await updateScopedAccountBalance(tx, {
+          accountId: transferData.fromAccountId,
+          userId,
+          householdId,
+          balanceCents: newFromBalanceCents,
+        });
       }
 
       if (toAccount.length > 0) {
-        const transferAmount = new Decimal(
-          transferData.amount || 0
-        );
-        const newToBalance = new Decimal(
-          toAccount[0].currentBalance || 0
-        ).minus(transferAmount);
+        const transferAmountCents = getTransferAmountCents(transferData);
+        const newToBalanceCents = getAccountBalanceCents(toAccount[0]) - transferAmountCents;
 
-        await tx
-          .update(accounts)
-          .set({
-            currentBalance: parseFloat(
-              newToBalance.toString()
-            ),
-          })
-          .where(
-            and(
-              eq(accounts.id, transferData.toAccountId),
-              eq(accounts.userId, userId),
-              eq(accounts.householdId, householdId)
-            )
-          );
+        await updateScopedAccountBalance(tx, {
+          accountId: transferData.toAccountId,
+          userId,
+          householdId,
+          balanceCents: newToBalanceCents,
+        });
       }
     });
 
@@ -338,13 +347,9 @@ export async function DELETE(
       message: 'Transfer deleted successfully',
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    console.error('Error deleting transfer:', error);
-    return Response.json(
-      { error: 'Failed to delete transfer' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Failed to delete transfer',
+      logLabel: 'Error deleting transfer:',
+    });
   }
 }

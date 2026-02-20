@@ -3,6 +3,7 @@ import { transactions, accounts, activityLog, householdMembers } from '@/lib/db/
 import { eq, and, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 /**
  * Result of account change operation
@@ -87,8 +88,9 @@ export async function handleAccountChange(
       return { success: true, oldAccountId: transaction.accountId, newAccountId: targetAccountId };
     }
 
-    // 5. Calculate balance adjustments using Decimal.js for precision
-    const amount = new Decimal(transaction.amount);
+    // 5. Calculate balance adjustments using cents precision
+    const amountCents = transaction.amountCents ?? toMoneyCents(transaction.amount) ?? 0;
+    const amount = new Decimal(amountCents).div(100);
     const oldAccountId = transaction.accountId;
     const transactionType = transaction.type;
 
@@ -97,7 +99,15 @@ export async function handleAccountChange(
     }
 
     // 6. Update account balances
-    await updateAccountBalances(userId, householdId, oldAccountId, targetAccountId, transactionType, amount);
+    await updateAccountBalances(
+      userId,
+      householdId,
+      oldAccountId,
+      targetAccountId,
+      transactionType,
+      amount,
+      amountCents
+    );
 
     // 7. Update transaction account
     await db
@@ -151,7 +161,8 @@ async function updateAccountBalances(
   oldAccountId: string,
   newAccountId: string,
   transactionType: string,
-  amount: Decimal
+  amount: Decimal,
+  amountCents: number
 ): Promise<void> {
   const amountStr = amount.toString();
 
@@ -160,7 +171,10 @@ async function updateAccountBalances(
     // Remove income from old account (subtract)
     await db
       .update(accounts)
-      .set({ currentBalance: sql`current_balance - ${amountStr}` })
+      .set({
+        currentBalance: sql`current_balance - ${amountStr}`,
+        currentBalanceCents: sql`current_balance_cents - ${amountCents}`,
+      })
       .where(
         and(
           eq(accounts.id, oldAccountId),
@@ -172,7 +186,10 @@ async function updateAccountBalances(
     // Add back expense to old account (add)
     await db
       .update(accounts)
-      .set({ currentBalance: sql`current_balance + ${amountStr}` })
+      .set({
+        currentBalance: sql`current_balance + ${amountStr}`,
+        currentBalanceCents: sql`current_balance_cents + ${amountCents}`,
+      })
       .where(
         and(
           eq(accounts.id, oldAccountId),
@@ -187,7 +204,10 @@ async function updateAccountBalances(
     // Add income to new account (add)
     await db
       .update(accounts)
-      .set({ currentBalance: sql`current_balance + ${amountStr}` })
+      .set({
+        currentBalance: sql`current_balance + ${amountStr}`,
+        currentBalanceCents: sql`current_balance_cents + ${amountCents}`,
+      })
       .where(
         and(
           eq(accounts.id, newAccountId),
@@ -199,7 +219,10 @@ async function updateAccountBalances(
     // Subtract expense from new account (subtract)
     await db
       .update(accounts)
-      .set({ currentBalance: sql`current_balance - ${amountStr}` })
+      .set({
+        currentBalance: sql`current_balance - ${amountStr}`,
+        currentBalanceCents: sql`current_balance_cents - ${amountCents}`,
+      })
       .where(
         and(
           eq(accounts.id, newAccountId),

@@ -66,6 +66,7 @@ describe('POST /api/transactions/repeat category usage scoping', () => {
           householdId: 'hh_1',
           name: 'Checking',
           currentBalance: 100,
+          currentBalanceCents: 10000,
           usageCount: 0,
         },
       ])

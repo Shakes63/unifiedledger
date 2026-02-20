@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import { TrendingUp, TrendingDown, Minus, Target, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -54,8 +55,8 @@ export function SavingsRateWidget({ targetRate = 20 }: SavingsRateWidgetProps) {
       
       const params = new URLSearchParams();
       params.append('period', 'monthly');
-      params.append('startDate', threeMonthsAgo.toISOString().split('T')[0]);
-      params.append('endDate', now.toISOString().split('T')[0]);
+      params.append('startDate', toLocalDateString(threeMonthsAgo));
+      params.append('endDate', toLocalDateString(now));
 
       const response = await fetchWithHousehold(`/api/reports/savings-rate?${params.toString()}`);
       
@@ -182,4 +183,3 @@ export function SavingsRateWidget({ targetRate = 20 }: SavingsRateWidgetProps) {
     </Card>
   );
 }
-

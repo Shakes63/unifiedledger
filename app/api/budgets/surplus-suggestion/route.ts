@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { debts, debtSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { calculatePayoffStrategy, type DebtInput, type PayoffMethod, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
+import { calculateBudgetSurplusSummary } from '@/lib/budgets/surplus-summary';
 import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
@@ -13,22 +14,7 @@ export async function GET(request: Request) {
     const { userId } = await requireAuth();
     const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // 1. Fetch budget summary
-    const summaryResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/budgets/summary`,
-      {
-        headers: {
-          'x-household-id': householdId,
-          Cookie: `__session=${userId}`, // Pass auth
-        },
-      }
-    );
-
-    if (!summaryResponse.ok) {
-      throw new Error('Failed to fetch budget summary');
-    }
-
-    const summary = await summaryResponse.json();
+    const summary = await calculateBudgetSurplusSummary({ userId, householdId });
 
     // 2. If no surplus or no debts, return no suggestion
     if (!summary.hasSurplus || !summary.hasDebts || summary.availableToApply <= 0) {
@@ -44,13 +30,13 @@ export async function GET(request: Request) {
     }
 
     // 3. Get active debts for calculation
-    // TODO: Add householdId filter when debts table is updated in Phase 3
     const activeDebts = await db
       .select()
       .from(debts)
       .where(
         and(
           eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
           eq(debts.status, 'active')
         )
       );
@@ -67,7 +53,7 @@ export async function GET(request: Request) {
     const settings = await db
       .select()
       .from(debtSettings)
-      .where(eq(debtSettings.userId, userId))
+      .where(and(eq(debtSettings.userId, userId), eq(debtSettings.householdId, householdId)))
       .limit(1);
 
     const preferredMethod = (settings[0]?.preferredMethod || 'avalanche') as PayoffMethod;

@@ -15,6 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Loader2, Calendar, HelpCircle } from 'lucide-react';
 import { useHousehold } from '@/contexts/household-context';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import {
   Tooltip,
   TooltipContent,
@@ -212,7 +213,7 @@ export function FinancialTab() {
         const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
         const nextFriday = new Date(today);
         nextFriday.setDate(today.getDate() + daysUntilFriday);
-        updated.budgetCycleReferenceDate = nextFriday.toISOString().split('T')[0];
+        updated.budgetCycleReferenceDate = toLocalDateString(nextFriday);
       }
     } else if (frequency === 'semi-monthly') {
       if (scheduleSettings.budgetCycleSemiMonthlyDays === '[1, 15]' || !scheduleSettings.budgetCycleSemiMonthlyDays) {

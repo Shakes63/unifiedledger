@@ -9,9 +9,10 @@ import {
   billInstances,
   budgetCategories,
 } from '@/lib/db/schema';
-import { eq, and, gte, lte, inArray, sum, ne } from 'drizzle-orm';
+import { eq, and, gte, lte, inArray, sum, ne, sql } from 'drizzle-orm';
 import { isMemberOfHousehold } from '@/lib/household/permissions';
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 import {
   getCurrentBudgetPeriod,
   getDaysUntilNextPeriod,
@@ -120,6 +121,7 @@ export async function GET(request: NextRequest) {
         id: accounts.id,
         name: accounts.name,
         currentBalance: accounts.currentBalance,
+        currentBalanceCents: accounts.currentBalanceCents,
         type: accounts.type,
       })
       .from(accounts)
@@ -134,12 +136,15 @@ export async function GET(request: NextRequest) {
     const includedAccounts: AccountItem[] = discretionaryAccounts.map((acc) => ({
       id: acc.id,
       name: acc.name,
-      balance: acc.currentBalance || 0,
+      balance: new Decimal(
+        acc.currentBalanceCents ?? toMoneyCents(acc.currentBalance) ?? 0
+      ).div(100).toNumber(),
       type: acc.type,
     }));
 
     const includedBalance = discretionaryAccounts.reduce((sum, acc) => {
-      return new Decimal(sum).plus(new Decimal(acc.currentBalance || 0)).toNumber();
+      const cents = acc.currentBalanceCents ?? toMoneyCents(acc.currentBalance) ?? 0;
+      return new Decimal(sum).plus(new Decimal(cents).div(100)).toNumber();
     }, 0);
 
     // Count excluded accounts
@@ -309,7 +314,7 @@ export async function GET(request: NextRequest) {
 
     // Get actual spending this period (excluding bill payments - those are tracked separately)
     const spendingResult = await db
-      .select({ total: sum(transactions.amount) })
+      .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
       .from(transactions)
       .where(
         and(
@@ -320,9 +325,7 @@ export async function GET(request: NextRequest) {
         )
       );
 
-    const actualSpent = spendingResult[0]?.total
-      ? new Decimal(spendingResult[0].total.toString()).toNumber()
-      : 0;
+    const actualSpent = new Decimal(spendingResult[0]?.totalCents ?? 0).div(100).toNumber();
 
     const budgetRemaining = new Decimal(periodAllocation).minus(actualSpent).toNumber();
     const percentUsed = periodAllocation > 0
@@ -439,4 +442,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

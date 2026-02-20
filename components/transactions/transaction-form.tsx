@@ -44,6 +44,7 @@ import { HapticFeedbackTypes } from '@/hooks/useHapticFeedback';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { Loader2 } from 'lucide-react';
+import { getTodayLocalDateString } from '@/lib/utils/local-date';
 import type { Bill, BillInstance } from '@/lib/types';
 
 type TransactionType = 'income' | 'expense' | 'transfer' | 'bill';
@@ -171,10 +172,9 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [_paymentBillLoading, setPaymentBillLoading] = useState(false);
   const isEditMode = !!transactionId;
 
-  // Helper function to get today's date in YYYY-MM-DD format
+  // Helper function to get today's date in local YYYY-MM-DD format
   const getTodaysDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    return getTodayLocalDateString();
   };
 
   const [formData, setFormData] = useState({
@@ -315,7 +315,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     if (!isEditMode) {
       setFormData((prev) => ({
         ...prev,
-        date: new Date().toISOString().split('T')[0],
+        date: getTodaysDate(),
       }));
     }
   }, [isEditMode]);
@@ -921,7 +921,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             accountId: formData.accountId,
             categoryId: '',
             merchantId: '',
-            date: new Date().toISOString().split('T')[0],
+            date: getTodaysDate(),
             amount: '',
             description: '',
             notes: '',

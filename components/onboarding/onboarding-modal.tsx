@@ -46,14 +46,18 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
   useEffect(() => {
     if (open && !isInvitedUser) {
       const invitedParam = searchParams?.get('invited') === 'true';
-      const token = typeof window !== 'undefined' 
-        ? localStorage.getItem('unified-ledger:invitation-token') 
+      const tokenFromQuery = searchParams?.get('token');
+      const householdIdFromQuery = searchParams?.get('householdId');
+      const tokenFromStorage = typeof window !== 'undefined'
+        ? localStorage.getItem('unified-ledger:invitation-token')
         : null;
-      const householdId = typeof window !== 'undefined'
+      const householdIdFromStorage = typeof window !== 'undefined'
         ? localStorage.getItem('unified-ledger:invitation-household-id')
         : null;
+      const token = tokenFromQuery || tokenFromStorage;
+      const householdId = householdIdFromQuery || householdIdFromStorage;
 
-      if (invitedParam && token && householdId) {
+      if (invitedParam && householdId) {
         setInvitationContext(householdId, token);
       }
     }
@@ -242,4 +246,3 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
     </Dialog>
   );
 }
-

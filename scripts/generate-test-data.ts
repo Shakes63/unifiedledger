@@ -25,6 +25,11 @@ import { eq } from 'drizzle-orm';
 import { db } from '../lib/db';
 import { auth } from '../lib/better-auth';
 import {
+  amountToCents,
+  buildAccountBalanceFields,
+  buildTransactionAmountFields,
+} from '../lib/transactions/money-movement-service';
+import {
   households,
   householdMembers,
   accounts,
@@ -59,7 +64,14 @@ import {
 
 function randomDate(start: Date, end: Date): string {
   const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-  return date.toISOString().split('T')[0];
+  return toLocalDateString(date);
+}
+
+function toLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function randomInt(min: number, max: number): number {
@@ -73,13 +85,13 @@ function randomFloat(min: number, max: number, decimals: number = 2): number {
 function addDays(date: string, days: number): string {
   const d = new Date(date);
   d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
+  return toLocalDateString(d);
 }
 
 function addMonths(date: string, months: number): string {
   const d = new Date(date);
   d.setMonth(d.getMonth() + months);
-  return d.toISOString().split('T')[0];
+  return toLocalDateString(d);
 }
 
 function _getDayOfWeek(date: string): number {
@@ -235,7 +247,9 @@ async function generateTestData() {
       type: acc.type,
       bankName: acc.bankName,
       currentBalance: acc.startingBalance,
+      currentBalanceCents: amountToCents(acc.startingBalance),
       creditLimit: acc.type === 'credit' ? acc.creditLimit : null,
+      creditLimitCents: acc.type === 'credit' ? amountToCents(acc.creditLimit ?? 0) : null,
       color: acc.color,
       icon: acc.icon,
       isActive: true,
@@ -368,7 +382,7 @@ async function generateTestData() {
       categoryId: categoryIds1[txType.category],
       merchantId,
       date,
-      amount: txAmount,
+      ...buildTransactionAmountFields(amountToCents(txAmount)),
       description: `${txType.category}${txType.merchant ? ` - ${txType.merchant}` : ''}`,
       type: txType.type,
       isPending: Math.random() < 0.05,
@@ -404,8 +418,8 @@ async function generateTestData() {
         householdId: household1Id,
         accountId,
         categoryId: categoryIds1[bill.name],
-        date: dueDate.toISOString().split('T')[0],
-        amount: -bill.amount,
+        date: toLocalDateString(dueDate),
+        ...buildTransactionAmountFields(amountToCents(-bill.amount)),
         description: bill.name,
         type: 'expense',
         createdAt: dueDate.toISOString(),
@@ -426,7 +440,7 @@ async function generateTestData() {
     householdId: household1Id,
     accountId: splitAccountId,
     date: randomDate(oneMonthAgo, now),
-    amount: -150.00,
+    ...buildTransactionAmountFields(amountToCents(-150.00)),
     description: 'Split Transaction - Groceries & Gas',
     type: 'expense',
     isSplit: true,
@@ -442,6 +456,7 @@ async function generateTestData() {
       transactionId: splitTxId,
       categoryId: categoryIds1['Groceries'],
       amount: -100.00,
+      amountCents: amountToCents(-100.00),
       percentage: 66.67,
       isPercentage: true,
       description: 'Groceries portion',
@@ -455,6 +470,7 @@ async function generateTestData() {
       transactionId: splitTxId,
       categoryId: categoryIds1['Gas & Fuel'],
       amount: -50.00,
+      amountCents: amountToCents(-50.00),
       percentage: 33.33,
       isPercentage: true,
       description: 'Gas portion',
@@ -482,7 +498,7 @@ async function generateTestData() {
       householdId: household1Id,
       accountId: transferFromAccountId,
       date: randomDate(oneMonthAgo, now),
-      amount: -transferAmount,
+      ...buildTransactionAmountFields(amountToCents(-transferAmount)),
       description: 'Transfer to Emergency Savings',
       type: 'transfer_out',
       transferId,
@@ -495,7 +511,7 @@ async function generateTestData() {
       householdId: household1Id,
       accountId: transferToAccountId,
       date: randomDate(oneMonthAgo, now),
-      amount: transferAmount,
+      ...buildTransactionAmountFields(amountToCents(transferAmount)),
       description: 'Transfer from Primary Checking',
       type: 'transfer_in',
       transferId,
@@ -564,7 +580,7 @@ async function generateTestData() {
         const instanceYear = currentYear + Math.floor(instanceMonth / 12);
         const adjustedMonth = ((instanceMonth % 12) + 12) % 12;
         const dueDate = new Date(instanceYear, adjustedMonth, Math.min(bill.dueDate, new Date(instanceYear, adjustedMonth + 1, 0).getDate()));
-        const dueDateStr = dueDate.toISOString().split('T')[0];
+        const dueDateStr = toLocalDateString(dueDate);
         
         let status: 'overdue' | 'due_this_month' | 'pending';
         if (i < 0) {
@@ -587,7 +603,7 @@ async function generateTestData() {
       for (let i = -2; i <= 2; i++) {
         const dueDate = new Date(nextDueDate);
         dueDate.setDate(nextDueDate.getDate() + (i * 7));
-        const dueDateStr = dueDate.toISOString().split('T')[0];
+        const dueDateStr = toLocalDateString(dueDate);
         
         let status: 'overdue' | 'due_this_month' | 'pending';
         if (dueDate < now) {
@@ -610,7 +626,7 @@ async function generateTestData() {
       for (let i = -1; i <= 2; i++) {
         const dueDate = new Date(nextDueDate);
         dueDate.setDate(nextDueDate.getDate() + (i * 14));
-        const dueDateStr = dueDate.toISOString().split('T')[0];
+        const dueDateStr = toLocalDateString(dueDate);
         
         let status: 'overdue' | 'due_this_month' | 'pending';
         if (dueDate < now) {
@@ -632,7 +648,7 @@ async function generateTestData() {
         const quarterYear = currentYear + Math.floor(quarterMonth / 12);
         const adjustedMonth = ((quarterMonth % 12) + 12) % 12;
         const dueDate = new Date(quarterYear, adjustedMonth, Math.min(bill.dueDate, new Date(quarterYear, adjustedMonth + 1, 0).getDate()));
-        const dueDateStr = dueDate.toISOString().split('T')[0];
+        const dueDateStr = toLocalDateString(dueDate);
         
         let status: 'overdue' | 'due_this_month' | 'pending';
         if (i < 0) {
@@ -650,7 +666,7 @@ async function generateTestData() {
       for (let i = -1; i <= 1; i++) {
         const year = currentYear + i;
         const dueDate = new Date(year, 0, Math.min(bill.dueDate, new Date(year, 1, 0).getDate()));
-        const dueDateStr = dueDate.toISOString().split('T')[0];
+        const dueDateStr = toLocalDateString(dueDate);
         
         let status: 'overdue' | 'due_this_month' | 'pending';
         if (i < 0) {
@@ -694,7 +710,7 @@ async function generateTestData() {
           accountId,
           categoryId: categoryIds1[bill.name] || categoryIds1['Mortgage'],
           date: addDays(instance.dueDate, randomInt(0, 5)), // Paid 0-5 days after due date
-          amount: -instance.amount,
+          ...buildTransactionAmountFields(amountToCents(-instance.amount)),
           description: bill.name,
           type: 'expense',
           createdAt: instance.dueDate,
@@ -775,7 +791,7 @@ async function generateTestData() {
       interestRate: 18.99,
       interestType: 'variable' as const,
       type: 'credit_card' as const,
-      startDate: sixMonthsAgo.toISOString().split('T')[0],
+      startDate: toLocalDateString(sixMonthsAgo),
     },
     {
       name: 'Car Loan',
@@ -786,7 +802,7 @@ async function generateTestData() {
       interestRate: 4.5,
       interestType: 'fixed' as const,
       type: 'auto_loan' as const,
-      startDate: addMonths(sixMonthsAgo.toISOString().split('T')[0], -12),
+      startDate: addMonths(toLocalDateString(sixMonthsAgo), -12),
     },
   ];
 
@@ -1050,7 +1066,7 @@ async function generateTestData() {
   for (const [_accountName, accountId] of Object.entries(accountIds1)) {
     const finalBalance = accountBalances1[accountId].toNumber();
     await db.update(accounts)
-      .set({ currentBalance: finalBalance, updatedAt: new Date().toISOString() })
+      .set({ ...buildAccountBalanceFields(amountToCents(finalBalance)), updatedAt: new Date().toISOString() })
       .where(eq(accounts.id, accountId));
   }
 
@@ -1126,7 +1142,9 @@ async function generateTestData() {
       type: acc.type,
       bankName: acc.bankName,
       currentBalance: acc.startingBalance,
+      currentBalanceCents: amountToCents(acc.startingBalance),
       creditLimit: acc.type === 'credit' ? acc.creditLimit : null,
+      creditLimitCents: acc.type === 'credit' ? amountToCents(acc.creditLimit ?? 0) : null,
       color: acc.color,
       icon: acc.icon,
       isActive: true,
@@ -1215,7 +1233,7 @@ async function generateTestData() {
       accountId,
       categoryId: categoryIds2[txType.category],
       date,
-      amount: txAmount,
+      ...buildTransactionAmountFields(amountToCents(txAmount)),
       description: `${txType.category}`,
       type: txType.type,
       createdAt: date,
@@ -1270,7 +1288,7 @@ async function generateTestData() {
         const instanceYear = currentYear + Math.floor(instanceMonth / 12);
         const adjustedMonth = ((instanceMonth % 12) + 12) % 12;
         const dueDate = new Date(instanceYear, adjustedMonth, Math.min(bill.dueDate, new Date(instanceYear, adjustedMonth + 1, 0).getDate()));
-        const dueDateStr = dueDate.toISOString().split('T')[0];
+        const dueDateStr = toLocalDateString(dueDate);
         
         let status: 'overdue' | 'due_this_month' | 'pending';
         if (i < 0) {
@@ -1293,7 +1311,7 @@ async function generateTestData() {
       for (let i = -2; i <= 2; i++) {
         const dueDate = new Date(nextDueDate);
         dueDate.setDate(nextDueDate.getDate() + (i * 7));
-        const dueDateStr = dueDate.toISOString().split('T')[0];
+        const dueDateStr = toLocalDateString(dueDate);
         
         let status: 'overdue' | 'due_this_month' | 'pending';
         if (dueDate < now) {
@@ -1316,7 +1334,7 @@ async function generateTestData() {
       for (let i = -1; i <= 2; i++) {
         const dueDate = new Date(nextDueDate);
         dueDate.setDate(nextDueDate.getDate() + (i * 14));
-        const dueDateStr = dueDate.toISOString().split('T')[0];
+        const dueDateStr = toLocalDateString(dueDate);
         
         let status: 'overdue' | 'due_this_month' | 'pending';
         if (dueDate < now) {
@@ -1338,7 +1356,7 @@ async function generateTestData() {
         const quarterYear = currentYear + Math.floor(quarterMonth / 12);
         const adjustedMonth = ((quarterMonth % 12) + 12) % 12;
         const dueDate = new Date(quarterYear, adjustedMonth, Math.min(bill.dueDate, new Date(quarterYear, adjustedMonth + 1, 0).getDate()));
-        const dueDateStr = dueDate.toISOString().split('T')[0];
+        const dueDateStr = toLocalDateString(dueDate);
         
         let status: 'overdue' | 'due_this_month' | 'pending';
         if (i < 0) {
@@ -1382,7 +1400,7 @@ async function generateTestData() {
           accountId,
           categoryId: categoryIds2[bill.name] || categoryIds2['Rent'],
           date: addDays(instance.dueDate, randomInt(0, 5)), // Paid 0-5 days after due date
-          amount: -instance.amount,
+          ...buildTransactionAmountFields(amountToCents(-instance.amount)),
           description: bill.name,
           type: 'expense',
           createdAt: instance.dueDate,
@@ -1444,7 +1462,7 @@ async function generateTestData() {
       interestRate: 22.99,
       interestType: 'variable' as const,
       type: 'credit_card' as const,
-      startDate: threeMonthsAgo.toISOString().split('T')[0],
+      startDate: toLocalDateString(threeMonthsAgo),
     },
   ];
 
@@ -1477,7 +1495,7 @@ async function generateTestData() {
   for (const [_accountName, accountId] of Object.entries(accountIds2)) {
     const finalBalance = accountBalances2[accountId].toNumber();
     await db.update(accounts)
-      .set({ currentBalance: finalBalance, updatedAt: new Date().toISOString() })
+      .set({ ...buildAccountBalanceFields(amountToCents(finalBalance)), updatedAt: new Date().toISOString() })
       .where(eq(accounts.id, accountId));
   }
 
@@ -1510,4 +1528,3 @@ generateTestData()
     console.error('❌ Error generating test data:', error);
     process.exit(1);
   });
-

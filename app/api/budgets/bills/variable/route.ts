@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { bills, billInstances } from '@/lib/db/schema';
+import { getMonthRangeForYearMonth, toLocalDateString } from '@/lib/utils/local-date';
 import { eq, and, gte, lte, desc } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
@@ -186,8 +187,7 @@ export async function GET(request: Request) {
     const monthStr = `${year}-${String(month).padStart(2, '0')}`;
 
     // Calculate date range for current month
-    const monthStart = `${monthStr}-01`;
-    const monthEnd = new Date(year, month, 0).toISOString().split('T')[0];
+    const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForYearMonth(year, month);
 
     // Query variable bills for this user and household
     const billsQuery = db
@@ -246,9 +246,7 @@ export async function GET(request: Request) {
       const currentInstance = currentMonthInstances[0] || null;
 
       // Get last 12 months of bill instances for historical analysis
-      const twelveMonthsAgo = new Date(year, month - 13, 1)
-        .toISOString()
-        .split('T')[0];
+      const twelveMonthsAgo = toLocalDateString(new Date(year, month - 13, 1));
 
       const historicalInstances = await db
         .select()

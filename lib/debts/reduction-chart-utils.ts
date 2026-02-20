@@ -96,20 +96,20 @@ export function aggregateHistoricalBalances(
   return months.map(monthDate => {
     const month = format(monthDate, 'yyyy-MM');
     const byDebt: Record<string, number> = {};
-    let totalBalance = 0;
+    let totalBalance = new Decimal(0);
 
     // Calculate balance for each debt at end of this month
     for (const debt of debts) {
       const balance = calculateBalanceAtDate(debt, endOfMonth(monthDate));
       byDebt[debt.id] = balance;
-      totalBalance += balance;
+      totalBalance = totalBalance.plus(balance);
     }
 
     return {
       month,
       monthDate,
       projectedTotal: 0, // Will be filled by projection
-      actualTotal: totalBalance,
+      actualTotal: totalBalance.toNumber(),
       byDebt,
     };
   });
@@ -200,11 +200,11 @@ export async function generateProjection(
       projections.push({
         month,
         monthDate,
-        totalDebt: Math.round(totalDebt * 100) / 100, // Round to cents
+        totalDebt: new Decimal(totalDebt).toDecimalPlaces(2).toNumber(),
         byDebt: Object.entries(byDebt).reduce(
           (acc, [id, balance]) => ({
             ...acc,
-            [id]: Math.round(balance * 100) / 100,
+            [id]: new Decimal(balance).toDecimalPlaces(2).toNumber(),
           }),
           {} as Record<string, number>
         ),
@@ -328,12 +328,12 @@ export function calculateSummary(
   debts: DebtWithPayments[],
   chartData: ChartDataPoint[]
 ): ChartSummary {
-  const totalOriginalDebt = debts.reduce((sum, d) => sum + d.originalAmount, 0);
-  const totalCurrentDebt = debts.reduce((sum, d) => sum + d.remainingBalance, 0);
-  const totalPaid = totalOriginalDebt - totalCurrentDebt;
-  const percentageComplete = totalOriginalDebt > 0
-    ? (totalPaid / totalOriginalDebt) * 100
-    : 0;
+  const totalOriginalDebt = debts.reduce((sum, d) => sum.plus(d.originalAmount), new Decimal(0));
+  const totalCurrentDebt = debts.reduce((sum, d) => sum.plus(d.remainingBalance), new Decimal(0));
+  const totalPaid = totalOriginalDebt.minus(totalCurrentDebt);
+  const percentageComplete = totalOriginalDebt.gt(0)
+    ? totalPaid.dividedBy(totalOriginalDebt).times(100)
+    : new Decimal(0);
 
   // Find when debts hit zero (from projection)
   let debtFreeDate: string | null = null;
@@ -345,10 +345,10 @@ export function calculateSummary(
   }
 
   return {
-    totalOriginalDebt: Math.round(totalOriginalDebt * 100) / 100,
-    totalCurrentDebt: Math.round(totalCurrentDebt * 100) / 100,
-    totalPaid: Math.round(totalPaid * 100) / 100,
-    percentageComplete: Math.round(percentageComplete * 100) / 100,
+    totalOriginalDebt: totalOriginalDebt.toDecimalPlaces(2).toNumber(),
+    totalCurrentDebt: totalCurrentDebt.toDecimalPlaces(2).toNumber(),
+    totalPaid: totalPaid.toDecimalPlaces(2).toNumber(),
+    percentageComplete: percentageComplete.toDecimalPlaces(2).toNumber(),
     debtFreeDate,
   };
 }

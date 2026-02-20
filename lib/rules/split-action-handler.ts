@@ -4,6 +4,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { validateSplitConfiguration } from '@/lib/transactions/split-calculator';
+import { amountToCents } from '@/lib/transactions/money-movement-service';
 
 /**
  * Split configuration for rule actions
@@ -127,6 +128,7 @@ export async function handleSplitCreation(
         transactionId: transactionId,
         categoryId: split.categoryId,
         amount: amount,
+        amountCents: amountToCents(amount),
         percentage: split.isPercentage ? split.percentage : null,
         isPercentage: split.isPercentage,
         description: split.description || null,

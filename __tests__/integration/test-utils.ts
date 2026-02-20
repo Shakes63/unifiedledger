@@ -23,6 +23,7 @@ import {
   transferSuggestions,
 } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 import type {
   Condition,
   ConditionGroup,
@@ -63,6 +64,7 @@ export interface TestTransaction {
   accountId: string;
   description: string;
   amount: number;
+  amountCents?: number;
   date: string;
   type?: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
   categoryId?: string | null;
@@ -89,11 +91,13 @@ export interface TestAccount {
   type: 'checking' | 'savings' | 'credit_card' | 'credit' | 'investment' | 'cash' | 'other';
   bankName: string;
   currentBalance: number;
+  currentBalanceCents?: number;
   color?: string;
   icon?: string;
   isActive?: boolean;
   isBusinessAccount?: boolean;
   creditLimit?: number | null;
+  creditLimitCents?: number | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -204,7 +208,7 @@ export function createTestTransaction(
   accountId: string,
   overrides?: Partial<TestTransaction>
 ): TestTransaction {
-  return {
+  const baseTransaction: TestTransaction = {
     id: nanoid(),
     userId,
     householdId,
@@ -228,6 +232,11 @@ export function createTestTransaction(
     syncStatus: 'synced',
     ...overrides,
   };
+
+  return {
+    ...baseTransaction,
+    amountCents: overrides?.amountCents ?? toMoneyCents(baseTransaction.amount) ?? 0,
+  };
 }
 
 /**
@@ -241,7 +250,7 @@ export function createTestAccount(
   householdId: string,
   overrides?: Partial<TestAccount>
 ): TestAccount {
-  return {
+  const baseAccount: TestAccount = {
     id: nanoid(),
     userId,
     householdId,
@@ -257,6 +266,14 @@ export function createTestAccount(
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     ...overrides,
+  };
+
+  return {
+    ...baseAccount,
+    currentBalanceCents:
+      overrides?.currentBalanceCents ?? toMoneyCents(baseAccount.currentBalance) ?? 0,
+    creditLimitCents:
+      overrides?.creditLimitCents ?? toMoneyCents(baseAccount.creditLimit ?? null),
   };
 }
 

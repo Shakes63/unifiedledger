@@ -4,7 +4,16 @@ import { db } from '@/lib/db';
 import { transactions, accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import Decimal from 'decimal.js';
+import { handleRouteError } from '@/lib/api/route-helpers';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
+import {
+  getAccountBalanceCents,
+  getTransactionAmountCents,
+  insertTransactionMovement,
+  insertTransferMovement,
+  updateScopedAccountBalance,
+} from '@/lib/transactions/money-movement-service';
+import { linkExistingTransactionsAsCanonicalTransfer } from '@/lib/transactions/transfer-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,15 +24,11 @@ export async function POST(
   try {
     const { userId } = await requireAuth();
     const { id } = await params;
-
     const body = await request.json();
     const { targetAccountId, matchingTransactionId } = body;
 
-    // Get and validate household
     const householdId = getHouseholdIdFromRequest(request, body);
     await requireHouseholdAuth(userId, householdId);
-
-    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
     if (!householdId) {
       return Response.json(
         { error: 'Household ID is required' },
@@ -31,7 +36,6 @@ export async function POST(
       );
     }
 
-    // Validate required fields
     if (!targetAccountId) {
       return Response.json(
         { error: 'Target account ID is required' },
@@ -39,7 +43,6 @@ export async function POST(
       );
     }
 
-    // Get the original transaction (must belong to household)
     const originalTx = await db
       .select()
       .from(transactions)
@@ -60,8 +63,6 @@ export async function POST(
     }
 
     const transaction = originalTx[0];
-
-    // Check if already a transfer
     if (transaction.type === 'transfer_out' || transaction.type === 'transfer_in') {
       return Response.json(
         { error: 'Transaction is already a transfer' },
@@ -69,18 +70,37 @@ export async function POST(
       );
     }
 
-    // Validate target account exists and belongs to household
-    const targetAccountResult = await db
-      .select()
-      .from(accounts)
-      .where(
-        and(
-          eq(accounts.id, targetAccountId),
-          eq(accounts.userId, userId),
-          eq(accounts.householdId, householdId)
+    if (transaction.accountId === targetAccountId) {
+      return Response.json(
+        { error: 'Cannot transfer to the same account' },
+        { status: 400 }
+      );
+    }
+
+    const [targetAccountResult, sourceAccountResult] = await Promise.all([
+      db
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, targetAccountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
         )
-      )
-      .limit(1);
+        .limit(1),
+      db
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, transaction.accountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        )
+        .limit(1),
+    ]);
 
     if (targetAccountResult.length === 0) {
       return Response.json(
@@ -88,16 +108,6 @@ export async function POST(
         { status: 404 }
       );
     }
-
-    const targetAccount = targetAccountResult[0];
-
-    // Get source account
-    const sourceAccountResult = await db
-      .select()
-      .from(accounts)
-      .where(eq(accounts.id, transaction.accountId))
-      .limit(1);
-
     if (sourceAccountResult.length === 0) {
       return Response.json(
         { error: 'Source account not found' },
@@ -105,18 +115,11 @@ export async function POST(
       );
     }
 
+    const targetAccount = targetAccountResult[0];
     const sourceAccount = sourceAccountResult[0];
-    const amount = new Decimal(transaction.amount);
-
-    // Determine conversion direction based on original type
-    // expense: money left the account → transfer_out
-    // income: money entered the account → transfer_in
+    const amountCents = getTransactionAmountCents(transaction);
     const isExpense = transaction.type === 'expense';
 
-    let pairedTransactionId: string;
-    let matchedExistingTransaction = false;
-
-    // Case 1: Matching with an existing transaction
     if (matchingTransactionId) {
       const matchingTx = await db
         .select()
@@ -139,7 +142,6 @@ export async function POST(
 
       const matched = matchingTx[0];
 
-      // Check if matching transaction is already a transfer
       if (matched.type === 'transfer_out' || matched.type === 'transfer_in') {
         return Response.json(
           { error: 'Matching transaction is already a transfer' },
@@ -147,7 +149,6 @@ export async function POST(
         );
       }
 
-      // Validate the matching transaction is on the target account
       if (matched.accountId !== targetAccountId) {
         return Response.json(
           { error: 'Matching transaction must be on the target account' },
@@ -155,16 +156,14 @@ export async function POST(
         );
       }
 
-      // Validate amounts match (allow small tolerance for rounding)
-      const matchedAmount = new Decimal(matched.amount);
-      if (!matchedAmount.minus(amount).abs().lessThan(0.01)) {
+      const matchedAmountCents = getTransactionAmountCents(matched);
+      if (matchedAmountCents !== amountCents) {
         return Response.json(
           { error: 'Transaction amounts do not match' },
           { status: 400 }
         );
       }
 
-      // Validate opposite types (expense matches with income)
       const isMatchedExpense = matched.type === 'expense';
       if (isExpense === isMatchedExpense) {
         return Response.json(
@@ -173,189 +172,199 @@ export async function POST(
         );
       }
 
-      pairedTransactionId = matchingTransactionId;
-      matchedExistingTransaction = true;
+      const result = await linkExistingTransactionsAsCanonicalTransfer({
+        userId,
+        householdId,
+        firstTransactionId: id,
+        secondTransactionId: matchingTransactionId,
+      });
 
-      // Reverse the balance effect of the matched transaction since it will become a transfer
-      // We need to undo its original effect on the target account
-      let targetBalance = new Decimal(targetAccount.currentBalance || 0);
-      if (matched.type === 'expense') {
-        // Was an expense, so balance was decreased. Reverse by adding back.
-        targetBalance = targetBalance.plus(matchedAmount);
-      } else {
-        // Was an income, so balance was increased. Reverse by subtracting.
-        targetBalance = targetBalance.minus(matchedAmount);
-      }
+      return Response.json(
+        {
+          id,
+          pairedTransactionId: matchingTransactionId,
+          transferGroupId: result.transferGroupId,
+          matched: true,
+          message: 'Transaction converted to transfer successfully',
+        },
+        { status: 200 }
+      );
+    }
 
-      await db
-        .update(accounts)
-        .set({ currentBalance: targetBalance.toNumber() })
-        .where(eq(accounts.id, targetAccountId));
+    const transferGroupId = nanoid();
+    const pairedTransactionId = nanoid();
+    const nowIso = new Date().toISOString();
 
-      // Convert matched transaction to appropriate transfer type
+    await runInDatabaseTransaction(async (tx) => {
       if (isExpense) {
-        // Original is expense (transfer_out), matched should be income → transfer_in
-        await db
-          .update(transactions)
-          .set({
-            type: 'transfer_in',
-            transferId: id, // Link to the transfer_out transaction
-            merchantId: transaction.accountId, // Store source account ID for display
-            categoryId: null, // Transfers don't have categories
-            description: `Transfer: ${sourceAccount.name} → ${targetAccount.name}`,
-            updatedAt: new Date().toISOString(),
-          })
-          .where(eq(transactions.id, matchingTransactionId));
-      } else {
-        // Original is income (transfer_in), matched should be expense → transfer_out
-        await db
+        await tx
           .update(transactions)
           .set({
             type: 'transfer_out',
-            transferId: transaction.accountId, // Destination account ID
             categoryId: null,
-            description: `Transfer: ${targetAccount.name} → ${sourceAccount.name}`,
-            updatedAt: new Date().toISOString(),
+            merchantId: null,
+            transferId: transferGroupId,
+            transferGroupId,
+            pairedTransactionId,
+            transferSourceAccountId: transaction.accountId,
+            transferDestinationAccountId: targetAccountId,
+            description: `Transfer: ${sourceAccount.name} -> ${targetAccount.name}`,
+            updatedAt: nowIso,
           })
-          .where(eq(transactions.id, matchingTransactionId));
-      }
-    } else {
-      // Case 2: Create new paired transaction
-      pairedTransactionId = nanoid();
+          .where(eq(transactions.id, id));
 
-      await db.insert(transactions).values({
-        id: pairedTransactionId,
-        userId,
-        householdId: householdId!, // CRITICAL: Same household as original
-        accountId: targetAccountId,
-        categoryId: null, // Transfers don't have categories
-        merchantId: isExpense ? transaction.accountId : null, // For transfer_in, store source account ID
-        date: transaction.date,
-        amount: amount.toNumber(),
-        description: isExpense
-          ? `Transfer: ${sourceAccount.name} → ${targetAccount.name}`
-          : `Transfer: ${targetAccount.name} → ${sourceAccount.name}`,
-        notes: transaction.notes,
-        type: isExpense ? 'transfer_in' : 'transfer_out',
-        transferId: isExpense ? id : transaction.accountId, // transfer_in: paired tx ID, transfer_out: dest account ID
-        isPending: transaction.isPending,
-        offlineId: null,
-        syncStatus: 'synced',
-        syncedAt: new Date().toISOString(),
-        syncAttempts: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    }
-
-    // Reverse the balance effect of the original transaction
-    // We need to undo its effect on the source account since it's changing types
-    let sourceBalance = new Decimal(sourceAccount.currentBalance || 0);
-    if (isExpense) {
-      // Was an expense, balance was decreased. Reverse by adding back.
-      sourceBalance = sourceBalance.plus(amount);
-    } else {
-      // Was an income, balance was increased. Reverse by subtracting.
-      sourceBalance = sourceBalance.minus(amount);
-    }
-
-    await db
-      .update(accounts)
-      .set({ currentBalance: sourceBalance.toNumber() })
-      .where(eq(accounts.id, transaction.accountId));
-
-    // Convert original transaction to appropriate transfer type
-    if (isExpense) {
-      // expense → transfer_out (money leaving source account)
-      await db
-        .update(transactions)
-        .set({
-          type: 'transfer_out',
-          transferId: targetAccountId, // Link metadata (points to destination account)
-          categoryId: null, // Transfers don't have categories
-          description: `Transfer: ${sourceAccount.name} → ${targetAccount.name}`,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(transactions.id, id));
-    } else {
-      // income → transfer_in (money entering source account - from targetAccount)
-      // Store source account ID in merchantId since merchants aren't used for transfers
-      await db
-        .update(transactions)
-        .set({
-          type: 'transfer_in',
-          transferId: pairedTransactionId, // Link to transfer_out transaction
-          merchantId: targetAccountId, // HACK: Store source account ID here for display
+        await insertTransactionMovement(tx, {
+          id: pairedTransactionId,
+          userId,
+          householdId,
+          accountId: targetAccountId,
           categoryId: null,
-          description: `Transfer: ${targetAccount.name} → ${sourceAccount.name}`,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(transactions.id, id));
+          merchantId: null,
+          date: transaction.date,
+          amountCents,
+          description: `Transfer: ${sourceAccount.name} -> ${targetAccount.name}`,
+          notes: transaction.notes,
+          type: 'transfer_in',
+          transferId: transferGroupId,
+          transferGroupId,
+          pairedTransactionId: id,
+          transferSourceAccountId: transaction.accountId,
+          transferDestinationAccountId: targetAccountId,
+          isPending: transaction.isPending,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        });
 
-    }
+        const refreshedTarget = await tx
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.id, targetAccountId),
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId)
+            )
+          )
+          .limit(1);
 
-    // Apply new transfer balance effects
-    // Fetch updated balances
-    const updatedSourceAccount = await db
-      .select()
-      .from(accounts)
-      .where(eq(accounts.id, transaction.accountId))
-      .limit(1);
+        if (refreshedTarget.length > 0) {
+          await updateScopedAccountBalance(tx, {
+            accountId: targetAccountId,
+            userId,
+            householdId,
+            balanceCents: getAccountBalanceCents(refreshedTarget[0]) + amountCents,
+          });
+        }
 
-    const updatedTargetAccount = await db
-      .select()
-      .from(accounts)
-      .where(eq(accounts.id, targetAccountId))
-      .limit(1);
-
-    if (updatedSourceAccount.length > 0 && updatedTargetAccount.length > 0) {
-      let newSourceBalance = new Decimal(updatedSourceAccount[0].currentBalance || 0);
-      let newTargetBalance = new Decimal(updatedTargetAccount[0].currentBalance || 0);
-
-      if (isExpense) {
-        // transfer_out: money leaves source, enters target
-        newSourceBalance = newSourceBalance.minus(amount);
-        newTargetBalance = newTargetBalance.plus(amount);
+        await insertTransferMovement(tx, {
+          id: transferGroupId,
+          userId,
+          householdId,
+          fromAccountId: transaction.accountId,
+          toAccountId: targetAccountId,
+          amountCents,
+          feesCents: 0,
+          description: transaction.description,
+          date: transaction.date,
+          status: 'completed',
+          fromTransactionId: id,
+          toTransactionId: pairedTransactionId,
+          notes: transaction.notes,
+          createdAt: nowIso,
+        });
       } else {
-        // transfer_in: money enters source, leaves target
-        newSourceBalance = newSourceBalance.plus(amount);
-        newTargetBalance = newTargetBalance.minus(amount);
+        await tx
+          .update(transactions)
+          .set({
+            type: 'transfer_in',
+            categoryId: null,
+            merchantId: null,
+            transferId: transferGroupId,
+            transferGroupId,
+            pairedTransactionId,
+            transferSourceAccountId: targetAccountId,
+            transferDestinationAccountId: transaction.accountId,
+            description: `Transfer: ${targetAccount.name} -> ${sourceAccount.name}`,
+            updatedAt: nowIso,
+          })
+          .where(eq(transactions.id, id));
+
+        await insertTransactionMovement(tx, {
+          id: pairedTransactionId,
+          userId,
+          householdId,
+          accountId: targetAccountId,
+          categoryId: null,
+          merchantId: null,
+          date: transaction.date,
+          amountCents,
+          description: `Transfer: ${targetAccount.name} -> ${sourceAccount.name}`,
+          notes: transaction.notes,
+          type: 'transfer_out',
+          transferId: transferGroupId,
+          transferGroupId,
+          pairedTransactionId: id,
+          transferSourceAccountId: targetAccountId,
+          transferDestinationAccountId: transaction.accountId,
+          isPending: transaction.isPending,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        });
+
+        const refreshedTarget = await tx
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.id, targetAccountId),
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId)
+            )
+          )
+          .limit(1);
+
+        if (refreshedTarget.length > 0) {
+          await updateScopedAccountBalance(tx, {
+            accountId: targetAccountId,
+            userId,
+            householdId,
+            balanceCents: getAccountBalanceCents(refreshedTarget[0]) - amountCents,
+          });
+        }
+
+        await insertTransferMovement(tx, {
+          id: transferGroupId,
+          userId,
+          householdId,
+          fromAccountId: targetAccountId,
+          toAccountId: transaction.accountId,
+          amountCents,
+          feesCents: 0,
+          description: transaction.description,
+          date: transaction.date,
+          status: 'completed',
+          fromTransactionId: pairedTransactionId,
+          toTransactionId: id,
+          notes: transaction.notes,
+          createdAt: nowIso,
+        });
       }
-
-      await db
-        .update(accounts)
-        .set({ currentBalance: newSourceBalance.toNumber() })
-        .where(eq(accounts.id, transaction.accountId));
-
-      await db
-        .update(accounts)
-        .set({ currentBalance: newTargetBalance.toNumber() })
-        .where(eq(accounts.id, targetAccountId));
-    }
+    });
 
     return Response.json(
       {
-        id: id,
+        id,
         pairedTransactionId,
-        matched: matchedExistingTransaction,
+        transferGroupId,
+        matched: false,
         message: 'Transaction converted to transfer successfully',
       },
       { status: 200 }
     );
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (error instanceof Error && (
-      error.message.includes('Household') ||
-      error.message.includes('member')
-    )) {
-      return Response.json({ error: error.message }, { status: 403 });
-    }
-    console.error('Convert to transfer error:', error);
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Internal server error',
+      logLabel: 'Convert to transfer error:',
+    });
   }
 }

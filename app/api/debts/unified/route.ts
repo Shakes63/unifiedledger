@@ -4,8 +4,27 @@ import { accounts, bills, debts } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
+
+function toAmount(cents: number): number {
+  return new Decimal(cents).div(100).toNumber();
+}
+
+function getBalanceCents(account: {
+  currentBalance: number | null;
+  currentBalanceCents: number | null;
+}): number {
+  return Math.abs(account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0);
+}
+
+function getCreditLimitCents(account: {
+  creditLimit: number | null;
+  creditLimitCents: number | null;
+}): number {
+  return account.creditLimitCents ?? toMoneyCents(account.creditLimit) ?? 0;
+}
 
 // Types for unified debt response
 interface UnifiedDebt {
@@ -98,12 +117,14 @@ export async function GET(request: Request) {
     // Add credit accounts
     if (!sourceFilter || sourceFilter === 'account') {
       for (const acc of creditAccounts) {
-        const balance = Math.abs(acc.currentBalance || 0);
-        const creditLimit = acc.creditLimit || 0;
-        const utilization = creditLimit > 0 
-          ? new Decimal(balance).div(creditLimit).times(100).toNumber() 
+        const balanceCents = getBalanceCents(acc);
+        const creditLimitCents = getCreditLimitCents(acc);
+        const balance = toAmount(balanceCents);
+        const creditLimit = toAmount(creditLimitCents);
+        const utilization = creditLimitCents > 0
+          ? new Decimal(balanceCents).div(creditLimitCents).times(100).toNumber()
           : 0;
-        const availableCredit = new Decimal(creditLimit).minus(balance).toNumber();
+        const availableCredit = toAmount(creditLimitCents - balanceCents);
 
         // Apply type filter if specified
         if (typeFilter && acc.type !== typeFilter) continue;
@@ -244,4 +265,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

@@ -33,7 +33,7 @@
  * ```
  */
 
-import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { toastErrorWithHelp } from '@/lib/help/toast-with-help';
 import { HELP_SECTIONS } from '@/lib/help/help-sections';
@@ -137,7 +137,7 @@ export function NetworkStatusProvider({
   /**
    * Perform server health check
    */
-  const checkServerHealth = async (): Promise<void> => {
+  const checkServerHealth = useCallback(async (): Promise<void> => {
     // Prevent concurrent health checks
     if (isCheckingRef.current) {
       return;
@@ -212,12 +212,12 @@ export function NetworkStatusProvider({
     } finally {
       isCheckingRef.current = false;
     }
-  };
+  }, [healthCheckEndpoint, isOnline, showNotifications]);
 
   /**
    * Handle browser online event
    */
-  const handleOnline = () => {
+  const handleOnline = useCallback(() => {
     setIsOnline(true);
 
     // Show notification
@@ -230,13 +230,13 @@ export function NetworkStatusProvider({
     }
 
     // Immediately check server health when coming back online
-    checkServerHealth();
-  };
+    void checkServerHealth();
+  }, [checkServerHealth, showNotifications]);
 
   /**
    * Handle browser offline event
    */
-  const handleOffline = () => {
+  const handleOffline = useCallback(() => {
     setIsOnline(false);
     setIsServerAvailable(false);
     setConnectionQuality(ConnectionQuality.UNKNOWN);
@@ -249,14 +249,10 @@ export function NetworkStatusProvider({
       });
       previousOnlineStatusRef.current = false;
     }
-  };
+  }, [showNotifications]);
 
   // Set up online/offline event listeners
   useEffect(() => {
-    // Initial status
-    previousOnlineStatusRef.current = isOnline;
-    previousServerStatusRef.current = isServerAvailable;
-
     // Add event listeners
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -266,17 +262,17 @@ export function NetworkStatusProvider({
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [handleOffline, handleOnline]);
 
   // Set up periodic health checks
   useEffect(() => {
     // Perform initial health check
-    checkServerHealth();
+    void checkServerHealth();
 
     // Set up periodic checks
     if (healthCheckInterval > 0) {
       healthCheckIntervalRef.current = setInterval(() => {
-        checkServerHealth();
+        void checkServerHealth();
       }, healthCheckInterval);
     }
 
@@ -287,14 +283,14 @@ export function NetworkStatusProvider({
         healthCheckIntervalRef.current = null;
       }
     };
-  }, [healthCheckInterval]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [checkServerHealth, healthCheckInterval]);
 
   // Check health when online status changes
   useEffect(() => {
     if (isOnline) {
-      checkServerHealth();
+      void checkServerHealth();
     }
-  }, [isOnline]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [checkServerHealth, isOnline]);
 
   // Overall connection status (both online and server available)
   const isConnected = isOnline && isServerAvailable;

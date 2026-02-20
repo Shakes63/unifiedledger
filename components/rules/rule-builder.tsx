@@ -13,12 +13,13 @@ import {
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Plus, X, AlertCircle, Zap, Tag, Store, FileEdit, FileText, ArrowRightLeft, Settings, Lightbulb, Scissors, DollarSign, Percent, Banknote, Receipt, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, X, AlertCircle, Zap, Tag, Store, FileEdit, FileText, ArrowRightLeft, Settings, Lightbulb, Scissors, DollarSign, Percent, Banknote, Receipt, CheckCircle2, XCircle, Check } from 'lucide-react';
 import { Condition, ConditionGroup, ComparisonOperator, ConditionField } from '@/lib/rules/condition-evaluator';
 import { RuleAction } from '@/lib/rules/types';
 import { nanoid } from 'nanoid';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { toast } from 'sonner';
 
 const FIELDS: { value: ConditionField; label: string }[] = [
   { value: 'description', label: 'Description' },
@@ -322,11 +323,23 @@ export function RuleBuilder({
 
   const [actions, setActions] = useState<RuleAction[]>(initialActions);
   const { selectedHouseholdId } = useHousehold();
-  const { fetchWithHousehold } = useHouseholdFetch();
+  const { fetchWithHousehold, postWithHousehold } = useHouseholdFetch();
   const [categories, setCategories] = useState<Category[]>([]);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+
+  // Inline creation state
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const [categoryCreationActionIndex, setCategoryCreationActionIndex] = useState<number | null>(null);
+  const [categoryCreationSplitIndex, setCategoryCreationSplitIndex] = useState<number | null>(null);
+
+  const [isCreatingMerchant, setIsCreatingMerchant] = useState(false);
+  const [newMerchantName, setNewMerchantName] = useState('');
+  const [creatingMerchant, setCreatingMerchant] = useState(false);
+  const [merchantCreationActionIndex, setMerchantCreationActionIndex] = useState<number | null>(null);
 
   // Fetch categories, merchants, and accounts
   const fetchData = useCallback(async () => {
@@ -444,6 +457,131 @@ export function RuleBuilder({
       updatedActions[actionIndex].config = config;
       handleActionsUpdate(updatedActions);
     }
+  };
+
+  // Inline category creation handler
+  const handleCreateCategory = async (actionIndex: number, splitIndex?: number) => {
+    if (!newCategoryName.trim()) {
+      toast.error('Category name is required');
+      return;
+    }
+
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household first');
+      return;
+    }
+
+    setCreatingCategory(true);
+    try {
+      const response = await postWithHousehold('/api/categories', {
+        name: newCategoryName.trim(),
+        type: 'expense',
+        monthlyBudget: 0,
+      });
+
+      if (response.ok) {
+        const newCategory = await response.json();
+        // Add to categories list
+        setCategories(prev => [...prev, newCategory]);
+
+        // Auto-select the new category in the appropriate place
+        if (splitIndex !== undefined && splitIndex !== null) {
+          // For split category
+          updateSplitField(actionIndex, splitIndex, 'categoryId', newCategory.id);
+        } else {
+          // For set_category action
+          updateAction(actionIndex, { ...actions[actionIndex], value: newCategory.id });
+        }
+
+        // Reset creation UI
+        setNewCategoryName('');
+        setIsCreatingCategory(false);
+        setCategoryCreationActionIndex(null);
+        setCategoryCreationSplitIndex(null);
+        toast.success(`Category "${newCategory.name}" created!`);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || 'Failed to create category');
+      }
+    } catch (error) {
+      console.error('Error creating category:', error);
+      toast.error('Error creating category');
+    } finally {
+      setCreatingCategory(false);
+    }
+  };
+
+  // Inline merchant creation handler
+  const handleCreateMerchant = async (actionIndex: number) => {
+    if (!newMerchantName.trim()) {
+      toast.error('Merchant name is required');
+      return;
+    }
+
+    if (!selectedHouseholdId) {
+      toast.error('Please select a household first');
+      return;
+    }
+
+    setCreatingMerchant(true);
+    try {
+      const response = await postWithHousehold('/api/merchants', {
+        name: newMerchantName.trim(),
+      });
+
+      if (response.ok) {
+        const newMerchant = await response.json();
+        // Add to merchants list
+        setMerchants(prev => [...prev, newMerchant]);
+
+        // Auto-select the new merchant
+        updateAction(actionIndex, { ...actions[actionIndex], value: newMerchant.id });
+
+        // Reset creation UI
+        setNewMerchantName('');
+        setIsCreatingMerchant(false);
+        setMerchantCreationActionIndex(null);
+        toast.success(`Merchant "${newMerchant.name}" created!`);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || 'Failed to create merchant');
+      }
+    } catch (error) {
+      console.error('Error creating merchant:', error);
+      toast.error('Error creating merchant');
+    } finally {
+      setCreatingMerchant(false);
+    }
+  };
+
+  // Start inline category creation
+  const startCategoryCreation = (actionIndex: number, splitIndex?: number) => {
+    setIsCreatingCategory(true);
+    setCategoryCreationActionIndex(actionIndex);
+    setCategoryCreationSplitIndex(splitIndex ?? null);
+    setNewCategoryName('');
+  };
+
+  // Cancel inline category creation
+  const cancelCategoryCreation = () => {
+    setIsCreatingCategory(false);
+    setCategoryCreationActionIndex(null);
+    setCategoryCreationSplitIndex(null);
+    setNewCategoryName('');
+  };
+
+  // Start inline merchant creation
+  const startMerchantCreation = (actionIndex: number) => {
+    setIsCreatingMerchant(true);
+    setMerchantCreationActionIndex(actionIndex);
+    setNewMerchantName('');
+  };
+
+  // Cancel inline merchant creation
+  const cancelMerchantCreation = () => {
+    setIsCreatingMerchant(false);
+    setMerchantCreationActionIndex(null);
+    setNewMerchantName('');
   };
 
   return (
@@ -603,61 +741,169 @@ export function RuleBuilder({
                   {/* Action Configuration */}
                   <div className="flex-1">
                     {action.type === 'set_category' && (
-                      <Select
-                        value={action.value || ''}
-                        onValueChange={(value) => updateAction(index, { ...action, value })}
-                      >
-                        <SelectTrigger className="bg-input border-border text-foreground">
-                          <SelectValue placeholder="Select category">
-                            {action.value && categories.find(c => c.id === action.value)?.name}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {loadingData ? (
-                            <div className="p-2 text-sm text-muted-foreground">Loading...</div>
-                          ) : categories.length > 0 ? (
-                            categories.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>
-                                <div className="flex items-center gap-2">
-                                  <Tag className="w-3 h-3" />
-                                  {category.name}
-                                </div>
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <div className="p-2 text-sm text-muted-foreground">No categories found</div>
-                          )}
-                        </SelectContent>
-                      </Select>
+                      <div className="space-y-2">
+                        {/* Show creation form or select */}
+                        {isCreatingCategory && categoryCreationActionIndex === index && categoryCreationSplitIndex === null ? (
+                          <div className="flex gap-2">
+                            <Input
+                              autoFocus
+                              type="text"
+                              placeholder="New category name..."
+                              value={newCategoryName}
+                              onChange={(e) => setNewCategoryName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleCreateCategory(index);
+                                } else if (e.key === 'Escape') {
+                                  cancelCategoryCreation();
+                                }
+                              }}
+                              className="flex-1 bg-input border-border text-foreground"
+                            />
+                            <Button
+                              type="button"
+                              size="icon"
+                              onClick={() => handleCreateCategory(index)}
+                              disabled={creatingCategory || !newCategoryName.trim()}
+                              className="bg-primary hover:opacity-90 text-primary-foreground"
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={cancelCategoryCreation}
+                              className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Select
+                              value={action.value || ''}
+                              onValueChange={(value) => updateAction(index, { ...action, value })}
+                            >
+                              <SelectTrigger className="flex-1 bg-input border-border text-foreground">
+                                <SelectValue placeholder="Select category">
+                                  {action.value && categories.find(c => c.id === action.value)?.name}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {loadingData ? (
+                                  <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+                                ) : categories.length > 0 ? (
+                                  categories.map((category) => (
+                                    <SelectItem key={category.id} value={category.id}>
+                                      <div className="flex items-center gap-2">
+                                        <Tag className="w-3 h-3" />
+                                        {category.name}
+                                      </div>
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <div className="p-2 text-sm text-muted-foreground">No categories found</div>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => startCategoryCreation(index)}
+                              className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+                              title="Create new category"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     {action.type === 'set_merchant' && (
-                      <Select
-                        value={action.value || ''}
-                        onValueChange={(value) => updateAction(index, { ...action, value })}
-                      >
-                        <SelectTrigger className="bg-input border-border text-foreground">
-                          <SelectValue placeholder="Select merchant">
-                            {action.value && merchants.find(m => m.id === action.value)?.name}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {loadingData ? (
-                            <div className="p-2 text-sm text-muted-foreground">Loading...</div>
-                          ) : merchants.length > 0 ? (
-                            merchants.map((merchant) => (
-                              <SelectItem key={merchant.id} value={merchant.id}>
-                                <div className="flex items-center gap-2">
-                                  <Store className="w-3 h-3" />
-                                  {merchant.name}
-                                </div>
-                              </SelectItem>
-                            ))
-                          ) : (
-                            <div className="p-2 text-sm text-muted-foreground">No merchants found</div>
-                          )}
-                        </SelectContent>
-                      </Select>
+                      <div className="space-y-2">
+                        {/* Show creation form or select */}
+                        {isCreatingMerchant && merchantCreationActionIndex === index ? (
+                          <div className="flex gap-2">
+                            <Input
+                              autoFocus
+                              type="text"
+                              placeholder="New merchant name..."
+                              value={newMerchantName}
+                              onChange={(e) => setNewMerchantName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleCreateMerchant(index);
+                                } else if (e.key === 'Escape') {
+                                  cancelMerchantCreation();
+                                }
+                              }}
+                              className="flex-1 bg-input border-border text-foreground"
+                            />
+                            <Button
+                              type="button"
+                              size="icon"
+                              onClick={() => handleCreateMerchant(index)}
+                              disabled={creatingMerchant || !newMerchantName.trim()}
+                              className="bg-primary hover:opacity-90 text-primary-foreground"
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={cancelMerchantCreation}
+                              className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2">
+                            <Select
+                              value={action.value || ''}
+                              onValueChange={(value) => updateAction(index, { ...action, value })}
+                            >
+                              <SelectTrigger className="flex-1 bg-input border-border text-foreground">
+                                <SelectValue placeholder="Select merchant">
+                                  {action.value && merchants.find(m => m.id === action.value)?.name}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {loadingData ? (
+                                  <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+                                ) : merchants.length > 0 ? (
+                                  merchants.map((merchant) => (
+                                    <SelectItem key={merchant.id} value={merchant.id}>
+                                      <div className="flex items-center gap-2">
+                                        <Store className="w-3 h-3" />
+                                        {merchant.name}
+                                      </div>
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <div className="p-2 text-sm text-muted-foreground">No merchants found</div>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => startMerchantCreation(index)}
+                              className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+                              title="Create new merchant"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     {(action.type === 'set_description' || action.type === 'prepend_description' || action.type === 'append_description') && (
@@ -1006,35 +1252,86 @@ export function RuleBuilder({
                                 {/* Category Selector */}
                                 <div className="space-y-2">
                                   <Label className="text-sm text-foreground">Category</Label>
-                                  <Select
-                                    value={split.categoryId || ''}
-                                    onValueChange={(val) =>
-                                      updateSplitField(index, splitIndex, 'categoryId', val)
-                                    }
-                                  >
-                                    <SelectTrigger className="bg-input border-border">
-                                      <SelectValue placeholder="Select category" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {loadingData ? (
-                                        <div className="p-2 text-sm text-muted-foreground">Loading...</div>
-                                      ) : categories.length > 0 ? (
-                                        categories.map((category) => (
-                                          <SelectItem key={category.id} value={category.id}>
-                                            <div className="flex items-center gap-2">
-                                              <Tag className="w-3 h-3" />
-                                              {category.name}
-                                              <span className="text-xs text-muted-foreground">
-                                                ({category.type})
-                                              </span>
-                                            </div>
-                                          </SelectItem>
-                                        ))
-                                      ) : (
-                                        <div className="p-2 text-sm text-muted-foreground">No categories found</div>
-                                      )}
-                                    </SelectContent>
-                                  </Select>
+                                  {isCreatingCategory && categoryCreationActionIndex === index && categoryCreationSplitIndex === splitIndex ? (
+                                    <div className="flex gap-2">
+                                      <Input
+                                        autoFocus
+                                        type="text"
+                                        placeholder="New category name..."
+                                        value={newCategoryName}
+                                        onChange={(e) => setNewCategoryName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            handleCreateCategory(index, splitIndex);
+                                          } else if (e.key === 'Escape') {
+                                            cancelCategoryCreation();
+                                          }
+                                        }}
+                                        className="flex-1 bg-input border-border text-foreground"
+                                      />
+                                      <Button
+                                        type="button"
+                                        size="icon"
+                                        onClick={() => handleCreateCategory(index, splitIndex)}
+                                        disabled={creatingCategory || !newCategoryName.trim()}
+                                        className="bg-primary hover:opacity-90 text-primary-foreground"
+                                      >
+                                        <Check className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={cancelCategoryCreation}
+                                        className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+                                      >
+                                        <X className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex gap-2">
+                                      <Select
+                                        value={split.categoryId || ''}
+                                        onValueChange={(val) =>
+                                          updateSplitField(index, splitIndex, 'categoryId', val)
+                                        }
+                                      >
+                                        <SelectTrigger className="flex-1 bg-input border-border">
+                                          <SelectValue placeholder="Select category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {loadingData ? (
+                                            <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+                                          ) : categories.length > 0 ? (
+                                            categories.map((category) => (
+                                              <SelectItem key={category.id} value={category.id}>
+                                                <div className="flex items-center gap-2">
+                                                  <Tag className="w-3 h-3" />
+                                                  {category.name}
+                                                  <span className="text-xs text-muted-foreground">
+                                                    ({category.type})
+                                                  </span>
+                                                </div>
+                                              </SelectItem>
+                                            ))
+                                          ) : (
+                                            <div className="p-2 text-sm text-muted-foreground">No categories found</div>
+                                          )}
+                                        </SelectContent>
+                                      </Select>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() => startCategoryCreation(index, splitIndex)}
+                                        className="bg-elevated border-border text-muted-foreground hover:bg-border hover:text-foreground"
+                                        title="Create new category"
+                                      >
+                                        <Plus className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Amount Type Toggle (Fixed vs Percentage) */}

@@ -29,6 +29,48 @@
       "when": 1737004800000,
       "tag": "0003_clear_avatar_data_urls",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1771469094000,
+      "tag": "0004_add_transfers_household_scope",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1771475968000,
+      "tag": "0005_add_transaction_transfer_account_links",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771514505775,
+      "tag": "0006_add_money_cents_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1771518600000,
+      "tag": "0007_enforce_money_cents_non_null",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1771521120000,
+      "tag": "0008_add_money_cents_integrity_guards",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1771600000000,
+      "tag": "0009_transfer_group_canonical_links",
+      "breakpoints": true
     }
   ]
 }

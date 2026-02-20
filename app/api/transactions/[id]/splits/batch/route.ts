@@ -7,6 +7,10 @@ import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { validateBatchSplits, type BatchSplitItem } from '@/lib/transactions/split-calculator';
 import type { BatchSplitRequest, BatchSplitResponse, TransactionSplit } from '@/lib/types';
+import {
+  amountToCents,
+  buildTransactionAmountFields,
+} from '@/lib/transactions/money-movement-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -197,7 +201,7 @@ export async function PUT(
         householdId,
         transactionId,
         categoryId: split.categoryId,
-        amount: finalAmount,
+        ...buildTransactionAmountFields(amountToCents(finalAmount)),
         percentage: split.isPercentage ? (split.percentage ?? 0) : 0,
         isPercentage: split.isPercentage,
         description: split.description ?? null,
@@ -225,7 +229,7 @@ export async function PUT(
         .update(transactionSplits)
         .set({
           categoryId: split.categoryId,
-          amount: finalAmount,
+          ...buildTransactionAmountFields(amountToCents(finalAmount)),
           percentage: split.isPercentage ? (split.percentage ?? 0) : 0,
           isPercentage: split.isPercentage,
           description: split.description ?? null,
@@ -290,4 +294,3 @@ export async function PUT(
     );
   }
 }
-

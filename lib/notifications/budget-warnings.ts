@@ -1,7 +1,9 @@
 import { db } from '@/lib/db';
 import { notificationPreferences, budgetCategories, transactions, notifications } from '@/lib/db/schema';
-import { eq, and, gte, lte, sum, ne } from 'drizzle-orm';
+import { eq, and, gte, lte, sql, ne } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications/notification-service';
+import { getMonthRangeForDate, getTodayLocalDateString } from '@/lib/utils/local-date';
+import Decimal from 'decimal.js';
 
 /**
  * Check all budget categories for users and create notifications if thresholds are exceeded
@@ -37,17 +39,12 @@ export async function checkAndCreateBudgetWarnings() {
 
         // Get current month's date range
         const now = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-          .toISOString()
-          .split('T')[0];
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-          .toISOString()
-          .split('T')[0];
+        const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForDate(now);
 
         // Get spending for this month and category
         const spendingResult = await db
           .select({
-            total: sum(transactions.amount),
+            totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)`,
           })
           .from(transactions)
           .where(
@@ -60,9 +57,7 @@ export async function checkAndCreateBudgetWarnings() {
             )
           );
 
-        const spent = spendingResult[0]?.total
-          ? parseFloat(spendingResult[0].total.toString())
-          : 0;
+        const spent = new Decimal(spendingResult[0]?.totalCents ?? 0).div(100).toNumber();
 
         const monthlyBudget = budget.monthlyBudget || 0;
         if (monthlyBudget <= 0) continue;
@@ -76,7 +71,7 @@ export async function checkAndCreateBudgetWarnings() {
         // Check for budget exceeded
         if (prefs.budgetExceededAlert && percentage >= 100) {
           // Check if notification already exists for today
-          const today = new Date().toISOString().split('T')[0];
+          const today = getTodayLocalDateString();
           const existingNotif = await db
             .select()
             .from(notifications)
@@ -120,7 +115,7 @@ export async function checkAndCreateBudgetWarnings() {
         // Check for budget warning (at threshold percentage)
         else if (!notificationCreated && percentage >= thresholdPercentage) {
           // Check if notification already exists for today
-          const today = new Date().toISOString().split('T')[0];
+          const today = getTodayLocalDateString();
           const existingNotif = await db
             .select()
             .from(notifications)

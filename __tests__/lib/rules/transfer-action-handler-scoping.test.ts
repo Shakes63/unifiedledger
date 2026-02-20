@@ -38,6 +38,7 @@ describe('transfer-action-handler scoping', () => {
           accountId: 'acct_source',
           date: '2025-01-10',
           amount: 50,
+          amountCents: 5000,
           description: 'Source',
           notes: null,
           type: 'expense',
@@ -140,6 +141,7 @@ describe('transfer-action-handler scoping', () => {
           accountId: 'acct_source',
           date: '2025-01-10',
           amount: 50,
+          amountCents: 5000,
           description: 'Source',
           notes: null,
           type: 'expense',
@@ -153,7 +155,25 @@ describe('transfer-action-handler scoping', () => {
           householdId: 'hh_1',
         },
       ])
-      .mockResolvedValueOnce([]); // candidates
+      .mockResolvedValueOnce([]) // candidates
+      .mockResolvedValueOnce([
+        {
+          id: 'acct_source',
+          userId: 'user_1',
+          householdId: 'hh_1',
+          currentBalance: 1000,
+          currentBalanceCents: 100000,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'acct_target',
+          userId: 'user_1',
+          householdId: 'hh_1',
+          currentBalance: 500,
+          currentBalanceCents: 50000,
+        },
+      ]);
 
     const whereArgs: unknown[] = [];
     const whereMock = vi.fn((whereArg: unknown) => {
@@ -201,8 +221,8 @@ describe('transfer-action-handler scoping', () => {
     const calls = (db as any).__updateWhereCalls as Array<{ table: unknown; whereArg: unknown }>;
     const accountUpdates = calls.filter((c) => c.table === accounts);
 
-    // Expect at least 2 account updates (source and target)
-    expect(accountUpdates.length).toBeGreaterThanOrEqual(2);
+    // Post-creation conversion should only apply destination-side balance adjustment.
+    expect(accountUpdates.length).toBeGreaterThanOrEqual(1);
 
     const inspected = accountUpdates
       .map((c) => util.inspect(c.whereArg, { depth: 8, colors: false }).toLowerCase())

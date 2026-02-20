@@ -8,6 +8,7 @@ import { db } from '@/lib/db';
 import { categoryTaxMappings, transactionTaxClassifications, taxCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import Decimal from 'decimal.js';
 
 /**
  * Auto-classify a transaction for tax purposes.
@@ -92,7 +93,7 @@ export async function autoClassifyTransaction(
 
   // Calculate allocated amount based on allocation percentage
   const allocationPct = effectiveMapping.allocationPercentage ?? 100;
-  const allocatedAmount = (Math.abs(amount) * allocationPct) / 100;
+  const allocatedAmount = new Decimal(amount).abs().times(allocationPct).dividedBy(100).toDecimalPlaces(2).toNumber();
 
   // Check if classification already exists
   const [existing] = await db

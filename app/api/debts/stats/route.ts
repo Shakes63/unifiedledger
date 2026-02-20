@@ -4,8 +4,25 @@ import { db } from '@/lib/db';
 import { debts, debtPayments, accounts, bills, billPayments } from '@/lib/db/schema';
 import { eq, and, inArray, gte, lte } from 'drizzle-orm';
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
+
+function getAccountBalanceAmount(account: {
+  currentBalance: number | null;
+  currentBalanceCents: number | null;
+}): Decimal {
+  const balanceCents = account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0;
+  return new Decimal(Math.abs(balanceCents)).div(100);
+}
+
+function getAccountCreditLimitAmount(account: {
+  creditLimit: number | null;
+  creditLimitCents: number | null;
+}): Decimal {
+  const creditLimitCents = account.creditLimitCents ?? toMoneyCents(account.creditLimit) ?? 0;
+  return new Decimal(creditLimitCents).div(100);
+}
 
 export async function GET(request: Request) {
   try {
@@ -56,8 +73,8 @@ export async function GET(request: Request) {
       
       // Process credit accounts
       for (const acc of creditAccounts) {
-        const balance = new Decimal(Math.abs(acc.currentBalance || 0));
-        const creditLimit = new Decimal(acc.creditLimit || 0);
+        const balance = getAccountBalanceAmount(acc);
+        const creditLimit = getAccountCreditLimitAmount(acc);
         
         totalBalance = totalBalance.plus(balance);
         totalOriginalBalance = totalOriginalBalance.plus(creditLimit); // Use credit limit as "original" for revolving
@@ -107,7 +124,7 @@ export async function GET(request: Request) {
           name: acc.name,
           source: 'account' as const,
           sourceType: acc.type,
-          remainingBalance: Math.abs(acc.currentBalance || 0),
+          remainingBalance: getAccountBalanceAmount(acc).toNumber(),
           minimumPayment: acc.minimumPaymentAmount || 0,
           interestRate: acc.interestRate || 0,
           includeInPayoffStrategy: acc.includeInPayoffStrategy ?? true,

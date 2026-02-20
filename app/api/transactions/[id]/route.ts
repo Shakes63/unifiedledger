@@ -1,12 +1,26 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, accounts, budgetCategories, transactionSplits, bills, billInstances, merchants, debts, tags, transactionTags, customFields, customFieldValues, betterAuthUser } from '@/lib/db/schema';
-import { eq, and, inArray, sql } from 'drizzle-orm';
+import { transactions, accounts, budgetCategories, transactionSplits, bills, billInstances, merchants, debts, tags, transactionTags, customFields, customFieldValues, betterAuthUser, salesTaxTransactions } from '@/lib/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { deleteSalesTaxRecord } from '@/lib/sales-tax/transaction-sales-tax';
 import { findMatchingBillInstance } from '@/lib/bills/bill-matching-helpers';
 import { logTransactionAudit, detectChanges, createTransactionSnapshot, DisplayNames } from '@/lib/transactions/audit-logger';
+import { processAndLinkBillPayment } from '@/lib/transactions/payment-linkage';
+import { handleRouteError } from '@/lib/api/route-helpers';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
+import {
+  amountToCents,
+  buildAccountBalanceFields,
+  buildTransactionAmountFields,
+  getAccountBalanceCents,
+  getTransactionAmountCents,
+} from '@/lib/transactions/money-movement-service';
+import {
+  deleteCanonicalTransferPairByTransactionId,
+  updateCanonicalTransferPairByTransactionId,
+} from '@/lib/transactions/transfer-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -115,20 +129,10 @@ export async function GET(
 
     return Response.json(enrichedTransaction);
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (error instanceof Error && (
-      error.message.includes('Household') ||
-      error.message.includes('member')
-    )) {
-      return Response.json({ error: error.message }, { status: 403 });
-    }
-    console.error('Transaction fetch error:', error);
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Internal server error',
+      logLabel: 'Transaction fetch error:',
+    });
   }
 }
 
@@ -186,19 +190,86 @@ export async function PUT(
       notes,
       isPending,
       transferId, // For updating transfer destination account
+      transferDestinationAccountId, // Canonical destination account updates
+      transferSourceAccountId, // For updating transfer source account on transfer_in
     } = body;
 
+    const hasUpdateField =
+      accountId !== undefined ||
+      categoryId !== undefined ||
+      merchantId !== undefined ||
+      date !== undefined ||
+      amount !== undefined ||
+      description !== undefined ||
+      notes !== undefined ||
+      isPending !== undefined ||
+      transferId !== undefined ||
+      transferDestinationAccountId !== undefined ||
+      transferSourceAccountId !== undefined;
+
     // Validate at least one field is provided for update
-    if (!accountId && !categoryId && !merchantId && !date && !amount && !description && !notes && isPending === undefined && transferId === undefined) {
+    if (!hasUpdateField) {
       return Response.json(
         { error: 'No fields to update' },
         { status: 400 }
       );
     }
 
+    const destinationAccountInput = transferDestinationAccountId ?? transferId;
+
+    if (transaction.type === 'transfer_out' || transaction.type === 'transfer_in') {
+      try {
+        const sourceAccountUpdate =
+          transaction.type === 'transfer_out'
+            ? (accountId ?? transferSourceAccountId)
+            : transferSourceAccountId;
+        const destinationAccountUpdate =
+          transaction.type === 'transfer_in'
+            ? (accountId ?? destinationAccountInput)
+            : destinationAccountInput;
+
+        await updateCanonicalTransferPairByTransactionId({
+          userId,
+          householdId,
+          transactionId: id,
+          amountCents: amount !== undefined ? amountToCents(new Decimal(amount)) : undefined,
+          date,
+          description,
+          notes,
+          isPending,
+          sourceAccountId: sourceAccountUpdate,
+          destinationAccountId: destinationAccountUpdate,
+        });
+
+        return Response.json(
+          {
+            id,
+            message: 'Transaction updated successfully',
+          },
+          { status: 200 }
+        );
+      } catch (transferUpdateError) {
+        const message = transferUpdateError instanceof Error
+          ? transferUpdateError.message
+          : 'Failed to update transfer transaction';
+
+        if (message.includes('Cannot transfer to the same account')) {
+          return Response.json({ error: message }, { status: 400 });
+        }
+
+        if (message.includes('not found')) {
+          return Response.json({ error: message }, { status: 404 });
+        }
+
+        throw transferUpdateError;
+      }
+    }
+
     // Use existing values for fields not provided
     const newAccountId = accountId || transaction.accountId;
     const newAmount = amount ? new Decimal(amount) : new Decimal(transaction.amount);
+    const oldAmountCents = getTransactionAmountCents(transaction);
+    const newAmountCents = amount ? amountToCents(newAmount) : oldAmountCents;
     const newDate = date || transaction.date;
     const newDescription = description || transaction.description;
     const newNotes = notes !== undefined ? notes : transaction.notes;
@@ -250,162 +321,9 @@ export async function PUT(
       }
     }
 
-    // Handle balance adjustments if amount or account changed
-    if (amount || newAccountId !== transaction.accountId) {
-      const oldDecimalAmount = new Decimal(transaction.amount);
-      const oldAccount = await db
-        .select()
-        .from(accounts)
-        .where(eq(accounts.id, transaction.accountId))
-        .limit(1);
-
-      const newAccount = await db
-        .select()
-        .from(accounts)
-        .where(eq(accounts.id, newAccountId))
-        .limit(1);
-
-      if (oldAccount.length > 0 && newAccount.length > 0) {
-        // Reverse old transaction effect
-        let oldBalance = new Decimal(oldAccount[0].currentBalance || 0);
-        if (transaction.type === 'expense' || transaction.type === 'transfer_out') {
-          oldBalance = oldBalance.plus(oldDecimalAmount);
-        } else {
-          oldBalance = oldBalance.minus(oldDecimalAmount);
-        }
-
-        await db
-          .update(accounts)
-          .set({ currentBalance: oldBalance.toNumber() })
-          .where(eq(accounts.id, transaction.accountId));
-
-        // Apply new transaction effect
-        let newBalance = new Decimal(newAccount[0].currentBalance || 0);
-        if (transaction.type === 'expense' || transaction.type === 'transfer_out') {
-          newBalance = newBalance.minus(newAmount);
-        } else {
-          newBalance = newBalance.plus(newAmount);
-        }
-
-        await db
-          .update(accounts)
-          .set({ currentBalance: newBalance.toNumber() })
-          .where(eq(accounts.id, newAccountId));
-      }
-    }
-
-    // Handle transfer destination account update
-    let newTransferId = transaction.transferId;
-    if (transferId !== undefined && (transaction.type === 'transfer_out' || transaction.type === 'transfer_in')) {
-      // Validate the new destination account exists
-      if (transferId) {
-        const destAccount = await db
-          .select()
-          .from(accounts)
-          .where(
-            and(
-              eq(accounts.id, transferId),
-              eq(accounts.householdId, householdId)
-            )
-          )
-          .limit(1);
-
-        if (destAccount.length === 0) {
-          return Response.json(
-            { error: 'Destination account not found' },
-            { status: 404 }
-          );
-        }
-
-        // For transfer_out: Find existing or create transfer_in in the destination account
-        if (transaction.type === 'transfer_out') {
-          const now = new Date().toISOString();
-          const txDate = new Date(transaction.date);
-          const dateTolerance = 7; // Days to look around the transaction date
-
-          // First, try to find an existing unlinked transfer_in in the destination account
-          // Match criteria: same account, similar amount (within 1%), similar date (within 7 days), not already linked
-          const existingTransferIn = await db
-            .select()
-            .from(transactions)
-            .where(
-              and(
-                eq(transactions.accountId, transferId),
-                eq(transactions.householdId, householdId),
-                eq(transactions.type, 'transfer_in'),
-                sql`${transactions.transferId} IS NULL OR ${transactions.transferId} = ''`
-              )
-            );
-
-          // Find the best match based on amount and date
-          let matchedTransaction = null;
-          for (const candidate of existingTransferIn) {
-            const amountDiff = Math.abs(candidate.amount - transaction.amount);
-            const amountTolerance = Math.abs(transaction.amount * 0.01); // 1% tolerance
-
-            const candidateDate = new Date(candidate.date);
-            const dateDiff = Math.abs(txDate.getTime() - candidateDate.getTime()) / (1000 * 60 * 60 * 24);
-
-            if (amountDiff <= amountTolerance && dateDiff <= dateTolerance) {
-              matchedTransaction = candidate;
-              break; // Take first match
-            }
-          }
-
-          if (matchedTransaction) {
-            // Link existing transfer_in to this transfer_out
-            await db
-              .update(transactions)
-              .set({
-                transferId: id, // Points back to this transfer_out transaction
-                updatedAt: now,
-              })
-              .where(eq(transactions.id, matchedTransaction.id));
-
-            console.log(`Linked existing transfer_in ${matchedTransaction.id} to transfer_out ${id}`);
-          } else {
-            // No match found, create a new transfer_in
-            const { nanoid } = await import('nanoid');
-            const transferInId = nanoid();
-
-            await db.insert(transactions).values({
-              id: transferInId,
-              userId,
-              householdId,
-              accountId: transferId, // Destination account
-              categoryId: null,
-              merchantId: null,
-              date: transaction.date,
-              amount: transaction.amount,
-              description: transaction.description,
-              notes: transaction.notes,
-              type: 'transfer_in',
-              transferId: id, // Points back to this transfer_out transaction
-              isPending: transaction.isPending,
-              isTaxDeductible: false,
-              isSalesTaxable: false,
-              createdAt: now,
-              updatedAt: now,
-            });
-
-            // Update destination account balance (add the amount) - only for new transactions
-            const destBalance = new Decimal(destAccount[0].currentBalance || 0);
-            const updatedDestBalance = destBalance.plus(new Decimal(transaction.amount));
-
-            await db
-              .update(accounts)
-              .set({ currentBalance: updatedDestBalance.toNumber() })
-              .where(eq(accounts.id, transferId));
-
-            console.log(`Created transfer_in ${transferInId} in account ${transferId} for transfer_out ${id}`);
-          }
-        }
-      }
-      newTransferId = transferId;
-    }
-
     // Check if merchant changed and handle tax exemption for income transactions
     let newIsSalesTaxable = transaction.isSalesTaxable;
+    let shouldDeleteSalesTaxRecord = false;
     if (
       transaction.type === 'income' &&
       newMerchantId !== transaction.merchantId &&
@@ -422,28 +340,79 @@ export async function PUT(
       // If new merchant is tax-exempt and transaction was taxable, make it non-taxable
       if (merchantIsSalesTaxExempt && transaction.isSalesTaxable) {
         newIsSalesTaxable = false;
-        // Delete any existing sales tax record
-        await deleteSalesTaxRecord(id);
+        shouldDeleteSalesTaxRecord = true;
       }
     }
 
-    // Update transaction
-    await db
-      .update(transactions)
-      .set({
-        accountId: newAccountId,
-        categoryId: newCategoryId,
-        merchantId: newMerchantId,
-        transferId: newTransferId,
-        date: newDate,
-        amount: newAmount.toNumber(),
-        description: newDescription,
-        notes: newNotes,
-        isPending: newIsPending,
-        isSalesTaxable: newIsSalesTaxable,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(transactions.id, id));
+    await runInDatabaseTransaction(async (tx) => {
+      // Handle balance adjustments if amount or account changed
+      if (amount || newAccountId !== transaction.accountId) {
+        const oldAccount = await tx
+          .select()
+          .from(accounts)
+          .where(eq(accounts.id, transaction.accountId))
+          .limit(1);
+
+        const newAccount = await tx
+          .select()
+          .from(accounts)
+          .where(eq(accounts.id, newAccountId))
+          .limit(1);
+
+        if (oldAccount.length > 0 && newAccount.length > 0) {
+          // Reverse old transaction effect
+          let oldBalanceCents = getAccountBalanceCents(oldAccount[0]);
+          if (transaction.type === 'expense' || transaction.type === 'transfer_out') {
+            oldBalanceCents += oldAmountCents;
+          } else {
+            oldBalanceCents -= oldAmountCents;
+          }
+
+          await tx
+            .update(accounts)
+            .set(buildAccountBalanceFields(oldBalanceCents))
+            .where(eq(accounts.id, transaction.accountId));
+
+          // Apply new transaction effect
+          let newBalanceCents = getAccountBalanceCents(newAccount[0]);
+          if (transaction.type === 'expense' || transaction.type === 'transfer_out') {
+            newBalanceCents -= newAmountCents;
+          } else {
+            newBalanceCents += newAmountCents;
+          }
+
+          await tx
+            .update(accounts)
+            .set(buildAccountBalanceFields(newBalanceCents))
+            .where(eq(accounts.id, newAccountId));
+        }
+      }
+
+      // Update transaction
+      await tx
+        .update(transactions)
+        .set({
+          accountId: newAccountId,
+          categoryId: newCategoryId,
+          merchantId: newMerchantId,
+          transferId: transaction.transferId,
+          transferGroupId: transaction.transferGroupId,
+          transferSourceAccountId: transaction.transferSourceAccountId,
+          transferDestinationAccountId: transaction.transferDestinationAccountId,
+          date: newDate,
+          ...buildTransactionAmountFields(newAmountCents),
+          description: newDescription,
+          notes: newNotes,
+          isPending: newIsPending,
+          isSalesTaxable: newIsSalesTaxable,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(transactions.id, id));
+    });
+
+    if (shouldDeleteSalesTaxRecord) {
+      await deleteSalesTaxRecord(id);
+    }
 
     // Log audit trail for transaction update
     try {
@@ -452,6 +421,10 @@ export async function PUT(
         accountId: newAccountId,
         categoryId: newCategoryId,
         merchantId: newMerchantId,
+        transferId: transaction.transferId,
+        transferGroupId: transaction.transferGroupId,
+        transferSourceAccountId: transaction.transferSourceAccountId,
+        transferDestinationAccountId: transaction.transferDestinationAccountId,
         date: newDate,
         amount: newAmount.toNumber(),
         description: newDescription,
@@ -589,38 +562,20 @@ export async function PUT(
             const linkedBillId = instance.bill.id;
             const linkedInstanceId = instance.instance.id;
 
-            // Get the bill to verify it exists
-            const [bill] = await db
-              .select()
-              .from(bills)
-              .where(eq(bills.id, linkedBillId))
-              .limit(1);
-
-            if (bill) {
-              // Batch all bill-related updates (parallel execution)
-              await Promise.all([
-                // Update transaction with bill link
-                db
-                  .update(transactions)
-                  .set({
-                    billId: linkedBillId,
-                    updatedAt: new Date().toISOString(),
-                  })
-                  .where(eq(transactions.id, id)),
-
-                // Update bill instance
-                db
-                  .update(billInstances)
-                  .set({
-                    status: 'paid',
-                    paidDate: newDate,
-                    actualAmount: newAmount.toNumber(),
-                    transactionId: id,
-                    updatedAt: new Date().toISOString(),
-                  })
-                  .where(eq(billInstances.id, linkedInstanceId)),
-              ]);
-            }
+            await processAndLinkBillPayment({
+              billId: linkedBillId,
+              billName: instance.bill.name,
+              instanceId: linkedInstanceId,
+              transactionId: id,
+              paymentAmount: newAmount.toNumber(),
+              paymentDate: newDate,
+              userId,
+              householdId,
+              paymentMethod: 'manual',
+              linkedAccountId: newAccountId,
+              notes: `Bill payment update: ${instance.bill.name}`,
+              legacyDebtId: instance.bill.debtId,
+            });
           }
         } else {
           // Priority 2: Bill-matcher matching (only if no direct billInstanceId provided)
@@ -687,29 +642,20 @@ export async function PUT(
               .limit(1);
 
             if (bill) {
-              // Batch all bill-related updates (parallel execution)
-              await Promise.all([
-                // Update transaction with bill link
-                db
-                  .update(transactions)
-                  .set({
-                    billId: billMatch.billId,
-                    updatedAt: new Date().toISOString(),
-                  })
-                  .where(eq(transactions.id, id)),
-
-                // Update bill instance
-                db
-                  .update(billInstances)
-                  .set({
-                    status: 'paid',
-                    paidDate: newDate,
-                    actualAmount: newAmount.toNumber(),
-                    transactionId: id,
-                    updatedAt: new Date().toISOString(),
-                  })
-                  .where(eq(billInstances.id, billMatch.instanceId)),
-              ]);
+              await processAndLinkBillPayment({
+                billId: bill.id,
+                billName: bill.name,
+                instanceId: billMatch.instanceId,
+                transactionId: id,
+                paymentAmount: newAmount.toNumber(),
+                paymentDate: newDate,
+                userId,
+                householdId,
+                paymentMethod: 'manual',
+                linkedAccountId: newAccountId,
+                notes: `Auto-matched bill update: ${bill.name}`,
+                legacyDebtId: bill.debtId,
+              });
             }
           } else if (newCategoryId && categoryChanged) {
             // Fallback: Category-only matching (backwards compatibility)
@@ -768,31 +714,20 @@ export async function PUT(
 
                 // Match to the oldest overdue instance (or oldest pending if no overdue)
                 const match = allPendingInstances[0];
-                const linkedBillId = match.bill.id;
-
-                // Batch all bill-related updates (parallel execution)
-                await Promise.all([
-                  // Update transaction with bill link
-                  db
-                    .update(transactions)
-                    .set({
-                      billId: linkedBillId,
-                      updatedAt: new Date().toISOString(),
-                    })
-                    .where(eq(transactions.id, id)),
-
-                  // Update bill instance
-                  db
-                    .update(billInstances)
-                    .set({
-                      status: 'paid',
-                      paidDate: newDate,
-                      actualAmount: newAmount.toNumber(),
-                      transactionId: id,
-                      updatedAt: new Date().toISOString(),
-                    })
-                    .where(eq(billInstances.id, match.instance.id)),
-                ]);
+                await processAndLinkBillPayment({
+                  billId: match.bill.id,
+                  billName: match.bill.name,
+                  instanceId: match.instance.id,
+                  transactionId: id,
+                  paymentAmount: newAmount.toNumber(),
+                  paymentDate: newDate,
+                  userId,
+                  householdId,
+                  paymentMethod: 'manual',
+                  linkedAccountId: newAccountId,
+                  notes: `Category-matched bill update: ${match.bill.name}`,
+                  legacyDebtId: match.bill.debtId,
+                });
               }
             }
           }
@@ -812,20 +747,10 @@ export async function PUT(
       { status: 200 }
     );
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (error instanceof Error && (
-      error.message.includes('Household') ||
-      error.message.includes('member')
-    )) {
-      return Response.json({ error: error.message }, { status: 403 });
-    }
-    console.error('Transaction update error:', error);
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Internal server error',
+      logLabel: 'Transaction update error:',
+    });
   }
 }
 
@@ -870,7 +795,7 @@ export async function DELETE(
     }
 
     const transaction = existingTransaction[0];
-    const decimalAmount = new Decimal(transaction.amount);
+    const transactionAmountCents = getTransactionAmountCents(transaction);
 
     // Log audit trail before deleting
     try {
@@ -913,175 +838,63 @@ export async function DELETE(
       console.error('Failed to log transaction deletion audit:', auditError);
     }
 
-    // Delete all splits if transaction has splits
-    if (transaction.isSplit) {
-      await db
-        .delete(transactionSplits)
-        .where(
-          and(
-            eq(transactionSplits.userId, userId),
-            eq(transactionSplits.householdId, householdId),
-            eq(transactionSplits.transactionId, id)
-          )
-        );
+    if (transaction.type === 'transfer_out' || transaction.type === 'transfer_in') {
+      await deleteCanonicalTransferPairByTransactionId({
+        userId,
+        householdId,
+        transactionId: id,
+      });
+
+      return Response.json(
+        { message: 'Transaction deleted successfully' },
+        { status: 200 }
+      );
     }
 
-    // Handle transfer pairs - need to delete both sides and reverse both balances
-    if (transaction.type === 'transfer_out' || transaction.type === 'transfer_in') {
-      let pairedTransactionId: string | null = null;
-
-      // Find the paired transaction
-      if (transaction.type === 'transfer_out') {
-        // This is the source transaction, transferId points to destination account
-        // Find transfer_in transaction that has this transaction's ID in its transferId
-        const pairedTx = await db
-          .select()
-          .from(transactions)
+    await runInDatabaseTransaction(async (tx) => {
+      // Delete all splits if transaction has splits
+      if (transaction.isSplit) {
+        await tx
+          .delete(transactionSplits)
           .where(
             and(
-              eq(transactions.userId, userId),
-              eq(transactions.householdId, householdId),
-              eq(transactions.type, 'transfer_in'),
-              eq(transactions.transferId, id)
-            )
-          )
-          .limit(1);
-
-        if (pairedTx.length > 0) {
-          pairedTransactionId = pairedTx[0].id;
-
-          // Reverse balance on destination account (subtract the amount that was added)
-          const destAccountId = pairedTx[0].accountId;
-          const destAccount = await db
-            .select()
-            .from(accounts)
-            .where(eq(accounts.id, destAccountId))
-            .limit(1);
-
-          if (destAccount.length > 0) {
-            const destBalance = new Decimal(destAccount[0].currentBalance || 0);
-            const reversedDestBalance = destBalance.minus(decimalAmount);
-
-            await db
-              .update(accounts)
-              .set({ currentBalance: reversedDestBalance.toNumber() })
-              .where(eq(accounts.id, destAccountId));
-          }
-        }
-      } else if (transaction.type === 'transfer_in') {
-        // This is the destination transaction, transferId points to transfer_out transaction
-        pairedTransactionId = transaction.transferId;
-
-        if (pairedTransactionId) {
-          const pairedTx = await db
-            .select()
-            .from(transactions)
-            .where(
-              and(
-                eq(transactions.id, pairedTransactionId),
-                eq(transactions.userId, userId),
-                eq(transactions.householdId, householdId)
-              )
-            )
-            .limit(1);
-
-          if (pairedTx.length > 0) {
-            // Reverse balance on source account (add back the amount that was subtracted)
-            const sourceAccountId = pairedTx[0].accountId;
-            const sourceAccount = await db
-              .select()
-              .from(accounts)
-              .where(eq(accounts.id, sourceAccountId))
-              .limit(1);
-
-            if (sourceAccount.length > 0) {
-              const sourceBalance = new Decimal(sourceAccount[0].currentBalance || 0);
-              const reversedSourceBalance = sourceBalance.plus(decimalAmount);
-
-              await db
-                .update(accounts)
-                .set({ currentBalance: reversedSourceBalance.toNumber() })
-                .where(eq(accounts.id, sourceAccountId));
-            }
-          }
-        }
-      }
-
-      // Reverse balance on the current transaction's account
-      const account = await db
-        .select()
-        .from(accounts)
-        .where(eq(accounts.id, transaction.accountId))
-        .limit(1);
-
-      if (account.length > 0) {
-        let newBalance = new Decimal(account[0].currentBalance || 0);
-        if (transaction.type === 'transfer_out') {
-          // Reverse by adding back (it was subtracted)
-          newBalance = newBalance.plus(decimalAmount);
-        } else {
-          // transfer_in: Reverse by subtracting (it was added)
-          newBalance = newBalance.minus(decimalAmount);
-        }
-
-        await db
-          .update(accounts)
-          .set({ currentBalance: newBalance.toNumber() })
-          .where(eq(accounts.id, transaction.accountId));
-      }
-
-      // Delete the paired transaction first
-      if (pairedTransactionId) {
-        await db
-          .delete(transactions)
-          .where(
-            and(
-              eq(transactions.id, pairedTransactionId),
-              eq(transactions.userId, userId),
-              eq(transactions.householdId, householdId)
+              eq(transactionSplits.userId, userId),
+              eq(transactionSplits.householdId, householdId),
+              eq(transactionSplits.transactionId, id)
             )
           );
       }
 
-      // Delete the current transaction
-      await db
-        .delete(transactions)
-        .where(
-          and(
-            eq(transactions.id, id),
-            eq(transactions.userId, userId),
-            eq(transactions.householdId, householdId)
-          )
-        );
-    } else {
       // Non-transfer transaction: reverse balance and delete
-      const account = await db
+      const account = await tx
         .select()
         .from(accounts)
         .where(eq(accounts.id, transaction.accountId))
         .limit(1);
 
       if (account.length > 0) {
-        let newBalance = new Decimal(account[0].currentBalance || 0);
+        let newBalanceCents = getAccountBalanceCents(account[0]);
         if (transaction.type === 'expense') {
           // Reverse by adding back (it was subtracted)
-          newBalance = newBalance.plus(decimalAmount);
+          newBalanceCents += transactionAmountCents;
         } else {
           // income: Reverse by subtracting (it was added)
-          newBalance = newBalance.minus(decimalAmount);
+          newBalanceCents -= transactionAmountCents;
         }
 
-        await db
+        await tx
           .update(accounts)
-          .set({ currentBalance: newBalance.toNumber() })
+          .set(buildAccountBalanceFields(newBalanceCents))
           .where(eq(accounts.id, transaction.accountId));
       }
 
       // Delete sales tax record if exists
-      await deleteSalesTaxRecord(id);
+      await tx
+        .delete(salesTaxTransactions)
+        .where(eq(salesTaxTransactions.transactionId, id));
 
       // Delete transaction
-      await db
+      await tx
         .delete(transactions)
         .where(
           and(
@@ -1090,26 +903,16 @@ export async function DELETE(
             eq(transactions.householdId, householdId)
           )
         );
-    }
+    });
 
     return Response.json(
       { message: 'Transaction deleted successfully' },
       { status: 200 }
     );
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (error instanceof Error && (
-      error.message.includes('Household') ||
-      error.message.includes('member')
-    )) {
-      return Response.json({ error: error.message }, { status: 403 });
-    }
-    console.error('Transaction delete error:', error);
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Internal server error',
+      logLabel: 'Transaction delete error:',
+    });
   }
 }

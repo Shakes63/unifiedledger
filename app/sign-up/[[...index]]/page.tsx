@@ -108,11 +108,15 @@ export default function SignUpPage() {
             // Store household ID in localStorage for onboarding context
             if (data.householdId) {
               localStorage.setItem('unified-ledger:invitation-household-id', data.householdId);
+              localStorage.setItem('unified-ledger:selected-household', data.householdId);
             }
             // Ensure token is stored in localStorage
             localStorage.setItem('unified-ledger:invitation-token', invitationToken);
-            // Redirect with invitation flag to trigger demo mode onboarding
-            window.location.href = '/dashboard?onboarding=true&invited=true';
+            // Redirect with invitation context to trigger invited-user onboarding
+            const householdQuery = data.householdId
+              ? `&householdId=${encodeURIComponent(data.householdId)}`
+              : '';
+            window.location.href = `/dashboard?invited=true${householdQuery}`;
             return;
           } else {
             const errorData = await acceptResponse.json().catch(() => ({}));

@@ -5,6 +5,7 @@ import { eq, and, gte, inArray } from 'drizzle-orm';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import Decimal from 'decimal.js';
 import { format, startOfDay, subDays } from 'date-fns';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,7 +60,9 @@ export async function GET(request: Request) {
         name: accounts.name, 
         color: accounts.color,
         creditLimit: accounts.creditLimit,
+        creditLimitCents: accounts.creditLimitCents,
         currentBalance: accounts.currentBalance,
+        currentBalanceCents: accounts.currentBalanceCents,
       })
       .from(accounts)
       .where(
@@ -84,8 +87,12 @@ export async function GET(request: Request) {
     const accountMetaMap = new Map(creditAccounts.map(a => [a.id, { 
       name: accountDisplayName.get(a.id) || a.name, 
       color: a.color || '#ef4444',
-      creditLimit: a.creditLimit || 0,
-      currentBalance: a.currentBalance || 0,
+      creditLimit: new Decimal(
+        a.creditLimitCents ?? toMoneyCents(a.creditLimit) ?? 0
+      ).div(100).toNumber(),
+      currentBalance: new Decimal(
+        a.currentBalanceCents ?? toMoneyCents(a.currentBalance) ?? 0
+      ).div(100).toNumber(),
     }]));
     const accountIds = creditAccounts.map(a => a.id);
 
@@ -173,7 +180,12 @@ export async function GET(request: Request) {
       };
 
       for (const acc of creditAccounts) {
-        const balance = Math.abs(acc.currentBalance || 0);
+        const balance = new Decimal(
+          acc.currentBalanceCents ?? toMoneyCents(acc.currentBalance) ?? 0
+        )
+          .div(100)
+          .abs()
+          .toNumber();
         point[acc.name] = balance;
         point.total = new Decimal(point.total).plus(new Decimal(balance)).toNumber();
       }

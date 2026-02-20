@@ -11,6 +11,8 @@
 
 import { db } from '@/lib/db';
 import { accounts, accountBalanceHistory } from '@/lib/db/schema';
+import { getTodayLocalDateString } from '@/lib/utils/local-date';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 import { eq, and, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import Decimal from 'decimal.js';
@@ -28,6 +30,24 @@ interface SnapshotResult {
   utilizationPercent: number;
 }
 
+function toAmount(cents: number): number {
+  return new Decimal(cents).div(100).toNumber();
+}
+
+function getBalanceCents(account: {
+  currentBalance: number | null;
+  currentBalanceCents: number | null;
+}): number {
+  return Math.abs(account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0);
+}
+
+function getCreditLimitCents(account: {
+  creditLimit: number | null;
+  creditLimitCents: number | null;
+}): number {
+  return account.creditLimitCents ?? toMoneyCents(account.creditLimit) ?? 0;
+}
+
 /**
  * Get all active credit accounts with their current balances
  */
@@ -39,7 +59,9 @@ async function getActiveCreditAccounts() {
       userId: accounts.userId,
       householdId: accounts.householdId,
       currentBalance: accounts.currentBalance,
+      currentBalanceCents: accounts.currentBalanceCents,
       creditLimit: accounts.creditLimit,
+      creditLimitCents: accounts.creditLimitCents,
     })
     .from(accounts)
     .where(
@@ -78,7 +100,9 @@ async function createSnapshot(
     userId: string | null;
     householdId: string | null;
     currentBalance: number | null;
+    currentBalanceCents: number | null;
     creditLimit: number | null;
+    creditLimitCents: number | null;
   },
   snapshotDate: string
 ): Promise<SnapshotResult | null> {
@@ -94,11 +118,13 @@ async function createSnapshot(
     return null; // Already has snapshot for today
   }
 
-  const balance = Math.abs(account.currentBalance || 0);
-  const creditLimit = account.creditLimit || 0;
-  const availableCredit = creditLimit > 0 ? new Decimal(creditLimit).minus(balance).toNumber() : 0;
-  const utilizationPercent = creditLimit > 0 
-    ? new Decimal(balance).div(creditLimit).times(100).toNumber() 
+  const balanceCents = getBalanceCents(account);
+  const creditLimitCents = getCreditLimitCents(account);
+  const balance = toAmount(balanceCents);
+  const creditLimit = toAmount(creditLimitCents);
+  const availableCredit = toAmount(creditLimitCents - balanceCents);
+  const utilizationPercent = creditLimitCents > 0
+    ? new Decimal(balanceCents).div(creditLimitCents).times(100).toNumber()
     : 0;
 
   await db.insert(accountBalanceHistory).values({
@@ -145,7 +171,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayLocalDateString();
     console.log(`[Balance Snapshots] Starting snapshot capture for ${today}`);
 
     // Get all active credit accounts
@@ -216,17 +242,19 @@ export async function POST(request: Request) {
  */
 export async function GET(_request: Request) {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayLocalDateString();
     const creditAccounts = await getActiveCreditAccounts();
 
     // Check which already have snapshots
     const accountsWithStatus = await Promise.all(
       creditAccounts.map(async (account) => {
         const hasSnapshot = await snapshotExistsToday(account.id, today);
-        const balance = Math.abs(account.currentBalance || 0);
-        const creditLimit = account.creditLimit || 0;
-        const utilizationPercent = creditLimit > 0 
-          ? new Decimal(balance).div(creditLimit).times(100).toNumber() 
+        const balanceCents = getBalanceCents(account);
+        const creditLimitCents = getCreditLimitCents(account);
+        const balance = toAmount(balanceCents);
+        const creditLimit = toAmount(creditLimitCents);
+        const utilizationPercent = creditLimitCents > 0
+          ? new Decimal(balanceCents).div(creditLimitCents).times(100).toNumber()
           : 0;
 
         return {
@@ -272,4 +300,3 @@ export async function GET(_request: Request) {
     );
   }
 }
-

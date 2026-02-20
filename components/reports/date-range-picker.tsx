@@ -6,6 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import {
+  getMonthRangeForDate,
+  getRelativeLocalDateString,
+  getTodayLocalDateString,
+  getYearRangeForDate,
+  toLocalDateString,
+} from '@/lib/utils/local-date';
 
 interface DateRangePickerProps {
   startDate: string | null;
@@ -35,37 +42,37 @@ const MAX_DATE_RANGE_DAYS = 1825; // 5 years
  */
 function getPresetDates(preset: PresetType): { start: string; end: string } | null {
   const now = new Date();
-  const today = now.toISOString().split('T')[0];
+  const today = getTodayLocalDateString();
 
   switch (preset) {
-    case 'this-month':
+    case 'this-month': {
+      const monthRange = getMonthRangeForDate(now);
       return {
-        start: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0],
-        end: new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0],
+        start: monthRange.startDate,
+        end: monthRange.endDate,
       };
-    case 'this-year':
+    }
+    case 'this-year': {
+      const yearRange = getYearRangeForDate(now);
       return {
-        start: new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0],
-        end: new Date(now.getFullYear(), 11, 31).toISOString().split('T')[0],
+        start: yearRange.startDate,
+        end: yearRange.endDate,
       };
+    }
     case 'last-12-months':
       const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
       return {
-        start: twelveMonthsAgo.toISOString().split('T')[0],
+        start: toLocalDateString(twelveMonthsAgo),
         end: today,
       };
     case 'last-30-days':
-      const thirtyDaysAgo = new Date(now);
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       return {
-        start: thirtyDaysAgo.toISOString().split('T')[0],
+        start: getRelativeLocalDateString(-30, now),
         end: today,
       };
     case 'last-90-days':
-      const ninetyDaysAgo = new Date(now);
-      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
       return {
-        start: ninetyDaysAgo.toISOString().split('T')[0],
+        start: getRelativeLocalDateString(-90, now),
         end: today,
       };
     default:
@@ -297,4 +304,3 @@ export function DateRangePicker({ startDate, endDate, onDateChange }: DateRangeP
     </Card>
   );
 }
-

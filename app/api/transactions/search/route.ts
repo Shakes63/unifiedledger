@@ -5,6 +5,8 @@ import { transactions, searchHistory, transactionTags, accounts, budgetCategorie
 import { eq, and, or, gte, lte, like, inArray, sql, type SQL } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
+import { apiDebugLog, handleRouteError } from '@/lib/api/route-helpers';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
 
@@ -95,11 +97,18 @@ export async function GET(request: Request) {
     filters.sortBy = sortBy;
     filters.sortOrder = sortOrder;
 
+    const shouldUseCombinedTransferFilter = (!filters.accountIds || filters.accountIds.length === 0) &&
+      await getCombinedTransferViewPreference(userId, householdId);
+
     // Build dynamic WHERE conditions
     const conditions: SQL[] = [
       eq(transactions.userId, userId),
       eq(transactions.householdId, householdId)
     ];
+
+    if (shouldUseCombinedTransferFilter) {
+      conditions.push(sql`${transactions.type} != 'transfer_in'`);
+    }
 
     // Text search in description and notes
     if (filters.query) {
@@ -186,10 +195,14 @@ export async function GET(request: Request) {
 
     // Amount range filter
     if (filters.amountMin !== undefined) {
-      conditions.push(gte(transactions.amount, filters.amountMin));
+      conditions.push(
+        gte(transactions.amountCents, toMoneyCents(filters.amountMin) ?? 0)
+      );
     }
     if (filters.amountMax !== undefined) {
-      conditions.push(lte(transactions.amount, filters.amountMax));
+      conditions.push(
+        lte(transactions.amountCents, toMoneyCents(filters.amountMax) ?? 0)
+      );
     }
 
     // Date range filter
@@ -239,8 +252,8 @@ export async function GET(request: Request) {
       if (filters.sortBy === 'amount') {
         return query.orderBy(
           filters.sortOrder === 'asc'
-            ? transactions.amount
-            : sql`${transactions.amount} DESC`
+            ? transactions.amountCents
+            : sql`${transactions.amountCents} DESC`
         );
       }
       if (filters.sortBy === 'description') {
@@ -301,30 +314,8 @@ export async function GET(request: Request) {
 
     const executionTime = performance.now() - startTime;
 
-    // Respect user's transfer view preference when no account filter is applied
-    let finalResults = results;
-    let finalTotalCount = totalCount;
-    
-    if (!filters.accountIds || filters.accountIds.length === 0) {
-      const combinedTransferView = await getCombinedTransferViewPreference(userId, householdId);
-      
-      // Debug logging
-      const transferOutCount = results.filter((tx) => tx.type === 'transfer_out').length;
-      const transferInCount = results.filter((tx) => tx.type === 'transfer_in').length;
-      console.log('[Transfer View Search] Preference:', combinedTransferView, 'Total results:', results.length, 'transfer_out:', transferOutCount, 'transfer_in:', transferInCount);
-      
-      if (combinedTransferView) {
-        // Filter out transfer_in transactions for combined view
-        finalResults = results.filter((tx) => tx.type !== 'transfer_in');
-        
-        // Recalculate total count (approximate - we'd need to rerun count query for exact)
-        // For now, use filtered results length as approximation
-        finalTotalCount = finalResults.length;
-        console.log('[Transfer View Search] Combined: Filtered to', finalResults.length, 'transactions');
-      } else {
-        console.log('[Transfer View Search] Separate: Returning all', results.length, 'transactions (both transfer_out and transfer_in)');
-      }
-    }
+    const finalResults = results;
+    const finalTotalCount = totalCount;
 
     // Track search in history (async, don't wait for it)
     try {
@@ -338,7 +329,7 @@ export async function GET(request: Request) {
       });
     } catch (error) {
       // Log but don't fail the search if history tracking fails
-      console.error('Error tracking search history:', error);
+      apiDebugLog('transactions:search', 'Error tracking search history', error);
     }
 
     return Response.json({
@@ -356,19 +347,10 @@ export async function GET(request: Request) {
       },
     });
     } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (error instanceof Error && (
-      error.message.includes('Household') ||
-      error.message.includes('member')
-    )) {
-      return Response.json({ error: error.message }, { status: 403 });
-    }
-    console.error('Transaction search error:', error);
-    return Response.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Internal server error',
+      logLabel: 'Transaction search error:',
+      includeErrorDetails: true,
+    });
     }
 }

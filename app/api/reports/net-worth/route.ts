@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import { eq, and, inArray } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { accounts } from '@/lib/db/schema';
@@ -9,6 +10,7 @@ import {
   calculateDateRange,
   formatMonthLabel,
   calculateNetWorth,
+  getAccountBalanceValue,
 } from '@/lib/reports/report-utils';
 
 /**
@@ -85,7 +87,7 @@ export async function GET(request: NextRequest) {
     // Calculate current net worth by account
     const accountBreakdown = userAccounts.map((account) => ({
       name: account.name,
-      balance: account.currentBalance || 0,
+      balance: getAccountBalanceValue(account),
       type: account.type,
       color: account.color,
     }));
@@ -96,7 +98,7 @@ export async function GET(request: NextRequest) {
     let filteredNetWorth = currentNetWorth;
     if (accountIds && accountIds.length > 0) {
       filteredNetWorth = userAccounts.reduce((sum: number, account) => {
-        return sum + (account.currentBalance || 0);
+        return sum + getAccountBalanceValue(account);
       }, 0);
     }
 
@@ -152,8 +154,8 @@ export async function GET(request: NextRequest) {
           const rangeEnd = monthEnd > end ? end : monthEnd;
 
           monthlyRanges.push({
-            startDate: rangeStart.toISOString().split('T')[0],
-            endDate: rangeEnd.toISOString().split('T')[0],
+            startDate: toLocalDateString(rangeStart),
+            endDate: toLocalDateString(rangeEnd),
           });
 
           current = new Date(monthEnd);

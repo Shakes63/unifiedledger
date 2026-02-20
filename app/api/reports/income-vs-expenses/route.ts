@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import {
   getTransactionsByDateRange,
   getLast12MonthsRanges,
@@ -102,8 +103,8 @@ export async function GET(request: NextRequest) {
         weekEnd.setDate(weekEnd.getDate() + 6);
         if (weekEnd > end) weekEnd.setTime(end.getTime());
 
-        const startStr = currentDate.toISOString().split('T')[0];
-        const endStr = weekEnd.toISOString().split('T')[0];
+        const startStr = toLocalDateString(currentDate);
+        const endStr = toLocalDateString(weekEnd);
 
         const txns = await getTransactionsByDateRange(
           userId,
@@ -141,8 +142,8 @@ export async function GET(request: NextRequest) {
         const rangeStart = monthStart < start ? start : monthStart;
         const rangeEnd = monthEnd > end ? end : monthEnd;
 
-        const startStr = rangeStart.toISOString().split('T')[0];
-        const endStr = rangeEnd.toISOString().split('T')[0];
+        const startStr = toLocalDateString(rangeStart);
+        const endStr = toLocalDateString(rangeEnd);
 
         const txns = await getTransactionsByDateRange(
           userId,
@@ -189,8 +190,8 @@ export async function GET(request: NextRequest) {
           const rangeEnd = monthEnd > end ? end : monthEnd;
 
           monthlyRanges.push({
-            startDate: rangeStart.toISOString().split('T')[0],
-            endDate: rangeEnd.toISOString().split('T')[0],
+            startDate: toLocalDateString(rangeStart),
+            endDate: toLocalDateString(rangeEnd),
           });
 
           current = new Date(monthEnd);

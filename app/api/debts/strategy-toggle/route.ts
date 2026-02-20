@@ -5,8 +5,13 @@ import { db } from '@/lib/db';
 import { accounts, bills } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
+
+function toAmount(cents: number): number {
+  return new Decimal(cents).div(100).toNumber();
+}
 
 interface ToggleRequest {
   source: 'account' | 'bill';
@@ -92,12 +97,14 @@ export async function POST(request: NextRequest) {
         .where(eq(accounts.id, id));
 
       // Return updated account in unified format
-      const balance = Math.abs(account.currentBalance || 0);
-      const creditLimit = account.creditLimit || 0;
-      const utilization = creditLimit > 0 
-        ? new Decimal(balance).div(creditLimit).times(100).toNumber() 
+      const balanceCents = Math.abs(account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0);
+      const creditLimitCents = account.creditLimitCents ?? toMoneyCents(account.creditLimit) ?? 0;
+      const balance = toAmount(balanceCents);
+      const creditLimit = toAmount(creditLimitCents);
+      const utilization = creditLimitCents > 0
+        ? new Decimal(balanceCents).div(creditLimitCents).times(100).toNumber()
         : 0;
-      const availableCredit = new Decimal(creditLimit).minus(balance).toNumber();
+      const availableCredit = toAmount(creditLimitCents - balanceCents);
 
       updatedDebt = {
         id: account.id,
@@ -183,4 +190,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

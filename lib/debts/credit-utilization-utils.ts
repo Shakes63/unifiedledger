@@ -7,6 +7,8 @@
  * Industry best practice: Keep utilization below 30% for optimal credit health
  */
 
+import Decimal from 'decimal.js';
+
 export type UtilizationLevel = 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
 
 export interface CreditCardData {
@@ -50,10 +52,10 @@ export function calculateUtilization(balance: number, limit: number): number {
     return 0;
   }
 
-  const utilization = (balance / limit) * 100;
+  const utilization = new Decimal(balance).dividedBy(limit).times(100);
 
   // Round to 1 decimal place
-  return Math.round(utilization * 10) / 10;
+  return utilization.toDecimalPlaces(1).toNumber();
 }
 
 /**
@@ -181,7 +183,7 @@ export function calculateCreditStats(
   // Calculate per-card utilization
   const cards: CreditCardUtilization[] = validCards.map((card) => {
     const utilization = calculateUtilization(card.balance, card.limit);
-    const available = Math.max(0, card.limit - card.balance);
+    const available = Math.max(0, new Decimal(card.limit).minus(card.balance).toNumber());
     const level = getUtilizationLevel(utilization);
 
     return {
@@ -196,9 +198,9 @@ export function calculateCreditStats(
   cards.sort((a, b) => b.utilization - a.utilization);
 
   // Calculate totals
-  const totalLimit = cards.reduce((sum, card) => sum + card.limit, 0);
-  const totalUsed = cards.reduce((sum, card) => sum + card.balance, 0);
-  const totalAvailable = Math.max(0, totalLimit - totalUsed);
+  const totalLimit = cards.reduce((sum, card) => new Decimal(sum).plus(card.limit).toNumber(), 0);
+  const totalUsed = cards.reduce((sum, card) => new Decimal(sum).plus(card.balance).toNumber(), 0);
+  const totalAvailable = Math.max(0, new Decimal(totalLimit).minus(totalUsed).toNumber());
   const overallUtilization = calculateUtilization(totalUsed, totalLimit);
 
   // Count cards over threshold
@@ -273,11 +275,13 @@ export function calculatePaymentToTarget(
     return 0;
   }
 
-  const targetBalance = (targetUtilization / 100) * limit;
-  const paymentNeeded = Math.max(0, balance - targetBalance);
+  const targetBalance = new Decimal(targetUtilization).dividedBy(100).times(limit);
+  const paymentNeeded = new Decimal(balance).minus(targetBalance);
+
+  if (paymentNeeded.lte(0)) return 0;
 
   // Round to nearest dollar
-  return Math.ceil(paymentNeeded);
+  return paymentNeeded.ceil().toNumber();
 }
 
 /**

@@ -3,6 +3,7 @@ import { billInstances, bills } from '@/lib/db/schema';
 import { eq, and, lte, gte } from 'drizzle-orm';
 import { addDays, parseISO, differenceInDays, startOfDay } from 'date-fns';
 import { createNotification } from '@/lib/notifications/notification-service';
+import { getTodayLocalDateString, toLocalDateString } from '@/lib/utils/local-date';
 
 /**
  * Check for late income and create notifications
@@ -11,7 +12,7 @@ import { createNotification } from '@/lib/notifications/notification-service';
 export async function checkAndCreateIncomeAlerts() {
   try {
     const today = new Date();
-    const todayISO = today.toISOString().split('T')[0];
+    const todayISO = toLocalDateString(today);
 
     // Get all pending/overdue income bill instances
     const incomeInstances = await db
@@ -112,7 +113,7 @@ async function createLateIncomeNotification(
 export async function checkAndCreateIncomeReminders() {
   try {
     const today = new Date();
-    const todayISO = today.toISOString().split('T')[0];
+    const todayISO = toLocalDateString(today);
 
     // Get all pending income bill instances for the next 7 days
     const upcomingIncomeInstances = await db
@@ -215,7 +216,7 @@ async function createUpcomingIncomeNotification(
  */
 export async function getLateIncomeForUser(userId: string) {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayLocalDateString();
 
     const results = await db
       .select({
@@ -252,8 +253,8 @@ export async function getUpcomingIncomeForUser(
   try {
     const today = new Date();
     const futureDate = addDays(today, daysAhead);
-    const todayISO = today.toISOString().split('T')[0];
-    const futureISO = futureDate.toISOString().split('T')[0];
+    const todayISO = toLocalDateString(today);
+    const futureISO = toLocalDateString(futureDate);
 
     return await db
       .select({
@@ -276,4 +277,3 @@ export async function getUpcomingIncomeForUser(
     return [];
   }
 }
-

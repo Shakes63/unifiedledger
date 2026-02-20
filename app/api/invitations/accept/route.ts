@@ -1,15 +1,15 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { householdInvitations, householdMembers } from '@/lib/db/schema';
+import { householdInvitations, householdMembers, userSettings } from '@/lib/db/schema';
 import { user as betterAuthUser } from '@/auth-schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const { userId } = await requireAuth();
+    const { userId, email: sessionEmail } = await requireAuth();
 
     const body = await request.json();
     const { token } = body;
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const inv = invitation[0];
 
     // Check status
-    if (inv.status !== 'pending') {
+    if (inv.status !== 'pending' && inv.status !== 'accepted') {
       return Response.json(
         { error: `Invitation has already been ${inv.status}` },
         { status: 400 }
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     }
 
     // Check expiration
-    if (new Date() > new Date(inv.expiresAt)) {
+    if (inv.status === 'pending' && new Date() > new Date(inv.expiresAt)) {
       return Response.json(
         { error: 'Invitation has expired' },
         { status: 400 }
@@ -55,37 +55,124 @@ export async function POST(request: Request) {
 
     // Get user info from Better Auth
     const user = await db
-      .select()
+      .select({
+        email: betterAuthUser.email,
+        name: betterAuthUser.name,
+      })
       .from(betterAuthUser)
       .where(eq(betterAuthUser.id, userId))
       .get();
 
-    const userName = user?.name || '';
+    const userEmail = (user?.email || sessionEmail || '').trim().toLowerCase();
+    const invitedEmail = inv.invitedEmail.trim().toLowerCase();
+    const userName = user?.name || null;
 
-    // Add user to household
-    const memberId = nanoid();
-    await db.insert(householdMembers).values({
-      id: memberId,
-      householdId: inv.householdId,
-      userId,
-      userEmail: inv.invitedEmail,
-      userName: userName || null,
-      role: inv.role as typeof householdMembers.$inferInsert['role'],
-      joinedAt: new Date().toISOString(),
-      invitedBy: inv.invitedBy,
+    if (!userEmail) {
+      return Response.json(
+        { error: 'Authenticated account is missing an email address' },
+        { status: 400 }
+      );
+    }
+
+    if (userEmail !== invitedEmail) {
+      return Response.json(
+        { error: 'This invitation is for a different email address' },
+        { status: 403 }
+      );
+    }
+
+    const now = new Date().toISOString();
+    const role = inv.role as typeof householdMembers.$inferInsert['role'];
+
+    await db.transaction(async (tx) => {
+      // Upsert membership to make accept idempotent for retries.
+      const existingMembership = await tx
+        .select({
+          id: householdMembers.id,
+        })
+        .from(householdMembers)
+        .where(
+          and(
+            eq(householdMembers.householdId, inv.householdId),
+            eq(householdMembers.userId, userId)
+          )
+        )
+        .limit(1);
+
+      if (existingMembership.length > 0) {
+        await tx
+          .update(householdMembers)
+          .set({
+            userEmail,
+            userName,
+            role,
+            invitedBy: inv.invitedBy,
+            isActive: true,
+          })
+          .where(
+            and(
+              eq(householdMembers.householdId, inv.householdId),
+              eq(householdMembers.userId, userId)
+            )
+          );
+      } else {
+        await tx.insert(householdMembers).values({
+          id: nanoid(),
+          householdId: inv.householdId,
+          userId,
+          userEmail,
+          userName,
+          role,
+          joinedAt: now,
+          invitedBy: inv.invitedBy,
+          isActive: true,
+        });
+      }
+
+      // Prefer the invited household on first dashboard load.
+      const existingSettings = await tx
+        .select({
+          id: userSettings.id,
+        })
+        .from(userSettings)
+        .where(eq(userSettings.userId, userId))
+        .limit(1);
+
+      if (existingSettings.length > 0) {
+        await tx
+          .update(userSettings)
+          .set({
+            defaultHouseholdId: inv.householdId,
+            updatedAt: now,
+          })
+          .where(eq(userSettings.userId, userId));
+      } else {
+        await tx.insert(userSettings).values({
+          id: nanoid(),
+          userId,
+          defaultHouseholdId: inv.householdId,
+          onboardingCompleted: false,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
+      if (inv.status === 'pending') {
+        await tx
+          .update(householdInvitations)
+          .set({
+            status: 'accepted',
+            acceptedAt: now,
+          })
+          .where(eq(householdInvitations.id, inv.id));
+      }
     });
 
-    // Update invitation status
-    await db
-      .update(householdInvitations)
-      .set({
-        status: 'accepted',
-        acceptedAt: new Date().toISOString(),
-      })
-      .where(eq(householdInvitations.id, inv.id));
-
     return Response.json({
-      message: 'Invitation accepted successfully',
+      message:
+        inv.status === 'accepted'
+          ? 'Invitation already accepted'
+          : 'Invitation accepted successfully',
       householdId: inv.householdId,
     });
   } catch (error) {

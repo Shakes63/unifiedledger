@@ -7,6 +7,7 @@ import { useHousehold } from '@/contexts/household-context';
 import { Loader2, Search, Link2Off } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import Decimal from 'decimal.js';
 import type { Transaction, Account } from '@/lib/types';
 
@@ -67,8 +68,8 @@ export function TransactionLinkSelector({
         // Fetch expense transactions within date range
         const params = new URLSearchParams({
           type: 'expense',
-          startDate: startDate.toISOString().split('T')[0],
-          endDate: endDate.toISOString().split('T')[0],
+          startDate: toLocalDateString(startDate),
+          endDate: toLocalDateString(endDate),
           limit: '100',
         });
 
@@ -257,4 +258,3 @@ export function TransactionLinkSelector({
     </div>
   );
 }
-

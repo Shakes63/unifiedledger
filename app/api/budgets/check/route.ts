@@ -2,7 +2,9 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories } from '@/lib/db/schema';
-import { eq, and, gte, lte, sum } from 'drizzle-orm';
+import { getMonthRangeForDate } from '@/lib/utils/local-date';
+import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,17 +47,12 @@ export async function GET(request: Request) {
 
     // Get current month's date range
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-      .toISOString()
-      .split('T')[0];
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      .toISOString()
-      .split('T')[0];
+    const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForDate(now);
 
     // Get spending for this month and category
     const spendingResult = await db
       .select({
-        total: sum(transactions.amount),
+        totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)`,
       })
       .from(transactions)
       .where(
@@ -69,7 +66,7 @@ export async function GET(request: Request) {
         )
       );
 
-    const spent = spendingResult[0]?.total ? parseFloat(spendingResult[0].total.toString()) : 0;
+    const spent = new Decimal(spendingResult[0]?.totalCents ?? 0).div(100).toNumber();
 
     // Calculate percentage
     const percentage = monthlyBudget > 0 ? (spent / monthlyBudget) * 100 : 0;

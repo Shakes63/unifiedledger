@@ -2,8 +2,10 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories } from '@/lib/db/schema';
+import { getMonthRangeForDate, parseLocalDateString, toLocalDateString } from '@/lib/utils/local-date';
 import { eq, and, gte, lte, inArray } from 'drizzle-orm';
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,25 +43,21 @@ export async function GET(request: Request) {
     let periodLabel: string;
 
     if (period === 'weekly') {
-      const date = dateStr ? new Date(dateStr) : new Date();
-      const dayOfWeek = date.getDay();
-      const diff = date.getDate() - dayOfWeek;
-      const startDate = new Date(date.setDate(diff));
+      const date = dateStr ? parseLocalDateString(dateStr) : new Date();
+      const startDate = new Date(date);
+      startDate.setDate(startDate.getDate() - startDate.getDay());
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 6);
 
-      dateStart = startDate.toISOString().split('T')[0];
-      dateEnd = endDate.toISOString().split('T')[0];
+      dateStart = toLocalDateString(startDate);
+      dateEnd = toLocalDateString(endDate);
       periodLabel = `Week of ${dateStart}`;
     } else {
       // Monthly
-      const date = dateStr ? new Date(dateStr) : new Date();
-      dateStart = new Date(date.getFullYear(), date.getMonth(), 1)
-        .toISOString()
-        .split('T')[0];
-      dateEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0)
-        .toISOString()
-        .split('T')[0];
+      const date = dateStr ? parseLocalDateString(dateStr) : new Date();
+      const monthRange = getMonthRangeForDate(date);
+      dateStart = monthRange.startDate;
+      dateEnd = monthRange.endDate;
       periodLabel = date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -80,31 +78,44 @@ export async function GET(request: Request) {
       );
 
     // Calculate totals by type
-    const incomeTotal = txns
+    const getTxnAmountCents = (txn: {
+      amount: number;
+      amountCents: number | string | bigint | null;
+    }) => {
+      if (txn.amountCents !== null && txn.amountCents !== undefined) {
+        return Number(txn.amountCents);
+      }
+      return toMoneyCents(txn.amount) ?? 0;
+    };
+
+    const centsToAmount = (cents: number) => new Decimal(cents).div(100).toNumber();
+
+    const incomeTotalCents = txns
       .filter((t) => t.type === 'income')
-      .reduce((sum, t) => sum.plus(new Decimal(t.amount?.toString() || '0')), new Decimal(0))
-      .toNumber();
+      .reduce((sum, t) => sum + getTxnAmountCents(t), 0);
 
-    const expenseTotal = txns
+    const expenseTotalCents = txns
       .filter((t) => t.type === 'expense')
-      .reduce((sum, t) => sum.plus(new Decimal(t.amount?.toString() || '0')), new Decimal(0))
-      .toNumber();
+      .reduce((sum, t) => sum + getTxnAmountCents(t), 0);
 
-    const transferTotal = txns
+    const transferTotalCents = txns
       .filter((t) => t.type === 'transfer_in' || t.type === 'transfer_out')
-      .reduce((sum, t) => sum.plus(new Decimal(t.amount?.toString() || '0')), new Decimal(0))
-      .toNumber();
+      .reduce((sum, t) => sum + getTxnAmountCents(t), 0);
+
+    const incomeTotal = centsToAmount(incomeTotalCents);
+    const expenseTotal = centsToAmount(expenseTotalCents);
+    const transferTotal = centsToAmount(transferTotalCents);
 
     // Group by category
-    const byCategory = new Map<string, { amount: Decimal; count: number; categoryName: string }>();
+    const byCategory = new Map<string, { amountCents: number; count: number; categoryName: string }>();
 
     for (const txn of txns) {
       if (txn.type === 'expense' && txn.categoryId) {
         if (!byCategory.has(txn.categoryId)) {
-          byCategory.set(txn.categoryId, { amount: new Decimal(0), count: 0, categoryName: '' });
+          byCategory.set(txn.categoryId, { amountCents: 0, count: 0, categoryName: '' });
         }
         const entry = byCategory.get(txn.categoryId)!;
-        entry.amount = entry.amount.plus(new Decimal(txn.amount?.toString() || '0'));
+        entry.amountCents += getTxnAmountCents(txn);
         entry.count += 1;
       }
     }
@@ -129,32 +140,35 @@ export async function GET(request: Request) {
     const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
 
     const categoryData = Array.from(byCategory.entries())
-      .map(([categoryId, { amount, count }]) => ({
+      .map(([categoryId, { amountCents, count }]) => {
+        const amount = centsToAmount(amountCents);
+        return {
         categoryId,
         categoryName: categoryMap.get(categoryId) || 'Uncategorized',
-        amount: amount.toNumber(),
-        percentage: expenseTotal > 0 ? Math.round((amount.toNumber() / expenseTotal) * 100) : 0,
+        amount,
+        percentage: expenseTotal > 0 ? Math.round((amount / expenseTotal) * 100) : 0,
         transactionCount: count,
-      }))
+      };
+      })
       .sort((a, b) => b.amount - a.amount);
 
     // Get top merchants
-    const merchantSpending = new Map<string, { amount: number; count: number }>();
+    const merchantSpending = new Map<string, { amountCents: number; count: number }>();
 
     for (const txn of txns.filter((t) => t.type === 'expense')) {
       const merchant = txn.description || 'Unknown';
       if (!merchantSpending.has(merchant)) {
-        merchantSpending.set(merchant, { amount: 0, count: 0 });
+        merchantSpending.set(merchant, { amountCents: 0, count: 0 });
       }
       const entry = merchantSpending.get(merchant)!;
-      entry.amount += new Decimal(txn.amount?.toString() || '0').toNumber();
+      entry.amountCents += getTxnAmountCents(txn);
       entry.count += 1;
     }
 
     const topMerchants = Array.from(merchantSpending.entries())
-      .map(([merchant, { amount, count }]) => ({
+      .map(([merchant, { amountCents, count }]) => ({
         merchant,
-        amount,
+        amount: centsToAmount(amountCents),
         transactionCount: count,
       }))
       .sort((a, b) => b.amount - a.amount)

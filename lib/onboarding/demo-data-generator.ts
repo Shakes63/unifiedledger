@@ -5,13 +5,18 @@ import {
   bills,
   savingsGoals,
   debts,
-  transactions,
   merchants,
 } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { subDays, format } from 'date-fns';
+import { toLocalDateString } from '@/lib/utils/local-date';
+import {
+  amountToCents,
+  buildAccountBalanceFields,
+  insertTransactionMovement,
+} from '@/lib/transactions/money-movement-service';
 
 interface DemoDataResult {
   accountsCreated: number;
@@ -86,9 +91,14 @@ export async function generateDemoData(
       type: acc.type,
       bankName: acc.bankName,
       currentBalance: acc.balance.toNumber(),
+      currentBalanceCents: amountToCents(acc.balance),
       creditLimit: acc.type === 'credit' && 'creditLimit' in acc && acc.creditLimit instanceof Decimal
         ? acc.creditLimit.toNumber()
         : null,
+      creditLimitCents:
+        acc.type === 'credit' && 'creditLimit' in acc && acc.creditLimit instanceof Decimal
+          ? amountToCents(acc.creditLimit)
+          : null,
       color: acc.color,
       icon: acc.icon,
       sortOrder: i,
@@ -293,7 +303,7 @@ export async function generateDemoData(
     type: 'credit_card' as const,
     accountId: accountIds['Demo Credit Card'],
     categoryId: categoryIds['Demo Groceries'], // For tracking payments
-    startDate: subDays(now, 180).toISOString().split('T')[0], // 6 months ago
+    startDate: toLocalDateString(subDays(now, 180)), // 6 months ago
     color: '#ef4444',
     icon: 'credit-card',
   };
@@ -492,7 +502,7 @@ export async function generateDemoData(
       }
     }
 
-    await db.insert(transactions).values({
+    await insertTransactionMovement(db, {
       id: transactionId,
       userId,
       householdId,
@@ -500,7 +510,7 @@ export async function generateDemoData(
       categoryId: txn.categoryId,
       merchantId: txn.merchantId,
       date: dateStr,
-      amount: txn.amount.toNumber(),
+      amountCents: amountToCents(txn.amount),
       description: txn.description,
       type: txn.type,
       isPending: false,
@@ -547,7 +557,7 @@ export async function generateDemoData(
   await db
     .update(accounts)
     .set({
-      currentBalance: checkingBalance.toNumber(),
+      ...buildAccountBalanceFields(amountToCents(checkingBalance)),
       lastUsedAt: createdAt,
       usageCount: checkingTxnCount,
       updatedAt: createdAt,
@@ -557,7 +567,7 @@ export async function generateDemoData(
   await db
     .update(accounts)
     .set({
-      currentBalance: creditCardBalance.toNumber(),
+      ...buildAccountBalanceFields(amountToCents(creditCardBalance)),
       lastUsedAt: createdAt,
       usageCount: creditCardTxnCount,
       updatedAt: createdAt,
@@ -574,4 +584,3 @@ export async function generateDemoData(
     merchantsCreated: demoMerchants.length,
   };
 }
-

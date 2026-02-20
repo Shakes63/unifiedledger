@@ -11,8 +11,13 @@ import {
   type PaymentFrequency,
   type DebtInput
 } from '@/lib/debts/payoff-calculator';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
+
+function toAmount(cents: number): number {
+  return cents / 100;
+}
 
 // Extended interface to track debt source
 interface UnifiedDebtInput extends DebtInput {
@@ -75,7 +80,9 @@ export async function GET(request: NextRequest) {
 
     // Add credit accounts
     for (const acc of creditAccounts) {
-      const balance = Math.abs(acc.currentBalance || 0);
+      const balance = toAmount(
+        Math.abs(acc.currentBalanceCents ?? toMoneyCents(acc.currentBalance) ?? 0)
+      );
       
       // Skip accounts with zero balance
       if (balance <= 0) continue;

@@ -22,6 +22,7 @@ import {
 import { eq, and, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 // Milestone percentages to track
 const MILESTONE_PERCENTAGES = [25, 50, 75, 100] as const;
@@ -63,10 +64,19 @@ async function getUnifiedDebts(householdId: string): Promise<UnifiedDebt[]> {
     );
 
   for (const acc of creditAccounts) {
-    const balance = Math.abs(acc.currentBalance || 0);
+    const balance = new Decimal(
+      acc.currentBalanceCents ?? toMoneyCents(acc.currentBalance) ?? 0
+    )
+      .div(100)
+      .abs()
+      .toNumber();
     // For credit accounts, original balance is the credit limit (max borrowed)
     // Milestone progress: going from credit limit to 0 balance
-    const originalBalance = acc.creditLimit || balance;
+    const originalBalance = new Decimal(
+      acc.creditLimitCents ?? toMoneyCents(acc.creditLimit ?? balance) ?? 0
+    )
+      .div(100)
+      .toNumber();
     
     // Only include if there's debt to pay off
     if (balance > 0 || originalBalance > 0) {

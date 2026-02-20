@@ -6,6 +6,7 @@ import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/house
 import { trackCreditLimitChange, determineChangeReason, calculateMinimumPayment } from '@/lib/accounts';
 import { createPaymentBill, createAnnualFeeBill, deactivateBill } from '@/lib/bills/auto-bill-creation';
 import type { PaymentAmountSource } from '@/lib/types';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
 
@@ -125,6 +126,8 @@ export async function PUT(
     }
     
     // Update the account with all fields inline
+    const finalCurrentBalance = currentBalance !== undefined ? currentBalance : existing.currentBalance;
+    const finalCreditLimit = creditLimit !== undefined ? (creditLimit || null) : existing.creditLimit;
     await db
       .update(accounts)
       .set({
@@ -132,8 +135,10 @@ export async function PUT(
         type,
         bankName: bankName || null,
         accountNumberLast4: accountNumberLast4 || null,
-        currentBalance: currentBalance !== undefined ? currentBalance : existing.currentBalance,
-        creditLimit: creditLimit !== undefined ? (creditLimit || null) : existing.creditLimit,
+        currentBalance: finalCurrentBalance,
+        currentBalanceCents: toMoneyCents(finalCurrentBalance) ?? 0,
+        creditLimit: finalCreditLimit,
+        creditLimitCents: toMoneyCents(finalCreditLimit),
         color: color || existing.color,
         icon: icon || existing.icon,
         isBusinessAccount: computedIsBusinessAccount,

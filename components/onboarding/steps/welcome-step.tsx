@@ -41,7 +41,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
           {isInvitedUser ? (
             <>
               <h3 className="text-xl font-semibold text-foreground">
-                You're joining {householdName}
+                You&apos;re joining {householdName}
               </h3>
               <ul className="space-y-3 text-left text-muted-foreground">
                 <li className="flex items-center gap-3">
@@ -148,4 +148,3 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
     </OnboardingStep>
   );
 }
-

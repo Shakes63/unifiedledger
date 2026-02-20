@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import { Info, ChevronDown, ChevronRight } from 'lucide-react';
 import { calculateUtilization, getUtilizationLevel, getUtilizationColor } from '@/lib/debts/credit-utilization-utils';
+import { getTodayLocalDateString } from '@/lib/utils/local-date';
 import type { DebtFormData } from '@/lib/types';
 
 const DEBT_TYPES = [
@@ -93,7 +94,7 @@ export function DebtForm({ debt, onSubmit, onCancel, isLoading = false }: DebtFo
     interestType: debt?.interestType || 'none',
     type: debt?.type || 'other',
     color: debt?.color || '#ef4444',
-    startDate: debt?.startDate || new Date().toISOString().split('T')[0],
+    startDate: debt?.startDate || getTodayLocalDateString(),
     targetPayoffDate: debt?.targetPayoffDate || '',
     priority: debt?.priority || 0,
     // Loan tracking fields

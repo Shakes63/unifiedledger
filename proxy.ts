@@ -15,6 +15,38 @@ import { isTestMode, logTestModeWarning, TEST_SESSION_TOKEN } from "@/lib/test-m
 const activityUpdateCache = new Map<string, number>();
 const ACTIVITY_UPDATE_INTERVAL = 60 * 1000; // 1 minute
 
+function extractSessionTokenFromSessionData(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+
+  const payloadCandidates = [raw];
+  try {
+    payloadCandidates.push(Buffer.from(raw, "base64url").toString("utf-8"));
+  } catch {
+    // ignore malformed base64url
+  }
+  try {
+    payloadCandidates.push(Buffer.from(raw, "base64").toString("utf-8"));
+  } catch {
+    // ignore malformed base64
+  }
+
+  for (const candidate of payloadCandidates) {
+    try {
+      const parsed = JSON.parse(candidate) as {
+        session?: { session?: { token?: string } };
+      };
+      const token = parsed?.session?.session?.token;
+      if (token && typeof token === "string") {
+        return token.split(".")[0] || token;
+      }
+    } catch {
+      // keep trying fallbacks
+    }
+  }
+
+  return null;
+}
+
 export default async function proxy(request: NextRequest) {
   // ============================================================================
   // TEST MODE BYPASS
@@ -106,6 +138,14 @@ export default async function proxy(request: NextRequest) {
   let sessionToken = request.cookies.get(secureCookieName)?.value ||
                      request.cookies.get(nonSecureCookieName)?.value ||
                      null;
+
+  if (!sessionToken) {
+    const sessionDataRaw =
+      request.cookies.get("__Secure-better-auth.session_data")?.value ||
+      request.cookies.get("better-auth.session_data")?.value ||
+      null;
+    sessionToken = extractSessionTokenFromSessionData(sessionDataRaw);
+  }
 
   // Better Auth signs cookies in format: <token>.<signature>
   // Extract the raw token (first part) for database lookup

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transferSuggestions, transactions, accounts } from '@/lib/db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
@@ -16,6 +17,7 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const { searchParams } = new URL(request.url);
     const statusParam = searchParams.get('status') || 'pending';
@@ -86,6 +88,7 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           eq(transferSuggestions.userId, userId),
+          eq(transferSuggestions.householdId, householdId),
           eq(transferSuggestions.status, status)
         )
       )
@@ -100,6 +103,7 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           eq(transferSuggestions.userId, userId),
+          eq(transferSuggestions.householdId, householdId),
           eq(transferSuggestions.status, status)
         )
       );

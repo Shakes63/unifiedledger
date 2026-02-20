@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { Loader2, CreditCard, ExternalLink } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import { getTodayLocalDateString } from '@/lib/utils/local-date';
 import type { PaymentBillDetectionResult } from '@/lib/bills/payment-bill-detection';
 
 const transferSchema = z.object({
@@ -79,7 +80,7 @@ export function TransferForm({
     resolver: zodResolver(transferSchema),
     defaultValues: {
       amount: '',
-      date: new Date().toISOString().split('T')[0],
+      date: getTodayLocalDateString(),
       description: 'Transfer',
       fees: '0',
       notes: '',
@@ -165,7 +166,13 @@ export function TransferForm({
       const result = await response.json();
 
       toast.success('Transfer created successfully!');
-      reset();
+      reset({
+        amount: '',
+        date: getTodayLocalDateString(),
+        description: 'Transfer',
+        fees: '0',
+        notes: '',
+      });
       onSuccess?.(result.transferId);
     } catch (error) {
       console.error('Transfer error:', error);

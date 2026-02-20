@@ -5,6 +5,7 @@ import { eq, and, gte, inArray } from 'drizzle-orm';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import Decimal from 'decimal.js';
 import { format, startOfDay, subDays } from 'date-fns';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
 
@@ -142,8 +143,19 @@ export async function GET(request: Request) {
       let totalLimit = 0;
 
       for (const acc of currentAccounts) {
-        totalBalance = new Decimal(totalBalance).plus(new Decimal(Math.abs(acc.currentBalance || 0))).toNumber();
-        totalLimit = new Decimal(totalLimit).plus(new Decimal(acc.creditLimit || 0)).toNumber();
+        const balance = new Decimal(
+          acc.currentBalanceCents ?? toMoneyCents(acc.currentBalance) ?? 0
+        )
+          .div(100)
+          .abs()
+          .toNumber();
+        const limit = new Decimal(
+          acc.creditLimitCents ?? toMoneyCents(acc.creditLimit) ?? 0
+        )
+          .div(100)
+          .toNumber();
+        totalBalance = new Decimal(totalBalance).plus(new Decimal(balance)).toNumber();
+        totalLimit = new Decimal(totalLimit).plus(new Decimal(limit)).toNumber();
       }
 
       const currentUtilization = totalLimit > 0

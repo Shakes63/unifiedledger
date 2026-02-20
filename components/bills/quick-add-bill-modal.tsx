@@ -39,7 +39,7 @@ import {
   formatSubcategory,
   type ClassificationSuggestion,
 } from '@/lib/bills/bill-classification';
-import { FREQUENCY_LABELS, DAY_OF_WEEK_OPTIONS } from '@/lib/bills/bill-utils';
+import { DAY_OF_WEEK_OPTIONS } from '@/lib/bills/bill-utils';
 
 interface Category {
   id: string;
@@ -116,17 +116,6 @@ export function QuickAddBillModal({
     return () => clearTimeout(timer);
   }, [name, suggestionDismissed]);
 
-  // Reset form when modal closes
-  useEffect(() => {
-    if (!open) {
-      // Delay reset to avoid flicker during close animation
-      const timer = setTimeout(() => {
-        resetForm();
-      }, 200);
-      return () => clearTimeout(timer);
-    }
-  }, [open]);
-
   const resetForm = useCallback(() => {
     setName('');
     setAmount('');
@@ -136,6 +125,17 @@ export function QuickAddBillModal({
     setSuggestion(null);
     setSuggestionDismissed(false);
   }, []);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!open) {
+      // Delay reset to avoid flicker during close animation
+      const timer = setTimeout(() => {
+        resetForm();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [open, resetForm]);
 
   const handleClose = useCallback(() => {
     if (hasData) {
@@ -487,4 +487,3 @@ export function QuickAddBillModal({
     </>
   );
 }
-

@@ -21,6 +21,10 @@ interface Transaction {
   categoryId?: string;
   merchantId?: string;
   transferId?: string;
+  transferGroupId?: string | null;
+  pairedTransactionId?: string | null;
+  transferSourceAccountId?: string | null;
+  transferDestinationAccountId?: string | null;
   notes?: string;
   isSplit?: boolean;
 }
@@ -193,33 +197,45 @@ export function RecentTransactions() {
   };
 
   const getTransactionDisplay = (transaction: Transaction): { merchant: string | null; description: string } => {
-    if (transaction.type === 'transfer_out') {
-      // transfer_out: accountId is source, transferId is destination account
+    const getTransferEndpoints = (tx: Transaction) => {
+      const sourceAccountId = tx.transferSourceAccountId
+        || (tx.type === 'transfer_out' ? tx.accountId : undefined);
+      let destinationAccountId = tx.transferDestinationAccountId
+        || (tx.type === 'transfer_in' ? tx.accountId : undefined);
+
+      if (!destinationAccountId && tx.type === 'transfer_out' && tx.transferId) {
+        destinationAccountId = tx.transferId;
+      }
+
+      if (!sourceAccountId && tx.type === 'transfer_in') {
+        const pairedTx = transactions.find((candidate) =>
+          (tx.pairedTransactionId && candidate.id === tx.pairedTransactionId)
+          || (tx.transferGroupId && candidate.transferGroupId === tx.transferGroupId && candidate.id !== tx.id)
+          || (tx.transferId && candidate.id === tx.transferId)
+        );
+        return {
+          sourceAccountId: pairedTx?.transferSourceAccountId || pairedTx?.accountId,
+          destinationAccountId: destinationAccountId || tx.accountId,
+        };
+      }
+
       return {
-        merchant: `${getAccountName(transaction.accountId)} → ${getAccountName(transaction.transferId)}`,
+        sourceAccountId,
+        destinationAccountId,
+      };
+    };
+
+    if (transaction.type === 'transfer_out') {
+      const { sourceAccountId, destinationAccountId } = getTransferEndpoints(transaction);
+      return {
+        merchant: `${getAccountName(sourceAccountId)} → ${getAccountName(destinationAccountId)}`,
         description: transaction.description,
       };
     }
     if (transaction.type === 'transfer_in') {
-      // transfer_in: accountId is destination, transferId is the paired transfer_out transaction ID
-      // For converted transactions, source account ID is stored in merchantId
-      if (transaction.merchantId) {
-        return {
-          merchant: `${getAccountName(transaction.merchantId)} → ${getAccountName(transaction.accountId)}`,
-          description: transaction.description,
-        };
-      }
-      // Try to find the paired transfer_out transaction to get source account
-      const pairedTx = transactions.find(t => t.id === transaction.transferId);
-      if (pairedTx) {
-        return {
-          merchant: `${getAccountName(pairedTx.accountId)} → ${getAccountName(transaction.accountId)}`,
-          description: transaction.description,
-        };
-      }
-      // Fallback if paired transaction not found
+      const { sourceAccountId, destinationAccountId } = getTransferEndpoints(transaction);
       return {
-        merchant: `Transfer → ${getAccountName(transaction.accountId)}`,
+        merchant: `${getAccountName(sourceAccountId)} → ${getAccountName(destinationAccountId)}`,
         description: transaction.description,
       };
     }
@@ -263,19 +279,17 @@ export function RecentTransactions() {
   const filteredTransactions = selectedAccountId === 'all'
     ? transactions
     : transactions.filter(tx => {
+        const sourceAccountId = tx.transferSourceAccountId || (tx.type === 'transfer_out' ? tx.accountId : undefined);
+        const destinationAccountId = tx.transferDestinationAccountId || (tx.type === 'transfer_in' ? tx.accountId : undefined);
+
         // For regular transactions (income/expense)
         if (tx.type !== 'transfer_out' && tx.type !== 'transfer_in') {
           return tx.accountId === selectedAccountId;
         }
-        // For transfer_out: accountId is source, transferId is destination account
-        if (tx.type === 'transfer_out') {
-          return tx.accountId === selectedAccountId || tx.transferId === selectedAccountId;
-        }
-        // For transfer_in: accountId is destination, merchantId stores source account (for converted transfers)
-        if (tx.type === 'transfer_in') {
-          return tx.accountId === selectedAccountId || tx.merchantId === selectedAccountId;
-        }
-        return false;
+
+        return sourceAccountId === selectedAccountId
+          || destinationAccountId === selectedAccountId
+          || tx.accountId === selectedAccountId;
       });
 
   // 1. Household context is still initializing

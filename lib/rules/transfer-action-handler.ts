@@ -20,6 +20,14 @@ import Decimal from 'decimal.js';
 import { distance } from 'fastest-levenshtein';
 import { parseISO, addDays, subDays, format, differenceInCalendarDays } from 'date-fns';
 import type { TransferConversionConfig } from './types';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
+import {
+  getAccountBalanceCents,
+  getTransactionAmountCents,
+  insertTransactionMovement,
+  insertTransferMovement,
+  updateScopedAccountBalance,
+} from '@/lib/transactions/money-movement-service';
 
 type TransactionRow = typeof transactions.$inferSelect;
 
@@ -139,6 +147,7 @@ function scoreTransferMatch(
  */
 async function storeSuggestions(
   userId: string,
+  householdId: string,
   sourceTransactionId: string,
   matches: MatchScore[]
 ): Promise<void> {
@@ -156,6 +165,7 @@ async function storeSuggestions(
     const suggestions = mediumMatches.map((match) => ({
       id: nanoid(),
       userId,
+      householdId,
       sourceTransactionId,
       suggestedTransactionId: match.transactionId,
       amountScore: match.amountScore,
@@ -217,8 +227,20 @@ export async function handleTransferConversion(
       return { success: false, error: 'Transaction missing household ID' };
     }
 
+    if (
+      transaction.transferGroupId ||
+      transaction.pairedTransactionId ||
+      (transaction.transferId && transaction.transferId.length > 0)
+    ) {
+      return { success: false, error: 'Transaction is already linked as a transfer' };
+    }
+
     // Validate target account belongs to the same household (if provided)
     if (config.targetAccountId) {
+      if (config.targetAccountId === transaction.accountId) {
+        return { success: false, error: 'Cannot transfer to the same account' };
+      }
+
       const targetAccount = await db
         .select()
         .from(accounts)
@@ -245,63 +267,105 @@ export async function handleTransferConversion(
       config
     );
 
-    // 3. Generate transfer ID
-    const transferId = nanoid();
-
-    // 4. Determine new transaction type based on original type
-    const newType = transaction.type === 'income' ? 'transfer_in' : 'transfer_out';
-
-    // 5. Convert source transaction to transfer
-    await db
-      .update(transactions)
-      .set({
-        type: newType,
-        transferId: transferId,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(transactions.id, transactionId),
-          eq(transactions.userId, userId),
-          eq(transactions.householdId, householdId)
-        )
-      );
-
-    // 6. Handle high-confidence auto-link
+    // 3. Handle high-confidence auto-link
     if (matchResult.autoLink && matchResult.bestMatch) {
-      const matchedType = matchResult.bestMatch.type === 'income' ? 'transfer_in' : 'transfer_out';
+      const matchedTransaction = matchResult.bestMatch;
 
-      await db
-        .update(transactions)
-        .set({
-          type: matchedType,
-          transferId: transferId,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(transactions.id, matchResult.bestMatch.id),
-            eq(transactions.userId, userId),
-            eq(transactions.householdId, householdId)
-          )
-        );
+      if (
+        matchedTransaction.transferGroupId ||
+        matchedTransaction.pairedTransactionId ||
+        (matchedTransaction.transferId && matchedTransaction.transferId.length > 0)
+      ) {
+        return { success: false, error: 'Matched transaction is already linked as a transfer' };
+      }
+
+      const transferGroupId = nanoid();
+      const sourceIsOut = transaction.type === 'expense';
+      const sourceType = sourceIsOut ? 'transfer_out' : 'transfer_in';
+      const matchedType = sourceIsOut ? 'transfer_in' : 'transfer_out';
+      const sourceAccountId = sourceIsOut ? transaction.accountId : matchedTransaction.accountId;
+      const destinationAccountId = sourceIsOut ? matchedTransaction.accountId : transaction.accountId;
+      const nowIso = new Date().toISOString();
+      const transferOutId = sourceType === 'transfer_out' ? transaction.id : matchedTransaction.id;
+      const transferInId = sourceType === 'transfer_in' ? transaction.id : matchedTransaction.id;
+
+      await runInDatabaseTransaction(async (tx) => {
+        await tx
+          .update(transactions)
+          .set({
+            type: sourceType,
+            transferId: transferGroupId,
+            transferGroupId,
+            pairedTransactionId: matchedTransaction.id,
+            transferSourceAccountId: sourceAccountId,
+            transferDestinationAccountId: destinationAccountId,
+            categoryId: null,
+            merchantId: null,
+            updatedAt: nowIso,
+          })
+          .where(
+            and(
+              eq(transactions.id, transactionId),
+              eq(transactions.userId, userId),
+              eq(transactions.householdId, householdId)
+            )
+          );
+
+        await tx
+          .update(transactions)
+          .set({
+            type: matchedType,
+            transferId: transferGroupId,
+            transferGroupId,
+            pairedTransactionId: transactionId,
+            transferSourceAccountId: sourceAccountId,
+            transferDestinationAccountId: destinationAccountId,
+            categoryId: null,
+            merchantId: null,
+            updatedAt: nowIso,
+          })
+          .where(
+            and(
+              eq(transactions.id, matchedTransaction.id),
+              eq(transactions.userId, userId),
+              eq(transactions.householdId, householdId)
+            )
+          );
+
+        await insertTransferMovement(tx, {
+          id: transferGroupId,
+          userId,
+          householdId,
+          fromAccountId: sourceAccountId,
+          toAccountId: destinationAccountId,
+          amountCents: getTransactionAmountCents(transaction),
+          feesCents: 0,
+          description: transaction.description || matchedTransaction.description || 'Transfer',
+          date: transaction.date,
+          status: 'completed',
+          fromTransactionId: transferOutId,
+          toTransactionId: transferInId,
+          notes: transaction.notes || matchedTransaction.notes || null,
+          createdAt: nowIso,
+        });
+      });
 
       return {
         success: true,
-        matchedTransactionId: matchResult.bestMatch.id,
+        matchedTransactionId: matchedTransaction.id,
         autoLinked: true,
         confidence: 'high',
       };
     }
 
-    // 7. Handle medium-confidence suggestions
+    // 4. Handle medium-confidence suggestions
     const mediumMatches = matchResult.allMatches.filter(
       (m) => m.confidence === 'medium'
     );
 
     if (mediumMatches.length > 0 && config.autoMatch) {
       // Store suggestions for user review
-      await storeSuggestions(userId, transactionId, mediumMatches);
+      await storeSuggestions(userId, householdId, transactionId, mediumMatches);
 
       return {
         success: true,
@@ -311,36 +375,114 @@ export async function handleTransferConversion(
       };
     }
 
-    // 8. No good matches - create new pair if configured
+    // 5. No good matches - create new pair if configured
     if (config.createIfNoMatch && config.targetAccountId) {
-      // Create new transfer pair
+      const targetAccountId = config.targetAccountId;
+      const transferGroupId = nanoid();
       const newTxId = nanoid();
-      const pairType = newType === 'transfer_out' ? 'transfer_in' : 'transfer_out';
+      const sourceType = transaction.type === 'expense' ? 'transfer_out' : 'transfer_in';
+      const pairType = sourceType === 'transfer_out' ? 'transfer_in' : 'transfer_out';
+      const sourceAccountId = sourceType === 'transfer_out' ? transaction.accountId : targetAccountId;
+      const destinationAccountId = sourceType === 'transfer_out' ? targetAccountId : transaction.accountId;
+      const nowIso = new Date().toISOString();
+      const amountCents = getTransactionAmountCents(transaction);
+      const pairNotes = transaction.notes
+        ? `${transaction.notes}\n\nAuto-created transfer pair from rule action`
+        : 'Auto-created transfer pair from rule action';
+      const transferOutId = sourceType === 'transfer_out' ? transaction.id : newTxId;
+      const transferInId = sourceType === 'transfer_in' ? transaction.id : newTxId;
 
-      await db.insert(transactions).values({
-        id: newTxId,
-        userId: userId,
-        householdId: transaction.householdId,
-        accountId: config.targetAccountId,
-        date: transaction.date,
-        amount: transaction.amount,
-        description: transaction.description,
-        notes: transaction.notes ? `${transaction.notes}\n\nAuto-created transfer pair from rule action` : 'Auto-created transfer pair from rule action',
-        type: pairType,
-        transferId: transferId,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+      await runInDatabaseTransaction(async (tx) => {
+        await tx
+          .update(transactions)
+          .set({
+            type: sourceType,
+            transferId: transferGroupId,
+            transferGroupId,
+            pairedTransactionId: newTxId,
+            transferSourceAccountId: sourceAccountId,
+            transferDestinationAccountId: destinationAccountId,
+            categoryId: null,
+            merchantId: null,
+            updatedAt: nowIso,
+          })
+          .where(
+            and(
+              eq(transactions.id, transactionId),
+              eq(transactions.userId, userId),
+              eq(transactions.householdId, householdId)
+            )
+          );
+
+        await insertTransactionMovement(tx, {
+          id: newTxId,
+          userId,
+          householdId,
+          accountId: targetAccountId,
+          categoryId: null,
+          merchantId: null,
+          date: transaction.date,
+          amountCents,
+          description: transaction.description,
+          notes: pairNotes,
+          type: pairType,
+          transferId: transferGroupId,
+          transferGroupId,
+          pairedTransactionId: transactionId,
+          transferSourceAccountId: sourceAccountId,
+          transferDestinationAccountId: destinationAccountId,
+          isPending: transaction.isPending,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        });
+
+        await insertTransferMovement(tx, {
+          id: transferGroupId,
+          userId,
+          householdId,
+          fromAccountId: sourceAccountId,
+          toAccountId: destinationAccountId,
+          amountCents,
+          feesCents: 0,
+          description: transaction.description || 'Transfer',
+          date: transaction.date,
+          status: 'completed',
+          fromTransactionId: transferOutId,
+          toTransactionId: transferInId,
+          notes: transaction.notes || null,
+          createdAt: nowIso,
+        });
+
+        const [targetAccount] = await tx
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.id, targetAccountId),
+              eq(accounts.userId, userId),
+              eq(accounts.householdId, householdId)
+            )
+          )
+          .limit(1);
+
+        if (!targetAccount) {
+          throw new Error('Target account not found for balance update');
+        }
+
+        const targetCurrentCents = getAccountBalanceCents(targetAccount);
+        const targetNextCents =
+          sourceType === 'transfer_out'
+            ? targetCurrentCents + amountCents
+            : targetCurrentCents - amountCents;
+
+        await updateScopedAccountBalance(tx, {
+          accountId: targetAccountId,
+          userId,
+          householdId,
+          balanceCents: targetNextCents,
+          updatedAt: nowIso,
+        });
       });
-
-      // Update account balances
-      await updateAccountBalances(
-        userId,
-        householdId,
-        transaction.accountId,
-        config.targetAccountId,
-        transaction.amount,
-        newType
-      );
 
       return {
         success: true,
@@ -401,8 +543,10 @@ async function findMatchingTransaction(
       eq(transactions.userId, userId),
       eq(transactions.householdId, householdId),
       eq(transactions.type, oppositeType),
-      // Only match transactions that aren't already transfers
-      sql`${transactions.transferId} IS NULL`,
+      // Only match transactions that are not already transfer-linked.
+      sql`(${transactions.transferId} IS NULL OR ${transactions.transferId} = '')`,
+      sql`${transactions.transferGroupId} IS NULL`,
+      sql`${transactions.pairedTransactionId} IS NULL`,
       // Don't match the source transaction itself
       sql`${transactions.id} != ${sourceTx.id}`,
       // Date range
@@ -454,85 +598,5 @@ async function findMatchingTransaction(
   } catch (error) {
     console.error('Error finding matching transaction:', error);
     return { bestMatch: null, allMatches: [], autoLink: false };
-  }
-}
-
-/**
- * Update account balances after transfer conversion
- * Handles balance adjustments for both source and target accounts
- */
-async function updateAccountBalances(
-  userId: string,
-  householdId: string,
-  sourceAccountId: string,
-  targetAccountId: string,
-  amount: number,
-  sourceType: string
-): Promise<void> {
-  try {
-    const amountDecimal = new Decimal(amount);
-
-    if (sourceType === 'transfer_out') {
-      // Transfer Out: source loses money, target gains money
-      await db
-        .update(accounts)
-        .set({
-          currentBalance: sql`current_balance - ${amountDecimal.toFixed(2)}`,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(accounts.id, sourceAccountId),
-            eq(accounts.userId, userId),
-            eq(accounts.householdId, householdId)
-          )
-        );
-
-      await db
-        .update(accounts)
-        .set({
-          currentBalance: sql`current_balance + ${amountDecimal.toFixed(2)}`,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(accounts.id, targetAccountId),
-            eq(accounts.userId, userId),
-            eq(accounts.householdId, householdId)
-          )
-        );
-    } else {
-      // Transfer In: source gains money, target loses money
-      await db
-        .update(accounts)
-        .set({
-          currentBalance: sql`current_balance + ${amountDecimal.toFixed(2)}`,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(accounts.id, sourceAccountId),
-            eq(accounts.userId, userId),
-            eq(accounts.householdId, householdId)
-          )
-        );
-
-      await db
-        .update(accounts)
-        .set({
-          currentBalance: sql`current_balance - ${amountDecimal.toFixed(2)}`,
-          updatedAt: new Date().toISOString(),
-        })
-        .where(
-          and(
-            eq(accounts.id, targetAccountId),
-            eq(accounts.userId, userId),
-            eq(accounts.householdId, householdId)
-          )
-        );
-    }
-  } catch (error) {
-    console.error('Error updating account balances:', error);
-    throw error;
   }
 }

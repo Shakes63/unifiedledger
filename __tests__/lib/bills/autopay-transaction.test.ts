@@ -117,7 +117,7 @@ describe('lib/bills/autopay-transaction', () => {
       from: () => ({
         where: () => ({
           limit: async () => [
-            { id: 'pay-acc', currentBalance: 50, type: 'checking' },
+            { id: 'pay-acc', currentBalance: 50, currentBalanceCents: 5000, type: 'checking' },
           ],
         }),
       }),
@@ -145,7 +145,7 @@ describe('lib/bills/autopay-transaction', () => {
       from: () => ({
         where: () => ({
           limit: async () => [
-            { id: 'pay-acc', currentBalance: 10, type: 'checking' },
+            { id: 'pay-acc', currentBalance: 10, currentBalanceCents: 1000, type: 'checking' },
           ],
         }),
       }),
@@ -171,7 +171,7 @@ describe('lib/bills/autopay-transaction', () => {
       from: () => ({
         where: () => ({
           limit: async () => [
-            { id: 'pay-acc', currentBalance: 500, type: 'checking' },
+            { id: 'pay-acc', currentBalance: 500, currentBalanceCents: 50000, type: 'checking' },
           ],
         }),
       }),
@@ -225,7 +225,9 @@ describe('lib/bills/autopay-transaction', () => {
       .mockReturnValueOnce({
         from: () => ({
           where: () => ({
-            limit: async () => [{ id: 'pay-acc', currentBalance: 500, type: 'checking' }],
+            limit: async () => [
+              { id: 'pay-acc', currentBalance: 500, currentBalanceCents: 50000, type: 'checking' },
+            ],
           }),
         }),
       } as unknown)
@@ -236,6 +238,7 @@ describe('lib/bills/autopay-transaction', () => {
               {
                 id: 'cc-acc',
                 currentBalance: -1000,
+                currentBalanceCents: -100000,
                 statementBalance: -900,
                 minimumPaymentAmount: 25,
                 creditLimit: 5000,
@@ -299,7 +302,7 @@ describe('lib/bills/autopay-transaction', () => {
       from: () => ({
         where: () => ({
           limit: async () => [
-            { id: 'pay-acc', currentBalance: 500, type: 'checking' },
+            { id: 'pay-acc', currentBalance: 500, currentBalanceCents: 50000, type: 'checking' },
           ],
         }),
       }),
@@ -330,5 +333,3 @@ describe('lib/bills/autopay-transaction', () => {
     expect(res.error).toBe('nope');
   });
 });
-
-

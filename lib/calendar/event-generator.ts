@@ -21,6 +21,7 @@ import {
   getCurrentBudgetPeriod,
   BudgetScheduleSettings,
 } from '@/lib/budgets/budget-schedule';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 import { CalendarEvent } from './google-calendar';
 
 // Re-export CalendarEvent for convenience
@@ -453,7 +454,7 @@ export async function generatePayoffDateEvents(
     if (monthlyPayment <= 0) continue;
 
     // Simple payoff calculation (ignoring interest for estimation)
-    const monthsToPayoff = Math.ceil(balance / monthlyPayment);
+    const monthsToPayoff = new Decimal(balance).dividedBy(monthlyPayment).ceil().toNumber();
     const projectedDate = addMonths(today, monthsToPayoff);
     const dateStr = format(projectedDate, 'yyyy-MM-dd');
 
@@ -485,13 +486,14 @@ export async function generatePayoffDateEvents(
     );
 
   for (const account of creditAccounts) {
-    const balance = Math.abs(account.currentBalance || 0);
+    const balance =
+      Math.abs(account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0) / 100;
     if (balance <= 0) continue;
 
     const monthlyPayment = account.minimumPaymentAmount || 0;
     if (monthlyPayment <= 0) continue;
 
-    const monthsToPayoff = Math.ceil(balance / monthlyPayment);
+    const monthsToPayoff = new Decimal(balance).dividedBy(monthlyPayment).ceil().toNumber();
     const projectedDate = addMonths(today, monthsToPayoff);
     const dateStr = format(projectedDate, 'yyyy-MM-dd');
 

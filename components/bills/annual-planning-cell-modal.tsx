@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { FREQUENCY_LABELS } from '@/lib/bills/bill-utils';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
+import { getTodayLocalDateString } from '@/lib/utils/local-date';
 
 interface MonthData {
   dueDate: number;
@@ -139,7 +140,7 @@ export function AnnualPlanningCellModal({
         body: JSON.stringify({
           status: 'paid',
           actualAmount: amount,
-          paidDate: new Date().toISOString().split('T')[0],
+          paidDate: getTodayLocalDateString(),
         }),
       });
 
@@ -366,4 +367,3 @@ export function AnnualPlanningCellModal({
     </Dialog>
   );
 }
-

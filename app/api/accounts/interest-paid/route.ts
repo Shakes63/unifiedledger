@@ -183,7 +183,7 @@ export async function GET(request: Request) {
         id: transactions.id,
         date: transactions.date,
         description: transactions.description,
-        amount: transactions.amount,
+        amountCents: transactions.amountCents,
         accountId: transactions.accountId,
       })
       .from(transactions)
@@ -210,7 +210,7 @@ export async function GET(request: Request) {
       const accountMeta = accountMap.get(tx.accountId);
       if (!accountMeta) continue;
 
-      const amount = Math.abs(tx.amount);
+      const amount = new Decimal(tx.amountCents).div(100).abs().toNumber();
       totalInterestPaid = totalInterestPaid.plus(amount);
 
       // YTD calculation

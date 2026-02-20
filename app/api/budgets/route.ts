@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { budgetCategories } from '@/lib/db/schema';
+import { getLocalMonthString } from '@/lib/utils/local-date';
 import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
 
     return Response.json({
       budgets: categories,
-      month: month || new Date().toISOString().slice(0, 7), // YYYY-MM
+      month: month || getLocalMonthString(new Date()), // YYYY-MM
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

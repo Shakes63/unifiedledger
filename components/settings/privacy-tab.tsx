@@ -43,6 +43,7 @@ import { useHousehold } from '@/contexts/household-context';
 import { useRouter } from 'next/navigation';
 import { TwoFactorSection } from '@/components/settings/two-factor-section';
 import { OAuthProvidersSection } from '@/components/settings/oauth-providers-section';
+import { getTodayLocalDateString } from '@/lib/utils/local-date';
 
 interface Session {
   id: string;
@@ -166,7 +167,7 @@ export function PrivacyTab() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `unifiedledger-export-${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `unifiedledger-export-${getTodayLocalDateString()}.json`;
         a.click();
         window.URL.revokeObjectURL(url);
         toast.success('Data exported successfully');

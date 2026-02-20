@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtPayments } from '@/lib/db/schema';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
@@ -208,7 +209,7 @@ export async function GET(request: Request) {
       longestStreak,
       isActive,
       lastPaymentDate,
-      nextPaymentDue: nextDueDate.toISOString().split('T')[0],
+      nextPaymentDue: toLocalDateString(nextDueDate),
       totalMinimumPayment,
       nextMilestone,
       achievements,

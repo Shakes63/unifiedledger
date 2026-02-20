@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { budgetCategories, transactions, budgetRolloverHistory, householdSettings } from '@/lib/db/schema';
-import { eq, and, gte, lte, sum } from 'drizzle-orm';
+import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { nanoid } from 'nanoid';
 
@@ -17,7 +17,7 @@ export async function getCategorySpending(
   const transactionType = categoryType === 'income' ? 'income' : 'expense';
   
   const result = await db
-    .select({ total: sum(transactions.amount) })
+    .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
     .from(transactions)
     .where(
       and(
@@ -29,9 +29,7 @@ export async function getCategorySpending(
       )
     );
 
-  return result[0]?.total
-    ? new Decimal(result[0].total.toString()).toNumber()
-    : 0;
+  return new Decimal(result[0]?.totalCents ?? 0).div(100).toNumber();
 }
 
 /**
@@ -467,4 +465,3 @@ export async function updateCategoryRolloverSettings(
       .where(eq(budgetCategories.id, categoryId));
   }
 }
-

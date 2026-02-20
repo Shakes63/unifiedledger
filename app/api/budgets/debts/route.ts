@@ -2,6 +2,7 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { debts, debtSettings, debtPayments } from '@/lib/db/schema';
+import { getMonthRangeForYearMonth } from '@/lib/utils/local-date';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { calculatePayoffStrategy, type DebtInput, type PaymentFrequency, type PayoffMethod } from '@/lib/debts/payoff-calculator';
 import Decimal from 'decimal.js';
@@ -59,8 +60,7 @@ export async function GET(request: Request): Promise<Response> {
     }
 
     // Calculate month start and end dates
-    const monthStart = new Date(year, month - 1, 1).toISOString().split('T')[0];
-    const monthEnd = new Date(year, month, 0).toISOString().split('T')[0];
+    const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForYearMonth(year, month);
 
     // Fetch active debts
     const activeDebts = await db
@@ -237,4 +237,3 @@ export async function GET(request: Request): Promise<Response> {
     );
   }
 }
-

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
+import { toLocalDateString } from '@/lib/utils/local-date';
 import {
   getTransactionsByDateRange,
   getCurrentMonthRange,
@@ -61,8 +62,8 @@ export async function GET(request: NextRequest) {
       const endDate = new Date();
       const startDate = new Date(endDate.getFullYear(), endDate.getMonth() - 11, 1);
       range = {
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0],
+        startDate: toLocalDateString(startDate),
+        endDate: toLocalDateString(endDate),
       };
     } else {
       range = getCurrentMonthRange();

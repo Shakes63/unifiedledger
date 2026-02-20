@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances, debts, debtPayments, betterAuthUser, savingsGoals } from '@/lib/db/schema';
+import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances, debts, betterAuthUser, savingsGoals } from '@/lib/db/schema';
 import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
@@ -13,13 +13,21 @@ import { handleSplitCreation } from '@/lib/rules/split-action-handler';
 import { handleAccountChange } from '@/lib/rules/account-action-handler';
 import type { TransactionMutations } from '@/lib/rules/types';
 import { findMatchingBillInstance } from '@/lib/bills/bill-matching-helpers';
-import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
-import { batchUpdateMilestones } from '@/lib/debts/milestone-utils';
 import { processBillPayment, findCreditPaymentBillInstance } from '@/lib/bills/bill-payment-utils';
 import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
 import { logTransactionAudit, createTransactionSnapshot } from '@/lib/transactions/audit-logger';
 import { autoClassifyTransaction } from '@/lib/tax/auto-classify';
 import { handleGoalContribution, handleMultipleContributions } from '@/lib/goals/contribution-handler';
+import { applyLegacyDebtPayment, processAndLinkBillPayment } from '@/lib/transactions/payment-linkage';
+import { apiDebugLog, handleRouteError } from '@/lib/api/route-helpers';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
+import {
+  amountToCents,
+  getAccountBalanceCents,
+  insertTransactionMovement,
+  updateScopedAccountBalance,
+} from '@/lib/transactions/money-movement-service';
+import { createCanonicalTransferPair } from '@/lib/transactions/transfer-service';
 // Sales tax now handled as boolean flag on transaction, no separate records needed
 
 // Type for goal contributions in split mode
@@ -84,6 +92,13 @@ export async function POST(request: Request) {
     if (type === 'transfer' && !toAccountId) {
       return Response.json(
         { error: 'Transfer requires a destination account (toAccountId)' },
+        { status: 400 }
+      );
+    }
+
+    if (type === 'transfer' && toAccountId && accountId === toAccountId) {
+      return Response.json(
+        { error: 'Cannot transfer to the same account' },
         { status: 400 }
       );
     }
@@ -287,97 +302,34 @@ export async function POST(request: Request) {
 
     // Create transaction(s)
     const decimalAmount = new Decimal(amount);
+    const amountCents = amountToCents(decimalAmount);
     const transactionId = nanoid();
     let transferInId: string | null = null;
 
-    // OPTIMIZATION: Create TWO transactions for transfers (Task 7: ~30-50% faster)
-    // Batch all inserts and updates in parallel
+    // Canonical transfer write path: always create a transfer group row and explicitly linked pair.
     if (type === 'transfer' && toAccount) {
-      // Generate transfer_in ID
-      transferInId = nanoid();
-
       // PHASE 5: Detect balance transfers (credit-to-credit)
       const sourceIsCreditAccount = account[0].type === 'credit' || account[0].type === 'line_of_credit';
       const destIsCreditAccount = toAccount.type === 'credit' || toAccount.type === 'line_of_credit';
       const isBalanceTransfer = sourceIsCreditAccount && destIsCreditAccount;
 
-      // Calculate account balances
-      const sourceBalance = new Decimal(account[0].currentBalance || 0);
-      const updatedSourceBalance = sourceBalance.minus(decimalAmount);
-      const destBalance = new Decimal(toAccount.currentBalance || 0);
-      const updatedDestBalance = destBalance.plus(decimalAmount);
-
-      // Batch all transfer operations in parallel
-      await Promise.all([
-        // Create transfer_out transaction
-        db.insert(transactions).values({
-          id: transactionId,
-          userId,
-          householdId,
-          accountId, // Source account
-          categoryId: null, // Transfers don't have categories
-          merchantId: null,
-          date,
-          amount: decimalAmount.toNumber(),
-          description,
-          notes: notes || null,
-          type: 'transfer_out',
-          transferId: toAccountId,
-          isPending,
-          isBalanceTransfer, // PHASE 5: Mark as balance transfer if credit-to-credit
-          offlineId: offlineId || null,
-          syncStatus: syncStatus,
-          syncedAt: syncStatus === 'synced' ? new Date().toISOString() : null,
-          syncAttempts: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }),
-
-        // Create transfer_in transaction
-        db.insert(transactions).values({
-          id: transferInId,
-          userId,
-          householdId,
-          accountId: toAccountId, // Destination account
-          categoryId: null,
-          merchantId: null,
-          savingsGoalId: savingsGoalId || null, // Phase 18: Link to savings goal
-          date,
-          amount: decimalAmount.toNumber(),
-          description,
-          notes: notes || null,
-          type: 'transfer_in',
-          transferId: transactionId,
-          isPending,
-          isBalanceTransfer, // PHASE 5: Mark as balance transfer if credit-to-credit
-          offlineId: offlineId ? `${offlineId}_in` : null,
-          syncStatus: syncStatus,
-          syncedAt: syncStatus === 'synced' ? new Date().toISOString() : null,
-          syncAttempts: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }),
-
-        // Update source account balance
-        db
-          .update(accounts)
-          .set({
-            currentBalance: updatedSourceBalance.toNumber(),
-            lastUsedAt: new Date().toISOString(),
-            usageCount: (account[0].usageCount || 0) + 1,
-          })
-          .where(eq(accounts.id, accountId)),
-
-        // Update destination account balance
-        db
-          .update(accounts)
-          .set({
-            currentBalance: updatedDestBalance.toNumber(),
-            lastUsedAt: new Date().toISOString(),
-            usageCount: (toAccount.usageCount || 0) + 1,
-          })
-          .where(eq(accounts.id, toAccountId)),
-      ]);
+      const transferResult = await createCanonicalTransferPair({
+        userId,
+        householdId,
+        fromAccountId: accountId,
+        toAccountId,
+        amountCents,
+        date,
+        description,
+        notes: notes || null,
+        isPending,
+        isBalanceTransfer,
+        savingsGoalId: savingsGoalId || null,
+        offlineId: offlineId || null,
+        syncStatus,
+        fromTransactionId: transactionId,
+      });
+      transferInId = transferResult.toTransactionId;
 
       // Track transfer pair usage in analytics (separate to avoid blocking main operations)
       try {
@@ -460,7 +412,10 @@ export async function POST(request: Request) {
             });
 
             if (paymentResult.success) {
-              console.log(`Credit card payment auto-linked: Bill ${billMatch.billId}, Instance ${billMatch.instanceId}, Status: ${paymentResult.paymentStatus}`);
+              apiDebugLog(
+                'transactions:create',
+                `Credit card payment auto-linked: Bill ${billMatch.billId}, Instance ${billMatch.instanceId}, Status: ${paymentResult.paymentStatus}`
+              );
             }
           }
         } catch (error) {
@@ -483,7 +438,10 @@ export async function POST(request: Request) {
             );
             const achievedMilestones = contributionResults.flatMap(r => r.milestonesAchieved);
             if (achievedMilestones.length > 0) {
-              console.log(`Transfer ${transferInId}: Milestones achieved: ${achievedMilestones.join(', ')}%`);
+              apiDebugLog(
+                'transactions:create',
+                `Transfer ${transferInId}: Milestones achieved: ${achievedMilestones.join(', ')}%`
+              );
             }
           } else if (savingsGoalId) {
             // Single goal contribution
@@ -495,7 +453,10 @@ export async function POST(request: Request) {
               householdId
             );
             if (result.milestonesAchieved.length > 0) {
-              console.log(`Transfer ${transferInId}: Milestones achieved: ${result.milestonesAchieved.join(', ')}%`);
+              apiDebugLog(
+                'transactions:create',
+                `Transfer ${transferInId}: Milestones achieved: ${result.milestonesAchieved.join(', ')}%`
+              );
             }
           }
         } catch (error) {
@@ -522,55 +483,61 @@ export async function POST(request: Request) {
       const accountIsCreditAccount = account[0].type === 'credit' || account[0].type === 'line_of_credit';
       const isRefund = type === 'income' && accountIsCreditAccount;
       
-      await db.insert(transactions).values({
-        id: transactionId,
-        userId,
-        householdId,
-        accountId,
-        categoryId: appliedCategoryId || null,
-        merchantId: finalMerchantId || null,
-        debtId: debtId || null,
-        savingsGoalId: savingsGoalId || null, // Phase 18: Link to savings goal
-        date,
-        amount: decimalAmount.toNumber(),
-        description: finalDescription,
-        notes: notes || null,
-        type,
-        transferId: null,
-        isPending,
-        isRefund, // PHASE 5: Mark as refund if income on credit account
-        isTaxDeductible: postCreationMutations?.isTaxDeductible || false,
-        // Auto-detect tax deduction type based on account's tax deduction tracking flag
-        // Falls back to isBusinessAccount for backward compatibility
-        taxDeductionType: (postCreationMutations?.isTaxDeductible) 
-          ? ((account[0].enableTaxDeductions ?? account[0].isBusinessAccount) ? 'business' : 'personal')
-          : 'none',
-        // Auto-exclude sales tax if merchant is tax exempt
-        isSalesTaxable: (type === 'income' && !merchantIsSalesTaxExempt && (isSalesTaxable || postCreationMutations?.isSalesTaxable)) || false,
-        // Offline sync tracking
-        offlineId: offlineId || null,
-        syncStatus: syncStatus,
-        syncedAt: syncStatus === 'synced' ? new Date().toISOString() : null,
-        syncAttempts: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+      await runInDatabaseTransaction(async (tx) => {
+        const nowIso = new Date().toISOString();
 
-      // Update account balance and usage
-      const newBalance = new Decimal(account[0].currentBalance || 0);
-      const updatedBalance =
-        type === 'expense'
-          ? newBalance.minus(decimalAmount)
-          : newBalance.plus(decimalAmount);
+        await insertTransactionMovement(tx, {
+          id: transactionId,
+          userId,
+          householdId,
+          accountId,
+          categoryId: appliedCategoryId || null,
+          merchantId: finalMerchantId || null,
+          debtId: debtId || null,
+          savingsGoalId: savingsGoalId || null, // Phase 18: Link to savings goal
+          date,
+          amountCents,
+          description: finalDescription,
+          notes: notes || null,
+          type,
+          transferId: null,
+          transferSourceAccountId: null,
+          transferDestinationAccountId: null,
+          isPending,
+          isRefund, // PHASE 5: Mark as refund if income on credit account
+          isTaxDeductible: postCreationMutations?.isTaxDeductible || false,
+          // Auto-detect tax deduction type based on account's tax deduction tracking flag
+          // Falls back to isBusinessAccount for backward compatibility
+          taxDeductionType: (postCreationMutations?.isTaxDeductible)
+            ? ((account[0].enableTaxDeductions ?? account[0].isBusinessAccount) ? 'business' : 'personal')
+            : 'none',
+          // Auto-exclude sales tax if merchant is tax exempt
+          isSalesTaxable: (type === 'income' && !merchantIsSalesTaxExempt && (isSalesTaxable || postCreationMutations?.isSalesTaxable)) || false,
+          // Offline sync tracking
+          offlineId: offlineId || null,
+          syncStatus: syncStatus,
+          syncedAt: syncStatus === 'synced' ? nowIso : null,
+          syncAttempts: 0,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        });
 
-      await db
-        .update(accounts)
-        .set({
-          currentBalance: updatedBalance.toNumber(),
-          lastUsedAt: new Date().toISOString(),
+        // Update account balance and usage
+        const currentBalanceCents = getAccountBalanceCents(account[0]);
+        const updatedBalanceCents =
+          type === 'expense'
+            ? currentBalanceCents - amountCents
+            : currentBalanceCents + amountCents;
+
+        await updateScopedAccountBalance(tx, {
+          accountId,
+          userId,
+          householdId,
+          balanceCents: updatedBalanceCents,
+          lastUsedAt: nowIso,
           usageCount: (account[0].usageCount || 0) + 1,
-        })
-        .where(eq(accounts.id, accountId));
+        });
+      });
 
       // Handle post-creation actions (convert to transfer, etc.)
       if (postCreationMutations?.convertToTransfer) {
@@ -585,9 +552,15 @@ export async function POST(request: Request) {
             console.error('Transfer conversion failed:', transferResult.error);
             // Don't fail the transaction, just log the error
           } else if (transferResult.matchedTransactionId) {
-            console.log(`Transfer conversion: matched with transaction ${transferResult.matchedTransactionId}`);
+            apiDebugLog(
+              'transactions:create',
+              `Transfer conversion: matched with transaction ${transferResult.matchedTransactionId}`
+            );
           } else if (transferResult.createdTransactionId) {
-            console.log(`Transfer conversion: created new transaction ${transferResult.createdTransactionId}`);
+            apiDebugLog(
+              'transactions:create',
+              `Transfer conversion: created new transaction ${transferResult.createdTransactionId}`
+            );
           }
         } catch (error) {
           console.error('Transfer conversion error:', error);
@@ -608,7 +581,10 @@ export async function POST(request: Request) {
             console.error('Split creation failed:', splitResult.error);
             // Don't fail the transaction, just log the error
           } else {
-            console.log(`Split creation: created ${splitResult.createdSplits.length} splits`);
+            apiDebugLog(
+              'transactions:create',
+              `Split creation: created ${splitResult.createdSplits.length} splits`
+            );
           }
         } catch (error) {
           console.error('Split creation error:', error);
@@ -629,7 +605,10 @@ export async function POST(request: Request) {
             console.error('Account change failed:', accountResult.error);
             // Don't fail the transaction, just log the error
           } else {
-            console.log(`Account change: moved from ${accountResult.oldAccountId} to ${accountResult.newAccountId}`);
+            apiDebugLog(
+              'transactions:create',
+              `Account change: moved from ${accountResult.oldAccountId} to ${accountResult.newAccountId}`
+            );
           }
         } catch (error) {
           console.error('Account change error:', error);
@@ -654,7 +633,10 @@ export async function POST(request: Request) {
             isTaxDeductible
           );
           if (taxClassification) {
-            console.log(`[TAX] Auto-classified transaction ${transactionId} to ${taxClassification.taxCategoryName}`);
+            apiDebugLog(
+              'transactions:create',
+              `[TAX] Auto-classified transaction ${transactionId} to ${taxClassification.taxCategoryName}`
+            );
           }
         } catch (error) {
           // Non-fatal: don't fail transaction creation if tax classification fails
@@ -675,7 +657,10 @@ export async function POST(request: Request) {
             );
             const achievedMilestones = contributionResults.flatMap(r => r.milestonesAchieved);
             if (achievedMilestones.length > 0) {
-              console.log(`Transaction ${transactionId}: Milestones achieved: ${achievedMilestones.join(', ')}%`);
+              apiDebugLog(
+                'transactions:create',
+                `Transaction ${transactionId}: Milestones achieved: ${achievedMilestones.join(', ')}%`
+              );
             }
           } else if (savingsGoalId) {
             // Single goal contribution
@@ -687,7 +672,10 @@ export async function POST(request: Request) {
               householdId
             );
             if (result.milestonesAchieved.length > 0) {
-              console.log(`Transaction ${transactionId}: Milestones achieved: ${result.milestonesAchieved.join(', ')}%`);
+              apiDebugLog(
+                'transactions:create',
+                `Transaction ${transactionId}: Milestones achieved: ${result.milestonesAchieved.join(', ')}%`
+              );
             }
           }
         } catch (error) {
@@ -923,9 +911,9 @@ export async function POST(request: Request) {
             linkedBillId = instance.bill.id;
             linkedInstanceId = instance.instance.id;
 
-            // PHASE 5: Use processBillPayment for proper partial payment and debt handling
-            const paymentResult = await processBillPayment({
+            const billLinkResult = await processAndLinkBillPayment({
               billId: linkedBillId,
+              billName: instance.bill.name,
               instanceId: linkedInstanceId,
               transactionId,
               paymentAmount: parseFloat(amount),
@@ -935,82 +923,15 @@ export async function POST(request: Request) {
               paymentMethod: 'manual',
               linkedAccountId: accountId,
               notes: `Bill payment: ${instance.bill.name}`,
+              legacyDebtId: instance.bill.debtId,
             });
 
-            if (paymentResult.success) {
-              // Update transaction with bill link
-              await db
-                .update(transactions)
-                .set({
-                  billId: linkedBillId,
-                  updatedAt: new Date().toISOString(),
-                })
-                .where(eq(transactions.id, transactionId));
-
-              console.log(`Bill payment processed: ${linkedBillId}, Status: ${paymentResult.paymentStatus}, Paid: ${paymentResult.paidAmount}, Remaining: ${paymentResult.remainingAmount}`);
-
-              // LEGACY SUPPORT: If bill is linked to old debts table, also update there
-              if (instance.bill.debtId) {
-                try {
-                  const paymentAmount = parseFloat(amount);
-
-                  // Get current debt to calculate interest/principal split
-                  const [currentDebt] = await db
-                    .select()
-                    .from(debts)
-                    .where(eq(debts.id, instance.bill.debtId));
-
-                  if (currentDebt) {
-                    // Calculate payment breakdown
-                    const breakdown = calculatePaymentBreakdown(
-                      paymentAmount,
-                      currentDebt.remainingBalance,
-                      currentDebt.interestRate || 0,
-                      currentDebt.interestType || 'none',
-                      currentDebt.loanType || 'revolving',
-                      currentDebt.compoundingFrequency || 'monthly',
-                      currentDebt.billingCycleDays || 30
-                    );
-
-                    // Calculate new balance
-                    const newBalance = Math.max(0, currentDebt.remainingBalance - breakdown.principalAmount);
-
-                    // Batch all debt-related operations
-                    await Promise.all([
-                      // Create debt payment record
-                      db.insert(debtPayments).values({
-                        id: nanoid(),
-                        debtId: instance.bill.debtId,
-                        userId,
-                        householdId,
-                        amount: paymentAmount,
-                        principalAmount: breakdown.principalAmount,
-                        interestAmount: breakdown.interestAmount,
-                        paymentDate: date,
-                        transactionId,
-                        notes: `Automatic payment from bill: ${instance.bill.name}`,
-                        createdAt: new Date().toISOString(),
-                      }),
-
-                      // Update debt balance
-                      db
-                        .update(debts)
-                        .set({
-                          remainingBalance: newBalance,
-                          status: newBalance === 0 ? 'paid_off' : 'active',
-                          updatedAt: new Date().toISOString(),
-                        })
-                        .where(eq(debts.id, instance.bill.debtId)),
-
-                      // Batch update milestones (replaces loop)
-                      batchUpdateMilestones(instance.bill.debtId, newBalance),
-                    ]);
-                  }
-                } catch (debtError) {
-                  console.error('Error updating legacy debt payment:', debtError);
-                  // Don't fail the whole transaction if debt update fails
-                }
-              }
+            if (billLinkResult.success) {
+              const { paymentResult } = billLinkResult;
+              apiDebugLog(
+                'transactions:create',
+                `Bill payment processed: ${linkedBillId}, Status: ${paymentResult.paymentStatus}, Paid: ${paymentResult.paidAmount}, Remaining: ${paymentResult.remainingAmount}`
+              );
             }
           }
         } else {
@@ -1081,9 +1002,9 @@ export async function POST(request: Request) {
               linkedBillId = bestMatch.bill.id;
               linkedInstanceId = bestMatch.instance.id;
 
-              // Process the payment
-              const paymentResult = await processBillPayment({
+              const billLinkResult = await processAndLinkBillPayment({
                 billId: linkedBillId,
+                billName: bestMatch.bill.name,
                 instanceId: linkedInstanceId,
                 transactionId,
                 paymentAmount: parseFloat(amount),
@@ -1093,18 +1014,14 @@ export async function POST(request: Request) {
                 paymentMethod: 'manual',
                 linkedAccountId: accountId,
                 notes: `Auto-matched from chargedToAccountId: ${bestMatch.bill.name}`,
+                legacyDebtId: bestMatch.bill.debtId,
               });
 
-              if (paymentResult.success) {
-                await db
-                  .update(transactions)
-                  .set({
-                    billId: linkedBillId,
-                    updatedAt: new Date().toISOString(),
-                  })
-                  .where(eq(transactions.id, transactionId));
-
-                console.log(`ChargedToAccountId match: ${linkedBillId}, Score: ${bestMatch.score}, Status: ${paymentResult.paymentStatus}`);
+              if (billLinkResult.success) {
+                apiDebugLog(
+                  'transactions:create',
+                  `ChargedToAccountId match: ${linkedBillId}, Score: ${bestMatch.score}, Status: ${billLinkResult.paymentResult.paymentStatus}`
+                );
               }
             }
           }
@@ -1137,9 +1054,9 @@ export async function POST(request: Request) {
             .limit(1);
 
           if (bill) {
-            // PHASE 5: Use processBillPayment for proper partial payment and debt handling
-            const paymentResult = await processBillPayment({
+            const billLinkResult = await processAndLinkBillPayment({
               billId: linkedBillId,
+              billName: bill.name,
               instanceId: linkedInstanceId!,
               transactionId,
               paymentAmount: parseFloat(amount),
@@ -1149,82 +1066,14 @@ export async function POST(request: Request) {
               paymentMethod: 'manual',
               linkedAccountId: accountId,
               notes: `Auto-matched bill payment: ${bill.name}`,
+              legacyDebtId: bill.debtId,
             });
 
-            if (paymentResult.success) {
-              // Update transaction with bill link
-              await db
-                .update(transactions)
-                .set({
-                  billId: linkedBillId,
-                  updatedAt: new Date().toISOString(),
-                })
-                .where(eq(transactions.id, transactionId));
-
-              console.log(`Auto-matched bill payment: ${linkedBillId}, Status: ${paymentResult.paymentStatus}`);
-
-              // LEGACY SUPPORT: If bill is linked to old debts table, also update there
-              if (bill.debtId) {
-                try {
-                  const paymentAmount = parseFloat(amount);
-
-                  // Get current debt to calculate interest/principal split
-                  const [currentDebt] = await db
-                    .select()
-                    .from(debts)
-                    .where(eq(debts.id, bill.debtId));
-
-                  if (currentDebt) {
-                    // Calculate payment breakdown
-                    const breakdown = calculatePaymentBreakdown(
-                      paymentAmount,
-                      currentDebt.remainingBalance,
-                      currentDebt.interestRate || 0,
-                      currentDebt.interestType || 'none',
-                      currentDebt.loanType || 'revolving',
-                      currentDebt.compoundingFrequency || 'monthly',
-                      currentDebt.billingCycleDays || 30
-                    );
-
-                    // Calculate new balance
-                    const newBalance = Math.max(0, currentDebt.remainingBalance - breakdown.principalAmount);
-
-                    // Batch all debt-related operations
-                    await Promise.all([
-                      // Create debt payment record
-                      db.insert(debtPayments).values({
-                        id: nanoid(),
-                        debtId: bill.debtId,
-                        userId,
-                        householdId,
-                        amount: paymentAmount,
-                        principalAmount: breakdown.principalAmount,
-                        interestAmount: breakdown.interestAmount,
-                        paymentDate: date,
-                        transactionId,
-                        notes: `Automatic payment from bill: ${bill.name}`,
-                        createdAt: new Date().toISOString(),
-                      }),
-
-                      // Update debt balance
-                      db
-                        .update(debts)
-                        .set({
-                          remainingBalance: newBalance,
-                          status: newBalance === 0 ? 'paid_off' : 'active',
-                          updatedAt: new Date().toISOString(),
-                        })
-                        .where(eq(debts.id, bill.debtId)),
-
-                      // Batch update milestones (replaces loop)
-                      batchUpdateMilestones(bill.debtId, newBalance),
-                    ]);
-                  }
-                } catch (debtError) {
-                  console.error('Error updating legacy debt payment:', debtError);
-                  // Don't fail the whole transaction if debt update fails
-                }
-              }
+            if (billLinkResult.success) {
+              apiDebugLog(
+                'transactions:create',
+                `Auto-matched bill payment: ${linkedBillId}, Status: ${billLinkResult.paymentResult.paymentStatus}`
+              );
             }
           }
         } else if (appliedCategoryId) {
@@ -1258,9 +1107,9 @@ export async function POST(request: Request) {
             linkedBillId = match.bill.id;
             linkedInstanceId = match.instance.id;
 
-            // PHASE 5: Use processBillPayment for proper partial payment and debt handling
-            const paymentResult = await processBillPayment({
+            const billLinkResult = await processAndLinkBillPayment({
               billId: linkedBillId,
+              billName: match.bill.name,
               instanceId: linkedInstanceId,
               transactionId,
               paymentAmount: parseFloat(amount),
@@ -1270,82 +1119,14 @@ export async function POST(request: Request) {
               paymentMethod: 'manual',
               linkedAccountId: accountId,
               notes: `Category-matched bill payment: ${match.bill.name}`,
+              legacyDebtId: match.bill.debtId,
             });
 
-            if (paymentResult.success) {
-              // Update transaction with bill link
-              await db
-                .update(transactions)
-                .set({
-                  billId: linkedBillId,
-                  updatedAt: new Date().toISOString(),
-                })
-                .where(eq(transactions.id, transactionId));
-
-              console.log(`Category-matched bill payment: ${linkedBillId}, Status: ${paymentResult.paymentStatus}`);
-
-              // LEGACY SUPPORT: If bill is linked to old debts table, also update there
-              if (match.bill.debtId) {
-                try {
-                  const paymentAmount = parseFloat(amount);
-
-                  // Get current debt to calculate interest/principal split
-                  const [currentDebt] = await db
-                    .select()
-                    .from(debts)
-                    .where(eq(debts.id, match.bill.debtId));
-
-                  if (currentDebt) {
-                    // Calculate payment breakdown
-                    const breakdown = calculatePaymentBreakdown(
-                      paymentAmount,
-                      currentDebt.remainingBalance,
-                      currentDebt.interestRate || 0,
-                      currentDebt.interestType || 'none',
-                      currentDebt.loanType || 'revolving',
-                      currentDebt.compoundingFrequency || 'monthly',
-                      currentDebt.billingCycleDays || 30
-                    );
-
-                    // Calculate new balance
-                    const newBalance = Math.max(0, currentDebt.remainingBalance - breakdown.principalAmount);
-
-                    // Batch all debt-related operations
-                    await Promise.all([
-                      // Create debt payment record
-                      db.insert(debtPayments).values({
-                        id: nanoid(),
-                        debtId: match.bill.debtId,
-                        userId,
-                        householdId,
-                        amount: paymentAmount,
-                        principalAmount: breakdown.principalAmount,
-                        interestAmount: breakdown.interestAmount,
-                        paymentDate: date,
-                        transactionId,
-                        notes: `Automatic payment from bill: ${match.bill.name}`,
-                        createdAt: new Date().toISOString(),
-                      }),
-
-                      // Update debt balance
-                      db
-                        .update(debts)
-                        .set({
-                          remainingBalance: newBalance,
-                          status: newBalance === 0 ? 'paid_off' : 'active',
-                          updatedAt: new Date().toISOString(),
-                        })
-                        .where(eq(debts.id, match.bill.debtId)),
-
-                      // Batch update milestones (replaces loop)
-                      batchUpdateMilestones(match.bill.debtId, newBalance),
-                    ]);
-                  }
-                } catch (debtError) {
-                  console.error('Error updating legacy debt payment:', debtError);
-                  // Don't fail the whole transaction if debt update fails
-                }
-              }
+            if (billLinkResult.success) {
+              apiDebugLog(
+                'transactions:create',
+                `Category-matched bill payment: ${linkedBillId}, Status: ${billLinkResult.paymentResult.paymentStatus}`
+              );
             }
           }
         }
@@ -1381,61 +1162,23 @@ export async function POST(request: Request) {
           const debt = matchingDebts[0];
           linkedDebtId = debt.id;
 
-          const paymentAmount = parseFloat(amount);
-
-          // Calculate payment breakdown
-          const breakdown = calculatePaymentBreakdown(
-            paymentAmount,
-            debt.remainingBalance,
-            debt.interestRate || 0,
-            debt.interestType || 'none',
-            debt.loanType || 'revolving',
-            debt.compoundingFrequency || 'monthly',
-            debt.billingCycleDays || 30
-          );
-
-          // Calculate new balance
-          const newBalance = Math.max(0, debt.remainingBalance - breakdown.principalAmount);
-
-          // Batch all debt-related operations (Task 4: ~60-80% faster)
-          await Promise.all([
-            // Update transaction with debt link
-            db
-              .update(transactions)
-              .set({
-                debtId: linkedDebtId,
-                updatedAt: new Date().toISOString(),
-              })
-              .where(eq(transactions.id, transactionId)),
-
-            // Create debt payment record
-            db.insert(debtPayments).values({
-              id: nanoid(),
+          await db
+            .update(transactions)
+            .set({
               debtId: linkedDebtId,
-              userId,
-              householdId,
-              amount: paymentAmount,
-              principalAmount: breakdown.principalAmount,
-              interestAmount: breakdown.interestAmount,
-              paymentDate: date,
-              transactionId,
-              notes: `Automatic payment via category: ${debt.name}`,
-              createdAt: new Date().toISOString(),
-            }),
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(transactions.id, transactionId));
 
-            // Update debt balance
-            db
-              .update(debts)
-              .set({
-                remainingBalance: newBalance,
-                status: newBalance === 0 ? 'paid_off' : 'active',
-                updatedAt: new Date().toISOString(),
-              })
-              .where(eq(debts.id, linkedDebtId)),
-
-            // Batch update milestones (replaces loop)
-            batchUpdateMilestones(linkedDebtId, newBalance),
-          ]);
+          await applyLegacyDebtPayment({
+            debtId: linkedDebtId,
+            userId,
+            householdId,
+            paymentAmount: parseFloat(amount),
+            paymentDate: date,
+            transactionId,
+            notes: `Automatic payment via category: ${debt.name}`,
+          });
         }
       }
     } catch (error) {
@@ -1447,60 +1190,15 @@ export async function POST(request: Request) {
     // Batch all updates in parallel
     if (type === 'expense' && debtId) {
       try {
-        const paymentAmount = parseFloat(amount);
-
-        // Get current debt to calculate interest/principal split
-        const [currentDebt] = await db
-          .select()
-          .from(debts)
-          .where(eq(debts.id, debtId));
-
-        if (currentDebt) {
-          // Calculate payment breakdown
-          const breakdown = calculatePaymentBreakdown(
-            paymentAmount,
-            currentDebt.remainingBalance,
-            currentDebt.interestRate || 0,
-            currentDebt.interestType || 'none',
-            currentDebt.loanType || 'revolving',
-            currentDebt.compoundingFrequency || 'monthly',
-            currentDebt.billingCycleDays || 30
-          );
-
-          // Calculate new balance
-          const newBalance = Math.max(0, currentDebt.remainingBalance - breakdown.principalAmount);
-
-          // Batch all debt payment operations (Task 4: ~60-80% faster)
-          await Promise.all([
-            // Create debt payment record
-            db.insert(debtPayments).values({
-              id: nanoid(),
-              debtId: debtId,
-              userId,
-              householdId,
-              amount: paymentAmount,
-              principalAmount: breakdown.principalAmount,
-              interestAmount: breakdown.interestAmount,
-              paymentDate: date,
-              transactionId,
-              notes: `Direct payment: ${description}`,
-              createdAt: new Date().toISOString(),
-            }),
-
-            // Update debt balance
-            db
-              .update(debts)
-              .set({
-                remainingBalance: newBalance,
-                status: newBalance === 0 ? 'paid_off' : 'active',
-                updatedAt: new Date().toISOString(),
-              })
-              .where(eq(debts.id, debtId)),
-
-            // Batch update milestones (replaces loop)
-            batchUpdateMilestones(debtId, newBalance),
-          ]);
-        }
+        await applyLegacyDebtPayment({
+          debtId,
+          userId,
+          householdId,
+          paymentAmount: parseFloat(amount),
+          paymentDate: date,
+          transactionId,
+          notes: `Direct payment: ${description}`,
+        });
       } catch (debtError) {
         console.error('Error updating direct debt payment:', debtError);
         // Don't fail the whole transaction if debt update fails
@@ -1509,7 +1207,7 @@ export async function POST(request: Request) {
 
     // OPTIMIZATION: Log performance metrics (Task 8)
     const duration = performance.now() - startTime;
-    console.log(`[PERF] Transaction created in ${duration.toFixed(2)}ms`, {
+    apiDebugLog(`transactions:create`, `Transaction created in ${duration.toFixed(2)}ms`, {
       type,
       hasCategory: !!appliedCategoryId,
       hasMerchant: !!finalMerchantId,
@@ -1582,35 +1280,11 @@ export async function POST(request: Request) {
       { status: 201 }
     );
     } catch (error) {
-    // Handle authentication errors (401)
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    // Handle household authorization errors (403)
-    if (error instanceof Error) {
-      if (error.message.includes('Household ID is required')) {
-        return Response.json(
-          { error: 'Household ID is required. Please select a household.' },
-          { status: 400 }
-        );
-      }
-      if (error.message.includes('Not a member') || error.message.includes('Unauthorized: Not a member')) {
-        return Response.json(
-          { error: 'You are not a member of this household.' },
-          { status: 403 }
-        );
-      }
-      if (error.message.includes('Household') || error.message.includes('member')) {
-        return Response.json({ error: error.message }, { status: 403 });
-      }
-    }
-    
-    console.error('Transaction creation error:', error);
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Internal server error',
+      logLabel: 'Transaction creation error:',
+      householdIdRequiredMessage: 'Household ID is required. Please select a household.',
+    });
     }
 }
 
@@ -1634,6 +1308,15 @@ export async function GET(request: Request) {
     const offset = parseInt(url.searchParams.get('offset') || '0');
     const accountId = url.searchParams.get('accountId');
 
+    const combinedTransferView = await getCombinedTransferViewPreference(userId, householdId);
+    const shouldUseCombinedTransferFilter = combinedTransferView && !accountId;
+
+    const listConditions = [
+      eq(transactions.householdId, householdId),
+      ...(accountId ? [eq(transactions.accountId, accountId)] : []),
+      ...(shouldUseCombinedTransferFilter ? [sql`${transactions.type} != 'transfer_in'`] : []),
+    ];
+
     // Phase 18: Join with savings goals to include goal info
     const userTransactionsWithGoals = await db
       .select({
@@ -1646,11 +1329,15 @@ export async function GET(request: Request) {
         debtId: transactions.debtId,
         savingsGoalId: transactions.savingsGoalId,
         date: transactions.date,
-        amount: transactions.amount,
+        amountCents: transactions.amountCents,
         description: transactions.description,
         notes: transactions.notes,
         type: transactions.type,
         transferId: transactions.transferId,
+        transferGroupId: transactions.transferGroupId,
+        pairedTransactionId: transactions.pairedTransactionId,
+        transferSourceAccountId: transactions.transferSourceAccountId,
+        transferDestinationAccountId: transactions.transferDestinationAccountId,
         isPending: transactions.isPending,
         isRefund: transactions.isRefund,
         isBalanceTransfer: transactions.isBalanceTransfer,
@@ -1673,91 +1360,32 @@ export async function GET(request: Request) {
       .leftJoin(savingsGoals, eq(transactions.savingsGoalId, savingsGoals.id))
       // Show all transactions in the household (shared between all members)
       // The requireHouseholdAuth check above ensures the user is a member
-      .where(eq(transactions.householdId, householdId))
+      .where(and(...listConditions))
       .orderBy(desc(transactions.date))
       .limit(limit)
       .offset(offset);
+    const normalizedTransactions = userTransactionsWithGoals.map((transaction) => ({
+      ...transaction,
+      amount: new Decimal(transaction.amountCents ?? 0).div(100).toNumber(),
+    }));
 
-    // If accountId filter is present, return all transactions (including both transfer sides)
-    if (accountId) {
-      return Response.json(userTransactionsWithGoals);
-    }
-    
-    // Use userTransactionsWithGoals for processing
-    const userTransactions = userTransactionsWithGoals;
+    const countResult = await db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(transactions)
+      .where(and(...listConditions));
+    const totalCount = countResult[0]?.count || 0;
 
-    // Main view (no account filter): Respect user's transfer view preference
-    const combinedTransferView = await getCombinedTransferViewPreference(userId, householdId);
-    
-    // Debug logging to trace filtering logic
-    const transferOutCount = userTransactions.filter(tx => tx.type === 'transfer_out').length;
-    const transferInCount = userTransactions.filter(tx => tx.type === 'transfer_in').length;
-    const otherCount = userTransactions.filter(tx => tx.type !== 'transfer_out' && tx.type !== 'transfer_in').length;
-    
-    console.log('[Transfer View] Preference:', combinedTransferView, 'Total transactions:', userTransactions.length);
-    console.log('[Transfer View] Breakdown - transfer_out:', transferOutCount, 'transfer_in:', transferInCount, 'other:', otherCount);
-
-    // If combined view is enabled, filter out transfer_in transactions
-    if (combinedTransferView) {
-      const processedTransactions = [];
-      const transferInIds = new Set();
-
-      // First pass: collect all transfer_in IDs to skip them
-      for (const tx of userTransactions) {
-        if (tx.type === 'transfer_in') {
-          transferInIds.add(tx.id);
-        }
-      }
-
-      // Second pass: add all non-transfer_in transactions
-      for (const tx of userTransactions) {
-        if (!transferInIds.has(tx.id)) {
-          processedTransactions.push(tx);
-        }
-      }
-
-      const filteredTransferOutCount = processedTransactions.filter(tx => tx.type === 'transfer_out').length;
-      const filteredTransferInCount = processedTransactions.filter(tx => tx.type === 'transfer_in').length;
-      const filteredOtherCount = processedTransactions.filter(tx => tx.type !== 'transfer_out' && tx.type !== 'transfer_in').length;
-      
-      console.log('[Transfer View] Combined: Filtered to', processedTransactions.length, 'transactions');
-      console.log('[Transfer View] Filtered breakdown - transfer_out:', filteredTransferOutCount, 'transfer_in:', filteredTransferInCount, 'other:', filteredOtherCount);
-      return Response.json(processedTransactions);
-    }
-
-    // Separate view: return all transactions including both transfer sides
-    console.log('[Transfer View] Separate: Returning all', userTransactions.length, 'transactions (both transfer_out and transfer_in)');
-    return Response.json(userTransactions);
+    return Response.json({
+      data: normalizedTransactions,
+      total: totalCount,
+      limit,
+      offset,
+    });
     } catch (error) {
-    // Handle authentication errors (401)
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
-    // Handle household authorization errors (403)
-    if (error instanceof Error) {
-      if (error.message.includes('Household ID is required')) {
-        return Response.json(
-          { error: 'Household ID is required. Please select a household.' },
-          { status: 400 }
-        );
-      }
-      if (error.message.includes('Not a member') || error.message.includes('Unauthorized: Not a member')) {
-        return Response.json(
-          { error: 'You are not a member of this household.' },
-          { status: 403 }
-        );
-      }
-      if (error.message.includes('Household') || error.message.includes('member')) {
-        return Response.json({ error: error.message }, { status: 403 });
-      }
-    }
-    
-    console.error('Transaction fetch error:', error);
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Internal server error',
+      logLabel: 'Transaction fetch error:',
+      householdIdRequiredMessage: 'Household ID is required. Please select a household.',
+    });
     }
 }
-

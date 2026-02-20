@@ -146,6 +146,7 @@ describe('POST /api/transactions/repeat applies full rule actions', () => {
           householdId: 'hh_1',
           name: 'Checking',
           currentBalance: 100,
+          currentBalanceCents: 10000,
           usageCount: 0,
         },
       ])

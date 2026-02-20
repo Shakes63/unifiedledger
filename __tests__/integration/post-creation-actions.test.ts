@@ -246,7 +246,9 @@ describe("Integration: Post-Creation Action Handlers", () => {
       .where(eq(accounts.id, testAccount2Id))
       .limit(1);
 
-    expect(new Decimal(account1Updated[0].currentBalance ?? 0).toNumber()).toBe(900.00);
+    // Source balance should already reflect the original transaction from the create flow.
+    // Post-creation transfer conversion only applies the destination-side adjustment.
+    expect(new Decimal(account1Updated[0].currentBalance ?? 0).toNumber()).toBe(1000.00);
     expect(new Decimal(account2Updated[0].currentBalance ?? 0).toNumber()).toBe(600.00);
   });
 
@@ -322,7 +324,7 @@ describe("Integration: Post-Creation Action Handlers", () => {
       console.log('Skipping suggestion database verification - table may not exist');
     }
 
-    // 6. Verify source transaction WAS converted to transfer type, but NOT linked with match
+    // 6. Verify medium-confidence path does NOT mutate transactions; it only stores suggestions
     const txnAUpdated = await db
       .select()
       .from(transactions)
@@ -334,11 +336,11 @@ describe("Integration: Post-Creation Action Handlers", () => {
       .where(eq(transactions.id, txnB.id))
       .limit(1);
 
-    // Source transaction is converted to transfer type
-    expect(txnAUpdated[0].type).toBe("transfer_out");
-    expect(txnAUpdated[0].transferId).toBeTruthy(); // Has a transferId
-    
-    // But the matched transaction was NOT auto-linked (medium confidence = suggestion only)
+    // Source transaction remains unchanged until suggestion acceptance
+    expect(txnAUpdated[0].type).toBe("expense");
+    expect(txnAUpdated[0].transferId).toBeNull();
+
+    // Suggested transaction also remains unchanged (no auto-link on medium confidence)
     expect(txnBUpdated[0].transferId).toBeNull(); // NOT linked
     expect(txnBUpdated[0].type).toBe("income"); // Type unchanged
   });
@@ -689,7 +691,7 @@ describe("Integration: Post-Creation Action Handlers", () => {
       type: "income",
       categoryId: null,
     });
-    const [txnB] = await db.insert(transactions).values(txnBData).returning();
+    const [_txnB] = await db.insert(transactions).values(txnBData).returning();
 
     // 2. Create Transaction A on Dec 31
     const txnAData = createTestTransaction(testUserId, testHouseholdId, testAccount1Id, {

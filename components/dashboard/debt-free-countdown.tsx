@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { ProgressRing } from '@/components/ui/progress-ring';
-import { PartyPopper, Target, Medal, Award, Zap, Calendar, DollarSign, TrendingDown } from 'lucide-react';
+import { PartyPopper, Target, Medal, Award, Zap } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 
@@ -167,13 +167,6 @@ export function DebtFreeCountdown({ strategyEnabled: propStrategyEnabled, payoff
   const formatPayoffDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  const getStrategyLabel = (method: string) => {
-    if (method === 'snowball') {
-      return 'Smallest balance first';
-    }
-    return 'Highest rate first';
   };
 
   // Has debts but strategy disabled - show simplified view

@@ -25,6 +25,7 @@ import { type Theme } from '@/lib/themes/theme-config';
 import { getAllThemes, getTheme, applyTheme } from '@/lib/themes/theme-utils';
 import { toast } from 'sonner';
 import { useHousehold } from '@/contexts/household-context';
+import { toLocalDateString } from '@/lib/utils/local-date';
 
 type BudgetCycleFrequency = 'weekly' | 'biweekly' | 'semi-monthly' | 'monthly';
 
@@ -262,7 +263,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
         const daysUntilFriday = (5 - dayOfWeek + 7) % 7;
         const nextFriday = new Date(today);
         nextFriday.setDate(today.getDate() + daysUntilFriday);
-        updated.budgetCycleReferenceDate = nextFriday.toISOString().split('T')[0];
+        updated.budgetCycleReferenceDate = toLocalDateString(nextFriday);
       }
     } else if (frequency === 'semi-monthly') {
       if (scheduleSettings.budgetCycleSemiMonthlyDays === '[1, 15]' || !scheduleSettings.budgetCycleSemiMonthlyDays) {
@@ -739,4 +740,3 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
     </div>
   );
 }
-

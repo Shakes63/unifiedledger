@@ -12,6 +12,7 @@ import { accounts, utilizationAlertState, userHouseholdPreferences, notification
 import { eq, and, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 // Utilization thresholds with severity levels
 interface UtilizationThreshold {
@@ -128,7 +129,9 @@ export async function checkAndCreateUtilizationAlerts(
         id: accounts.id,
         name: accounts.name,
         currentBalance: accounts.currentBalance,
+        currentBalanceCents: accounts.currentBalanceCents,
         creditLimit: accounts.creditLimit,
+        creditLimitCents: accounts.creditLimitCents,
         userId: accounts.userId,
         householdId: accounts.householdId,
       })
@@ -147,9 +150,19 @@ export async function checkAndCreateUtilizationAlerts(
 
     // Process each credit account
     for (const account of creditAccounts) {
+      const balance = new Decimal(
+        account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0
+      )
+        .div(100)
+        .toNumber();
+      const limit = new Decimal(
+        account.creditLimitCents ?? toMoneyCents(account.creditLimit) ?? 0
+      )
+        .div(100)
+        .toNumber();
       const utilization = calculateUtilization(
-        account.currentBalance || 0,
-        account.creditLimit
+        balance,
+        limit
       );
 
       // Get or create alert state for this account
@@ -203,8 +216,8 @@ export async function checkAndCreateUtilizationAlerts(
             account.name,
             utilization,
             thresh.percentage,
-            account.currentBalance || 0,
-            account.creditLimit || 0,
+            balance,
+            limit,
             thresh.severity
           );
 
@@ -228,8 +241,8 @@ export async function checkAndCreateUtilizationAlerts(
               accountName: account.name,
               utilization,
               threshold: thresh.percentage,
-              creditLimit: account.creditLimit,
-              balance: account.currentBalance,
+              creditLimit: limit,
+              balance,
               notificationType: 'high_utilization',
             }),
             isRead: false,
@@ -340,7 +353,9 @@ export async function getUtilizationStatus(
         id: accounts.id,
         name: accounts.name,
         currentBalance: accounts.currentBalance,
+        currentBalanceCents: accounts.currentBalanceCents,
         creditLimit: accounts.creditLimit,
+        creditLimitCents: accounts.creditLimitCents,
       })
       .from(accounts)
       .where(
@@ -352,8 +367,17 @@ export async function getUtilizationStatus(
       );
 
     return creditAccounts.map((account) => {
-      const balance = Math.abs(account.currentBalance || 0);
-      const limit = account.creditLimit || 0;
+      const balance = new Decimal(
+        account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0
+      )
+        .div(100)
+        .abs()
+        .toNumber();
+      const limit = new Decimal(
+        account.creditLimitCents ?? toMoneyCents(account.creditLimit) ?? 0
+      )
+        .div(100)
+        .toNumber();
       const utilization = calculateUtilization(balance, limit);
 
       let status: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
@@ -383,4 +407,3 @@ export async function getUtilizationStatus(
     return [];
   }
 }
-

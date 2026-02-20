@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   Dialog,
@@ -29,6 +29,7 @@ import {
   loadQuickEntryDefaults,
   saveQuickEntryDefaults,
 } from '@/lib/utils/quick-entry-defaults';
+import { getRelativeLocalDateString, getTodayLocalDateString } from '@/lib/utils/local-date';
 import type { Account, Bill, BillInstance } from '@/lib/types';
 
 interface QuickTransactionModalProps {
@@ -83,7 +84,7 @@ export function QuickTransactionModal({
   const [toAccountId, setToAccountId] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [merchantId, setMerchantId] = useState<string | null>(null);
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getTodayLocalDateString());
   const [notes, setNotes] = useState('');
   const [showNotes, setShowNotes] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -124,7 +125,7 @@ export function QuickTransactionModal({
   };
 
   // Fetch accounts and load smart defaults
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     if (!selectedHouseholdId || !householdId) {
       setAccountsError('No household selected');
       setAccountsLoading(false);
@@ -202,7 +203,7 @@ export function QuickTransactionModal({
     } finally {
       setAccountsLoading(false);
     }
-  };
+  }, [fetchWithHousehold, householdId, selectedHouseholdId, type]);
 
   // Fetch accounts when modal opens and household is ready
   useEffect(() => {
@@ -217,10 +218,8 @@ export function QuickTransactionModal({
       return;
     }
 
-    fetchAccounts();
-    // Note: fetchAccounts is defined above and uses selectedHouseholdId and householdId
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialized, householdLoading, selectedHouseholdId, householdId]);
+    void fetchAccounts();
+  }, [open, initialized, householdLoading, selectedHouseholdId, householdId, fetchAccounts]);
 
   // Fetch unpaid bills when type is 'bill'
   useEffect(() => {
@@ -332,7 +331,7 @@ export function QuickTransactionModal({
     if (newOpen) {
       // Reset date to today when opening
       // Account fetching is handled by useEffect hook
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(getTodayLocalDateString());
     } else {
       // Reset form
       setAmount('');
@@ -341,7 +340,7 @@ export function QuickTransactionModal({
       setCategoryId(null);
       setMerchantId(null);
       setToAccountId('');
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(getTodayLocalDateString());
       setNotes('');
       setShowNotes(false);
       setError(null);
@@ -527,7 +526,7 @@ export function QuickTransactionModal({
       setCategoryId(null);
       setMerchantId(null);
       setToAccountId('');
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(getTodayLocalDateString());
       setNotes('');
       setShowNotes(false);
       setSelectedBillInstanceId('');
@@ -602,16 +601,14 @@ export function QuickTransactionModal({
       // T: Set date to today
       if (e.key === 't' || e.key === 'T') {
         e.preventDefault();
-        setDate(new Date().toISOString().split('T')[0]);
+        setDate(getTodayLocalDateString());
         return;
       }
       
       // Y: Set date to yesterday
       if (e.key === 'y' || e.key === 'Y') {
         e.preventDefault();
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        setDate(yesterday.toISOString().split('T')[0]);
+        setDate(getRelativeLocalDateString(-1));
         return;
       }
     }

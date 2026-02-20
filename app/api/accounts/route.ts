@@ -1,13 +1,14 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { accounts } from '@/lib/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { createPaymentBill, createAnnualFeeBill } from '@/lib/bills/auto-bill-creation';
 import { trackInitialCreditLimit, calculateMinimumPayment } from '@/lib/accounts';
 import { createMerchantForBank } from '@/lib/merchants/auto-create';
 import type { PaymentAmountSource } from '@/lib/types';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
 
@@ -137,7 +138,9 @@ export async function POST(request: Request) {
         bankName: bankName.trim(),
         accountNumberLast4: accountNumberLast4 || null,
         currentBalance,
+        currentBalanceCents: toMoneyCents(currentBalance) ?? 0,
         creditLimit: creditLimit || null,
+        creditLimitCents: toMoneyCents(creditLimit),
         color,
         icon,
         isBusinessAccount: computedIsBusinessAccount,

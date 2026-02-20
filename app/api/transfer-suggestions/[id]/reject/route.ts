@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transferSuggestions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -14,6 +15,7 @@ export async function POST(
 ) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const { id: suggestionId } = await params;
 
@@ -24,7 +26,8 @@ export async function POST(
       .where(
         and(
           eq(transferSuggestions.id, suggestionId),
-          eq(transferSuggestions.userId, userId)
+          eq(transferSuggestions.userId, userId),
+          eq(transferSuggestions.householdId, householdId)
         )
       )
       .limit(1);
@@ -53,7 +56,13 @@ export async function POST(
         status: 'rejected',
         reviewedAt: new Date().toISOString(),
       })
-      .where(eq(transferSuggestions.id, suggestionId));
+      .where(
+        and(
+          eq(transferSuggestions.id, suggestionId),
+          eq(transferSuggestions.userId, userId),
+          eq(transferSuggestions.householdId, householdId)
+        )
+      );
 
     return NextResponse.json({
       success: true,

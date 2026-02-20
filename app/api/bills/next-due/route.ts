@@ -5,6 +5,7 @@ import { billInstances, bills, accounts } from '@/lib/db/schema';
 import { eq, and, asc, inArray, lt, gte, or } from 'drizzle-orm';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,7 +98,9 @@ export async function GET(request: Request) {
       name: string;
       type: string;
       currentBalance: number | null;
+      currentBalanceCents: number | null;
       creditLimit: number | null;
+      creditLimitCents: number | null;
     }> = new Map();
 
     if (linkedAccountIds.length > 0) {
@@ -107,7 +110,9 @@ export async function GET(request: Request) {
           name: accounts.name,
           type: accounts.type,
           currentBalance: accounts.currentBalance,
+          currentBalanceCents: accounts.currentBalanceCents,
           creditLimit: accounts.creditLimit,
+          creditLimitCents: accounts.creditLimitCents,
         })
         .from(accounts)
         .where(inArray(accounts.id, linkedAccountIds));
@@ -143,8 +148,12 @@ export async function GET(request: Request) {
           id: linkedAccount.id,
           name: linkedAccount.name,
           type: linkedAccount.type as 'credit' | 'line_of_credit',
-          currentBalance: Math.abs(linkedAccount.currentBalance || 0),
-          creditLimit: linkedAccount.creditLimit || 0,
+          currentBalance: new Decimal(
+            Math.abs(linkedAccount.currentBalanceCents ?? toMoneyCents(linkedAccount.currentBalance) ?? 0)
+          ).div(100).toNumber(),
+          creditLimit: new Decimal(
+            linkedAccount.creditLimitCents ?? toMoneyCents(linkedAccount.creditLimit) ?? 0
+          ).div(100).toNumber(),
         } : undefined,
         // Autopay info
         isAutopay: r.bill?.isAutopayEnabled || false,

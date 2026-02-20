@@ -4,6 +4,10 @@ import { db } from '@/lib/db';
 import { transactions, transactionSplits, budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import {
+  amountToCents,
+  buildTransactionAmountFields,
+} from '@/lib/transactions/money-movement-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -168,6 +172,7 @@ export async function POST(
     // Create the split (inherit householdId from parent transaction)
     const splitId = nanoid();
     const now = new Date().toISOString();
+    const splitAmountCents = amountToCents(isPercentage ? 0 : amount);
 
     await db.insert(transactionSplits).values({
       id: splitId,
@@ -175,7 +180,7 @@ export async function POST(
       householdId: householdId!, // Inherit from parent transaction
       transactionId,
       categoryId,
-      amount: isPercentage ? 0 : amount,
+      ...buildTransactionAmountFields(splitAmountCents),
       percentage: isPercentage ? percentage : 0,
       isPercentage,
       description,

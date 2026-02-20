@@ -66,13 +66,13 @@ export async function POST(request: Request) {
     }
 
     // 5. Get active debts to calculate new projections
-    // TODO: Add householdId filter when debts table is updated in Phase 3
     const activeDebts = await db
       .select()
       .from(debts)
       .where(
         and(
           eq(debts.userId, userId),
+          eq(debts.householdId, householdId),
           eq(debts.status, 'active')
         )
       );

@@ -2,7 +2,8 @@ import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { transactions, budgetCategories } from '@/lib/db/schema';
-import { eq, and, gte, lte, sum } from 'drizzle-orm';
+import { getMonthRangeForYearMonth } from '@/lib/utils/local-date';
+import { eq, and, gte, lte, sql } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
@@ -71,6 +72,10 @@ function calculateVariance(numbers: number[]): Decimal {
   return variance.sqrt(); // Return standard deviation
 }
 
+function amountFromTotalCents(totalCents: number | null | undefined): Decimal {
+  return new Decimal(totalCents ?? 0).div(100);
+}
+
 /**
  * Calculate budget adherence score for a month
  */
@@ -109,7 +114,7 @@ async function calculateBudgetAdherence(
   for (const category of categoriesWithBudgets) {
     // Get actual spending for this category
     const spendingResult = await db
-      .select({ total: sum(transactions.amount) })
+      .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
       .from(transactions)
       .where(
         and(
@@ -122,7 +127,7 @@ async function calculateBudgetAdherence(
         )
       );
 
-    const actualSpent = spendingResult[0]?.total ? new Decimal(spendingResult[0].total.toString()) : new Decimal(0);
+    const actualSpent = amountFromTotalCents(spendingResult[0]?.totalCents);
     const budgeted = new Decimal(category.monthlyBudget!);
 
     if (actualSpent.lte(budgeted)) {
@@ -219,11 +224,11 @@ export async function GET(request: Request) {
 
     for (const monthData of monthsInPeriod) {
       const monthStart = `${monthData.str}-01`;
-      const monthEnd = new Date(monthData.year, monthData.month, 0).toISOString().split('T')[0];
+      const { endDate: monthEnd } = getMonthRangeForYearMonth(monthData.year, monthData.month);
 
       // Get income for this month
       const incomeResult = await db
-        .select({ total: sum(transactions.amount) })
+        .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
         .from(transactions)
         .where(
           and(
@@ -237,7 +242,7 @@ export async function GET(request: Request) {
 
       // Get expenses for this month
       const expensesResult = await db
-        .select({ total: sum(transactions.amount) })
+        .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
         .from(transactions)
         .where(
           and(
@@ -249,8 +254,8 @@ export async function GET(request: Request) {
           )
         );
 
-      const monthIncome = incomeResult[0]?.total ? new Decimal(incomeResult[0].total.toString()) : new Decimal(0);
-      const monthExpenses = expensesResult[0]?.total ? new Decimal(expensesResult[0].total.toString()) : new Decimal(0);
+      const monthIncome = amountFromTotalCents(incomeResult[0]?.totalCents);
+      const monthExpenses = amountFromTotalCents(expensesResult[0]?.totalCents);
       const monthSavings = monthIncome.minus(monthExpenses);
       const monthSavingsRate = monthIncome.gt(0) ? monthSavings.div(monthIncome).times(100) : new Decimal(0);
 
@@ -306,11 +311,11 @@ export async function GET(request: Request) {
 
       for (const monthData of monthsInPeriod) {
         const monthStart = `${monthData.str}-01`;
-        const monthEnd = new Date(monthData.year, monthData.month, 0).toISOString().split('T')[0];
+        const { endDate: monthEnd } = getMonthRangeForYearMonth(monthData.year, monthData.month);
 
         // Get actual spending
         const spendingResult = await db
-          .select({ total: sum(transactions.amount) })
+          .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
           .from(transactions)
           .where(
             and(
@@ -323,7 +328,7 @@ export async function GET(request: Request) {
             )
           );
 
-        const actual = spendingResult[0]?.total ? new Decimal(spendingResult[0].total.toString()) : new Decimal(0);
+        const actual = amountFromTotalCents(spendingResult[0]?.totalCents);
         const budgeted = new Decimal(category.monthlyBudget || 0);
         const variance = actual.minus(budgeted);
         const percentOfBudget = budgeted.gt(0) ? actual.div(budgeted).times(100) : new Decimal(0);

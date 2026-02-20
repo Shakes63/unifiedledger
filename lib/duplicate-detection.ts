@@ -1,4 +1,5 @@
 import { distance } from 'fastest-levenshtein';
+import Decimal from 'decimal.js';
 
 interface TransactionMatch {
   id: string;
@@ -88,8 +89,8 @@ export function detectDuplicateTransactions(
     }
 
     // Check amount similarity (within threshold percentage)
-    const amountDiff = Math.abs(newAmount - tx.amount);
-    const amountPercentDiff = amountDiff / Math.max(newAmount, tx.amount);
+    const amountDiff = new Decimal(newAmount).minus(tx.amount).abs();
+    const amountPercentDiff = amountDiff.dividedBy(Math.max(newAmount, tx.amount)).toNumber();
 
     if (amountPercentDiff > amountThreshold) {
       continue;
@@ -301,8 +302,8 @@ export function detectDuplicatesEnhanced(
     if (daysDifference > dateRangeInDays) continue;
 
     // Check amount similarity
-    const amountDiff = Math.abs(newAmount - tx.amount);
-    const amountPercentDiff = amountDiff / Math.max(newAmount, tx.amount);
+    const amountDiff = new Decimal(newAmount).minus(tx.amount).abs();
+    const amountPercentDiff = amountDiff.dividedBy(Math.max(newAmount, tx.amount)).toNumber();
     if (amountPercentDiff > amountThreshold) continue;
 
     // Check if any merchant name appears in the new description

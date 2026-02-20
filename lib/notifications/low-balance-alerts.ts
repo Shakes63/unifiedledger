@@ -2,6 +2,9 @@ import { db } from '@/lib/db';
 import { notificationPreferences, accounts, notifications } from '@/lib/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
 import { createNotification } from '@/lib/notifications/notification-service';
+import { getTodayLocalDateString } from '@/lib/utils/local-date';
+import Decimal from 'decimal.js';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 
 /**
  * Check all user accounts for low balances and create notifications
@@ -35,12 +38,16 @@ export async function checkAndCreateLowBalanceAlerts() {
       for (const account of userAccounts) {
         checkedAccounts++;
 
-        const balance = account.currentBalance || 0;
+        const balance = new Decimal(
+          account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0
+        )
+          .div(100)
+          .toNumber();
 
         // Check if balance is below threshold
         if (balance < lowBalanceThreshold) {
           // Check if notification already exists for today
-          const today = new Date().toISOString().split('T')[0];
+          const today = getTodayLocalDateString();
           const existingNotif = await db
             .select()
             .from(notifications)

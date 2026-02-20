@@ -1,15 +1,19 @@
 import { requireAuth } from '@/lib/auth-helpers';
-import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import {
   transfers,
   accounts,
   usageAnalytics,
-  transactions,
 } from '@/lib/db/schema';
 import { eq, and, desc, lte, gte } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
+import { handleRouteError } from '@/lib/api/route-helpers';
+import {
+  amountToCents,
+} from '@/lib/transactions/money-movement-service';
+import { createCanonicalTransferPair } from '@/lib/transactions/transfer-service';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,6 +25,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -29,7 +34,10 @@ export async function GET(request: Request) {
     const toDate = searchParams.get('toDate');
 
     // Build filters
-    const filters = [eq(transfers.userId, userId)];
+    const filters = [
+      eq(transfers.userId, userId),
+      eq(transfers.householdId, householdId),
+    ];
 
     if (fromDate) {
       filters.push(gte(transfers.date, fromDate));
@@ -61,12 +69,24 @@ export async function GET(request: Request) {
           db
             .select()
             .from(accounts)
-            .where(eq(accounts.id, transfer.fromAccountId))
+            .where(
+              and(
+                eq(accounts.id, transfer.fromAccountId),
+                eq(accounts.userId, userId),
+                eq(accounts.householdId, householdId)
+              )
+            )
             .limit(1),
           db
             .select()
             .from(accounts)
-            .where(eq(accounts.id, transfer.toAccountId))
+            .where(
+              and(
+                eq(accounts.id, transfer.toAccountId),
+                eq(accounts.userId, userId),
+                eq(accounts.householdId, householdId)
+              )
+            )
             .limit(1),
         ]);
 
@@ -85,14 +105,10 @@ export async function GET(request: Request) {
       offset,
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    console.error('Error fetching transfers:', error);
-    return Response.json(
-      { error: 'Failed to fetch transfers' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Failed to fetch transfers',
+      logLabel: 'Error fetching transfers:',
+    });
   }
 }
 
@@ -104,8 +120,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
     const {
       fromAccountId,
       toAccountId,
@@ -115,18 +131,6 @@ export async function POST(request: Request) {
       fees = 0,
       notes,
     } = body;
-
-    // Get and validate household
-    const householdId = getHouseholdIdFromRequest(request, body);
-    await requireHouseholdAuth(userId, householdId);
-
-    // TypeScript: householdId is guaranteed to be non-null after requireHouseholdAuth
-    if (!householdId) {
-      return Response.json(
-        { error: 'Household ID is required' },
-        { status: 400 }
-      );
-    }
 
     // Validate required fields
     if (!fromAccountId || !toAccountId || !amount || !date) {
@@ -152,7 +156,8 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(accounts.id, fromAccountId),
-            eq(accounts.userId, userId)
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
           )
         )
         .limit(1),
@@ -162,7 +167,8 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(accounts.id, toAccountId),
-            eq(accounts.userId, userId)
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
           )
         )
         .limit(1),
@@ -177,145 +183,70 @@ export async function POST(request: Request) {
 
     const transferAmount = new Decimal(amount);
     const transferFees = new Decimal(fees || 0);
-    const totalDebit = transferAmount.plus(transferFees);
+    const transferAmountCents = amountToCents(transferAmount);
+    const transferFeesCents = amountToCents(transferFees);
 
-    // Create transfer record
-    const transferId = nanoid();
-
-    // Create two transactions: one for withdrawal, one for deposit
-    const fromTransactionId = nanoid();
-    const toTransactionId = nanoid();
-
-    // Start transaction
-    const result = await db.transaction(async (tx) => {
-      // Create withdrawal transaction (from account)
-      await tx.insert(transactions).values({
-        id: fromTransactionId,
-        userId,
-        householdId,
-        accountId: fromAccountId,
-        amount: parseFloat(totalDebit.negated().toString()), // Negative for withdrawal
-        description: `Transfer to ${toAccount[0].name}`,
-        date,
-        type: 'transfer_out',
-        notes: notes,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-
-      // Create deposit transaction (to account)
-      await tx.insert(transactions).values({
-        id: toTransactionId,
-        userId,
-        householdId,
-        accountId: toAccountId,
-        amount: parseFloat(transferAmount.toString()), // Positive for deposit
-        description: `Transfer from ${fromAccount[0].name}`,
-        date,
-        type: 'transfer_in',
-        notes: notes,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-
-      // Create transfer record
-      await tx.insert(transfers).values({
-        id: transferId,
-        userId,
-        fromAccountId,
-        toAccountId,
-        amount: parseFloat(transferAmount.toString()),
-        description,
-        date,
-        status: 'completed',
-        fromTransactionId,
-        toTransactionId,
-        fees: parseFloat(transferFees.toString()),
-        notes,
-        createdAt: new Date().toISOString(),
-      });
-
-      // Update account balances
-      const newFromBalance = new Decimal(
-        fromAccount[0].currentBalance || 0
-      ).minus(totalDebit);
-      const newToBalance = new Decimal(
-        toAccount[0].currentBalance || 0
-      ).plus(transferAmount);
-
-      await tx
-        .update(accounts)
-        .set({
-          currentBalance: parseFloat(newFromBalance.toString()),
-          lastUsedAt: new Date().toISOString(),
-        })
-        .where(eq(accounts.id, fromAccountId));
-
-      await tx
-        .update(accounts)
-        .set({
-          currentBalance: parseFloat(newToBalance.toString()),
-          lastUsedAt: new Date().toISOString(),
-        })
-        .where(eq(accounts.id, toAccountId));
-
-      // Track transfer pair usage
-      const _transferPairKey = `${fromAccountId}→${toAccountId}`;
-      const existingAnalytics = await tx
-        .select()
-        .from(usageAnalytics)
-        .where(
-          and(
-            eq(usageAnalytics.userId, userId),
-            eq(usageAnalytics.itemType, 'transfer_pair'),
-            eq(usageAnalytics.itemId, fromAccountId),
-            eq(usageAnalytics.itemSecondaryId, toAccountId)
-          )
-        )
-        .limit(1);
-
-      if (existingAnalytics.length > 0) {
-        await tx
-          .update(usageAnalytics)
-          .set({
-            usageCount:
-              (existingAnalytics[0].usageCount || 0) + 1,
-            lastUsedAt: new Date().toISOString(),
-          })
-          .where(eq(usageAnalytics.id, existingAnalytics[0].id));
-      } else {
-          await tx.insert(usageAnalytics).values({
-            id: nanoid(),
-            userId,
-            householdId,
-            itemType: 'transfer_pair',
-          itemId: fromAccountId,
-          itemSecondaryId: toAccountId,
-          usageCount: 1,
-          lastUsedAt: new Date().toISOString(),
-        });
-      }
-
-      return { transferId, fromTransactionId, toTransactionId };
+    const result = await createCanonicalTransferPair({
+      userId,
+      householdId,
+      fromAccountId,
+      toAccountId,
+      amountCents: transferAmountCents,
+      feesCents: transferFeesCents,
+      date,
+      description: description || `Transfer ${fromAccount[0].name} -> ${toAccount[0].name}`,
+      notes: notes || null,
     });
+
+    // Track transfer pair usage
+    const existingAnalytics = await db
+      .select()
+      .from(usageAnalytics)
+      .where(
+        and(
+          eq(usageAnalytics.userId, userId),
+          eq(usageAnalytics.householdId, householdId),
+          eq(usageAnalytics.itemType, 'transfer_pair'),
+          eq(usageAnalytics.itemId, fromAccountId),
+          eq(usageAnalytics.itemSecondaryId, toAccountId)
+        )
+      )
+      .limit(1);
+
+    if (existingAnalytics.length > 0) {
+      await db
+        .update(usageAnalytics)
+        .set({
+          usageCount: (existingAnalytics[0].usageCount || 0) + 1,
+          lastUsedAt: new Date().toISOString(),
+        })
+        .where(eq(usageAnalytics.id, existingAnalytics[0].id));
+    } else {
+      await db.insert(usageAnalytics).values({
+        id: nanoid(),
+        userId,
+        householdId,
+        itemType: 'transfer_pair',
+        itemId: fromAccountId,
+        itemSecondaryId: toAccountId,
+        usageCount: 1,
+        lastUsedAt: new Date().toISOString(),
+      });
+    }
 
     return Response.json(
       {
         message: 'Transfer created successfully',
-        transferId: result.transferId,
+        transferId: result.transferGroupId,
         fromTransactionId: result.fromTransactionId,
         toTransactionId: result.toTransactionId,
       },
       { status: 201 }
     );
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    console.error('Error creating transfer:', error);
-    return Response.json(
-      { error: 'Failed to create transfer' },
-      { status: 500 }
-    );
+    return handleRouteError(error, {
+      defaultError: 'Failed to create transfer',
+      logLabel: 'Error creating transfer:',
+    });
   }
 }

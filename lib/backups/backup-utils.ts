@@ -1,6 +1,7 @@
 import { writeFile, mkdir, readFile, unlink, stat } from 'fs/promises';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { toLocalDateString } from '@/lib/utils/local-date';
 
 const BACKUP_DIR = join(process.cwd(), 'backups');
 
@@ -46,7 +47,7 @@ export async function ensureBackupDir(userId: string, householdId: string): Prom
  */
 export function generateBackupFilename(format: 'json' | 'csv' = 'json'): string {
   const now = new Date();
-  const dateStr = now.toISOString().replace(/[:.]/g, '-').split('T')[0];
+  const dateStr = toLocalDateString(now);
   const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '');
   return `unifiedledger-backup-${dateStr}-${timeStr}.${format}`;
 }
@@ -99,4 +100,3 @@ export async function backupFileExists(userId: string, householdId: string, file
   const filePath = getBackupFilePath(userId, householdId, filename);
   return existsSync(filePath);
 }
-

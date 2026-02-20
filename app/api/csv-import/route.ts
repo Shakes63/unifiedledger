@@ -81,6 +81,10 @@ interface StagingRecord {
 
 export const dynamic = 'force-dynamic';
 
+function centsToAmount(cents: number | null | undefined): number {
+  return new Decimal(cents ?? 0).div(100).toNumber();
+}
+
 /**
  * POST /api/csv-import
  * Parse and validate CSV file for import
@@ -286,7 +290,7 @@ export async function POST(request: NextRequest) {
       .select({
         id: transactions.id,
         description: transactions.description,
-        amount: transactions.amount,
+        amountCents: transactions.amountCents,
         date: transactions.date,
         type: transactions.type,
         accountId: transactions.accountId,
@@ -384,15 +388,16 @@ export async function POST(request: NextRequest) {
               // Check amount match:
               // - For transfers, the target side should have the same absolute amount
               // - Could be income (positive) matching the expense (negative) amount
-              const amountDiff = Math.abs(Math.abs(tx.amount) - Math.abs(mappedAmount));
-              const amountPercentDiff = amountDiff / Math.max(Math.abs(tx.amount), Math.abs(mappedAmount));
+              const txAmount = centsToAmount(tx.amountCents);
+              const amountDiff = Math.abs(Math.abs(txAmount) - Math.abs(mappedAmount));
+              const amountPercentDiff = amountDiff / Math.max(Math.abs(txAmount), Math.abs(mappedAmount));
 
               if (amountPercentDiff <= 0.01) { // Within 1% tolerance
                 existingMatch = {
                   id: tx.id,
                   date: tx.date,
                   description: tx.description,
-                  amount: tx.amount,
+                  amount: txAmount,
                   type: tx.type || 'expense',
                   hasTransferLink: !!tx.transferId,
                 };
@@ -412,7 +417,7 @@ export async function POST(request: NextRequest) {
               .select({
                 id: transactions.id,
                 description: transactions.description,
-                amount: transactions.amount,
+                amountCents: transactions.amountCents,
                 date: transactions.date,
                 type: transactions.type,
                 accountId: transactions.accountId,
@@ -427,8 +432,13 @@ export async function POST(request: NextRequest) {
 
             // Map to enhanced format with account and merchant names
             const existingTransactionsEnhanced: ExistingTransactionForDuplicates[] = rawExistingTransactions.map((t) => ({
-              ...t,
+              id: t.id,
+              description: t.description,
+              amount: centsToAmount(t.amountCents),
+              date: t.date,
               type: t.type || 'expense',
+              accountId: t.accountId,
+              merchantId: t.merchantId,
               accountName: accountNameMap.get(t.accountId),
               merchantName: t.merchantId ? merchantNameMap.get(t.merchantId) : null,
             }));
@@ -467,8 +477,13 @@ export async function POST(request: NextRequest) {
               const transferMatches = detectPotentialTransfers(
                 mappedData,
                 existingTransactionsForTransfer.map(t => ({
-                  ...t,
+                  id: t.id,
+                  description: t.description,
+                  amount: centsToAmount(t.amountCents),
+                  date: t.date,
                   type: t.type || 'expense',
+                  accountId: t.accountId,
+                  transferId: t.transferId,
                 })),
                 { dateRangeInDays: 3, minConfidence: 70 }
               );

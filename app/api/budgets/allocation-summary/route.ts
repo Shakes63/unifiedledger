@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
+import { getMonthRangeForYearMonth } from '@/lib/utils/local-date';
 import { 
   transactions, 
   budgetCategories, 
@@ -8,7 +9,7 @@ import {
   debtSettings,
   debtPayments 
 } from '@/lib/db/schema';
-import { eq, and, gte, lte, sum } from 'drizzle-orm';
+import { eq, and, gte, lte, sum, sql } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
@@ -115,8 +116,7 @@ export async function GET(request: Request) {
     }
 
     // Calculate month start and end dates
-    const monthStart = new Date(year, month - 1, 1).toISOString().split('T')[0];
-    const monthEnd = new Date(year, month, 0).toISOString().split('T')[0];
+    const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForYearMonth(year, month);
 
     // Fetch all active budget categories for user and household
     const categories = await db
@@ -133,7 +133,7 @@ export async function GET(request: Request) {
     // Helper function to get actual spending for a category
     async function getCategoryActual(categoryId: string, transactionType: 'income' | 'expense'): Promise<number> {
       const result = await db
-        .select({ total: sum(transactions.amount) })
+        .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
         .from(transactions)
         .where(
           and(
@@ -145,9 +145,7 @@ export async function GET(request: Request) {
             lte(transactions.date, monthEnd)
           )
         );
-      return result[0]?.total 
-        ? new Decimal(result[0].total.toString()).toNumber() 
-        : 0;
+      return new Decimal(result[0]?.totalCents ?? 0).div(100).toNumber();
     }
 
     // Process categories by type
@@ -388,12 +386,11 @@ async function calculateTrends(
     const month = date.getMonth() + 1;
     const monthStr = `${year}-${String(month).padStart(2, '0')}`;
     
-    const monthStart = new Date(year, month - 1, 1).toISOString().split('T')[0];
-    const monthEnd = new Date(year, month, 0).toISOString().split('T')[0];
+    const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForYearMonth(year, month);
 
     // Get income for month
     const incomeResult = await db
-      .select({ total: sum(transactions.amount) })
+      .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
       .from(transactions)
       .where(
         and(
@@ -407,7 +404,7 @@ async function calculateTrends(
 
     // Get expenses for month
     const expenseResult = await db
-      .select({ total: sum(transactions.amount) })
+      .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
       .from(transactions)
       .where(
         and(
@@ -434,7 +431,7 @@ async function calculateTrends(
     let savingsTotal = new Decimal(0);
     for (const cat of savingsCategories) {
       const catResult = await db
-        .select({ total: sum(transactions.amount) })
+        .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
         .from(transactions)
         .where(
           and(
@@ -446,17 +443,11 @@ async function calculateTrends(
             lte(transactions.date, monthEnd)
           )
         );
-      if (catResult[0]?.total) {
-        savingsTotal = savingsTotal.plus(catResult[0].total.toString());
-      }
+      savingsTotal = savingsTotal.plus(new Decimal(catResult[0]?.totalCents ?? 0).div(100));
     }
 
-    const monthIncome = incomeResult[0]?.total 
-      ? new Decimal(incomeResult[0].total.toString()).toNumber() 
-      : 0;
-    const monthExpenses = expenseResult[0]?.total 
-      ? new Decimal(expenseResult[0].total.toString()).toNumber() 
-      : 0;
+    const monthIncome = new Decimal(incomeResult[0]?.totalCents ?? 0).div(100).toNumber();
+    const monthExpenses = new Decimal(expenseResult[0]?.totalCents ?? 0).div(100).toNumber();
     const monthSavings = savingsTotal.toNumber();
     const monthSurplus = new Decimal(monthIncome).minus(monthExpenses).toNumber();
 
@@ -469,4 +460,3 @@ async function calculateTrends(
 
   return { months, income, expenses, savings, surplus };
 }
-

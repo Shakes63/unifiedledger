@@ -39,6 +39,11 @@ import {
   setupTestUserWithHousehold,
   cleanupTestHousehold,
 } from "./test-utils";
+import { toMoneyCents } from "@/lib/utils/money-cents";
+
+function cents(value: number): number {
+  return toMoneyCents(value) ?? 0;
+}
 
 // ============================================================================
 // INTEGRATION TEST SUITE: TRANSACTION CREATION API WITH RULES
@@ -158,6 +163,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
         accountId: testAccountId,
         description: executionResult.mutations.description || transactionInput.description,
         amount: transactionInput.amount,
+        amountCents: cents(transactionInput.amount),
         date: transactionInput.date,
         type: transactionInput.type,
         categoryId: executionResult.mutations.categoryId || transactionInput.categoryId,
@@ -277,6 +283,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
         accountId: testAccountId,
         description: executionResult.mutations.description || transactionInput.description,
         amount: transactionInput.amount,
+        amountCents: cents(transactionInput.amount),
         date: transactionInput.date,
         type: transactionInput.type,
         categoryId: executionResult.mutations.categoryId || transactionInput.categoryId,
@@ -346,6 +353,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
         accountId: testAccountId,
         description: transactionInput.description,
         amount: transactionInput.amount,
+        amountCents: cents(transactionInput.amount),
         date: transactionInput.date,
         type: transactionInput.type,
         categoryId: transactionInput.categoryId,
@@ -445,6 +453,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
         accountId: testAccountId,
         description: transactionInput.description,
         amount: transactionInput.amount,
+        amountCents: cents(transactionInput.amount),
         date: transactionInput.date,
         type: transactionInput.type,
         categoryId: executionResult.mutations.categoryId || transactionInput.categoryId,
@@ -555,6 +564,7 @@ describe("Integration: Transaction Creation API with Rules", () => {
         accountId: testAccountId,
         description: transactionInput.description,
         amount: transactionInput.amount,
+        amountCents: cents(transactionInput.amount),
         date: transactionInput.date,
         type: transactionInput.type,
         categoryId: executionResult.mutations.categoryId || transactionInput.categoryId,

@@ -8,17 +8,24 @@
  */
 
 import { nanoid } from 'nanoid';
-import Decimal from 'decimal.js';
 import { db } from '@/lib/db';
-import { transactions, accounts } from '@/lib/db/schema';
+import { accounts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { processBillPayment } from '@/lib/bills/bill-payment-utils';
+import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
+import {
+  amountToCents,
+  getAccountBalanceCents,
+  insertTransactionMovement,
+  updateScopedAccountBalance,
+} from '@/lib/transactions/money-movement-service';
 import { 
   calculateAutopayAmount, 
   validateAutopayConfiguration,
   LinkedAccountData,
   PayingAccountData,
 } from '@/lib/bills/autopay-calculator';
+import { getTodayLocalDateString } from '@/lib/utils/local-date';
 
 export type AutopayErrorCode = 
   | 'INSUFFICIENT_FUNDS' 
@@ -159,6 +166,7 @@ export async function processAutopayForInstance(
 
     // Fetch linked account if this is a credit card payment
     let linkedAccountData: LinkedAccountData | null = null;
+    let linkedAccountRecord: typeof accounts.$inferSelect | null = null;
     if (bill.linkedAccountId) {
       const [linkedAccountResult] = await db
         .select()
@@ -173,17 +181,21 @@ export async function processAutopayForInstance(
         .limit(1);
 
       if (linkedAccountResult) {
+        linkedAccountRecord = linkedAccountResult;
         linkedAccountData = {
           currentBalance: linkedAccountResult.currentBalance,
+          currentBalanceCents: linkedAccountResult.currentBalanceCents,
           statementBalance: linkedAccountResult.statementBalance,
           minimumPaymentAmount: linkedAccountResult.minimumPaymentAmount,
           creditLimit: linkedAccountResult.creditLimit,
+          creditLimitCents: linkedAccountResult.creditLimitCents,
         };
       }
     }
 
     const payingAccountData: PayingAccountData = {
       currentBalance: autopayAccountResult.currentBalance,
+      currentBalanceCents: autopayAccountResult.currentBalanceCents,
       type: autopayAccountResult.type,
     };
 
@@ -229,7 +241,8 @@ export async function processAutopayForInstance(
     }
 
     const paymentAmount = amountResult.amount;
-    const today = new Date().toISOString().split('T')[0];
+    const paymentAmountCents = amountToCents(paymentAmount);
+    const today = getTodayLocalDateString();
     const now = new Date().toISOString();
 
     // Determine transaction type and create transaction
@@ -237,100 +250,105 @@ export async function processAutopayForInstance(
     let transferId: string | undefined;
 
     if (bill.linkedAccountId) {
+      if (!linkedAccountRecord) {
+        return {
+          success: false,
+          amount: paymentAmount,
+          amountSource: amountResult.amountSource,
+          error: 'Linked account not found',
+          errorCode: 'ACCOUNT_NOT_FOUND',
+        };
+      }
+      const linkedAccountId = bill.linkedAccountId;
+
       // Credit card payment - create transfer
       transferId = nanoid();
       
       // Create transfer_out transaction (from autopay account)
       const transferOutId = nanoid();
-      await db.insert(transactions).values({
-        id: transferOutId,
-        userId,
-        householdId,
-        accountId: bill.autopayAccountId!,
-        date: today,
-        amount: paymentAmount,
-        description: `Autopay: ${bill.name}`,
-        type: 'transfer_out',
-        isPending: false,
-        transferId,
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      // Create transfer_in transaction (to credit account)
       const transferInId = nanoid();
-      await db.insert(transactions).values({
-        id: transferInId,
-        userId,
-        householdId,
-        accountId: bill.linkedAccountId,
-        date: today,
-        amount: paymentAmount,
-        description: `Autopay: ${bill.name}`,
-        type: 'transfer_in',
-        isPending: false,
-        transferId,
-        createdAt: now,
-        updatedAt: now,
+      await runInDatabaseTransaction(async (tx) => {
+        await insertTransactionMovement(tx, {
+          id: transferOutId,
+          userId,
+          householdId,
+          accountId: bill.autopayAccountId!,
+          date: today,
+          amountCents: paymentAmountCents,
+          description: `Autopay: ${bill.name}`,
+          type: 'transfer_out',
+          isPending: false,
+          transferId,
+          transferSourceAccountId: bill.autopayAccountId!,
+          transferDestinationAccountId: linkedAccountId,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        await insertTransactionMovement(tx, {
+          id: transferInId,
+          userId,
+          householdId,
+          accountId: linkedAccountId,
+          date: today,
+          amountCents: paymentAmountCents,
+          description: `Autopay: ${bill.name}`,
+          type: 'transfer_in',
+          isPending: false,
+          transferId,
+          transferSourceAccountId: bill.autopayAccountId!,
+          transferDestinationAccountId: linkedAccountId,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        await updateScopedAccountBalance(tx, {
+          accountId: bill.autopayAccountId!,
+          userId,
+          householdId,
+          balanceCents: getAccountBalanceCents(autopayAccountResult) - paymentAmountCents,
+          updatedAt: now,
+        });
+
+        await updateScopedAccountBalance(tx, {
+          accountId: linkedAccountId,
+          userId,
+          householdId,
+          balanceCents: getAccountBalanceCents(linkedAccountRecord) + paymentAmountCents,
+          updatedAt: now,
+        });
       });
-
       transactionId = transferOutId;
-
-      // Update account balances
-      await Promise.all([
-        // Decrease autopay account balance (money going out)
-        db
-          .update(accounts)
-          .set({
-            currentBalance: new Decimal(autopayAccountResult.currentBalance || 0)
-              .minus(paymentAmount)
-              .toNumber(),
-            updatedAt: now,
-          })
-          .where(eq(accounts.id, bill.autopayAccountId!)),
-        
-        // Update credit account balance (reduce debt - balance becomes less negative)
-        db
-          .update(accounts)
-          .set({
-            currentBalance: new Decimal(linkedAccountData?.currentBalance || 0)
-              .plus(paymentAmount)
-              .toNumber(),
-            updatedAt: now,
-          })
-          .where(eq(accounts.id, bill.linkedAccountId)),
-      ]);
     } else {
       // Regular bill or loan - create expense
       transactionId = nanoid();
       
-      await db.insert(transactions).values({
-        id: transactionId,
-        userId,
-        householdId,
-        accountId: bill.autopayAccountId!,
-        categoryId: bill.categoryId,
-        merchantId: bill.merchantId,
-        date: today,
-        amount: paymentAmount,
-        description: `Autopay: ${bill.name}`,
-        type: 'expense',
-        isPending: false,
-        billId: bill.id, // Link to the bill
-        createdAt: now,
-        updatedAt: now,
-      });
-
-      // Update autopay account balance
-      await db
-        .update(accounts)
-        .set({
-          currentBalance: new Decimal(autopayAccountResult.currentBalance || 0)
-            .minus(paymentAmount)
-            .toNumber(),
+      await runInDatabaseTransaction(async (tx) => {
+        await insertTransactionMovement(tx, {
+          id: transactionId,
+          userId,
+          householdId,
+          accountId: bill.autopayAccountId!,
+          categoryId: bill.categoryId,
+          merchantId: bill.merchantId,
+          date: today,
+          amountCents: paymentAmountCents,
+          description: `Autopay: ${bill.name}`,
+          type: 'expense',
+          isPending: false,
+          billId: bill.id, // Link to the bill
+          createdAt: now,
           updatedAt: now,
-        })
-        .where(eq(accounts.id, bill.autopayAccountId!));
+        });
+
+        await updateScopedAccountBalance(tx, {
+          accountId: bill.autopayAccountId!,
+          userId,
+          householdId,
+          balanceCents: getAccountBalanceCents(autopayAccountResult) - paymentAmountCents,
+          updatedAt: now,
+        });
+      });
     }
 
     // Process bill payment (updates instance and creates payment record)
@@ -376,4 +394,3 @@ export async function processAutopayForInstance(
     };
   }
 }
-
