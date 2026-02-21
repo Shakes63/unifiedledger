@@ -549,12 +549,13 @@ export default function DebtsPage() {
                 <UnifiedDebtCard
                   key={`${debt.source}-${debt.id}`}
                   debt={debt}
-                  defaultExpanded={allExpanded ?? false}
+                  defaultExpanded={false}
+                  expandState={allExpanded}
                   payoffTimeline={payoffTimeline}
                   onEdit={debt.source === 'debt' ? (d) => handleEditDebt({ id: d.id }) : undefined}
                   onDelete={debt.source === 'debt' ? (debtId) => handleDeleteDebt(debtId) : undefined}
                   onPayment={debt.source === 'debt' ? () => handlePayment() : undefined}
-                  onToggleStrategy={async (debtId, include) => {
+                  onToggleStrategy={debt.source === 'debt' ? undefined : async (debtId, include) => {
                     try {
                       const response = await postWithHousehold('/api/debts/strategy-toggle', {
                         source: debt.source,

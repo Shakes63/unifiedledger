@@ -53,6 +53,17 @@ export async function GET(request: Request) {
           )
         );
 
+      // Fetch standalone debts
+      const standaloneDebts = await db
+        .select()
+        .from(debts)
+        .where(
+          and(
+            eq(debts.householdId, householdId),
+            eq(debts.status, 'active')
+          )
+        );
+
       // Fetch debt bills
       const debtBills = await db
         .select()
@@ -99,20 +110,45 @@ export async function GET(request: Request) {
         }
       }
 
-      // Get this month's payments from bill_payments table
-      const monthPayments = await db
-        .select()
-        .from(billPayments)
-        .where(
-          and(
-            eq(billPayments.householdId, householdId),
-            gte(billPayments.paymentDate, monthStart),
-            lte(billPayments.paymentDate, monthEnd)
-          )
-        );
+      // Process standalone debts
+      for (const debt of standaloneDebts) {
+        const balance = new Decimal(debt.remainingBalance || 0);
+        const original = new Decimal(debt.originalAmount || debt.remainingBalance || 0);
 
-      const thisMonthTotal = monthPayments.reduce(
-        (sum, p) => sum.plus(new Decimal(p.amount || 0)),
+        totalBalance = totalBalance.plus(balance);
+        totalOriginalBalance = totalOriginalBalance.plus(original);
+
+        // Standalone debts are always included in strategy for now.
+        inStrategyCount++;
+        inStrategyBalance = inStrategyBalance.plus(balance);
+      }
+
+      // Get this month's payments from both bill and standalone debt payment tables
+      const [monthBillPayments, monthDebtPayments] = await Promise.all([
+        db
+          .select()
+          .from(billPayments)
+          .where(
+            and(
+              eq(billPayments.householdId, householdId),
+              gte(billPayments.paymentDate, monthStart),
+              lte(billPayments.paymentDate, monthEnd)
+            )
+          ),
+        db
+          .select()
+          .from(debtPayments)
+          .where(
+            and(
+              eq(debtPayments.householdId, householdId),
+              gte(debtPayments.paymentDate, monthStart),
+              lte(debtPayments.paymentDate, monthEnd)
+            )
+          ),
+      ]);
+
+      const thisMonthTotal = [...monthBillPayments, ...monthDebtPayments].reduce(
+        (sum, payment) => sum.plus(new Decimal(payment.amount || 0)),
         new Decimal(0)
       );
 
@@ -142,6 +178,18 @@ export async function GET(request: Request) {
           includeInPayoffStrategy: bill.includeInPayoffStrategy ?? true,
           color: bill.billColor || undefined,
         })),
+        // Standalone debts
+        ...standaloneDebts.map(debt => ({
+          id: debt.id,
+          name: debt.name,
+          source: 'debt' as const,
+          sourceType: debt.type || 'other',
+          remainingBalance: debt.remainingBalance || 0,
+          minimumPayment: debt.minimumPayment || 0,
+          interestRate: debt.interestRate || 0,
+          includeInPayoffStrategy: true,
+          color: debt.color || undefined,
+        })),
       ];
 
       // Sort by balance (highest first)
@@ -158,7 +206,8 @@ export async function GET(request: Request) {
         totalOriginalAmount: totalOriginalBalance.toNumber(),
         totalPaidOff: Math.max(0, totalPaidOff),
         percentagePaidOff: Math.max(0, Math.min(100, percentagePaidOff)),
-        activeDebtCount: creditAccounts.length + debtBills.length,
+        standaloneDebtCount: standaloneDebts.length,
+        activeDebtCount: creditAccounts.length + debtBills.length + standaloneDebts.length,
         creditAccountCount: creditAccounts.length,
         debtBillCount: debtBills.length,
         inStrategyCount,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -96,6 +96,7 @@ interface UnifiedDebtCardProps {
   onToggleStrategy?: (debtId: string, include: boolean) => void;
   onPayment?: (debtId: string, amount: number) => void;
   defaultExpanded?: boolean;
+  expandState?: boolean | null;
   payoffTimeline?: PayoffTimeline;
   milestones?: Milestone[];
 }
@@ -133,6 +134,7 @@ export function UnifiedDebtCard({
   onToggleStrategy,
   onPayment,
   defaultExpanded = false,
+  expandState = null,
   payoffTimeline,
   milestones = [],
 }: UnifiedDebtCardProps) {
@@ -144,6 +146,11 @@ export function UnifiedDebtCard({
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [showAmortization, setShowAmortization] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+
+  useEffect(() => {
+    if (expandState === null || expandState === undefined) return;
+    setIsExpanded(expandState);
+  }, [expandState]);
   const [paymentAmount, setPaymentAmount] = useState('');
 
   const IconComponent = useMemo(() => {
@@ -293,17 +300,24 @@ export function UnifiedDebtCard({
 
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           {/* Strategy Badge */}
-          <button
-            onClick={() => onToggleStrategy?.(debt.id, !debt.includeInPayoffStrategy)}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-              debt.includeInPayoffStrategy
-                ? 'bg-success/10 text-success'
-                : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            <Target className="w-3 h-3" />
-            {debt.includeInPayoffStrategy ? 'In Strategy' : 'Excluded'}
-          </button>
+          {onToggleStrategy ? (
+            <button
+              onClick={() => onToggleStrategy(debt.id, !debt.includeInPayoffStrategy)}
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                debt.includeInPayoffStrategy
+                  ? 'bg-success/10 text-success'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              <Target className="w-3 h-3" />
+              {debt.includeInPayoffStrategy ? 'In Strategy' : 'Excluded'}
+            </button>
+          ) : (
+            <span className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-success/10 text-success">
+              <Target className="w-3 h-3" />
+              In Strategy
+            </span>
+          )}
 
           {/* Expand/Collapse */}
           <Button

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MapPin, DollarSign, Lightbulb, ArrowDown, Target, Clock, Sparkles } from 'lucide-react';
@@ -21,6 +21,12 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
   const [comparison, setComparison] = useState<ComparisonResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const skipNextSaveRef = useRef(true);
+
+  const normalizedExtraPayment = useMemo(() => {
+    const parsed = Number.parseFloat(extraPayment);
+    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+  }, [extraPayment]);
 
   // Load saved settings on mount
   const loadSettings = useCallback(async () => {
@@ -32,10 +38,11 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
         setExtraPayment(settings.extraMonthlyPayment?.toString() || '0');
         setMethod(settings.preferredMethod || 'avalanche');
         setPaymentFrequency(settings.paymentFrequency || 'monthly');
-        setSettingsLoaded(true);
       }
     } catch (error) {
       console.error('Error loading debt settings:', error);
+    } finally {
+      skipNextSaveRef.current = true;
       setSettingsLoaded(true);
     }
   }, [selectedHouseholdId, fetchWithHousehold]);
@@ -45,11 +52,21 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
     loadSettings();
   }, [selectedHouseholdId, loadSettings]);
 
-  const fetchStrategy = useCallback(async () => {
+  const fetchStrategy = useCallback(async (
+    selectedMethod: PayoffMethod,
+    selectedFrequency: PaymentFrequency,
+    selectedExtraPayment: number
+  ) => {
     if (!selectedHouseholdId || !settingsLoaded) return;
     try {
       setLoading(true);
-      const response = await fetchWithHousehold(`/api/debts/payoff-strategy?compare=true&extraPayment=${parseFloat(extraPayment) || 0}`);
+      const params = new URLSearchParams({
+        compare: 'true',
+        extraPayment: selectedExtraPayment.toString(),
+        method: selectedMethod,
+        paymentFrequency: selectedFrequency,
+      });
+      const response = await fetchWithHousehold(`/api/debts/payoff-strategy?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
         setComparison(data);
@@ -59,40 +76,56 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
     } finally {
       setLoading(false);
     }
-  }, [selectedHouseholdId, settingsLoaded, extraPayment, fetchWithHousehold]);
+  }, [selectedHouseholdId, settingsLoaded, fetchWithHousehold]);
 
-  const saveSettings = useCallback(async () => {
+  const saveSettings = useCallback(async (
+    selectedMethod: PayoffMethod,
+    selectedFrequency: PaymentFrequency,
+    selectedExtraPayment: number
+  ) => {
     if (!selectedHouseholdId) return;
     try {
       await putWithHousehold('/api/debts/settings', {
-        extraMonthlyPayment: parseFloat(extraPayment) || 0,
-        preferredMethod: method,
-        paymentFrequency,
+        extraMonthlyPayment: selectedExtraPayment,
+        preferredMethod: selectedMethod,
+        paymentFrequency: selectedFrequency,
       });
     } catch (error) {
       console.error('Error saving debt settings:', error);
     }
-  }, [selectedHouseholdId, extraPayment, method, paymentFrequency, putWithHousehold]);
+  }, [selectedHouseholdId, putWithHousehold]);
 
-  // Fetch strategy whenever settings change (debounced for extra payment)
-  useEffect(() => {
-    if (!settingsLoaded || !selectedHouseholdId) return; // Don't fetch until settings are loaded
-
-    // Debounce the fetch to avoid refreshing on every keystroke
-    const timer = setTimeout(() => {
-      fetchStrategy();
-      saveSettings();
-    }, 500); // Wait 500ms after user stops typing
-
-    return () => clearTimeout(timer);
-  }, [extraPayment, settingsLoaded, selectedHouseholdId, fetchStrategy, saveSettings]);
-
-  // Fetch strategy and save settings when method or frequency changes (no debounce needed)
+  // Fetch strategy whenever settings change.
   useEffect(() => {
     if (!settingsLoaded || !selectedHouseholdId) return;
-    fetchStrategy();
-    saveSettings();
-  }, [method, paymentFrequency, settingsLoaded, selectedHouseholdId, fetchStrategy, saveSettings]);
+    const timer = setTimeout(() => {
+      void fetchStrategy(method, paymentFrequency, normalizedExtraPayment);
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [method, paymentFrequency, normalizedExtraPayment, settingsLoaded, selectedHouseholdId, fetchStrategy]);
+
+  // Persist settings after user-driven changes.
+  useEffect(() => {
+    if (!settingsLoaded || !selectedHouseholdId) return;
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void saveSettings(method, paymentFrequency, normalizedExtraPayment);
+    }, 700);
+
+    return () => clearTimeout(timer);
+  }, [
+    method,
+    paymentFrequency,
+    normalizedExtraPayment,
+    settingsLoaded,
+    selectedHouseholdId,
+    saveSettings,
+  ]);
 
   if (loading) {
     return (
@@ -230,7 +263,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
         </div>
         <p className="text-xs text-muted-foreground mt-1">
           {paymentFrequency === 'biweekly'
-            ? `Amount above minimums per payment (${parseFloat(extraPayment) * 26 || 0}/year)`
+            ? `Amount above minimums per payment (${normalizedExtraPayment * 26 || 0}/year)`
             : 'Amount above minimum payments to apply toward debts'}
         </p>
       </div>
@@ -382,8 +415,8 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                           {debt.additionalMonthlyPayment > 0 && (
                             <span>+ ${debt.additionalMonthlyPayment.toFixed(0)} committed</span>
                           )}
-                          {parseFloat(extraPayment) > 0 && (
-                            <span className="text-income">+ ${parseFloat(extraPayment).toFixed(0)} extra</span>
+                          {normalizedExtraPayment > 0 && (
+                            <span className="text-income">+ ${normalizedExtraPayment.toFixed(0)} extra</span>
                           )}
                         </div>
                       </div>
@@ -409,7 +442,7 @@ export function DebtPayoffStrategy({ className }: DebtPayoffStrategyProps) {
                           (${debt.minimumPayment.toFixed(0)} min
                           {debt.additionalMonthlyPayment > 0 && ` + $${debt.additionalMonthlyPayment.toFixed(0)} committed`}
                           {debt.rolldownAmount > 0 && ` + $${debt.rolldownAmount.toFixed(0)} rolled`}
-                          {parseFloat(extraPayment) > 0 && <span className="text-income"> + ${parseFloat(extraPayment).toFixed(0)} extra</span>})
+                          {normalizedExtraPayment > 0 && <span className="text-income"> + ${normalizedExtraPayment.toFixed(0)} extra</span>})
                         </div>
                       </div>
                     )}

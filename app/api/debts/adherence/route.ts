@@ -1,11 +1,16 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { debts, debtSettings, debtPayments } from '@/lib/db/schema';
+import { billPayments, debtPayments } from '@/lib/db/schema';
 import { getMonthRangeForDate } from '@/lib/utils/local-date';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import { calculatePayoffStrategy, type DebtInput, type PayoffMethod, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
 import Decimal from 'decimal.js';
+import {
+  getDebtStrategySettings,
+  getUnifiedDebtSources,
+  toDebtInputs,
+} from '@/lib/debts/unified-debt-sources';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,35 +31,13 @@ export async function GET(request: Request) {
     const { userId } = await requireAuth();
     const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // 1. Get user's debt settings for this household
-    const settings = await db
-      .select()
-      .from(debtSettings)
-      .where(
-        and(
-          eq(debtSettings.userId, userId),
-          eq(debtSettings.householdId, householdId)
-        )
-      )
-      .limit(1);
+    const settings = await getDebtStrategySettings(userId, householdId);
+    const preferredMethod = settings.preferredMethod as PayoffMethod;
+    const paymentFrequency = settings.paymentFrequency as PaymentFrequency;
+    const extraMonthlyPayment = settings.extraMonthlyPayment;
 
-    const preferredMethod = (settings[0]?.preferredMethod || 'avalanche') as PayoffMethod;
-    const paymentFrequency = (settings[0]?.paymentFrequency || 'monthly') as PaymentFrequency;
-    const extraMonthlyPayment = settings[0]?.extraMonthlyPayment || 0;
-
-    // 2. Get all active debts for this household
-    const activeDebts = await db
-      .select()
-      .from(debts)
-      .where(
-        and(
-          eq(debts.userId, userId),
-          eq(debts.householdId, householdId),
-          eq(debts.status, 'active')
-        )
-      );
-
-    if (activeDebts.length === 0) {
+    const unifiedDebts = await getUnifiedDebtSources(householdId);
+    if (unifiedDebts.length === 0) {
       return Response.json({
         hasDebts: false,
         message: 'No active debts to track',
@@ -62,13 +45,12 @@ export async function GET(request: Request) {
     }
 
     // 3. Calculate total minimum payment and per-debt extras
-    const totalMinimumPayment = activeDebts.reduce(
+    const totalMinimumPayment = unifiedDebts.reduce(
       (sum, debt) => new Decimal(sum).plus(debt.minimumPayment || 0).toNumber(),
       0
     );
 
-    // Include per-debt additional payments as part of the planned payment
-    const totalPerDebtExtras = activeDebts.reduce(
+    const totalPerDebtExtras = unifiedDebts.reduce(
       (sum, debt) => new Decimal(sum).plus(debt.additionalMonthlyPayment || 0).toNumber(),
       0
     );
@@ -80,34 +62,74 @@ export async function GET(request: Request) {
       .toNumber();
 
     // 4. Generate last 12 months
-    const monthlyData: MonthlyAdherenceData[] = [];
+    const monthRecords: Array<{
+      key: string;
+      label: string;
+      startDate: string;
+      endDate: string;
+    }> = [];
     const now = new Date();
-
-    for (let i = 11; i >= 0; i--) {
+    let rangeStart: string | null = null;
+    let rangeEnd: string | null = null;
+    for (let i = 11; i >= 0; i -= 1) {
       const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForDate(monthDate);
       const monthKey = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}`;
       const monthLabel = monthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      monthRecords.push({
+        key: monthKey,
+        label: monthLabel,
+        startDate: monthStart,
+        endDate: monthEnd,
+      });
+      if (!rangeStart || monthStart < rangeStart) rangeStart = monthStart;
+      if (!rangeEnd || monthEnd > rangeEnd) rangeEnd = monthEnd;
+    }
 
-      // Get start and end of month
-      const { startDate: monthStart, endDate: monthEnd } = getMonthRangeForDate(monthDate);
-
-      // Fetch actual payments for this month (filtered by household)
-      const payments = await db
+    const [standalonePayments, debtBillPayments] = await Promise.all([
+      db
         .select()
         .from(debtPayments)
         .where(
           and(
-            eq(debtPayments.userId, userId),
             eq(debtPayments.householdId, householdId),
-            gte(debtPayments.paymentDate, monthStart),
-            lte(debtPayments.paymentDate, monthEnd)
+            gte(debtPayments.paymentDate, rangeStart || ''),
+            lte(debtPayments.paymentDate, rangeEnd || '')
           )
-        );
+        ),
+      db
+        .select()
+        .from(billPayments)
+        .where(
+          and(
+            eq(billPayments.householdId, householdId),
+            gte(billPayments.paymentDate, rangeStart || ''),
+            lte(billPayments.paymentDate, rangeEnd || '')
+          )
+        ),
+    ]);
 
-      const actualPayment = payments.reduce(
-        (sum, payment) => new Decimal(sum).plus(payment.amount || 0).toNumber(),
-        0
+    const actualByMonth = new Map<string, number>();
+    const addPayment = (monthKey: string, amount: number) => {
+      actualByMonth.set(
+        monthKey,
+        new Decimal(actualByMonth.get(monthKey) || 0).plus(amount).toNumber()
       );
+    };
+
+    for (const payment of standalonePayments) {
+      const date = new Date(payment.paymentDate);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      addPayment(key, payment.amount || 0);
+    }
+    for (const payment of debtBillPayments) {
+      const date = new Date(payment.paymentDate);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      addPayment(key, payment.amount || 0);
+    }
+
+    const monthlyData: MonthlyAdherenceData[] = monthRecords.map((record) => {
+      const actualPayment = actualByMonth.get(record.key) || 0;
 
       // Calculate adherence
       const adherence = totalExpectedPayment > 0
@@ -128,16 +150,16 @@ export async function GET(request: Request) {
 
       const difference = new Decimal(actualPayment).minus(totalExpectedPayment).toNumber();
 
-      monthlyData.push({
-        month: monthKey,
-        monthLabel,
+      return {
+        month: record.key,
+        monthLabel: record.label,
         expectedPayment: totalExpectedPayment,
         actualPayment,
         adherence: Math.round(adherence * 10) / 10, // Round to 1 decimal
         status,
         difference,
-      });
-    }
+      };
+    });
 
     // 5. Calculate overall stats
     const monthsWithData = monthlyData.filter(m => m.actualPayment > 0);
@@ -198,30 +220,22 @@ export async function GET(request: Request) {
       : totalExpectedPayment;
 
     // Prepare debt inputs for calculator
-    const debtInputs: DebtInput[] = activeDebts.map(debt => ({
-      id: debt.id,
-      name: debt.name || 'Unknown Debt',
-      remainingBalance: debt.remainingBalance || 0,
-      minimumPayment: debt.minimumPayment || 0,
-      additionalMonthlyPayment: debt.additionalMonthlyPayment || 0,
-      interestRate: debt.interestRate || 0,
-      type: debt.type || 'credit_card',
-      loanType: debt.loanType as 'revolving' | 'installment' | undefined,
-      compoundingFrequency: debt.compoundingFrequency as 'daily' | 'monthly' | 'quarterly' | 'annually' | undefined,
-      billingCycleDays: debt.billingCycleDays || undefined,
-    }));
+    const debtInputs: DebtInput[] = toDebtInputs(unifiedDebts, { inStrategyOnly: true });
 
     let projectionAdjustment = null;
 
     // Only calculate projections if we have reasonable debt amounts and timeframes
     // Skip for very long-term debts to avoid timeout/memory issues
-    const totalDebt = activeDebts.reduce((sum, d) => sum + (d.remainingBalance || 0), 0);
-    const totalMinPayment = activeDebts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
+    const totalDebt = debtInputs.reduce((sum, debt) => sum + debt.remainingBalance, 0);
+    const fixedPaymentBase = debtInputs.reduce(
+      (sum, debt) => sum + (debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0),
+      0
+    );
 
     // Calculate projections for reasonable debt scenarios
     // The payoff calculator has built-in safety limits (360 months max)
-    const adjustedExtraPayment = Math.max(0, actualAveragePayment - totalMinimumPayment);
-    const shouldCalculateProjections = totalDebt > 0 && totalMinPayment > 0;
+    const adjustedExtraPayment = Math.max(0, actualAveragePayment - fixedPaymentBase);
+    const shouldCalculateProjections = totalDebt > 0 && debtInputs.length > 0;
 
     if (shouldCalculateProjections) {
       try {

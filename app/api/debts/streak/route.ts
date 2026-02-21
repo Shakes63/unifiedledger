@@ -1,10 +1,11 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { debts, debtPayments } from '@/lib/db/schema';
+import { billPayments, debtPayments } from '@/lib/db/schema';
 import { toLocalDateString } from '@/lib/utils/local-date';
 import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
+import { getUnifiedDebtSources } from '@/lib/debts/unified-debt-sources';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,41 +28,48 @@ export async function GET(request: Request) {
     const { userId } = await requireAuth();
     const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // 1. Get all active debts to calculate total minimum payment for this household
-    const activeDebts = await db
-      .select()
-      .from(debts)
-      .where(
-        and(
-          eq(debts.userId, userId),
-          eq(debts.householdId, householdId),
-          eq(debts.status, 'active')
-        )
-      );
-
-    if (activeDebts.length === 0) {
+    const unifiedDebts = await getUnifiedDebtSources(householdId);
+    if (unifiedDebts.length === 0) {
       return Response.json({
         hasDebts: false,
         message: 'No active debts to track payments for',
       });
     }
 
-    const totalMinimumPayment = activeDebts.reduce(
+    const totalMinimumPayment = unifiedDebts.reduce(
       (sum, debt) => new Decimal(sum).plus(debt.minimumPayment || 0).toNumber(),
       0
     );
 
-    // 2. Fetch all debt payments for this user and household
-    const allPayments = await db
-      .select()
-      .from(debtPayments)
-      .where(
-        and(
-          eq(debtPayments.userId, userId),
-          eq(debtPayments.householdId, householdId)
-        )
-      )
-      .orderBy(debtPayments.paymentDate);
+    const [standalonePayments, debtBillPayments] = await Promise.all([
+      db
+        .select()
+        .from(debtPayments)
+        .where(
+          and(
+            eq(debtPayments.householdId, householdId)
+          )
+        ),
+      db
+        .select()
+        .from(billPayments)
+        .where(
+          and(
+            eq(billPayments.householdId, householdId)
+          )
+        ),
+    ]);
+
+    const allPayments = [
+      ...standalonePayments.map((payment) => ({
+        amount: payment.amount || 0,
+        paymentDate: payment.paymentDate,
+      })),
+      ...debtBillPayments.map((payment) => ({
+        amount: payment.amount || 0,
+        paymentDate: payment.paymentDate,
+      })),
+    ].sort((a, b) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime());
 
     if (allPayments.length === 0) {
       return Response.json({

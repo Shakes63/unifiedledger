@@ -38,6 +38,7 @@ interface UnifiedDebt {
   interestRate?: number;
   interestType?: string;
   minimumPayment?: number;
+  additionalMonthlyPayment?: number;
   includeInPayoffStrategy: boolean;
   color?: string;
   // Credit card specific
@@ -141,6 +142,7 @@ export async function GET(request: Request) {
           interestRate: acc.interestRate ?? undefined,
           interestType: acc.interestType ?? undefined,
           minimumPayment: acc.minimumPaymentAmount ?? undefined,
+          additionalMonthlyPayment: acc.additionalMonthlyPayment ?? undefined,
           includeInPayoffStrategy: acc.includeInPayoffStrategy ?? true,
           color: acc.color ?? undefined,
           // Credit card specific
@@ -174,6 +176,7 @@ export async function GET(request: Request) {
           interestRate: bill.billInterestRate ?? undefined,
           interestType: bill.interestType ?? undefined,
           minimumPayment: bill.minimumPayment ?? undefined,
+          additionalMonthlyPayment: bill.billAdditionalMonthlyPayment ?? undefined,
           includeInPayoffStrategy: bill.includeInPayoffStrategy ?? true,
           color: bill.billColor ?? undefined,
           debtType: bill.debtType ?? undefined,
@@ -193,8 +196,7 @@ export async function GET(request: Request) {
         // 'loans' (source === 'bill') shows loans and standalone debts
         if (typeFilter === 'credit' && debt.type !== 'credit_card') continue;
         if (typeFilter === 'line_of_credit') continue; // Standalone debts aren't lines of credit
-        // Apply strategy filter if specified (standalone debts are always included by default)
-        if (inStrategyOnly) continue; // TODO: Add includeInPayoffStrategy field to debts table
+        // Standalone debts are currently always included in strategy.
 
         // Calculate utilization for credit cards with credit limits
         let utilization: number | undefined;
@@ -215,6 +217,7 @@ export async function GET(request: Request) {
           interestRate: debt.interestRate ?? undefined,
           interestType: debt.interestType ?? undefined,
           minimumPayment: debt.minimumPayment ?? undefined,
+          additionalMonthlyPayment: debt.additionalMonthlyPayment ?? undefined,
           includeInPayoffStrategy: true, // Standalone debts are always in strategy
           color: debt.color ?? undefined,
           debtType: debt.type ?? undefined,

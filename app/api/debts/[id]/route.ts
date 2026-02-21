@@ -112,16 +112,55 @@ export async function PUT(
       return new Response(JSON.stringify({ error: 'Debt not found' }), { status: 404 });
     }
 
-    const updates: Partial<typeof debts.$inferInsert> = { ...(body as Record<string, unknown>) } as Partial<typeof debts.$inferInsert>;
+    const allowedUpdateFields = [
+      'name',
+      'description',
+      'creditorName',
+      'originalAmount',
+      'remainingBalance',
+      'minimumPayment',
+      'additionalMonthlyPayment',
+      'interestRate',
+      'interestType',
+      'accountId',
+      'categoryId',
+      'type',
+      'color',
+      'icon',
+      'startDate',
+      'targetPayoffDate',
+      'status',
+      'priority',
+      'loanType',
+      'loanTermMonths',
+      'originationDate',
+      'compoundingFrequency',
+      'billingCycleDays',
+      'lastStatementDate',
+      'lastStatementBalance',
+      'creditLimit',
+      'notes',
+    ] as const;
+
+    const updates: Partial<typeof debts.$inferInsert> = {};
+    for (const field of allowedUpdateFields) {
+      const value = (body as Record<string, unknown>)[field];
+      if (value !== undefined) {
+        (updates as Record<string, unknown>)[field] = value;
+      }
+    }
     updates.updatedAt = new Date().toISOString();
 
     // Track if we need to recalculate payoff date
     const payoffAffectingFields = ['remainingBalance', 'minimumPayment', 'additionalMonthlyPayment', 'interestRate'];
     const needsPayoffRecalc = payoffAffectingFields.some(field => body[field] !== undefined);
+    const remainingBalanceInput = typeof body.remainingBalance === 'number'
+      ? body.remainingBalance
+      : undefined;
 
     // If remaining balance changed, recalculate milestone amounts
-    if (body.remainingBalance !== undefined && body.remainingBalance !== debt.remainingBalance) {
-      const newBalance = body.remainingBalance;
+    if (remainingBalanceInput !== undefined && remainingBalanceInput !== debt.remainingBalance) {
+      const newBalance = remainingBalanceInput;
 
       const milestonesToUpdate = [
         { percentage: 25, milestoneBalance: newBalance * 0.75 },

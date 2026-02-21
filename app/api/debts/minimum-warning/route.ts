@@ -1,9 +1,11 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
-import { db } from '@/lib/db';
-import { debts, debtSettings } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
 import { calculatePayoffStrategy, type DebtInput, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
+import {
+  getDebtStrategySettings,
+  getUnifiedDebtSources,
+  toDebtInputs,
+} from '@/lib/debts/unified-debt-sources';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,55 +14,23 @@ export async function GET(request: Request) {
     const { userId } = await requireAuth();
     const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // Fetch user's active debts for this household
-    const activeDebts = await db
-      .select()
-      .from(debts)
-      .where(
-        and(
-          eq(debts.userId, userId),
-          eq(debts.householdId, householdId)
-        )
-      )
-      .orderBy(debts.priority);
-
-    // Filter to only active debts
-    const activeOnly = activeDebts.filter(d => d.status === 'active');
-
-    if (activeOnly.length === 0) {
+    const unifiedDebts = await getUnifiedDebtSources(householdId);
+    if (unifiedDebts.length === 0) {
       return Response.json({ error: 'No active debts found' }, { status: 404 });
     }
 
-    // Fetch user's debt settings for this household
-    const settings = await db
-      .select()
-      .from(debtSettings)
-      .where(
-        and(
-          eq(debtSettings.userId, userId),
-          eq(debtSettings.householdId, householdId)
-        )
-      )
-      .limit(1);
+    const settings = await getDebtStrategySettings(userId, householdId);
+    const extraPayment = settings.extraMonthlyPayment || 0;
+    const preferredMethod = settings.preferredMethod || 'avalanche';
+    const paymentFrequency: PaymentFrequency = settings.paymentFrequency || 'monthly';
 
-    const extraPayment = settings.length > 0 ? (settings[0].extraMonthlyPayment || 0) : 0;
-    const preferredMethod = settings.length > 0 ? (settings[0].preferredMethod || 'avalanche') : 'avalanche';
-    const paymentFrequency: PaymentFrequency = settings.length > 0 ? (settings[0].paymentFrequency as PaymentFrequency || 'monthly') : 'monthly';
-
-    // Transform debts to DebtInput format
-    const debtInputs: DebtInput[] = activeOnly.map(debt => ({
-      id: debt.id,
-      name: debt.name,
-      remainingBalance: debt.remainingBalance,
-      minimumPayment: debt.minimumPayment || 0,
-      interestRate: debt.interestRate || 0,
-      type: debt.type || 'other',
-      loanType: debt.loanType as 'revolving' | 'installment' | undefined,
-      compoundingFrequency: debt.compoundingFrequency as 'daily' | 'monthly' | 'quarterly' | 'annually' | undefined,
-      billingCycleDays: debt.billingCycleDays || undefined,
-      color: debt.color || undefined,
-      icon: debt.icon || undefined,
-    }));
+    const debtInputs: DebtInput[] = toDebtInputs(unifiedDebts, { inStrategyOnly: true });
+    if (debtInputs.length === 0) {
+      return Response.json(
+        { error: 'No debts are currently included in the payoff strategy' },
+        { status: 404 }
+      );
+    }
 
     // Calculate minimum-only scenario (no extra payments)
     const minimumOnlyResult = calculatePayoffStrategy(debtInputs, 0, preferredMethod, paymentFrequency);

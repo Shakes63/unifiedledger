@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { accounts, bills } from '@/lib/db/schema';
+import { accounts, bills, debts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { toMoneyCents } from '@/lib/utils/money-cents';
@@ -14,7 +14,7 @@ function toAmount(cents: number): number {
 }
 
 interface ToggleRequest {
-  source: 'account' | 'bill';
+  source: 'account' | 'bill' | 'debt';
   id: string;
   include: boolean;
 }
@@ -22,7 +22,7 @@ interface ToggleRequest {
 interface UnifiedDebtResponse {
   id: string;
   name: string;
-  source: 'account' | 'bill';
+  source: 'account' | 'bill' | 'debt';
   sourceType: string;
   balance: number;
   interestRate?: number;
@@ -50,9 +50,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (source !== 'account' && source !== 'bill') {
+    if (source !== 'account' && source !== 'bill' && source !== 'debt') {
       return NextResponse.json(
-        { error: 'Source must be "account" or "bill"' },
+        { error: 'Source must be "account", "bill", or "debt"' },
         { status: 400 }
       );
     }
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         utilization,
         availableCredit,
       };
-    } else {
+    } else if (source === 'bill') {
       // source === 'bill'
       // Verify bill belongs to this household
       const [bill] = await db
@@ -168,6 +168,45 @@ export async function POST(request: NextRequest) {
         minimumPayment: bill.minimumPayment ?? undefined,
         includeInPayoffStrategy: include,
         color: bill.billColor ?? undefined,
+      };
+    } else {
+      // source === 'debt'
+      const [debt] = await db
+        .select()
+        .from(debts)
+        .where(
+          and(
+            eq(debts.id, id),
+            eq(debts.householdId, householdId),
+            eq(debts.status, 'active')
+          )
+        )
+        .limit(1);
+
+      if (!debt) {
+        return NextResponse.json(
+          { error: 'Debt not found or access denied' },
+          { status: 404 }
+        );
+      }
+
+      if (!include) {
+        return NextResponse.json(
+          { error: 'Standalone debts are currently always included in payoff strategy' },
+          { status: 400 }
+        );
+      }
+
+      updatedDebt = {
+        id: debt.id,
+        name: debt.name,
+        source: 'debt',
+        sourceType: debt.type || 'other',
+        balance: debt.remainingBalance || 0,
+        interestRate: debt.interestRate ?? undefined,
+        minimumPayment: debt.minimumPayment ?? undefined,
+        includeInPayoffStrategy: true,
+        color: debt.color ?? undefined,
       };
     }
 

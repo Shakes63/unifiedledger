@@ -164,24 +164,6 @@ export interface ScenarioComparisonResult {
 }
 
 /**
- * Get number of payment periods per year based on frequency
- */
-function getPaymentPeriodsPerYear(frequency: PaymentFrequency): number {
-  switch (frequency) {
-    case 'weekly':
-      return 52;
-    case 'biweekly':
-      return 26;
-    case 'monthly':
-      return 12;
-    case 'quarterly':
-      return 4;
-    default:
-      return 12;
-  }
-}
-
-/**
  * Calculate interest amount for a single payment period
  */
 function calculateInterestForPeriod(
@@ -365,10 +347,13 @@ function simulatePayoffParallel(
   }
 
   const paymentDivisor = paymentFrequency === 'biweekly' ? 2 : 1;
-  const _periodsPerYear = getPaymentPeriodsPerYear(paymentFrequency);
-  
-  // Initialize simulation state for all debts
-  let activeDebts: DebtSimulationState[] = debts.map(debt => ({
+  const totalMinimums = debts.reduce((sum, debt) => sum + (debt.minimumPayment || 0), 0);
+  const totalPerDebtExtras = debts.reduce((sum, debt) => sum + (debt.additionalMonthlyPayment || 0), 0);
+  const availablePayment = (totalMinimums + totalPerDebtExtras + extraPayment) / paymentDivisor;
+  const maxPeriods = paymentFrequency === 'biweekly' ? 780 : 360;
+
+  // Track all debts once, including paid-off debts, so no second simulation pass is needed.
+  const simDebts: DebtSimulationState[] = debts.map((debt) => ({
     debt,
     balance: new Decimal(debt.remainingBalance),
     totalInterestPaid: new Decimal(0),
@@ -377,53 +362,31 @@ function simulatePayoffParallel(
     effectiveMinimum: ((debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0)) / paymentDivisor,
   }));
 
-  // Calculate total available payment per period
-  // This is the user's total budget: all minimum payments + extra payment
-  const totalMinimums = debts.reduce((sum, d) => sum + (d.minimumPayment || 0), 0);
-  const totalPerDebtExtras = debts.reduce((sum, d) => sum + (d.additionalMonthlyPayment || 0), 0);
-  const availablePayment = (totalMinimums + totalPerDebtExtras + extraPayment) / paymentDivisor;
-
-  // Track excess payment when focus debt is paid off mid-period with less than allocated
-  let excessPayment = new Decimal(0);
-  
-  const payoffOrder: { debtId: string; order: number }[] = [];
-  let payoffCounter = 0;
   let period = 0;
+  let excessPayment = new Decimal(0);
+  const payoffOrderWithPeriods: { debtId: string; order: number; period: number }[] = [];
+  let payoffCounter = 0;
 
-  // Safety limit
-  const MAX_PERIODS = paymentFrequency === 'biweekly' ? 780 : 360;
-
-  while (activeDebts.length > 0 && period < MAX_PERIODS) {
+  while (simDebts.some((debt) => debt.paidOffAtPeriod === null) && period < maxPeriods) {
     period++;
-    
-    // Calculate current month for lump sum matching
+
     const currentMonth = paymentFrequency === 'biweekly'
       ? Math.floor(period / 2.17) + 1
       : period;
 
-    // Find the focus debt for this period
+    const activeDebts = simDebts.filter((debt) => debt.paidOffAtPeriod === null);
+    if (activeDebts.length === 0) break;
+
     const focusIdx = getFocusDebtIndex(activeDebts, method);
-    
-    // Calculate extra available this period:
-    // Total budget minus what's needed for minimums on active debts
-    // The debt rolldown happens automatically: when a debt is paid off and removed from
-    // activeDebts, its minimum is no longer subtracted, so the extra increases
-    // Also add any excess from focus debt being paid off with less than its allocation
     const extraThisPeriod = new Decimal(availablePayment)
-      .minus(activeDebts.reduce((sum, d) => sum + d.effectiveMinimum, 0))
+      .minus(activeDebts.reduce((sum, debt) => sum + debt.effectiveMinimum, 0))
       .plus(excessPayment);
-    
-    // Reset excess for this period
     excessPayment = new Decimal(0);
 
-    // Process each active debt
-    const _debtsToPay: { idx: number; payment: Decimal }[] = [];
-    
     for (let i = 0; i < activeDebts.length; i++) {
       const debtState = activeDebts[i];
-      const isFocus = i === focusIdx;
+      const isFocusDebt = i === focusIdx;
 
-      // Calculate interest for this period on current balance
       const interestAmount = calculateInterestForPeriod(
         debtState.balance,
         debtState.debt.interestRate,
@@ -433,155 +396,28 @@ function simulatePayoffParallel(
         debtState.debt.billingCycleDays || 30
       );
 
-      // Determine payment amount
       let payment = new Decimal(debtState.effectiveMinimum);
-      
-      if (isFocus) {
+      if (isFocusDebt) {
         payment = payment.plus(extraThisPeriod);
-        
-        // Check for lump sum payment
         const lumpSum = lumpSumPayments.find(
-          ls => ls.month === currentMonth && 
-                (!ls.targetDebtId || ls.targetDebtId === debtState.debt.id)
+          (entry) =>
+            entry.month === currentMonth &&
+            (!entry.targetDebtId || entry.targetDebtId === debtState.debt.id)
         );
         if (lumpSum) {
           payment = payment.plus(new Decimal(lumpSum.amount));
         }
       }
 
-      // Cap payment at balance + interest
       const maxPayment = debtState.balance.plus(interestAmount);
       if (payment.greaterThan(maxPayment)) {
-        // Track excess that couldn't be applied (will roll to next period)
-        if (isFocus) {
+        if (isFocusDebt) {
           excessPayment = excessPayment.plus(payment.minus(maxPayment));
         }
         payment = maxPayment;
       }
 
-      // Calculate principal
       const principalAmount = payment.minus(interestAmount);
-      
-      // Update state
-      debtState.balance = debtState.balance.minus(principalAmount);
-      if (debtState.balance.lessThan(0)) {
-        debtState.balance = new Decimal(0);
-      }
-      debtState.totalInterestPaid = debtState.totalInterestPaid.plus(interestAmount);
-
-      // Record payment breakdown
-      debtState.monthlyBreakdown.push({
-        debtId: debtState.debt.id,
-        debtName: debtState.debt.name,
-        paymentAmount: payment.toNumber(),
-        principalAmount: principalAmount.toNumber(),
-        interestAmount: interestAmount.toNumber(),
-        remainingBalance: debtState.balance.toNumber(),
-      });
-
-      // Check if paid off
-      if (debtState.balance.equals(0)) {
-        debtState.paidOffAtPeriod = period;
-        payoffCounter++;
-        payoffOrder.push({ debtId: debtState.debt.id, order: payoffCounter });
-        // Note: The debt rolldown happens automatically in the next period because
-        // this debt's effectiveMinimum is no longer subtracted from availablePayment
-        // when calculating extraThisPeriod (since it's removed from activeDebts)
-      }
-    }
-
-    // Remove paid-off debts from active list
-    activeDebts = activeDebts.filter(d => d.paidOffAtPeriod === null);
-  }
-
-  // Build schedules from simulation state
-  const _allDebtStates = debts.map(debt => {
-    const state = activeDebts.find(s => s.debt.id === debt.id) || 
-                  { debt, balance: new Decimal(0), totalInterestPaid: new Decimal(0), monthlyBreakdown: [], paidOffAtPeriod: period, effectiveMinimum: 0 };
-    
-    // Find original state that was processed (may have been removed from activeDebts)
-    const _originalDebt = debts.find(d => d.id === debt.id)!;
-    
-    return state;
-  });
-
-  // Reconstruct proper state from simulation
-  // We need to track all debts that were processed, including paid-off ones
-  const _debtStateMap = new Map<string, DebtSimulationState>();
-  
-  // Re-run simulation to collect all states properly
-  const simDebts: DebtSimulationState[] = debts.map(debt => ({
-    debt,
-    balance: new Decimal(debt.remainingBalance),
-    totalInterestPaid: new Decimal(0),
-    monthlyBreakdown: [],
-    paidOffAtPeriod: null,
-    effectiveMinimum: ((debt.minimumPayment || 0) + (debt.additionalMonthlyPayment || 0)) / paymentDivisor,
-  }));
-
-  let simPeriod = 0;
-  let simExcessPayment = new Decimal(0);
-  const simPayoffOrder: { debtId: string; order: number; period: number }[] = [];
-  let simPayoffCounter = 0;
-
-  while (simDebts.some(d => d.paidOffAtPeriod === null) && simPeriod < MAX_PERIODS) {
-    simPeriod++;
-    
-    const currentMonth = paymentFrequency === 'biweekly'
-      ? Math.floor(simPeriod / 2.17) + 1
-      : simPeriod;
-
-    const activeSimDebts = simDebts.filter(d => d.paidOffAtPeriod === null);
-    if (activeSimDebts.length === 0) break;
-
-    const focusIdx = getFocusDebtIndex(activeSimDebts, method);
-    
-    // Calculate extra available this period:
-    // Total budget minus minimums of active debts, plus any excess from previous period
-    const extraThisPeriod = new Decimal(availablePayment)
-      .minus(activeSimDebts.reduce((sum, d) => sum + d.effectiveMinimum, 0))
-      .plus(simExcessPayment);
-    
-    simExcessPayment = new Decimal(0);
-
-    for (let i = 0; i < activeSimDebts.length; i++) {
-      const debtState = activeSimDebts[i];
-      const isFocus = i === focusIdx;
-
-      const interestAmount = calculateInterestForPeriod(
-        debtState.balance,
-        debtState.debt.interestRate,
-        paymentFrequency,
-        debtState.debt.loanType || 'revolving',
-        debtState.debt.compoundingFrequency || 'monthly',
-        debtState.debt.billingCycleDays || 30
-      );
-
-      let payment = new Decimal(debtState.effectiveMinimum);
-      
-      if (isFocus) {
-        payment = payment.plus(extraThisPeriod);
-        
-        const lumpSum = lumpSumPayments.find(
-          ls => ls.month === currentMonth && 
-                (!ls.targetDebtId || ls.targetDebtId === debtState.debt.id)
-        );
-        if (lumpSum) {
-          payment = payment.plus(new Decimal(lumpSum.amount));
-        }
-      }
-
-      const maxPayment = debtState.balance.plus(interestAmount);
-      if (payment.greaterThan(maxPayment)) {
-        // Track excess when focus debt is capped
-        if (isFocus) {
-          simExcessPayment = simExcessPayment.plus(payment.minus(maxPayment));
-        }
-        payment = maxPayment;
-      }
-
-      const principalAmount = payment.minus(interestAmount);
-      
       debtState.balance = debtState.balance.minus(principalAmount);
       if (debtState.balance.lessThan(0)) {
         debtState.balance = new Decimal(0);
@@ -598,30 +434,25 @@ function simulatePayoffParallel(
       });
 
       if (debtState.balance.equals(0) && debtState.paidOffAtPeriod === null) {
-        debtState.paidOffAtPeriod = simPeriod;
-        simPayoffCounter++;
-        simPayoffOrder.push({ debtId: debtState.debt.id, order: simPayoffCounter, period: simPeriod });
-        // Note: Debt rolldown happens automatically - this debt's minimum is no longer
-        // subtracted in the next period since it's filtered out of activeSimDebts
+        debtState.paidOffAtPeriod = period;
+        payoffCounter++;
+        payoffOrderWithPeriods.push({
+          debtId: debtState.debt.id,
+          order: payoffCounter,
+          period,
+        });
       }
     }
   }
 
-  // Calculate total interest from all debts
   const totalInterest = simDebts.reduce(
     (sum, d) => sum.plus(d.totalInterestPaid),
     new Decimal(0)
   ).toNumber();
 
-  // Convert periods to months
-  const _totalMonths = paymentFrequency === 'biweekly'
-    ? Math.ceil(simPeriod / 2.17)
-    : simPeriod;
-
-  // Build schedules
-  const schedules: DebtPayoffSchedule[] = simDebts.map(debtState => {
-    const payoffInfo = simPayoffOrder.find(p => p.debtId === debtState.debt.id);
-    const periodsToPayoff = payoffInfo ? payoffInfo.period : simPeriod;
+  const schedules: DebtPayoffSchedule[] = simDebts.map((debtState) => {
+    const payoffInfo = payoffOrderWithPeriods.find((entry) => entry.debtId === debtState.debt.id);
+    const periodsToPayoff = payoffInfo ? payoffInfo.period : period;
     const monthsToPayoff = paymentFrequency === 'biweekly'
       ? Math.ceil(periodsToPayoff / 2.17)
       : periodsToPayoff;
@@ -641,13 +472,12 @@ function simulatePayoffParallel(
     };
   });
 
-  // Sort payoff order by order number
-  const sortedPayoffOrder = simPayoffOrder
+  const sortedPayoffOrder = payoffOrderWithPeriods
     .sort((a, b) => a.order - b.order)
-    .map(p => ({ debtId: p.debtId, order: p.order }));
+    .map((entry) => ({ debtId: entry.debtId, order: entry.order }));
 
   return {
-    totalPeriods: simPeriod,
+    totalPeriods: period,
     totalInterest,
     schedules,
     payoffOrder: sortedPayoffOrder,
@@ -675,7 +505,6 @@ function _calculateDebtSchedule(
     .sort((a, b) => a.month - b.month);
 
   // Track payment periods (26 for biweekly, 12 for monthly per year)
-  // Note: periodsPerYear available via getPaymentPeriodsPerYear(paymentFrequency) if needed
   let paymentPeriod = 0;
 
   // Safety limit: max 360 months (30 years) to prevent memory issues

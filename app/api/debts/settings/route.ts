@@ -78,9 +78,9 @@ export async function PUT(request: Request) {
     const { extraMonthlyPayment, preferredMethod, paymentFrequency, debtStrategyEnabled } = body;
 
     // Validate payment frequency
-    if (paymentFrequency && !['weekly', 'biweekly', 'monthly'].includes(paymentFrequency)) {
+    if (paymentFrequency && !['weekly', 'biweekly', 'monthly', 'quarterly'].includes(paymentFrequency)) {
       return Response.json({ 
-        error: 'Invalid payment frequency. Must be "weekly", "biweekly", or "monthly"' 
+        error: 'Invalid payment frequency. Must be "weekly", "biweekly", "monthly", or "quarterly"' 
       }, { status: 400 });
     }
 
