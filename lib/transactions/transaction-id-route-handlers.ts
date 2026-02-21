@@ -1,8 +1,9 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
+import { resolveAndRequireEntity } from '@/lib/api/entity-auth';
 import { db } from '@/lib/db';
 import { transactions, accounts, budgetCategories, transactionSplits, bills, billInstances, merchants, debts, tags, transactionTags, customFields, customFieldValues, betterAuthUser, salesTaxTransactions } from '@/lib/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, isNull, or } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { deleteSalesTaxRecord } from '@/lib/sales-tax/transaction-sales-tax';
 import { findMatchingBillInstance } from '@/lib/bills/bill-matching-helpers';
@@ -21,6 +22,7 @@ import {
   deleteCanonicalTransferPairByTransactionId,
   updateCanonicalTransferPairByTransactionId,
 } from '@/lib/transactions/transfer-service';
+import { requireAccountEntityAccess, resolveAccountEntityId } from '@/lib/household/entities';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +45,10 @@ export async function handleGetTransactionById(
         { status: 400 }
       );
     }
+    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request);
+    const entityScope = selectedEntity.isDefault
+      ? or(eq(transactions.entityId, selectedEntity.id), isNull(transactions.entityId))
+      : eq(transactions.entityId, selectedEntity.id);
 
     const transaction = await db
       .select()
@@ -51,7 +57,8 @@ export async function handleGetTransactionById(
         and(
           eq(transactions.id, id),
           eq(transactions.userId, userId),
-          eq(transactions.householdId, householdId)
+          eq(transactions.householdId, householdId),
+          entityScope
         )
       )
       .limit(1);
@@ -156,6 +163,10 @@ export async function handleUpdateTransactionById(
         { status: 400 }
       );
     }
+    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request, body);
+    const entityScope = selectedEntity.isDefault
+      ? or(eq(transactions.entityId, selectedEntity.id), isNull(transactions.entityId))
+      : eq(transactions.entityId, selectedEntity.id);
 
     // Get existing transaction
     const existingTransaction = await db
@@ -165,7 +176,8 @@ export async function handleUpdateTransactionById(
         and(
           eq(transactions.id, id),
           eq(transactions.userId, userId),
-          eq(transactions.householdId, householdId)
+          eq(transactions.householdId, householdId),
+          entityScope
         )
       )
       .limit(1);
@@ -297,6 +309,18 @@ export async function handleUpdateTransactionById(
           { status: 404 }
         );
       }
+
+      const newAccountEntity = await requireAccountEntityAccess(
+        userId,
+        householdId,
+        newAccount[0].entityId
+      );
+      if (newAccountEntity.id !== selectedEntity.id) {
+        return Response.json(
+          { error: 'Account does not belong to the selected entity' },
+          { status: 403 }
+        );
+      }
     }
 
     // If category provided and not null, verify it exists
@@ -389,9 +413,24 @@ export async function handleUpdateTransactionById(
       }
 
       // Update transaction
+      const transactionEntityId = await resolveAccountEntityId(
+        householdId,
+        userId,
+        newAccountId !== transaction.accountId
+          ? (
+              await tx
+                .select({ entityId: accounts.entityId })
+                .from(accounts)
+                .where(eq(accounts.id, newAccountId))
+                .limit(1)
+            )[0]?.entityId
+          : transaction.entityId
+      );
+
       await tx
         .update(transactions)
         .set({
+          entityId: transactionEntityId,
           accountId: newAccountId,
           categoryId: newCategoryId,
           merchantId: newMerchantId,
@@ -773,6 +812,10 @@ export async function handleDeleteTransactionById(
         { status: 400 }
       );
     }
+    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request);
+    const entityScope = selectedEntity.isDefault
+      ? or(eq(transactions.entityId, selectedEntity.id), isNull(transactions.entityId))
+      : eq(transactions.entityId, selectedEntity.id);
 
     // Get transaction to verify ownership and get details
     const existingTransaction = await db
@@ -782,7 +825,8 @@ export async function handleDeleteTransactionById(
         and(
           eq(transactions.id, id),
           eq(transactions.userId, userId),
-          eq(transactions.householdId, householdId)
+          eq(transactions.householdId, householdId),
+          entityScope
         )
       )
       .limit(1);

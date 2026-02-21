@@ -1,8 +1,9 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
+import { resolveAndRequireEntity } from '@/lib/api/entity-auth';
 import { db } from '@/lib/db';
 import { transfers, accounts, transactions } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull, or } from 'drizzle-orm';
 import { handleRouteError } from '@/lib/api/route-helpers';
 import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import {
@@ -18,6 +19,38 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+async function transferVisibleInSelectedEntity({
+  userId,
+  householdId,
+  selectedEntityId,
+  selectedEntityIsDefault,
+  fromAccountId,
+  toAccountId,
+}: {
+  userId: string;
+  householdId: string;
+  selectedEntityId: string;
+  selectedEntityIsDefault: boolean;
+  fromAccountId: string;
+  toAccountId: string;
+}) {
+  const visibleAccounts = await db
+    .select({ id: accounts.id })
+    .from(accounts)
+    .where(
+      and(
+        eq(accounts.userId, userId),
+        eq(accounts.householdId, householdId),
+        selectedEntityIsDefault
+          ? or(eq(accounts.entityId, selectedEntityId), isNull(accounts.entityId))
+          : eq(accounts.entityId, selectedEntityId),
+        or(eq(accounts.id, fromAccountId), eq(accounts.id, toAccountId))
+      )
+    );
+
+  return visibleAccounts.length > 0;
+}
+
 /**
  * GET /api/transfers/[id]
  * Get a specific transfer by ID
@@ -30,6 +63,7 @@ export async function handleGetTransferById(
   try {
     const { userId } = await requireAuth();
     const { householdId } = await getAndVerifyHousehold(request, userId);
+    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request);
 
     const transfer = await db
       .select()
@@ -48,6 +82,17 @@ export async function handleGetTransferById(
         { error: 'Transfer not found' },
         { status: 404 }
       );
+    }
+    const visible = await transferVisibleInSelectedEntity({
+      userId,
+      householdId,
+      selectedEntityId: selectedEntity.id,
+      selectedEntityIsDefault: selectedEntity.isDefault,
+      fromAccountId: transfer[0].fromAccountId,
+      toAccountId: transfer[0].toAccountId,
+    });
+    if (!visible) {
+      return Response.json({ error: 'Transfer not found' }, { status: 404 });
     }
 
     // Enrich with account names
@@ -109,6 +154,7 @@ export async function handleUpdateTransferById(
   try {
     const { userId } = await requireAuth();
     const { householdId } = await getAndVerifyHousehold(request, userId);
+    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request);
 
     const transfer = await db
       .select()
@@ -127,6 +173,17 @@ export async function handleUpdateTransferById(
         { error: 'Transfer not found' },
         { status: 404 }
       );
+    }
+    const visible = await transferVisibleInSelectedEntity({
+      userId,
+      householdId,
+      selectedEntityId: selectedEntity.id,
+      selectedEntityIsDefault: selectedEntity.isDefault,
+      fromAccountId: transfer[0].fromAccountId,
+      toAccountId: transfer[0].toAccountId,
+    });
+    if (!visible) {
+      return Response.json({ error: 'Transfer not found' }, { status: 404 });
     }
 
     // Only allow updating metadata like description and notes
@@ -210,6 +267,7 @@ export async function handleDeleteTransferById(
   try {
     const { userId } = await requireAuth();
     const { householdId } = await getAndVerifyHousehold(request, userId);
+    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request);
 
     const transfer = await db
       .select()
@@ -228,6 +286,17 @@ export async function handleDeleteTransferById(
         { error: 'Transfer not found' },
         { status: 404 }
       );
+    }
+    const visible = await transferVisibleInSelectedEntity({
+      userId,
+      householdId,
+      selectedEntityId: selectedEntity.id,
+      selectedEntityIsDefault: selectedEntity.isDefault,
+      fromAccountId: transfer[0].fromAccountId,
+      toAccountId: transfer[0].toAccountId,
+    });
+    if (!visible) {
+      return Response.json({ error: 'Transfer not found' }, { status: 404 });
     }
 
     const transferData = transfer[0];

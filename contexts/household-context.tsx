@@ -14,6 +14,16 @@ interface Household {
   isFavorite: boolean;
 }
 
+interface HouseholdEntity {
+  id: string;
+  householdId: string;
+  name: string;
+  type: 'personal' | 'business';
+  isDefault: boolean;
+  enableSalesTax: boolean;
+  isActive: boolean;
+}
+
 interface UserHouseholdPreferences {
   theme: string;
   dateFormat: string;
@@ -58,14 +68,20 @@ interface HouseholdContextType {
   households: Household[];
   selectedHouseholdId: string | null;
   selectedHousehold: Household | null;
+  entities: HouseholdEntity[];
+  selectedEntityId: string | null;
+  selectedEntity: HouseholdEntity | null;
   preferences: UserHouseholdPreferences | null;
   loading: boolean;
   preferencesLoading: boolean;
+  entitiesLoading: boolean;
   initialized: boolean;
   error: Error | null;
   setSelectedHouseholdId: (id: string) => Promise<void>;
+  setSelectedEntityId: (id: string) => Promise<void>;
   refreshHouseholds: () => Promise<void>;
   refreshPreferences: () => Promise<void>;
+  refreshEntities: () => Promise<void>;
   retry: () => Promise<void>;
 }
 
@@ -74,9 +90,12 @@ const HouseholdContext = createContext<HouseholdContextType | undefined>(undefin
 export function HouseholdProvider({ children }: { children: ReactNode }) {
   const [households, setHouseholds] = useState<Household[]>([]);
   const [selectedHouseholdId, setSelectedHouseholdIdState] = useState<string | null>(null);
+  const [entities, setEntities] = useState<HouseholdEntity[]>([]);
+  const [selectedEntityId, setSelectedEntityIdState] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<UserHouseholdPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [preferencesLoading, setPreferencesLoading] = useState(false);
+  const [entitiesLoading, setEntitiesLoading] = useState(false);
   const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const selectedHouseholdIdRef = useRef<string | null>(selectedHouseholdId);
@@ -85,6 +104,13 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   const selectedHousehold = selectedHouseholdId
     ? households.find((h) => h.id === selectedHouseholdId) || null
     : null;
+  const selectedEntity = selectedEntityId
+    ? entities.find((entity) => entity.id === selectedEntityId) || null
+    : null;
+
+  const getEntityStorageKey = useCallback((householdId: string) => {
+    return `unified-ledger:selected-entity:${householdId}`;
+  }, []);
 
   // Load user preferences for a household
   const loadPreferences = useCallback(async (householdId: string) => {
@@ -154,12 +180,67 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const loadEntities = useCallback(async (householdId: string) => {
+    try {
+      setEntitiesLoading(true);
+      const response = await enhancedFetch(`/api/households/${householdId}/entities`, {
+        credentials: 'include',
+        deduplicate: false,
+        retries: 2,
+        timeout: 8000,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const loadedEntities = (data.entities || []) as HouseholdEntity[];
+      setEntities(loadedEntities);
+
+      let persistedEntityId: string | null = null;
+      try {
+        persistedEntityId = localStorage.getItem(getEntityStorageKey(householdId));
+      } catch {
+        // Ignore storage errors
+      }
+
+      const selectedId =
+        (persistedEntityId && loadedEntities.find((entity) => entity.id === persistedEntityId)?.id) ||
+        loadedEntities.find((entity) => entity.isDefault)?.id ||
+        loadedEntities[0]?.id ||
+        null;
+
+      setSelectedEntityIdState(selectedId);
+      if (selectedId) {
+        try {
+          localStorage.setItem(getEntityStorageKey(householdId), selectedId);
+        } catch {
+          // Ignore storage errors
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load household entities:', error);
+      setEntities([]);
+      setSelectedEntityIdState(null);
+    } finally {
+      setEntitiesLoading(false);
+    }
+  }, [getEntityStorageKey]);
+
   // Refresh preferences for current household
   const refreshPreferences = useCallback(async () => {
     if (selectedHouseholdId) {
       await loadPreferences(selectedHouseholdId);
     }
   }, [loadPreferences, selectedHouseholdId]);
+
+  const refreshEntities = useCallback(async () => {
+    if (selectedHouseholdId) {
+      await loadEntities(selectedHouseholdId);
+    }
+  }, [loadEntities, selectedHouseholdId]);
 
   // Set selected household with preference loading
   const setSelectedHouseholdId = useCallback(async (id: string) => {
@@ -172,9 +253,30 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       // Ignore storage errors
     }
 
-    // Load preferences for new household
-    await loadPreferences(id);
-  }, [loadPreferences]);
+    // Load preferences and entities for new household
+    await Promise.all([
+      loadPreferences(id),
+      loadEntities(id),
+    ]);
+  }, [loadEntities, loadPreferences]);
+
+  const setSelectedEntityId = useCallback(async (id: string) => {
+    if (!selectedHouseholdId) {
+      throw new Error('No household selected');
+    }
+
+    const exists = entities.find((entity) => entity.id === id);
+    if (!exists) {
+      throw new Error('Entity not found in selected household');
+    }
+
+    setSelectedEntityIdState(id);
+    try {
+      localStorage.setItem(getEntityStorageKey(selectedHouseholdId), id);
+    } catch {
+      // Ignore storage errors
+    }
+  }, [entities, getEntityStorageKey, selectedHouseholdId]);
 
   const refreshHouseholds = useCallback(async () => {
     try {
@@ -215,14 +317,22 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
               : data[0].id;
 
             setSelectedHouseholdIdState(householdToSelect);
-            await loadPreferences(householdToSelect);
+            await Promise.all([
+              loadPreferences(householdToSelect),
+              loadEntities(householdToSelect),
+            ]);
           } else {
             setSelectedHouseholdIdState(null);
+            setSelectedEntityIdState(null);
+            setEntities([]);
             setPreferences(null);
           }
         } else {
           // Load preferences for currently selected household
-          await loadPreferences(currentSelectedHouseholdId);
+          await Promise.all([
+            loadPreferences(currentSelectedHouseholdId),
+            loadEntities(currentSelectedHouseholdId),
+          ]);
         }
       } else {
         // Handle non-ok response
@@ -271,7 +381,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [loadPreferences]);
+  }, [loadEntities, loadPreferences]);
 
   useEffect(() => {
     selectedHouseholdIdRef.current = selectedHouseholdId;
@@ -292,14 +402,20 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         households,
         selectedHouseholdId,
         selectedHousehold,
+        entities,
+        selectedEntityId,
+        selectedEntity,
         preferences,
         loading,
         preferencesLoading,
+        entitiesLoading,
         initialized,
         error,
         setSelectedHouseholdId,
+        setSelectedEntityId,
         refreshHouseholds,
         refreshPreferences,
+        refreshEntities,
         retry,
       }}
     >

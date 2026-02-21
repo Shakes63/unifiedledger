@@ -11,6 +11,10 @@ vi.mock('@/lib/api/household-auth', () => ({
   requireHouseholdAuth: vi.fn(),
 }));
 
+vi.mock('@/lib/api/entity-auth', () => ({
+  resolveAndRequireEntity: vi.fn(),
+}));
+
 vi.mock('@/lib/db', () => ({
   db: {
     select: vi.fn(),
@@ -20,6 +24,7 @@ vi.mock('@/lib/db', () => ({
 
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
+import { resolveAndRequireEntity } from '@/lib/api/entity-auth';
 import { db } from '@/lib/db';
 import { accounts, transactions } from '@/lib/db/schema';
 
@@ -53,6 +58,15 @@ describe('PUT /api/transactions/[id] atomicity', () => {
     (requireAuth as Mock).mockResolvedValue({ userId: 'user-1' });
     (getHouseholdIdFromRequest as Mock).mockReturnValue('hh-1');
     (requireHouseholdAuth as Mock).mockResolvedValue({ userId: 'user-1', householdId: 'hh-1' });
+    (resolveAndRequireEntity as Mock).mockResolvedValue({
+      id: 'entity_personal',
+      householdId: 'hh-1',
+      name: 'Personal',
+      type: 'personal',
+      isDefault: true,
+      enableSalesTax: false,
+      isActive: true,
+    });
   });
 
   it('rolls back account balance updates when a mid-transaction write fails', async () => {

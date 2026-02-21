@@ -1,6 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { handleRouteError } from '@/lib/api/route-helpers';
+import { resolveAndRequireEntity } from '@/lib/api/entity-auth';
 import {
   AccountLifecycleError,
   deleteAccountWithLifecycleEffects,
@@ -25,10 +26,14 @@ export async function handleUpdateAccountById(
       return Response.json({ error: 'Household ID is required' }, { status: 400 });
     }
 
+    const entity = await resolveAndRequireEntity(userId, householdId, request, body);
+
     const result = await updateAccountWithLifecycleEffects({
       id,
       userId,
       householdId,
+      entityId: entity.id,
+      allowLegacyUnscoped: entity.isDefault,
       body,
     });
 
@@ -59,10 +64,14 @@ export async function handleDeleteAccountById(
       return Response.json({ error: 'Household ID is required' }, { status: 400 });
     }
 
+    const entity = await resolveAndRequireEntity(userId, householdId, request);
+
     const result = await deleteAccountWithLifecycleEffects({
       id,
       userId,
       householdId,
+      entityId: entity.id,
+      allowLegacyUnscoped: entity.isDefault,
     });
 
     return Response.json(result, { status: 200 });

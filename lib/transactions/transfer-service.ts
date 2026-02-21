@@ -15,6 +15,7 @@ import {
   insertTransferMovement,
   updateScopedAccountBalance,
 } from '@/lib/transactions/money-movement-service';
+import { resolveAccountEntityId } from '@/lib/household/entities';
 
 type DbClient = typeof db;
 
@@ -195,11 +196,16 @@ export async function createCanonicalTransferPair({
         label: 'Destination',
       }),
     ]);
+    const [fromEntityId, toEntityId] = await Promise.all([
+      resolveAccountEntityId(householdId, userId, fromAccount.entityId),
+      resolveAccountEntityId(householdId, userId, toAccount.entityId),
+    ]);
 
     await insertTransactionMovement(tx, {
       id: fromTransactionId,
       userId,
       householdId,
+      entityId: fromEntityId,
       accountId: fromAccountId,
       categoryId: null,
       merchantId: null,
@@ -227,6 +233,7 @@ export async function createCanonicalTransferPair({
       id: toTransactionId,
       userId,
       householdId,
+      entityId: toEntityId,
       accountId: toAccountId,
       categoryId: null,
       merchantId: null,

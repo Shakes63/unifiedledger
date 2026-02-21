@@ -11,6 +11,15 @@ vi.mock('@/lib/api/household-auth', () => ({
   requireHouseholdAuth: vi.fn(),
 }));
 
+vi.mock('@/lib/api/entity-auth', () => ({
+  resolveAndRequireEntity: vi.fn(),
+}));
+
+vi.mock('@/lib/household/entities', () => ({
+  requireAccountEntityAccess: vi.fn(),
+  resolveAccountEntityId: vi.fn(),
+}));
+
 vi.mock('@/lib/db', () => ({
   db: {
     select: vi.fn(),
@@ -20,6 +29,8 @@ vi.mock('@/lib/db', () => ({
 
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
+import { resolveAndRequireEntity } from '@/lib/api/entity-auth';
+import { requireAccountEntityAccess, resolveAccountEntityId } from '@/lib/household/entities';
 import { db } from '@/lib/db';
 import { accounts, transactions } from '@/lib/db/schema';
 
@@ -42,6 +53,30 @@ describe('POST /api/transactions atomicity', () => {
     (requireAuth as Mock).mockResolvedValue({ userId: 'user-1' });
     (getHouseholdIdFromRequest as Mock).mockReturnValue('hh-1');
     (requireHouseholdAuth as Mock).mockResolvedValue({ householdId: 'hh-1', userId: 'user-1' });
+    (resolveAndRequireEntity as Mock).mockResolvedValue({
+      id: 'entity_personal',
+      householdId: 'hh-1',
+      name: 'Personal',
+      type: 'personal',
+      isDefault: true,
+      enableSalesTax: false,
+      isActive: true,
+    });
+    (requireAccountEntityAccess as Mock).mockImplementation(
+      async (_userId: string, householdId: string, accountEntityId: string | null | undefined) => ({
+        id: accountEntityId ?? 'entity_personal',
+        householdId,
+        name: 'Personal',
+        type: 'personal',
+        isDefault: true,
+        enableSalesTax: false,
+        isActive: true,
+      })
+    );
+    (resolveAccountEntityId as Mock).mockImplementation(
+      async (_householdId: string, _userId: string, accountEntityId: string | null | undefined) =>
+        accountEntityId ?? 'entity_personal'
+    );
   });
 
   it('rolls back transfer writes when a mid-transaction account update fails', async () => {

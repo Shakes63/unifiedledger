@@ -17,6 +17,7 @@ export const accounts = pgTable(
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
     householdId: text('household_id').notNull(),
+    entityId: text('entity_id'),
     name: text('name').notNull(),
     type: text('type', {
       enum: ['checking', 'savings', 'credit', 'line_of_credit', 'investment', 'cash'],
@@ -75,6 +76,7 @@ export const accounts = pgTable(
   (table) => ({
     userIdIdx: index('idx_accounts_user').on(table.userId),
     householdIdIdx: index('idx_accounts_household').on(table.householdId),
+    entityIdIdx: index('idx_accounts_entity').on(table.entityId),
     userHouseholdIdx: index('idx_accounts_user_household').on(table.userId, table.householdId),
     userUsageIdx: index('idx_accounts_user_usage').on(table.userId, table.usageCount),
     userActiveIdx: index('idx_accounts_user_active').on(table.userId, table.isActive),
@@ -252,6 +254,7 @@ export const transactions = pgTable(
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
     householdId: text('household_id').notNull(),
+    entityId: text('entity_id'),
     accountId: text('account_id').notNull(),
     categoryId: text('category_id'),
     merchantId: text('merchant_id'),
@@ -302,6 +305,7 @@ export const transactions = pgTable(
     accountIdIdx: index('idx_transactions_account').on(table.accountId),
     userIdIdx: index('idx_transactions_user').on(table.userId),
     householdIdIdx: index('idx_transactions_household').on(table.householdId),
+    entityIdIdx: index('idx_transactions_entity').on(table.entityId),
     userHouseholdIdx: index('idx_transactions_user_household').on(table.userId, table.householdId),
     householdDateIdx: index('idx_transactions_household_date').on(table.householdId, table.date),
     dateIdx: index('idx_transactions_date').on(table.date),
@@ -996,6 +1000,64 @@ export const householdMembers = pgTable(
     householdUserUnique: uniqueIndex('idx_household_members_unique').on(
       table.householdId,
       table.userId
+    ),
+  })
+);
+
+export const householdEntities = pgTable(
+  'household_entities',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id').notNull(),
+    name: text('name').notNull(),
+    type: text('type', {
+      enum: ['personal', 'business'],
+    }).notNull(),
+    isDefault: boolean('is_default').default(false),
+    enableSalesTax: boolean('enable_sales_tax').default(false),
+    isActive: boolean('is_active').default(true),
+    createdBy: text('created_by').notNull(),
+    createdAt: text('created_at').default(pgNowIso),
+    updatedAt: text('updated_at').default(pgNowIso),
+  },
+  (table) => ({
+    householdNameUnique: uniqueIndex('idx_household_entities_household_name').on(
+      table.householdId,
+      table.name
+    ),
+    householdIdIdx: index('idx_household_entities_household').on(table.householdId),
+    householdTypeIdx: index('idx_household_entities_type').on(table.householdId, table.type),
+    householdDefaultIdx: index('idx_household_entities_default').on(table.householdId, table.isDefault),
+  })
+);
+
+export const householdEntityMembers = pgTable(
+  'household_entity_members',
+  {
+    id: text('id').primaryKey(),
+    entityId: text('entity_id').notNull(),
+    householdId: text('household_id').notNull(),
+    userId: text('user_id').notNull(),
+    role: text('role', {
+      enum: ['owner', 'manager', 'editor', 'viewer'],
+    }).default('viewer'),
+    canManageEntity: boolean('can_manage_entity').default(false),
+    isActive: boolean('is_active').default(true),
+    createdAt: text('created_at').default(pgNowIso),
+    updatedAt: text('updated_at').default(pgNowIso),
+  },
+  (table) => ({
+    entityUserUnique: uniqueIndex('idx_household_entity_members_unique').on(
+      table.entityId,
+      table.userId
+    ),
+    householdUserIdx: index('idx_household_entity_members_household_user').on(
+      table.householdId,
+      table.userId
+    ),
+    entityActiveIdx: index('idx_household_entity_members_entity_active').on(
+      table.entityId,
+      table.isActive
     ),
   })
 );
@@ -2077,8 +2139,24 @@ export const householdMembersRelations = relations(householdMembers, ({ one }) =
   }),
 }));
 
+export const householdEntitiesRelations = relations(householdEntities, ({ one, many }) => ({
+  household: one(households, {
+    fields: [householdEntities.householdId],
+    references: [households.id],
+  }),
+  members: many(householdEntityMembers),
+}));
+
+export const householdEntityMembersRelations = relations(householdEntityMembers, ({ one }) => ({
+  entity: one(householdEntities, {
+    fields: [householdEntityMembers.entityId],
+    references: [householdEntities.id],
+  }),
+}));
+
 export const householdsRelations = relations(households, ({ many }) => ({
   members: many(householdMembers),
+  entities: many(householdEntities),
   invitations: many(householdInvitations),
   activityLog: many(activityLog),
 }));

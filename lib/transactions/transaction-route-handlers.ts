@@ -1,8 +1,9 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
+import { resolveAndRequireEntity } from '@/lib/api/entity-auth';
 import { db } from '@/lib/db';
 import { transactions, accounts, budgetCategories, merchants, usageAnalytics, ruleExecutionLog, bills, billInstances, debts, betterAuthUser, savingsGoals } from '@/lib/db/schema';
-import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray, isNull, or, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { findMatchingRule } from '@/lib/rules/rule-matcher';
@@ -28,6 +29,7 @@ import {
   updateScopedAccountBalance,
 } from '@/lib/transactions/money-movement-service';
 import { createCanonicalTransferPair } from '@/lib/transactions/transfer-service';
+import { requireAccountEntityAccess, resolveAccountEntityId } from '@/lib/household/entities';
 // Sales tax now handled as boolean flag on transaction, no separate records needed
 
 // Type for goal contributions in split mode
@@ -57,6 +59,7 @@ export async function handleCreateTransaction(request: Request) {
         { status: 400 }
   );
 }
+    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request, body);
 
     const {
       accountId,
@@ -157,6 +160,11 @@ export async function handleCreateTransaction(request: Request) {
         { status: 404 }
       );
     }
+    const sourceAccountEntity = await requireAccountEntityAccess(
+      userId,
+      householdId,
+      account[0].entityId
+    );
 
     // Validate toAccount for transfers
     let toAccount = null;
@@ -168,6 +176,14 @@ export async function handleCreateTransaction(request: Request) {
         );
       }
       toAccount = toAccountResult[0];
+      await requireAccountEntityAccess(userId, householdId, toAccount.entityId);
+    }
+
+    if (type !== 'transfer' && sourceAccountEntity.id !== selectedEntity.id) {
+      return Response.json(
+        { error: 'Account does not belong to the selected entity' },
+        { status: 403 }
+      );
     }
 
     // Validate category if provided
@@ -485,11 +501,17 @@ export async function handleCreateTransaction(request: Request) {
       
       await runInDatabaseTransaction(async (tx) => {
         const nowIso = new Date().toISOString();
+        const transactionEntityId = await resolveAccountEntityId(
+          householdId,
+          userId,
+          account[0].entityId
+        );
 
         await insertTransactionMovement(tx, {
           id: transactionId,
           userId,
           householdId,
+          entityId: transactionEntityId,
           accountId,
           categoryId: appliedCategoryId || null,
           merchantId: finalMerchantId || null,
@@ -1302,6 +1324,7 @@ export async function handleListTransactions(request: Request) {
         { status: 400 }
   );
 }
+    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request);
 
     const url = new URL(request.url);
     const limit = parseInt(url.searchParams.get('limit') || '50');
@@ -1311,8 +1334,13 @@ export async function handleListTransactions(request: Request) {
     const combinedTransferView = await getCombinedTransferViewPreference(userId, householdId);
     const shouldUseCombinedTransferFilter = combinedTransferView && !accountId;
 
+    const entityScope = selectedEntity.isDefault
+      ? or(eq(transactions.entityId, selectedEntity.id), isNull(transactions.entityId))
+      : eq(transactions.entityId, selectedEntity.id);
+
     const listConditions = [
       eq(transactions.householdId, householdId),
+      entityScope,
       ...(accountId ? [eq(transactions.accountId, accountId)] : []),
       ...(shouldUseCombinedTransferFilter ? [sql`${transactions.type} != 'transfer_in'`] : []),
     ];

@@ -5,6 +5,7 @@ import { user as betterAuthUser } from '@/auth-schema';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { isTestMode, TEST_USER_ID, TEST_HOUSEHOLD_ID, TEST_HOUSEHOLD_NAME, logTestModeWarning } from '@/lib/test-mode';
+import { ensureDefaultPersonalEntityForHousehold } from '@/lib/household/entities';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,6 +98,8 @@ export async function POST(request: Request) {
       role: 'owner',
       joinedAt: new Date().toISOString(),
     });
+
+    await ensureDefaultPersonalEntityForHousehold(householdId, userId);
 
     return Response.json(
       {

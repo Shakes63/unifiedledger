@@ -1,12 +1,13 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
+import { resolveAndRequireEntity } from '@/lib/api/entity-auth';
 import { db } from '@/lib/db';
 import {
   transfers,
   accounts,
   usageAnalytics,
 } from '@/lib/db/schema';
-import { eq, and, desc, lte, gte } from 'drizzle-orm';
+import { eq, and, desc, lte, gte, isNull, or } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
 import { handleRouteError } from '@/lib/api/route-helpers';
@@ -14,6 +15,7 @@ import {
   amountToCents,
 } from '@/lib/transactions/money-movement-service';
 import { createCanonicalTransferPair } from '@/lib/transactions/transfer-service';
+import { requireAccountEntityAccess } from '@/lib/household/entities';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +28,7 @@ export async function handleListTransfers(request: Request) {
   try {
     const { userId } = await requireAuth();
     const { householdId } = await getAndVerifyHousehold(request, userId);
+    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request);
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -47,12 +50,6 @@ export async function handleListTransfers(request: Request) {
       filters.push(lte(transfers.date, toDate));
     }
 
-    // Get total count
-    const countResult = await db
-      .select()
-      .from(transfers)
-      .where(and(...filters));
-
     // Get paginated results
     const transferList = await db
       .select()
@@ -62,9 +59,26 @@ export async function handleListTransfers(request: Request) {
       .limit(limit)
       .offset(offset);
 
+    const scopedAccountRows = await db
+      .select({ id: accounts.id })
+      .from(accounts)
+      .where(
+        and(
+          eq(accounts.userId, userId),
+          eq(accounts.householdId, householdId),
+          selectedEntity.isDefault
+            ? or(eq(accounts.entityId, selectedEntity.id), isNull(accounts.entityId))
+            : eq(accounts.entityId, selectedEntity.id)
+        )
+      );
+    const scopedAccountIds = new Set(scopedAccountRows.map((row) => row.id));
+    const entityFilteredTransferList = transferList.filter((transfer) =>
+      scopedAccountIds.has(transfer.fromAccountId) || scopedAccountIds.has(transfer.toAccountId)
+    );
+
     // Enrich with account names
     const enrichedTransfers = await Promise.all(
-      transferList.map(async (transfer) => {
+      entityFilteredTransferList.map(async (transfer) => {
         const [fromAccount, toAccount] = await Promise.all([
           db
             .select()
@@ -100,7 +114,7 @@ export async function handleListTransfers(request: Request) {
 
     return Response.json({
       transfers: enrichedTransfers,
-      total: countResult.length,
+      total: entityFilteredTransferList.length,
       limit,
       offset,
     });
@@ -206,6 +220,19 @@ export async function handleCreateTransfer(request: Request) {
         { status: 404 }
       );
     }
+    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request, body);
+    const fromAccountEntity = await requireAccountEntityAccess(
+      userId,
+      householdId,
+      fromAccount[0].entityId
+    );
+    if (fromAccountEntity.id !== selectedEntity.id) {
+      return Response.json(
+        { error: 'Source account must belong to the selected entity' },
+        { status: 403 }
+      );
+    }
+    await requireAccountEntityAccess(userId, householdId, toAccount[0].entityId);
 
     const transferAmountCents = amountToCents(transferAmount);
     const transferFeesCents = amountToCents(transferFees);

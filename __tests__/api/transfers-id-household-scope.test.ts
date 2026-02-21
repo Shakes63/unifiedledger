@@ -10,6 +10,10 @@ vi.mock('@/lib/api/household-auth', () => ({
   getAndVerifyHousehold: vi.fn(),
 }));
 
+vi.mock('@/lib/api/entity-auth', () => ({
+  resolveAndRequireEntity: vi.fn(),
+}));
+
 vi.mock('@/lib/db', () => ({
   db: {
     select: vi.fn(),
@@ -22,6 +26,7 @@ import util from 'node:util';
 
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
+import { resolveAndRequireEntity } from '@/lib/api/entity-auth';
 import { db } from '@/lib/db';
 import { accounts, transactions, transfers } from '@/lib/db/schema';
 
@@ -39,6 +44,15 @@ describe('/api/transfers/[id] household scoping', () => {
     (getAndVerifyHousehold as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue({
       householdId: TEST_HOUSEHOLD_ID,
     });
+    (resolveAndRequireEntity as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue({
+      id: 'entity_personal',
+      householdId: TEST_HOUSEHOLD_ID,
+      name: 'Personal',
+      type: 'personal',
+      isDefault: true,
+      enableSalesTax: false,
+      isActive: true,
+    });
 
     // Initial transfer fetch (outside transaction)
     const selectCalls: Array<{ table: unknown; whereArg: unknown }> = [];
@@ -47,6 +61,23 @@ describe('/api/transfers/[id] household scoping', () => {
       return {
         where: (whereArg: unknown) => {
           selectCalls.push({ table, whereArg });
+          if (table === accounts) {
+            const rows = [
+              {
+                id: 'acct_from',
+                userId: TEST_USER_ID,
+                householdId: TEST_HOUSEHOLD_ID,
+                currentBalance: 100,
+                currentBalanceCents: 10000,
+                name: 'Checking',
+                entityId: null,
+              },
+            ];
+            return Object.assign(rows, {
+              limit: async () => rows,
+            });
+          }
+
           return {
             limit: async () => {
               if (table === transfers) {
@@ -65,19 +96,6 @@ describe('/api/transfers/[id] household scoping', () => {
                     toTransactionId: 'tx_to',
                   },
                 ];
-              }
-
-              if (table === accounts) {
-                return [
-                  {
-                    id: 'acct_from',
-                    userId: TEST_USER_ID,
-                      householdId: TEST_HOUSEHOLD_ID,
-                      currentBalance: 100,
-                      currentBalanceCents: 10000,
-                      name: 'Checking',
-                    },
-                  ];
               }
 
               return [];

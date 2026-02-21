@@ -1,4 +1,4 @@
-import { and, eq, inArray, or } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { db } from '@/lib/db';
 import { accounts, bills, billInstances } from '@/lib/db/schema';
@@ -119,10 +119,12 @@ function assertCreateRequiredFields(name?: string, type?: string, bankName?: str
 export async function createAccountWithLifecycleEffects({
   userId,
   householdId,
+  entityId,
   body,
 }: {
   userId: string;
   householdId: string;
+  entityId: string;
   body: Record<string, unknown>;
 }) {
   const {
@@ -178,6 +180,7 @@ export async function createAccountWithLifecycleEffects({
     id: accountId,
     userId,
     householdId,
+    entityId,
     name: String(name),
     type: accountType,
     bankName: String(bankName).trim(),
@@ -294,13 +297,21 @@ export async function updateAccountWithLifecycleEffects({
   id,
   userId,
   householdId,
+  entityId,
+  allowLegacyUnscoped = false,
   body,
 }: {
   id: string;
   userId: string;
   householdId: string;
+  entityId: string;
+  allowLegacyUnscoped?: boolean;
   body: Record<string, unknown>;
 }) {
+  const entityScope = allowLegacyUnscoped
+    ? or(eq(accounts.entityId, entityId), isNull(accounts.entityId))
+    : eq(accounts.entityId, entityId);
+
   const existingAccount = await db
     .select()
     .from(accounts)
@@ -308,7 +319,8 @@ export async function updateAccountWithLifecycleEffects({
       and(
         eq(accounts.id, id),
         eq(accounts.userId, userId),
-        eq(accounts.householdId, householdId)
+        eq(accounts.householdId, householdId),
+        entityScope
       )
     )
     .limit(1);
@@ -530,11 +542,19 @@ export async function deleteAccountWithLifecycleEffects({
   id,
   userId,
   householdId,
+  entityId,
+  allowLegacyUnscoped = false,
 }: {
   id: string;
   userId: string;
   householdId: string;
+  entityId: string;
+  allowLegacyUnscoped?: boolean;
 }) {
+  const entityScope = allowLegacyUnscoped
+    ? or(eq(accounts.entityId, entityId), isNull(accounts.entityId))
+    : eq(accounts.entityId, entityId);
+
   const account = await db
     .select()
     .from(accounts)
@@ -542,7 +562,8 @@ export async function deleteAccountWithLifecycleEffects({
       and(
         eq(accounts.id, id),
         eq(accounts.userId, userId),
-        eq(accounts.householdId, householdId)
+        eq(accounts.householdId, householdId),
+        entityScope
       )
     )
     .limit(1);
@@ -578,7 +599,8 @@ export async function deleteAccountWithLifecycleEffects({
         and(
           eq(accounts.id, id),
           eq(accounts.userId, userId),
-          eq(accounts.householdId, householdId)
+          eq(accounts.householdId, householdId),
+          entityScope
         )
       );
   });

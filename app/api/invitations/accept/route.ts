@@ -4,6 +4,7 @@ import { householdInvitations, householdMembers, userSettings } from '@/lib/db/s
 import { user as betterAuthUser } from '@/auth-schema';
 import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { ensureDefaultPersonalEntityForHousehold } from '@/lib/household/entities';
 
 export const dynamic = 'force-dynamic';
 
@@ -167,6 +168,12 @@ export async function POST(request: Request) {
           .where(eq(householdInvitations.id, inv.id));
       }
     });
+
+    try {
+      await ensureDefaultPersonalEntityForHousehold(inv.householdId, userId);
+    } catch (entityBootstrapError) {
+      console.warn('Failed to bootstrap default household entity after invitation acceptance:', entityBootstrapError);
+    }
 
     return Response.json({
       message:

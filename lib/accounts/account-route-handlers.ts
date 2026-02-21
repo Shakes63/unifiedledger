@@ -1,7 +1,8 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, isNull, or } from 'drizzle-orm';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { handleRouteError } from '@/lib/api/route-helpers';
+import { resolveAndRequireEntity } from '@/lib/api/entity-auth';
 import { db } from '@/lib/db';
 import { accounts } from '@/lib/db/schema';
 import { AccountLifecycleError, createAccountWithLifecycleEffects } from '@/lib/accounts/account-lifecycle-service';
@@ -18,10 +19,20 @@ export async function handleListAccounts(request: Request) {
       return Response.json({ error: 'Household ID is required' }, { status: 400 });
     }
 
+    const entity = await resolveAndRequireEntity(userId, householdId, request);
+    const entityScope = entity.isDefault
+      ? or(eq(accounts.entityId, entity.id), isNull(accounts.entityId))
+      : eq(accounts.entityId, entity.id);
+
     const userAccounts = await db
       .select()
       .from(accounts)
-      .where(eq(accounts.householdId, householdId))
+      .where(
+        and(
+          eq(accounts.householdId, householdId),
+          entityScope
+        )
+      )
       .orderBy(desc(accounts.usageCount), accounts.sortOrder);
 
     return Response.json(userAccounts);
@@ -44,9 +55,12 @@ export async function handleCreateAccount(request: Request) {
       return Response.json({ error: 'Household ID is required' }, { status: 400 });
     }
 
+    const entity = await resolveAndRequireEntity(userId, householdId, request, body);
+
     const result = await createAccountWithLifecycleEffects({
       userId,
       householdId,
+      entityId: entity.id,
       body,
     });
 

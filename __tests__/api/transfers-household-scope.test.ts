@@ -10,6 +10,15 @@ vi.mock('@/lib/api/household-auth', () => ({
   getAndVerifyHousehold: vi.fn(),
 }));
 
+vi.mock('@/lib/api/entity-auth', () => ({
+  resolveAndRequireEntity: vi.fn(),
+}));
+
+vi.mock('@/lib/household/entities', () => ({
+  requireAccountEntityAccess: vi.fn(),
+  resolveAccountEntityId: vi.fn(),
+}));
+
 vi.mock('@/lib/db', () => ({
   db: {
     select: vi.fn(),
@@ -23,6 +32,8 @@ import util from 'node:util';
 
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
+import { resolveAndRequireEntity } from '@/lib/api/entity-auth';
+import { requireAccountEntityAccess } from '@/lib/household/entities';
 import { db } from '@/lib/db';
 import { accounts, transfers, usageAnalytics } from '@/lib/db/schema';
 
@@ -40,6 +51,25 @@ describe('Transfers API household scoping', () => {
     (getAndVerifyHousehold as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue({
       householdId: TEST_HOUSEHOLD_ID,
     });
+    (resolveAndRequireEntity as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue({
+      id: 'entity_personal',
+      householdId: TEST_HOUSEHOLD_ID,
+      name: 'Personal',
+      type: 'personal',
+      isDefault: true,
+      enableSalesTax: false,
+      isActive: true,
+    });
+    (requireAccountEntityAccess as unknown as { mockImplementation: (fn: (...args: unknown[]) => unknown) => void })
+      .mockImplementation(async (_userId: string, householdId: string, accountEntityId: string | null | undefined) => ({
+        id: accountEntityId ?? 'entity_personal',
+        householdId,
+        name: accountEntityId ? 'Business' : 'Personal',
+        type: accountEntityId ? 'business' : 'personal',
+        isDefault: !accountEntityId,
+        enableSalesTax: Boolean(accountEntityId),
+        isActive: true,
+      }));
 
     (db.insert as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue({
       values: async () => undefined,
@@ -53,19 +83,12 @@ describe('Transfers API household scoping', () => {
 
   it('GET /api/transfers scopes transfers and account enrichment by household', async () => {
     const selectCalls: Array<{ table: unknown; whereArg: unknown }> = [];
-    let transferSelectCount = 0;
-
     (db.select as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue({
       from: (table: unknown) => ({
         where: (whereArg: unknown) => {
           selectCalls.push({ table, whereArg });
 
           if (table === transfers) {
-            transferSelectCount += 1;
-            if (transferSelectCount === 1) {
-              return Promise.resolve([{ id: 'tr_count_1' }, { id: 'tr_count_2' }]);
-            }
-
             return {
               orderBy: () => ({
                 limit: () => ({
@@ -87,18 +110,20 @@ describe('Transfers API household scoping', () => {
           }
 
           if (table === accounts) {
-            return {
-              limit: async () => [
-                  {
-                    id: 'acct_from',
-                    userId: TEST_USER_ID,
-                    householdId: TEST_HOUSEHOLD_ID,
-                    name: 'Checking',
-                    currentBalance: 100,
-                    currentBalanceCents: 10000,
-                  },
-                ],
-              };
+            const rows = [
+              {
+                id: 'acct_from',
+                userId: TEST_USER_ID,
+                householdId: TEST_HOUSEHOLD_ID,
+                name: 'Checking',
+                currentBalance: 100,
+                currentBalanceCents: 10000,
+                entityId: null,
+              },
+            ];
+            return Object.assign(rows, {
+              limit: async () => rows,
+            });
           }
 
           return { limit: async () => [] };
@@ -152,6 +177,7 @@ describe('Transfers API household scoping', () => {
                   name: 'Checking',
                   currentBalance: 100,
                   currentBalanceCents: 10000,
+                  entityId: null,
                 },
               ],
             };

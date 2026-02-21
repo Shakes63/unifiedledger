@@ -16,6 +16,10 @@ vi.mock('@/lib/preferences/transfer-view-preference', () => ({
   getCombinedTransferViewPreference: vi.fn(),
 }));
 
+vi.mock('@/lib/api/entity-auth', () => ({
+  resolveAndRequireEntity: vi.fn(),
+}));
+
 vi.mock('@/lib/db', () => ({
   db: {
     select: vi.fn(),
@@ -24,6 +28,7 @@ vi.mock('@/lib/db', () => ({
 
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
+import { resolveAndRequireEntity } from '@/lib/api/entity-auth';
 import { getCombinedTransferViewPreference } from '@/lib/preferences/transfer-view-preference';
 import { db } from '@/lib/db';
 
@@ -37,6 +42,15 @@ describe('GET /api/transactions pagination and filter correctness', () => {
     (requireAuth as Mock).mockResolvedValue({ userId });
     (getHouseholdIdFromRequest as Mock).mockReturnValue(householdId);
     (requireHouseholdAuth as Mock).mockResolvedValue({ householdId, userId });
+    (resolveAndRequireEntity as Mock).mockResolvedValue({
+      id: 'entity_personal',
+      householdId,
+      name: 'Personal',
+      type: 'personal',
+      isDefault: true,
+      enableSalesTax: false,
+      isActive: true,
+    });
   });
 
   it('applies accountId to both list and count query criteria', async () => {

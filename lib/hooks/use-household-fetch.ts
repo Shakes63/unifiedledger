@@ -30,7 +30,7 @@ import { useCallback } from 'react';
 import { useHousehold } from '@/contexts/household-context';
 
 export function useHouseholdFetch() {
-  const { selectedHouseholdId } = useHousehold();
+  const { selectedHouseholdId, selectedEntityId } = useHousehold();
 
   /**
    * GET request with household context
@@ -60,11 +60,12 @@ export function useHouseholdFetch() {
       headers: {
         ...fetchOptions.headers,
         'x-household-id': selectedHouseholdId,
+        ...(selectedEntityId ? { 'x-entity-id': selectedEntityId } : {}),
         // Also add cache-control header to bypass service worker
         ...(skipCache ? { 'Cache-Control': 'no-cache' } : {}),
       },
     });
-  }, [selectedHouseholdId]);
+  }, [selectedEntityId, selectedHouseholdId]);
 
   /**
    * POST request with household context
@@ -94,13 +95,15 @@ export function useHouseholdFetch() {
         'Content-Type': 'application/json',
         ...options.headers,
         'x-household-id': selectedHouseholdId,
+        ...(selectedEntityId ? { 'x-entity-id': selectedEntityId } : {}),
       },
       body: JSON.stringify({
         ...data,
         householdId: selectedHouseholdId,
+        ...(selectedEntityId ? { entityId: selectedEntityId } : {}),
       }),
     });
-  }, [selectedHouseholdId]);
+  }, [selectedEntityId, selectedHouseholdId]);
 
   /**
    * PUT request with household context
@@ -130,13 +133,15 @@ export function useHouseholdFetch() {
         'Content-Type': 'application/json',
         ...options.headers,
         'x-household-id': selectedHouseholdId,
+        ...(selectedEntityId ? { 'x-entity-id': selectedEntityId } : {}),
       },
       body: JSON.stringify({
         ...data,
         householdId: selectedHouseholdId,
+        ...(selectedEntityId ? { entityId: selectedEntityId } : {}),
       }),
     });
-  }, [selectedHouseholdId]);
+  }, [selectedEntityId, selectedHouseholdId]);
 
   /**
    * DELETE request with household context
@@ -163,9 +168,10 @@ export function useHouseholdFetch() {
       headers: {
         ...options.headers,
         'x-household-id': selectedHouseholdId,
+        ...(selectedEntityId ? { 'x-entity-id': selectedEntityId } : {}),
       },
     });
-  }, [selectedHouseholdId]);
+  }, [selectedEntityId, selectedHouseholdId]);
 
   /**
    * PATCH request with household context
@@ -195,13 +201,15 @@ export function useHouseholdFetch() {
         'Content-Type': 'application/json',
         ...options.headers,
         'x-household-id': selectedHouseholdId,
+        ...(selectedEntityId ? { 'x-entity-id': selectedEntityId } : {}),
       },
       body: JSON.stringify({
         ...data,
         householdId: selectedHouseholdId,
+        ...(selectedEntityId ? { entityId: selectedEntityId } : {}),
       }),
     });
-  }, [selectedHouseholdId]);
+  }, [selectedEntityId, selectedHouseholdId]);
 
   return {
     fetchWithHousehold,
@@ -210,5 +218,6 @@ export function useHouseholdFetch() {
     deleteWithHousehold,
     patchWithHousehold,
     selectedHouseholdId,
+    selectedEntityId,
   };
 }

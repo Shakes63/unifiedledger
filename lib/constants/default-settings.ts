@@ -132,6 +132,8 @@ export const PRESERVE_TABLES = [
   // Household Data
   'households',
   'householdMembers',
+  'householdEntities',
+  'householdEntityMembers',
   'householdInvitations',
   'householdActivityLog',
   'resourcePermissions',
