@@ -1,82 +1,174 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { GET as GET_CLASSIFICATION_SUMMARY } from '@/app/api/bills/classification-summary/route';
+import { GET as GET_CLASSIFICATION_SUMMARY } from '@/app/api/bills-v2/classification-summary/route';
 
 vi.mock('@/lib/auth-helpers', () => ({
   requireAuth: vi.fn(),
 }));
 
 vi.mock('@/lib/api/household-auth', () => ({
-  getHouseholdIdFromRequest: vi.fn(),
-  requireHouseholdAuth: vi.fn(),
+  getAndVerifyHousehold: vi.fn(),
 }));
 
-vi.mock('@/lib/db', () => ({
-  db: {
-    select: vi.fn(),
-  },
+vi.mock('@/lib/bills-v2/service', () => ({
+  listBillTemplates: vi.fn(),
+  listOccurrences: vi.fn(),
 }));
 
 import { requireAuth } from '@/lib/auth-helpers';
-import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
-import { db } from '@/lib/db';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
+import { listBillTemplates, listOccurrences } from '@/lib/bills-v2/service';
 
-function makeSelectResult<T>(rows: T[]) {
-  return {
-    from: () => ({
-      innerJoin: () => ({
-        where: () => Promise.resolve(rows),
-      }),
-      where: () => Promise.resolve(rows),
-    }),
-  };
-}
-
-describe('GET /api/bills/classification-summary', () => {
+describe('GET /api/bills-v2/classification-summary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('uses upcoming instance amounts for variable credit card payment bills when bill expectedAmount is 0 (regression)', async () => {
-    (requireAuth as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue({
+  it('uses upcoming occurrence amounts for variable credit card payment bills when default amount is 0', async () => {
+    (requireAuth as unknown as { mockResolvedValue: (value: unknown) => void }).mockResolvedValue({
       userId: 'user_1',
     });
 
-    (getHouseholdIdFromRequest as unknown as { mockReturnValue: (v: unknown) => void }).mockReturnValue('hh_1');
-    (requireHouseholdAuth as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue(undefined);
+    (getAndVerifyHousehold as unknown as { mockResolvedValue: (value: unknown) => void }).mockResolvedValue({
+      householdId: 'hh_1',
+    });
 
-    const activeBills = [
-      {
-        id: 'bill_cc_payment',
-        expectedAmount: 0,
-        frequency: 'monthly',
-        billType: 'expense',
-        billClassification: 'loan_payment',
-        isVariableAmount: true,
+    (listBillTemplates as unknown as { mockResolvedValue: (value: unknown) => void }).mockResolvedValue({
+      data: [
+        {
+          id: 'bill_cc_payment',
+          householdId: 'hh_1',
+          createdByUserId: 'user_1',
+          name: 'Credit Card Payment',
+          description: null,
+          isActive: true,
+          billType: 'expense',
+          classification: 'loan_payment',
+          classificationSubcategory: null,
+          recurrenceType: 'monthly',
+          recurrenceDueDay: 1,
+          recurrenceDueWeekday: null,
+          recurrenceSpecificDueDate: null,
+          recurrenceStartMonth: null,
+          defaultAmountCents: 0,
+          isVariableAmount: true,
+          amountToleranceBps: 500,
+          categoryId: null,
+          merchantId: null,
+          paymentAccountId: null,
+          linkedLiabilityAccountId: null,
+          chargedToAccountId: null,
+          autoMarkPaid: true,
+          notes: null,
+          debtEnabled: false,
+          debtOriginalBalanceCents: null,
+          debtRemainingBalanceCents: null,
+          debtInterestAprBps: null,
+          debtInterestType: null,
+          debtStartDate: null,
+          debtColor: null,
+          includeInPayoffStrategy: true,
+          interestTaxDeductible: false,
+          interestTaxDeductionType: 'none',
+          interestTaxDeductionLimitCents: null,
+          budgetPeriodAssignment: null,
+          splitAcrossPeriods: false,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+        },
+      ],
+      total: 1,
+      limit: 5000,
+      offset: 0,
+    });
+
+    (listOccurrences as unknown as { mockResolvedValue: (value: unknown) => void }).mockResolvedValue({
+      data: [
+        {
+          occurrence: {
+            id: 'occ_1',
+            templateId: 'bill_cc_payment',
+            householdId: 'hh_1',
+            dueDate: '2026-02-20',
+            status: 'unpaid',
+            amountDueCents: 12300,
+            amountPaidCents: 0,
+            amountRemainingCents: 12300,
+            actualAmountCents: null,
+            paidDate: null,
+            lastTransactionId: null,
+            daysLate: 0,
+            lateFeeCents: 0,
+            isManualOverride: false,
+            budgetPeriodOverride: null,
+            notes: null,
+            createdAt: '2026-02-01T00:00:00.000Z',
+            updatedAt: '2026-02-01T00:00:00.000Z',
+          },
+          template: {
+            id: 'bill_cc_payment',
+            householdId: 'hh_1',
+            createdByUserId: 'user_1',
+            name: 'Credit Card Payment',
+            description: null,
+            isActive: true,
+            billType: 'expense',
+            classification: 'loan_payment',
+            classificationSubcategory: null,
+            recurrenceType: 'monthly',
+            recurrenceDueDay: 1,
+            recurrenceDueWeekday: null,
+            recurrenceSpecificDueDate: null,
+            recurrenceStartMonth: null,
+            defaultAmountCents: 0,
+            isVariableAmount: true,
+            amountToleranceBps: 500,
+            categoryId: null,
+            merchantId: null,
+            paymentAccountId: null,
+            linkedLiabilityAccountId: null,
+            chargedToAccountId: null,
+            autoMarkPaid: true,
+            notes: null,
+            debtEnabled: false,
+            debtOriginalBalanceCents: null,
+            debtRemainingBalanceCents: null,
+            debtInterestAprBps: null,
+            debtInterestType: null,
+            debtStartDate: null,
+            debtColor: null,
+            includeInPayoffStrategy: true,
+            interestTaxDeductible: false,
+            interestTaxDeductionType: 'none',
+            interestTaxDeductionLimitCents: null,
+            budgetPeriodAssignment: null,
+            splitAcrossPeriods: false,
+            createdAt: '2026-01-01T00:00:00.000Z',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+          },
+          allocations: [],
+        },
+      ],
+      summary: {
+        overdueCount: 0,
+        overdueAmountCents: 0,
+        upcomingCount: 1,
+        upcomingAmountCents: 12300,
+        nextDueDate: '2026-02-20',
+        paidThisPeriodCount: 0,
+        paidThisPeriodAmountCents: 0,
       },
-    ];
-
-    const upcomingInstances = [
-      {
-        billId: 'bill_cc_payment',
-        expectedAmount: 123,
-      },
-    ];
-
-    const selectMock = db.select as unknown as {
-      mockImplementationOnce: (fn: () => unknown) => unknown;
-    };
-
-    selectMock
-      .mockImplementationOnce(() => makeSelectResult(activeBills))
-      .mockImplementationOnce(() => makeSelectResult(upcomingInstances));
+      total: 1,
+      limit: 5000,
+      offset: 0,
+    });
 
     const request = {
       headers: new Headers(),
-      url: 'https://example.com/api/bills/classification-summary',
+      url: 'https://example.com/api/bills-v2/classification-summary?householdId=hh_1',
     } as unknown as Request;
 
-    const response = await GET_CLASSIFICATION_SUMMARY(request as Request);
+    const response = await GET_CLASSIFICATION_SUMMARY(request);
     expect(response.status).toBe(200);
 
     const json = (await response.json()) as {
@@ -84,14 +176,11 @@ describe('GET /api/bills/classification-summary', () => {
       totals: { totalMonthly: number; totalCount: number };
     };
 
-    const loanPayment = json.data.find((i) => i.classification === 'loan_payment');
+    const loanPayment = json.data.find((item) => item.classification === 'loan_payment');
     expect(loanPayment).toBeTruthy();
     expect(loanPayment?.count).toBe(1);
-    expect(loanPayment?.totalMonthly).toBeGreaterThan(0);
     expect(loanPayment?.totalMonthly).toBeCloseTo(123, 5);
     expect(json.totals.totalMonthly).toBeCloseTo(123, 5);
     expect(json.totals.totalCount).toBe(1);
   });
 });
-
-

@@ -135,7 +135,7 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
     try {
       setLoading(true);
       const response = await fetchWithHousehold(
-        `/api/bills/by-period?periodOffset=${periodOffset}&status=pending,overdue,paid`
+        `/api/bills-v2/by-period?periodOffset=${periodOffset}&status=pending,overdue,paid`
       );
 
       if (!response.ok) {
@@ -179,7 +179,7 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
   const handlePay = async (instanceId: string, accountId: string, amount: number, allocationId?: string) => {
     try {
       setProcessingPayment(true);
-      const response = await postWithHousehold(`/api/bills/instances/${instanceId}/pay`, {
+      const response = await postWithHousehold(`/api/bills-v2/instances/${instanceId}/pay`, {
         accountId,
         amount,
         allocationId,
@@ -217,7 +217,7 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
   const handleMarkPaid = async (instanceId: string) => {
     try {
       setProcessingPayment(true);
-      const response = await fetchWithHousehold(`/api/bills/instances/${instanceId}`, {
+      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instanceId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

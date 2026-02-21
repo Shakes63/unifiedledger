@@ -44,12 +44,12 @@ export function EnhancedBillsWidget() {
 
       // Fetch overdue bills separately with high limit to ensure we get all of them
       const overdueResponse = await fetchWithHousehold(
-        `/api/bills/instances?status=overdue&limit=10000`
+        `/api/bills-v2/instances?status=overdue&limit=10000`
       );
       
       // Fetch pending and paid bills for current month
       const currentMonthResponse = await fetchWithHousehold(
-        `/api/bills/instances?status=pending,paid&limit=1000`
+        `/api/bills-v2/instances?status=pending,paid&limit=1000`
       );
 
       const allBillInstances: BillInstance[] = [];

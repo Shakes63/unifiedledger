@@ -361,7 +361,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
 
       try {
         setBillsLoading(true);
-        const response = await fetchWithHousehold('/api/bills/instances?status=pending,overdue&limit=100');
+        const response = await fetchWithHousehold('/api/bills-v2/instances?status=pending,overdue&limit=100');
         if (response.ok) {
           const data = await response.json();
           setUnpaidBills(data.data || []);
@@ -439,7 +439,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         
         // Call API endpoint for detection
         const response = await fetchWithHousehold(
-          `/api/bills/detect-payment?accountId=${formData.toAccountId}`
+          `/api/bills-v2/detect-payment?accountId=${formData.toAccountId}`
         );
         
         if (!response.ok) {
@@ -845,7 +845,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         if (formData.type === 'bill') {
           const refreshBills = async () => {
             try {
-              const response = await fetchWithHousehold('/api/bills/instances?status=pending,overdue&limit=100');
+              const response = await fetchWithHousehold('/api/bills-v2/instances?status=pending,overdue&limit=100');
               if (response.ok) {
                 const data = await response.json();
                 setUnpaidBills(data.data || []);

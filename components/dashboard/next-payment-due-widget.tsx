@@ -76,7 +76,7 @@ export function NextPaymentDueWidget() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetchWithHousehold('/api/bills/next-due?limit=5');
+      const response = await fetchWithHousehold('/api/bills-v2/next-due?limit=5');
       
       if (!response.ok) {
         throw new Error('Failed to fetch next due bills');

@@ -136,7 +136,7 @@ export function BillInstanceActionsModal({
   const fetchAllocations = async () => {
     try {
       setLoadingAllocations(true);
-      const response = await fetchWithHousehold(`/api/bills/instances/${instance.id}/allocations`);
+      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}/allocations`);
       if (response.ok) {
         const data = await response.json();
         setAllocations(data.allocations || []);
@@ -168,7 +168,7 @@ export function BillInstanceActionsModal({
   const fetchPayments = async () => {
     try {
       setLoadingPayments(true);
-      const response = await fetchWithHousehold(`/api/bills/instances/${instance.id}/payments`);
+      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}/payments`);
       if (response.ok) {
         const data = await response.json();
         setPayments(data.payments || []);
@@ -191,7 +191,7 @@ export function BillInstanceActionsModal({
           allocatedAmount: parseFloat(a.amount),
         }));
 
-      const response = await fetchWithHousehold(`/api/bills/instances/${instance.id}/allocations`, {
+      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}/allocations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ allocations: allocationsData }),
@@ -218,7 +218,7 @@ export function BillInstanceActionsModal({
     try {
       setLoading(true);
       
-      const response = await fetchWithHousehold(`/api/bills/instances/${instance.id}/allocations`, {
+      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}/allocations`, {
         method: 'DELETE',
       });
 
@@ -275,7 +275,7 @@ export function BillInstanceActionsModal({
         updateData.isManualOverride = false;
       }
 
-      const response = await fetchWithHousehold(`/api/bills/instances/${instance.id}`, {
+      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData),
@@ -321,7 +321,7 @@ export function BillInstanceActionsModal({
         updateData.transactionId = null;
       }
 
-      const response = await fetchWithHousehold(`/api/bills/instances/${instance.id}`, {
+      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData),
@@ -361,7 +361,7 @@ export function BillInstanceActionsModal({
         budgetPeriodOverride: periodOverride ? parseInt(periodOverride) : null,
       };
 
-      const response = await fetchWithHousehold(`/api/bills/instances/${instance.id}`, {
+      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData),

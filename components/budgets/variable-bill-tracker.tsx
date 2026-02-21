@@ -172,7 +172,7 @@ export function VariableBillTracker({ hideHeader = false }: VariableBillTrackerP
   // Update expected amount
   const handleUpdateExpectedAmount = async (billId: string, newAmount: number) => {
     try {
-      const response = await putWithHousehold(`/api/bills/${billId}`, {
+      const response = await putWithHousehold(`/api/bills-v2/${billId}`, {
         expectedAmount: newAmount,
       });
 

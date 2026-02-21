@@ -36,7 +36,7 @@ export default function EditBillPage({ params }: PageProps) {
 
       // Fetch existing bill data
       try {
-        const response = await fetchWithHousehold(`/api/bills/${resolvedParams.id}`);
+        const response = await fetchWithHousehold(`/api/bills-v2/${resolvedParams.id}`);
         if (!response.ok) {
           throw new Error('Failed to fetch bill');
         }
@@ -58,7 +58,7 @@ export default function EditBillPage({ params }: PageProps) {
     try {
       setIsLoading(true);
 
-      const response = await fetchWithHousehold(`/api/bills/${billId}`, {
+      const response = await fetchWithHousehold(`/api/bills-v2/${billId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

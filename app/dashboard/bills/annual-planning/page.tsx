@@ -90,14 +90,14 @@ export default function AnnualBillPlanningPage() {
       // First, ensure bill instances exist for the requested year
       // This handles the case where instances weren't created yet
       // (e.g., viewing a future year, or server was down)
-      await fetchWithHousehold('/api/bills/ensure-instances', {
+      await fetchWithHousehold('/api/bills-v2/ensure-instances', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ year }),
       });
 
       // Then fetch the annual planning data
-      const response = await fetchWithHousehold(`/api/bills/annual-planning?year=${year}`);
+      const response = await fetchWithHousehold(`/api/bills-v2/annual-planning?year=${year}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch: ${response.statusText}`);

@@ -128,7 +128,7 @@ export function CompactStatsBar() {
         }
 
         // Fetch bills for pending count
-        const billsResponse = await fetchWithHousehold('/api/bills/instances?status=pending&sortBy=dueDate');
+        const billsResponse = await fetchWithHousehold('/api/bills-v2/instances?status=pending&sortBy=dueDate');
         if (billsResponse.ok) {
           const billsData = await billsResponse.json();
           const rawData = Array.isArray(billsData) ? billsData : billsData.data || [];

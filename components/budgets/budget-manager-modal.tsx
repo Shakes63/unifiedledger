@@ -297,7 +297,7 @@ export function BudgetManagerModal({
 
         // Save bill budget updates
         for (const update of billUpdates) {
-          await putWithHousehold(`/api/bills/${update.id}`, {
+          await putWithHousehold(`/api/bills-v2/${update.id}`, {
             budgetedMonthlyPayment: update.budgetedMonthlyPayment,
           });
         }

@@ -238,7 +238,7 @@ export function QuickTransactionModal({
 
       try {
         setBillsLoading(true);
-        const response = await fetchWithHousehold('/api/bills/instances?status=pending,overdue&limit=100');
+        const response = await fetchWithHousehold('/api/bills-v2/instances?status=pending,overdue&limit=100');
         if (response.ok) {
           const data = await response.json();
           setUnpaidBills(data.data || []);
@@ -502,7 +502,7 @@ export function QuickTransactionModal({
         if (type === 'bill') {
           const refreshBills = async () => {
             try {
-              const response = await fetchWithHousehold('/api/bills/instances?status=pending,overdue&limit=100');
+              const response = await fetchWithHousehold('/api/bills-v2/instances?status=pending,overdue&limit=100');
               if (response.ok) {
                 const data = await response.json();
                 setUnpaidBills(data.data || []);

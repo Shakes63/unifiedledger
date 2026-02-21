@@ -39,7 +39,7 @@ export function CreateBillStep({
   const handleSubmit = async (formData: Record<string, unknown>) => {
     try {
       setIsSubmitting(true);
-      const response = await postWithHousehold('/api/bills', formData);
+      const response = await postWithHousehold('/api/bills-v2', formData);
 
       if (response.ok || response.status === 201) {
         toast.success('Bill created successfully');

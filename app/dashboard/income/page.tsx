@@ -85,14 +85,14 @@ export default function IncomeDashboard() {
       setLoading(true);
 
       // Fetch active income sources (bills with billType=income)
-      const sourcesRes = await fetchWithHousehold('/api/bills?isActive=true&limit=100');
+      const sourcesRes = await fetchWithHousehold('/api/bills-v2?isActive=true&limit=100');
       if (!sourcesRes.ok) {
         throw new Error(`Failed to fetch income sources: ${sourcesRes.statusText}`);
       }
       const sourcesData = await sourcesRes.json();
 
       // Fetch all bill instances
-      const instancesRes = await fetchWithHousehold('/api/bills/instances?limit=1000');
+      const instancesRes = await fetchWithHousehold('/api/bills-v2/instances?limit=1000');
       if (!instancesRes.ok) {
         throw new Error(`Failed to fetch income instances: ${instancesRes.statusText}`);
       }

@@ -26,7 +26,7 @@ export default function NewBillPage() {
     try {
       setIsLoading(true);
 
-      const response = await fetchWithHousehold('/api/bills', {
+      const response = await fetchWithHousehold('/api/bills-v2', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -583,6 +583,237 @@ export const billInstanceAllocations = sqliteTable(
   })
 );
 
+export const billTemplates = sqliteTable(
+  'bill_templates',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id').notNull(),
+    createdByUserId: text('created_by_user_id').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+    billType: text('bill_type', {
+      enum: ['expense', 'income', 'savings_transfer'],
+    }).notNull(),
+    classification: text('classification', {
+      enum: ['subscription', 'utility', 'housing', 'insurance', 'loan_payment', 'membership', 'service', 'other'],
+    }).notNull(),
+    classificationSubcategory: text('classification_subcategory'),
+    recurrenceType: text('recurrence_type', {
+      enum: ['one_time', 'weekly', 'biweekly', 'monthly', 'quarterly', 'semi_annual', 'annual'],
+    }).notNull(),
+    recurrenceDueDay: integer('recurrence_due_day'),
+    recurrenceDueWeekday: integer('recurrence_due_weekday'),
+    recurrenceSpecificDueDate: text('recurrence_specific_due_date'),
+    recurrenceStartMonth: integer('recurrence_start_month'),
+    defaultAmountCents: integer('default_amount_cents').notNull().default(0),
+    isVariableAmount: integer('is_variable_amount', { mode: 'boolean' }).notNull().default(false),
+    amountToleranceBps: integer('amount_tolerance_bps').notNull().default(500),
+    categoryId: text('category_id'),
+    merchantId: text('merchant_id'),
+    paymentAccountId: text('payment_account_id'),
+    linkedLiabilityAccountId: text('linked_liability_account_id'),
+    chargedToAccountId: text('charged_to_account_id'),
+    autoMarkPaid: integer('auto_mark_paid', { mode: 'boolean' }).notNull().default(true),
+    notes: text('notes'),
+    debtEnabled: integer('debt_enabled', { mode: 'boolean' }).notNull().default(false),
+    debtOriginalBalanceCents: integer('debt_original_balance_cents'),
+    debtRemainingBalanceCents: integer('debt_remaining_balance_cents'),
+    debtInterestAprBps: integer('debt_interest_apr_bps'),
+    debtInterestType: text('debt_interest_type', {
+      enum: ['fixed', 'variable', 'none'],
+    }),
+    debtStartDate: text('debt_start_date'),
+    debtColor: text('debt_color'),
+    includeInPayoffStrategy: integer('include_in_payoff_strategy', { mode: 'boolean' }).notNull().default(true),
+    interestTaxDeductible: integer('interest_tax_deductible', { mode: 'boolean' }).notNull().default(false),
+    interestTaxDeductionType: text('interest_tax_deduction_type', {
+      enum: ['none', 'mortgage', 'student_loan', 'business', 'heloc_home'],
+    })
+      .notNull()
+      .default('none'),
+    interestTaxDeductionLimitCents: integer('interest_tax_deduction_limit_cents'),
+    budgetPeriodAssignment: integer('budget_period_assignment'),
+    splitAcrossPeriods: integer('split_across_periods', { mode: 'boolean' }).notNull().default(false),
+    createdAt: text('created_at').notNull().default(sqliteNowIso),
+    updatedAt: text('updated_at').notNull().default(sqliteNowIso),
+  },
+  (table) => ({
+    householdActiveIdx: index('idx_bill_templates_household_active').on(table.householdId, table.isActive),
+    householdTypeIdx: index('idx_bill_templates_household_type').on(table.householdId, table.billType),
+    householdClassIdx: index('idx_bill_templates_household_class').on(table.householdId, table.classification),
+    linkedLiabilityIdx: index('idx_bill_templates_linked_liability').on(
+      table.householdId,
+      table.linkedLiabilityAccountId
+    ),
+  })
+);
+
+export const billOccurrences = sqliteTable(
+  'bill_occurrences',
+  {
+    id: text('id').primaryKey(),
+    templateId: text('template_id').notNull(),
+    householdId: text('household_id').notNull(),
+    dueDate: text('due_date').notNull(),
+    status: text('status', {
+      enum: ['unpaid', 'partial', 'paid', 'overpaid', 'overdue', 'skipped'],
+    })
+      .notNull()
+      .default('unpaid'),
+    amountDueCents: integer('amount_due_cents').notNull(),
+    amountPaidCents: integer('amount_paid_cents').notNull().default(0),
+    amountRemainingCents: integer('amount_remaining_cents').notNull(),
+    actualAmountCents: integer('actual_amount_cents'),
+    paidDate: text('paid_date'),
+    lastTransactionId: text('last_transaction_id'),
+    daysLate: integer('days_late').notNull().default(0),
+    lateFeeCents: integer('late_fee_cents').notNull().default(0),
+    isManualOverride: integer('is_manual_override', { mode: 'boolean' }).notNull().default(false),
+    budgetPeriodOverride: integer('budget_period_override'),
+    notes: text('notes'),
+    createdAt: text('created_at').notNull().default(sqliteNowIso),
+    updatedAt: text('updated_at').notNull().default(sqliteNowIso),
+  },
+  (table) => ({
+    templateDueUnique: uniqueIndex('idx_bill_occurrences_template_due').on(table.templateId, table.dueDate),
+    householdDueIdx: index('idx_bill_occurrences_household_due').on(table.householdId, table.dueDate),
+    householdStatusDueIdx: index('idx_bill_occurrences_household_status_due').on(
+      table.householdId,
+      table.status,
+      table.dueDate
+    ),
+    templateIdx: index('idx_bill_occurrences_template').on(table.templateId),
+  })
+);
+
+export const billOccurrenceAllocations = sqliteTable(
+  'bill_occurrence_allocations',
+  {
+    id: text('id').primaryKey(),
+    occurrenceId: text('occurrence_id').notNull(),
+    templateId: text('template_id').notNull(),
+    householdId: text('household_id').notNull(),
+    periodNumber: integer('period_number').notNull(),
+    allocatedAmountCents: integer('allocated_amount_cents').notNull(),
+    paidAmountCents: integer('paid_amount_cents').notNull().default(0),
+    isPaid: integer('is_paid', { mode: 'boolean' }).notNull().default(false),
+    paymentEventId: text('payment_event_id'),
+    createdAt: text('created_at').notNull().default(sqliteNowIso),
+    updatedAt: text('updated_at').notNull().default(sqliteNowIso),
+  },
+  (table) => ({
+    occurrencePeriodUnique: uniqueIndex('idx_bill_occurrence_allocations_unique').on(
+      table.occurrenceId,
+      table.periodNumber
+    ),
+    householdOccurrenceIdx: index('idx_bill_occurrence_allocations_household_occurrence').on(
+      table.householdId,
+      table.occurrenceId
+    ),
+  })
+);
+
+export const billPaymentEvents = sqliteTable(
+  'bill_payment_events',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id').notNull(),
+    templateId: text('template_id').notNull(),
+    occurrenceId: text('occurrence_id').notNull(),
+    transactionId: text('transaction_id').notNull(),
+    amountCents: integer('amount_cents').notNull(),
+    principalCents: integer('principal_cents'),
+    interestCents: integer('interest_cents'),
+    balanceBeforeCents: integer('balance_before_cents'),
+    balanceAfterCents: integer('balance_after_cents'),
+    paymentDate: text('payment_date').notNull(),
+    paymentMethod: text('payment_method', {
+      enum: ['manual', 'transfer', 'autopay', 'match'],
+    })
+      .notNull()
+      .default('manual'),
+    sourceAccountId: text('source_account_id'),
+    idempotencyKey: text('idempotency_key'),
+    notes: text('notes'),
+    createdAt: text('created_at').notNull().default(sqliteNowIso),
+  },
+  (table) => ({
+    idempotencyKeyUnique: uniqueIndex('idx_bill_payment_events_idempotency').on(table.idempotencyKey),
+    householdDateIdx: index('idx_bill_payment_events_household_date').on(table.householdId, table.paymentDate),
+    occurrenceIdx: index('idx_bill_payment_events_occurrence').on(table.occurrenceId),
+  })
+);
+
+export const autopayRules = sqliteTable(
+  'autopay_rules',
+  {
+    id: text('id').primaryKey(),
+    templateId: text('template_id').notNull(),
+    householdId: text('household_id').notNull(),
+    isEnabled: integer('is_enabled', { mode: 'boolean' }).notNull().default(false),
+    payFromAccountId: text('pay_from_account_id').notNull(),
+    amountType: text('amount_type', {
+      enum: ['fixed', 'minimum_payment', 'statement_balance', 'full_balance'],
+    }).notNull(),
+    fixedAmountCents: integer('fixed_amount_cents'),
+    daysBeforeDue: integer('days_before_due').notNull().default(0),
+    createdAt: text('created_at').notNull().default(sqliteNowIso),
+    updatedAt: text('updated_at').notNull().default(sqliteNowIso),
+  },
+  (table) => ({
+    templateUnique: uniqueIndex('idx_autopay_rules_template').on(table.templateId),
+    householdEnabledIdx: index('idx_autopay_rules_household_enabled').on(table.householdId, table.isEnabled),
+  })
+);
+
+export const autopayRuns = sqliteTable(
+  'autopay_runs',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id').notNull(),
+    runDate: text('run_date').notNull(),
+    runType: text('run_type', {
+      enum: ['scheduled', 'manual', 'dry_run'],
+    }).notNull(),
+    status: text('status', {
+      enum: ['started', 'completed', 'failed'],
+    }).notNull(),
+    processedCount: integer('processed_count').notNull().default(0),
+    successCount: integer('success_count').notNull().default(0),
+    failedCount: integer('failed_count').notNull().default(0),
+    skippedCount: integer('skipped_count').notNull().default(0),
+    totalAmountCents: integer('total_amount_cents').notNull().default(0),
+    errorSummary: text('error_summary'),
+    startedAt: text('started_at').notNull(),
+    completedAt: text('completed_at'),
+  },
+  (table) => ({
+    householdDateIdx: index('idx_autopay_runs_household_date').on(table.householdId, table.runDate),
+  })
+);
+
+export const billMatchEvents = sqliteTable(
+  'bill_match_events',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id').notNull(),
+    transactionId: text('transaction_id').notNull(),
+    templateId: text('template_id'),
+    occurrenceId: text('occurrence_id'),
+    confidenceBps: integer('confidence_bps').notNull(),
+    decision: text('decision', {
+      enum: ['suggested', 'accepted', 'rejected', 'auto_linked', 'no_match'],
+    }).notNull(),
+    reasonsJson: text('reasons_json'),
+    createdAt: text('created_at').notNull().default(sqliteNowIso),
+  },
+  (table) => ({
+    householdTxIdx: index('idx_bill_match_events_household_tx').on(table.householdId, table.transactionId),
+    householdCreatedIdx: index('idx_bill_match_events_household_created').on(table.householdId, table.createdAt),
+  })
+);
+
 // Bill Milestones - Track payoff milestones for debt bills and credit accounts (Phase 1.3)
 export const billMilestones = sqliteTable(
   'bill_milestones',

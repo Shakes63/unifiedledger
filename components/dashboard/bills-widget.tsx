@@ -41,7 +41,7 @@ export function BillsWidget() {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-        const response = await fetchWithHousehold(`/api/bills/instances?status=pending,paid&sortBy=dueDate`);
+        const response = await fetchWithHousehold(`/api/bills-v2/instances?status=pending,paid&sortBy=dueDate`);
 
         if (response.ok) {
           const response_data = await response.json();
@@ -91,7 +91,7 @@ export function BillsWidget() {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-        const response = await fetchWithHousehold(`/api/bills/instances?status=pending,paid&sortBy=dueDate`);
+        const response = await fetchWithHousehold(`/api/bills-v2/instances?status=pending,paid&sortBy=dueDate`);
 
         if (response.ok) {
           const response_data = await response.json();

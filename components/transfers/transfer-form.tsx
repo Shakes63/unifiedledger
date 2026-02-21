@@ -112,7 +112,7 @@ export function TransferForm({
       try {
         setPaymentBillLoading(true);
         const response = await fetchWithHousehold(
-          `/api/bills/detect-payment?accountId=${toAccountId}`
+          `/api/bills-v2/detect-payment?accountId=${toAccountId}`
         );
         
         if (!response.ok) {

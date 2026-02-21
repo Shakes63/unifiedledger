@@ -575,6 +575,237 @@ export const billInstanceAllocations = pgTable(
   })
 );
 
+export const billTemplates = pgTable(
+  'bill_templates',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id').notNull(),
+    createdByUserId: text('created_by_user_id').notNull(),
+    name: text('name').notNull(),
+    description: text('description'),
+    isActive: boolean('is_active').notNull().default(true),
+    billType: text('bill_type', {
+      enum: ['expense', 'income', 'savings_transfer'],
+    }).notNull(),
+    classification: text('classification', {
+      enum: ['subscription', 'utility', 'housing', 'insurance', 'loan_payment', 'membership', 'service', 'other'],
+    }).notNull(),
+    classificationSubcategory: text('classification_subcategory'),
+    recurrenceType: text('recurrence_type', {
+      enum: ['one_time', 'weekly', 'biweekly', 'monthly', 'quarterly', 'semi_annual', 'annual'],
+    }).notNull(),
+    recurrenceDueDay: integer('recurrence_due_day'),
+    recurrenceDueWeekday: integer('recurrence_due_weekday'),
+    recurrenceSpecificDueDate: text('recurrence_specific_due_date'),
+    recurrenceStartMonth: integer('recurrence_start_month'),
+    defaultAmountCents: bigint('default_amount_cents', { mode: 'number' }).notNull().default(0),
+    isVariableAmount: boolean('is_variable_amount').notNull().default(false),
+    amountToleranceBps: integer('amount_tolerance_bps').notNull().default(500),
+    categoryId: text('category_id'),
+    merchantId: text('merchant_id'),
+    paymentAccountId: text('payment_account_id'),
+    linkedLiabilityAccountId: text('linked_liability_account_id'),
+    chargedToAccountId: text('charged_to_account_id'),
+    autoMarkPaid: boolean('auto_mark_paid').notNull().default(true),
+    notes: text('notes'),
+    debtEnabled: boolean('debt_enabled').notNull().default(false),
+    debtOriginalBalanceCents: bigint('debt_original_balance_cents', { mode: 'number' }),
+    debtRemainingBalanceCents: bigint('debt_remaining_balance_cents', { mode: 'number' }),
+    debtInterestAprBps: integer('debt_interest_apr_bps'),
+    debtInterestType: text('debt_interest_type', {
+      enum: ['fixed', 'variable', 'none'],
+    }),
+    debtStartDate: text('debt_start_date'),
+    debtColor: text('debt_color'),
+    includeInPayoffStrategy: boolean('include_in_payoff_strategy').notNull().default(true),
+    interestTaxDeductible: boolean('interest_tax_deductible').notNull().default(false),
+    interestTaxDeductionType: text('interest_tax_deduction_type', {
+      enum: ['none', 'mortgage', 'student_loan', 'business', 'heloc_home'],
+    })
+      .notNull()
+      .default('none'),
+    interestTaxDeductionLimitCents: bigint('interest_tax_deduction_limit_cents', { mode: 'number' }),
+    budgetPeriodAssignment: integer('budget_period_assignment'),
+    splitAcrossPeriods: boolean('split_across_periods').notNull().default(false),
+    createdAt: text('created_at').notNull().default(pgNowIso),
+    updatedAt: text('updated_at').notNull().default(pgNowIso),
+  },
+  (table) => ({
+    householdActiveIdx: index('idx_bill_templates_household_active').on(table.householdId, table.isActive),
+    householdTypeIdx: index('idx_bill_templates_household_type').on(table.householdId, table.billType),
+    householdClassIdx: index('idx_bill_templates_household_class').on(table.householdId, table.classification),
+    linkedLiabilityIdx: index('idx_bill_templates_linked_liability').on(
+      table.householdId,
+      table.linkedLiabilityAccountId
+    ),
+  })
+);
+
+export const billOccurrences = pgTable(
+  'bill_occurrences',
+  {
+    id: text('id').primaryKey(),
+    templateId: text('template_id').notNull(),
+    householdId: text('household_id').notNull(),
+    dueDate: text('due_date').notNull(),
+    status: text('status', {
+      enum: ['unpaid', 'partial', 'paid', 'overpaid', 'overdue', 'skipped'],
+    })
+      .notNull()
+      .default('unpaid'),
+    amountDueCents: bigint('amount_due_cents', { mode: 'number' }).notNull(),
+    amountPaidCents: bigint('amount_paid_cents', { mode: 'number' }).notNull().default(0),
+    amountRemainingCents: bigint('amount_remaining_cents', { mode: 'number' }).notNull(),
+    actualAmountCents: bigint('actual_amount_cents', { mode: 'number' }),
+    paidDate: text('paid_date'),
+    lastTransactionId: text('last_transaction_id'),
+    daysLate: integer('days_late').notNull().default(0),
+    lateFeeCents: bigint('late_fee_cents', { mode: 'number' }).notNull().default(0),
+    isManualOverride: boolean('is_manual_override').notNull().default(false),
+    budgetPeriodOverride: integer('budget_period_override'),
+    notes: text('notes'),
+    createdAt: text('created_at').notNull().default(pgNowIso),
+    updatedAt: text('updated_at').notNull().default(pgNowIso),
+  },
+  (table) => ({
+    templateDueUnique: uniqueIndex('idx_bill_occurrences_template_due').on(table.templateId, table.dueDate),
+    householdDueIdx: index('idx_bill_occurrences_household_due').on(table.householdId, table.dueDate),
+    householdStatusDueIdx: index('idx_bill_occurrences_household_status_due').on(
+      table.householdId,
+      table.status,
+      table.dueDate
+    ),
+    templateIdx: index('idx_bill_occurrences_template').on(table.templateId),
+  })
+);
+
+export const billOccurrenceAllocations = pgTable(
+  'bill_occurrence_allocations',
+  {
+    id: text('id').primaryKey(),
+    occurrenceId: text('occurrence_id').notNull(),
+    templateId: text('template_id').notNull(),
+    householdId: text('household_id').notNull(),
+    periodNumber: integer('period_number').notNull(),
+    allocatedAmountCents: bigint('allocated_amount_cents', { mode: 'number' }).notNull(),
+    paidAmountCents: bigint('paid_amount_cents', { mode: 'number' }).notNull().default(0),
+    isPaid: boolean('is_paid').notNull().default(false),
+    paymentEventId: text('payment_event_id'),
+    createdAt: text('created_at').notNull().default(pgNowIso),
+    updatedAt: text('updated_at').notNull().default(pgNowIso),
+  },
+  (table) => ({
+    occurrencePeriodUnique: uniqueIndex('idx_bill_occurrence_allocations_unique').on(
+      table.occurrenceId,
+      table.periodNumber
+    ),
+    householdOccurrenceIdx: index('idx_bill_occurrence_allocations_household_occurrence').on(
+      table.householdId,
+      table.occurrenceId
+    ),
+  })
+);
+
+export const billPaymentEvents = pgTable(
+  'bill_payment_events',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id').notNull(),
+    templateId: text('template_id').notNull(),
+    occurrenceId: text('occurrence_id').notNull(),
+    transactionId: text('transaction_id').notNull(),
+    amountCents: bigint('amount_cents', { mode: 'number' }).notNull(),
+    principalCents: bigint('principal_cents', { mode: 'number' }),
+    interestCents: bigint('interest_cents', { mode: 'number' }),
+    balanceBeforeCents: bigint('balance_before_cents', { mode: 'number' }),
+    balanceAfterCents: bigint('balance_after_cents', { mode: 'number' }),
+    paymentDate: text('payment_date').notNull(),
+    paymentMethod: text('payment_method', {
+      enum: ['manual', 'transfer', 'autopay', 'match'],
+    })
+      .notNull()
+      .default('manual'),
+    sourceAccountId: text('source_account_id'),
+    idempotencyKey: text('idempotency_key'),
+    notes: text('notes'),
+    createdAt: text('created_at').notNull().default(pgNowIso),
+  },
+  (table) => ({
+    idempotencyKeyUnique: uniqueIndex('idx_bill_payment_events_idempotency').on(table.idempotencyKey),
+    householdDateIdx: index('idx_bill_payment_events_household_date').on(table.householdId, table.paymentDate),
+    occurrenceIdx: index('idx_bill_payment_events_occurrence').on(table.occurrenceId),
+  })
+);
+
+export const autopayRules = pgTable(
+  'autopay_rules',
+  {
+    id: text('id').primaryKey(),
+    templateId: text('template_id').notNull(),
+    householdId: text('household_id').notNull(),
+    isEnabled: boolean('is_enabled').notNull().default(false),
+    payFromAccountId: text('pay_from_account_id').notNull(),
+    amountType: text('amount_type', {
+      enum: ['fixed', 'minimum_payment', 'statement_balance', 'full_balance'],
+    }).notNull(),
+    fixedAmountCents: bigint('fixed_amount_cents', { mode: 'number' }),
+    daysBeforeDue: integer('days_before_due').notNull().default(0),
+    createdAt: text('created_at').notNull().default(pgNowIso),
+    updatedAt: text('updated_at').notNull().default(pgNowIso),
+  },
+  (table) => ({
+    templateUnique: uniqueIndex('idx_autopay_rules_template').on(table.templateId),
+    householdEnabledIdx: index('idx_autopay_rules_household_enabled').on(table.householdId, table.isEnabled),
+  })
+);
+
+export const autopayRuns = pgTable(
+  'autopay_runs',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id').notNull(),
+    runDate: text('run_date').notNull(),
+    runType: text('run_type', {
+      enum: ['scheduled', 'manual', 'dry_run'],
+    }).notNull(),
+    status: text('status', {
+      enum: ['started', 'completed', 'failed'],
+    }).notNull(),
+    processedCount: integer('processed_count').notNull().default(0),
+    successCount: integer('success_count').notNull().default(0),
+    failedCount: integer('failed_count').notNull().default(0),
+    skippedCount: integer('skipped_count').notNull().default(0),
+    totalAmountCents: bigint('total_amount_cents', { mode: 'number' }).notNull().default(0),
+    errorSummary: text('error_summary'),
+    startedAt: text('started_at').notNull(),
+    completedAt: text('completed_at'),
+  },
+  (table) => ({
+    householdDateIdx: index('idx_autopay_runs_household_date').on(table.householdId, table.runDate),
+  })
+);
+
+export const billMatchEvents = pgTable(
+  'bill_match_events',
+  {
+    id: text('id').primaryKey(),
+    householdId: text('household_id').notNull(),
+    transactionId: text('transaction_id').notNull(),
+    templateId: text('template_id'),
+    occurrenceId: text('occurrence_id'),
+    confidenceBps: integer('confidence_bps').notNull(),
+    decision: text('decision', {
+      enum: ['suggested', 'accepted', 'rejected', 'auto_linked', 'no_match'],
+    }).notNull(),
+    reasonsJson: text('reasons_json'),
+    createdAt: text('created_at').notNull().default(pgNowIso),
+  },
+  (table) => ({
+    householdTxIdx: index('idx_bill_match_events_household_tx').on(table.householdId, table.transactionId),
+    householdCreatedIdx: index('idx_bill_match_events_household_created').on(table.householdId, table.createdAt),
+  })
+);
+
 // Bill Milestones - Track payoff milestones for debt bills and credit accounts (Phase 1.3)
 export const billMilestones = pgTable(
   'bill_milestones',

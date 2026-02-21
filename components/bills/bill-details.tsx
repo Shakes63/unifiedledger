@@ -88,7 +88,7 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
 
     try {
       setLoading(true);
-      const response = await fetchWithHousehold(`/api/bills/${billId}`);
+      const response = await fetchWithHousehold(`/api/bills-v2/${billId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch bill');
       }
@@ -126,7 +126,7 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
 
     try {
       setDeleting(true);
-      const response = await fetchWithHousehold(`/api/bills/${billId}`, { method: 'DELETE' });
+      const response = await fetchWithHousehold(`/api/bills-v2/${billId}`, { method: 'DELETE' });
 
       if (!response.ok) {
         throw new Error('Failed to delete bill');

@@ -204,7 +204,7 @@ export function QuickAddBillModal({
         }
       }
 
-      const response = await fetchWithHousehold('/api/bills', {
+      const response = await fetchWithHousehold('/api/bills-v2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(billData),

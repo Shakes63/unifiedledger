@@ -126,14 +126,14 @@ export default function BillsDashboard() {
         setLoading(true);
 
         // Fetch active bills
-        const billsRes = await fetchWithHousehold('/api/bills?isActive=true&limit=100');
+        const billsRes = await fetchWithHousehold('/api/bills-v2?isActive=true&limit=100');
         if (!billsRes.ok) {
           throw new Error(`Failed to fetch bills: ${billsRes.statusText}`);
         }
         const billsData = await billsRes.json();
 
         // Fetch all bill instances
-        const instancesRes = await fetchWithHousehold('/api/bills/instances?limit=1000');
+        const instancesRes = await fetchWithHousehold('/api/bills-v2/instances?limit=1000');
         if (!instancesRes.ok) {
           throw new Error(`Failed to fetch bill instances: ${instancesRes.statusText}`);
         }
@@ -181,14 +181,14 @@ export default function BillsDashboard() {
           setLoading(true);
 
           // Fetch active bills
-          const billsRes = await fetchWithHousehold('/api/bills?isActive=true&limit=100');
+          const billsRes = await fetchWithHousehold('/api/bills-v2?isActive=true&limit=100');
           if (!billsRes.ok) {
             throw new Error(`Failed to fetch bills: ${billsRes.statusText}`);
           }
           const billsData = await billsRes.json();
 
           // Fetch all bill instances
-          const instancesRes = await fetchWithHousehold('/api/bills/instances?limit=1000');
+          const instancesRes = await fetchWithHousehold('/api/bills-v2/instances?limit=1000');
           if (!instancesRes.ok) {
             throw new Error(`Failed to fetch bill instances: ${instancesRes.statusText}`);
           }
