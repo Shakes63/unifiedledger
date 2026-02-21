@@ -1,11 +1,10 @@
-import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { accountBalanceHistory, accounts } from '@/lib/db/schema';
 import { eq, and, gte, inArray } from 'drizzle-orm';
-import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import Decimal from 'decimal.js';
 import { format, startOfDay, subDays } from 'date-fns';
 import { toMoneyCents } from '@/lib/utils/money-cents';
+import { accountApiErrorResponse, requireAccountsHousehold } from '@/lib/accounts/account-api-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,18 +19,7 @@ interface UtilizationDataPoint {
 
 export async function GET(request: Request) {
   try {
-    const { userId } = await requireAuth();
-
-    // Get and validate household
-    const householdId = getHouseholdIdFromRequest(request);
-    await requireHouseholdAuth(userId, householdId);
-
-    if (!householdId) {
-      return Response.json(
-        { error: 'Household ID is required' },
-        { status: 400 }
-      );
-    }
+    const { householdId } = await requireAccountsHousehold(request);
 
     // Parse query params
     const { searchParams } = new URL(request.url);
@@ -181,16 +169,6 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (error instanceof Error && (error.message.includes('Household') || error.message.includes('member'))) {
-      return Response.json({ error: error.message }, { status: 403 });
-    }
-    console.error('Utilization history fetch error:', error);
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return accountApiErrorResponse(error, 'Utilization history fetch error:');
   }
 }

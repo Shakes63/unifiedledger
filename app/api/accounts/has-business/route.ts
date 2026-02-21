@@ -25,6 +25,7 @@ import {
   requireHouseholdAuth,
 } from '@/lib/api/household-auth';
 import { isTestMode, TEST_USER_ID, TEST_HOUSEHOLD_ID, logTestModeWarning } from '@/lib/test-mode';
+import { computeBusinessFeatureFlags } from '@/lib/accounts/business-feature-utils';
 
 export async function GET(request: Request) {
   try {
@@ -75,20 +76,7 @@ export async function GET(request: Request) {
         )
       );
 
-    // Check for specific features across all accounts
-    const hasSalesTaxAccounts = activeAccounts.some(
-      acc => acc.enableSalesTax === true || (acc.isBusinessAccount === true && acc.enableSalesTax !== false)
-    );
-    const hasTaxDeductionAccounts = activeAccounts.some(
-      acc => acc.enableTaxDeductions === true || (acc.isBusinessAccount === true && acc.enableTaxDeductions !== false)
-    );
-    const hasBusinessAccounts = hasSalesTaxAccounts || hasTaxDeductionAccounts;
-
-    return NextResponse.json({
-      hasBusinessAccounts,
-      hasSalesTaxAccounts,
-      hasTaxDeductionAccounts,
-    });
+    return NextResponse.json(computeBusinessFeatureFlags(activeAccounts));
   } catch (error) {
     console.error('[API] Error checking business accounts:', error);
 
@@ -110,4 +98,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

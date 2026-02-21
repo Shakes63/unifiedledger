@@ -9,6 +9,7 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { HouseholdLoadingState } from '@/components/household/household-loading-state';
 import { NoHouseholdError } from '@/components/household/no-household-error';
+import { useHouseholdAccounts } from '@/components/accounts/hooks/use-household-accounts';
 
 interface Account {
   id: string;
@@ -35,11 +36,23 @@ interface Transfer {
 export default function TransfersPage() {
   const { initialized, loading: householdLoading, selectedHouseholdId: householdId } = useHousehold();
   const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
+  const {
+    accounts: householdAccounts,
+    loading: accountsLoading,
+  } = useHouseholdAccounts({
+    enabled: initialized && !householdLoading && Boolean(selectedHouseholdId && householdId),
+    fetchWithHousehold,
+    emptySelectionMessage: 'No household selected',
+  });
   
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    setAccounts(householdAccounts as Account[]);
+  }, [householdAccounts]);
 
   // Load accounts and transfers
   useEffect(() => {
@@ -57,13 +70,6 @@ export default function TransfersPage() {
     const loadData = async () => {
       try {
         setIsLoading(true);
-
-        // Load accounts
-        const accountsRes = await fetchWithHousehold('/api/accounts');
-        if (accountsRes.ok) {
-          const accountsData = await accountsRes.json();
-          setAccounts(accountsData || []);
-        }
 
         // Load transfers
         const transfersRes = await fetchWithHousehold('/api/transfers?limit=50');
@@ -109,7 +115,7 @@ export default function TransfersPage() {
   }
 
   // Show skeleton loading while fetching data
-  if (isLoading) {
+  if (isLoading || accountsLoading) {
     return (
       <div className="px-4 sm:px-6 lg:px-8 py-8">
         <div className="max-w-7xl mx-auto">

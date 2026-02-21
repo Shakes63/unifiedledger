@@ -14,7 +14,8 @@ import {
 import { toast } from 'sonner';
 import { Wallet, DollarSign, CreditCard, TrendingUp, Coins, Building2, PiggyBank, Briefcase, Landmark, HelpCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { AccountFormData, AccountType, PaymentAmountSource, InterestType } from '@/lib/types';
+import type { AccountFormData, InterestType } from '@/lib/types';
+import { buildAccountSubmitData, validateAccountFormData } from './account-form-utils';
 
 const ACCOUNT_TYPES = [
   { value: 'checking', label: 'Checking', icon: Wallet },
@@ -195,31 +196,7 @@ export function AccountForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Clear previous errors
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Account name is required';
-    }
-
-    if (!formData.type) {
-      newErrors.type = 'Account type is required';
-    }
-
-    if (!formData.bankName.trim()) {
-      newErrors.bankName = 'Bank name is required';
-    }
-
-    // Validation for credit accounts
-    const isCreditAccount = formData.type === 'credit' || formData.type === 'line_of_credit';
-    
-    if (isCreditAccount && formData.autoCreatePaymentBill && !formData.statementDueDay) {
-      newErrors.statementDueDay = 'Payment due day is required when payment tracking is enabled';
-    }
-
-    if (formData.annualFee && parseFloat(String(formData.annualFee)) > 0 && !formData.annualFeeMonth) {
-      newErrors.annualFeeMonth = 'Fee month is required when annual fee is set';
-    }
+    const newErrors = validateAccountFormData(formData);
 
     // If there are any errors, show them and stop
     if (Object.keys(newErrors).length > 0) {
@@ -233,46 +210,7 @@ export function AccountForm({
 
     // Clear errors if validation passed
     setErrors({});
-
-    const submitData: Partial<AccountFormData> = {
-      name: formData.name,
-      type: formData.type as AccountType,
-      bankName: formData.bankName || null,
-      accountNumberLast4: formData.accountNumberLast4 || null,
-      currentBalance: parseFloat(String(formData.currentBalance)) || 0,
-      creditLimit: formData.creditLimit ? parseFloat(String(formData.creditLimit)) : null,
-      color: formData.color,
-      icon: formData.icon,
-      // Compute isBusinessAccount from toggles for backward compatibility
-      isBusinessAccount: formData.enableSalesTax || formData.enableTaxDeductions,
-      enableSalesTax: formData.enableSalesTax,
-      enableTaxDeductions: formData.enableTaxDeductions,
-      // Budget integration
-      includeInDiscretionary: formData.includeInDiscretionary,
-    };
-
-    // Add credit/line of credit fields if applicable
-    if (isCreditAccount) {
-      submitData.interestRate = formData.interestRate ? parseFloat(String(formData.interestRate)) : null;
-      submitData.minimumPaymentPercent = formData.minimumPaymentPercent ? parseFloat(String(formData.minimumPaymentPercent)) : null;
-      submitData.minimumPaymentFloor = formData.minimumPaymentFloor ? parseFloat(String(formData.minimumPaymentFloor)) : null;
-      submitData.statementDueDay = formData.statementDueDay ? parseInt(String(formData.statementDueDay)) : null;
-      submitData.annualFee = formData.annualFee ? parseFloat(String(formData.annualFee)) : null;
-      submitData.annualFeeMonth = formData.annualFeeMonth ? parseInt(String(formData.annualFeeMonth)) : null;
-      submitData.autoCreatePaymentBill = formData.autoCreatePaymentBill;
-      submitData.includeInPayoffStrategy = formData.includeInPayoffStrategy;
-      submitData.paymentAmountSource = formData.paymentAmountSource as PaymentAmountSource;
-      
-      // Line of Credit specific fields
-      if (formData.type === 'line_of_credit') {
-        submitData.isSecured = formData.isSecured;
-        submitData.securedAsset = formData.securedAsset || null;
-        submitData.drawPeriodEndDate = formData.drawPeriodEndDate || null;
-        submitData.repaymentPeriodEndDate = formData.repaymentPeriodEndDate || null;
-        submitData.interestType = formData.interestType as InterestType;
-        submitData.primeRateMargin = formData.primeRateMargin ? parseFloat(String(formData.primeRateMargin)) : null;
-      }
-    }
+    const submitData = buildAccountSubmitData(formData) as Partial<AccountFormData>;
 
     onSubmit(submitData, saveMode || 'save');
 

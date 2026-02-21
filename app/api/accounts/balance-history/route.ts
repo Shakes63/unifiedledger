@@ -1,11 +1,10 @@
-import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import { accountBalanceHistory, accounts } from '@/lib/db/schema';
 import { eq, and, gte, inArray } from 'drizzle-orm';
-import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import Decimal from 'decimal.js';
 import { format, startOfDay, subDays } from 'date-fns';
 import { toMoneyCents } from '@/lib/utils/money-cents';
+import { accountApiErrorResponse, buildDisambiguatedAccountNameMap, requireAccountsHousehold } from '@/lib/accounts/account-api-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,18 +19,7 @@ interface BalanceDataPoint {
 
 export async function GET(request: Request) {
   try {
-    const { userId } = await requireAuth();
-
-    // Get and validate household
-    const householdId = getHouseholdIdFromRequest(request);
-    await requireHouseholdAuth(userId, householdId);
-
-    if (!householdId) {
-      return Response.json(
-        { error: 'Household ID is required' },
-        { status: 400 }
-      );
-    }
+    const { householdId } = await requireAccountsHousehold(request);
 
     // Parse query params
     const { searchParams } = new URL(request.url);
@@ -73,16 +61,10 @@ export async function GET(request: Request) {
         )
       );
 
-    // Disambiguate duplicate account names so chart keys don't collide
-    const nameCounts = new Map<string, number>();
-    for (const acc of creditAccounts) {
-      nameCounts.set(acc.name, (nameCounts.get(acc.name) || 0) + 1);
-    }
-    const accountDisplayName = new Map<string, string>();
-    for (const acc of creditAccounts) {
-      const count = nameCounts.get(acc.name) || 0;
-      accountDisplayName.set(acc.id, count > 1 ? `${acc.name} (${acc.id.slice(0, 4)})` : acc.name);
-    }
+    const accountDisplayName = buildDisambiguatedAccountNameMap(creditAccounts.map((acc) => ({
+      id: acc.id,
+      name: acc.name,
+    })));
 
     const accountMetaMap = new Map(creditAccounts.map(a => [a.id, { 
       name: accountDisplayName.get(a.id) || a.name, 
@@ -208,16 +190,6 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (error instanceof Error && (error.message.includes('Household') || error.message.includes('member'))) {
-      return Response.json({ error: error.message }, { status: 403 });
-    }
-    console.error('Balance history fetch error:', error);
-    return Response.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return accountApiErrorResponse(error, 'Balance history fetch error:');
   }
 }

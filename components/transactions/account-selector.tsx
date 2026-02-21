@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import {
   Select,
   SelectContent,
@@ -10,13 +10,7 @@ import {
 } from '@/components/ui/select';
 import { DollarSign } from 'lucide-react';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
-
-interface Account {
-  id: string;
-  name: string;
-  type: string;
-  currentBalance: number;
-}
+import { useHouseholdAccounts } from '@/components/accounts/hooks/use-household-accounts';
 
 interface AccountSelectorProps {
   selectedAccountId: string | null;
@@ -32,36 +26,17 @@ export function AccountSelector({
   hideLabel = false,
 }: AccountSelectorProps) {
   const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [_loading, setLoading] = useState(true);
+  const { accounts } = useHouseholdAccounts({
+    enabled: Boolean(selectedHouseholdId),
+    fetchWithHousehold,
+    emptySelectionMessage: 'No household selected',
+  });
 
   useEffect(() => {
-    if (!selectedHouseholdId) {
-      setLoading(false);
-      return;
+    if (!selectedAccountId && accounts.length > 0) {
+      onAccountChange(accounts[0].id);
     }
-
-    const fetchAccounts = async () => {
-      try {
-        setLoading(true);
-        const response = await fetchWithHousehold('/api/accounts');
-        if (response.ok) {
-          const data = await response.json();
-          setAccounts(data);
-          // Auto-select first account if none selected
-          if (!selectedAccountId && data.length > 0) {
-            onAccountChange(data[0].id);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch accounts:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAccounts();
-  }, [selectedAccountId, onAccountChange, selectedHouseholdId, fetchWithHousehold]);
+  }, [selectedAccountId, onAccountChange, accounts]);
 
   const selectedAccount = accounts.find((acc) => acc.id === selectedAccountId);
 

@@ -14,6 +14,7 @@ import { useHousehold } from '@/contexts/household-context';
 import { useBusinessFeatures } from '@/contexts/business-features-context';
 import { HouseholdLoadingState } from '@/components/household/household-loading-state';
 import { NoHouseholdError } from '@/components/household/no-household-error';
+import { useHouseholdAccounts } from '@/components/accounts/hooks/use-household-accounts';
 
 interface Account {
   id: string;
@@ -51,49 +52,27 @@ export default function AccountsPage() {
     deleteWithHousehold,
     selectedHouseholdId
   } = useHouseholdFetch();
+  const {
+    accounts: householdAccounts,
+    loading,
+    refetch: refetchAccounts,
+  } = useHouseholdAccounts({
+    enabled: initialized && !householdLoading && Boolean(selectedHouseholdId && householdId),
+    fetchWithHousehold,
+    emptySelectionMessage: 'No household selected',
+  });
 
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCharts, setShowCharts] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Fetch accounts
+  // Keep a local copy for optimistic UI updates and grouping calculations.
   useEffect(() => {
-    // Don't fetch if household context isn't initialized yet
-    if (!initialized || householdLoading) {
-      return;
-    }
-
-    // Don't fetch if no household is selected
-    if (!selectedHouseholdId || !householdId) {
-      setLoading(false);
-      return;
-    }
-
-    const fetchAccounts = async () => {
-
-      try {
-        setLoading(true);
-        const response = await fetchWithHousehold('/api/accounts');
-        if (response.ok) {
-          const data = await response.json();
-          setAccounts(data);
-        } else {
-          toast.error('Failed to load accounts');
-        }
-      } catch (error) {
-        console.error('Error fetching accounts:', error);
-        toast.error('Error loading accounts');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAccounts();
-  }, [initialized, householdLoading, selectedHouseholdId, householdId, fetchWithHousehold]);
+    setAccounts(householdAccounts as Account[]);
+  }, [householdAccounts]);
 
   // Create or update account
   const handleSubmit = async (formData: Record<string, unknown>, saveMode: 'save' | 'saveAndAdd' = 'save') => {
@@ -116,22 +95,16 @@ export default function AccountsPage() {
           toast.success(selectedAccount ? 'Account updated successfully' : 'Account created successfully');
         }
 
-        // Refresh accounts list (skip cache to get fresh data)
-        const fetchResponse = await fetchWithHousehold('/api/accounts', { skipCache: true });
-        if (fetchResponse.ok) {
-          const data = await fetchResponse.json();
-          setAccounts(data);
+        const refreshedAccounts = await refetchAccounts();
+        setAccounts(refreshedAccounts as Account[]);
 
-          // Refresh business features context in case business account status changed
-          await refreshBusinessFeatures();
+        // Refresh business features context in case business account status changed
+        await refreshBusinessFeatures();
 
-          // Only close dialog for regular save, keep open for save & add another
-          if (saveMode === 'save') {
-            setIsDialogOpen(false);
-            setSelectedAccount(null);
-          }
-        } else {
-          toast.error(`Account ${selectedAccount ? 'updated' : 'created'} but failed to refresh list`);
+        // Only close dialog for regular save, keep open for save & add another
+        if (saveMode === 'save') {
+          setIsDialogOpen(false);
+          setSelectedAccount(null);
         }
       } else {
         let errorMessage = selectedAccount ? 'Failed to update account' : 'Failed to create account';
