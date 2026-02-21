@@ -29,8 +29,14 @@ import { TransactionTemplatesManager } from './transaction-templates-manager';
 import { SplitBuilder, type Split } from './split-builder';
 import { BudgetWarning } from './budget-warning';
 import { GoalSelector } from './goal-selector';
-import type { SavingsDetectionResult } from '@/lib/transactions/savings-detection';
-import type { PaymentBillDetectionResult } from '@/lib/bills/payment-bill-detection';
+import { useHouseholdAccounts } from './hooks/use-household-accounts';
+import { useTransferDetections } from './hooks/use-transfer-detections';
+import { useUnpaidBills, type UnpaidBillWithInstance } from './hooks/use-unpaid-bills';
+import {
+  syncTransactionCustomFields,
+  syncTransactionSplits,
+  syncTransactionTags,
+} from './transaction-form-persistence';
 
 // Type for goal contributions in split mode
 interface GoalContribution {
@@ -45,15 +51,8 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { Loader2 } from 'lucide-react';
 import { getTodayLocalDateString } from '@/lib/utils/local-date';
-import type { Bill, BillInstance } from '@/lib/types';
 
 type TransactionType = 'income' | 'expense' | 'transfer' | 'bill';
-
-// Unpaid bill instance with bill details
-interface UnpaidBillWithInstance {
-  bill: Bill;
-  instance: BillInstance;
-}
 
 // Split data from API
 interface SplitData {
@@ -153,10 +152,6 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [_customFieldsLoading, setCustomFieldsLoading] = useState(true);
-  const [accounts, setAccounts] = useState<Array<{ id: string; name: string; currentBalance: number; isBusinessAccount?: boolean; enableSalesTax?: boolean }>>([]);
-  const [_accountsLoading, setAccountsLoading] = useState(false);
-  const [unpaidBills, setUnpaidBills] = useState<UnpaidBillWithInstance[]>([]);
-  const [billsLoading, setBillsLoading] = useState(false);
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
   const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
   const [merchantIsSalesTaxExempt, setMerchantIsSalesTaxExempt] = useState(false);
@@ -164,12 +159,6 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   // Phase 18: Savings goal linking
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
   const [goalContributions, setGoalContributions] = useState<GoalContribution[]>([]);
-  // Phase 18: Auto-detection for savings transfers
-  const [detectionResult, setDetectionResult] = useState<SavingsDetectionResult | null>(null);
-  const [detectionLoading, setDetectionLoading] = useState(false);
-  // Phase 5: Auto-detection for credit card payment bills
-  const [paymentBillDetection, setPaymentBillDetection] = useState<PaymentBillDetectionResult | null>(null);
-  const [_paymentBillLoading, setPaymentBillLoading] = useState(false);
   const isEditMode = !!transactionId;
 
   // Helper function to get today's date in local YYYY-MM-DD format
@@ -188,6 +177,30 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     type: defaultType,
     isPending: false,
     toAccountId: '', // For transfers
+  });
+
+  const canLoadHouseholdData = Boolean(selectedHouseholdId && householdId);
+  const { accounts } = useHouseholdAccounts({
+    enabled: canLoadHouseholdData,
+    fetchWithHousehold,
+    emptySelectionMessage: 'No household selected',
+  });
+  const {
+    unpaidBills,
+    loading: billsLoading,
+    refresh: refreshUnpaidBills,
+  } = useUnpaidBills({
+    enabled: formData.type === 'bill' && canLoadHouseholdData,
+    fetchWithHousehold,
+  });
+  const {
+    savingsDetection: detectionResult,
+    paymentBillDetection,
+    loadingSavingsDetection: detectionLoading,
+  } = useTransferDetections({
+    enabled: formData.type === 'transfer' && canLoadHouseholdData,
+    toAccountId: formData.toAccountId,
+    fetchWithHousehold,
   });
 
   // Compute whether selected account is a business account for category filtering
@@ -320,145 +333,17 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
     }
   }, [isEditMode]);
 
-  // Fetch accounts for transfer dropdowns
   useEffect(() => {
-    if (!selectedHouseholdId) {
-      setAccountsLoading(false);
+    if (formData.type !== 'transfer' || !detectionResult?.suggestedGoalId || detectionResult.confidence !== 'high') {
       return;
     }
 
-    const fetchAccounts = async () => {
-      try {
-        setAccountsLoading(true);
-        const response = await fetchWithHousehold('/api/accounts');
-        if (response.ok) {
-          const data = await response.json();
-          setAccounts(data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch accounts:', error);
-      } finally {
-        setAccountsLoading(false);
-      }
-    };
-
-    fetchAccounts();
-  }, [selectedHouseholdId, fetchWithHousehold]);
-
-  // Fetch unpaid bills (pending and overdue) when type is 'bill'
-  useEffect(() => {
-    const fetchUnpaidBills = async () => {
-      if (formData.type !== 'bill') {
-        setUnpaidBills([]);
-        return;
-      }
-
-      if (!selectedHouseholdId) {
-        setUnpaidBills([]);
-        setBillsLoading(false);
-        return;
-      }
-
-      try {
-        setBillsLoading(true);
-        const response = await fetchWithHousehold('/api/bills-v2/instances?status=pending,overdue&limit=100');
-        if (response.ok) {
-          const data = await response.json();
-          setUnpaidBills(data.data || []);
-        } else {
-          console.error('Failed to fetch unpaid bills:', response.status);
-          setUnpaidBills([]);
-        }
-      } catch (error) {
-        console.error('Failed to fetch unpaid bills:', error);
-        setUnpaidBills([]);
-      } finally {
-        setBillsLoading(false);
-      }
-    };
-
-    fetchUnpaidBills();
-  }, [formData.type, selectedHouseholdId, fetchWithHousehold]);
-
-  // Phase 18: Auto-detect savings goals when destination account changes
-  useEffect(() => {
-    const detectGoals = async () => {
-      // Only run for transfers with a destination account
-      if (formData.type !== 'transfer' || !formData.toAccountId || !selectedHouseholdId) {
-        setDetectionResult(null);
-        return;
-      }
-
-      try {
-        setDetectionLoading(true);
-        
-        // Call API endpoint for detection (server-side query)
-        const response = await fetchWithHousehold(
-          `/api/savings-goals/detect?accountId=${formData.toAccountId}`
-        );
-        
-        if (!response.ok) {
-          setDetectionResult(null);
-          return;
-        }
-        
-        const result: SavingsDetectionResult = await response.json();
-        setDetectionResult(result);
-        
-        // Auto-select goal if confidence is high
-        if (result.confidence === 'high' && result.suggestedGoalId) {
-          setSelectedGoalId(result.suggestedGoalId);
-          // Also set contributions for full amount if available
-          const amount = parseFloat(formData.amount);
-          if (amount > 0) {
-            setGoalContributions([{ goalId: result.suggestedGoalId, amount }]);
-          }
-        }
-      } catch (error) {
-        console.error('Error detecting savings goals:', error);
-        setDetectionResult(null);
-      } finally {
-        setDetectionLoading(false);
-      }
-    };
-
-    detectGoals();
-  }, [formData.type, formData.toAccountId, formData.amount, selectedHouseholdId, fetchWithHousehold]);
-
-  // Phase 5: Auto-detect payment bills when destination account changes
-  useEffect(() => {
-    const detectPaymentBill = async () => {
-      // Only run for transfers with a destination account
-      if (formData.type !== 'transfer' || !formData.toAccountId || !selectedHouseholdId) {
-        setPaymentBillDetection(null);
-        return;
-      }
-
-      try {
-        setPaymentBillLoading(true);
-        
-        // Call API endpoint for detection
-        const response = await fetchWithHousehold(
-          `/api/bills-v2/detect-payment?accountId=${formData.toAccountId}`
-        );
-        
-        if (!response.ok) {
-          setPaymentBillDetection(null);
-          return;
-        }
-        
-        const result: PaymentBillDetectionResult = await response.json();
-        setPaymentBillDetection(result);
-      } catch (error) {
-        console.error('Error detecting payment bills:', error);
-        setPaymentBillDetection(null);
-      } finally {
-        setPaymentBillLoading(false);
-      }
-    };
-
-    detectPaymentBill();
-  }, [formData.type, formData.toAccountId, selectedHouseholdId, fetchWithHousehold]);
+    setSelectedGoalId(detectionResult.suggestedGoalId);
+    const amount = parseFloat(formData.amount);
+    if (amount > 0) {
+      setGoalContributions([{ goalId: detectionResult.suggestedGoalId, amount }]);
+    }
+  }, [detectionResult, formData.type, formData.amount]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -730,36 +615,12 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       // Handle tags - add tags after transaction creation/update
       if (selectedTagIds.length > 0) {
         try {
-          // In edit mode, delete old tags first
-          if (isEditMode) {
-            const existingTags = await fetchWithHousehold(`/api/transactions/${txId}/tags`);
-            if (existingTags.ok) {
-              const existingTagIds = await existingTags.json();
-              for (const tag of existingTagIds) {
-                await fetch('/api/transaction-tags', {
-                  method: 'DELETE',
-                  headers: { 'Content-Type': 'application/json' },
-                  credentials: 'include',
-                  body: JSON.stringify({
-                    transactionId: txId,
-                    tagId: tag.id,
-                  }),
-                });
-              }
-            }
-          }
-
-          // Add selected tags
-          for (const tagId of selectedTagIds) {
-            await fetch('/api/transaction-tags', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                transactionId: txId,
-                tagId,
-              }),
-            });
-          }
+          await syncTransactionTags({
+            transactionId: txId,
+            selectedTagIds,
+            isEditMode,
+            fetchWithHousehold,
+          });
         } catch (tagError) {
           console.error('Error saving tags:', tagError);
           // Don't fail transaction creation if tags fail
@@ -769,31 +630,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       // Handle custom field values - save after transaction creation/update
       if (Object.keys(customFieldValues).length > 0) {
         try {
-          // In edit mode, delete old field values first
-          if (isEditMode) {
-            const existingValues = await fetch(`/api/custom-field-values?transactionId=${txId}`, { credentials: 'include' });
-            if (existingValues.ok) {
-              const existingData = await existingValues.json();
-              for (const fieldValue of existingData.data || []) {
-                await fetch(`/api/custom-field-values?valueId=${fieldValue.id}`, { credentials: 'include', method: 'DELETE', });
-              }
-            }
-          }
-
-          // Save custom field values
-          for (const [fieldId, value] of Object.entries(customFieldValues)) {
-            if (value) {
-              await fetch('/api/custom-field-values', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  customFieldId: fieldId,
-                  transactionId: txId,
-                  value,
-                }),
-              });
-            }
-          }
+          await syncTransactionCustomFields({
+            transactionId: txId,
+            customFieldValues,
+            isEditMode,
+          });
         } catch (fieldError) {
           console.error('Error saving custom field values:', fieldError);
           // Don't fail transaction creation if field values fail
@@ -801,39 +642,13 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       }
 
       // Handle splits using batch API (single atomic operation)
-      if (useSplits && splits.length > 0) {
-        const batchSplits = splits.map((split, index) => ({
-          // Only include id if it's an existing database split (not a local temp id)
-          id: split.id && !split.id.startsWith('split-') ? split.id : undefined,
-          categoryId: split.categoryId,
-          amount: split.amount || 0,
-          percentage: split.percentage || 0,
-          isPercentage: split.isPercentage,
-          description: split.description,
-          sortOrder: index,
-        }));
-
-        const batchResponse = await putWithHousehold(
-          `/api/transactions/${txId}/splits/batch`,
-          { splits: batchSplits, deleteOthers: true }
-        );
-
-        if (!batchResponse.ok) {
-          const errorData = await batchResponse.json();
-          throw new Error(errorData.error || 'Failed to save splits');
-        }
-      } else if (isEditMode && !useSplits) {
-        // If splits were disabled in edit mode, delete all existing splits
-        const batchResponse = await putWithHousehold(
-          `/api/transactions/${txId}/splits/batch`,
-          { splits: [], deleteOthers: true }
-        );
-
-        if (!batchResponse.ok) {
-          const errorData = await batchResponse.json();
-          throw new Error(errorData.error || 'Failed to remove splits');
-        }
-      }
+      await syncTransactionSplits({
+        transactionId: txId,
+        useSplits,
+        splits,
+        isEditMode,
+        putWithHousehold,
+      });
 
       setSuccess(true);
       // Haptic feedback on successful transaction creation
@@ -843,18 +658,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
       if (formData.type === 'bill' || formData.type === 'expense') {
         // Refresh unpaid bills in this component if type is 'bill'
         if (formData.type === 'bill') {
-          const refreshBills = async () => {
-            try {
-              const response = await fetchWithHousehold('/api/bills-v2/instances?status=pending,overdue&limit=100');
-              if (response.ok) {
-                const data = await response.json();
-                setUnpaidBills(data.data || []);
-              }
-            } catch (error) {
-              console.error('Failed to refresh bills:', error);
-            }
-          };
-          refreshBills();
+          void refreshUnpaidBills();
         }
         
         // Emit event for other components (bills page, widgets) to refresh

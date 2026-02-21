@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   Dialog,
@@ -25,12 +25,14 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { CategorySelector } from '@/components/transactions/category-selector';
 import { MerchantSelector } from '@/components/transactions/merchant-selector';
+import { useHouseholdAccounts } from '@/components/transactions/hooks/use-household-accounts';
+import { useUnpaidBills, type UnpaidBillWithInstance } from '@/components/transactions/hooks/use-unpaid-bills';
 import {
   loadQuickEntryDefaults,
   saveQuickEntryDefaults,
 } from '@/lib/utils/quick-entry-defaults';
 import { getRelativeLocalDateString, getTodayLocalDateString } from '@/lib/utils/local-date';
-import type { Account, Bill, BillInstance } from '@/lib/types';
+import type { Account } from '@/lib/types';
 
 interface QuickTransactionModalProps {
   open: boolean;
@@ -38,12 +40,6 @@ interface QuickTransactionModalProps {
 }
 
 type TransactionType = 'income' | 'expense' | 'transfer_in' | 'transfer_out' | 'bill';
-
-// Unpaid bill instance with bill details
-interface UnpaidBillWithInstance {
-  bill: Bill;
-  instance: BillInstance;
-}
 
 // Transaction data for API submission
 interface QuickTransactionData {
@@ -87,16 +83,32 @@ export function QuickTransactionModal({
   const [date, setDate] = useState(getTodayLocalDateString());
   const [notes, setNotes] = useState('');
   const [showNotes, setShowNotes] = useState(false);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [accountsLoading, setAccountsLoading] = useState(false);
-  const [accountsError, setAccountsError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [unpaidBills, setUnpaidBills] = useState<UnpaidBillWithInstance[]>([]);
-  const [billsLoading, setBillsLoading] = useState(false);
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
   const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
   const [merchantIsSalesTaxExempt, setMerchantIsSalesTaxExempt] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const canLoadHouseholdData = Boolean(selectedHouseholdId && householdId);
+  const {
+    accounts,
+    loading: accountsLoading,
+    error: accountsError,
+    clearError: clearAccountsError,
+  } = useHouseholdAccounts({
+    enabled: open && initialized && !householdLoading && canLoadHouseholdData,
+    fetchWithHousehold,
+    emptySelectionMessage: 'No household selected',
+  });
+  const {
+    unpaidBills,
+    loading: billsLoading,
+    refresh: refreshUnpaidBills,
+    clear: clearUnpaidBills,
+  } = useUnpaidBills({
+    enabled: open && type === 'bill' && canLoadHouseholdData,
+    fetchWithHousehold,
+  });
 
   // Compute whether selected account is a business account for category filtering
   const selectedAccountIsBusinessAccount = useMemo(() => {
@@ -124,140 +136,43 @@ export function QuickTransactionModal({
     }
   };
 
-  // Fetch accounts and load smart defaults
-  const fetchAccounts = useCallback(async () => {
-    if (!selectedHouseholdId || !householdId) {
-      setAccountsError('No household selected');
-      setAccountsLoading(false);
+  useEffect(() => {
+    if (!open || !selectedHouseholdId || accounts.length === 0) {
       return;
     }
 
-    setAccountsLoading(true);
-    setAccountsError(null);
-
-    try {
-      const response = await fetchWithHousehold('/api/accounts');
-      
-      if (!response.ok) {
-        // Handle specific error status codes
-        let errorMessage = 'Failed to load accounts';
-        if (response.status === 400) {
-          errorMessage = 'Invalid household selection. Please try again.';
-        } else if (response.status === 401) {
-          errorMessage = 'Session expired. Please sign in again.';
-        } else if (response.status === 403) {
-          errorMessage = "You don't have access to this household's accounts.";
-        } else if (response.status === 500) {
-          errorMessage = 'Server error. Please try again.';
-        }
-        
-        setAccountsError(errorMessage);
-        setAccountsLoading(false);
-        console.error('Failed to fetch accounts:', response.status, errorMessage);
-        return;
-      }
-
-      const data = await response.json();
-      setAccounts(data);
-      setAccountsError(null);
-      
-      // Load smart defaults for current transaction type
-      const defaults = loadQuickEntryDefaults(selectedHouseholdId, type);
-      
-      // Apply account default (validate it exists in accounts list)
-      let selectedAccountId = '';
-      if (defaults.accountId && data.some((acc: Account) => acc.id === defaults.accountId)) {
-        selectedAccountId = defaults.accountId;
-        setAccountId(defaults.accountId);
-      } else if (data.length > 0) {
-        selectedAccountId = data[0].id;
-        setAccountId(data[0].id);
-      }
-      
-      // Auto-enable sales tax for income with sales-tax-enabled accounts
-      if (selectedAccountId && type === 'income') {
-        const selectedAccount = data.find((acc: Account) => acc.id === selectedAccountId);
-        if (selectedAccount?.enableSalesTax) {
-          setSalesTaxEnabled(true);
-        }
-      }
-      
-      // Apply category default (if provided)
-      if (defaults.categoryId !== undefined) {
-        setCategoryId(defaults.categoryId);
-      }
-      
-      // Apply merchant default (if provided)
-      if (defaults.merchantId !== undefined) {
-        setMerchantId(defaults.merchantId);
-      }
-      
-      // Apply toAccountId default for transfers (validate it exists)
-      if (defaults.toAccountId && data.some((acc: Account) => acc.id === defaults.toAccountId)) {
-        setToAccountId(defaults.toAccountId);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch accounts';
-      setAccountsError(errorMessage);
-      console.error('Failed to fetch accounts:', error);
-    } finally {
-      setAccountsLoading(false);
-    }
-  }, [fetchWithHousehold, householdId, selectedHouseholdId, type]);
-
-  // Fetch accounts when modal opens and household is ready
-  useEffect(() => {
-    // Only fetch when modal is open AND household is initialized AND not loading AND household ID exists
-    if (!open || !initialized || householdLoading || !selectedHouseholdId || !householdId) {
-      // Reset accounts when modal closes or household not ready
-      if (!open) {
-        setAccounts([]);
-        setAccountsError(null);
-        setAccountsLoading(false);
-      }
+    if (type === 'bill' && selectedBillInstanceId && selectedBillInstanceId !== 'none') {
       return;
     }
 
-    void fetchAccounts();
-  }, [open, initialized, householdLoading, selectedHouseholdId, householdId, fetchAccounts]);
+    const defaults = loadQuickEntryDefaults(selectedHouseholdId, type);
 
-  // Fetch unpaid bills when type is 'bill'
-  useEffect(() => {
-    const fetchUnpaidBills = async () => {
-      if (type !== 'bill') {
-        setUnpaidBills([]);
-        setSelectedBillInstanceId('');
-        return;
-      }
-
-      if (!selectedHouseholdId || !householdId) {
-        setUnpaidBills([]);
-        setBillsLoading(false);
-        return;
-      }
-
-      try {
-        setBillsLoading(true);
-        const response = await fetchWithHousehold('/api/bills-v2/instances?status=pending,overdue&limit=100');
-        if (response.ok) {
-          const data = await response.json();
-          setUnpaidBills(data.data || []);
-        } else {
-          console.error('Failed to fetch unpaid bills:', response.status);
-          setUnpaidBills([]);
-        }
-      } catch (error) {
-        console.error('Failed to fetch unpaid bills:', error);
-        setUnpaidBills([]);
-      } finally {
-        setBillsLoading(false);
-      }
-    };
-
-    if (open && type === 'bill') {
-      fetchUnpaidBills();
+    let nextAccountId = accountId;
+    if (defaults.accountId && accounts.some((acc: Account) => acc.id === defaults.accountId)) {
+      nextAccountId = defaults.accountId;
+      setAccountId(defaults.accountId);
+    } else if (!accountId && accounts.length > 0) {
+      nextAccountId = accounts[0].id;
+      setAccountId(accounts[0].id);
     }
-  }, [type, selectedHouseholdId, householdId, open, fetchWithHousehold]);
+
+    if (type === 'income' && nextAccountId) {
+      const selectedAccount = accounts.find((acc: Account) => acc.id === nextAccountId);
+      setSalesTaxEnabled(Boolean(selectedAccount?.enableSalesTax));
+    }
+
+    if (defaults.categoryId !== undefined) {
+      setCategoryId(defaults.categoryId);
+    }
+
+    if (defaults.merchantId !== undefined) {
+      setMerchantId(defaults.merchantId);
+    }
+
+    if (defaults.toAccountId && accounts.some((acc: Account) => acc.id === defaults.toAccountId)) {
+      setToAccountId(defaults.toAccountId);
+    }
+  }, [open, selectedHouseholdId, type, accounts, accountId, selectedBillInstanceId]);
 
   // Handle bill selection
   const handleBillSelect = (billInstanceId: string) => {
@@ -285,48 +200,6 @@ export function QuickTransactionModal({
     }
   };
 
-  // Load defaults when transaction type changes
-  useEffect(() => {
-    if (!selectedHouseholdId || !open) return;
-    
-    // Don't apply defaults if a bill is selected (bill data takes precedence)
-    if (type === 'bill' && selectedBillInstanceId && selectedBillInstanceId !== 'none') {
-      return;
-    }
-    
-    const defaults = loadQuickEntryDefaults(selectedHouseholdId, type);
-    
-    // Apply account default (validate it exists)
-    let effectiveAccountId = accountId; // Keep current if no default
-    if (defaults.accountId && accounts.some((acc: Account) => acc.id === defaults.accountId)) {
-      effectiveAccountId = defaults.accountId;
-      setAccountId(defaults.accountId);
-    }
-    
-    // Auto-enable sales tax for income with sales-tax-enabled accounts
-    if (type === 'income' && effectiveAccountId) {
-      const selectedAccount = accounts.find((acc: Account) => acc.id === effectiveAccountId);
-      if (selectedAccount?.enableSalesTax) {
-        setSalesTaxEnabled(true);
-      }
-    }
-    
-    // Apply category default
-    if (defaults.categoryId !== undefined) {
-      setCategoryId(defaults.categoryId);
-    }
-    
-    // Apply merchant default
-    if (defaults.merchantId !== undefined) {
-      setMerchantId(defaults.merchantId);
-    }
-    
-    // Apply toAccountId default for transfers
-    if (defaults.toAccountId && accounts.some((acc: Account) => acc.id === defaults.toAccountId)) {
-      setToAccountId(defaults.toAccountId);
-    }
-  }, [type, selectedHouseholdId, open, accounts, selectedBillInstanceId, accountId]);
-
   const handleOpenChange = (newOpen: boolean) => {
     if (newOpen) {
       // Reset date to today when opening
@@ -345,9 +218,9 @@ export function QuickTransactionModal({
       setShowNotes(false);
       setError(null);
       setFieldErrors({});
-      setAccountsError(null);
       setSelectedBillInstanceId('');
-      setUnpaidBills([]);
+      clearUnpaidBills();
+      clearAccountsError();
       setSalesTaxEnabled(false);
       setMerchantIsSalesTaxExempt(false);
     }
@@ -500,18 +373,7 @@ export function QuickTransactionModal({
       if (type === 'bill' || type === 'expense') {
         // Refresh unpaid bills in this component if type is 'bill'
         if (type === 'bill') {
-          const refreshBills = async () => {
-            try {
-              const response = await fetchWithHousehold('/api/bills-v2/instances?status=pending,overdue&limit=100');
-              if (response.ok) {
-                const data = await response.json();
-                setUnpaidBills(data.data || []);
-              }
-            } catch (error) {
-              console.error('Failed to refresh bills:', error);
-            }
-          };
-          refreshBills();
+          await refreshUnpaidBills();
         }
         
         // Emit event for other components (bills page, widgets) to refresh
@@ -530,7 +392,7 @@ export function QuickTransactionModal({
       setNotes('');
       setShowNotes(false);
       setSelectedBillInstanceId('');
-      setUnpaidBills([]);
+      clearUnpaidBills();
       setSalesTaxEnabled(false);
       setMerchantIsSalesTaxExempt(false);
       setTimeout(() => {
