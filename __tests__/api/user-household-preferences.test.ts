@@ -154,6 +154,19 @@ describe('User-Per-Household Preferences API - GET', () => {
     expect(isMemberOfHousehold).toHaveBeenCalledWith(TEST_HOUSEHOLD_ID, TEST_USER_ID);
   });
 
+  it('should return 403 if user membership is inactive', async () => {
+    (isMemberOfHousehold as any).mockResolvedValue(false);
+
+    const request = createMockRequest();
+    const params = createMockParams(TEST_HOUSEHOLD_ID);
+
+    const response = await GET(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toBe('Not a member of this household');
+  });
+
   it('should return default preferences if no preferences exist', async () => {
     (isMemberOfHousehold as any).mockResolvedValue(true);
 

@@ -59,6 +59,7 @@ const MOCK_MEMBER = {
   householdId: TEST_HOUSEHOLD_ID,
   userId: TEST_TARGET_USER_ID,
   role: 'admin',
+  isActive: true,
   customPermissions: null,
   createdAt: '2025-01-01T00:00:00.000Z',
   updatedAt: '2025-01-01T00:00:00.000Z',
@@ -134,6 +135,19 @@ describe('Household Member Permissions API - GET', () => {
   });
 
   it('should return 403 if user is not a member of household', async () => {
+    (isMemberOfHousehold as any).mockResolvedValue(false);
+
+    const request = createMockRequest();
+    const params = createMockParams(TEST_HOUSEHOLD_ID, TEST_MEMBER_ID);
+
+    const response = await GET(request, { params });
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toBe('Not a member of this household');
+  });
+
+  it('should return 403 if requester membership is inactive', async () => {
     (isMemberOfHousehold as any).mockResolvedValue(false);
 
     const request = createMockRequest();
@@ -587,4 +601,3 @@ describe('Household Member Permissions API - DELETE', () => {
     expect(data.customPermissions).toBeNull();
   });
 });
-

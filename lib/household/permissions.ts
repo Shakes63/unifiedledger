@@ -110,7 +110,8 @@ export async function getUserHouseholdRole(
     .where(
       and(
         eq(householdMembers.householdId, householdId),
-        eq(householdMembers.userId, userId)
+        eq(householdMembers.userId, userId),
+        eq(householdMembers.isActive, true)
       )
     )
     .limit(1);
@@ -143,7 +144,8 @@ async function getCustomPermissions(
     .where(
       and(
         eq(householdMembers.householdId, householdId),
-        eq(householdMembers.userId, userId)
+        eq(householdMembers.userId, userId),
+        eq(householdMembers.isActive, true)
       )
     )
     .limit(1);
@@ -352,7 +354,8 @@ export async function isMemberOfHousehold(
     .where(
       and(
         eq(householdMembers.householdId, householdId),
-        eq(householdMembers.userId, userId)
+        eq(householdMembers.userId, userId),
+        eq(householdMembers.isActive, true)
       )
     )
     .limit(1);
@@ -411,7 +414,8 @@ export async function validatePermissionChange(
     .where(
       and(
         eq(householdMembers.householdId, householdId),
-        eq(householdMembers.userId, targetUserId)
+        eq(householdMembers.userId, targetUserId),
+        eq(householdMembers.isActive, true)
       )
     )
     .limit(1);
@@ -439,7 +443,8 @@ export async function validatePermissionChange(
       .where(
         and(
           eq(householdMembers.householdId, householdId),
-          eq(householdMembers.role, 'admin')
+          eq(householdMembers.role, 'admin'),
+          eq(householdMembers.isActive, true)
         )
       );
 
@@ -474,7 +479,8 @@ export async function validatePermissionChange(
       .where(
         and(
           eq(householdMembers.householdId, householdId),
-          eq(householdMembers.role, 'owner')
+          eq(householdMembers.role, 'owner'),
+          eq(householdMembers.isActive, true)
         )
       );
 
