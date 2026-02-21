@@ -6,6 +6,9 @@
 
 import { themes, DEFAULT_THEME_ID, type Theme } from './theme-config';
 
+const THEME_STORAGE_PREFIX = 'unified-ledger:theme';
+const LEGACY_THEME_STORAGE_KEY = THEME_STORAGE_PREFIX;
+
 /**
  * Get a theme by ID
  * @param themeId - The theme ID to retrieve
@@ -63,6 +66,40 @@ export function isThemeAvailable(themeId: string): boolean {
   return theme ? theme.isAvailable : false;
 }
 
+export function getThemeStorageKey(householdId?: string | null): string {
+  return householdId ? `${THEME_STORAGE_PREFIX}:${householdId}` : LEGACY_THEME_STORAGE_KEY;
+}
+
+export function getCachedTheme(householdId?: string | null): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const scopedTheme = householdId
+      ? window.localStorage.getItem(getThemeStorageKey(householdId))
+      : null;
+    if (scopedTheme && isValidThemeId(scopedTheme)) {
+      return scopedTheme;
+    }
+
+    const legacyTheme = window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
+    if (legacyTheme && isValidThemeId(legacyTheme)) {
+      return legacyTheme;
+    }
+  } catch {
+    // Ignore storage failures (private mode, etc.)
+  }
+
+  return null;
+}
+
+interface ApplyThemeOptions {
+  householdId?: string | null;
+  persist?: boolean;
+  force?: boolean;
+}
+
 /**
  * Apply theme to the document root
  * This function can be used to dynamically apply theme colors to CSS variables
@@ -72,12 +109,14 @@ export function isThemeAvailable(themeId: string): boolean {
  *
  * @param themeId - The theme ID to apply
  */
-export function applyTheme(themeId: string): void {
-  console.log(`[Theme] Applying theme: ${themeId}`);
-
-  const theme = getTheme(themeId);
-  if (!theme || !theme.isAvailable) {
-    console.warn(`[Theme] Theme '${themeId}' not available, using default`);
+export function applyTheme(themeId: string, options: ApplyThemeOptions = {}): void {
+  const { householdId = null, persist = true, force = false } = options;
+  const requestedTheme = getTheme(themeId);
+  const theme =
+    requestedTheme && requestedTheme.isAvailable
+      ? requestedTheme
+      : getTheme(DEFAULT_THEME_ID);
+  if (!theme) {
     return;
   }
 
@@ -85,23 +124,37 @@ export function applyTheme(themeId: string): void {
   // This will trigger the CSS rules in globals.css for the selected theme
   if (typeof document !== 'undefined') {
     const root = document.documentElement;
-    const previousTheme = root.getAttribute('data-theme');
-    root.setAttribute('data-theme', themeId);
+    const nextThemeId = theme.id;
+    const currentThemeId = root.getAttribute('data-theme');
+
+    if (!force && currentThemeId === nextThemeId) {
+      if (persist && typeof window !== 'undefined') {
+        try {
+          window.localStorage.setItem(LEGACY_THEME_STORAGE_KEY, theme.id);
+          if (householdId) {
+            window.localStorage.setItem(getThemeStorageKey(householdId), theme.id);
+          }
+        } catch {
+          // Ignore storage failures (private mode, etc.)
+        }
+      }
+      return;
+    }
+
+    root.setAttribute('data-theme', nextThemeId);
     // Use the theme's color scheme for native UI controls
     const scheme = theme.mode === 'light' ? 'light' : 'dark';
     root.style.setProperty('color-scheme', scheme);
-
-    console.log(`[Theme] Changed data-theme from '${previousTheme}' to '${themeId}'`);
-    console.log(`[Theme] Root element now has data-theme="${root.getAttribute('data-theme')}"`);
   }
 
-  if (typeof window !== 'undefined') {
+  if (persist && typeof window !== 'undefined') {
     try {
-      window.localStorage.setItem('unified-ledger:theme', theme.id);
-      console.log(`[Theme] Saved to localStorage: ${theme.id}`);
+      window.localStorage.setItem(LEGACY_THEME_STORAGE_KEY, theme.id);
+      if (householdId) {
+        window.localStorage.setItem(getThemeStorageKey(householdId), theme.id);
+      }
     } catch {
       // Ignore storage failures (private mode, etc.)
-      console.warn('[Theme] Failed to save to localStorage');
     }
   }
 }

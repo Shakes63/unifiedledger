@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { applyTheme } from '@/lib/themes/theme-utils';
+import { applyTheme, getCachedTheme } from '@/lib/themes/theme-utils';
 import { enhancedFetch, FetchError, FetchErrorType } from '@/lib/utils/enhanced-fetch';
 import { toast } from 'sonner';
 
@@ -110,13 +110,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
         // Apply theme immediately
         if (data.theme) {
-          applyTheme(data.theme);
-          // Also save to localStorage for instant loading next time
-          try {
-            localStorage.setItem('unified-ledger:theme', data.theme);
-          } catch {
-            // Ignore storage errors
-          }
+          applyTheme(data.theme, { householdId });
         }
       } else {
         // Handle non-ok response
@@ -148,9 +142,9 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
       // Try to load cached preferences from localStorage
       try {
-        const cachedTheme = localStorage.getItem('unified-ledger:theme');
+        const cachedTheme = getCachedTheme(householdId);
         if (cachedTheme) {
-          applyTheme(cachedTheme);
+          applyTheme(cachedTheme, { householdId, persist: false });
         }
       } catch {
         // Ignore storage errors

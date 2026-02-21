@@ -31,9 +31,6 @@ export const DEFAULT_USER_SETTINGS = {
   highContrast: false,
   textSize: 'medium' as const,
 
-  // Appearance
-  theme: 'dark-mode',
-
   // Financial Preferences
   fiscalYearStart: 1, // January
   defaultAccountId: null,

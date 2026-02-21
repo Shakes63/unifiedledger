@@ -45,17 +45,13 @@ interface PeriodInfo {
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-// User household preferences shape - API returns flexible structure
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type UserHouseholdPreferences = Record<string, any>;
-
 interface HouseholdPersonalTabProps {
   householdId: string;
 }
 
 export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps) {
-  const { selectedHousehold, refreshPreferences } = useHousehold();
-  const [loading, setLoading] = useState(true);
+  const { selectedHousehold, preferences, preferencesLoading, refreshPreferences } = useHousehold();
+  const [scheduleLoading, setScheduleLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
   // Theme state
@@ -71,9 +67,6 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
     combinedTransferView: true,
   });
   
-  // Preferences state (for loading indicator)
-  const [preferences, setPreferences] = useState<UserHouseholdPreferences | null>(null);
-
   // Budget schedule state
   const [scheduleSettings, setScheduleSettings] = useState<BudgetScheduleSettings>({
     budgetCycleFrequency: 'monthly',
@@ -99,54 +92,50 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
     return [1, 15];
   };
 
-  const fetchPreferences = useCallback(async () => {
+  const fetchSchedule = useCallback(async () => {
     try {
-      setLoading(true);
-      
-      // Fetch preferences and budget schedule in parallel
-      const [prefsResponse, scheduleResponse] = await Promise.all([
-        fetch(`/api/user/households/${householdId}/preferences`, { credentials: 'include' }),
-        fetch(`/api/budget-schedule?householdId=${householdId}`, { credentials: 'include' }),
-      ]);
-
-      if (prefsResponse.ok) {
-        const data = await prefsResponse.json();
-        setPreferences(data);
-        
-        // Set theme
-        if (data.theme) {
-          setCurrentThemeId(data.theme);
-          setSelectedThemeId(data.theme);
-          const theme = getTheme(data.theme);
-          setCurrentTheme(theme);
-        }
-        
-        // Set financial settings
-        setFinancialSettings({
-          showCents: data.showCents !== false,
-          negativeNumberFormat: data.negativeNumberFormat || '-$100',
-          defaultTransactionType: data.defaultTransactionType || 'expense',
-          combinedTransferView: data.combinedTransferView !== false,
-        });
-      }
-
+      setScheduleLoading(true);
+      const scheduleResponse = await fetch(`/api/budget-schedule?householdId=${householdId}`, {
+        credentials: 'include',
+      });
       if (scheduleResponse.ok) {
         const scheduleData = await scheduleResponse.json();
         setScheduleSettings(scheduleData.settings);
         setCurrentPeriod(scheduleData.currentPeriod);
       }
     } catch (error) {
-      console.error('Error fetching preferences:', error);
-      toast.error('Failed to load preferences');
+      console.error('Error fetching budget schedule:', error);
+      toast.error('Failed to load budget schedule');
     } finally {
-      setLoading(false);
+      setScheduleLoading(false);
     }
   }, [householdId]);
 
-  // Fetch household preferences
+  // Fetch household schedule
   useEffect(() => {
-    fetchPreferences();
-  }, [fetchPreferences]);
+    fetchSchedule();
+  }, [fetchSchedule]);
+
+  // Sync UI state from household preferences in context
+  useEffect(() => {
+    if (!preferences) {
+      return;
+    }
+
+    if (preferences.theme) {
+      setCurrentThemeId(preferences.theme);
+      setSelectedThemeId(preferences.theme);
+      const theme = getTheme(preferences.theme);
+      setCurrentTheme(theme);
+    }
+
+    setFinancialSettings({
+      showCents: preferences.showCents !== false,
+      negativeNumberFormat: preferences.negativeNumberFormat || '-$100',
+      defaultTransactionType: preferences.defaultTransactionType || 'expense',
+      combinedTransferView: preferences.combinedTransferView !== false,
+    });
+  }, [preferences]);
 
   // Update current theme when ID changes
   useEffect(() => {
@@ -180,7 +169,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
       if (response.ok) {
         setCurrentThemeId(selectedThemeId);
         toast.success('Theme updated successfully!');
-        applyTheme(selectedThemeId);
+        applyTheme(selectedThemeId, { householdId });
         await refreshPreferences();
       } else {
         const data = await response.json();
@@ -291,7 +280,7 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
     });
   };
 
-  if (loading || !currentTheme || !preferences) {
+  if (scheduleLoading || preferencesLoading || !currentTheme || !preferences) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />

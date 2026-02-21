@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { applyTheme, isValidThemeId } from '@/lib/themes/theme-utils';
+import { applyTheme, getCachedTheme } from '@/lib/themes/theme-utils';
 import { DEFAULT_THEME_ID } from '@/lib/themes/theme-config';
 
 /**
@@ -20,9 +20,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 		}
 
 		try {
-			const storedTheme = window.localStorage.getItem('unified-ledger:theme');
-			if (storedTheme && isValidThemeId(storedTheme)) {
-				applyTheme(storedTheme);
+			const selectedHouseholdId = window.localStorage.getItem('unified-ledger:selected-household');
+			const storedTheme = getCachedTheme(selectedHouseholdId);
+			if (storedTheme) {
+				applyTheme(storedTheme, { householdId: selectedHouseholdId, persist: false });
 				return;
 			}
 		} catch {
@@ -30,7 +31,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 		}
 
 		// Fall back to default theme if no stored theme
-		applyTheme(DEFAULT_THEME_ID);
+		applyTheme(DEFAULT_THEME_ID, { persist: false });
 	}, []);
 
 	return <>{children}</>;

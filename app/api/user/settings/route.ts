@@ -27,7 +27,6 @@ const DEFAULT_SETTINGS = {
   reduceMotion: false,
   highContrast: false,
   textSize: 'medium' as const,
-  theme: 'dark-mode',
   fiscalYearStart: 1,
   defaultAccountId: null,
   defaultBudgetMethod: 'monthly',
