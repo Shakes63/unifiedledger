@@ -1,13 +1,12 @@
-import { and, eq } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
-
-import { processBillPayment } from '@/lib/bills/bill-payment-utils';
 import { db } from '@/lib/db';
-import { debts, debtPayments, transactions } from '@/lib/db/schema';
-import { batchUpdateMilestones } from '@/lib/debts/milestone-utils';
-import { calculatePaymentBreakdown } from '@/lib/debts/payment-calculator';
+import { processAndAttachBillPayment } from '@/lib/transactions/payment-linkage-bill';
+import {
+  loadScopedDebt,
+  persistLegacyDebtPayment,
+  type PaymentLinkageDbClient,
+} from '@/lib/transactions/payment-linkage-debt';
 
-type DbClient = Pick<typeof db, 'select' | 'insert' | 'update'>;
+type DbClient = PaymentLinkageDbClient;
 
 interface ApplyLegacyDebtPaymentParams {
   debtId: string;
@@ -30,65 +29,28 @@ export async function applyLegacyDebtPayment({
   notes,
   dbClient = db,
 }: ApplyLegacyDebtPaymentParams): Promise<boolean> {
-  const [currentDebt] = await dbClient
-    .select()
-    .from(debts)
-    .where(
-      and(
-        eq(debts.id, debtId),
-        eq(debts.userId, userId),
-        eq(debts.householdId, householdId)
-      )
-    )
-    .limit(1);
+  const currentDebt = await loadScopedDebt({
+    dbClient,
+    debtId,
+    userId,
+    householdId,
+  });
 
   if (!currentDebt) {
     return false;
   }
 
-  const breakdown = calculatePaymentBreakdown(
+  await persistLegacyDebtPayment({
+    dbClient,
+    debtId,
+    userId,
+    householdId,
     paymentAmount,
-    currentDebt.remainingBalance,
-    currentDebt.interestRate || 0,
-    currentDebt.interestType || 'none',
-    currentDebt.loanType || 'revolving',
-    currentDebt.compoundingFrequency || 'monthly',
-    currentDebt.billingCycleDays || 30
-  );
-
-  const newBalance = Math.max(0, currentDebt.remainingBalance - breakdown.principalAmount);
-  const nowIso = new Date().toISOString();
-
-  await Promise.all([
-    dbClient.insert(debtPayments).values({
-      id: nanoid(),
-      debtId,
-      userId,
-      householdId,
-      amount: paymentAmount,
-      principalAmount: breakdown.principalAmount,
-      interestAmount: breakdown.interestAmount,
-      paymentDate,
-      transactionId,
-      notes,
-      createdAt: nowIso,
-    }),
-    dbClient
-      .update(debts)
-      .set({
-        remainingBalance: newBalance,
-        status: newBalance === 0 ? 'paid_off' : 'active',
-        updatedAt: nowIso,
-      })
-      .where(
-        and(
-          eq(debts.id, debtId),
-          eq(debts.userId, userId),
-          eq(debts.householdId, householdId)
-        )
-      ),
-    batchUpdateMilestones(debtId, newBalance),
-  ]);
+    paymentDate,
+    transactionId,
+    notes,
+    currentDebt,
+  });
 
   return true;
 }
@@ -124,7 +86,7 @@ export async function processAndLinkBillPayment({
   legacyDebtId,
   dbClient = db,
 }: ProcessAndLinkBillPaymentParams) {
-  const paymentResult = await processBillPayment({
+  const billLinkResult = await processAndAttachBillPayment({
     billId,
     instanceId,
     transactionId,
@@ -132,25 +94,13 @@ export async function processAndLinkBillPayment({
     paymentDate,
     userId,
     householdId,
-    paymentMethod,
     linkedAccountId,
+    paymentMethod,
     notes,
   });
-
-  if (!paymentResult.success) {
-    return {
-      success: false,
-      paymentResult,
-    };
+  if (!billLinkResult.success) {
+    return billLinkResult;
   }
-
-  await dbClient
-    .update(transactions)
-    .set({
-      billId,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(transactions.id, transactionId));
 
   if (legacyDebtId) {
     await applyLegacyDebtPayment({
@@ -167,6 +117,6 @@ export async function processAndLinkBillPayment({
 
   return {
     success: true,
-    paymentResult,
+    paymentResult: billLinkResult.paymentResult,
   };
 }

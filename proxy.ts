@@ -246,9 +246,13 @@ export default async function proxy(request: NextRequest) {
     }
   }
 
-  // Redirect to dashboard if accessing auth pages with valid session
-  if (request.nextUrl.pathname.startsWith("/sign-in") ||
-      request.nextUrl.pathname.startsWith("/sign-up")) {
+  // Redirect authenticated users away from auth/home pages
+  const isAuthPage =
+    request.nextUrl.pathname.startsWith("/sign-in") ||
+    request.nextUrl.pathname.startsWith("/sign-up");
+  const isHomePage = request.nextUrl.pathname === "/";
+
+  if (isAuthPage || isHomePage) {
     if (sessionToken) {
       const validation = await validateSession(sessionToken);
       if (validation.valid) {

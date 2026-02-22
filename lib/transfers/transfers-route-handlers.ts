@@ -1,21 +1,18 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { resolveAndRequireEntity } from '@/lib/api/entity-auth';
-import { db } from '@/lib/db';
-import {
-  transfers,
-  accounts,
-  usageAnalytics,
-} from '@/lib/db/schema';
-import { eq, and, desc, lte, gte, isNull, or } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
-import Decimal from 'decimal.js';
 import { handleRouteError } from '@/lib/api/route-helpers';
-import {
-  amountToCents,
-} from '@/lib/transactions/money-movement-service';
 import { createCanonicalTransferPair } from '@/lib/transactions/transfer-service';
-import { requireAccountEntityAccess } from '@/lib/household/entities';
+import { trackTransferPairUsage } from '@/lib/analytics/usage-analytics-service';
+import {
+  mapTransferCreateValidationError,
+  validateTransferCreateInput,
+} from '@/lib/transfers/transfer-create-validation';
+import {
+  enrichTransfersWithAccountNames,
+  listEntityScopedTransfers,
+  parseTransferListParams,
+} from '@/lib/transfers/transfers-list-query';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,91 +27,26 @@ export async function handleListTransfers(request: Request) {
     const { householdId } = await getAndVerifyHousehold(request, userId);
     const selectedEntity = await resolveAndRequireEntity(userId, householdId, request);
 
-    const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
-    const fromDate = searchParams.get('fromDate');
-    const toDate = searchParams.get('toDate');
-
-    // Build filters
-    const filters = [
-      eq(transfers.userId, userId),
-      eq(transfers.householdId, householdId),
-    ];
-
-    if (fromDate) {
-      filters.push(gte(transfers.date, fromDate));
-    }
-
-    if (toDate) {
-      filters.push(lte(transfers.date, toDate));
-    }
-
-    // Get paginated results
-    const transferList = await db
-      .select()
-      .from(transfers)
-      .where(and(...filters))
-      .orderBy(desc(transfers.date))
-      .limit(limit)
-      .offset(offset);
-
-    const scopedAccountRows = await db
-      .select({ id: accounts.id })
-      .from(accounts)
-      .where(
-        and(
-          eq(accounts.userId, userId),
-          eq(accounts.householdId, householdId),
-          selectedEntity.isDefault
-            ? or(eq(accounts.entityId, selectedEntity.id), isNull(accounts.entityId))
-            : eq(accounts.entityId, selectedEntity.id)
-        )
-      );
-    const scopedAccountIds = new Set(scopedAccountRows.map((row) => row.id));
-    const entityFilteredTransferList = transferList.filter((transfer) =>
-      scopedAccountIds.has(transfer.fromAccountId) || scopedAccountIds.has(transfer.toAccountId)
-    );
-
-    // Enrich with account names
-    const enrichedTransfers = await Promise.all(
-      entityFilteredTransferList.map(async (transfer) => {
-        const [fromAccount, toAccount] = await Promise.all([
-          db
-            .select()
-            .from(accounts)
-            .where(
-              and(
-                eq(accounts.id, transfer.fromAccountId),
-                eq(accounts.userId, userId),
-                eq(accounts.householdId, householdId)
-              )
-            )
-            .limit(1),
-          db
-            .select()
-            .from(accounts)
-            .where(
-              and(
-                eq(accounts.id, transfer.toAccountId),
-                eq(accounts.userId, userId),
-                eq(accounts.householdId, householdId)
-              )
-            )
-            .limit(1),
-        ]);
-
-        return {
-          ...transfer,
-          fromAccountName: fromAccount[0]?.name || 'Unknown',
-          toAccountName: toAccount[0]?.name || 'Unknown',
-        };
-      })
-    );
+    const { limit, offset, fromDate, toDate } = parseTransferListParams(request);
+    const entityScopedTransfers = await listEntityScopedTransfers({
+      userId,
+      householdId,
+      selectedEntityId: selectedEntity.id,
+      selectedEntityIsDefault: selectedEntity.isDefault,
+      limit,
+      offset,
+      fromDate,
+      toDate,
+    });
+    const enrichedTransfers = await enrichTransfersWithAccountNames({
+      userId,
+      householdId,
+      transferList: entityScopedTransfers,
+    });
 
     return Response.json({
       transfers: enrichedTransfers,
-      total: entityFilteredTransferList.length,
+      total: entityScopedTransfers.length,
       limit,
       offset,
     });
@@ -146,144 +78,38 @@ export async function handleCreateTransfer(request: Request) {
       notes,
     } = body;
 
-    // Validate required fields
-    if (!fromAccountId || !toAccountId || amount === undefined || amount === null || !date) {
-      return Response.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Cannot transfer to the same account
-    if (fromAccountId === toAccountId) {
-      return Response.json(
-        { error: 'Cannot transfer to the same account' },
-        { status: 400 }
-      );
-    }
-
-    let transferAmount: Decimal;
-    let transferFees: Decimal;
+    let transferPayload;
     try {
-      transferAmount = new Decimal(amount);
-      transferFees = new Decimal(fees ?? 0);
-    } catch {
-      return Response.json(
-        { error: 'Amount and fees must be valid numbers' },
-        { status: 400 }
-      );
+      const validated = await validateTransferCreateInput({
+        userId,
+        householdId,
+        request,
+        body,
+        fromAccountId,
+        toAccountId,
+        amount,
+        date,
+        description,
+        fees,
+        notes,
+      });
+      transferPayload = validated.transferPayload;
+    } catch (error) {
+      const mappedValidationError = mapTransferCreateValidationError(error);
+      if (mappedValidationError) {
+        return mappedValidationError;
+      }
+      throw error;
     }
 
-    if (!transferAmount.isFinite() || transferAmount.lte(0)) {
-      return Response.json(
-        { error: 'Amount must be greater than 0' },
-        { status: 400 }
-      );
-    }
+    const result = await createCanonicalTransferPair(transferPayload);
 
-    if (!transferFees.isFinite() || transferFees.lt(0)) {
-      return Response.json(
-        { error: 'Fees must be 0 or greater' },
-        { status: 400 }
-      );
-    }
-
-    // Validate both accounts exist and belong to user
-    const [fromAccount, toAccount] = await Promise.all([
-      db
-        .select()
-        .from(accounts)
-        .where(
-          and(
-            eq(accounts.id, fromAccountId),
-            eq(accounts.userId, userId),
-            eq(accounts.householdId, householdId)
-          )
-        )
-        .limit(1),
-      db
-        .select()
-        .from(accounts)
-        .where(
-          and(
-            eq(accounts.id, toAccountId),
-            eq(accounts.userId, userId),
-            eq(accounts.householdId, householdId)
-          )
-        )
-        .limit(1),
-    ]);
-
-    if (fromAccount.length === 0 || toAccount.length === 0) {
-      return Response.json(
-        { error: 'One or both accounts not found' },
-        { status: 404 }
-      );
-    }
-    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request, body);
-    const fromAccountEntity = await requireAccountEntityAccess(
-      userId,
-      householdId,
-      fromAccount[0].entityId
-    );
-    if (fromAccountEntity.id !== selectedEntity.id) {
-      return Response.json(
-        { error: 'Source account must belong to the selected entity' },
-        { status: 403 }
-      );
-    }
-    await requireAccountEntityAccess(userId, householdId, toAccount[0].entityId);
-
-    const transferAmountCents = amountToCents(transferAmount);
-    const transferFeesCents = amountToCents(transferFees);
-
-    const result = await createCanonicalTransferPair({
+    await trackTransferPairUsage({
       userId,
       householdId,
       fromAccountId,
       toAccountId,
-      amountCents: transferAmountCents,
-      feesCents: transferFeesCents,
-      date,
-      description: description || `Transfer ${fromAccount[0].name} -> ${toAccount[0].name}`,
-      notes: notes || null,
     });
-
-    // Track transfer pair usage
-    const existingAnalytics = await db
-      .select()
-      .from(usageAnalytics)
-      .where(
-        and(
-          eq(usageAnalytics.userId, userId),
-          eq(usageAnalytics.householdId, householdId),
-          eq(usageAnalytics.itemType, 'transfer_pair'),
-          eq(usageAnalytics.itemId, fromAccountId),
-          eq(usageAnalytics.itemSecondaryId, toAccountId)
-        )
-      )
-      .limit(1);
-
-    if (existingAnalytics.length > 0) {
-      await db
-        .update(usageAnalytics)
-        .set({
-          usageCount: (existingAnalytics[0].usageCount || 0) + 1,
-          lastUsedAt: new Date().toISOString(),
-        })
-        .where(eq(usageAnalytics.id, existingAnalytics[0].id));
-    } else {
-      await db.insert(usageAnalytics).values({
-        id: nanoid(),
-        userId,
-        householdId,
-        itemType: 'transfer_pair',
-        itemId: fromAccountId,
-        itemSecondaryId: toAccountId,
-        usageCount: 1,
-        lastUsedAt: new Date().toISOString(),
-      });
-    }
 
     return Response.json(
       {

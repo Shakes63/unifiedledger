@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { hardRedirect } from '@/lib/navigation/hard-redirect';
 
 export default function SignUpPage() {
   const searchParams = useSearchParams();
@@ -116,7 +117,7 @@ export default function SignUpPage() {
             const householdQuery = data.householdId
               ? `&householdId=${encodeURIComponent(data.householdId)}`
               : '';
-            window.location.href = `/dashboard?invited=true${householdQuery}`;
+            hardRedirect(`/dashboard?invited=true${householdQuery}`);
             return;
           } else {
             const errorData = await acceptResponse.json().catch(() => ({}));
@@ -132,7 +133,7 @@ export default function SignUpPage() {
       }
 
       // Use window.location for a hard redirect to ensure middleware runs
-      window.location.href = '/dashboard';
+      hardRedirect('/dashboard');
     } catch (error: unknown) {
       console.error('Sign up error:', error);
 

@@ -22,6 +22,7 @@ import { getLocalMonthString } from '@/lib/utils/local-date';
 import { Info, Star, ExternalLink, CreditCard, FolderPlus, X, Plus, Download } from 'lucide-react';
 import Link from 'next/link';
 import { BudgetTemplateSelector } from './budget-template-selector';
+import { BudgetManagerActions } from './budget-manager-actions';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 
@@ -1323,23 +1324,12 @@ export function BudgetManagerModal({
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-              <button
-                onClick={onClose}
-                disabled={saving}
-                className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-elevated transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving || categories.length === 0}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save Budget'}
-              </button>
-            </div>
+            <BudgetManagerActions
+              saving={saving}
+              canSave={categories.length > 0}
+              onCancel={onClose}
+              onSave={handleSave}
+            />
           </div>
         )}
       </DialogContent>

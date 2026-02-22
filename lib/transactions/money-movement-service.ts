@@ -1,108 +1,73 @@
-import Decimal from 'decimal.js';
 import { and, eq } from 'drizzle-orm';
 
 import { accounts, transactions, transfers } from '@/lib/db/schema';
-import { toMoneyCents, fromMoneyCents } from '@/lib/utils/money-cents';
+import { toMoneyCents } from '@/lib/utils/money-cents';
 import { db } from '@/lib/db';
+import { resolveRequiredMoneyCents } from '@/lib/transactions/money-cents-resolver';
+import {
+  buildAccountBalanceFields,
+  buildTransactionAmountFields,
+  buildTransferMoneyFields,
+  centsToAmount as convertCentsToAmount,
+} from '@/lib/transactions/money-movement-fields';
+export { buildAccountBalanceFields, buildTransactionAmountFields, buildTransferMoneyFields };
 
 type MoneyTx = typeof db;
 
-function requireCents(value: number | null, label: string): number {
-  if (value === null) {
-    throw new Error(`${label} is required`);
-  }
-  return value;
-}
-
 export function centsToAmount(cents: number): number {
-  return new Decimal(cents).dividedBy(100).toNumber();
+  return convertCentsToAmount(cents);
 }
 
 export function amountToCents(amount: number | string | Decimal): number {
-  return requireCents(toMoneyCents(amount), 'Amount');
+  const cents = toMoneyCents(amount);
+  if (cents === null) {
+    throw new Error('Amount is required');
+  }
+  return cents;
 }
 
 export function getAccountBalanceCents(account: {
   currentBalanceCents: number | string | bigint | null;
   currentBalance?: number | string | Decimal | null;
 }): number {
-  const centsValue = fromMoneyCents(account.currentBalanceCents);
-  if (centsValue !== null) {
-    return requireCents(toMoneyCents(centsValue), 'Account balance');
-  }
-  const fallback = toMoneyCents(account.currentBalance);
-  if (fallback === null) {
-    throw new Error('Account balance cents is required');
-  }
-  return fallback;
+  return resolveRequiredMoneyCents({
+    centsValue: account.currentBalanceCents,
+    fallbackValue: account.currentBalance,
+    label: 'Account balance',
+  });
 }
 
 export function getTransactionAmountCents(transaction: {
   amountCents: number | string | bigint | null;
   amount?: number | string | Decimal | null;
 }): number {
-  const centsValue = fromMoneyCents(transaction.amountCents);
-  if (centsValue !== null) {
-    return requireCents(toMoneyCents(centsValue), 'Transaction amount');
-  }
-  const fallback = toMoneyCents(transaction.amount);
-  if (fallback === null) {
-    throw new Error('Transaction amount cents is required');
-  }
-  return fallback;
+  return resolveRequiredMoneyCents({
+    centsValue: transaction.amountCents,
+    fallbackValue: transaction.amount,
+    label: 'Transaction amount',
+  });
 }
 
 export function getTransferAmountCents(transfer: {
   amountCents: number | string | bigint | null;
   amount?: number | string | Decimal | null;
 }): number {
-  const centsValue = fromMoneyCents(transfer.amountCents);
-  if (centsValue !== null) {
-    return requireCents(toMoneyCents(centsValue), 'Transfer amount');
-  }
-  const fallback = toMoneyCents(transfer.amount);
-  if (fallback === null) {
-    throw new Error('Transfer amount cents is required');
-  }
-  return fallback;
+  return resolveRequiredMoneyCents({
+    centsValue: transfer.amountCents,
+    fallbackValue: transfer.amount,
+    label: 'Transfer amount',
+  });
 }
 
 export function getTransferFeesCents(transfer: {
   feesCents: number | string | bigint | null;
   fees?: number | string | Decimal | null;
 }): number {
-  const centsValue = fromMoneyCents(transfer.feesCents);
-  if (centsValue !== null) {
-    return requireCents(toMoneyCents(centsValue), 'Transfer fees');
-  }
-  const fallback = toMoneyCents(transfer.fees);
-  if (fallback === null) {
-    throw new Error('Transfer fees cents is required');
-  }
-  return fallback;
-}
-
-export function buildAccountBalanceFields(balanceCents: number) {
-  return {
-    currentBalance: centsToAmount(balanceCents),
-    currentBalanceCents: balanceCents,
-  };
-}
-
-export function buildTransactionAmountFields(amountCents: number) {
-  return {
-    amount: centsToAmount(amountCents),
-    amountCents,
-  };
-}
-
-export function buildTransferMoneyFields(amountCents: number, feesCents: number) {
-  return {
-    amount: centsToAmount(amountCents),
-    amountCents,
-    fees: centsToAmount(feesCents),
-    feesCents,
-  };
+  return resolveRequiredMoneyCents({
+    centsValue: transfer.feesCents,
+    fallbackValue: transfer.fees,
+    label: 'Transfer fees',
+  });
 }
 
 export async function updateScopedAccountBalance(

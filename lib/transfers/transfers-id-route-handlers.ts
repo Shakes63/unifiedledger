@@ -1,55 +1,16 @@
-import { requireAuth } from '@/lib/auth-helpers';
-import { getAndVerifyHousehold } from '@/lib/api/household-auth';
-import { resolveAndRequireEntity } from '@/lib/api/entity-auth';
-import { db } from '@/lib/db';
-import { transfers, accounts, transactions } from '@/lib/db/schema';
-import { eq, and, isNull, or } from 'drizzle-orm';
 import { handleRouteError } from '@/lib/api/route-helpers';
-import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import {
-  getAccountBalanceCents,
-  getTransferAmountCents,
-  getTransferFeesCents,
-  updateScopedAccountBalance,
-} from '@/lib/transactions/money-movement-service';
+  getTransferAccountNames,
+} from '@/lib/transfers/transfer-id-access';
 import {
-  deleteCanonicalTransferPairByTransactionId,
-  updateCanonicalTransferPairByTransactionId,
-} from '@/lib/transactions/transfer-service';
+  buildTransferNotFoundResponse,
+  buildTransferSuccessResponse,
+  executeTransferDeleteById,
+  executeTransferUpdateById,
+} from '@/lib/transfers/transfers-id-execution';
+import { loadTransferIdRouteContext } from '@/lib/transfers/transfers-id-route-context';
 
 export const dynamic = 'force-dynamic';
-
-async function transferVisibleInSelectedEntity({
-  userId,
-  householdId,
-  selectedEntityId,
-  selectedEntityIsDefault,
-  fromAccountId,
-  toAccountId,
-}: {
-  userId: string;
-  householdId: string;
-  selectedEntityId: string;
-  selectedEntityIsDefault: boolean;
-  fromAccountId: string;
-  toAccountId: string;
-}) {
-  const visibleAccounts = await db
-    .select({ id: accounts.id })
-    .from(accounts)
-    .where(
-      and(
-        eq(accounts.userId, userId),
-        eq(accounts.householdId, householdId),
-        selectedEntityIsDefault
-          ? or(eq(accounts.entityId, selectedEntityId), isNull(accounts.entityId))
-          : eq(accounts.entityId, selectedEntityId),
-        or(eq(accounts.id, fromAccountId), eq(accounts.id, toAccountId))
-      )
-    );
-
-  return visibleAccounts.length > 0;
-}
 
 /**
  * GET /api/transfers/[id]
@@ -61,67 +22,21 @@ export async function handleGetTransferById(
 ) {
   const { id } = await params;
   try {
-    const { userId } = await requireAuth();
-    const { householdId } = await getAndVerifyHousehold(request, userId);
-    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request);
-
-    const transfer = await db
-      .select()
-      .from(transfers)
-      .where(
-        and(
-          eq(transfers.id, id),
-          eq(transfers.userId, userId),
-          eq(transfers.householdId, householdId)
-        )
-      )
-      .limit(1);
-
-    if (transfer.length === 0) {
-      return Response.json(
-        { error: 'Transfer not found' },
-        { status: 404 }
-      );
+    const { userId, householdId, transfer } = await loadTransferIdRouteContext({
+      request,
+      transferId: id,
+    });
+    if (!transfer) {
+      return buildTransferNotFoundResponse();
     }
-    const visible = await transferVisibleInSelectedEntity({
+
+    const accountNames = await getTransferAccountNames({
       userId,
       householdId,
-      selectedEntityId: selectedEntity.id,
-      selectedEntityIsDefault: selectedEntity.isDefault,
-      fromAccountId: transfer[0].fromAccountId,
-      toAccountId: transfer[0].toAccountId,
+      fromAccountId: transfer.fromAccountId,
+      toAccountId: transfer.toAccountId,
     });
-    if (!visible) {
-      return Response.json({ error: 'Transfer not found' }, { status: 404 });
-    }
-
-    // Enrich with account names
-    const [fromAccount, toAccount] = await Promise.all([
-      db
-        .select()
-        .from(accounts)
-        .where(
-          and(
-            eq(accounts.id, transfer[0].fromAccountId),
-            eq(accounts.userId, userId),
-            eq(accounts.householdId, householdId)
-          )
-        )
-        .limit(1),
-      db
-        .select()
-        .from(accounts)
-        .where(
-          and(
-            eq(accounts.id, transfer[0].toAccountId),
-            eq(accounts.userId, userId),
-            eq(accounts.householdId, householdId)
-          )
-        )
-        .limit(1),
-    ]);
-
-    if (fromAccount.length === 0 || toAccount.length === 0) {
+    if (!accountNames) {
       return Response.json(
         { error: 'Transfer not found' },
         { status: 404 }
@@ -129,9 +44,9 @@ export async function handleGetTransferById(
     }
 
     return Response.json({
-      ...transfer[0],
-      fromAccountName: fromAccount[0]?.name,
-      toAccountName: toAccount[0]?.name,
+      ...transfer,
+      fromAccountName: accountNames.fromAccountName,
+      toAccountName: accountNames.toAccountName,
     });
   } catch (error) {
     return handleRouteError(error, {
@@ -152,100 +67,31 @@ export async function handleUpdateTransferById(
 ) {
   const { id } = await params;
   try {
-    const { userId } = await requireAuth();
-    const { householdId } = await getAndVerifyHousehold(request, userId);
-    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request);
-
-    const transfer = await db
-      .select()
-      .from(transfers)
-      .where(
-        and(
-          eq(transfers.id, id),
-          eq(transfers.userId, userId),
-          eq(transfers.householdId, householdId)
-        )
-      )
-      .limit(1);
-
-    if (transfer.length === 0) {
-      return Response.json(
-        { error: 'Transfer not found' },
-        { status: 404 }
-      );
-    }
-    const visible = await transferVisibleInSelectedEntity({
-      userId,
-      householdId,
-      selectedEntityId: selectedEntity.id,
-      selectedEntityIsDefault: selectedEntity.isDefault,
-      fromAccountId: transfer[0].fromAccountId,
-      toAccountId: transfer[0].toAccountId,
+    const { userId, householdId, transfer } = await loadTransferIdRouteContext({
+      request,
+      transferId: id,
     });
-    if (!visible) {
-      return Response.json({ error: 'Transfer not found' }, { status: 404 });
+    if (!transfer) {
+      return buildTransferNotFoundResponse();
     }
 
-    // Only allow updating metadata like description and notes
     const body = await request.json();
     const { description, notes } = body;
-
-    const updateData: Partial<typeof transfers.$inferInsert> = {};
-    if (description !== undefined) updateData.description = description;
-    if (notes !== undefined) updateData.notes = notes;
-
-    if (Object.keys(updateData).length === 0) {
+    if (description === undefined && notes === undefined) {
       return Response.json(
         { error: 'No fields to update' },
         { status: 400 }
       );
     }
-
-    const transferData = transfer[0];
-    const canonicalAnchorTransactionId = transferData.fromTransactionId || transferData.toTransactionId;
-
-    if (canonicalAnchorTransactionId) {
-      try {
-        await updateCanonicalTransferPairByTransactionId({
-          userId,
-          householdId,
-          transactionId: canonicalAnchorTransactionId,
-          description,
-          notes,
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : '';
-        if (!message.includes('not found')) {
-          throw error;
-        }
-
-        await db
-          .update(transfers)
-          .set(updateData)
-          .where(
-            and(
-              eq(transfers.id, id),
-              eq(transfers.userId, userId),
-              eq(transfers.householdId, householdId)
-            )
-          );
-      }
-    } else {
-      await db
-        .update(transfers)
-        .set(updateData)
-        .where(
-          and(
-            eq(transfers.id, id),
-            eq(transfers.userId, userId),
-            eq(transfers.householdId, householdId)
-          )
-        );
-    }
-
-    return Response.json({
-      message: 'Transfer updated successfully',
+    await executeTransferUpdateById({
+      transferId: id,
+      userId,
+      householdId,
+      transferData: transfer,
+      description,
+      notes,
     });
+    return buildTransferSuccessResponse('Transfer updated successfully');
   } catch (error) {
     return handleRouteError(error, {
       defaultError: 'Failed to update transfer',
@@ -265,156 +111,20 @@ export async function handleDeleteTransferById(
 ) {
   const { id } = await params;
   try {
-    const { userId } = await requireAuth();
-    const { householdId } = await getAndVerifyHousehold(request, userId);
-    const selectedEntity = await resolveAndRequireEntity(userId, householdId, request);
-
-    const transfer = await db
-      .select()
-      .from(transfers)
-      .where(
-        and(
-          eq(transfers.id, id),
-          eq(transfers.userId, userId),
-          eq(transfers.householdId, householdId)
-        )
-      )
-      .limit(1);
-
-    if (transfer.length === 0) {
-      return Response.json(
-        { error: 'Transfer not found' },
-        { status: 404 }
-      );
+    const { userId, householdId, transfer } = await loadTransferIdRouteContext({
+      request,
+      transferId: id,
+    });
+    if (!transfer) {
+      return buildTransferNotFoundResponse();
     }
-    const visible = await transferVisibleInSelectedEntity({
+    await executeTransferDeleteById({
+      transferId: id,
       userId,
       householdId,
-      selectedEntityId: selectedEntity.id,
-      selectedEntityIsDefault: selectedEntity.isDefault,
-      fromAccountId: transfer[0].fromAccountId,
-      toAccountId: transfer[0].toAccountId,
+      transferData: transfer,
     });
-    if (!visible) {
-      return Response.json({ error: 'Transfer not found' }, { status: 404 });
-    }
-
-    const transferData = transfer[0];
-    const canonicalAnchorTransactionId = transferData.fromTransactionId || transferData.toTransactionId;
-
-    if (canonicalAnchorTransactionId) {
-      try {
-        await deleteCanonicalTransferPairByTransactionId({
-          userId,
-          householdId,
-          transactionId: canonicalAnchorTransactionId,
-        });
-
-        return Response.json({
-          message: 'Transfer deleted successfully',
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : '';
-        if (!message.includes('not found')) {
-          throw error;
-        }
-      }
-    }
-
-    // Start transaction to delete transfer and revert balances
-    await runInDatabaseTransaction(async (tx) => {
-      // Delete the transfer
-      await tx
-        .delete(transfers)
-        .where(
-          and(
-            eq(transfers.id, id),
-            eq(transfers.userId, userId),
-            eq(transfers.householdId, householdId)
-          )
-        );
-
-      // Delete associated transactions if they exist
-      if (transferData.fromTransactionId) {
-        await tx
-          .delete(transactions)
-          .where(
-            and(
-              eq(transactions.id, transferData.fromTransactionId),
-              eq(transactions.userId, userId),
-              eq(transactions.householdId, householdId)
-            )
-          );
-      }
-
-      if (transferData.toTransactionId) {
-        await tx
-          .delete(transactions)
-          .where(
-            and(
-              eq(transactions.id, transferData.toTransactionId),
-              eq(transactions.userId, userId),
-              eq(transactions.householdId, householdId)
-            )
-          );
-      }
-
-      // Revert account balances
-      const [fromAccount, toAccount] = await Promise.all([
-        tx
-          .select()
-          .from(accounts)
-          .where(
-            and(
-              eq(accounts.id, transferData.fromAccountId),
-              eq(accounts.userId, userId),
-              eq(accounts.householdId, householdId)
-            )
-          )
-          .limit(1),
-        tx
-          .select()
-          .from(accounts)
-          .where(
-            and(
-              eq(accounts.id, transferData.toAccountId),
-              eq(accounts.userId, userId),
-              eq(accounts.householdId, householdId)
-            )
-          )
-          .limit(1),
-      ]);
-
-      if (fromAccount.length > 0) {
-        const transferAmountCents = getTransferAmountCents(transferData);
-        const transferFeesCents = getTransferFeesCents(transferData);
-        const totalDebitCents = transferAmountCents + transferFeesCents;
-        const newFromBalanceCents = getAccountBalanceCents(fromAccount[0]) + totalDebitCents;
-
-        await updateScopedAccountBalance(tx, {
-          accountId: transferData.fromAccountId,
-          userId,
-          householdId,
-          balanceCents: newFromBalanceCents,
-        });
-      }
-
-      if (toAccount.length > 0) {
-        const transferAmountCents = getTransferAmountCents(transferData);
-        const newToBalanceCents = getAccountBalanceCents(toAccount[0]) - transferAmountCents;
-
-        await updateScopedAccountBalance(tx, {
-          accountId: transferData.toAccountId,
-          userId,
-          householdId,
-          balanceCents: newToBalanceCents,
-        });
-      }
-    });
-
-    return Response.json({
-      message: 'Transfer deleted successfully',
-    });
+    return buildTransferSuccessResponse('Transfer deleted successfully');
   } catch (error) {
     return handleRouteError(error, {
       defaultError: 'Failed to delete transfer',

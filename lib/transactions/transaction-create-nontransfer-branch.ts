@@ -1,0 +1,87 @@
+import Decimal from 'decimal.js';
+
+import { accounts } from '@/lib/db/schema';
+import type { TransactionMutations } from '@/lib/rules/types';
+import { executeNonTransferCreate } from '@/lib/transactions/transaction-create-nontransfer-execution';
+import { runTransactionCreatePostMutations } from '@/lib/transactions/transaction-create-post-mutations';
+import type { GoalContribution } from '@/lib/transactions/transaction-create-request';
+
+export async function executeNonTransferCreateBranch({
+  userId,
+  householdId,
+  transactionId,
+  accountId,
+  account,
+  appliedCategoryId,
+  finalMerchantId,
+  debtId,
+  savingsGoalId,
+  date,
+  amountCents,
+  description,
+  notes,
+  type,
+  isPending,
+  isSalesTaxable,
+  postCreationMutations,
+  offlineId,
+  syncStatus,
+  decimalAmount,
+  goalContributions,
+}: {
+  userId: string;
+  householdId: string;
+  transactionId: string;
+  accountId: string;
+  account: typeof accounts.$inferSelect;
+  appliedCategoryId: string | null;
+  finalMerchantId: string | null;
+  debtId?: string | null;
+  savingsGoalId?: string | null;
+  date: string;
+  amountCents: number;
+  description: string;
+  notes?: string | null;
+  type: string;
+  isPending: boolean;
+  isSalesTaxable: boolean;
+  postCreationMutations: TransactionMutations | null;
+  offlineId?: string | null;
+  syncStatus: 'pending' | 'syncing' | 'synced' | 'error' | 'offline';
+  decimalAmount: Decimal;
+  goalContributions?: GoalContribution[];
+}): Promise<void> {
+  await executeNonTransferCreate({
+    userId,
+    householdId,
+    transactionId,
+    accountId,
+    account,
+    appliedCategoryId,
+    finalMerchantId,
+    debtId,
+    savingsGoalId,
+    date,
+    amountCents,
+    finalDescription: description,
+    notes,
+    type,
+    isPending,
+    isSalesTaxable,
+    postCreationMutations,
+    offlineId,
+    syncStatus,
+  });
+
+  await runTransactionCreatePostMutations({
+    transactionId,
+    userId,
+    householdId,
+    postCreationMutations,
+    appliedCategoryId,
+    amount: decimalAmount.toNumber(),
+    date,
+    savingsGoalId,
+    goalContributions,
+  });
+}

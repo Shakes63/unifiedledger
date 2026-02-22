@@ -25,6 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Database, Trash2, AlertTriangle, Loader2, Shield, FileSpreadsheet, History, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { hardRedirect } from '@/lib/navigation/hard-redirect';
 import { BackupSettingsForm } from './backup-settings-form';
 import { BackupHistory } from './backup-history';
 import { CalendarSyncSection } from './calendar-sync-section';
@@ -221,9 +222,9 @@ export function DataTab() {
       setResetPassword('');
       setResetConfirmed(false);
 
-      // Redirect to login after 3 seconds
+      // Redirect to sign-in after 3 seconds
       setTimeout(() => {
-        window.location.href = '/login';
+        hardRedirect('/sign-in');
       }, 3000);
     } catch (error) {
       console.error('Error resetting app data:', error);

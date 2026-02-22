@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/card';
 import { Loader2, Shield, Globe, Clock, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { hardRedirect } from '@/lib/navigation/hard-redirect';
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
@@ -183,7 +184,7 @@ export default function SignInPage() {
     const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
     // Use window.location for a hard redirect to ensure middleware runs
-    window.location.href = callbackUrl;
+    hardRedirect(callbackUrl);
   };
 
   const handleBackToPassword = () => {
@@ -213,7 +214,7 @@ export default function SignInPage() {
 
       if (url) {
         // Redirect to OAuth provider
-        window.location.href = url;
+        hardRedirect(url);
       } else {
         throw new Error('Failed to get OAuth authorization URL');
       }

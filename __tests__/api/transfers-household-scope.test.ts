@@ -204,9 +204,33 @@ describe('Transfers API household scoping', () => {
         }),
       }),
       select: () => ({
-        from: (_table: unknown) => ({
+        from: (table: unknown) => ({
           where: () => ({
-            limit: async () => [],
+            limit: async () => {
+              if (table === accounts) {
+                return [
+                  {
+                    id: 'acct_1',
+                    userId: TEST_USER_ID,
+                    householdId: TEST_HOUSEHOLD_ID,
+                    name: 'Checking',
+                    currentBalance: 100,
+                    currentBalanceCents: 10000,
+                    entityId: null,
+                  },
+                  {
+                    id: 'acct_2',
+                    userId: TEST_USER_ID,
+                    householdId: TEST_HOUSEHOLD_ID,
+                    name: 'Savings',
+                    currentBalance: 50,
+                    currentBalanceCents: 5000,
+                    entityId: null,
+                  },
+                ];
+              }
+              return [];
+            },
           }),
         }),
       }),

@@ -1,348 +1,281 @@
 /**
  * API Route: POST /api/cron/usage-decay
  *
- * Applies usage decay algorithm to freshen up recommendations.
- * Decays old usage scores so recent activity is weighted more heavily.
- *
- * Security: Requires CRON_SECRET environment variable for authentication
- *
- * Usage:
- * - POST /api/cron/usage-decay - Apply decay to all types
- * - POST /api/cron/usage-decay?type=accounts - Apply decay to specific type
- * - GET /api/cron/usage-decay/report?type=merchants - Get decay report
+ * Applies usage decay to recommendation surfaces so stale usage loses weight.
+ * Security: requires CRON_SECRET as Bearer token.
  */
 
-import { NextRequest, NextResponse } from "next/server";
+import { and, eq, gt } from 'drizzle-orm';
+import { NextRequest } from 'next/server';
+
 import {
-  getDecayConfigByType,
   applyBatchDecay,
   calculateDecayImpact,
   generateDecayReport,
-} from "@/lib/analytics/usage-decay";
+  getDecayConfigByType,
+} from '@/lib/analytics/usage-decay';
+import { db } from '@/lib/db';
+import { accounts, budgetCategories, merchants, tags, usageAnalytics } from '@/lib/db/schema';
+import { apiError, apiOk } from '@/lib/api/route-helpers';
 
-/**
- * Verify cron secret for security
- */
+type DecayType = 'accounts' | 'categories' | 'merchants' | 'tags' | 'transfers';
+
+interface DecayResult {
+  type: DecayType;
+  itemsProcessed: number;
+  itemsAffected: number;
+  totalScoreChange: number;
+  averageDecay: number;
+}
+
+interface DecayItem {
+  id: string;
+  name?: string;
+  usageCount: number;
+  lastUsedAt: string | null;
+}
+
 function verifyCronSecret(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
     return false;
   }
 
-  const authHeader = request.headers.get("authorization");
+  const authHeader = request.headers.get('authorization');
   if (!authHeader) {
     return false;
   }
 
-  const token = authHeader.replace("Bearer ", "");
+  const token = authHeader.replace('Bearer ', '');
   return token === cronSecret;
 }
 
-/**
- * Apply decay to accounts usage
- */
-async function decayAccountsUsage(): Promise<{
-  type: string;
-  itemsProcessed: number;
-  itemsAffected: number;
-  totalScoreChange: number;
-  averageDecay: number;
-}> {
-  try {
-    // Get all accounts with usage data
-    // Note: This is a placeholder - actual implementation depends on your schema
-    const items = [
-      // Mock data for demonstration
-      {
-        id: "account1",
-        name: "Checking",
-        usageCount: 100,
-        lastUsedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
-      },
-    ];
+function roundDecayedUsage(value: number): number {
+  return Math.max(0, Math.round(value));
+}
 
-    const config = getDecayConfigByType("accounts");
-    applyBatchDecay(items, config);
-    const impact = calculateDecayImpact(items, config);
+async function getDecayItems(type: DecayType): Promise<DecayItem[]> {
+  switch (type) {
+    case 'accounts': {
+      const rows = await db
+        .select({
+          id: accounts.id,
+          name: accounts.name,
+          usageCount: accounts.usageCount,
+          lastUsedAt: accounts.lastUsedAt,
+        })
+        .from(accounts)
+        .where(gt(accounts.usageCount, 0));
 
-    // TODO: Update database with decayed scores
-    // await db.update(accounts).set({ usageCount: decayedScore })
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        usageCount: row.usageCount ?? 0,
+        lastUsedAt: row.lastUsedAt ?? null,
+      }));
+    }
 
-    return {
-      type: "accounts",
-      itemsProcessed: items.length,
-      itemsAffected: impact.itemsAffected,
-      totalScoreChange: impact.totalScoreChange,
-      averageDecay: impact.averageDecayPercentage,
-    };
-  } catch (error) {
-    console.error("[UsageDecay] Error processing accounts:", error);
-    throw error;
+    case 'categories': {
+      const rows = await db
+        .select({
+          id: budgetCategories.id,
+          name: budgetCategories.name,
+          usageCount: budgetCategories.usageCount,
+          lastUsedAt: budgetCategories.lastUsedAt,
+        })
+        .from(budgetCategories)
+        .where(gt(budgetCategories.usageCount, 0));
+
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        usageCount: row.usageCount ?? 0,
+        lastUsedAt: row.lastUsedAt ?? null,
+      }));
+    }
+
+    case 'merchants': {
+      const rows = await db
+        .select({
+          id: merchants.id,
+          name: merchants.name,
+          usageCount: merchants.usageCount,
+          lastUsedAt: merchants.lastUsedAt,
+        })
+        .from(merchants)
+        .where(gt(merchants.usageCount, 0));
+
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        usageCount: row.usageCount ?? 0,
+        lastUsedAt: row.lastUsedAt ?? null,
+      }));
+    }
+
+    case 'tags': {
+      const rows = await db
+        .select({
+          id: tags.id,
+          name: tags.name,
+          usageCount: tags.usageCount,
+          lastUsedAt: tags.lastUsedAt,
+        })
+        .from(tags)
+        .where(gt(tags.usageCount, 0));
+
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        usageCount: row.usageCount ?? 0,
+        lastUsedAt: row.lastUsedAt ?? null,
+      }));
+    }
+
+    case 'transfers': {
+      const rows = await db
+        .select({
+          id: usageAnalytics.id,
+          itemId: usageAnalytics.itemId,
+          usageCount: usageAnalytics.usageCount,
+          lastUsedAt: usageAnalytics.lastUsedAt,
+        })
+        .from(usageAnalytics)
+        .where(
+          and(
+            eq(usageAnalytics.itemType, 'transfer_pair'),
+            gt(usageAnalytics.usageCount, 0)
+          )
+        );
+
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.itemId,
+        usageCount: row.usageCount ?? 0,
+        lastUsedAt: row.lastUsedAt ?? null,
+      }));
+    }
+
+    default:
+      return [];
   }
 }
 
-/**
- * Apply decay to categories usage
- */
-async function decayCategoriesUsage(): Promise<{
-  type: string;
-  itemsProcessed: number;
-  itemsAffected: number;
-  totalScoreChange: number;
-  averageDecay: number;
-}> {
-  try {
-    // Get all categories with usage data
-    const items = [
-      // Mock data for demonstration
-      {
-        id: "cat1",
-        name: "Groceries",
-        usageCount: 50,
-        lastUsedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 14 days ago
-      },
-    ];
+async function persistDecayedUsage(type: DecayType, itemId: string, decayedScore: number) {
+  const usageCount = roundDecayedUsage(decayedScore);
 
-    const config = getDecayConfigByType("categories");
-    applyBatchDecay(items, config);
-    const impact = calculateDecayImpact(items, config);
-
-    // TODO: Update database with decayed scores
-
-    return {
-      type: "categories",
-      itemsProcessed: items.length,
-      itemsAffected: impact.itemsAffected,
-      totalScoreChange: impact.totalScoreChange,
-      averageDecay: impact.averageDecayPercentage,
-    };
-  } catch (error) {
-    console.error("[UsageDecay] Error processing categories:", error);
-    throw error;
+  switch (type) {
+    case 'accounts':
+      await db.update(accounts).set({ usageCount }).where(eq(accounts.id, itemId));
+      return;
+    case 'categories':
+      await db.update(budgetCategories).set({ usageCount }).where(eq(budgetCategories.id, itemId));
+      return;
+    case 'merchants':
+      await db.update(merchants).set({ usageCount }).where(eq(merchants.id, itemId));
+      return;
+    case 'tags':
+      await db.update(tags).set({ usageCount }).where(eq(tags.id, itemId));
+      return;
+    case 'transfers':
+      await db.update(usageAnalytics).set({ usageCount }).where(eq(usageAnalytics.id, itemId));
+      return;
+    default:
+      return;
   }
 }
 
-/**
- * Apply decay to merchants usage
- */
-async function decayMerchantsUsage(): Promise<{
-  type: string;
-  itemsProcessed: number;
-  itemsAffected: number;
-  totalScoreChange: number;
-  averageDecay: number;
-}> {
-  try {
-    // Get all merchants with usage data
-    const items = [
-      // Mock data for demonstration
-      {
-        id: "merch1",
-        name: "Amazon",
-        usageCount: 25,
-        lastUsedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
-      },
-    ];
+async function applyDecayForType(type: DecayType): Promise<DecayResult> {
+  const items = await getDecayItems(type);
+  const config = getDecayConfigByType(type);
 
-    const config = getDecayConfigByType("merchants");
-    applyBatchDecay(items, config);
-    const impact = calculateDecayImpact(items, config);
+  const decayRows = applyBatchDecay(items, config);
+  const impact = calculateDecayImpact(items, config);
 
-    // TODO: Update database with decayed scores
+  const changedRows = decayRows.filter((row) => roundDecayedUsage(row.decayedScore) !== row.originalScore);
 
-    return {
-      type: "merchants",
-      itemsProcessed: items.length,
-      itemsAffected: impact.itemsAffected,
-      totalScoreChange: impact.totalScoreChange,
-      averageDecay: impact.averageDecayPercentage,
-    };
-  } catch (error) {
-    console.error("[UsageDecay] Error processing merchants:", error);
-    throw error;
+  for (const row of changedRows) {
+    await persistDecayedUsage(type, row.id, row.decayedScore);
   }
+
+  return {
+    type,
+    itemsProcessed: items.length,
+    itemsAffected: impact.itemsAffected,
+    totalScoreChange: impact.totalScoreChange,
+    averageDecay: impact.averageDecayPercentage,
+  };
 }
 
-/**
- * Apply decay to tags usage
- */
-async function decayTagsUsage(): Promise<{
-  type: string;
-  itemsProcessed: number;
-  itemsAffected: number;
-  totalScoreChange: number;
-  averageDecay: number;
-}> {
-  try {
-    // Get all tags with usage data
-    const items = [
-      // Mock data for demonstration
-      {
-        id: "tag1",
-        name: "Work",
-        usageCount: 30,
-        lastUsedAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000), // 21 days ago
-      },
-    ];
-
-    const config = getDecayConfigByType("tags");
-    applyBatchDecay(items, config);
-    const impact = calculateDecayImpact(items, config);
-
-    // TODO: Update database with decayed scores
-
-    return {
-      type: "tags",
-      itemsProcessed: items.length,
-      itemsAffected: impact.itemsAffected,
-      totalScoreChange: impact.totalScoreChange,
-      averageDecay: impact.averageDecayPercentage,
-    };
-  } catch (error) {
-    console.error("[UsageDecay] Error processing tags:", error);
-    throw error;
-  }
-}
-
-/**
- * POST: Apply usage decay to freshen recommendations
- */
 export async function POST(request: NextRequest) {
-  // Verify authentication
   if (!verifyCronSecret(request)) {
-    return NextResponse.json(
-      { error: "Unauthorized - Invalid or missing CRON_SECRET" },
-      { status: 401 }
-    );
+    return apiError('Unauthorized - Invalid or missing CRON_SECRET', 401);
   }
 
   try {
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get("type");
+    const requestedType = searchParams.get('type') as DecayType | null;
 
-    const results: Array<{
-      type: string;
-      itemsProcessed: number;
-      itemsAffected: number;
-      totalScoreChange: number;
-      averageDecay: number;
-    }> = [];
+    const types: DecayType[] = requestedType
+      ? [requestedType]
+      : ['accounts', 'categories', 'merchants', 'tags', 'transfers'];
 
-    console.log("[UsageDecay] Starting decay application");
-
-    // Apply decay to requested types
-    if (!type || type === "accounts") {
-      const result = await decayAccountsUsage();
-      results.push(result);
-    }
-
-    if (!type || type === "categories") {
-      const result = await decayCategoriesUsage();
-      results.push(result);
-    }
-
-    if (!type || type === "merchants") {
-      const result = await decayMerchantsUsage();
-      results.push(result);
-    }
-
-    if (!type || type === "tags") {
-      const result = await decayTagsUsage();
-      results.push(result);
+    const results: DecayResult[] = [];
+    for (const type of types) {
+      results.push(await applyDecayForType(type));
     }
 
     const totalItems = results.reduce((sum, r) => sum + r.itemsProcessed, 0);
     const totalAffected = results.reduce((sum, r) => sum + r.itemsAffected, 0);
     const totalChange = results.reduce((sum, r) => sum + r.totalScoreChange, 0);
 
-    console.log(
-      `[UsageDecay] Completed - Processed ${totalItems} items, affected ${totalAffected}, total change: -${totalChange.toFixed(2)}`
-    );
-
-    return NextResponse.json(
-      {
-        timestamp: Date.now(),
-        totalItemsProcessed: totalItems,
-        totalItemsAffected: totalAffected,
-        totalScoreChange: Math.round(totalChange * 100) / 100,
-        results,
-      },
-      { status: 200 }
-    );
+    return apiOk({
+      timestamp: Date.now(),
+      totalItemsProcessed: totalItems,
+      totalItemsAffected: totalAffected,
+      totalScoreChange: Math.round(totalChange * 100) / 100,
+      results,
+    });
   } catch (error) {
-    console.error("[UsageDecay] Error:", error);
-    return NextResponse.json(
-      {
-        error: "Decay application failed",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
+    console.error('[UsageDecay] Error:', error);
+    return apiError(
+      'Decay application failed',
+      500,
+      error instanceof Error ? error.message : 'Unknown error'
     );
   }
 }
 
-/**
- * GET: Get decay report for analysis
- */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const action = searchParams.get("action");
-    const type = searchParams.get("type");
+    const action = searchParams.get('action');
+    const type = searchParams.get('type') as DecayType | null;
 
-    if (action === "report" && type) {
-      // Get decay configuration
-      const config = getDecayConfigByType(
-        type as "accounts" | "categories" | "merchants" | "tags" | "transfers"
+    if (action !== 'report' || !type) {
+      return apiError(
+        'Invalid request. Usage: ?action=report&type=accounts|categories|merchants|tags|transfers',
+        400
       );
-
-      // Generate mock report for demonstration
-      const mockItems = [
-        {
-          id: "item1",
-          name: "Item 1",
-          usageCount: 100,
-          lastUsedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        },
-        {
-          id: "item2",
-          name: "Item 2",
-          usageCount: 50,
-          lastUsedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        },
-        {
-          id: "item3",
-          name: "Item 3",
-          usageCount: 25,
-          lastUsedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
-        },
-      ];
-
-      const report = generateDecayReport(mockItems, config, type);
-
-      return NextResponse.json({
-        type,
-        config,
-        report,
-        markdown: report,
-      });
     }
 
-    return NextResponse.json(
-      {
-        error: "Invalid request",
-        usage: "?action=report&type=merchants|accounts|categories|tags",
-      },
-      { status: 400 }
-    );
+    const items = await getDecayItems(type);
+    const config = getDecayConfigByType(type);
+    const report = generateDecayReport(items, config, type);
+
+    return apiOk({
+      type,
+      config,
+      report,
+      markdown: report,
+      itemCount: items.length,
+    });
   } catch (error) {
-    console.error("[UsageDecay] Error:", error);
-    return NextResponse.json(
-      {
-        error: "Report generation failed",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
+    console.error('[UsageDecay] Error:', error);
+    return apiError(
+      'Report generation failed',
+      500,
+      error instanceof Error ? error.message : 'Unknown error'
     );
   }
 }

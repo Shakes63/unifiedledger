@@ -114,7 +114,27 @@ describe('POST /api/transactions atomicity', () => {
       const stagedState: FakeState = structuredClone(persistedState);
       let accountUpdateCount = 0;
 
+      let txSelectCall = 0;
+
       const tx = {
+        select: () => ({
+          from: (table: unknown) => ({
+            where: () => ({
+              limit: async () => {
+                if (table === accounts) {
+                  txSelectCall += 1;
+                  if (txSelectCall === 1) {
+                    return [stagedState.accounts[0]];
+                  }
+                  if (txSelectCall === 2) {
+                    return [stagedState.accounts[1]];
+                  }
+                }
+                return [];
+              },
+            }),
+          }),
+        }),
         insert: (table: unknown) => ({
           values: async (values: Record<string, unknown>) => {
             if (table === transactions) {

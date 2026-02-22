@@ -51,6 +51,7 @@ import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { Loader2 } from 'lucide-react';
 import { getTodayLocalDateString } from '@/lib/utils/local-date';
+import { TransactionFormActions } from '@/components/transactions/transaction-form-actions';
 
 type TransactionType = 'income' | 'expense' | 'transfer' | 'bill';
 
@@ -1524,46 +1525,14 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         </Dialog>
       </div>
 
-      {/* Submit Buttons - Mobile optimized with 44px minimum height */}
-      <div className="space-y-2 pt-4 md:pb-0 pb-4">
-        {/* Primary action buttons */}
-        <div className="flex gap-2 flex-col md:flex-row">
-          <Button
-            type="submit"
-            onClick={() => setSaveMode('save')}
-            disabled={loading}
-            className="flex-1 bg-primary text-white hover:opacity-90 font-medium h-12 md:h-10 text-base md:text-sm"
-          >
-            {isEditMode
-              ? loading && saveMode === 'save'
-                ? 'Updating...'
-                : 'Update Transaction'
-              : loading && saveMode === 'save'
-              ? 'Saving...'
-              : 'Save'}
-          </Button>
-          {!isEditMode && (
-            <Button
-              type="submit"
-              onClick={() => setSaveMode('saveAndAdd')}
-              disabled={loading}
-              className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 font-medium h-12 md:h-10 text-base md:text-sm"
-            >
-              {loading && saveMode === 'saveAndAdd' ? 'Saving...' : 'Save & Add Another'}
-            </Button>
-          )}
-        </div>
-        {/* Cancel button */}
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.back()}
-          disabled={loading}
-          className="w-full bg-elevated text-foreground border-border hover:bg-elevated/80 h-12 md:h-10 text-base md:text-sm"
-        >
-          Cancel
-        </Button>
-      </div>
+      <TransactionFormActions
+        isEditMode={isEditMode}
+        loading={loading}
+        saveMode={saveMode}
+        onSave={() => setSaveMode('save')}
+        onSaveAndAdd={() => setSaveMode('saveAndAdd')}
+        onCancel={() => router.back()}
+      />
     </form>
   );
 }

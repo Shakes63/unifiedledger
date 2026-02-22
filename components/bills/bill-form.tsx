@@ -27,6 +27,7 @@ import {
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { MerchantSelector } from '@/components/transactions/merchant-selector';
+import { BillFormActions } from './bill-form-actions';
 import {
   suggestClassification,
   type ClassificationSuggestion,
@@ -1937,45 +1938,14 @@ export function BillForm({
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="space-y-2 pt-4 border-t border-border">
-        {/* Primary action buttons */}
-        <div className="flex gap-2">
-          <Button
-            type="submit"
-            onClick={() => setSaveMode('save')}
-            disabled={isLoading}
-            className="flex-1 text-white hover:opacity-90 font-medium bg-primary"
-          >
-            {bill
-              ? isLoading && saveMode === 'save'
-                ? 'Updating...'
-                : 'Update Bill'
-              : isLoading && saveMode === 'save'
-              ? 'Saving...'
-              : 'Save Bill'}
-          </Button>
-          {!bill && (
-            <Button
-              type="submit"
-              onClick={() => setSaveMode('saveAndAdd')}
-              disabled={isLoading}
-              className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 font-medium"
-            >
-              {isLoading && saveMode === 'saveAndAdd' ? 'Saving...' : 'Save & Add Another'}
-            </Button>
-          )}
-        </div>
-        {/* Cancel button */}
-        <Button
-          type="button"
-          onClick={onCancel}
-          variant="outline"
-          className="w-full bg-elevated border-border text-foreground hover:bg-elevated"
-        >
-          Cancel
-        </Button>
-      </div>
+      <BillFormActions
+        hasExistingBill={Boolean(bill)}
+        isLoading={isLoading}
+        saveMode={saveMode}
+        onSave={() => setSaveMode('save')}
+        onSaveAndAdd={() => setSaveMode('saveAndAdd')}
+        onCancel={onCancel}
+      />
     </form>
   );
 }

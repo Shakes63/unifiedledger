@@ -5,6 +5,17 @@ interface HandleRouteErrorOptions {
   includeErrorDetails?: boolean;
 }
 
+export function apiOk<T>(data: T, status = 200): Response {
+  return Response.json(data, { status });
+}
+
+export function apiError(error: string, status = 500, details?: string): Response {
+  return Response.json(
+    details ? { error, details } : { error },
+    { status }
+  );
+}
+
 function mapAuthAndHouseholdError(
   error: unknown,
   householdIdRequiredMessage: string

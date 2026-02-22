@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import {
@@ -11,6 +11,7 @@ import { eq, and, gte, lte, inArray, sum, sql } from 'drizzle-orm';
 import { isMemberOfHousehold } from '@/lib/household/permissions';
 import Decimal from 'decimal.js';
 import { toMoneyCents } from '@/lib/utils/money-cents';
+import { apiError, apiOk } from '@/lib/api/route-helpers';
 import {
   getCurrentBudgetPeriod,
   getDaysUntilNextPeriod,
@@ -19,6 +20,7 @@ import {
   calculateAvailableAmount,
   getDefaultBudgetScheduleSettings,
   type BudgetScheduleSettings,
+  type BudgetPeriod,
   type BudgetCycleFrequency,
 } from '@/lib/budgets/budget-schedule';
 import { getPeriodBillsForBudgetPeriod } from '@/lib/budgets/period-bills-service';
@@ -36,6 +38,49 @@ interface BillBreakdownItem {
   dueDate: string;
   isAutopay: boolean;
   categoryName?: string;
+}
+
+async function calculatePeriodCommittedAmount(
+  householdId: string,
+  period: BudgetPeriod,
+  settings: BudgetScheduleSettings
+): Promise<number> {
+  const expenseResult = await db
+    .select({ totalCents: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)` })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.householdId, householdId),
+        eq(transactions.type, 'expense'),
+        gte(transactions.date, period.startStr),
+        lte(transactions.date, period.endStr)
+      )
+    );
+
+  const paidThisPeriod = new Decimal(expenseResult[0]?.totalCents ?? 0).div(100).toNumber();
+  const periodBills = await getPeriodBillsForBudgetPeriod({
+    householdId,
+    settings,
+    period,
+    statuses: ['pending', 'overdue'],
+    excludeBillType: 'income',
+  });
+
+  const unpaidBillsDue = periodBills.reduce((sum, row) => {
+    const { instance, allocation } = row;
+    if (allocation?.isPaid) {
+      return sum;
+    }
+
+    const baseRemaining = instance.remainingAmount ?? new Decimal(instance.expectedAmount).minus(instance.paidAmount || 0).toNumber();
+    const amount = allocation
+      ? Decimal.max(new Decimal(allocation.allocatedAmount).minus(allocation.paidAmount || 0), 0).toNumber()
+      : Decimal.max(new Decimal(baseRemaining), 0).toNumber();
+
+    return new Decimal(sum).plus(amount).toNumber();
+  }, 0);
+
+  return new Decimal(paidThisPeriod).plus(unpaidBillsDue).toNumber();
 }
 
 /**
@@ -62,18 +107,12 @@ export async function GET(request: NextRequest) {
     
     const householdId = request.nextUrl.searchParams.get('householdId');
     if (!householdId) {
-      return NextResponse.json(
-        { error: 'householdId is required' },
-        { status: 400 }
-      );
+      return apiError('householdId is required', 400);
     }
 
     // Verify user is a member of this household
     if (!(await isMemberOfHousehold(householdId, userId))) {
-      return NextResponse.json(
-        { error: 'Not a member of this household' },
-        { status: 403 }
-      );
+      return apiError('Not a member of this household', 403);
     }
 
     // Fetch user's budget schedule settings
@@ -261,8 +300,27 @@ export async function GET(request: NextRequest) {
       settings.budgetPeriodManualAmount
     );
 
-    // 5. Calculate rollover (simplified - in real implementation, would track from previous period)
-    const rolloverFromPrevious = 0; // TODO: Implement actual rollover tracking
+    // 5. Calculate rollover from previous period
+    let rolloverFromPrevious = 0;
+    if (settings.budgetPeriodRollover) {
+      const previousPeriodReference = new Date(currentPeriod.start);
+      previousPeriodReference.setDate(previousPeriodReference.getDate() - 1);
+      const previousPeriod = getCurrentBudgetPeriod(settings, previousPeriodReference);
+      const previousPeriodBudget = getPeriodBudgetAmount(
+        monthlyBudget,
+        settings.budgetCycleFrequency,
+        settings.budgetPeriodManualAmount
+      );
+      const previousCommitted = await calculatePeriodCommittedAmount(
+        householdId,
+        previousPeriod,
+        settings
+      );
+      rolloverFromPrevious = new Decimal(previousPeriodBudget)
+        .minus(previousCommitted)
+        .toDecimalPlaces(2)
+        .toNumber();
+    }
 
     // 6. Calculate available amount
     const available = calculateAvailableAmount(
@@ -273,7 +331,7 @@ export async function GET(request: NextRequest) {
       rolloverFromPrevious
     );
 
-    return NextResponse.json({
+    return apiOk({
       currentPeriod: {
         start: currentPeriod.startStr,
         end: currentPeriod.endStr,
@@ -325,12 +383,9 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
     console.error('Failed to calculate available amount:', error);
-    return NextResponse.json(
-      { error: 'Failed to calculate available amount' },
-      { status: 500 }
-    );
+    return apiError('Failed to calculate available amount', 500);
   }
 }
