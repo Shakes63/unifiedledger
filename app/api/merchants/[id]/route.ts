@@ -4,13 +4,9 @@ import { db } from '@/lib/db';
 import { merchants, transactions } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { count } from 'drizzle-orm';
+import { normalizeMerchantName } from '@/lib/merchants/normalize';
 
 export const dynamic = 'force-dynamic';
-
-// Normalize merchant name for comparison
-function normalizeMerchantName(name: string): string {
-  return name.toLowerCase().trim().replace(/\s+/g, ' ');
-}
 
 // PUT - Update a merchant
 export async function PUT(
@@ -44,7 +40,6 @@ export async function PUT(
       .where(
         and(
           eq(merchants.id, id),
-          eq(merchants.userId, userId),
           eq(merchants.householdId, householdId)
         )
       )
@@ -65,7 +60,6 @@ export async function PUT(
         .from(merchants)
         .where(
           and(
-            eq(merchants.userId, userId),
             eq(merchants.householdId, householdId),
             eq(merchants.normalizedName, normalizedName)
           )
@@ -154,7 +148,6 @@ export async function DELETE(
       .where(
         and(
           eq(merchants.id, id),
-          eq(merchants.userId, userId),
           eq(merchants.householdId, householdId)
         )
       )

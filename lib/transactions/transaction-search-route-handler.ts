@@ -26,6 +26,9 @@ export async function handleTransactionSearch(request: Request): Promise<Respons
     const { filters, limit, offset } = parseTransactionSearchRequest(request);
     const householdId = getHouseholdIdFromRequest(request);
     await requireHouseholdAuth(userId, householdId);
+    if (!householdId) {
+      return Response.json({ error: 'Household ID is required' }, { status: 400 });
+    }
 
     const shouldUseCombinedTransferFilter =
       (!filters.accountIds || filters.accountIds.length === 0) &&

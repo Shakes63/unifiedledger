@@ -25,7 +25,6 @@ export async function loadRuleReferenceData({
           .where(
             and(
               eq(merchants.id, merchantId),
-              eq(merchants.userId, userId),
               eq(merchants.householdId, householdId)
             )
           )

@@ -241,7 +241,6 @@ export async function POST(request: Request) {
             .where(
               and(
                 eq(merchants.id, action.value),
-                eq(merchants.userId, userId),
                 eq(merchants.householdId, householdId)
               )
             )
@@ -438,7 +437,6 @@ export async function PUT(request: Request) {
             .where(
               and(
                 eq(merchants.id, action.value),
-                eq(merchants.userId, userId),
                 eq(merchants.householdId, householdId)
               )
             )

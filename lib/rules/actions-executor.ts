@@ -174,10 +174,9 @@ async function executeSetMerchantAction(
     return null;
   }
 
-  // Verify merchant exists and belongs to user (+ household when available)
+  // Verify merchant exists in the active household
   const merchantFilters = [
     eq(merchants.id, action.value),
-    eq(merchants.userId, context.userId),
     ...(context.householdId ? [eq(merchants.householdId, context.householdId)] : []),
   ];
   const merchant = await db
@@ -189,7 +188,7 @@ async function executeSetMerchantAction(
     .limit(1);
 
   if (merchant.length === 0) {
-    console.warn(`Merchant ${action.value} not found or doesn't belong to user`);
+    console.warn(`Merchant ${action.value} not found in household`);
     return null;
   }
 

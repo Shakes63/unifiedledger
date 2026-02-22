@@ -1,6 +1,10 @@
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
+import { and, eq } from 'drizzle-orm';
 
+import { db } from '@/lib/db';
+import { merchants } from '@/lib/db/schema';
+import { normalizeMerchantName } from '@/lib/merchants/normalize';
 import { amountToCents } from '@/lib/transactions/money-movement-service';
 import { loadCreateAccountsOrResponse } from '@/lib/transactions/transaction-create-resource-load';
 import { executeCreateRuleApplication } from '@/lib/transactions/transaction-create-rule-orchestration';
@@ -63,6 +67,23 @@ export async function executeCreateTransactionOrchestration({
   const resolvedType = String(type);
   const resolvedDescription = String(description);
   const resolvedCategoryId = categoryId ?? null;
+  let resolvedMerchantId = merchantId ?? null;
+
+  // Auto-link existing merchant by normalized description when merchant isn't selected.
+  if (!resolvedMerchantId && resolvedDescription) {
+    const normalizedDescription = normalizeMerchantName(resolvedDescription);
+    const merchantMatch = await db
+      .select({ id: merchants.id })
+      .from(merchants)
+      .where(
+        and(
+          eq(merchants.householdId, householdId),
+          eq(merchants.normalizedName, normalizedDescription)
+        )
+      )
+      .limit(1);
+    resolvedMerchantId = merchantMatch[0]?.id ?? null;
+  }
 
   const createResources = await loadCreateAccountsOrResponse({
     userId,
@@ -90,7 +111,7 @@ export async function executeCreateTransactionOrchestration({
     householdId,
     accountId,
     accountName: account.name,
-    merchantId,
+    merchantId: resolvedMerchantId,
     categoryId: resolvedCategoryId,
     amount: resolvedAmount,
     date: resolvedDate,

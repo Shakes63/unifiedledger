@@ -153,7 +153,7 @@ export default function ReportsPage() {
         // Handle merchants
         if (merchantsRes.ok) {
           const merchantsData = await merchantsRes.json();
-          setMerchants(merchantsData.data || []);
+          setMerchants(Array.isArray(merchantsData) ? merchantsData : (merchantsData.data || []));
         } else {
           console.warn('Failed to fetch merchants for filters');
           setMerchants([]);

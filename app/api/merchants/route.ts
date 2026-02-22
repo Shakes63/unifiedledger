@@ -3,12 +3,8 @@ import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/house
 import { db } from '@/lib/db';
 import { merchants } from '@/lib/db/schema';
 import { eq, desc, and } from 'drizzle-orm';
+import { normalizeMerchantName } from '@/lib/merchants/normalize';
 export const dynamic = 'force-dynamic';
-
-// Normalize merchant name for comparison
-function normalizeMerchantName(name: string): string {
-  return name.toLowerCase().trim().replace(/\s+/g, ' ');
-}
 
 export async function GET(request: Request) {
   try {
@@ -27,18 +23,34 @@ export async function GET(request: Request) {
     }
 
     const url = new URL(request.url);
-    const limit = parseInt(url.searchParams.get('limit') || '100');
+    const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '50'), 1), 1000);
+    const offset = Math.max(parseInt(url.searchParams.get('offset') || '0'), 0);
+    const query = (url.searchParams.get('q') || '').trim();
+    const normalizedQuery = query ? normalizeMerchantName(query) : '';
 
     // Return all merchants in the household (shared between all members)
     // The requireHouseholdAuth check above ensures the user is a member
-    const userMerchants = await db
+    const allHouseholdMerchants = await db
       .select()
       .from(merchants)
       .where(eq(merchants.householdId, householdId))
       .orderBy(desc(merchants.usageCount))
-      .limit(limit);
+      .limit(1000);
 
-    return Response.json(userMerchants);
+    const filteredMerchants = normalizedQuery
+      ? allHouseholdMerchants.filter((merchant) =>
+          merchant.normalizedName.includes(normalizedQuery)
+        )
+      : allHouseholdMerchants;
+
+    const paginatedMerchants = filteredMerchants.slice(offset, offset + limit);
+
+    return Response.json({
+      data: paginatedMerchants,
+      total: filteredMerchants.length,
+      limit,
+      offset,
+    });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -90,7 +102,6 @@ export async function POST(request: Request) {
       .from(merchants)
       .where(
         and(
-          eq(merchants.userId, userId),
           eq(merchants.householdId, householdId),
           eq(merchants.normalizedName, normalizedName)
         )

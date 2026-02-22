@@ -3,6 +3,7 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { merchants, usageAnalytics, budgetCategories } from '@/lib/db/schema';
 import { and, desc, eq } from 'drizzle-orm';
+import { normalizeMerchantName } from '@/lib/merchants/normalize';
 export const dynamic = 'force-dynamic';
 
 interface Suggestion {
@@ -26,13 +27,13 @@ export async function GET(request: Request) {
       return Response.json([]);
     }
 
-    const normalizedQuery = query.toLowerCase();
+    const normalizedQuery = normalizeMerchantName(query);
 
     // Get frequently used merchants
     const frequentMerchants = await db
       .select()
       .from(merchants)
-      .where(and(eq(merchants.userId, userId), eq(merchants.householdId, householdId)))
+      .where(eq(merchants.householdId, householdId))
       .orderBy(desc(merchants.usageCount))
       .limit(limit);
 

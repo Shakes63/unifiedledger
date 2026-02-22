@@ -73,7 +73,7 @@ export default function MerchantsPage() {
         const merchantsResponse = await fetchWithHousehold('/api/merchants?limit=1000');
         if (merchantsResponse.ok) {
           const merchantsData = await merchantsResponse.json();
-          setMerchants(merchantsData);
+          setMerchants(Array.isArray(merchantsData) ? merchantsData : (merchantsData.data || []));
         } else {
           toast.error('Failed to load merchants');
         }

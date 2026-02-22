@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { merchants, budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { normalizeMerchantName } from '@/lib/merchants/normalize';
 
 /**
  * Category types for auto-created fee categories
@@ -15,13 +16,6 @@ const FEE_CATEGORY_NAMES: Record<FeeCategoryType, string> = {
   bank_fees: 'Bank Fees',
   interest_fees: 'Interest Fees',
 };
-
-/**
- * Normalize merchant name for comparison (lowercase, trim, collapse whitespace)
- */
-function normalizeMerchantName(name: string): string {
-  return name.toLowerCase().trim().replace(/\s+/g, ' ');
-}
 
 /**
  * Get or create a fee category for the household.
@@ -96,7 +90,6 @@ export async function createMerchantForBank(
     .from(merchants)
     .where(
       and(
-        eq(merchants.userId, userId),
         eq(merchants.householdId, householdId),
         eq(merchants.normalizedName, normalizedName)
       )

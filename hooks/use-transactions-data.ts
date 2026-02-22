@@ -160,7 +160,8 @@ export function useTransactionsData({
         setAccounts(await accResponse.json());
       }
       if (merResponse.ok) {
-        setMerchants(await merResponse.json());
+        const merchantsData = await merResponse.json();
+        setMerchants(Array.isArray(merchantsData) ? merchantsData : (merchantsData.data || []));
       }
       if (settingsResponse.ok) {
         const settingsData = await settingsResponse.json();

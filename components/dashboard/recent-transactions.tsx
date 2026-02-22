@@ -91,7 +91,7 @@ export function RecentTransactions() {
         const merResponse = await fetchWithHousehold('/api/merchants?limit=1000');
         if (merResponse.ok) {
           const merData = await merResponse.json();
-          setMerchants(merData);
+          setMerchants(Array.isArray(merData) ? merData : (merData.data || []));
         }
 
         // Fetch accounts

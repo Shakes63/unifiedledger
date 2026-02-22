@@ -362,7 +362,7 @@ export function RuleBuilder({
 
       if (merchantsRes.ok) {
         const merchantsData = await merchantsRes.json();
-        setMerchants(merchantsData);
+        setMerchants(Array.isArray(merchantsData) ? merchantsData : (merchantsData.data || []));
       }
 
       if (accountsRes.ok) {

@@ -6,6 +6,7 @@ import {
   transactions,
   ruleExecutionLog,
   accounts,
+  merchants,
 } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -17,6 +18,7 @@ import {
   insertTransactionMovement,
   insertTransferMovement,
 } from '@/lib/transactions/money-movement-service';
+import { normalizeMerchantName } from '@/lib/merchants/normalize';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +30,63 @@ interface TransferDecision {
   importType: 'transfer' | 'link_existing' | 'regular';
   targetAccountId?: string;
   existingTransactionId?: string; // For link_existing option
+}
+
+async function resolveOrCreateImportMerchant({
+  userId,
+  householdId,
+  mappedData,
+  fallbackDescription,
+  categoryId,
+}: {
+  userId: string;
+  householdId: string;
+  mappedData: Record<string, unknown>;
+  fallbackDescription: string;
+  categoryId: string | null;
+}): Promise<string | null> {
+  const merchantField =
+    typeof mappedData.merchant === 'string' ? mappedData.merchant.trim() : '';
+  const descriptionField =
+    typeof fallbackDescription === 'string' ? fallbackDescription.trim() : '';
+  const merchantName = merchantField || descriptionField;
+
+  if (!merchantName) {
+    return null;
+  }
+
+  const normalizedName = normalizeMerchantName(merchantName);
+  const existing = await db
+    .select({ id: merchants.id })
+    .from(merchants)
+    .where(
+      and(
+        eq(merchants.householdId, householdId),
+        eq(merchants.normalizedName, normalizedName)
+      )
+    )
+    .limit(1);
+
+  if (existing.length > 0) {
+    return existing[0].id;
+  }
+
+  const merchantId = nanoid();
+  const now = new Date().toISOString();
+  await db.insert(merchants).values({
+    id: merchantId,
+    userId,
+    householdId,
+    name: merchantName,
+    normalizedName,
+    categoryId,
+    usageCount: 1,
+    lastUsedAt: now,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return merchantId;
 }
 
 /**
@@ -400,6 +459,16 @@ export async function POST(
 
           console.log(`Created transfer pair for row ${stagingRecord.rowNumber}: ${transferOutId} -> ${transferInId}`);
         } else {
+          if (!finalMerchantId) {
+            finalMerchantId = await resolveOrCreateImportMerchant({
+              userId,
+              householdId,
+              mappedData: mappedData as Record<string, unknown>,
+              fallbackDescription: finalDescription,
+              categoryId,
+            });
+          }
+
           // Import as regular transaction
           await insertTransactionMovement(db, {
             id: txId,

@@ -42,7 +42,7 @@ export async function loadRepeatTemplateAndAccount({
 }
 
 export async function validateRepeatRuleMerchant({
-  userId,
+  userId: _userId,
   householdId,
   finalMerchantId,
 }: {
@@ -60,7 +60,6 @@ export async function validateRepeatRuleMerchant({
     .where(
       and(
         eq(merchants.id, finalMerchantId),
-        eq(merchants.userId, userId),
         eq(merchants.householdId, householdId)
       )
     )

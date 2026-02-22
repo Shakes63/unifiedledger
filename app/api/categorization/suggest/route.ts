@@ -3,6 +3,7 @@ import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { merchants, transactions, budgetCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { normalizeMerchantName } from '@/lib/merchants/normalize';
 export const dynamic = 'force-dynamic';
 
 interface CategorizationSuggestion {
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
       return Response.json(null);
     }
 
-    const normalizedDescription = description.toLowerCase().trim();
+    const normalizedDescription = normalizeMerchantName(description);
 
     // Find merchant by normalized name
     const merchant = await db
@@ -32,7 +33,6 @@ export async function GET(request: Request) {
       .from(merchants)
       .where(
         and(
-          eq(merchants.userId, userId),
           eq(merchants.householdId, householdId),
           eq(merchants.normalizedName, normalizedDescription)
         )
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
         and(
           eq(transactions.userId, userId),
           eq(transactions.householdId, householdId),
-          eq(transactions.description, merchant[0].name)
+          eq(transactions.merchantId, merchant[0].id)
         )
       );
 

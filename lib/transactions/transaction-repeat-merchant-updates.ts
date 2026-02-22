@@ -4,6 +4,7 @@ import { nanoid } from 'nanoid';
 
 import { db } from '@/lib/db';
 import { merchants } from '@/lib/db/schema';
+import { normalizeMerchantName } from '@/lib/merchants/normalize';
 
 async function applyMerchantSpendUpdate({
   merchant,
@@ -48,7 +49,6 @@ export async function updateRepeatMerchantUsage({
   if (finalMerchantId) {
     const merchantByIdWhere = and(
       eq(merchants.id, finalMerchantId),
-      eq(merchants.userId, userId),
       eq(merchants.householdId, householdId)
     );
     const merchantById = await db.select().from(merchants).where(merchantByIdWhere).limit(1);
@@ -62,9 +62,8 @@ export async function updateRepeatMerchantUsage({
     }
   }
 
-  const normalizedDescription = finalDescription.toLowerCase().trim();
+  const normalizedDescription = normalizeMerchantName(finalDescription);
   const merchantByNameWhere = and(
-    eq(merchants.userId, userId),
     eq(merchants.householdId, householdId),
     eq(merchants.normalizedName, normalizedDescription)
   );
