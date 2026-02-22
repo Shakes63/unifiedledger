@@ -13,7 +13,7 @@ declare global {
 
 declare const self: ServiceWorkerGlobalScope;
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
@@ -94,6 +94,30 @@ const serwist = new Serwist({
 
 // Add fetch listener BEFORE serwist to bypass it for non-GET requests and no-cache requests
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Cloudflare analytics beacon can fail in SW context; don't break app flow.
+  if (url.hostname === 'static.cloudflareinsights.com') {
+    event.respondWith(
+      fetch(event.request).catch(() => new Response('', { status: 204 }))
+    );
+    return;
+  }
+
+  // Always bypass SW for auth/session/two-factor endpoints.
+  // This avoids stale auth state and preserves Set-Cookie behavior.
+  if (
+    url.origin === self.location.origin &&
+    (
+      url.pathname.startsWith('/api/better-auth/') ||
+      url.pathname.startsWith('/api/session') ||
+      url.pathname.startsWith('/api/user/two-factor')
+    )
+  ) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   // Let non-GET requests pass through without any service worker involvement
   if (event.request.method !== 'GET') {
     // Don't call event.respondWith - this lets the request proceed normally

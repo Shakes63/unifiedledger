@@ -42,12 +42,34 @@ export async function executeCreateTransactionOrchestration({
     goalContributions,
   } = normalizeCreateTransactionBody(body);
 
+  if (!accountId) {
+    return Response.json({ error: 'Account is required' }, { status: 400 });
+  }
+  if (amount === undefined || amount === null || amount === '') {
+    return Response.json({ error: 'Amount is required' }, { status: 400 });
+  }
+  if (!date) {
+    return Response.json({ error: 'Date is required' }, { status: 400 });
+  }
+  if (!type) {
+    return Response.json({ error: 'Type is required' }, { status: 400 });
+  }
+  if (!description) {
+    return Response.json({ error: 'Description is required' }, { status: 400 });
+  }
+
+  const resolvedAmount = String(amount);
+  const resolvedDate = String(date);
+  const resolvedType = String(type);
+  const resolvedDescription = String(description);
+  const resolvedCategoryId = categoryId ?? null;
+
   const createResources = await loadCreateAccountsOrResponse({
     userId,
     householdId,
     accountId,
-    toAccountId,
-    categoryId,
+    toAccountId: toAccountId ?? null,
+    categoryId: resolvedCategoryId,
     type,
     selectedEntityId,
   });
@@ -69,39 +91,39 @@ export async function executeCreateTransactionOrchestration({
     accountId,
     accountName: account.name,
     merchantId,
-    categoryId,
-    amount,
-    date,
-    notes,
-    type,
-    description,
+    categoryId: resolvedCategoryId,
+    amount: resolvedAmount,
+    date: resolvedDate,
+    notes: notes ?? undefined,
+    type: resolvedType,
+    description: resolvedDescription,
   });
 
-  const decimalAmount = new Decimal(amount);
+  const decimalAmount = new Decimal(resolvedAmount);
   const amountCents = amountToCents(decimalAmount);
   const transactionId = nanoid();
   const createBranchResult = await executeCreateBranchOrResponse({
     userId,
     householdId,
     transactionId,
-    type,
+    type: resolvedType as 'income' | 'expense' | 'transfer' | 'transfer_in' | 'transfer_out',
     accountId,
     account,
-    toAccountId,
+    toAccountId: toAccountId ?? null,
     toAccount,
     decimalAmount,
     amountCents,
-    date,
-    description,
-    notes,
+    date: resolvedDate,
+    description: resolvedDescription,
+    notes: notes ?? null,
     isPending,
-    savingsGoalId,
+    savingsGoalId: savingsGoalId ?? null,
     goalContributions: goalContributions as GoalContribution[] | undefined,
-    offlineId,
-    syncStatus,
+    offlineId: offlineId ?? null,
+    syncStatus: syncStatus ?? null,
     appliedCategoryId,
     finalMerchantId,
-    debtId,
+    debtId: debtId ?? null,
     isSalesTaxable,
     postCreationMutations,
   });
@@ -116,17 +138,17 @@ export async function executeCreateTransactionOrchestration({
     transactionId,
     transferInId,
     accountId,
-    categoryId,
+    categoryId: resolvedCategoryId,
     finalMerchantId,
     decimalAmount,
     appliedRuleId,
     appliedCategoryId,
     appliedActions,
-    type,
+    type: resolvedType,
     billInstanceId,
-    description,
+    description: resolvedDescription,
     finalDescription,
-    date,
+    date: resolvedDate,
     debtId,
     notes,
     isPending,

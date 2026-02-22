@@ -29,8 +29,8 @@ export async function loadCreateAccountsOrResponse({
       userId,
       householdId,
       accountId,
-      toAccountId,
-      categoryId,
+      toAccountId: toAccountId ?? undefined,
+      categoryId: categoryId ?? undefined,
       type,
       selectedEntityId,
     });

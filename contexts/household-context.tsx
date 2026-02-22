@@ -33,6 +33,7 @@ interface UserHouseholdPreferences {
   showCents: boolean;
   negativeNumberFormat: string;
   defaultTransactionType: string;
+  combinedTransferView: boolean;
   // Notification preferences
   billRemindersEnabled: boolean;
   billRemindersChannels: string;

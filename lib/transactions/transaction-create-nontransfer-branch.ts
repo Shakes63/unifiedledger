@@ -42,7 +42,7 @@ export async function executeNonTransferCreateBranch({
   amountCents: number;
   description: string;
   notes?: string | null;
-  type: string;
+  type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
   isPending: boolean;
   isSalesTaxable: boolean;
   postCreationMutations: TransactionMutations | null;
@@ -59,17 +59,17 @@ export async function executeNonTransferCreateBranch({
     account,
     appliedCategoryId,
     finalMerchantId,
-    debtId,
-    savingsGoalId,
+    debtId: debtId ?? undefined,
+    savingsGoalId: savingsGoalId ?? undefined,
     date,
     amountCents,
     finalDescription: description,
-    notes,
+    notes: notes ?? undefined,
     type,
     isPending,
     isSalesTaxable,
     postCreationMutations,
-    offlineId,
+    offlineId: offlineId ?? undefined,
     syncStatus,
   });
 
@@ -77,11 +77,11 @@ export async function executeNonTransferCreateBranch({
     transactionId,
     userId,
     householdId,
-    postCreationMutations,
+    postCreationMutations: postCreationMutations ?? undefined,
     appliedCategoryId,
     amount: decimalAmount.toNumber(),
     date,
-    savingsGoalId,
+    savingsGoalId: savingsGoalId ?? undefined,
     goalContributions,
   });
 }

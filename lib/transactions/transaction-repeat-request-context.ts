@@ -16,7 +16,7 @@ export async function loadRepeatRequestContext(request: Request): Promise<
 > {
   const { userId } = await requireAuth();
   const body = (await request.json()) as Record<string, unknown>;
-  const templateId = body.templateId;
+  const templateId = typeof body.templateId === 'string' ? body.templateId : undefined;
 
   const householdId = getHouseholdIdFromRequest(request, body as { householdId?: string });
   await requireHouseholdAuth(userId, householdId);

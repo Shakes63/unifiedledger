@@ -21,16 +21,20 @@ export async function applyCreatedTransferAccountUpdates({
   tx: TransferTx;
   userId: string;
   householdId: string;
-  fromAccount: { usageCount: number | null; balanceCents: number | null };
-  toAccount: { usageCount: number | null; balanceCents: number | null };
+  fromAccount: { usageCount: number | null; currentBalanceCents: number | null };
+  toAccount: { usageCount: number | null; currentBalanceCents: number | null };
   fromAccountId: string;
   toAccountId: string;
   totalDebitCents: number;
   amountCents: number;
   nowIso: string;
 }): Promise<void> {
-  const newFromBalanceCents = getAccountBalanceCents(fromAccount) - totalDebitCents;
-  const newToBalanceCents = getAccountBalanceCents(toAccount) + amountCents;
+  const newFromBalanceCents =
+    getAccountBalanceCents({ currentBalanceCents: fromAccount.currentBalanceCents, currentBalance: null }) -
+    totalDebitCents;
+  const newToBalanceCents =
+    getAccountBalanceCents({ currentBalanceCents: toAccount.currentBalanceCents, currentBalance: null }) +
+    amountCents;
 
   await updateScopedAccountBalance(tx, {
     accountId: fromAccountId,

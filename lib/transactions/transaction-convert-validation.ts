@@ -1,7 +1,7 @@
 import { transactions } from '@/lib/db/schema';
 import { getTransactionAmountCents } from '@/lib/transactions/money-movement-service';
 
-function isTransferType(type: string): boolean {
+function isTransferType(type: string | null | undefined): boolean {
   return type === 'transfer_out' || type === 'transfer_in';
 }
 

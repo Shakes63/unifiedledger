@@ -43,7 +43,7 @@ export async function executeExpenseConversionWrites({
     canonicalToAccountId: targetAccountId,
     canonicalFromTransactionId: id,
     canonicalToTransactionId: pairedTransactionId,
-    isPending: transaction.isPending,
+    isPending: Boolean(transaction.isPending),
   });
 }
 
@@ -89,6 +89,6 @@ export async function executeIncomeConversionWrites({
     canonicalToAccountId: transaction.accountId,
     canonicalFromTransactionId: pairedTransactionId,
     canonicalToTransactionId: id,
-    isPending: transaction.isPending,
+    isPending: Boolean(transaction.isPending),
   });
 }

@@ -22,12 +22,20 @@ export async function handleRepeatTransaction(request: Request) {
     }
     const { userId, householdId, requiredTemplateId, tmpl, account, body } = repeatContext;
     const { date, amount, description } = body;
+    const inputDate = typeof date === 'string' ? date : undefined;
+    const inputAmount =
+      typeof amount === 'number'
+        ? amount
+        : typeof amount === 'string'
+          ? Number.parseFloat(amount)
+          : undefined;
+    const inputDescription = typeof description === 'string' ? description : undefined;
 
     const { transactionDate, transactionAmount, transactionDescription } =
       deriveRepeatTransactionInput({
-        inputDate: date,
-        inputAmount: amount,
-        inputDescription: description,
+        inputDate,
+        inputAmount,
+        inputDescription,
         templateAmount: tmpl.amount,
         templateDescription: tmpl.description,
         templateName: tmpl.name,

@@ -5,12 +5,14 @@ import { transactions, transactionTags } from '@/lib/db/schema';
 import {
   type SearchFilters,
 } from '@/lib/transactions/transaction-search-filters';
-import { applySearchSort } from '@/lib/transactions/transaction-search-sort';
+import { applySearchSort, type SortableQuery } from '@/lib/transactions/transaction-search-sort';
 
 interface TransactionSearchExecutionResult {
   results: typeof transactions.$inferSelect[];
   totalCount: number;
 }
+
+type JoinedTransactionRow = { transactions: typeof transactions.$inferSelect };
 
 export async function executeTransactionSearch(
   filters: SearchFilters,
@@ -32,11 +34,7 @@ export async function executeTransactionSearch(
       .where(and(...conditions, inArray(transactionTags.tagId, filters.tagIds)));
 
     const sortedJoinQuery = applySearchSort(
-      joinQuery as unknown as {
-        where: (condition: unknown) => unknown;
-        orderBy: (...args: unknown[]) => unknown;
-        limit: (value: number) => { offset: (value: number) => Promise<{ transactions: typeof transactions.$inferSelect }[]> };
-      },
+      joinQuery as unknown as SortableQuery<JoinedTransactionRow>,
       filters
     );
 
@@ -55,11 +53,7 @@ export async function executeTransactionSearch(
 
   const baseQuery = db.select().from(transactions).where(and(...conditions));
   const sortedBaseQuery = applySearchSort(
-    baseQuery as unknown as {
-      where: (condition: unknown) => unknown;
-      orderBy: (...args: unknown[]) => unknown;
-      limit: (value: number) => { offset: (value: number) => Promise<(typeof transactions.$inferSelect)[]> };
-    },
+    baseQuery as unknown as SortableQuery<typeof transactions.$inferSelect>,
     filters
   );
 

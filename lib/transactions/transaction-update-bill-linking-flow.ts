@@ -61,7 +61,7 @@ export async function matchAndExecuteGeneralUpdatedBillLink({
   transactionId: string;
   userId: string;
   householdId: string;
-  transactionType: string;
+  transactionType: typeof transactions.$inferSelect['type'];
   newDescription: string;
   newAmount: number;
   newDate: string;

@@ -14,7 +14,7 @@ import {
 import { toast } from 'sonner';
 import { Wallet, DollarSign, CreditCard, TrendingUp, Coins, Building2, PiggyBank, Briefcase, Landmark, HelpCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { AccountFormData, InterestType } from '@/lib/types';
+import type { AccountFormData, InterestType, PaymentAmountSource } from '@/lib/types';
 import { buildAccountSubmitData, validateAccountFormData } from './account-form-utils';
 
 const ACCOUNT_TYPES = [

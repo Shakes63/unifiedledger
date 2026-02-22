@@ -41,8 +41,10 @@ export async function loadTransferDeleteContext({
 
   const txRecord = txRecordRows[0];
 
-  const paired = txRecord.pairedTransactionId
-    ? (
+  let paired: typeof transactions.$inferSelect | null = null;
+  if (txRecord.pairedTransactionId) {
+    paired =
+      (
         await tx
           .select()
           .from(transactions)
@@ -54,8 +56,68 @@ export async function loadTransferDeleteContext({
             )
           )
           .limit(1)
-      )[0] ?? null
-    : null;
+      )[0] ?? null;
+  }
+
+  if (!paired) {
+    const oppositeType = txRecord.type === 'transfer_out' ? 'transfer_in' : 'transfer_out';
+
+    paired =
+      (
+        await tx
+          .select()
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.userId, userId),
+              eq(transactions.householdId, householdId),
+              eq(transactions.type, oppositeType),
+              eq(transactions.transferId, txRecord.id)
+            )
+          )
+          .limit(1)
+      )[0] ?? null;
+  }
+
+  if (!paired && txRecord.transferGroupId) {
+    paired =
+      (
+        await tx
+          .select()
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.userId, userId),
+              eq(transactions.householdId, householdId),
+              txRecord.type === 'transfer_out'
+                ? eq(transactions.type, 'transfer_in')
+                : eq(transactions.type, 'transfer_out'),
+              eq(transactions.transferGroupId, txRecord.transferGroupId)
+            )
+          )
+          .limit(1)
+      )[0] ?? null;
+  }
+
+  if (!paired && txRecord.transferId) {
+    paired =
+      (
+        await tx
+          .select()
+          .from(transactions)
+          .where(
+            and(
+              eq(transactions.id, txRecord.transferId),
+              eq(transactions.userId, userId),
+              eq(transactions.householdId, householdId),
+              txRecord.type === 'transfer_out'
+                ? eq(transactions.type, 'transfer_in')
+                : eq(transactions.type, 'transfer_out')
+            )
+          )
+          .limit(1)
+      )[0] ?? null;
+  }
 
   return { txRecord, paired };
 }

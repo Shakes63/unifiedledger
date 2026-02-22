@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm';
+import type Decimal from 'decimal.js';
 
 import { accounts, transactions, transfers } from '@/lib/db/schema';
 import { toMoneyCents } from '@/lib/utils/money-cents';

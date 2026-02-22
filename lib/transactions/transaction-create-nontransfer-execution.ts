@@ -21,7 +21,7 @@ interface ExecuteNonTransferCreateParams {
     entityId?: string | null;
     usageCount?: number | null;
     currentBalance?: number | null;
-    currentBalanceCents?: number | null;
+    currentBalanceCents: number | null;
     enableTaxDeductions?: boolean | null;
     isBusinessAccount?: boolean | null;
   };
@@ -33,7 +33,7 @@ interface ExecuteNonTransferCreateParams {
   amountCents: number;
   finalDescription: string;
   notes?: string;
-  type: string;
+  type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
   isPending: boolean;
   isSalesTaxable: boolean;
   postCreationMutations: TransactionMutations | null;

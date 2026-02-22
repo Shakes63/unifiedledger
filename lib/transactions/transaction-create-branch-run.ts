@@ -1,7 +1,9 @@
 import type Decimal from 'decimal.js';
 
+import { accounts } from '@/lib/db/schema';
 import { executeCreateTransactionBranch } from '@/lib/transactions/transaction-create-branch-execution';
 import type { GoalContribution } from '@/lib/transactions/transaction-create-request';
+import type { TransactionMutations } from '@/lib/rules/types';
 
 export async function executeCreateBranchOrResponse({
   userId,
@@ -31,11 +33,11 @@ export async function executeCreateBranchOrResponse({
   userId: string;
   householdId: string;
   transactionId: string;
-  type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+  type: 'income' | 'expense' | 'transfer' | 'transfer_in' | 'transfer_out';
   accountId: string;
-  account: { name: string; id: string; balance?: number | null; includeInNetWorth?: boolean | null };
+  account: typeof accounts.$inferSelect;
   toAccountId: string | null;
-  toAccount: { name: string; id: string } | null;
+  toAccount: typeof accounts.$inferSelect | null;
   decimalAmount: Decimal;
   amountCents: number;
   date: string;
@@ -50,12 +52,7 @@ export async function executeCreateBranchOrResponse({
   finalMerchantId: string | null;
   debtId: string | null;
   isSalesTaxable: boolean;
-  postCreationMutations: Array<{
-    setDescription?: string;
-    setMerchantId?: string;
-    setCategoryId?: string;
-    addTags?: string[];
-  }>;
+  postCreationMutations: TransactionMutations | null;
 }): Promise<{ transferInId: string | null } | Response> {
   const { transferInId, validationError } = await executeCreateTransactionBranch({
     userId,
@@ -64,7 +61,7 @@ export async function executeCreateBranchOrResponse({
     type,
     accountId,
     account,
-    toAccountId,
+    toAccountId: toAccountId ?? undefined,
     toAccount,
     decimalAmount,
     amountCents,
@@ -75,7 +72,7 @@ export async function executeCreateBranchOrResponse({
     savingsGoalId,
     goalContributions,
     offlineId,
-    syncStatus,
+    syncStatus: (syncStatus ?? 'pending') as 'pending' | 'syncing' | 'synced' | 'error' | 'offline',
     appliedCategoryId,
     finalMerchantId,
     debtId,

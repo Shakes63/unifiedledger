@@ -43,12 +43,16 @@ export async function runTransferTransactionUpdate({
     transactionType === 'transfer_out' ? (accountId ?? transferSourceAccountId) : transferSourceAccountId;
   const destinationAccountUpdate =
     transactionType === 'transfer_in' ? (accountId ?? destinationAccountInput) : destinationAccountInput;
+  const amountCentsUpdate =
+    typeof amount === 'number' || typeof amount === 'string'
+      ? amountToCents(new Decimal(amount))
+      : undefined;
 
   await updateCanonicalTransferPairByTransactionId({
     userId,
     householdId,
     transactionId,
-    amountCents: amount !== undefined ? amountToCents(new Decimal(amount)) : undefined,
+    amountCents: amountCentsUpdate,
     date,
     description,
     notes,

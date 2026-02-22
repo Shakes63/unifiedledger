@@ -39,7 +39,7 @@ export function resolveCreditProfileForAccountType({
     securedAsset: string | null;
     drawPeriodEndDate: string | null;
     repaymentPeriodEndDate: string | null;
-    interestType: string | null;
+    interestType: 'fixed' | 'variable' | null;
     primeRateMargin: number | null;
   };
   updates: {
@@ -102,7 +102,11 @@ export function resolveCreditProfileForAccountType({
       ? (updates.repaymentPeriodEndDate !== undefined ? (updates.repaymentPeriodEndDate ? String(updates.repaymentPeriodEndDate) : null) : existing.repaymentPeriodEndDate)
       : null,
     interestType: isLineOfCredit
-      ? (updates.interestType !== undefined ? String(updates.interestType) : existing.interestType)
+      ? (
+          updates.interestType !== undefined
+            ? (updates.interestType === 'variable' ? 'variable' : 'fixed')
+            : (existing.interestType === 'variable' ? 'variable' : 'fixed')
+        )
       : 'fixed',
     primeRateMargin: isLineOfCredit
       ? (updates.primeRateMargin !== undefined ? (updates.primeRateMargin ? Number(updates.primeRateMargin) : null) : existing.primeRateMargin)
@@ -161,7 +165,7 @@ export async function createAccountWithLifecycleEffects({
 
   const accountId = nanoid();
   const now = new Date().toISOString();
-  const accountType = String(type);
+  const accountType = String(type) as typeof accounts.$inferInsert['type'];
   const isCreditType = accountType === 'credit' || accountType === 'line_of_credit';
 
   let calculatedMinimumPayment = 0;
@@ -176,7 +180,7 @@ export async function createAccountWithLifecycleEffects({
 
   const computedIsBusinessAccount = Boolean(isBusinessAccount || enableSalesTax || enableTaxDeductions);
 
-  await db.insert(accounts).values({
+  const accountInsertValues: typeof accounts.$inferInsert = {
     id: accountId,
     userId,
     householdId,
@@ -209,12 +213,16 @@ export async function createAccountWithLifecycleEffects({
     securedAsset: accountType === 'line_of_credit' ? (securedAsset ? String(securedAsset) : null) : null,
     drawPeriodEndDate: accountType === 'line_of_credit' ? (drawPeriodEndDate ? String(drawPeriodEndDate) : null) : null,
     repaymentPeriodEndDate: accountType === 'line_of_credit' ? (repaymentPeriodEndDate ? String(repaymentPeriodEndDate) : null) : null,
-    interestType: accountType === 'line_of_credit' ? String(interestType) : 'fixed',
+    interestType: accountType === 'line_of_credit'
+      ? (interestType === 'variable' ? 'variable' : 'fixed')
+      : 'fixed',
     primeRateMargin: accountType === 'line_of_credit' ? (primeRateMargin ? Number(primeRateMargin) : null) : null,
     includeInDiscretionary: includeInDiscretionary !== undefined
       ? Boolean(includeInDiscretionary)
       : ['checking', 'cash'].includes(accountType),
-  });
+  };
+
+  await db.insert(accounts).values(accountInsertValues);
 
   const postCreationTasks: Promise<unknown>[] = [];
   postCreationTasks.push(createMerchantForBank(userId, householdId, String(bankName)));
@@ -363,7 +371,7 @@ export async function updateAccountWithLifecycleEffects({
     throw new AccountLifecycleError('Name and type are required', 400);
   }
 
-  const accountType = String(type);
+  const accountType = String(type) as typeof accounts.$inferInsert['type'];
   const isCreditType = accountType === 'credit' || accountType === 'line_of_credit';
   const wasCreditType = existing.type === 'credit' || existing.type === 'line_of_credit';
 
@@ -401,9 +409,9 @@ export async function updateAccountWithLifecycleEffects({
       statementDueDate: existing.statementDueDate,
       annualFee: existing.annualFee,
       annualFeeMonth: existing.annualFeeMonth,
-      autoCreatePaymentBill: existing.autoCreatePaymentBill,
-      includeInPayoffStrategy: existing.includeInPayoffStrategy,
-      isSecured: existing.isSecured,
+      autoCreatePaymentBill: Boolean(existing.autoCreatePaymentBill ?? true),
+      includeInPayoffStrategy: Boolean(existing.includeInPayoffStrategy ?? true),
+      isSecured: Boolean(existing.isSecured ?? false),
       securedAsset: existing.securedAsset,
       drawPeriodEndDate: existing.drawPeriodEndDate,
       repaymentPeriodEndDate: existing.repaymentPeriodEndDate,
@@ -434,7 +442,7 @@ export async function updateAccountWithLifecycleEffects({
     .set({
       name: String(name),
       type: accountType,
-      bankName: bankName ? String(bankName) : null,
+      bankName: bankName ? String(bankName) : existing.bankName,
       accountNumberLast4: accountNumberLast4 ? String(accountNumberLast4) : null,
       currentBalance: finalCurrentBalance,
       currentBalanceCents: toMoneyCents(finalCurrentBalance) ?? 0,
@@ -447,6 +455,7 @@ export async function updateAccountWithLifecycleEffects({
       enableTaxDeductions: finalEnableTaxDeductions,
       updatedAt: nowIso,
       ...creditProfile,
+      interestType: creditProfile.interestType === 'variable' ? 'variable' : 'fixed',
       includeInDiscretionary: includeInDiscretionary !== undefined
         ? Boolean(includeInDiscretionary)
         : existing.includeInDiscretionary,

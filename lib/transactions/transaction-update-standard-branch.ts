@@ -92,7 +92,7 @@ export async function executeStandardTransactionUpdateBranch({
         ...buildTransactionAmountFields(newAmountCents),
         description: newDescription,
         notes: newNotes,
-        isPending: newIsPending,
+        isPending: Boolean(newIsPending),
         isSalesTaxable: newIsSalesTaxable,
         updatedAt: new Date().toISOString(),
       })
@@ -114,7 +114,7 @@ export async function executeStandardTransactionUpdateBranch({
     newAmount: newAmount.toNumber(),
     newDescription,
     newNotes,
-    newIsPending,
+    newIsPending: Boolean(newIsPending),
     newIsSalesTaxable,
   });
 

@@ -127,6 +127,11 @@ function migrationLooksApplied(db, tag) {
         !!triggerSql(db, 'trg_transfers_money_cents_guard_insert') &&
         !!triggerSql(db, 'trg_transfers_money_cents_guard_update')
       );
+    case '0011_add_entity_id_columns':
+      return (
+        columnExists(db, 'accounts', 'entity_id') &&
+        columnExists(db, 'transactions', 'entity_id')
+      );
     default:
       return false;
   }

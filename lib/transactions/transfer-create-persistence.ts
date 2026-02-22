@@ -37,8 +37,8 @@ export async function persistCreatedTransferPair({
   tx: Parameters<Parameters<typeof runInDatabaseTransaction>[0]>[0];
   userId: string;
   householdId: string;
-  fromAccount: { usageCount: number | null; balanceCents: number | null };
-  toAccount: { usageCount: number | null; balanceCents: number | null };
+  fromAccount: { usageCount: number | null; currentBalanceCents: number | null };
+  toAccount: { usageCount: number | null; currentBalanceCents: number | null };
   fromAccountId: string;
   toAccountId: string;
   amountCents: number;

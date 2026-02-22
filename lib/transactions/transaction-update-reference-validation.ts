@@ -94,7 +94,7 @@ export async function resolveSalesTaxabilityFromMerchantChange({
   newIsSalesTaxable: boolean;
   shouldDeleteSalesTaxRecord: boolean;
 }> {
-  let newIsSalesTaxable = transaction.isSalesTaxable;
+  let newIsSalesTaxable = Boolean(transaction.isSalesTaxable);
   let shouldDeleteSalesTaxRecord = false;
 
   if (transaction.type !== 'income' || newMerchantId === transaction.merchantId || !newMerchantId) {

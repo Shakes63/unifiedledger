@@ -100,7 +100,7 @@ export async function validateUpdatedTransactionReferences({
   if (accountValidationError) {
     return {
       errorResponse: accountValidationError,
-      newIsSalesTaxable: transaction.isSalesTaxable,
+      newIsSalesTaxable: Boolean(transaction.isSalesTaxable),
       shouldDeleteSalesTaxRecord: false,
     };
   }
@@ -113,7 +113,7 @@ export async function validateUpdatedTransactionReferences({
   if (categoryValidationError) {
     return {
       errorResponse: categoryValidationError,
-      newIsSalesTaxable: transaction.isSalesTaxable,
+      newIsSalesTaxable: Boolean(transaction.isSalesTaxable),
       shouldDeleteSalesTaxRecord: false,
     };
   }

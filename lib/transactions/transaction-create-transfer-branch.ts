@@ -62,6 +62,12 @@ export async function executeTransferCreateBranchOrValidationError({
       validationError: 'Destination account is required for transfer',
     };
   }
+  if (!toAccountId) {
+    return {
+      transferInId: null,
+      validationError: 'Destination account is required for transfer',
+    };
+  }
 
   try {
     const transferResult = await createTransferTransactionBranch({
@@ -89,7 +95,7 @@ export async function executeTransferCreateBranchOrValidationError({
     if (isTransferValidationError(error)) {
       return {
         transferInId: null,
-        validationError: error.message,
+        validationError: error instanceof Error ? error.message : 'Transfer validation failed',
       };
     }
     throw error;

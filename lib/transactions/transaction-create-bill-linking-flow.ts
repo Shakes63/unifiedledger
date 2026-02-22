@@ -1,5 +1,5 @@
 import { executeCreateBillLinkMatch } from '@/lib/transactions/transaction-create-bill-linking-execution';
-import type { CandidateBillLinkMatch } from '@/lib/transactions/transaction-create-bill-linking-types';
+import type { CreateBillLinkMatch } from '@/lib/transactions/transaction-create-bill-linking-types';
 
 interface BillLinkResult {
   linkedBillId: string | null;
@@ -20,7 +20,7 @@ export async function executeCreateBillLink({
   amount,
   date,
 }: {
-  match: CandidateBillLinkMatch;
+  match: CreateBillLinkMatch;
   transactionId: string;
   userId: string;
   householdId: string;

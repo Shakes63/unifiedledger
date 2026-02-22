@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid';
 
 import { requireAuth } from '@/lib/auth-helpers';
-import { getAndVerifyHousehold } from '@/lib/api/household-auth';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { apiDebugLog, handleRouteError } from '@/lib/api/route-helpers';
 import { db } from '@/lib/db';
 import { searchHistory } from '@/lib/db/schema';
@@ -24,7 +24,8 @@ export async function handleTransactionSearch(request: Request): Promise<Respons
     const startTime = performance.now();
     const { userId } = await requireAuth();
     const { filters, limit, offset } = parseTransactionSearchRequest(request);
-    const { householdId } = await getAndVerifyHousehold(request, userId);
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
 
     const shouldUseCombinedTransferFilter =
       (!filters.accountIds || filters.accountIds.length === 0) &&

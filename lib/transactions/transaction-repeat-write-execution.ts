@@ -33,7 +33,7 @@ export async function executeRepeatTransactionWrite({
   description: string;
   merchantId: string | null;
   notes: string | null;
-  type: string;
+  type: 'income' | 'expense' | 'transfer_in' | 'transfer_out';
   isTaxDeductible: boolean;
   isSalesTaxable: boolean;
 }): Promise<void> {

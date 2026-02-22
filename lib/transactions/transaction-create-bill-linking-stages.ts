@@ -6,7 +6,7 @@ import {
   matchByCategoryFallback,
   matchByGeneralBillHeuristics,
 } from '@/lib/transactions/transaction-create-bill-linking-additional-matches';
-import type { CandidateBillLinkMatch } from '@/lib/transactions/transaction-create-bill-linking-types';
+import type { CreateBillLinkMatch } from '@/lib/transactions/transaction-create-bill-linking-types';
 
 interface FindCreateBillLinkMatchParams {
   transactionId: string;
@@ -32,7 +32,7 @@ export async function findCreateBillLinkMatch({
   date,
   type,
   appliedCategoryId,
-}: FindCreateBillLinkMatchParams): Promise<CandidateBillLinkMatch | null> {
+}: FindCreateBillLinkMatchParams): Promise<CreateBillLinkMatch | null> {
   const explicitMatch = await matchByExplicitBillInstance({
     transactionId,
     userId,
@@ -64,7 +64,6 @@ export async function findCreateBillLinkMatch({
     transactionId,
     userId,
     householdId,
-    accountId,
     description,
     amount,
     date,

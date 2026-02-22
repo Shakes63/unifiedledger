@@ -31,7 +31,7 @@ export async function executeTransactionUpdateOrchestration({
       id,
       userId,
       householdId,
-      transactionType: transaction.type,
+      transactionType: transaction.type as 'transfer_in' | 'transfer_out',
       updateInput,
     });
   }

@@ -75,6 +75,10 @@ export async function matchUpdatedTransactionByGeneralHeuristics({
   newDate: string;
   newCategoryId: string | null;
 }): Promise<UpdatedBillLinkMatch | null> {
+  if (!transactionType) {
+    return null;
+  }
+
   const billMatch = await findMatchingBillInstance(
     {
       id: transactionId,

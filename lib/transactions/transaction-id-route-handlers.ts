@@ -51,6 +51,7 @@ export async function handleUpdateTransactionById(
     const { householdId, selectedEntityId, transaction } = await loadTransactionRouteRequestContext({
       request,
       userId,
+      id,
       body,
     });
 
@@ -85,6 +86,7 @@ export async function handleDeleteTransactionById(
     const { householdId, transaction } = await loadTransactionRouteRequestContext({
       request,
       userId,
+      id,
     });
 
     if (!transaction) {

@@ -34,7 +34,7 @@ export async function executeCreateTransactionBranch({
   userId: string;
   householdId: string;
   transactionId: string;
-  type: string;
+  type: 'income' | 'expense' | 'transfer' | 'transfer_in' | 'transfer_out';
   accountId: string;
   account: typeof accounts.$inferSelect;
   toAccountId?: string;
@@ -77,6 +77,8 @@ export async function executeCreateTransactionBranch({
     });
   }
 
+  const nonTransferType = type as 'income' | 'expense' | 'transfer_in' | 'transfer_out';
+
   await executeNonTransferCreateBranch({
     userId,
     householdId,
@@ -91,7 +93,7 @@ export async function executeCreateTransactionBranch({
     amountCents,
     description,
     notes,
-    type,
+    type: nonTransferType,
     isPending,
     isSalesTaxable,
     postCreationMutations,
