@@ -96,9 +96,11 @@ export function findBestChargedAccountBillMatch({
 
     const amountTolerance = bill.amountTolerance || 5;
     const expectedAmount = instance.expectedAmount || bill.expectedAmount;
-    const amountDiff = (Math.abs(amount - expectedAmount) / expectedAmount) * 100;
-    if (amountDiff <= amountTolerance) {
-      score += 30 * (1 - amountDiff / amountTolerance);
+    if (expectedAmount > 0 && amountTolerance > 0) {
+      const amountDiff = (Math.abs(amount - expectedAmount) / expectedAmount) * 100;
+      if (amountDiff <= amountTolerance) {
+        score += 30 * (1 - amountDiff / amountTolerance);
+      }
     }
 
     const dueDate = new Date(instance.dueDate);

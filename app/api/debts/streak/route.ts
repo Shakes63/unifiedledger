@@ -1,9 +1,9 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { billPayments, debtPayments } from '@/lib/db/schema';
+import { billPaymentEvents, debtPayments, transactions } from '@/lib/db/schema';
 import { toLocalDateString } from '@/lib/utils/local-date';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { getUnifiedDebtSources } from '@/lib/debts/unified-debt-sources';
 
@@ -41,7 +41,11 @@ export async function GET(request: Request) {
       0
     );
 
-    const [standalonePayments, debtBillPayments] = await Promise.all([
+    const billDebtIds = unifiedDebts
+      .filter((debt) => debt.source === 'bill')
+      .map((debt) => debt.id);
+
+    const [standalonePayments, debtBillPayments, legacyBillTransactions] = await Promise.all([
       db
         .select()
         .from(debtPayments)
@@ -50,14 +54,36 @@ export async function GET(request: Request) {
             eq(debtPayments.householdId, householdId)
           )
         ),
-      db
-        .select()
-        .from(billPayments)
-        .where(
-          and(
-            eq(billPayments.householdId, householdId)
-          )
-        ),
+      billDebtIds.length > 0
+        ? db
+            .select({
+              paymentDate: billPaymentEvents.paymentDate,
+              amountCents: billPaymentEvents.amountCents,
+            })
+            .from(billPaymentEvents)
+            .where(
+              and(
+                eq(billPaymentEvents.householdId, householdId),
+                inArray(billPaymentEvents.templateId, billDebtIds)
+              )
+            )
+        : Promise.resolve([]),
+      billDebtIds.length > 0
+        ? db
+            .select({
+              paymentDate: transactions.date,
+              amount: transactions.amount,
+            })
+            .from(transactions)
+            .where(
+              and(
+                eq(transactions.householdId, householdId),
+                eq(transactions.userId, userId),
+                eq(transactions.type, 'expense'),
+                inArray(transactions.billId, billDebtIds)
+              )
+            )
+        : Promise.resolve([]),
     ]);
 
     const allPayments = [
@@ -66,7 +92,11 @@ export async function GET(request: Request) {
         paymentDate: payment.paymentDate,
       })),
       ...debtBillPayments.map((payment) => ({
-        amount: payment.amount || 0,
+        amount: new Decimal(payment.amountCents || 0).div(100).toNumber(),
+        paymentDate: payment.paymentDate,
+      })),
+      ...legacyBillTransactions.map((payment) => ({
+        amount: Math.abs(payment.amount || 0),
         paymentDate: payment.paymentDate,
       })),
     ].sort((a, b) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime());

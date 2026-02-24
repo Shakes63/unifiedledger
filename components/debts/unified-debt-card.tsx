@@ -211,7 +211,9 @@ export function UnifiedDebtCard({
     }
 
     try {
-      const response = await postWithHousehold(`/api/debts/${debt.id}/payments`, {
+      const response = await postWithHousehold('/api/debts/payments', {
+        source: debt.source,
+        id: debt.id,
         amount,
         paymentDate: new Date().toISOString(),
       });
@@ -711,9 +713,8 @@ export function UnifiedDebtCard({
             </div>
           )}
 
-          {/* Payment History Section - Only for standalone debts */}
-          {debt.source === 'debt' && (
-            <div className="border-t border-border pt-3">
+          {/* Payment History Section - Unified across debt sources */}
+          <div className="border-t border-border pt-3">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -733,11 +734,10 @@ export function UnifiedDebtCard({
               </button>
               {showPaymentHistory && (
                 <div className="mt-3">
-                  <PaymentHistoryList debtId={debt.id} />
+                  <PaymentHistoryList debtId={debt.id} source={debt.source} />
                 </div>
               )}
-            </div>
-          )}
+          </div>
 
           {/* Amortization Schedule Section - Only for debts with interest */}
           {debt.source === 'debt' && (debt.interestRate ?? 0) > 0 && (
@@ -765,8 +765,8 @@ export function UnifiedDebtCard({
             </div>
           )}
 
-          {/* Record Payment Button - Only for standalone debts */}
-          {debt.source === 'debt' && !isPaidOff && (
+          {/* Record Payment Button - Unified across debt sources */}
+          {!isPaidOff && (
             <div className="border-t border-border pt-3">
               {!showPayment ? (
                 <Button

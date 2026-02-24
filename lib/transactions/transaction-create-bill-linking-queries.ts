@@ -3,8 +3,20 @@ import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { billInstances, bills } from '@/lib/db/schema';
 
-export async function findBillById(billId: string): Promise<typeof bills.$inferSelect | null> {
-  const [bill] = await db.select().from(bills).where(eq(bills.id, billId)).limit(1);
+export async function findScopedBillById({
+  billId,
+  userId,
+  householdId,
+}: {
+  billId: string;
+  userId: string;
+  householdId: string;
+}): Promise<typeof bills.$inferSelect | null> {
+  const [bill] = await db
+    .select()
+    .from(bills)
+    .where(and(eq(bills.id, billId), eq(bills.userId, userId), eq(bills.householdId, householdId)))
+    .limit(1);
   return bill ?? null;
 }
 
@@ -70,6 +82,8 @@ export async function listChargedAccountPendingBills({
         eq(bills.userId, userId),
         eq(bills.householdId, householdId),
         eq(bills.isActive, true),
+        eq(billInstances.userId, userId),
+        eq(billInstances.householdId, householdId),
         inArray(billInstances.status, ['pending', 'overdue'])
       )
     )
@@ -107,6 +121,8 @@ export async function findCategoryPendingBillMatch({
         eq(bills.householdId, householdId),
         eq(bills.isActive, true),
         eq(bills.categoryId, categoryId),
+        eq(billInstances.userId, userId),
+        eq(billInstances.householdId, householdId),
         inArray(billInstances.status, ['pending', 'overdue'])
       )
     )

@@ -1,16 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import {
   userHouseholdPreferences,
   accounts,
   transactions,
-  bills,
-  billInstances,
   budgetCategories,
 } from '@/lib/db/schema';
 import { eq, and, gte, lte, inArray, sum, sql } from 'drizzle-orm';
-import { isMemberOfHousehold } from '@/lib/household/permissions';
 import Decimal from 'decimal.js';
 import { toMoneyCents } from '@/lib/utils/money-cents';
 import {
@@ -23,6 +20,7 @@ import {
   type BudgetCycleFrequency,
 } from '@/lib/budgets/budget-schedule';
 import { getPeriodBillsForBudgetPeriod } from '@/lib/budgets/period-bills-service';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,25 +64,10 @@ interface AccountItem {
  * - Prorated budget with actual spending
  * - Discretionary calculations
  */
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
-    
-    const householdId = request.nextUrl.searchParams.get('householdId');
-    if (!householdId) {
-      return NextResponse.json(
-        { error: 'householdId is required' },
-        { status: 400 }
-      );
-    }
-
-    // Verify user is a member of this household
-    if (!(await isMemberOfHousehold(householdId, userId))) {
-      return NextResponse.json(
-        { error: 'Not a member of this household' },
-        { status: 403 }
-      );
-    }
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     // Fetch user's budget schedule settings
     const preferences = await db
@@ -162,46 +145,38 @@ export async function GET(request: NextRequest) {
     const excludedCount = excludedAccountsResult.length;
 
     // ========================================================================
-    // 2. Get income for the period (from income bills)
+    // 2. Get income for the period using the same period-assignment service
     // ========================================================================
-    const incomeBillsData = await db
-      .select({
-        billId: bills.id,
-        billName: bills.name,
-        instanceId: billInstances.id,
-        dueDate: billInstances.dueDate,
-        expectedAmount: billInstances.expectedAmount,
-        actualAmount: billInstances.actualAmount,
-        status: billInstances.status,
-        paidDate: billInstances.paidDate,
-      })
-      .from(billInstances)
-      .innerJoin(bills, eq(billInstances.billId, bills.id))
-      .where(
-        and(
-          eq(bills.householdId, householdId),
-          eq(bills.isActive, true),
-          eq(bills.billType, 'income'),
-          gte(billInstances.dueDate, currentPeriod.startStr),
-          lte(billInstances.dueDate, currentPeriod.endStr)
-        )
-      );
+    const periodIncomeBills = await getPeriodBillsForBudgetPeriod({
+      householdId,
+      settings,
+      period: currentPeriod,
+      statuses: ['pending', 'overdue', 'paid'],
+      billType: 'income',
+    });
 
-    const incomeBreakdown: IncomeBreakdownItem[] = incomeBillsData.map((item) => {
-      const isReceived = item.status === 'paid';
-      const isOverdue = item.status === 'overdue';
-      const actualAmount = isReceived ? (item.actualAmount || item.expectedAmount) : null;
-      const variance = actualAmount !== null 
-        ? new Decimal(actualAmount).minus(item.expectedAmount).toNumber()
-        : 0;
+    const incomeBreakdown: IncomeBreakdownItem[] = periodIncomeBills.map((row) => {
+      const { bill, instance, allocation } = row;
+      const expectedAmount = allocation ? allocation.allocatedAmount : instance.expectedAmount;
+      const paidAmount = allocation
+        ? allocation.paidAmount || 0
+        : instance.actualAmount ?? instance.paidAmount ?? 0;
+      const isReceived = allocation
+        ? allocation.isPaid || paidAmount >= expectedAmount
+        : instance.status === 'paid';
+      const actualAmount = isReceived ? paidAmount : null;
+      const variance =
+        actualAmount !== null
+          ? new Decimal(actualAmount).minus(expectedAmount).toNumber()
+          : 0;
 
       return {
-        id: item.instanceId,
-        name: item.billName,
-        expectedAmount: item.expectedAmount,
+        id: instance.id,
+        name: bill.name,
+        expectedAmount,
         actualAmount,
-        status: isReceived ? 'received' : (isOverdue ? 'overdue' : 'pending'),
-        dueDate: item.dueDate,
+        status: isReceived ? 'received' : instance.status === 'overdue' ? 'overdue' : 'pending',
+        dueDate: instance.dueDate,
         variance,
       };
     });

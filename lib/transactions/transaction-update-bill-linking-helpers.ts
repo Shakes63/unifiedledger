@@ -1,7 +1,7 @@
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { billInstances, bills, transactions } from '@/lib/db/schema';
+import { billInstances, transactions } from '@/lib/db/schema';
 import { processAndLinkBillPayment } from '@/lib/transactions/payment-linkage';
 
 export function shouldRematchUpdatedExpenseBill({
@@ -26,11 +26,25 @@ export function shouldRematchUpdatedExpenseBill({
   return categoryChanged || descriptionChanged || amountChanged || dateChanged;
 }
 
-export async function unlinkExistingBillInstance(transactionId: string): Promise<void> {
+export async function unlinkExistingBillInstance({
+  transactionId,
+  userId,
+  householdId,
+}: {
+  transactionId: string;
+  userId: string;
+  householdId: string;
+}): Promise<void> {
   const oldInstance = await db
     .select()
     .from(billInstances)
-    .where(eq(billInstances.transactionId, transactionId))
+    .where(
+      and(
+        eq(billInstances.transactionId, transactionId),
+        eq(billInstances.userId, userId),
+        eq(billInstances.householdId, householdId)
+      )
+    )
     .limit(1);
 
   if (oldInstance.length === 0) {
@@ -88,41 +102,4 @@ export async function processUpdatedBillPayment({
     notes,
     legacyDebtId,
   });
-}
-
-export async function findCategoryFallbackBillMatch({
-  userId,
-  householdId,
-  categoryId,
-}: {
-  userId: string;
-  householdId: string;
-  categoryId: string;
-}): Promise<{
-  bill: typeof bills.$inferSelect;
-  instance: typeof billInstances.$inferSelect;
-} | null> {
-  const matches = await db
-    .select({
-      bill: bills,
-      instance: billInstances,
-    })
-    .from(bills)
-    .innerJoin(billInstances, eq(billInstances.billId, bills.id))
-    .where(
-      and(
-        eq(bills.userId, userId),
-        eq(bills.householdId, householdId),
-        eq(bills.isActive, true),
-        eq(bills.categoryId, categoryId),
-        inArray(billInstances.status, ['pending', 'overdue'])
-      )
-    )
-    .orderBy(
-      sql`CASE WHEN ${billInstances.status} = 'overdue' THEN 0 ELSE 1 END`,
-      asc(billInstances.dueDate)
-    )
-    .limit(1);
-
-  return matches[0] ?? null;
 }

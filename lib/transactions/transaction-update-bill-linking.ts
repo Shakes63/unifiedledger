@@ -52,7 +52,11 @@ export async function autoLinkUpdatedExpenseBill({
     });
     if (explicitMatch) {
       if (transaction.billId) {
-        await unlinkExistingBillInstance(transactionId);
+        await unlinkExistingBillInstance({
+          transactionId,
+          userId,
+          householdId,
+        });
       }
 
       await executeMatchedBillLink({
@@ -82,7 +86,11 @@ export async function autoLinkUpdatedExpenseBill({
     }
 
     if (transaction.billId) {
-      await unlinkExistingBillInstance(transactionId);
+      await unlinkExistingBillInstance({
+        transactionId,
+        userId,
+        householdId,
+      });
       await clearTransactionBillLink(transactionId);
     }
 

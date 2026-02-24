@@ -13,7 +13,7 @@ import { toBillsV2Error } from '@/lib/bills-v2/route-helpers';
 import { listOccurrences } from '@/lib/bills-v2/service';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { accounts, budgetCategories, userHouseholdPreferences } from '@/lib/db/schema';
+import { accounts, autopayRules, budgetCategories, userHouseholdPreferences } from '@/lib/db/schema';
 import {
   getCurrentBudgetPeriod,
   getDefaultBudgetScheduleSettings,
@@ -107,7 +107,11 @@ export async function GET(request: Request) {
     const categoryIds = [...new Set(occurrencesResult.data.map((row) => row.template.categoryId).filter((id): id is string => !!id))];
     const accountIds = [...new Set(occurrencesResult.data.map((row) => row.template.paymentAccountId).filter((id): id is string => !!id))];
 
-    const [categoriesRows, accountsRows] = await Promise.all([
+    const templateIds = [
+      ...new Set(occurrencesResult.data.map((row) => row.template.id).filter((id): id is string => !!id)),
+    ];
+
+    const [categoriesRows, accountsRows, autopayRows] = await Promise.all([
       categoryIds.length > 0
         ? db
             .select()
@@ -120,14 +124,32 @@ export async function GET(request: Request) {
             .from(accounts)
             .where(and(eq(accounts.householdId, householdId), inArray(accounts.id, accountIds)))
         : Promise.resolve([]),
+      templateIds.length > 0
+        ? db
+            .select({ templateId: autopayRules.templateId, isEnabled: autopayRules.isEnabled })
+            .from(autopayRules)
+            .where(
+              and(
+                eq(autopayRules.householdId, householdId),
+                inArray(autopayRules.templateId, templateIds)
+              )
+            )
+        : Promise.resolve([]),
     ]);
 
     const categoryMap = new Map(categoriesRows.map((row) => [row.id, row]));
     const accountMap = new Map(accountsRows.map((row) => [row.id, row]));
+    const autopayMap = new Map(autopayRows.map((row) => [row.templateId, row.isEnabled]));
 
     const data = occurrencesResult.data.map((row) => {
       const instance = toLegacyInstance(row.occurrence);
-      const bill = toLegacyBill(row.template, null);
+      const bill = toLegacyBill(row.template, {
+        isEnabled: autopayMap.get(row.template.id) || false,
+        payFromAccountId: null,
+        amountType: 'fixed',
+        fixedAmountCents: null,
+        daysBeforeDue: 0,
+      });
       const allAllocations = row.allocations.map((allocation) => toLegacyAllocation(allocation));
       const allocation = allAllocations.find((item) => item.periodNumber === period.periodNumber) || null;
 

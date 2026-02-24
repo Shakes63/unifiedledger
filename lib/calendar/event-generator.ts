@@ -5,8 +5,9 @@
 
 import { db } from '@/lib/db';
 import {
-  billInstances,
-  bills,
+  autopayRules,
+  billOccurrences,
+  billTemplates,
   savingsGoals,
   savingsMilestones,
   debts,
@@ -104,48 +105,75 @@ export async function generateBillEvents(
 
   const appUrl = getAppUrl();
 
-  // Get pending and overdue bill instances in the date range
-  const instances = await db
+  const occurrenceRows = await db
     .select({
-      instance: billInstances,
-      bill: bills,
+      occurrence: billOccurrences,
+      template: billTemplates,
     })
-    .from(billInstances)
-    .innerJoin(bills, eq(billInstances.billId, bills.id))
+    .from(billOccurrences)
+    .innerJoin(billTemplates, eq(billOccurrences.templateId, billTemplates.id))
     .where(
       and(
-        eq(billInstances.userId, userId),
-        eq(billInstances.householdId, householdId),
-        gte(billInstances.dueDate, startDate),
-        lte(billInstances.dueDate, endDate),
+        eq(billOccurrences.householdId, householdId),
+        eq(billTemplates.householdId, householdId),
+        gte(billOccurrences.dueDate, startDate),
+        lte(billOccurrences.dueDate, endDate),
         or(
-          eq(billInstances.status, 'pending'),
-          eq(billInstances.status, 'overdue')
+          eq(billOccurrences.status, 'unpaid'),
+          eq(billOccurrences.status, 'partial'),
+          eq(billOccurrences.status, 'overdue')
         )
       )
     );
+  const templateIds = [...new Set(occurrenceRows.map((row) => row.template.id))];
+  const rules =
+    templateIds.length > 0
+      ? await db
+          .select()
+          .from(autopayRules)
+          .where(and(eq(autopayRules.householdId, householdId), eq(autopayRules.isEnabled, true), inArray(autopayRules.templateId, templateIds)))
+      : [];
+  const ruleMap = new Map(rules.map((rule) => [rule.templateId, rule]));
 
   if (settings.syncMode === 'direct') {
     // Direct mode: one event per bill instance
-    return instances.map(({ instance, bill }) => ({
-      sourceType: 'bill_instance' as const,
-      sourceId: instance.id,
-      title: `Bill Due: ${bill.name}`,
-      description: `Amount: $${new Decimal(instance.expectedAmount).toFixed(2)}\nBill: ${bill.name}`,
-      date: instance.dueDate,
-      allDay: true,
-      reminderMinutes: settings.reminderMinutes,
-      link: `${appUrl}/dashboard/bills?payBill=${instance.id}`,
-    }));
+    return occurrenceRows.map(({ occurrence, template }) => {
+      const maybeRule = ruleMap.get(template.id);
+      const amountDue = new Decimal(occurrence.amountDueCents || 0).div(100);
+      const amountRemaining = new Decimal(
+        (occurrence.amountRemainingCents || occurrence.amountDueCents || 0)
+      ).div(100);
+      const titlePrefix =
+        template.billType === 'income'
+          ? 'Income Due'
+          : template.billType === 'savings_transfer'
+            ? 'Transfer Due'
+            : 'Bill Due';
+      const actionPath =
+        template.billType === 'income'
+          ? '/dashboard/income'
+          : '/dashboard/bills';
+
+      return {
+        sourceType: 'bill_instance' as const,
+        sourceId: occurrence.id,
+        title: `${titlePrefix}: ${template.name}`,
+        description: `Amount Due: $${amountDue.toFixed(2)}\nRemaining: $${amountRemaining.toFixed(2)}\nType: ${template.billType}\nAutopay: ${maybeRule ? 'Enabled' : 'Disabled'}`,
+        date: occurrence.dueDate,
+        allDay: true,
+        reminderMinutes: settings.reminderMinutes,
+        link: `${appUrl}${actionPath}`,
+      };
+    });
   } else {
     // Budget period mode: group bills by period
     if (!budgetSettings) return [];
 
     // Group instances by period
-    const periodMap = new Map<string, typeof instances>();
+    const periodMap = new Map<string, typeof occurrenceRows>();
 
-    for (const item of instances) {
-      const dueDate = parseISO(item.instance.dueDate);
+    for (const item of occurrenceRows) {
+      const dueDate = parseISO(item.occurrence.dueDate);
       const period = getCurrentBudgetPeriod(budgetSettings, dueDate);
       const periodKey = period.startStr;
 
@@ -160,11 +188,12 @@ export async function generateBillEvents(
 
     for (const [periodStart, periodBills] of periodMap) {
       const totalAmount = periodBills.reduce(
-        (sum, { instance }) => sum.plus(instance.expectedAmount),
+        (sum, { occurrence }) =>
+          sum.plus(new Decimal(occurrence.amountDueCents || 0).div(100)),
         new Decimal(0)
       );
 
-      const billNames = periodBills.map(({ bill }) => bill.name);
+      const billNames = periodBills.map(({ template }) => template.name);
       const truncatedNames = billNames.length > 5
         ? [...billNames.slice(0, 5), `+${billNames.length - 5} more`]
         : billNames;
@@ -174,7 +203,7 @@ export async function generateBillEvents(
       const periodDate = parseISO(periodStart);
       const currentPeriod = getCurrentBudgetPeriod(budgetSettings, today);
       const targetPeriod = getCurrentBudgetPeriod(budgetSettings, periodDate);
-      
+
       // Simple offset calculation (positive = future, negative = past)
       let periodOffset = 0;
       if (targetPeriod.startStr !== currentPeriod.startStr) {
@@ -186,8 +215,8 @@ export async function generateBillEvents(
         sourceType: 'budget_period_bills',
         sourceId: periodStart,
         title: `Bills Due: ${truncatedNames.join(', ')} ($${totalAmount.toFixed(2)})`,
-        description: `Bills for this period:\n${billNames.map((name, i) => 
-          `- ${name}: $${new Decimal(periodBills[i].instance.expectedAmount).toFixed(2)}`
+        description: `Bills for this period:\n${billNames.map((name, i) =>
+          `- ${name}: $${new Decimal(periodBills[i].occurrence.amountDueCents || 0).div(100).toFixed(2)}`
         ).join('\n')}\n\nTotal: $${totalAmount.toFixed(2)}`,
         date: periodStart,
         allDay: true,
@@ -470,6 +499,40 @@ export async function generatePayoffDateEvents(
         link: `${appUrl}/dashboard/debts?debt=${debt.id}`,
       });
     }
+  }
+
+  // Add debt-enabled bill templates from bills-v2.
+  const debtTemplates = await db
+    .select()
+    .from(billTemplates)
+    .where(
+      and(
+        eq(billTemplates.householdId, householdId),
+        eq(billTemplates.isActive, true),
+        eq(billTemplates.debtEnabled, true)
+      )
+    );
+
+  for (const template of debtTemplates) {
+    const remainingBalance = new Decimal(template.debtRemainingBalanceCents || 0).div(100);
+    const monthlyPayment = new Decimal(template.defaultAmountCents || 0).div(100);
+    if (remainingBalance.lte(0) || monthlyPayment.lte(0)) continue;
+
+    const monthsToPayoff = remainingBalance.dividedBy(monthlyPayment).ceil().toNumber();
+    const projectedDate = addMonths(today, monthsToPayoff);
+    const dateStr = format(projectedDate, 'yyyy-MM-dd');
+    if (dateStr < startDate || dateStr > endDate) continue;
+
+    events.push({
+      sourceType: 'payoff_date',
+      sourceId: `template-${template.id}`,
+      title: `Projected Payoff: ${template.name}`,
+      description: `Projected date to pay off ${template.name}.\nRemaining: $${remainingBalance.toFixed(2)}\nMonthly Payment: $${monthlyPayment.toFixed(2)}`,
+      date: dateStr,
+      allDay: true,
+      reminderMinutes: settings.reminderMinutes,
+      link: `${appUrl}/dashboard/bills`,
+    });
   }
 
   // Get credit accounts with projected payoff

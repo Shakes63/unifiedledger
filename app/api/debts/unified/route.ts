@@ -1,8 +1,8 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { accounts, bills, debts } from '@/lib/db/schema';
+import { accounts, billTemplates, bills, debts } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
-import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import Decimal from 'decimal.js';
 import { toMoneyCents } from '@/lib/utils/money-cents';
 
@@ -59,17 +59,7 @@ interface UnifiedDebt {
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
-
-    // Get and validate household
-    const householdId = getHouseholdIdFromRequest(request);
-    await requireHouseholdAuth(userId, householdId);
-
-    if (!householdId) {
-      return Response.json(
-        { error: 'Household ID is required' },
-        { status: 400 }
-      );
-    }
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     // Parse query params for filtering
     const { searchParams } = new URL(request.url);
@@ -89,17 +79,29 @@ export async function GET(request: Request) {
         )
       );
 
-    // Fetch debt bills
-    const debtBills = await db
-      .select()
-      .from(bills)
-      .where(
-        and(
-          eq(bills.householdId, householdId),
-          eq(bills.isDebt, true),
-          eq(bills.isActive, true)
-        )
-      );
+    // Fetch debt bills (legacy + bills-v2 debt templates)
+    const [debtBills, debtTemplates] = await Promise.all([
+      db
+        .select()
+        .from(bills)
+        .where(
+          and(
+            eq(bills.householdId, householdId),
+            eq(bills.isDebt, true),
+            eq(bills.isActive, true)
+          )
+        ),
+      db
+        .select()
+        .from(billTemplates)
+        .where(
+          and(
+            eq(billTemplates.householdId, householdId),
+            eq(billTemplates.debtEnabled, true),
+            eq(billTemplates.isActive, true)
+          )
+        ),
+    ]);
 
     // Fetch standalone debts from debts table
     const standaloneDebts = await db
@@ -160,6 +162,37 @@ export async function GET(request: Request) {
 
     // Add debt bills
     if (!sourceFilter || sourceFilter === 'bill') {
+      for (const template of debtTemplates) {
+        const remainingBalance =
+          template.debtRemainingBalanceCents !== null
+            ? toAmount(template.debtRemainingBalanceCents)
+            : 0;
+        if (typeFilter && typeFilter !== 'other') continue;
+        if (inStrategyOnly && !template.includeInPayoffStrategy) continue;
+
+        unifiedDebts.push({
+          id: template.id,
+          name: template.name,
+          source: 'bill',
+          sourceType: 'other',
+          balance: remainingBalance,
+          originalBalance:
+            template.debtOriginalBalanceCents !== null
+              ? toAmount(template.debtOriginalBalanceCents)
+              : undefined,
+          interestRate:
+            template.debtInterestAprBps !== null
+              ? new Decimal(template.debtInterestAprBps).div(100).toNumber()
+              : undefined,
+          interestType: template.debtInterestType ?? undefined,
+          includeInPayoffStrategy: template.includeInPayoffStrategy ?? true,
+          color: template.debtColor ?? undefined,
+          debtType: undefined,
+          isInterestTaxDeductible: template.interestTaxDeductible ?? undefined,
+          taxDeductionType: template.interestTaxDeductionType ?? undefined,
+        });
+      }
+
       for (const bill of debtBills) {
         // Apply type filter if specified
         if (typeFilter && bill.debtType !== typeFilter) continue;
@@ -258,8 +291,8 @@ export async function GET(request: Request) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error instanceof Error && error.message.includes('Household')) {
-      return Response.json({ error: error.message }, { status: 403 });
+    if (error instanceof Error && error.message.includes('Household ID')) {
+      return Response.json({ error: error.message }, { status: 400 });
     }
     console.error('Unified debts fetch error:', error);
     return Response.json(

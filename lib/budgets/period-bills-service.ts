@@ -1,10 +1,13 @@
-import { db } from '@/lib/db';
+import { and, eq, inArray } from 'drizzle-orm';
 import {
-  bills,
-  billInstances,
-  billInstanceAllocations,
-} from '@/lib/db/schema';
-import { and, eq, gte, inArray, lte, ne } from 'drizzle-orm';
+  legacyStatusesToOccurrenceStatuses,
+  toLegacyAllocation,
+  toLegacyBill,
+  toLegacyInstance,
+} from '@/lib/bills-v2/legacy-compat';
+import { listOccurrences } from '@/lib/bills-v2/service';
+import { db } from '@/lib/db';
+import { autopayRules } from '@/lib/db/schema';
 import { endOfMonth, format, startOfMonth } from 'date-fns';
 import {
   dueDateMatchesPeriodMonth,
@@ -28,12 +31,44 @@ export interface GetPeriodBillsOptions {
   userId?: string;
 }
 
+interface LegacyBillForPeriod {
+  id: string;
+  name: string;
+  billType: BillType;
+  categoryId: string | null;
+  budgetPeriodAssignment: number | null;
+  isAutopayEnabled: boolean;
+}
+
+interface LegacyInstanceForPeriod {
+  id: string;
+  dueDate: string;
+  status: BillStatus;
+  expectedAmount: number;
+  actualAmount: number | null;
+  paidAmount: number;
+  remainingAmount: number;
+  budgetPeriodOverride: number | null;
+}
+
+interface LegacyAllocationForPeriod {
+  periodNumber: number;
+  allocatedAmount: number;
+  paidAmount: number;
+  isPaid: boolean;
+}
+
 export interface PeriodBillRow {
-  bill: typeof bills.$inferSelect;
-  instance: typeof billInstances.$inferSelect;
-  allocation: typeof billInstanceAllocations.$inferSelect | null;
-  allAllocations: Array<typeof billInstanceAllocations.$inferSelect>;
+  bill: LegacyBillForPeriod;
+  instance: LegacyInstanceForPeriod;
+  allocation: LegacyAllocationForPeriod | null;
+  allAllocations: Array<LegacyAllocationForPeriod>;
   hasAnyAllocations: boolean;
+}
+
+function toLegacyStatusSet(statuses?: BillStatus[]): BillStatus[] {
+  if (!statuses || statuses.length === 0) return ['pending', 'overdue'];
+  return statuses;
 }
 
 /**
@@ -52,72 +87,96 @@ export async function getPeriodBillsForBudgetPeriod({
 }: GetPeriodBillsOptions): Promise<PeriodBillRow[]> {
   const periodMonthStart = format(startOfMonth(period.start), 'yyyy-MM-dd');
   const periodMonthEnd = format(endOfMonth(period.end), 'yyyy-MM-dd');
+  const requestedStatuses = toLegacyStatusSet(statuses);
+  const occurrenceStatuses = legacyStatusesToOccurrenceStatuses(requestedStatuses);
 
-  const whereConditions = [
-    eq(bills.householdId, householdId),
-    eq(bills.isActive, true),
-    gte(billInstances.dueDate, periodMonthStart),
-    lte(billInstances.dueDate, periodMonthEnd),
-  ];
+  const occurrenceResult = await listOccurrences({
+    userId: userId || 'system',
+    householdId,
+    status: occurrenceStatuses,
+    billType,
+    from: periodMonthStart,
+    to: periodMonthEnd,
+    limit: 5000,
+    offset: 0,
+  });
 
-  if (statuses && statuses.length > 0) {
-    whereConditions.push(inArray(billInstances.status, statuses));
-  }
-
-  if (billType) {
-    whereConditions.push(eq(bills.billType, billType));
-  }
-
+  let candidateRows = occurrenceResult.data;
   if (excludeBillType) {
-    whereConditions.push(ne(bills.billType, excludeBillType));
+    candidateRows = candidateRows.filter((row) => row.template.billType !== excludeBillType);
   }
-
   if (userId) {
-    whereConditions.push(eq(billInstances.userId, userId));
+    candidateRows = candidateRows.filter((row) => row.template.createdByUserId === userId);
   }
-
-  const candidateRows = await db
-    .select({
-      bill: bills,
-      instance: billInstances,
-    })
-    .from(billInstances)
-    .innerJoin(bills, eq(billInstances.billId, bills.id))
-    .where(and(...whereConditions))
-    .orderBy(billInstances.dueDate);
-
   if (candidateRows.length === 0) {
     return [];
   }
 
-  const instanceIds = candidateRows.map((row) => row.instance.id);
-  const allocations = await db
-    .select()
-    .from(billInstanceAllocations)
-    .where(
-      and(
-        eq(billInstanceAllocations.householdId, householdId),
-        inArray(billInstanceAllocations.billInstanceId, instanceIds)
-      )
-    );
-
-  const allocationsByInstanceId = new Map<string, Array<typeof billInstanceAllocations.$inferSelect>>();
-  for (const allocation of allocations) {
-    const existing = allocationsByInstanceId.get(allocation.billInstanceId) || [];
-    existing.push(allocation);
-    allocationsByInstanceId.set(allocation.billInstanceId, existing);
+  const templateIds = [...new Set(candidateRows.map((row) => row.template.id))];
+  const autopayByTemplateId = new Map<string, boolean>();
+  if (templateIds.length > 0) {
+    const autopayRows = await db
+      .select({ templateId: autopayRules.templateId, isEnabled: autopayRules.isEnabled })
+      .from(autopayRules)
+      .where(
+        and(
+          eq(autopayRules.householdId, householdId),
+          inArray(autopayRules.templateId, templateIds)
+        )
+      );
+    for (const row of autopayRows) {
+      autopayByTemplateId.set(row.templateId, row.isEnabled);
+    }
   }
 
-  const sortedRows = candidateRows
+  const mappedRows = candidateRows
     .map((row) => {
-      const instanceAllocations = allocationsByInstanceId.get(row.instance.id) || [];
-      const currentAllocation = instanceAllocations.find((a) => a.periodNumber === period.periodNumber) || null;
+      const legacyBill = toLegacyBill(row.template, {
+        isEnabled: autopayByTemplateId.get(row.template.id) || false,
+        payFromAccountId: null,
+        amountType: 'fixed',
+        fixedAmountCents: null,
+        daysBeforeDue: 0,
+      });
+      const legacyInstance = toLegacyInstance(row.occurrence);
+      const allAllocations = row.allocations.map((allocation) => toLegacyAllocation(allocation));
+      const currentAllocation =
+        allAllocations.find((allocation) => allocation.periodNumber === period.periodNumber) || null;
+
       return {
-        bill: row.bill,
-        instance: row.instance,
-        allocation: currentAllocation,
-        allAllocations: instanceAllocations,
-        hasAnyAllocations: instanceAllocations.length > 0,
+        bill: {
+          id: legacyBill.id,
+          name: legacyBill.name,
+          billType: legacyBill.billType as BillType,
+          categoryId: legacyBill.categoryId,
+          budgetPeriodAssignment: legacyBill.budgetPeriodAssignment,
+          isAutopayEnabled: legacyBill.isAutopayEnabled || false,
+        },
+        instance: {
+          id: legacyInstance.id,
+          dueDate: legacyInstance.dueDate,
+          status: legacyInstance.status as BillStatus,
+          expectedAmount: legacyInstance.expectedAmount,
+          actualAmount: legacyInstance.actualAmount,
+          paidAmount: legacyInstance.paidAmount || 0,
+          remainingAmount: legacyInstance.remainingAmount || 0,
+          budgetPeriodOverride: legacyInstance.budgetPeriodOverride,
+        },
+        allocation: currentAllocation
+          ? {
+              periodNumber: currentAllocation.periodNumber,
+              allocatedAmount: currentAllocation.allocatedAmount,
+              paidAmount: currentAllocation.paidAmount || 0,
+              isPaid: currentAllocation.isPaid || false,
+            }
+          : null,
+        allAllocations: allAllocations.map((allocation) => ({
+          periodNumber: allocation.periodNumber,
+          allocatedAmount: allocation.allocatedAmount,
+          paidAmount: allocation.paidAmount || 0,
+          isPaid: allocation.isPaid || false,
+        })),
+        hasAnyAllocations: allAllocations.length > 0,
       } satisfies PeriodBillRow;
     })
     .filter((row) => {
@@ -136,7 +195,7 @@ export async function getPeriodBillsForBudgetPeriod({
         instancePeriodOverride: row.instance.budgetPeriodOverride,
       });
     })
-    .sort((a, b) => a.instance.dueDate.localeCompare(b.instance.dueDate));
+    .sort((left, right) => left.instance.dueDate.localeCompare(right.instance.dueDate));
 
-  return sortedRows;
+  return mappedRows;
 }

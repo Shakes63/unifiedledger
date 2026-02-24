@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import {
@@ -20,19 +20,69 @@ export async function buildEnrichedTransactionResponse(
 ) {
   const [accountData, categoryData, merchantData, billData, debtData] = await Promise.all([
     txData.accountId
-      ? db.select().from(accounts).where(eq(accounts.id, txData.accountId)).limit(1)
+      ? db
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.id, txData.accountId),
+              eq(accounts.userId, txData.userId),
+              eq(accounts.householdId, txData.householdId)
+            )
+          )
+          .limit(1)
       : Promise.resolve([]),
     txData.categoryId
-      ? db.select().from(budgetCategories).where(eq(budgetCategories.id, txData.categoryId)).limit(1)
+      ? db
+          .select()
+          .from(budgetCategories)
+          .where(
+            and(
+              eq(budgetCategories.id, txData.categoryId),
+              eq(budgetCategories.userId, txData.userId),
+              eq(budgetCategories.householdId, txData.householdId)
+            )
+          )
+          .limit(1)
       : Promise.resolve([]),
     txData.merchantId
-      ? db.select().from(merchants).where(eq(merchants.id, txData.merchantId)).limit(1)
+      ? db
+          .select()
+          .from(merchants)
+          .where(
+            and(
+              eq(merchants.id, txData.merchantId),
+              eq(merchants.userId, txData.userId),
+              eq(merchants.householdId, txData.householdId)
+            )
+          )
+          .limit(1)
       : Promise.resolve([]),
     txData.billId
-      ? db.select().from(bills).where(eq(bills.id, txData.billId)).limit(1)
+      ? db
+          .select()
+          .from(bills)
+          .where(
+            and(
+              eq(bills.id, txData.billId),
+              eq(bills.userId, txData.userId),
+              eq(bills.householdId, txData.householdId)
+            )
+          )
+          .limit(1)
       : Promise.resolve([]),
     txData.debtId
-      ? db.select().from(debts).where(eq(debts.id, txData.debtId)).limit(1)
+      ? db
+          .select()
+          .from(debts)
+          .where(
+            and(
+              eq(debts.id, txData.debtId),
+              eq(debts.userId, txData.userId),
+              eq(debts.householdId, txData.householdId)
+            )
+          )
+          .limit(1)
       : Promise.resolve([]),
   ]);
 

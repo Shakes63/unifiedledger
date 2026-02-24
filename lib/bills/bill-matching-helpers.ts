@@ -64,6 +64,8 @@ export async function findMatchingBillInstance(
           eq(bills.userId, userId),
           eq(bills.householdId, householdId),
           eq(bills.isActive, true),
+          eq(billInstances.userId, userId),
+          eq(billInstances.householdId, householdId),
           inArray(billInstances.status, ['pending', 'overdue'])
         )
       );

@@ -121,7 +121,9 @@ export function DebtPayoffTracker({
     }
 
     try {
-      const response = await postWithHousehold(`/api/debts/${debt.id}/payments`, {
+      const response = await postWithHousehold('/api/debts/payments', {
+        source: 'debt',
+        id: debt.id,
         amount,
         paymentDate: new Date().toISOString(),
       });

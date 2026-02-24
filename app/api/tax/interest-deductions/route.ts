@@ -13,8 +13,8 @@ import {
   getAllInterestLimitStatuses 
 } from '@/lib/tax/interest-tax-utils';
 import { db } from '@/lib/db';
-import { interestDeductions, bills } from '@/lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { billTemplates, interestDeductions, bills } from '@/lib/db/schema';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
         .select({
           id: interestDeductions.id,
           billId: interestDeductions.billId,
+          householdId: interestDeductions.householdId,
           deductionType: interestDeductions.deductionType,
           interestAmount: interestDeductions.interestAmount,
           deductibleAmount: interestDeductions.deductibleAmount,
@@ -61,25 +62,37 @@ export async function GET(request: NextRequest) {
         )
         .orderBy(desc(interestDeductions.paymentDate));
 
-      // Get bill names for the payments
+      // Get bill/template names for the payments
       const billIds = [...new Set(deductions.map(d => d.billId))];
+      const householdIds = [...new Set(deductions.map((d) => d.householdId).filter(Boolean))];
       const billNames = new Map<string, string>();
       
       if (billIds.length > 0) {
-        const billsResult = await db
-          .select({ id: bills.id, name: bills.name })
-          .from(bills)
-          .where(
-            and(
-              eq(bills.userId, userId)
-            )
-          );
-        
-        billsResult.forEach(b => {
-          if (billIds.includes(b.id)) {
-            billNames.set(b.id, b.name);
-          }
-        });
+        const [templateRows, legacyRows] = await Promise.all([
+          householdIds.length > 0
+            ? db
+                .select({ id: billTemplates.id, name: billTemplates.name })
+                .from(billTemplates)
+                .where(
+                  and(
+                    inArray(billTemplates.householdId, householdIds),
+                    inArray(billTemplates.id, billIds)
+                  )
+                )
+            : Promise.resolve([]),
+          db
+            .select({ id: bills.id, name: bills.name })
+            .from(bills)
+            .where(and(eq(bills.userId, userId), inArray(bills.id, billIds))),
+        ]);
+
+        // Prefer bills-v2 template names when IDs overlap.
+        for (const row of legacyRows) {
+          billNames.set(row.id, row.name);
+        }
+        for (const row of templateRows) {
+          billNames.set(row.id, row.name);
+        }
       }
 
       payments = deductions.map(d => ({

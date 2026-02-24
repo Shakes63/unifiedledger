@@ -79,6 +79,13 @@ interface BudgetGroup {
   totalSpent: number;
 }
 
+interface UnifiedDebtBudgetResponse {
+  totalBudgetedPayments: number;
+  totalActualPaid: number;
+  strategyDebts: { items: Array<{ id: string }> };
+  manualDebts: Array<{ id: string }>;
+}
+
 export default function BudgetsPage() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold, postWithHousehold } = useHouseholdFetch();
@@ -144,7 +151,7 @@ export default function BudgetsPage() {
         const [overviewResponse, groupsResponse, debtsResponse] = await Promise.all([
           fetchWithHousehold(`/api/budgets/overview?month=${selectedMonth}`),
           fetchWithHousehold(`/api/budget-groups?month=${selectedMonth}`),
-          fetchWithHousehold(`/api/budgets/debts?month=${selectedMonth}`),
+          fetchWithHousehold(`/api/budgets/debts-unified?month=${selectedMonth}`),
         ]);
 
         if (!overviewResponse.ok) {
@@ -155,8 +162,15 @@ export default function BudgetsPage() {
         setBudgetData(data);
 
         if (debtsResponse.ok) {
-          const debtsData = await debtsResponse.json();
-          setDebtBudgetData(debtsData);
+          const debtsData = (await debtsResponse.json()) as UnifiedDebtBudgetResponse;
+          setDebtBudgetData({
+            totalRecommendedPayments: debtsData.totalBudgetedPayments,
+            totalActualPaid: debtsData.totalActualPaid,
+            debts: [
+              ...debtsData.strategyDebts.items.map((item) => ({ debtId: item.id })),
+              ...debtsData.manualDebts.map((item) => ({ debtId: item.id })),
+            ],
+          });
         } else {
           setDebtBudgetData(null);
         }

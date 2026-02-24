@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { 
   hasGoogleOAuthLinked, 
   listCalendarsForUser,
@@ -13,21 +14,12 @@ export const dynamic = 'force-dynamic';
 /**
  * GET /api/calendar-sync/google/status
  * Check if user has Google OAuth linked and get calendar list
- * Query params: householdId (required)
+ * Household context: x-household-id header
  */
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
-
-    const { searchParams } = new URL(request.url);
-    const householdId = searchParams.get('householdId');
-
-    if (!householdId) {
-      return Response.json(
-        { error: 'householdId is required' },
-        { status: 400 }
-      );
-    }
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     // Check if Google OAuth is configured at all
     if (!isGoogleCalendarConfigured()) {

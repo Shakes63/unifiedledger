@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
 import {
@@ -8,7 +7,6 @@ import {
   budgetCategories,
 } from '@/lib/db/schema';
 import { eq, and, gte, lte, inArray, sum, sql } from 'drizzle-orm';
-import { isMemberOfHousehold } from '@/lib/household/permissions';
 import Decimal from 'decimal.js';
 import { toMoneyCents } from '@/lib/utils/money-cents';
 import { apiError, apiOk } from '@/lib/api/route-helpers';
@@ -24,6 +22,7 @@ import {
   type BudgetCycleFrequency,
 } from '@/lib/budgets/budget-schedule';
 import { getPeriodBillsForBudgetPeriod } from '@/lib/budgets/period-bills-service';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,19 +100,10 @@ async function calculatePeriodCommittedAmount(
  * - available: number (the key calculation)
  * - rolloverFromPrevious: number (if rollover enabled)
  */
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
-    
-    const householdId = request.nextUrl.searchParams.get('householdId');
-    if (!householdId) {
-      return apiError('householdId is required', 400);
-    }
-
-    // Verify user is a member of this household
-    if (!(await isMemberOfHousehold(householdId, userId))) {
-      return apiError('Not a member of this household', 403);
-    }
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     // Fetch user's budget schedule settings
     const preferences = await db

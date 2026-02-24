@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { transactions } from '@/lib/db/schema';
@@ -53,7 +53,13 @@ export async function processAndAttachBillPayment({
       billId,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(transactions.id, transactionId));
+    .where(
+      and(
+        eq(transactions.id, transactionId),
+        eq(transactions.userId, userId),
+        eq(transactions.householdId, householdId)
+      )
+    );
 
   return {
     success: true as const,

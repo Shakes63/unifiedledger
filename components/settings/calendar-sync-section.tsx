@@ -32,7 +32,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useHousehold } from '@/contexts/household-context';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { signIn } from '@/lib/better-auth-client';
 
 interface CalendarConnection {
@@ -79,7 +79,11 @@ interface TickTickProject {
 }
 
 export function CalendarSyncSection() {
-  const { selectedHouseholdId } = useHousehold();
+  const {
+    selectedHouseholdId,
+    postWithHousehold,
+    putWithHousehold,
+  } = useHouseholdFetch();
   
   const [loading, setLoading] = useState(true);
   const [connections, setConnections] = useState<CalendarConnection[]>([]);
@@ -126,8 +130,13 @@ export function CalendarSyncSection() {
     
     try {
       const response = await fetch(
-        `/api/calendar-sync/google/status?householdId=${selectedHouseholdId}`,
-        { credentials: 'include' }
+        `/api/calendar-sync/google/status`,
+        {
+          headers: {
+            'x-household-id': selectedHouseholdId,
+          },
+          credentials: 'include',
+        }
       );
       
       if (response.ok) {
@@ -146,8 +155,13 @@ export function CalendarSyncSection() {
     try {
       setLoading(true);
       const response = await fetch(
-        `/api/calendar-sync/settings?householdId=${selectedHouseholdId}`,
-        { credentials: 'include' }
+        `/api/calendar-sync/settings`,
+        {
+          headers: {
+            'x-household-id': selectedHouseholdId,
+          },
+          credentials: 'include',
+        }
       );
       
       if (response.ok) {
@@ -187,12 +201,7 @@ export function CalendarSyncSection() {
 
     try {
       setEnabling(true);
-      const response = await fetch('/api/calendar-sync/google/enable', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ householdId: selectedHouseholdId }),
-      });
+      const response = await postWithHousehold('/api/calendar-sync/google/enable', {});
 
       if (!response.ok) {
         const data = await response.json();
@@ -219,8 +228,13 @@ export function CalendarSyncSection() {
 
     try {
       const response = await fetch(
-        `/api/calendar-sync/ticktick/connect?householdId=${selectedHouseholdId}`,
-        { credentials: 'include' }
+        `/api/calendar-sync/ticktick/connect`,
+        {
+          headers: {
+            'x-household-id': selectedHouseholdId,
+          },
+          credentials: 'include',
+        }
       );
       
       if (!response.ok) {
@@ -367,14 +381,8 @@ export function CalendarSyncSection() {
 
     try {
       setSaving(true);
-      const response = await fetch('/api/calendar-sync/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          householdId: selectedHouseholdId,
-          [key]: value,
-        }),
+      const response = await putWithHousehold('/api/calendar-sync/settings', {
+        [key]: value,
       });
 
       if (!response.ok) {
@@ -396,12 +404,7 @@ export function CalendarSyncSection() {
 
     try {
       setSyncing(true);
-      const response = await fetch('/api/calendar-sync/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ householdId: selectedHouseholdId }),
-      });
+      const response = await postWithHousehold('/api/calendar-sync/sync', {});
 
       const data = await response.json();
 

@@ -84,6 +84,8 @@ export async function processAllAutopayBills(): Promise<AutopayProcessingResult>
 
     // Get bill IDs for filtering instances
     const billIds = autopayBills.map(b => b.id);
+    const autopayUserIds = [...new Set(autopayBills.map((b) => b.userId))];
+    const autopayHouseholdIds = [...new Set(autopayBills.map((b) => b.householdId))];
 
     // Get pending instances for these bills
     // We look for instances within a reasonable date range (next 7 days max)
@@ -93,6 +95,8 @@ export async function processAllAutopayBills(): Promise<AutopayProcessingResult>
       .where(
         and(
           inArray(billInstances.billId, billIds),
+          inArray(billInstances.userId, autopayUserIds),
+          inArray(billInstances.householdId, autopayHouseholdIds),
           // Status is pending or overdue
           inArray(billInstances.status, ['pending', 'overdue'])
         )
@@ -110,6 +114,9 @@ export async function processAllAutopayBills(): Promise<AutopayProcessingResult>
     for (const instance of pendingInstances) {
       const bill = billMap.get(instance.billId);
       if (!bill) continue;
+      if (instance.userId !== bill.userId || instance.householdId !== bill.householdId) {
+        continue;
+      }
 
       // Skip if no autopay account configured
       if (!bill.autopayAccountId) {
@@ -258,6 +265,8 @@ export async function getAutopayDueToday(): Promise<{
   }
 
   const billIds = autopayBills.map(b => b.id);
+  const autopayUserIds = [...new Set(autopayBills.map((b) => b.userId))];
+  const autopayHouseholdIds = [...new Set(autopayBills.map((b) => b.householdId))];
   const billMap = new Map(autopayBills.map(b => [b.id, b]));
 
   const pendingInstances = await db
@@ -266,6 +275,8 @@ export async function getAutopayDueToday(): Promise<{
     .where(
       and(
         inArray(billInstances.billId, billIds),
+        inArray(billInstances.userId, autopayUserIds),
+        inArray(billInstances.householdId, autopayHouseholdIds),
         inArray(billInstances.status, ['pending', 'overdue'])
       )
     );
@@ -283,6 +294,7 @@ export async function getAutopayDueToday(): Promise<{
   for (const instance of pendingInstances) {
     const bill = billMap.get(instance.billId);
     if (!bill || !bill.autopayAccountId) continue;
+    if (instance.userId !== bill.userId || instance.householdId !== bill.householdId) continue;
 
     const dueDate = parseISO(instance.dueDate);
     const processingDate = subDays(dueDate, bill.autopayDaysBefore || 0);

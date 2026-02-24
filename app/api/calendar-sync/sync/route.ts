@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { fullSync, isSyncEnabled } from '@/lib/calendar/sync-service';
 
 export const dynamic = 'force-dynamic';
@@ -6,21 +7,14 @@ export const dynamic = 'force-dynamic';
 /**
  * POST /api/calendar-sync/sync
  * Trigger a full calendar sync
- * Body: { householdId: string }
+ * Body: {}
+ * Household context: x-household-id header (or body fallback via helper)
  */
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
-    const { householdId } = body;
-
-    if (!householdId) {
-      return Response.json(
-        { error: 'householdId is required' },
-        { status: 400 }
-      );
-    }
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
 
     // Check if sync is enabled
     const syncEnabled = await isSyncEnabled(userId, householdId);

@@ -1,59 +1,83 @@
 import { db } from '@/lib/db';
-import { billInstances, bills } from '@/lib/db/schema';
-import { eq, and, lte, gte } from 'drizzle-orm';
+import { autopayRules, billOccurrences, billTemplates } from '@/lib/db/schema';
+import { eq, and, lte, gte, inArray } from 'drizzle-orm';
 import { addDays, parseISO, differenceInDays, startOfDay } from 'date-fns';
 import { createNotification } from '@/lib/notifications/notification-service';
 import { getTodayLocalDateString, toLocalDateString } from '@/lib/utils/local-date';
 
-export async function checkAndCreateBillReminders() {
+export async function checkAndCreateBillReminders(options?: {
+  userId?: string;
+  householdId?: string;
+}) {
   try {
     const today = new Date();
 
-    // Get all pending bill instances
-    const pendingInstances = await db
+    // Get all unpaid/overdue expense occurrences with optional autopay rules
+    const queryFilters = [
+      eq(billTemplates.billType, 'expense'),
+      eq(billTemplates.isActive, true),
+      inArray(billOccurrences.status, ['unpaid', 'partial', 'overdue']),
+    ];
+    if (options?.userId) {
+      queryFilters.push(eq(billTemplates.createdByUserId, options.userId));
+    }
+    if (options?.householdId) {
+      queryFilters.push(eq(billTemplates.householdId, options.householdId));
+    }
+
+    const pendingOccurrences = await db
       .select({
-        instance: billInstances,
-        bill: bills,
+        occurrence: billOccurrences,
+        template: billTemplates,
+        autopay: autopayRules,
       })
-      .from(billInstances)
-      .leftJoin(bills, eq(billInstances.billId, bills.id))
-      .where(eq(billInstances.status, 'pending'));
+      .from(billOccurrences)
+      .innerJoin(billTemplates, eq(billOccurrences.templateId, billTemplates.id))
+      .leftJoin(
+        autopayRules,
+        and(
+          eq(autopayRules.templateId, billTemplates.id),
+          eq(autopayRules.householdId, billTemplates.householdId)
+        )
+      )
+      .where(
+        and(...queryFilters)
+      );
 
     let createdNotifications = 0;
     let skippedAutopay = 0;
 
-    for (const { instance, bill } of pendingInstances) {
-      if (!bill) continue; // Skip if bill not found
-
+    for (const { occurrence, template, autopay } of pendingOccurrences) {
       // Skip autopay-enabled bills - they're handled by the autopay processor
       // Users don't need reminders for bills that will be paid automatically
-      if (bill.isAutopayEnabled && bill.autopayAccountId) {
+      if (autopay?.isEnabled && autopay.payFromAccountId) {
         skippedAutopay++;
         continue;
       }
 
-      const dueDate = parseISO(instance.dueDate);
+      const dueDate = parseISO(occurrence.dueDate);
       const daysUntilDue = differenceInDays(dueDate, startOfDay(today));
+      const isOverdue = occurrence.status === 'overdue' || daysUntilDue < 0;
 
       // Check if bill is overdue
-      if (daysUntilDue < 0) {
+      if (isOverdue) {
         // Create overdue notification
-        await createOverdueNotification(instance, bill);
+        await createOverdueNotification(occurrence, template);
         createdNotifications++;
       }
       // Check if due in 3 days (or configured days before)
       else if (daysUntilDue === 3) {
-        await createUpcomingNotification(instance, bill, 3);
+        await createUpcomingNotification(occurrence, template, 3);
         createdNotifications++;
       }
       // Check if due today
       else if (daysUntilDue === 0) {
-        await createUpcomingNotification(instance, bill, 0);
+        await createUpcomingNotification(occurrence, template, 0);
         createdNotifications++;
       }
       // Check if due tomorrow (1 day)
       else if (daysUntilDue === 1) {
-        await createUpcomingNotification(instance, bill, 1);
+        await createUpcomingNotification(occurrence, template, 1);
         createdNotifications++;
       }
     }
@@ -61,7 +85,7 @@ export async function checkAndCreateBillReminders() {
     return {
       success: true,
       notificationsCreated: createdNotifications,
-      checkedInstances: pendingInstances.length,
+      checkedInstances: pendingOccurrences.length,
       skippedAutopay,
     };
   } catch (error) {
@@ -71,31 +95,33 @@ export async function checkAndCreateBillReminders() {
 }
 
 async function createUpcomingNotification(
-  instance: typeof billInstances.$inferSelect,
-  bill: typeof bills.$inferSelect,
+  occurrence: typeof billOccurrences.$inferSelect,
+  template: typeof billTemplates.$inferSelect,
   daysUntil: number
 ) {
   try {
     let title = '';
     let message = '';
     let priority: 'low' | 'normal' | 'high' | 'urgent' = 'normal';
+    const amount = occurrence.amountDueCents / 100;
 
     if (daysUntil === 0) {
-      title = `${bill.name} is due today`;
-      message = `Your bill ${bill.name} is due today for $${bill.expectedAmount.toFixed(2)}. Don't forget to pay!`;
+      title = `${template.name} is due today`;
+      message = `Your bill ${template.name} is due today for $${amount.toFixed(2)}. Don't forget to pay!`;
       priority = 'high';
     } else if (daysUntil === 1) {
-      title = `${bill.name} is due tomorrow`;
-      message = `Your bill ${bill.name} is due tomorrow for $${bill.expectedAmount.toFixed(2)}.`;
+      title = `${template.name} is due tomorrow`;
+      message = `Your bill ${template.name} is due tomorrow for $${amount.toFixed(2)}.`;
       priority = 'normal';
     } else {
-      title = `${bill.name} due in ${daysUntil} days`;
-      message = `Your bill ${bill.name} is due in ${daysUntil} days for $${bill.expectedAmount.toFixed(2)}.`;
+      title = `${template.name} due in ${daysUntil} days`;
+      message = `Your bill ${template.name} is due in ${daysUntil} days for $${amount.toFixed(2)}.`;
       priority = 'low';
     }
 
     await createNotification({
-      userId: instance.userId,
+      userId: template.createdByUserId,
+      householdId: occurrence.householdId,
       type: 'bill_due',
       title,
       message,
@@ -103,37 +129,39 @@ async function createUpcomingNotification(
       actionUrl: `/dashboard/bills`,
       actionLabel: 'View Bills',
       isActionable: true,
-      entityType: 'billInstance',
-      entityId: instance.id,
+      entityType: 'billOccurrence',
+      entityId: occurrence.id,
       metadata: {
-        billId: bill.id,
-        billInstanceId: instance.id,
+        templateId: template.id,
+        occurrenceId: occurrence.id,
         daysUntilDue: daysUntil,
-        dueDate: instance.dueDate,
-        amount: bill.expectedAmount,
+        dueDate: occurrence.dueDate,
+        amount,
       },
     });
   } catch (error) {
-    console.error(`Error creating upcoming notification for ${bill.name}:`, error);
+    console.error(`Error creating upcoming notification for ${template.name}:`, error);
   }
 }
 
 async function createOverdueNotification(
-  instance: typeof billInstances.$inferSelect,
-  bill: typeof bills.$inferSelect
+  occurrence: typeof billOccurrences.$inferSelect,
+  template: typeof billTemplates.$inferSelect
 ) {
   try {
     const daysOverdue = Math.abs(
-      differenceInDays(parseISO(instance.dueDate), startOfDay(new Date()))
+      differenceInDays(parseISO(occurrence.dueDate), startOfDay(new Date()))
     );
+    const amount = occurrence.amountDueCents / 100;
 
-    const title = `${bill.name} is ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue`;
-    const message = `Your bill ${bill.name} for $${bill.expectedAmount.toFixed(
+    const title = `${template.name} is ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue`;
+    const message = `Your bill ${template.name} for $${amount.toFixed(
       2
     )} is now ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue. Please pay immediately.`;
 
     await createNotification({
-      userId: instance.userId,
+      userId: template.createdByUserId,
+      householdId: occurrence.householdId,
       type: 'bill_overdue',
       title,
       message,
@@ -141,18 +169,18 @@ async function createOverdueNotification(
       actionUrl: `/dashboard/bills`,
       actionLabel: 'Pay Now',
       isActionable: true,
-      entityType: 'billInstance',
-      entityId: instance.id,
+      entityType: 'billOccurrence',
+      entityId: occurrence.id,
       metadata: {
-        billId: bill.id,
-        billInstanceId: instance.id,
+        templateId: template.id,
+        occurrenceId: occurrence.id,
         daysOverdue,
-        dueDate: instance.dueDate,
-        amount: bill.expectedAmount,
+        dueDate: occurrence.dueDate,
+        amount,
       },
     });
   } catch (error) {
-    console.error(`Error creating overdue notification for ${bill.name}:`, error);
+    console.error(`Error creating overdue notification for ${template.name}:`, error);
   }
 }
 
@@ -171,17 +199,19 @@ export async function getUpcomingBillsForUser(
 
     return await db
       .select({
-        instance: billInstances,
-        bill: bills,
+        occurrence: billOccurrences,
+        template: billTemplates,
       })
-      .from(billInstances)
-      .leftJoin(bills, eq(billInstances.billId, bills.id))
+      .from(billOccurrences)
+      .innerJoin(billTemplates, eq(billOccurrences.templateId, billTemplates.id))
       .where(
         and(
-          eq(billInstances.userId, userId),
-          eq(billInstances.status, 'pending'),
-          gte(billInstances.dueDate, todayISO),
-          lte(billInstances.dueDate, futureISO)
+          eq(billTemplates.createdByUserId, userId),
+          eq(billTemplates.billType, 'expense'),
+          eq(billTemplates.isActive, true),
+          inArray(billOccurrences.status, ['unpaid', 'partial']),
+          gte(billOccurrences.dueDate, todayISO),
+          lte(billOccurrences.dueDate, futureISO)
         )
       );
   } catch (error) {
@@ -199,16 +229,18 @@ export async function getOverdueBillsForUser(userId: string) {
 
     return await db
       .select({
-        instance: billInstances,
-        bill: bills,
+        occurrence: billOccurrences,
+        template: billTemplates,
       })
-      .from(billInstances)
-      .leftJoin(bills, eq(billInstances.billId, bills.id))
+      .from(billOccurrences)
+      .innerJoin(billTemplates, eq(billOccurrences.templateId, billTemplates.id))
       .where(
         and(
-          eq(billInstances.userId, userId),
-          eq(billInstances.status, 'pending'),
-          lte(billInstances.dueDate, today)
+          eq(billTemplates.createdByUserId, userId),
+          eq(billTemplates.billType, 'expense'),
+          eq(billTemplates.isActive, true),
+          inArray(billOccurrences.status, ['unpaid', 'partial', 'overdue']),
+          lte(billOccurrences.dueDate, today)
         )
       );
   } catch (error) {

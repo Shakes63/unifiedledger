@@ -8,7 +8,7 @@
  */
 
 import { db } from '@/lib/db';
-import { interestDeductions, bills, taxCategories, notifications } from '@/lib/db/schema';
+import { interestDeductions, bills, billTemplates, taxCategories, notifications } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
@@ -84,6 +84,61 @@ export interface LimitStatus {
   isApproachingLimit: boolean; // >80%
 }
 
+interface DebtBillTaxSettings {
+  isInterestTaxDeductible: boolean;
+  deductionType: 'mortgage' | 'student_loan' | 'business' | 'heloc_home' | 'none';
+  deductionLimit: number | null;
+}
+
+async function getDebtBillTaxSettings(
+  userId: string,
+  householdId: string,
+  billId: string
+): Promise<DebtBillTaxSettings | null> {
+  const [template] = await db
+    .select({
+      isInterestTaxDeductible: billTemplates.interestTaxDeductible,
+      deductionType: billTemplates.interestTaxDeductionType,
+      deductionLimitCents: billTemplates.interestTaxDeductionLimitCents,
+    })
+    .from(billTemplates)
+    .where(and(eq(billTemplates.id, billId), eq(billTemplates.householdId, householdId)))
+    .limit(1);
+
+  if (template) {
+    return {
+      isInterestTaxDeductible: template.isInterestTaxDeductible ?? false,
+      deductionType:
+        (template.deductionType as DebtBillTaxSettings['deductionType']) || 'none',
+      deductionLimit:
+        template.deductionLimitCents !== null
+          ? new Decimal(template.deductionLimitCents).div(100).toNumber()
+          : null,
+    };
+  }
+
+  const [legacyBill] = await db
+    .select({
+      isInterestTaxDeductible: bills.isInterestTaxDeductible,
+      deductionType: bills.taxDeductionType,
+      deductionLimit: bills.taxDeductionLimit,
+    })
+    .from(bills)
+    .where(and(eq(bills.id, billId), eq(bills.userId, userId), eq(bills.householdId, householdId)))
+    .limit(1);
+
+  if (!legacyBill) {
+    return null;
+  }
+
+  return {
+    isInterestTaxDeductible: legacyBill.isInterestTaxDeductible ?? false,
+    deductionType:
+      (legacyBill.deductionType as DebtBillTaxSettings['deductionType']) || 'none',
+    deductionLimit: legacyBill.deductionLimit ?? null,
+  };
+}
+
 /**
  * Get the tax category ID for a deduction type
  */
@@ -142,14 +197,8 @@ export async function classifyInterestPayment(
   paymentDate: string
 ): Promise<InterestClassificationResult> {
   try {
-    // Fetch the bill to get tax settings
-    const [bill] = await db
-      .select()
-      .from(bills)
-      .where(eq(bills.id, billId))
-      .limit(1);
-
-    if (!bill) {
+    const billSettings = await getDebtBillTaxSettings(userId, householdId, billId);
+    if (!billSettings) {
       return {
         success: false,
         interestAmount,
@@ -161,7 +210,7 @@ export async function classifyInterestPayment(
     }
 
     // Check if interest is tax deductible on this bill
-    if (!bill.isInterestTaxDeductible || bill.taxDeductionType === 'none') {
+    if (!billSettings.isInterestTaxDeductible || billSettings.deductionType === 'none') {
       return {
         success: false,
         interestAmount,
@@ -183,7 +232,7 @@ export async function classifyInterestPayment(
       };
     }
 
-    const deductionType = bill.taxDeductionType as 'mortgage' | 'student_loan' | 'business' | 'heloc_home';
+    const deductionType = billSettings.deductionType as 'mortgage' | 'student_loan' | 'business' | 'heloc_home';
     const taxYear = new Date(paymentDate).getFullYear();
     
     // Get tax category for this deduction type
@@ -197,7 +246,7 @@ export async function classifyInterestPayment(
     let warningMessage: string | undefined;
 
     // Apply bill-level limit first (if set)
-    if (bill.taxDeductionLimit && bill.taxDeductionLimit > 0) {
+    if (billSettings.deductionLimit && billSettings.deductionLimit > 0) {
       // Get total already deducted for this bill this year
       const [billYtd] = await db
         .select({
@@ -212,13 +261,13 @@ export async function classifyInterestPayment(
         );
 
       const billYtdTotal = billYtd?.total || 0;
-      const billRemainingCapacity = new Decimal(bill.taxDeductionLimit).minus(billYtdTotal);
+      const billRemainingCapacity = new Decimal(billSettings.deductionLimit).minus(billYtdTotal);
 
       if (billRemainingCapacity.lessThanOrEqualTo(0)) {
         deductibleAmount = new Decimal(0);
         limitApplied = 0;
         billLimitApplied = true;
-        warningMessage = `Bill-level limit of $${bill.taxDeductionLimit.toLocaleString()} reached for ${taxYear}`;
+        warningMessage = `Bill-level limit of $${billSettings.deductionLimit.toLocaleString()} reached for ${taxYear}`;
       } else if (deductibleAmount.greaterThan(billRemainingCapacity)) {
         limitApplied = deductibleAmount.minus(billRemainingCapacity).toNumber();
         deductibleAmount = billRemainingCapacity;

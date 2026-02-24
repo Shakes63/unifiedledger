@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { getTickTickAuthUrl, isTickTickConfigured } from '@/lib/calendar/ticktick-calendar';
 import { v4 as uuidv4 } from 'uuid';
 import { cookies } from 'next/headers';
@@ -8,21 +9,12 @@ export const dynamic = 'force-dynamic';
 /**
  * GET /api/calendar-sync/ticktick/connect
  * Initiates TickTick OAuth flow for task/project access
- * Query params: householdId (required)
+ * Household context: x-household-id header
  */
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
-
-    const { searchParams } = new URL(request.url);
-    const householdId = searchParams.get('householdId');
-
-    if (!householdId) {
-      return Response.json(
-        { error: 'householdId is required' },
-        { status: 400 }
-      );
-    }
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     // Check if TickTick is configured
     const isConfigured = await isTickTickConfigured();

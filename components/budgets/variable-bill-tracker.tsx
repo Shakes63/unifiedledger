@@ -216,6 +216,7 @@ export function VariableBillTracker({ hideHeader = false }: VariableBillTrackerP
   // Calculate overall insights
   const getOverallInsight = () => {
     if (!summary || summary.billCount === 0) return null;
+    if (summary.paidCount === 0) return null;
 
     const underBudgetCount = bills.filter(
       b => b.currentMonth.variance !== null && b.currentMonth.variance < 0

@@ -18,12 +18,14 @@ interface Payment {
 
 interface PaymentHistoryListProps {
   debtId: string;
+  source?: 'account' | 'bill' | 'debt';
   className?: string;
   initialLimit?: number;
 }
 
 export function PaymentHistoryList({
   debtId,
+  source = 'debt',
   className = '',
   initialLimit = 5,
 }: PaymentHistoryListProps) {
@@ -45,7 +47,9 @@ export function PaymentHistoryList({
         setLoading(true);
         setError(null);
 
-        const response = await fetchWithHousehold(`/api/debts/${debtId}/payments`);
+        const response = await fetchWithHousehold(
+          `/api/debts/payments?source=${source}&id=${debtId}`
+        );
         if (!response.ok) {
           throw new Error('Failed to fetch payment history');
         }

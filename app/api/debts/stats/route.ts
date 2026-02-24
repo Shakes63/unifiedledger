@@ -1,28 +1,12 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { debts, debtPayments, accounts, bills, billPayments } from '@/lib/db/schema';
+import { debts, debtPayments, billPaymentEvents, transactions } from '@/lib/db/schema';
 import { eq, and, inArray, gte, lte } from 'drizzle-orm';
 import Decimal from 'decimal.js';
-import { toMoneyCents } from '@/lib/utils/money-cents';
+import { getUnifiedDebtSources } from '@/lib/debts/unified-debt-sources';
 
 export const dynamic = 'force-dynamic';
-
-function getAccountBalanceAmount(account: {
-  currentBalance: number | null;
-  currentBalanceCents: number | null;
-}): Decimal {
-  const balanceCents = account.currentBalanceCents ?? toMoneyCents(account.currentBalance) ?? 0;
-  return new Decimal(Math.abs(balanceCents)).div(100);
-}
-
-function getAccountCreditLimitAmount(account: {
-  creditLimit: number | null;
-  creditLimitCents: number | null;
-}): Decimal {
-  const creditLimitCents = account.creditLimitCents ?? toMoneyCents(account.creditLimit) ?? 0;
-  return new Decimal(creditLimitCents).div(100);
-}
 
 export async function GET(request: Request) {
   try {
@@ -39,102 +23,70 @@ export async function GET(request: Request) {
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
 
     if (useUnified) {
-      // UNIFIED MODE: Combine credit accounts + debt bills
-      
-      // Fetch credit accounts (credit cards + lines of credit)
-      const creditAccounts = await db
-        .select()
-        .from(accounts)
-        .where(
-          and(
-            eq(accounts.householdId, householdId),
-            inArray(accounts.type, ['credit', 'line_of_credit']),
-            eq(accounts.isActive, true)
-          )
-        );
-
-      // Fetch standalone debts
-      const standaloneDebts = await db
-        .select()
-        .from(debts)
-        .where(
-          and(
-            eq(debts.householdId, householdId),
-            eq(debts.status, 'active')
-          )
-        );
-
-      // Fetch debt bills
-      const debtBills = await db
-        .select()
-        .from(bills)
-        .where(
-          and(
-            eq(bills.householdId, householdId),
-            eq(bills.isDebt, true),
-            eq(bills.isActive, true)
-          )
-        );
+      // UNIFIED MODE: account + bill + standalone debt sources
+      const unifiedDebts = await getUnifiedDebtSources(householdId, {
+        includeZeroBalances: true,
+      });
 
       // Calculate totals from unified sources
       let totalBalance = new Decimal(0);
       let totalOriginalBalance = new Decimal(0);
       let inStrategyCount = 0;
       let inStrategyBalance = new Decimal(0);
-      
-      // Process credit accounts
-      for (const acc of creditAccounts) {
-        const balance = getAccountBalanceAmount(acc);
-        const creditLimit = getAccountCreditLimitAmount(acc);
-        
-        totalBalance = totalBalance.plus(balance);
-        totalOriginalBalance = totalOriginalBalance.plus(creditLimit); // Use credit limit as "original" for revolving
-        
-        if (acc.includeInPayoffStrategy) {
-          inStrategyCount++;
-          inStrategyBalance = inStrategyBalance.plus(balance);
-        }
-      }
 
-      // Process debt bills
-      for (const bill of debtBills) {
-        const balance = new Decimal(bill.remainingBalance || 0);
-        const original = new Decimal(bill.originalBalance || bill.remainingBalance || 0);
-        
-        totalBalance = totalBalance.plus(balance);
-        totalOriginalBalance = totalOriginalBalance.plus(original);
-        
-        if (bill.includeInPayoffStrategy) {
-          inStrategyCount++;
-          inStrategyBalance = inStrategyBalance.plus(balance);
-        }
-      }
-
-      // Process standalone debts
-      for (const debt of standaloneDebts) {
+      for (const debt of unifiedDebts) {
         const balance = new Decimal(debt.remainingBalance || 0);
-        const original = new Decimal(debt.originalAmount || debt.remainingBalance || 0);
+        const original = new Decimal(debt.originalBalance || debt.remainingBalance || 0);
 
         totalBalance = totalBalance.plus(balance);
         totalOriginalBalance = totalOriginalBalance.plus(original);
 
-        // Standalone debts are always included in strategy for now.
-        inStrategyCount++;
-        inStrategyBalance = inStrategyBalance.plus(balance);
+        if (debt.includeInPayoffStrategy) {
+          inStrategyCount++;
+          inStrategyBalance = inStrategyBalance.plus(balance);
+        }
       }
 
-      // Get this month's payments from both bill and standalone debt payment tables
-      const [monthBillPayments, monthDebtPayments] = await Promise.all([
-        db
-          .select()
-          .from(billPayments)
-          .where(
-            and(
-              eq(billPayments.householdId, householdId),
-              gte(billPayments.paymentDate, monthStart),
-              lte(billPayments.paymentDate, monthEnd)
-            )
-          ),
+      // Get this month's payments from bill + standalone debt + account transfer-in tables
+      const accountDebtIds = unifiedDebts
+        .filter((d) => d.source === 'account')
+        .map((d) => d.id);
+      const billDebtIds = unifiedDebts
+        .filter((d) => d.source === 'bill')
+        .map((d) => d.id);
+      const [monthBillPayments, monthLegacyBillTransactions, monthDebtPayments, monthAccountPayments] = await Promise.all([
+        billDebtIds.length > 0
+          ? db
+              .select({
+                amountCents: billPaymentEvents.amountCents,
+              })
+              .from(billPaymentEvents)
+              .where(
+                and(
+                  eq(billPaymentEvents.householdId, householdId),
+                  inArray(billPaymentEvents.templateId, billDebtIds),
+                  gte(billPaymentEvents.paymentDate, monthStart),
+                  lte(billPaymentEvents.paymentDate, monthEnd)
+                )
+              )
+          : Promise.resolve([]),
+        billDebtIds.length > 0
+          ? db
+              .select({
+                amount: transactions.amount,
+              })
+              .from(transactions)
+              .where(
+                and(
+                  eq(transactions.householdId, householdId),
+                  eq(transactions.userId, userId),
+                  eq(transactions.type, 'expense'),
+                  inArray(transactions.billId, billDebtIds),
+                  gte(transactions.date, monthStart.slice(0, 10)),
+                  lte(transactions.date, monthEnd.slice(0, 10))
+                )
+              )
+          : Promise.resolve([]),
         db
           .select()
           .from(debtPayments)
@@ -145,52 +97,48 @@ export async function GET(request: Request) {
               lte(debtPayments.paymentDate, monthEnd)
             )
           ),
+        accountDebtIds.length > 0
+          ? db
+              .select()
+              .from(transactions)
+              .where(
+                and(
+                  eq(transactions.householdId, householdId),
+                  inArray(transactions.accountId, accountDebtIds),
+                  eq(transactions.type, 'transfer_in'),
+                  gte(transactions.date, monthStart.slice(0, 10)),
+                  lte(transactions.date, monthEnd.slice(0, 10))
+                )
+              )
+          : Promise.resolve([]),
       ]);
 
-      const thisMonthTotal = [...monthBillPayments, ...monthDebtPayments].reduce(
-        (sum, payment) => sum.plus(new Decimal(payment.amount || 0)),
+      const thisMonthBillAndDebtTotal = [
+        ...monthBillPayments.map((payment) => new Decimal(payment.amountCents || 0).div(100).toNumber()),
+        ...monthLegacyBillTransactions.map((payment) => Math.abs(payment.amount || 0)),
+        ...monthDebtPayments.map((payment) => payment.amount || 0),
+      ].reduce(
+        (sum, amount) => sum.plus(new Decimal(amount)),
         new Decimal(0)
       );
+      const thisMonthAccountTotal = monthAccountPayments.reduce(
+        (sum, payment) => sum.plus(new Decimal(Math.abs(payment.amount || 0))),
+        new Decimal(0)
+      );
+      const thisMonthTotal = thisMonthBillAndDebtTotal.plus(thisMonthAccountTotal);
 
       // Calculate unified debt details
-      const debtDetails = [
-        // Credit accounts
-        ...creditAccounts.map(acc => ({
-          id: acc.id,
-          name: acc.name,
-          source: 'account' as const,
-          sourceType: acc.type,
-          remainingBalance: getAccountBalanceAmount(acc).toNumber(),
-          minimumPayment: acc.minimumPaymentAmount || 0,
-          interestRate: acc.interestRate || 0,
-          includeInPayoffStrategy: acc.includeInPayoffStrategy ?? true,
-          color: acc.color || undefined,
-        })),
-        // Debt bills
-        ...debtBills.map(bill => ({
-          id: bill.id,
-          name: bill.name,
-          source: 'bill' as const,
-          sourceType: bill.debtType || 'other',
-          remainingBalance: bill.remainingBalance || 0,
-          minimumPayment: bill.minimumPayment || 0,
-          interestRate: bill.billInterestRate || 0,
-          includeInPayoffStrategy: bill.includeInPayoffStrategy ?? true,
-          color: bill.billColor || undefined,
-        })),
-        // Standalone debts
-        ...standaloneDebts.map(debt => ({
-          id: debt.id,
-          name: debt.name,
-          source: 'debt' as const,
-          sourceType: debt.type || 'other',
-          remainingBalance: debt.remainingBalance || 0,
-          minimumPayment: debt.minimumPayment || 0,
-          interestRate: debt.interestRate || 0,
-          includeInPayoffStrategy: true,
-          color: debt.color || undefined,
-        })),
-      ];
+      const debtDetails = unifiedDebts.map((debt) => ({
+        id: debt.id,
+        name: debt.name,
+        source: debt.source,
+        sourceType: debt.sourceType || 'other',
+        remainingBalance: debt.remainingBalance || 0,
+        minimumPayment: debt.minimumPayment || 0,
+        interestRate: debt.interestRate || 0,
+        includeInPayoffStrategy: debt.includeInPayoffStrategy,
+        color: debt.color || undefined,
+      }));
 
       // Sort by balance (highest first)
       debtDetails.sort((a, b) => b.remainingBalance - a.remainingBalance);
@@ -206,10 +154,10 @@ export async function GET(request: Request) {
         totalOriginalAmount: totalOriginalBalance.toNumber(),
         totalPaidOff: Math.max(0, totalPaidOff),
         percentagePaidOff: Math.max(0, Math.min(100, percentagePaidOff)),
-        standaloneDebtCount: standaloneDebts.length,
-        activeDebtCount: creditAccounts.length + debtBills.length + standaloneDebts.length,
-        creditAccountCount: creditAccounts.length,
-        debtBillCount: debtBills.length,
+        standaloneDebtCount: unifiedDebts.filter((d) => d.source === 'debt').length,
+        activeDebtCount: unifiedDebts.length,
+        creditAccountCount: unifiedDebts.filter((d) => d.source === 'account').length,
+        debtBillCount: unifiedDebts.filter((d) => d.source === 'bill').length,
         inStrategyCount,
         inStrategyBalance: inStrategyBalance.toNumber(),
         thisMonthPayments: thisMonthTotal.toNumber(),

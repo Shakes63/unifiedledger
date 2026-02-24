@@ -4,9 +4,10 @@ import { eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import {
-  bills,
-  billInstances,
-  billInstanceAllocations,
+  autopayRules,
+  billOccurrenceAllocations,
+  billOccurrences,
+  billTemplates,
 } from '@/lib/db/schema';
 import {
   cleanupTestHousehold,
@@ -35,36 +36,38 @@ describe('Integration: period bills service', () => {
   });
 
   afterEach(async () => {
-    await db.delete(billInstanceAllocations).where(eq(billInstanceAllocations.userId, userId));
-    await db.delete(billInstances).where(eq(billInstances.userId, userId));
-    await db.delete(bills).where(eq(bills.userId, userId));
+    await db.delete(billOccurrenceAllocations).where(eq(billOccurrenceAllocations.householdId, householdId));
+    await db.delete(billOccurrences).where(eq(billOccurrences.householdId, householdId));
+    await db.delete(autopayRules).where(eq(autopayRules.householdId, householdId));
+    await db.delete(billTemplates).where(eq(billTemplates.householdId, householdId));
     await cleanupTestHousehold(userId, householdId);
   });
 
   it('supports assigning a late-month bill to the first weekly paycheck bucket', async () => {
-    const billId = nanoid();
-    const instanceId = nanoid();
+    const templateId = nanoid();
+    const occurrenceId = nanoid();
 
-    await db.insert(bills).values({
-      id: billId,
-      userId,
+    await db.insert(billTemplates).values({
+      id: templateId,
       householdId,
+      createdByUserId: userId,
       name: 'Internet',
-      expectedAmount: 120,
-      dueDate: 30,
-      frequency: 'monthly',
+      billType: 'expense',
+      classification: 'utility',
+      recurrenceType: 'monthly',
+      defaultAmountCents: 12000,
       budgetPeriodAssignment: 1,
       splitAcrossPeriods: false,
     });
 
-    await db.insert(billInstances).values({
-      id: instanceId,
-      userId,
+    await db.insert(billOccurrences).values({
+      id: occurrenceId,
+      templateId,
       householdId,
-      billId,
       dueDate: '2025-05-30',
-      expectedAmount: 120,
-      status: 'pending',
+      amountDueCents: 12000,
+      amountRemainingCents: 12000,
+      status: 'unpaid',
     });
 
     const firstWeekPeriod = getCurrentBudgetPeriod(weeklySettings, new Date('2025-05-02T12:00:00'));
@@ -88,60 +91,55 @@ describe('Integration: period bills service', () => {
 
     expect(firstWeekPeriod.periodNumber).toBe(1);
     expect(fifthWeekPeriod.periodNumber).toBe(5);
-    expect(firstWeekRows.map((row) => row.instance.id)).toContain(instanceId);
-    expect(fifthWeekRows.map((row) => row.instance.id)).not.toContain(instanceId);
+    expect(firstWeekRows.map((row) => row.instance.id)).toContain(occurrenceId);
+    expect(fifthWeekRows.map((row) => row.instance.id)).not.toContain(occurrenceId);
   });
 
   it('returns split bills only in periods that have an allocation', async () => {
-    const billId = nanoid();
-    const instanceId = nanoid();
+    const templateId = nanoid();
+    const occurrenceId = nanoid();
 
-    await db.insert(bills).values({
-      id: billId,
-      userId,
+    await db.insert(billTemplates).values({
+      id: templateId,
       householdId,
+      createdByUserId: userId,
       name: 'Rent Split',
-      expectedAmount: 1000,
-      dueDate: 30,
-      frequency: 'monthly',
+      billType: 'expense',
+      classification: 'housing',
+      recurrenceType: 'monthly',
+      defaultAmountCents: 100000,
       splitAcrossPeriods: true,
-      splitAllocations: JSON.stringify([
-        { periodNumber: 1, percentage: 60 },
-        { periodNumber: 5, percentage: 40 },
-      ]),
     });
 
-    await db.insert(billInstances).values({
-      id: instanceId,
-      userId,
+    await db.insert(billOccurrences).values({
+      id: occurrenceId,
+      templateId,
       householdId,
-      billId,
       dueDate: '2025-05-30',
-      expectedAmount: 1000,
-      status: 'pending',
+      amountDueCents: 100000,
+      amountRemainingCents: 100000,
+      status: 'unpaid',
     });
 
-    await db.insert(billInstanceAllocations).values([
+    await db.insert(billOccurrenceAllocations).values([
       {
         id: nanoid(),
-        billInstanceId: instanceId,
-        billId,
-        userId,
+        occurrenceId,
+        templateId,
         householdId,
         periodNumber: 1,
-        allocatedAmount: 600,
-        paidAmount: 0,
+        allocatedAmountCents: 60000,
+        paidAmountCents: 0,
         isPaid: false,
       },
       {
         id: nanoid(),
-        billInstanceId: instanceId,
-        billId,
-        userId,
+        occurrenceId,
+        templateId,
         householdId,
         periodNumber: 5,
-        allocatedAmount: 400,
-        paidAmount: 0,
+        allocatedAmountCents: 40000,
+        paidAmountCents: 0,
         isPaid: false,
       },
     ]);
@@ -172,12 +170,12 @@ describe('Integration: period bills service', () => {
       statuses: ['pending', 'overdue'],
     });
 
-    const firstWeekSplit = firstWeekRows.find((row) => row.instance.id === instanceId);
-    const fifthWeekSplit = fifthWeekRows.find((row) => row.instance.id === instanceId);
+    const firstWeekSplit = firstWeekRows.find((row) => row.instance.id === occurrenceId);
+    const fifthWeekSplit = fifthWeekRows.find((row) => row.instance.id === occurrenceId);
 
     expect(firstWeekSplit?.allocation?.allocatedAmount).toBe(600);
     expect(firstWeekSplit?.hasAnyAllocations).toBe(true);
-    expect(thirdWeekRows.map((row) => row.instance.id)).not.toContain(instanceId);
+    expect(thirdWeekRows.map((row) => row.instance.id)).not.toContain(occurrenceId);
     expect(fifthWeekSplit?.allocation?.allocatedAmount).toBe(400);
   });
 });

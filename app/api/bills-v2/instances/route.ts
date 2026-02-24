@@ -37,6 +37,7 @@ export async function GET(request: Request) {
     const offset = parseInt(url.searchParams.get('offset') || '0', 10);
     const statusParam = url.searchParams.get('status');
     const billId = url.searchParams.get('billId');
+    const billType = url.searchParams.get('billType') as 'expense' | 'income' | 'savings_transfer' | null;
 
     const legacyStatuses = statusParam
       ? statusParam
@@ -60,8 +61,11 @@ export async function GET(request: Request) {
     const filtered = billId
       ? result.data.filter((row) => row.occurrence.templateId === billId)
       : result.data;
+    const typeFiltered = billType
+      ? filtered.filter((row) => row.template.billType === billType)
+      : filtered;
 
-    const sorted = [...filtered].sort((a, b) => a.occurrence.dueDate.localeCompare(b.occurrence.dueDate));
+    const sorted = [...typeFiltered].sort((a, b) => a.occurrence.dueDate.localeCompare(b.occurrence.dueDate));
     const paged = sorted.slice(offset, offset + limit);
 
     return Response.json({

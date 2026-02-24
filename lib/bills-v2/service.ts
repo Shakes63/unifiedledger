@@ -940,8 +940,25 @@ export async function listOccurrences(options: ListOccurrencesOptions) {
   const limit = normalizeLimit(options.limit, OCCURRENCE_LIMIT_DEFAULT);
   const offset = normalizeOffset(options.offset);
 
-  const windowStart = options.from ? parseDateOrThrow(options.from, 'from') : addDays(new Date(), -45);
-  const windowEnd = options.to ? parseDateOrThrow(options.to, 'to') : addDays(new Date(), 120);
+  const periodSettings =
+    options.periodOffset !== undefined
+      ? await getBudgetSettings(options.userId, options.householdId)
+      : null;
+  const selectedPeriod =
+    options.periodOffset !== undefined
+      ? getPeriodByOffset(periodSettings as BudgetScheduleSettings, options.periodOffset)
+      : null;
+
+  const windowStart = options.from
+    ? parseDateOrThrow(options.from, 'from')
+    : selectedPeriod
+      ? startOfDay(selectedPeriod.start)
+      : addDays(new Date(), -45);
+  const windowEnd = options.to
+    ? parseDateOrThrow(options.to, 'to')
+    : selectedPeriod
+      ? startOfDay(selectedPeriod.end)
+      : addDays(new Date(), 120);
 
   await ensureOccurrencesForHousehold(options.householdId, windowStart, windowEnd, options.billType);
   await refreshOccurrenceStatuses(options.householdId);
@@ -975,15 +992,16 @@ export async function listOccurrences(options: ListOccurrencesOptions) {
   const allocationMap = await loadAllocationsByOccurrenceIds(rows.map((row) => row.occurrence.id));
 
   let filteredRows = rows;
-  let selectedPeriod: BudgetPeriod | null = null;
 
   if (options.periodOffset !== undefined) {
-    const settings = await getBudgetSettings(options.userId, options.householdId);
-    selectedPeriod = getPeriodByOffset(settings, options.periodOffset);
-
     filteredRows = rows.filter((row) => {
       const allocations = allocationMap.get(row.occurrence.id) || [];
-      return occurrenceMatchesPeriod(row, allocations, settings, selectedPeriod as BudgetPeriod);
+      return occurrenceMatchesPeriod(
+        row,
+        allocations,
+        periodSettings as BudgetScheduleSettings,
+        selectedPeriod as BudgetPeriod
+      );
     });
   }
 

@@ -6,6 +6,10 @@ vi.mock('@/lib/auth-helpers', () => ({
   requireAuth: vi.fn(),
 }));
 
+vi.mock('@/lib/api/household-auth', () => ({
+  getAndVerifyHousehold: vi.fn(),
+}));
+
 vi.mock('@/lib/calendar/google-calendar', () => ({
   hasGoogleOAuthLinked: vi.fn(),
   listCalendarsForUser: vi.fn(),
@@ -25,6 +29,7 @@ vi.mock('@/lib/db', () => ({
 }));
 
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import {
   hasGoogleOAuthLinked,
   listCalendarsForUser,
@@ -71,6 +76,7 @@ describe('POST /api/calendar-sync/google/enable', () => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     (requireAuth as any).mockResolvedValue({ userId: 'user-1' });
+    (getAndVerifyHousehold as any).mockResolvedValue({ householdId: 'hh-1', membership: { role: 'owner' } });
     (isGoogleCalendarConfigured as any).mockReturnValue(true);
     (hasGoogleOAuthLinked as any).mockResolvedValue(true);
     (listCalendarsForUser as any).mockResolvedValue([]);
@@ -94,22 +100,15 @@ describe('POST /api/calendar-sync/google/enable', () => {
 
   it('returns 401 when unauthorized', async () => {
     (requireAuth as any).mockRejectedValue(new Error('Unauthorized'));
-    const res = await POST(createRequest({ householdId: 'hh-1' }));
+    const res = await POST(createRequest({}));
     const data = await res.json();
     expect(res.status).toBe(401);
     expect(data.error).toBe('Unauthorized');
   });
 
-  it('returns 400 when householdId is missing', async () => {
-    const res = await POST(createRequest({}));
-    const data = await res.json();
-    expect(res.status).toBe(400);
-    expect(data.error).toBe('householdId is required');
-  });
-
   it('returns 503 when Google OAuth is not configured', async () => {
     (isGoogleCalendarConfigured as any).mockReturnValue(false);
-    const res = await POST(createRequest({ householdId: 'hh-1' }));
+    const res = await POST(createRequest({}));
     const data = await res.json();
     expect(res.status).toBe(503);
     expect(data.error).toBe('Google OAuth not configured');
@@ -117,7 +116,7 @@ describe('POST /api/calendar-sync/google/enable', () => {
 
   it('returns 400 when user has not linked Google OAuth', async () => {
     (hasGoogleOAuthLinked as any).mockResolvedValue(false);
-    const res = await POST(createRequest({ householdId: 'hh-1' }));
+    const res = await POST(createRequest({}));
     const data = await res.json();
     expect(res.status).toBe(400);
     expect(data.error).toContain('Google account not linked');
@@ -135,7 +134,7 @@ describe('POST /api/calendar-sync/google/enable', () => {
       .mockReturnValueOnce(mockSelectLimit([]))
       .mockReturnValueOnce(mockSelectLimit([]));
 
-    const res = await POST(createRequest({ householdId: 'hh-1' }));
+    const res = await POST(createRequest({}));
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -161,7 +160,7 @@ describe('POST /api/calendar-sync/google/enable', () => {
       .mockReturnValueOnce(mockSelectLimit([]))
       .mockReturnValueOnce(mockSelectLimit([]));
 
-    const res = await POST(createRequest({ householdId: 'hh-1' }));
+    const res = await POST(createRequest({}));
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -180,7 +179,7 @@ describe('POST /api/calendar-sync/google/enable', () => {
       .mockReturnValueOnce(mockSelectLimit([]))
       .mockReturnValueOnce(mockSelectLimit([]));
 
-    const res = await POST(createRequest({ householdId: 'hh-1', calendarId: 'cal-2' }));
+    const res = await POST(createRequest({ calendarId: 'cal-2' }));
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -193,7 +192,7 @@ describe('POST /api/calendar-sync/google/enable', () => {
       .mockReturnValueOnce(mockSelectLimit([{ id: 'conn-1' }])) // existing connection
       .mockReturnValueOnce(mockSelectLimit([])); // settings missing
 
-    const res = await POST(createRequest({ householdId: 'hh-1', calendarId: 'cal-9' }));
+    const res = await POST(createRequest({ calendarId: 'cal-9' }));
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -211,7 +210,7 @@ describe('POST /api/calendar-sync/google/enable', () => {
       .mockReturnValueOnce(mockSelectLimit([]))
       .mockReturnValueOnce(mockSelectLimit([]));
 
-    const res = await POST(createRequest({ householdId: 'hh-1' }));
+    const res = await POST(createRequest({}));
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -225,7 +224,7 @@ describe('POST /api/calendar-sync/google/enable', () => {
       .mockReturnValueOnce(mockSelectLimit([])) // no existing connection
       .mockReturnValueOnce(mockSelectLimit([{ id: 'settings-1' }])); // settings exist
 
-    const res = await POST(createRequest({ householdId: 'hh-1', calendarId: 'cal-x' }));
+    const res = await POST(createRequest({ calendarId: 'cal-x' }));
     expect(res.status).toBe(200);
 
     // Only connection insert should happen
@@ -237,7 +236,7 @@ describe('POST /api/calendar-sync/google/enable', () => {
       .mockReturnValueOnce(mockSelectLimit([{ id: 'conn-1' }])) // existing connection
       .mockReturnValueOnce(mockSelectLimit([{ id: 'settings-1' }])); // settings exist
 
-    const res = await POST(createRequest({ householdId: 'hh-1', calendarId: 'cal-x' }));
+    const res = await POST(createRequest({ calendarId: 'cal-x' }));
     expect(res.status).toBe(200);
 
     expect(db.update).toHaveBeenCalledTimes(1);

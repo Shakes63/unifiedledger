@@ -10,7 +10,10 @@ vi.mock('@/lib/db', () => ({
   db: {
     select: () => ({
       from: () => ({
-        leftJoin: () => ({
+        innerJoin: () => ({
+          leftJoin: () => ({
+            where: mockDbSelect,
+          }),
           where: mockDbSelect,
         }),
       }),
@@ -19,8 +22,22 @@ vi.mock('@/lib/db', () => ({
 }));
 
 vi.mock('@/lib/db/schema', () => ({
-  billInstances: { billId: 'billId', userId: 'userId', status: 'status', dueDate: 'dueDate' },
-  bills: { id: 'id' },
+  billOccurrences: {
+    templateId: 'templateId',
+    status: 'status',
+    dueDate: 'dueDate',
+  },
+  billTemplates: {
+    id: 'id',
+    householdId: 'householdId',
+    billType: 'billType',
+    isActive: 'isActive',
+    createdByUserId: 'createdByUserId',
+  },
+  autopayRules: {
+    templateId: 'templateId',
+    householdId: 'householdId',
+  },
 }));
 
 vi.mock('@/lib/notifications/notification-service', () => ({
@@ -39,46 +56,39 @@ describe('lib/notifications/bill-reminders', () => {
     vi.useRealTimers();
   });
 
-  function makeBillInstance(dueDate: string, billOverrides: Record<string, unknown> = {}) {
+  function makeBillOccurrence(
+    dueDate: string,
+    options?: { autopay?: { isEnabled: boolean; payFromAccountId: string | null } | null }
+  ) {
     return {
-      instance: {
-        id: 'inst-1',
-        billId: 'bill-1',
-        userId: 'user-1',
+      occurrence: {
+        id: 'occ-1',
+        templateId: 'tpl-1',
         householdId: 'hh-1',
         dueDate,
-        expectedAmount: 100,
-        paidAmount: null,
-        remainingAmount: null,
-        status: 'pending',
-        paymentTransactionId: null,
-        paidAt: null,
+        amountDueCents: 10000,
+        amountPaidCents: 0,
+        amountRemainingCents: 10000,
+        status: 'unpaid',
         createdAt: '2025-01-01',
         updatedAt: '2025-01-01',
       },
-      bill: {
-        id: 'bill-1',
+      template: {
+        id: 'tpl-1',
         name: 'Electric Bill',
-        expectedAmount: 100,
-        frequency: 'monthly',
-        dueDate: 15,
-        isAutopayEnabled: false,
-        autopayAccountId: null,
+        billType: 'expense',
         isActive: true,
-        categoryId: null,
-        merchantId: null,
-        accountId: null,
-        userId: 'user-1',
+        createdByUserId: 'user-1',
         householdId: 'hh-1',
-        ...billOverrides,
       },
+      autopay: options?.autopay ?? null,
     };
   }
 
   it('creates notification for bill due today', async () => {
     // Use local midnight constructor to avoid UTC/local TZ mismatch
     vi.setSystemTime(new Date(2025, 0, 15));
-    mockDbSelect.mockResolvedValue([makeBillInstance('2025-01-15')]);
+    mockDbSelect.mockResolvedValue([makeBillOccurrence('2025-01-15')]);
 
     const result = await checkAndCreateBillReminders();
 
@@ -94,7 +104,7 @@ describe('lib/notifications/bill-reminders', () => {
 
   it('creates notification for bill due tomorrow', async () => {
     vi.setSystemTime(new Date(2025, 0, 14));
-    mockDbSelect.mockResolvedValue([makeBillInstance('2025-01-15')]);
+    mockDbSelect.mockResolvedValue([makeBillOccurrence('2025-01-15')]);
 
     const result = await checkAndCreateBillReminders();
 
@@ -110,7 +120,7 @@ describe('lib/notifications/bill-reminders', () => {
 
   it('creates notification for bill due in 3 days', async () => {
     vi.setSystemTime(new Date(2025, 0, 12));
-    mockDbSelect.mockResolvedValue([makeBillInstance('2025-01-15')]);
+    mockDbSelect.mockResolvedValue([makeBillOccurrence('2025-01-15')]);
 
     const result = await checkAndCreateBillReminders();
 
@@ -126,7 +136,7 @@ describe('lib/notifications/bill-reminders', () => {
 
   it('creates overdue notification for past-due bills', async () => {
     vi.setSystemTime(new Date(2025, 0, 18));
-    mockDbSelect.mockResolvedValue([makeBillInstance('2025-01-15')]);
+    mockDbSelect.mockResolvedValue([makeBillOccurrence('2025-01-15')]);
 
     const result = await checkAndCreateBillReminders();
 
@@ -143,7 +153,9 @@ describe('lib/notifications/bill-reminders', () => {
   it('skips autopay-enabled bills', async () => {
     vi.setSystemTime(new Date(2025, 0, 15));
     mockDbSelect.mockResolvedValue([
-      makeBillInstance('2025-01-15', { isAutopayEnabled: true, autopayAccountId: 'acc-1' }),
+      makeBillOccurrence('2025-01-15', {
+        autopay: { isEnabled: true, payFromAccountId: 'acc-1' },
+      }),
     ]);
 
     const result = await checkAndCreateBillReminders();
@@ -153,10 +165,12 @@ describe('lib/notifications/bill-reminders', () => {
     expect(result.notificationsCreated).toBe(0);
   });
 
-  it('does not skip autopay if autopayAccountId is null', async () => {
+  it('does not skip autopay if source account is missing', async () => {
     vi.setSystemTime(new Date(2025, 0, 15));
     mockDbSelect.mockResolvedValue([
-      makeBillInstance('2025-01-15', { isAutopayEnabled: true, autopayAccountId: null }),
+      makeBillOccurrence('2025-01-15', {
+        autopay: { isEnabled: true, payFromAccountId: null },
+      }),
     ]);
 
     const result = await checkAndCreateBillReminders();
@@ -166,18 +180,9 @@ describe('lib/notifications/bill-reminders', () => {
     expect(result.skippedAutopay).toBe(0);
   });
 
-  it('skips instances with no bill (null join)', async () => {
+  it('skips non-reminder days', async () => {
     vi.setSystemTime(new Date(2025, 0, 15));
-    mockDbSelect.mockResolvedValue([{
-      instance: {
-        id: 'inst-1',
-        billId: 'bill-1',
-        userId: 'user-1',
-        dueDate: '2025-01-15',
-        status: 'pending',
-      },
-      bill: null,
-    }]);
+    mockDbSelect.mockResolvedValue([makeBillOccurrence('2025-01-17')]);
 
     const result = await checkAndCreateBillReminders();
 
@@ -187,7 +192,7 @@ describe('lib/notifications/bill-reminders', () => {
 
   it('does not create notification for bill due in 2 days (no rule for 2)', async () => {
     vi.setSystemTime(new Date(2025, 0, 13));
-    mockDbSelect.mockResolvedValue([makeBillInstance('2025-01-15')]);
+    mockDbSelect.mockResolvedValue([makeBillOccurrence('2025-01-15')]);
 
     const result = await checkAndCreateBillReminders();
 
@@ -198,8 +203,8 @@ describe('lib/notifications/bill-reminders', () => {
   it('returns correct total checked instances', async () => {
     vi.setSystemTime(new Date(2025, 0, 15));
     mockDbSelect.mockResolvedValue([
-      makeBillInstance('2025-01-15'),
-      makeBillInstance('2025-01-16'),
+      makeBillOccurrence('2025-01-15'),
+      makeBillOccurrence('2025-01-16'),
     ]);
 
     const result = await checkAndCreateBillReminders();

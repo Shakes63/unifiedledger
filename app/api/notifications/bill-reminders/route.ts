@@ -40,11 +40,10 @@ export async function POST(_request: Request) {
  */
 export async function GET(_request: Request) {
   try {
-    await requireAuth();
+    const { userId } = await requireAuth();
 
-    // User endpoint - just trigger the global check
-    // This would typically be called daily by a cron job
-    const result = await checkAndCreateBillReminders();
+    // User endpoint - scope reminder generation to the authenticated user's templates
+    const result = await checkAndCreateBillReminders({ userId });
 
     return Response.json({
       message: 'Bill reminders checked',

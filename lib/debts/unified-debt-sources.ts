@@ -1,7 +1,8 @@
 import Decimal from 'decimal.js';
 import { and, eq, inArray } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import { db } from '@/lib/db';
-import { accounts, bills, debtSettings, debts, householdSettings } from '@/lib/db/schema';
+import { accounts, billTemplates, bills, debtSettings, debts, householdSettings } from '@/lib/db/schema';
 import { toMoneyCents } from '@/lib/utils/money-cents';
 import type { DebtInput, PaymentFrequency, PayoffMethod } from '@/lib/debts/payoff-calculator';
 
@@ -9,6 +10,7 @@ type UnifiedDebtSourceType = 'account' | 'bill' | 'debt';
 
 const VALID_METHODS: PayoffMethod[] = ['snowball', 'avalanche'];
 const VALID_FREQUENCIES: PaymentFrequency[] = ['weekly', 'biweekly', 'monthly', 'quarterly'];
+type HouseholdPaymentFrequency = 'weekly' | 'biweekly' | 'monthly';
 
 function toAmount(cents: number): number {
   return new Decimal(cents).div(100).toNumber();
@@ -28,6 +30,13 @@ function normalizeMethod(value: unknown): PayoffMethod | null {
     : null;
 }
 
+function toHouseholdPaymentFrequency(
+  value: PaymentFrequency
+): HouseholdPaymentFrequency {
+  // household_settings currently supports weekly/biweekly/monthly only
+  return value === 'quarterly' ? 'monthly' : value;
+}
+
 export interface UnifiedDebtSource extends DebtInput {
   source: UnifiedDebtSourceType;
   sourceType: string;
@@ -40,6 +49,13 @@ export interface DebtStrategySettings {
   preferredMethod: PayoffMethod;
   paymentFrequency: PaymentFrequency;
   debtStrategyEnabled: boolean;
+}
+
+export interface DebtStrategySettingsUpdate {
+  extraMonthlyPayment?: number;
+  preferredMethod?: PayoffMethod;
+  paymentFrequency?: PaymentFrequency;
+  debtStrategyEnabled?: boolean;
 }
 
 export async function getDebtStrategySettings(
@@ -89,13 +105,103 @@ export async function getDebtStrategySettings(
   };
 }
 
+export async function upsertDebtStrategySettings(
+  userId: string,
+  householdId: string,
+  update: DebtStrategySettingsUpdate
+): Promise<DebtStrategySettings> {
+  const current = await getDebtStrategySettings(userId, householdId);
+  const next: DebtStrategySettings = {
+    extraMonthlyPayment:
+      update.extraMonthlyPayment !== undefined
+        ? update.extraMonthlyPayment
+        : current.extraMonthlyPayment,
+    preferredMethod: update.preferredMethod || current.preferredMethod,
+    paymentFrequency: update.paymentFrequency || current.paymentFrequency,
+    debtStrategyEnabled:
+      update.debtStrategyEnabled !== undefined
+        ? update.debtStrategyEnabled
+        : current.debtStrategyEnabled,
+  };
+
+  const [existingHouseholdSettings] = await db
+    .select()
+    .from(householdSettings)
+    .where(eq(householdSettings.householdId, householdId))
+    .limit(1);
+
+  if (existingHouseholdSettings) {
+    await db
+      .update(householdSettings)
+      .set({
+        extraMonthlyPayment: next.extraMonthlyPayment,
+        debtPayoffMethod: next.preferredMethod,
+        paymentFrequency: toHouseholdPaymentFrequency(next.paymentFrequency),
+        debtStrategyEnabled: next.debtStrategyEnabled,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(householdSettings.householdId, householdId));
+  } else {
+    await db.insert(householdSettings).values({
+      id: nanoid(),
+      householdId,
+      extraMonthlyPayment: next.extraMonthlyPayment,
+      debtPayoffMethod: next.preferredMethod,
+      paymentFrequency: toHouseholdPaymentFrequency(next.paymentFrequency),
+      debtStrategyEnabled: next.debtStrategyEnabled,
+    });
+  }
+
+  // Keep legacy row in sync for old readers still pointing at debtSettings.
+  const [legacy] = await db
+    .select()
+    .from(debtSettings)
+    .where(
+      and(
+        eq(debtSettings.userId, userId),
+        eq(debtSettings.householdId, householdId)
+      )
+    )
+    .limit(1);
+
+  if (legacy) {
+    await db
+      .update(debtSettings)
+      .set({
+        extraMonthlyPayment: next.extraMonthlyPayment,
+        preferredMethod: next.preferredMethod,
+        paymentFrequency: next.paymentFrequency,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(
+        and(
+          eq(debtSettings.userId, userId),
+          eq(debtSettings.householdId, householdId)
+        )
+      );
+  } else {
+    await db.insert(debtSettings).values({
+      id: nanoid(),
+      userId,
+      householdId,
+      extraMonthlyPayment: next.extraMonthlyPayment,
+      preferredMethod: next.preferredMethod,
+      paymentFrequency: next.paymentFrequency,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  return next;
+}
+
 export async function getUnifiedDebtSources(
   householdId: string,
   options: { includeZeroBalances?: boolean } = {}
 ): Promise<UnifiedDebtSource[]> {
   const includeZeroBalances = options.includeZeroBalances ?? false;
 
-  const [creditAccounts, debtBills, standaloneDebts] = await Promise.all([
+  const [creditAccounts, debtBills, debtTemplates, standaloneDebts] = await Promise.all([
     db
       .select()
       .from(accounts)
@@ -114,6 +220,16 @@ export async function getUnifiedDebtSources(
           eq(bills.householdId, householdId),
           eq(bills.isDebt, true),
           eq(bills.isActive, true)
+        )
+      ),
+    db
+      .select()
+      .from(billTemplates)
+      .where(
+        and(
+          eq(billTemplates.householdId, householdId),
+          eq(billTemplates.debtEnabled, true),
+          eq(billTemplates.isActive, true)
         )
       ),
     db
@@ -202,6 +318,41 @@ export async function getUnifiedDebtSources(
       color: bill.billColor || undefined,
       icon: undefined,
       includeInPayoffStrategy: bill.includeInPayoffStrategy !== false,
+    });
+  }
+
+  for (const template of debtTemplates) {
+    const balance =
+      template.debtRemainingBalanceCents !== null
+        ? toAmount(template.debtRemainingBalanceCents)
+        : 0;
+    if (!includeZeroBalances && balance <= 0) continue;
+
+    unified.push({
+      id: template.id,
+      name: template.name,
+      source: 'bill',
+      sourceType: 'other',
+      remainingBalance: balance,
+      originalBalance:
+        template.debtOriginalBalanceCents !== null
+          ? toAmount(template.debtOriginalBalanceCents)
+          : balance,
+      minimumPayment: 0,
+      additionalMonthlyPayment: 0,
+      interestRate:
+        template.debtInterestAprBps !== null
+          ? new Decimal(template.debtInterestAprBps).div(100).toNumber()
+          : 0,
+      type: 'other',
+      loanType: 'installment',
+      compoundingFrequency:
+        (template.debtInterestType as 'daily' | 'monthly' | 'quarterly' | 'annually' | null) ||
+        'monthly',
+      billingCycleDays: 30,
+      color: template.debtColor || undefined,
+      icon: undefined,
+      includeInPayoffStrategy: template.includeInPayoffStrategy !== false,
     });
   }
 

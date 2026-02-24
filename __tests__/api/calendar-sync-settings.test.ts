@@ -6,6 +6,10 @@ vi.mock('@/lib/auth-helpers', () => ({
   requireAuth: vi.fn(),
 }));
 
+vi.mock('@/lib/api/household-auth', () => ({
+  getAndVerifyHousehold: vi.fn(),
+}));
+
 vi.mock('uuid', () => ({
   v4: vi.fn(),
 }));
@@ -19,6 +23,7 @@ vi.mock('@/lib/db', () => ({
 }));
 
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/lib/db';
 
@@ -70,6 +75,7 @@ describe('GET/PUT /api/calendar-sync/settings', () => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     (requireAuth as any).mockResolvedValue({ userId: 'user-1' });
+    (getAndVerifyHousehold as any).mockResolvedValue({ householdId: 'hh-1', membership: { role: 'owner' } });
     (uuidv4 as any).mockReturnValue('uuid-1');
 
     (db.update as any).mockReturnValue(mockUpdate());
@@ -84,17 +90,10 @@ describe('GET/PUT /api/calendar-sync/settings', () => {
 
   it('GET returns 401 when unauthorized', async () => {
     (requireAuth as any).mockRejectedValue(new Error('Unauthorized'));
-    const res = await GET(createGetRequest('http://localhost/api/calendar-sync/settings?householdId=hh-1'));
+    const res = await GET(createGetRequest('http://localhost/api/calendar-sync/settings'));
     const data = await res.json();
     expect(res.status).toBe(401);
     expect(data.error).toBe('Unauthorized');
-  });
-
-  it('GET returns 400 when householdId is missing', async () => {
-    const res = await GET(createGetRequest('http://localhost/api/calendar-sync/settings'));
-    const data = await res.json();
-    expect(res.status).toBe(400);
-    expect(data.error).toBe('householdId is required');
   });
 
   it('GET returns default settings when none exist and maps active connections', async () => {
@@ -114,7 +113,7 @@ describe('GET/PUT /api/calendar-sync/settings', () => {
       )
       .mockReturnValueOnce(mockSelectLimit([]));
 
-    const res = await GET(createGetRequest('http://localhost/api/calendar-sync/settings?householdId=hh-1'));
+    const res = await GET(createGetRequest('http://localhost/api/calendar-sync/settings'));
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -159,7 +158,7 @@ describe('GET/PUT /api/calendar-sync/settings', () => {
         ])
       );
 
-    const res = await GET(createGetRequest('http://localhost/api/calendar-sync/settings?householdId=hh-1'));
+    const res = await GET(createGetRequest('http://localhost/api/calendar-sync/settings'));
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -178,21 +177,14 @@ describe('GET/PUT /api/calendar-sync/settings', () => {
 
   it('PUT returns 401 when unauthorized', async () => {
     (requireAuth as any).mockRejectedValue(new Error('Unauthorized'));
-    const res = await PUT(createPutRequest({ householdId: 'hh-1', syncMode: 'direct' }));
+    const res = await PUT(createPutRequest({ syncMode: 'direct' }));
     const data = await res.json();
     expect(res.status).toBe(401);
     expect(data.error).toBe('Unauthorized');
   });
 
-  it('PUT returns 400 when householdId is missing', async () => {
-    const res = await PUT(createPutRequest({ syncMode: 'direct' }));
-    const data = await res.json();
-    expect(res.status).toBe(400);
-    expect(data.error).toBe('householdId is required');
-  });
-
   it('PUT returns 400 for invalid syncMode', async () => {
-    const res = await PUT(createPutRequest({ householdId: 'hh-1', syncMode: 'nope' }));
+    const res = await PUT(createPutRequest({ syncMode: 'nope' }));
     const data = await res.json();
     expect(res.status).toBe(400);
     expect(data.error).toContain('Invalid syncMode');
@@ -203,7 +195,6 @@ describe('GET/PUT /api/calendar-sync/settings', () => {
 
     const res = await PUT(
       createPutRequest({
-        householdId: 'hh-1',
         syncMode: 'direct',
         syncBills: false,
         reminderMinutes: 30,
@@ -220,7 +211,7 @@ describe('GET/PUT /api/calendar-sync/settings', () => {
   it('PUT creates settings when missing and applies defaults', async () => {
     (db.select as any).mockReturnValueOnce(mockSelectLimit([]));
 
-    const res = await PUT(createPutRequest({ householdId: 'hh-1' }));
+    const res = await PUT(createPutRequest({}));
     const data = await res.json();
 
     expect(res.status).toBe(200);

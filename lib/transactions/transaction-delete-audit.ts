@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { createTransactionSnapshot, logTransactionAudit } from '@/lib/transactions/audit-logger';
 import { db } from '@/lib/db';
@@ -19,18 +19,68 @@ export async function logTransactionDeletionAudit({
 }: LogTransactionDeletionAuditParams): Promise<void> {
   try {
     const [accountData, categoryData, merchantData, billData, debtData, userRecord] = await Promise.all([
-      db.select({ name: accounts.name }).from(accounts).where(eq(accounts.id, transaction.accountId)).limit(1),
+      db
+        .select({ name: accounts.name })
+        .from(accounts)
+        .where(
+          and(
+            eq(accounts.id, transaction.accountId),
+            eq(accounts.userId, userId),
+            eq(accounts.householdId, householdId)
+          )
+        )
+        .limit(1),
       transaction.categoryId
-        ? db.select({ name: budgetCategories.name }).from(budgetCategories).where(eq(budgetCategories.id, transaction.categoryId)).limit(1)
+        ? db
+            .select({ name: budgetCategories.name })
+            .from(budgetCategories)
+            .where(
+              and(
+                eq(budgetCategories.id, transaction.categoryId),
+                eq(budgetCategories.userId, userId),
+                eq(budgetCategories.householdId, householdId)
+              )
+            )
+            .limit(1)
         : Promise.resolve([]),
       transaction.merchantId
-        ? db.select({ name: merchants.name }).from(merchants).where(eq(merchants.id, transaction.merchantId)).limit(1)
+        ? db
+            .select({ name: merchants.name })
+            .from(merchants)
+            .where(
+              and(
+                eq(merchants.id, transaction.merchantId),
+                eq(merchants.userId, userId),
+                eq(merchants.householdId, householdId)
+              )
+            )
+            .limit(1)
         : Promise.resolve([]),
       transaction.billId
-        ? db.select({ name: bills.name }).from(bills).where(eq(bills.id, transaction.billId)).limit(1)
+        ? db
+            .select({ name: bills.name })
+            .from(bills)
+            .where(
+              and(
+                eq(bills.id, transaction.billId),
+                eq(bills.userId, userId),
+                eq(bills.householdId, householdId)
+              )
+            )
+            .limit(1)
         : Promise.resolve([]),
       transaction.debtId
-        ? db.select({ name: debts.name }).from(debts).where(eq(debts.id, transaction.debtId)).limit(1)
+        ? db
+            .select({ name: debts.name })
+            .from(debts)
+            .where(
+              and(
+                eq(debts.id, transaction.debtId),
+                eq(debts.userId, userId),
+                eq(debts.householdId, householdId)
+              )
+            )
+            .limit(1)
         : Promise.resolve([]),
       db.select({ name: betterAuthUser.name }).from(betterAuthUser).where(eq(betterAuthUser.id, userId)).limit(1),
     ]);

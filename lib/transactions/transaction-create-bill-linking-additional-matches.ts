@@ -1,7 +1,7 @@
 import { findMatchingBillInstance } from '@/lib/bills/bill-matching-helpers';
 import { formatCreateBillLinkMatch } from '@/lib/transactions/transaction-create-bill-linking-match-format';
 import {
-  findBillById,
+  findScopedBillById,
   findCategoryPendingBillMatch,
 } from '@/lib/transactions/transaction-create-bill-linking-queries';
 import type { CreateBillLinkMatch } from '@/lib/transactions/transaction-create-bill-linking-types';
@@ -42,7 +42,11 @@ export async function matchByGeneralBillHeuristics({
     return null;
   }
 
-  const bill = await findBillById(billMatch.billId);
+  const bill = await findScopedBillById({
+    billId: billMatch.billId,
+    userId,
+    householdId,
+  });
   if (!bill) {
     return null;
   }

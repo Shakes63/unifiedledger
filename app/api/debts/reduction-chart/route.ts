@@ -1,8 +1,8 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { debts, debtPayments } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { billPaymentEvents, debtPayments, transactions } from '@/lib/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 import { subMonths, startOfMonth } from 'date-fns';
 import {
   aggregateHistoricalBalances,
@@ -13,6 +13,7 @@ import {
   DebtWithPayments,
   DebtDetail,
 } from '@/lib/debts/reduction-chart-utils';
+import { getDebtStrategySettings, getUnifiedDebtSources } from '@/lib/debts/unified-debt-sources';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,17 +22,8 @@ export async function GET(request: Request) {
     const { userId } = await requireAuth();
     const { householdId } = await getAndVerifyHousehold(request, userId);
 
-    // Get all active debts for the user and household
-    const userDebts = await db
-      .select()
-      .from(debts)
-      .where(
-        and(
-          eq(debts.userId, userId),
-          eq(debts.householdId, householdId),
-          eq(debts.status, 'active')
-        )
-      );
+    // Use unified debt sources so chart includes account/bill/debt origins.
+    const userDebts = await getUnifiedDebtSources(householdId);
 
     if (userDebts.length === 0) {
       return new Response(
@@ -51,50 +43,148 @@ export async function GET(request: Request) {
       );
     }
 
-    // Get all payment history for the user and household (we'll filter by debt ID below)
-    const allPayments = await db
-      .select()
-      .from(debtPayments)
-      .where(
-        and(
-          eq(debtPayments.userId, userId),
-          eq(debtPayments.householdId, householdId)
-        )
-      );
+    const accountIds = userDebts
+      .filter((debt) => debt.source === 'account')
+      .map((debt) => debt.id);
+    const billIds = userDebts
+      .filter((debt) => debt.source === 'bill')
+      .map((debt) => debt.id);
+    const debtIds = userDebts
+      .filter((debt) => debt.source === 'debt')
+      .map((debt) => debt.id);
 
-    // Filter payments to only those for active debts
-    const debtIds = new Set(userDebts.map(d => d.id));
-    const payments = allPayments.filter(p => debtIds.has(p.debtId));
+    const [accountPaymentRows, billPaymentRows, legacyBillTxRows, debtPaymentRows] = await Promise.all([
+      accountIds.length > 0
+        ? db
+            .select({
+              accountId: transactions.accountId,
+              paymentDate: transactions.date,
+              amount: transactions.amount,
+            })
+            .from(transactions)
+            .where(
+              and(
+                eq(transactions.householdId, householdId),
+                eq(transactions.userId, userId),
+                eq(transactions.type, 'transfer_in'),
+                inArray(transactions.accountId, accountIds)
+              )
+            )
+        : Promise.resolve([]),
+      billIds.length > 0
+        ? db
+            .select({
+              billId: billPaymentEvents.templateId,
+              paymentDate: billPaymentEvents.paymentDate,
+              principalAmount: billPaymentEvents.principalCents,
+              amount: billPaymentEvents.amountCents,
+            })
+            .from(billPaymentEvents)
+            .where(
+              and(
+                eq(billPaymentEvents.householdId, householdId),
+                inArray(billPaymentEvents.templateId, billIds)
+              )
+            )
+        : Promise.resolve([]),
+      billIds.length > 0
+        ? db
+            .select({
+              billId: transactions.billId,
+              paymentDate: transactions.date,
+              amount: transactions.amount,
+            })
+            .from(transactions)
+            .where(
+              and(
+                eq(transactions.householdId, householdId),
+                eq(transactions.userId, userId),
+                eq(transactions.type, 'expense'),
+                inArray(transactions.billId, billIds)
+              )
+            )
+        : Promise.resolve([]),
+      debtIds.length > 0
+        ? db
+            .select({
+              debtId: debtPayments.debtId,
+              paymentDate: debtPayments.paymentDate,
+              principalAmount: debtPayments.principalAmount,
+              amount: debtPayments.amount,
+            })
+            .from(debtPayments)
+            .where(
+              and(
+                eq(debtPayments.userId, userId),
+                eq(debtPayments.householdId, householdId),
+                inArray(debtPayments.debtId, debtIds)
+              )
+            )
+        : Promise.resolve([]),
+    ]);
 
-    // Group payments by debt
-    const paymentsByDebt = new Map<string, typeof payments>();
-    for (const payment of payments) {
-      const key = payment.debtId;
-      if (!paymentsByDebt.has(key)) {
-        paymentsByDebt.set(key, []);
+    const paymentsBySourceId = new Map<
+      string,
+      Array<{ paymentDate: string; principalAmount: number }>
+    >();
+    const pushPayment = (
+      sourceId: string,
+      payment: { paymentDate: string; principalAmount: number }
+    ) => {
+      if (!paymentsBySourceId.has(sourceId)) {
+        paymentsBySourceId.set(sourceId, []);
       }
-      paymentsByDebt.get(key)!.push(payment);
+      paymentsBySourceId.get(sourceId)!.push(payment);
+    };
+
+    for (const row of accountPaymentRows) {
+      pushPayment(row.accountId, {
+        paymentDate: row.paymentDate,
+        principalAmount: Math.abs(row.amount || 0),
+      });
+    }
+    for (const row of billPaymentRows) {
+      pushPayment(row.billId, {
+        paymentDate: row.paymentDate,
+        principalAmount:
+          row.principalAmount !== null && row.principalAmount !== undefined
+            ? row.principalAmount / 100
+            : (row.amount || 0) / 100,
+      });
+    }
+    for (const row of legacyBillTxRows) {
+      if (!row.billId) continue;
+      pushPayment(row.billId, {
+        paymentDate: row.paymentDate,
+        principalAmount: Math.abs(row.amount || 0),
+      });
+    }
+    for (const row of debtPaymentRows) {
+      pushPayment(row.debtId, {
+        paymentDate: row.paymentDate,
+        principalAmount: row.principalAmount || row.amount || 0,
+      });
     }
 
-    // Combine debts with their payment history and include loan details
-    const debtsWithPayments: DebtWithPayments[] = userDebts.map(debt => ({
-      id: debt.id,
-      name: debt.name,
-      originalAmount: debt.originalAmount,
-      remainingBalance: debt.remainingBalance,
-      startDate: debt.startDate,
-      status: debt.status || 'active',
-      minimumPayment: debt.minimumPayment || 0,
-      interestRate: debt.interestRate || 0,
-      loanType: debt.loanType || 'revolving',
-      compoundingFrequency: debt.compoundingFrequency || 'monthly',
-      payments: (paymentsByDebt.get(debt.id) || [])
-        .map(p => ({
-          paymentDate: p.paymentDate,
-          principalAmount: p.principalAmount || 0,
-        }))
-        .sort((a, b) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()),
-    }));
+    const debtsWithPayments: DebtWithPayments[] = userDebts.map((debt) => {
+      const payments = (paymentsBySourceId.get(debt.id) || []).sort(
+        (a, b) =>
+          new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()
+      );
+      return {
+        id: debt.id,
+        name: debt.name,
+        originalAmount: debt.originalBalance,
+        remainingBalance: debt.remainingBalance,
+        startDate: payments[0]?.paymentDate || new Date().toISOString(),
+        status: 'active',
+        minimumPayment: debt.minimumPayment || 0,
+        interestRate: debt.interestRate || 0,
+        loanType: debt.loanType || 'revolving',
+        compoundingFrequency: debt.compoundingFrequency || 'monthly',
+        payments,
+      };
+    });
 
     // Calculate date range for historical data
     // Go back 12 months from today, or to when first debt was created, whichever is more recent
@@ -117,22 +207,12 @@ export async function GET(request: Request) {
       historyEndDate
     );
 
-    // Get debt settings for extra payment and strategy for this household
-    const { debtSettings } = await import('@/lib/db/schema');
-    const settings = await db
-      .select()
-      .from(debtSettings)
-      .where(
-        and(
-          eq(debtSettings.userId, userId),
-          eq(debtSettings.householdId, householdId)
-        )
-      )
-      .limit(1);
-
-    const extraPayment = settings[0]?.extraMonthlyPayment || 0;
-    const method = (settings[0]?.preferredMethod as 'snowball' | 'avalanche') || 'avalanche';
-    const frequency = (settings[0]?.paymentFrequency as 'monthly' | 'biweekly') || 'monthly';
+    // Get household-level debt settings (with legacy fallback in helper).
+    const settings = await getDebtStrategySettings(userId, householdId);
+    const extraPayment = settings.extraMonthlyPayment || 0;
+    const method = settings.preferredMethod || 'avalanche';
+    // Projection util currently supports monthly|biweekly.
+    const frequency = settings.paymentFrequency === 'biweekly' ? 'biweekly' : 'monthly';
 
     // Generate 24-month forward projection using actual calculator
     const projectionData = await generateProjection(

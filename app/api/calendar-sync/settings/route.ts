@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { calendarConnections, calendarSyncSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -9,21 +10,12 @@ export const dynamic = 'force-dynamic';
 /**
  * GET /api/calendar-sync/settings
  * Get calendar sync settings and connections for a household
- * Query params: householdId
+ * Household context: x-household-id header
  */
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
-
-    const { searchParams } = new URL(request.url);
-    const householdId = searchParams.get('householdId');
-
-    if (!householdId) {
-      return Response.json(
-        { error: 'householdId is required' },
-        { status: 400 }
-      );
-    }
+    const { householdId } = await getAndVerifyHousehold(request, userId);
 
     // Get connections for this user/household
     const connections = await db
@@ -99,15 +91,15 @@ export async function GET(request: Request) {
 /**
  * PUT /api/calendar-sync/settings
  * Update calendar sync settings
- * Body: { householdId, syncMode?, syncBills?, syncSavingsMilestones?, syncDebtMilestones?, syncPayoffDates?, syncGoalTargetDates?, reminderMinutes? }
+ * Body: { syncMode?, syncBills?, syncSavingsMilestones?, syncDebtMilestones?, syncPayoffDates?, syncGoalTargetDates?, reminderMinutes? }
+ * Household context: x-household-id header (or body fallback via helper)
  */
 export async function PUT(request: Request) {
   try {
     const { userId } = await requireAuth();
-
     const body = await request.json();
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
     const {
-      householdId,
       syncMode,
       syncBills,
       syncSavingsMilestones,
@@ -116,13 +108,6 @@ export async function PUT(request: Request) {
       syncGoalTargetDates,
       reminderMinutes,
     } = body;
-
-    if (!householdId) {
-      return Response.json(
-        { error: 'householdId is required' },
-        { status: 400 }
-      );
-    }
 
     // Validate syncMode
     if (syncMode && !['direct', 'budget_period'].includes(syncMode)) {

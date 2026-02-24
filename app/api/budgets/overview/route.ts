@@ -1,9 +1,9 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, budgetCategories, bills, billInstances } from '@/lib/db/schema';
+import { transactions, budgetCategories, billTemplates, billOccurrences } from '@/lib/db/schema';
 import { getMonthRangeForYearMonth } from '@/lib/utils/local-date';
-import { eq, and, gte, lte, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, sql, inArray } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
 export const dynamic = 'force-dynamic';
@@ -354,25 +354,24 @@ export async function GET(request: Request) {
       adherenceScore = Math.round(totalScore / categoriesWithBudgets.length);
     }
 
-    // ========== Recurring Income from Bills ==========
-    // Get income bills for the current household
+    // ========== Recurring Income from Bill Templates (v2) ==========
+    // Get active income templates for the current household
     const incomeBills = await db
       .select()
-      .from(bills)
+      .from(billTemplates)
       .where(
         and(
-          eq(bills.userId, userId),
-          eq(bills.householdId, householdId),
-          eq(bills.billType, 'income'),
-          eq(bills.isActive, true)
+          eq(billTemplates.householdId, householdId),
+          eq(billTemplates.billType, 'income'),
+          eq(billTemplates.isActive, true)
         )
       );
 
-    // Get bill instances for income bills in this month
+    // Get occurrences for income templates in this month
     const incomeBillIds = incomeBills.map(b => b.id);
     let incomeInstances: {
       id: string;
-      billId: string;
+      billId: string; // kept for response compatibility
       dueDate: string;
       expectedAmount: number;
       status: string | null;
@@ -382,25 +381,31 @@ export async function GET(request: Request) {
     if (incomeBillIds.length > 0) {
       const instances = await db
         .select({
-          id: billInstances.id,
-          billId: billInstances.billId,
-          dueDate: billInstances.dueDate,
-          expectedAmount: billInstances.expectedAmount,
-          status: billInstances.status,
-          paidDate: billInstances.paidDate,
+          id: billOccurrences.id,
+          billId: billOccurrences.templateId,
+          dueDate: billOccurrences.dueDate,
+          amountDueCents: billOccurrences.amountDueCents,
+          status: billOccurrences.status,
+          paidDate: billOccurrences.paidDate,
         })
-        .from(billInstances)
+        .from(billOccurrences)
         .where(
           and(
-            eq(billInstances.userId, userId),
-            eq(billInstances.householdId, householdId),
-            gte(billInstances.dueDate, monthStart),
-            lte(billInstances.dueDate, monthEnd)
+            eq(billOccurrences.householdId, householdId),
+            inArray(billOccurrences.templateId, incomeBillIds),
+            gte(billOccurrences.dueDate, monthStart),
+            lte(billOccurrences.dueDate, monthEnd)
           )
         );
 
-      // Filter to only income bill instances
-      incomeInstances = instances.filter(inst => incomeBillIds.includes(inst.billId));
+      incomeInstances = instances.map((inst) => ({
+        id: inst.id,
+        billId: inst.billId,
+        dueDate: inst.dueDate,
+        expectedAmount: new Decimal(inst.amountDueCents || 0).div(100).toNumber(),
+        status: inst.status,
+        paidDate: inst.paidDate,
+      }));
     }
 
     // Calculate recurring income stats
@@ -410,11 +415,11 @@ export async function GET(request: Request) {
     );
 
     const recurringIncomeReceived = incomeInstances
-      .filter(inst => inst.status === 'paid')
+      .filter(inst => inst.status === 'paid' || inst.status === 'overpaid')
       .reduce((sum, inst) => new Decimal(sum).plus(inst.expectedAmount).toNumber(), 0);
 
     const recurringIncomePending = incomeInstances
-      .filter(inst => inst.status === 'pending')
+      .filter(inst => inst.status === 'unpaid' || inst.status === 'partial')
       .reduce((sum, inst) => new Decimal(sum).plus(inst.expectedAmount).toNumber(), 0);
 
     const recurringIncomeLate = incomeInstances

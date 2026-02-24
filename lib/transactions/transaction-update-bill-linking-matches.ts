@@ -1,9 +1,10 @@
-import { and, eq, inArray } from 'drizzle-orm';
-
 import { findMatchingBillInstance } from '@/lib/bills/bill-matching-helpers';
-import { db } from '@/lib/db';
-import { billInstances, bills, transactions } from '@/lib/db/schema';
-import { findCategoryFallbackBillMatch } from '@/lib/transactions/transaction-update-bill-linking-helpers';
+import { transactions } from '@/lib/db/schema';
+import {
+  findCategoryPendingBillMatch,
+  findScopedBillById,
+  findScopedPendingBillInstanceById,
+} from '@/lib/transactions/transaction-create-bill-linking-queries';
 
 export interface UpdatedBillLinkMatch {
   billId: string;
@@ -26,22 +27,11 @@ export async function matchUpdatedTransactionByExplicitBillInstance({
     return null;
   }
 
-  const [instance] = await db
-    .select({
-      instance: billInstances,
-      bill: bills,
-    })
-    .from(billInstances)
-    .innerJoin(bills, eq(bills.id, billInstances.billId))
-    .where(
-      and(
-        eq(billInstances.id, billInstanceId),
-        eq(billInstances.userId, userId),
-        eq(billInstances.householdId, householdId),
-        inArray(billInstances.status, ['pending', 'overdue'])
-      )
-    )
-    .limit(1);
+  const instance = await findScopedPendingBillInstanceById({
+    billInstanceId,
+    userId,
+    householdId,
+  });
 
   if (!instance) {
     return null;
@@ -97,7 +87,11 @@ export async function matchUpdatedTransactionByGeneralHeuristics({
     return null;
   }
 
-  const [bill] = await db.select().from(bills).where(eq(bills.id, billMatch.billId)).limit(1);
+  const bill = await findScopedBillById({
+    billId: billMatch.billId,
+    userId,
+    householdId,
+  });
   if (!bill) {
     return null;
   }
@@ -120,7 +114,7 @@ export async function matchUpdatedTransactionByCategoryFallback({
   householdId: string;
   categoryId: string;
 }): Promise<UpdatedBillLinkMatch | null> {
-  const match = await findCategoryFallbackBillMatch({
+  const match = await findCategoryPendingBillMatch({
     userId,
     householdId,
     categoryId,

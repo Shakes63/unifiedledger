@@ -6,6 +6,10 @@ vi.mock('@/lib/auth-helpers', () => ({
   requireAuth: vi.fn(),
 }));
 
+vi.mock('@/lib/api/household-auth', () => ({
+  getAndVerifyHousehold: vi.fn(),
+}));
+
 vi.mock('@/lib/calendar/google-calendar', () => ({
   hasGoogleOAuthLinked: vi.fn(),
   listCalendarsForUser: vi.fn(),
@@ -19,6 +23,7 @@ vi.mock('@/lib/db', () => ({
 }));
 
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import {
   hasGoogleOAuthLinked,
   listCalendarsForUser,
@@ -47,6 +52,7 @@ describe('GET /api/calendar-sync/google/status', () => {
     vi.clearAllMocks();
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     (requireAuth as any).mockResolvedValue({ userId: 'user-1' });
+    (getAndVerifyHousehold as any).mockResolvedValue({ householdId: 'hh-1', membership: { role: 'owner' } });
     (isGoogleCalendarConfigured as any).mockReturnValue(true);
     (hasGoogleOAuthLinked as any).mockResolvedValue(true);
     (listCalendarsForUser as any).mockResolvedValue([]);
@@ -60,22 +66,15 @@ describe('GET /api/calendar-sync/google/status', () => {
 
   it('returns 401 when unauthorized', async () => {
     (requireAuth as any).mockRejectedValue(new Error('Unauthorized'));
-    const res = await GET(createRequest('http://localhost/api/calendar-sync/google/status?householdId=hh-1'));
+    const res = await GET(createRequest('http://localhost/api/calendar-sync/google/status'));
     const data = await res.json();
     expect(res.status).toBe(401);
     expect(data.error).toBe('Unauthorized');
   });
 
-  it('returns 400 when householdId is missing', async () => {
-    const res = await GET(createRequest('http://localhost/api/calendar-sync/google/status'));
-    const data = await res.json();
-    expect(res.status).toBe(400);
-    expect(data.error).toBe('householdId is required');
-  });
-
   it('returns configured=false when Google OAuth is not configured', async () => {
     (isGoogleCalendarConfigured as any).mockReturnValue(false);
-    const res = await GET(createRequest('http://localhost/api/calendar-sync/google/status?householdId=hh-1'));
+    const res = await GET(createRequest('http://localhost/api/calendar-sync/google/status'));
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -90,7 +89,7 @@ describe('GET /api/calendar-sync/google/status', () => {
 
   it('returns linked=false when user has not linked Google OAuth', async () => {
     (hasGoogleOAuthLinked as any).mockResolvedValue(false);
-    const res = await GET(createRequest('http://localhost/api/calendar-sync/google/status?householdId=hh-1'));
+    const res = await GET(createRequest('http://localhost/api/calendar-sync/google/status'));
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -122,7 +121,7 @@ describe('GET /api/calendar-sync/google/status', () => {
         ])
       );
 
-    const res = await GET(createRequest('http://localhost/api/calendar-sync/google/status?householdId=hh-1'));
+    const res = await GET(createRequest('http://localhost/api/calendar-sync/google/status'));
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -143,7 +142,7 @@ describe('GET /api/calendar-sync/google/status', () => {
       .mockReturnValueOnce(mockSelectLimit([])) // connection
       .mockReturnValueOnce(mockSelectLimit([])); // settings
 
-    const res = await GET(createRequest('http://localhost/api/calendar-sync/google/status?householdId=hh-1'));
+    const res = await GET(createRequest('http://localhost/api/calendar-sync/google/status'));
     const data = await res.json();
 
     expect(res.status).toBe(200);

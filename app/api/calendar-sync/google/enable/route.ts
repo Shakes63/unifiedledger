@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { calendarConnections, calendarSyncSettings } from '@/lib/db/schema';
 import { 
@@ -15,21 +16,16 @@ export const dynamic = 'force-dynamic';
  * POST /api/calendar-sync/google/enable
  * Enable Google Calendar sync for a household
  * Creates connection record and default sync settings
- * Body: { householdId: string, calendarId?: string }
+ * Body: { calendarId?: string }
+ * Household context: x-household-id header (or body fallback via helper)
  */
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
 
     const body = await request.json();
-    const { householdId, calendarId } = body;
-
-    if (!householdId) {
-      return Response.json(
-        { error: 'householdId is required' },
-        { status: 400 }
-      );
-    }
+    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+    const { calendarId } = body;
 
     // Check if Google OAuth is configured
     if (!isGoogleCalendarConfigured()) {

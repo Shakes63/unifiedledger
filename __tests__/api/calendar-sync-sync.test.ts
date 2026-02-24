@@ -6,12 +6,17 @@ vi.mock('@/lib/auth-helpers', () => ({
   requireAuth: vi.fn(),
 }));
 
+vi.mock('@/lib/api/household-auth', () => ({
+  getAndVerifyHousehold: vi.fn(),
+}));
+
 vi.mock('@/lib/calendar/sync-service', () => ({
   fullSync: vi.fn(),
   isSyncEnabled: vi.fn(),
 }));
 
 import { requireAuth } from '@/lib/auth-helpers';
+import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { fullSync, isSyncEnabled } from '@/lib/calendar/sync-service';
 
 function createRequest(body: unknown): Request {
@@ -26,6 +31,7 @@ describe('POST /api/calendar-sync/sync', () => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     (requireAuth as any).mockResolvedValue({ userId: 'user-1' });
+    (getAndVerifyHousehold as any).mockResolvedValue({ householdId: 'hh-1', membership: { role: 'owner' } });
     (isSyncEnabled as any).mockResolvedValue(true);
     (fullSync as any).mockResolvedValue({
       success: true,
@@ -43,22 +49,15 @@ describe('POST /api/calendar-sync/sync', () => {
 
   it('returns 401 when unauthorized', async () => {
     (requireAuth as any).mockRejectedValue(new Error('Unauthorized'));
-    const res = await POST(createRequest({ householdId: 'hh-1' }));
+    const res = await POST(createRequest({}));
     const data = await res.json();
     expect(res.status).toBe(401);
     expect(data.error).toBe('Unauthorized');
   });
 
-  it('returns 400 when householdId is missing', async () => {
-    const res = await POST(createRequest({}));
-    const data = await res.json();
-    expect(res.status).toBe(400);
-    expect(data.error).toBe('householdId is required');
-  });
-
   it('returns 400 when sync is not enabled', async () => {
     (isSyncEnabled as any).mockResolvedValue(false);
-    const res = await POST(createRequest({ householdId: 'hh-1' }));
+    const res = await POST(createRequest({}));
     const data = await res.json();
     expect(res.status).toBe(400);
     expect(data.error).toContain('No active calendar connections');
@@ -72,7 +71,7 @@ describe('POST /api/calendar-sync/sync', () => {
       errors: [{ sourceType: 'bill_instance', sourceId: 'x', error: 'boom' }],
     });
 
-    const res = await POST(createRequest({ householdId: 'hh-1' }));
+    const res = await POST(createRequest({}));
     const data = await res.json();
 
     expect(res.status).toBe(207);
@@ -89,7 +88,7 @@ describe('POST /api/calendar-sync/sync', () => {
       errors: [],
     });
 
-    const res = await POST(createRequest({ householdId: 'hh-1' }));
+    const res = await POST(createRequest({}));
     const data = await res.json();
 
     expect(res.status).toBe(200);
@@ -100,7 +99,7 @@ describe('POST /api/calendar-sync/sync', () => {
 
   it('returns 500 on unexpected errors', async () => {
     (fullSync as any).mockRejectedValue(new Error('unexpected'));
-    const res = await POST(createRequest({ householdId: 'hh-1' }));
+    const res = await POST(createRequest({}));
     const data = await res.json();
     expect(res.status).toBe(500);
     expect(data.error).toBe('Failed to sync calendar');

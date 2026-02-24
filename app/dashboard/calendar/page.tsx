@@ -7,6 +7,7 @@ import { CalendarMonth } from '@/components/calendar/calendar-month';
 import { CalendarWeek } from '@/components/calendar/calendar-week';
 import { CalendarDayModal } from '@/components/calendar/calendar-day-modal';
 import { Loader2 } from 'lucide-react';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface GoalSummary {
   id: string;
@@ -177,6 +178,7 @@ interface BillMilestone {
 }
 
 export default function CalendarPage() {
+  const { fetchWithHousehold, selectedHouseholdId } = useHouseholdFetch();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [daySummaries, setDaySummaries] = useState<
@@ -197,6 +199,12 @@ export default function CalendarPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
+    if (!selectedHouseholdId) {
+      setDaySummaries({});
+      setIsLoading(false);
+      return;
+    }
+
     const loadCalendarData = async () => {
       try {
         setIsLoading(true);
@@ -205,7 +213,9 @@ export default function CalendarPage() {
         const monthEnd = endOfMonth(currentDate);
 
         // Fetch month summary
-        const response = await fetch(`/api/calendar/month?startDate=${monthStart.toISOString()}&endDate=${monthEnd.toISOString()}`, { credentials: 'include' });
+        const response = await fetchWithHousehold(
+          `/api/calendar/month?startDate=${monthStart.toISOString()}&endDate=${monthEnd.toISOString()}`
+        );
 
         if (response.ok) {
           const data = await response.json();
@@ -219,15 +229,17 @@ export default function CalendarPage() {
     };
 
     loadCalendarData();
-  }, [currentDate]);
+  }, [currentDate, fetchWithHousehold, selectedHouseholdId]);
 
   const handleDayClick = async (date: Date) => {
+    if (!selectedHouseholdId) return;
+
     try {
       setIsLoading(true);
       setSelectedDay(date);
 
       // Fetch day details
-      const response = await fetch(`/api/calendar/day?date=${date.toISOString()}`, { credentials: 'include' });
+      const response = await fetchWithHousehold(`/api/calendar/day?date=${date.toISOString()}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -259,6 +271,12 @@ export default function CalendarPage() {
         onViewModeChange={setViewMode}
       />
 
+      {!selectedHouseholdId && (
+        <div className="rounded-lg border border-border bg-card p-6 text-sm text-muted-foreground">
+          Select a household to view calendar data.
+        </div>
+      )}
+
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
@@ -267,7 +285,7 @@ export default function CalendarPage() {
       )}
 
       {/* Calendar View */}
-      {!isLoading && (
+      {!isLoading && selectedHouseholdId && (
         <>
           {viewMode === 'month' ? (
             <CalendarMonth

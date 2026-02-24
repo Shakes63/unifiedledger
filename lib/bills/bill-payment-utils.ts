@@ -13,7 +13,7 @@ import Decimal from 'decimal.js';
 import { nanoid } from 'nanoid';
 import { db } from '@/lib/db';
 import { bills, billInstances, billPayments } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { calculatePaymentBreakdown, PaymentBreakdown } from '@/lib/debts/payment-calculator';
 import { classifyInterestPayment } from '@/lib/tax/interest-tax-utils';
 
@@ -75,8 +75,23 @@ export async function processBillPayment({
   try {
     // Fetch bill and instance in parallel
     const [billResult, instanceResult] = await Promise.all([
-      db.select().from(bills).where(eq(bills.id, billId)).limit(1),
-      db.select().from(billInstances).where(eq(billInstances.id, instanceId)).limit(1),
+      db
+        .select()
+        .from(bills)
+        .where(and(eq(bills.id, billId), eq(bills.userId, userId), eq(bills.householdId, householdId)))
+        .limit(1),
+      db
+        .select()
+        .from(billInstances)
+        .where(
+          and(
+            eq(billInstances.id, instanceId),
+            eq(billInstances.billId, billId),
+            eq(billInstances.userId, userId),
+            eq(billInstances.householdId, householdId)
+          )
+        )
+        .limit(1),
     ]);
 
     if (!billResult.length) {
@@ -312,15 +327,16 @@ export async function findCreditPaymentBillInstance(
     .from(billInstances)
     .where(
       and(
+        inArray(billInstances.billId, billIds),
         eq(billInstances.userId, userId),
-        eq(billInstances.householdId, householdId)
+        eq(billInstances.householdId, householdId),
+        inArray(billInstances.status, ['pending', 'overdue'])
       )
     );
 
   // Filter to relevant bills and pending status
   const relevantInstances = pendingInstances.filter(
-    inst => billIds.includes(inst.billId) && 
-    (inst.status === 'pending' || inst.status === 'overdue' || inst.paymentStatus === 'partial')
+    inst => inst.status === 'pending' || inst.status === 'overdue' || inst.paymentStatus === 'partial'
   );
 
   if (!relevantInstances.length) {
@@ -410,6 +426,14 @@ export function checkPaymentShortfall(
   const payment = new Decimal(paymentAmount);
   const expected = new Decimal(expectedAmount);
   const previousPaid = new Decimal(previousPaidAmount);
+
+  if (expected.lte(0)) {
+    return {
+      isShortfall: false,
+      shortfallAmount: 0,
+      paymentPercentage: 100,
+    };
+  }
   
   const totalAfterPayment = previousPaid.plus(payment);
   const shortfall = expected.minus(totalAfterPayment);

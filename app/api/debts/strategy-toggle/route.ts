@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { accounts, bills, debts } from '@/lib/db/schema';
+import { accounts, billTemplates, bills, debts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { toMoneyCents } from '@/lib/utils/money-cents';
@@ -121,8 +121,54 @@ export async function POST(request: NextRequest) {
         availableCredit,
       };
     } else if (source === 'bill') {
-      // source === 'bill'
-      // Verify bill belongs to this household
+      // Prefer bills-v2 template toggle.
+      const [template] = await db
+        .select()
+        .from(billTemplates)
+        .where(
+          and(
+            eq(billTemplates.id, id),
+            eq(billTemplates.householdId, householdId)
+          )
+        )
+        .limit(1);
+
+      if (template) {
+        if (!template.debtEnabled) {
+          return NextResponse.json(
+            { error: 'Only debt-enabled bills can be included in payoff strategy' },
+            { status: 400 }
+          );
+        }
+
+        await db
+          .update(billTemplates)
+          .set({
+            includeInPayoffStrategy: include,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(billTemplates.id, id));
+
+        updatedDebt = {
+          id: template.id,
+          name: template.name,
+          source: 'bill',
+          sourceType: 'other',
+          balance:
+            template.debtRemainingBalanceCents !== null
+              ? toAmount(template.debtRemainingBalanceCents)
+              : 0,
+          interestRate:
+            template.debtInterestAprBps !== null
+              ? new Decimal(template.debtInterestAprBps).div(100).toNumber()
+              : undefined,
+          minimumPayment: 0,
+          includeInPayoffStrategy: include,
+          color: template.debtColor ?? undefined,
+        };
+      } else {
+        // Legacy fallback
+        // Verify bill belongs to this household
       const [bill] = await db
         .select()
         .from(bills)
@@ -169,6 +215,7 @@ export async function POST(request: NextRequest) {
         includeInPayoffStrategy: include,
         color: bill.billColor ?? undefined,
       };
+      }
     } else {
       // source === 'debt'
       const [debt] = await db

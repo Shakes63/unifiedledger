@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
-import { billInstances, bills } from '@/lib/db/schema';
-import { eq, and, lte, gte } from 'drizzle-orm';
+import { billOccurrences, billTemplates } from '@/lib/db/schema';
+import { eq, and, lte, gte, inArray } from 'drizzle-orm';
 import { addDays, parseISO, differenceInDays, startOfDay } from 'date-fns';
 import { createNotification } from '@/lib/notifications/notification-service';
 import { getTodayLocalDateString, toLocalDateString } from '@/lib/utils/local-date';
@@ -14,37 +14,34 @@ export async function checkAndCreateIncomeAlerts() {
     const today = new Date();
     const todayISO = toLocalDateString(today);
 
-    // Get all pending/overdue income bill instances
+    // Get all pending/overdue income bill occurrences
     const incomeInstances = await db
       .select({
-        instance: billInstances,
-        bill: bills,
+        occurrence: billOccurrences,
+        template: billTemplates,
       })
-      .from(billInstances)
-      .leftJoin(bills, eq(billInstances.billId, bills.id))
+      .from(billOccurrences)
+      .innerJoin(billTemplates, eq(billOccurrences.templateId, billTemplates.id))
       .where(
         and(
-          eq(bills.billType, 'income'),
-          lte(billInstances.dueDate, todayISO) // Expected date has passed
+          eq(billTemplates.billType, 'income'),
+          eq(billTemplates.isActive, true),
+          lte(billOccurrences.dueDate, todayISO), // Expected date has passed
+          inArray(billOccurrences.status, ['unpaid', 'partial', 'overdue'])
         )
       );
 
-    // Filter to only pending/overdue (not paid or skipped)
-    const lateIncomeInstances = incomeInstances.filter(
-      ({ instance }) => instance.status === 'pending' || instance.status === 'overdue'
-    );
-
     let createdNotifications = 0;
 
-    for (const { instance, bill } of lateIncomeInstances) {
-      if (!bill) continue; // Skip if bill not found
+    for (const { occurrence, template } of incomeInstances) {
+      if (!template) continue;
 
-      const expectedDate = parseISO(instance.dueDate);
+      const expectedDate = parseISO(occurrence.dueDate);
       const daysLate = differenceInDays(startOfDay(today), expectedDate);
 
       // Only create notifications for income that's 1+ days late
       if (daysLate >= 1) {
-        await createLateIncomeNotification(instance, bill, daysLate);
+        await createLateIncomeNotification(occurrence, template, daysLate);
         createdNotifications++;
       }
     }
@@ -52,7 +49,7 @@ export async function checkAndCreateIncomeAlerts() {
     return {
       success: true,
       notificationsCreated: createdNotifications,
-      checkedInstances: lateIncomeInstances.length,
+      checkedInstances: incomeInstances.length,
     };
   } catch (error) {
     console.error('Error checking income alerts:', error);
@@ -64,13 +61,14 @@ export async function checkAndCreateIncomeAlerts() {
  * Create a notification for late income
  */
 async function createLateIncomeNotification(
-  instance: typeof billInstances.$inferSelect,
-  bill: typeof bills.$inferSelect,
+  occurrence: typeof billOccurrences.$inferSelect,
+  template: typeof billTemplates.$inferSelect,
   daysLate: number
 ) {
   try {
-    const title = `${bill.name} is ${daysLate} day${daysLate !== 1 ? 's' : ''} late`;
-    const message = `Your expected income of $${bill.expectedAmount.toFixed(2)} from ${bill.name} was due ${daysLate} day${daysLate !== 1 ? 's' : ''} ago. Check if payment has been received.`;
+    const expectedAmount = occurrence.amountDueCents / 100;
+    const title = `${template.name} is ${daysLate} day${daysLate !== 1 ? 's' : ''} late`;
+    const message = `Your expected income of $${expectedAmount.toFixed(2)} from ${template.name} was due ${daysLate} day${daysLate !== 1 ? 's' : ''} ago. Check if payment has been received.`;
 
     // Determine priority based on how late
     let priority: 'low' | 'normal' | 'high' | 'urgent' = 'normal';
@@ -81,29 +79,29 @@ async function createLateIncomeNotification(
     }
 
     await createNotification({
-      userId: instance.userId,
-      householdId: instance.householdId,
+      userId: template.createdByUserId,
+      householdId: occurrence.householdId,
       type: 'income_late',
       title,
       message,
       priority,
-      actionUrl: `/dashboard/bills?filter=income`,
+      actionUrl: '/dashboard/income',
       actionLabel: 'View Income',
       isActionable: true,
-      entityType: 'billInstance',
-      entityId: instance.id,
+      entityType: 'billOccurrence',
+      entityId: occurrence.id,
       metadata: {
-        billId: bill.id,
-        billInstanceId: instance.id,
+        templateId: template.id,
+        occurrenceId: occurrence.id,
         daysLate,
-        expectedDate: instance.dueDate,
-        amount: bill.expectedAmount,
+        expectedDate: occurrence.dueDate,
+        amount: expectedAmount,
         billType: 'income',
-        incomeSource: bill.name,
+        incomeSource: template.name,
       },
     });
   } catch (error) {
-    console.error(`Error creating late income notification for ${bill.name}:`, error);
+    console.error(`Error creating late income notification for ${template.name}:`, error);
   }
 }
 
@@ -115,33 +113,34 @@ export async function checkAndCreateIncomeReminders() {
     const today = new Date();
     const todayISO = toLocalDateString(today);
 
-    // Get all pending income bill instances for the next 7 days
+    // Get all pending income bill occurrences for the next 7 days
     const upcomingIncomeInstances = await db
       .select({
-        instance: billInstances,
-        bill: bills,
+        occurrence: billOccurrences,
+        template: billTemplates,
       })
-      .from(billInstances)
-      .leftJoin(bills, eq(billInstances.billId, bills.id))
+      .from(billOccurrences)
+      .innerJoin(billTemplates, eq(billOccurrences.templateId, billTemplates.id))
       .where(
         and(
-          eq(bills.billType, 'income'),
-          eq(billInstances.status, 'pending'),
-          gte(billInstances.dueDate, todayISO)
+          eq(billTemplates.billType, 'income'),
+          eq(billTemplates.isActive, true),
+          inArray(billOccurrences.status, ['unpaid', 'partial']),
+          gte(billOccurrences.dueDate, todayISO)
         )
       );
 
     let createdNotifications = 0;
 
-    for (const { instance, bill } of upcomingIncomeInstances) {
-      if (!bill) continue;
+    for (const { occurrence, template } of upcomingIncomeInstances) {
+      if (!template) continue;
 
-      const expectedDate = parseISO(instance.dueDate);
+      const expectedDate = parseISO(occurrence.dueDate);
       const daysUntil = differenceInDays(expectedDate, startOfDay(today));
 
       // Create notifications for income expected today, tomorrow, or in 3 days
       if (daysUntil === 0 || daysUntil === 1 || daysUntil === 3) {
-        await createUpcomingIncomeNotification(instance, bill, daysUntil);
+        await createUpcomingIncomeNotification(occurrence, template, daysUntil);
         createdNotifications++;
       }
     }
@@ -161,8 +160,8 @@ export async function checkAndCreateIncomeReminders() {
  * Create a notification for upcoming income
  */
 async function createUpcomingIncomeNotification(
-  instance: typeof billInstances.$inferSelect,
-  bill: typeof bills.$inferSelect,
+  occurrence: typeof billOccurrences.$inferSelect,
+  template: typeof billTemplates.$inferSelect,
   daysUntil: number
 ) {
   try {
@@ -170,44 +169,46 @@ async function createUpcomingIncomeNotification(
     let message = '';
     let priority: 'low' | 'normal' | 'high' | 'urgent' = 'low';
 
+    const expectedAmount = occurrence.amountDueCents / 100;
+
     if (daysUntil === 0) {
-      title = `${bill.name} expected today`;
-      message = `You should receive $${bill.expectedAmount.toFixed(2)} from ${bill.name} today.`;
+      title = `${template.name} expected today`;
+      message = `You should receive $${expectedAmount.toFixed(2)} from ${template.name} today.`;
       priority = 'normal';
     } else if (daysUntil === 1) {
-      title = `${bill.name} expected tomorrow`;
-      message = `You should receive $${bill.expectedAmount.toFixed(2)} from ${bill.name} tomorrow.`;
+      title = `${template.name} expected tomorrow`;
+      message = `You should receive $${expectedAmount.toFixed(2)} from ${template.name} tomorrow.`;
       priority = 'low';
     } else {
-      title = `${bill.name} expected in ${daysUntil} days`;
-      message = `You should receive $${bill.expectedAmount.toFixed(2)} from ${bill.name} in ${daysUntil} days.`;
+      title = `${template.name} expected in ${daysUntil} days`;
+      message = `You should receive $${expectedAmount.toFixed(2)} from ${template.name} in ${daysUntil} days.`;
       priority = 'low';
     }
 
     await createNotification({
-      userId: instance.userId,
-      householdId: instance.householdId,
+      userId: template.createdByUserId,
+      householdId: occurrence.householdId,
       type: 'bill_due', // Reusing bill_due type for income reminders
       title,
       message,
       priority,
-      actionUrl: `/dashboard/bills?filter=income`,
+      actionUrl: '/dashboard/income',
       actionLabel: 'View Income',
       isActionable: true,
-      entityType: 'billInstance',
-      entityId: instance.id,
+      entityType: 'billOccurrence',
+      entityId: occurrence.id,
       metadata: {
-        billId: bill.id,
-        billInstanceId: instance.id,
+        templateId: template.id,
+        occurrenceId: occurrence.id,
         daysUntil,
-        expectedDate: instance.dueDate,
-        amount: bill.expectedAmount,
+        expectedDate: occurrence.dueDate,
+        amount: expectedAmount,
         billType: 'income',
-        incomeSource: bill.name,
+        incomeSource: template.name,
       },
     });
   } catch (error) {
-    console.error(`Error creating upcoming income notification for ${bill.name}:`, error);
+    console.error(`Error creating upcoming income notification for ${template.name}:`, error);
   }
 }
 
@@ -220,23 +221,21 @@ export async function getLateIncomeForUser(userId: string) {
 
     const results = await db
       .select({
-        instance: billInstances,
-        bill: bills,
+        occurrence: billOccurrences,
+        template: billTemplates,
       })
-      .from(billInstances)
-      .leftJoin(bills, eq(billInstances.billId, bills.id))
+      .from(billOccurrences)
+      .innerJoin(billTemplates, eq(billOccurrences.templateId, billTemplates.id))
       .where(
         and(
-          eq(billInstances.userId, userId),
-          eq(bills.billType, 'income'),
-          lte(billInstances.dueDate, today)
+          eq(billTemplates.createdByUserId, userId),
+          eq(billTemplates.billType, 'income'),
+          eq(billTemplates.isActive, true),
+          lte(billOccurrences.dueDate, today),
+          inArray(billOccurrences.status, ['unpaid', 'partial', 'overdue'])
         )
       );
-
-    // Filter to only pending/overdue
-    return results.filter(
-      ({ instance }) => instance.status === 'pending' || instance.status === 'overdue'
-    );
+    return results;
   } catch (error) {
     console.error('Error getting late income:', error);
     return [];
@@ -258,18 +257,19 @@ export async function getUpcomingIncomeForUser(
 
     return await db
       .select({
-        instance: billInstances,
-        bill: bills,
+        occurrence: billOccurrences,
+        template: billTemplates,
       })
-      .from(billInstances)
-      .leftJoin(bills, eq(billInstances.billId, bills.id))
+      .from(billOccurrences)
+      .innerJoin(billTemplates, eq(billOccurrences.templateId, billTemplates.id))
       .where(
         and(
-          eq(billInstances.userId, userId),
-          eq(bills.billType, 'income'),
-          eq(billInstances.status, 'pending'),
-          gte(billInstances.dueDate, todayISO),
-          lte(billInstances.dueDate, futureISO)
+          eq(billTemplates.createdByUserId, userId),
+          eq(billTemplates.billType, 'income'),
+          eq(billTemplates.isActive, true),
+          inArray(billOccurrences.status, ['unpaid', 'partial']),
+          gte(billOccurrences.dueDate, todayISO),
+          lte(billOccurrences.dueDate, futureISO)
         )
       );
   } catch (error) {
