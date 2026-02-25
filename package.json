@@ -114,6 +114,12 @@
     "ignoredBuiltDependencies": [
       "@clerk/shared",
       "unrs-resolver"
+    ],
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "sharp",
+      "core-js",
+      "esbuild"
     ]
   }
 }
