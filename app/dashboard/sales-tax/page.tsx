@@ -14,6 +14,7 @@ import { ExportButton } from '@/components/reports/export-button';
 import { BarChart } from '@/components/charts';
 import { AlertCircle, Calendar, DollarSign, TrendingUp, CheckCircle2, Settings, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
+import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 
 interface TaxJurisdictionAmount {
   name: string;
@@ -59,6 +60,8 @@ interface SalesTaxSummary {
  * Quarterly sales tax reporting and filing status tracking
  */
 export default function SalesTaxPage() {
+  const { fetchWithHousehold, postWithHousehold, putWithHousehold, selectedHouseholdId } =
+    useHouseholdFetch();
   const [year, setYear] = useState<string>(new Date().getFullYear().toString());
   const [data, setData] = useState<SalesTaxSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,13 +85,9 @@ export default function SalesTaxPage() {
   // Filing status state
   const [isMarkingFiled, setIsMarkingFiled] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchTaxRateSettings();
-  }, []);
-
-  const fetchTaxRateSettings = async () => {
+  const fetchTaxRateSettings = useCallback(async () => {
     try {
-      const response = await fetch('/api/sales-tax/settings', { credentials: 'include' });
+      const response = await fetchWithHousehold('/api/sales-tax/settings');
       if (response.ok) {
         const settings = await response.json();
         // Load multi-level rates
@@ -104,16 +103,17 @@ export default function SalesTaxPage() {
     } catch (err) {
       console.error('Error fetching tax rate settings:', err);
     }
-  };
+  }, [fetchWithHousehold]);
+
+  useEffect(() => {
+    if (!selectedHouseholdId) return;
+    fetchTaxRateSettings();
+  }, [fetchTaxRateSettings, selectedHouseholdId]);
 
   const saveTaxRateSettings = async () => {
     try {
       setIsSavingRate(true);
-      const response = await fetch('/api/sales-tax/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
+      const response = await postWithHousehold('/api/sales-tax/settings', {
           stateRate,
           countyRate,
           cityRate,
@@ -123,7 +123,6 @@ export default function SalesTaxPage() {
           cityName,
           specialDistrictName,
           filingFrequency: 'quarterly',
-        }),
       });
 
       if (!response.ok) {
@@ -148,7 +147,14 @@ export default function SalesTaxPage() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`/api/sales-tax/quarterly?year=${year}`, { credentials: 'include' });
+      if (!selectedHouseholdId) {
+        setData(null);
+        setError('Please select a household.');
+        setIsLoading(false);
+        return;
+      }
+
+      const response = await fetchWithHousehold(`/api/sales-tax/quarterly?year=${year}`);
 
       if (!response.ok) {
         throw new Error('Failed to load sales tax data');
@@ -162,7 +168,7 @@ export default function SalesTaxPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [year]);
+  }, [fetchWithHousehold, selectedHouseholdId, year]);
 
   useEffect(() => {
     fetchSalesTaxData();
@@ -226,15 +232,10 @@ export default function SalesTaxPage() {
 
     setIsMarkingFiled(key);
     try {
-      const response = await fetch('/api/sales-tax/quarterly', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          year: parseInt(year, 10),
-          quarter,
-          status: 'submitted',
-        }),
+      const response = await putWithHousehold('/api/sales-tax/quarterly', {
+        year: parseInt(year, 10),
+        quarter,
+        status: 'submitted',
       });
 
       if (!response.ok) {
@@ -244,7 +245,7 @@ export default function SalesTaxPage() {
       toast.success(`Q${quarter} marked as filed!`);
       
       // Refresh data without showing full-page loading state
-      const refreshResponse = await fetch(`/api/sales-tax/quarterly?year=${year}`, { credentials: 'include' });
+      const refreshResponse = await fetchWithHousehold(`/api/sales-tax/quarterly?year=${year}`);
       if (refreshResponse.ok) {
         const result = await refreshResponse.json();
         setData(result);
@@ -263,15 +264,10 @@ export default function SalesTaxPage() {
 
     setIsMarkingFiled(key);
     try {
-      const response = await fetch('/api/sales-tax/quarterly', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          year: parseInt(year, 10),
-          quarter,
-          status: 'pending',
-        }),
+      const response = await putWithHousehold('/api/sales-tax/quarterly', {
+        year: parseInt(year, 10),
+        quarter,
+        status: 'pending',
       });
 
       if (!response.ok) {
@@ -281,7 +277,7 @@ export default function SalesTaxPage() {
       toast.success(`Q${quarter} filing undone`);
       
       // Refresh data without showing full-page loading state
-      const refreshResponse = await fetch(`/api/sales-tax/quarterly?year=${year}`, { credentials: 'include' });
+      const refreshResponse = await fetchWithHousehold(`/api/sales-tax/quarterly?year=${year}`);
       if (refreshResponse.ok) {
         const result = await refreshResponse.json();
         setData(result);

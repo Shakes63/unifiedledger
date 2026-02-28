@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { salesTaxCategories } from '@/lib/db/schema';
 import { eq, and, desc, asc } from 'drizzle-orm';
@@ -13,6 +14,11 @@ export const dynamic = 'force-dynamic';
 export async function GET(_request: NextRequest) {
   try {
     const { userId } = await requireAuth();
+    const householdId = getHouseholdIdFromRequest(_request);
+    await requireHouseholdAuth(userId, householdId);
+    if (!householdId) {
+      return NextResponse.json({ error: 'Household ID is required' }, { status: 400 });
+    }
 
     // Fetch active tax categories, sorted by default first, then by name
     const categories = await db
@@ -21,6 +27,7 @@ export async function GET(_request: NextRequest) {
       .where(
         and(
           eq(salesTaxCategories.userId, userId),
+          eq(salesTaxCategories.householdId, householdId),
           eq(salesTaxCategories.isActive, true)
         )
       )
@@ -49,6 +56,11 @@ export async function GET(_request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await requireAuth();
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+    if (!householdId) {
+      return NextResponse.json({ error: 'Household ID is required' }, { status: 400 });
+    }
 
     const body = await request.json();
     const { name, rate, description, isDefault } = body;
@@ -68,9 +80,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (rate < 0 || rate > 1) {
+    if (rate < 0 || rate > 100) {
       return NextResponse.json(
-        { error: 'Tax rate must be between 0 and 1 (e.g., 0.0825 for 8.25%)' },
+        { error: 'Tax rate must be between 0 and 100 (e.g., 8.25 for 8.25%)' },
         { status: 400 }
       );
     }
@@ -80,7 +92,12 @@ export async function POST(request: NextRequest) {
       await db
         .update(salesTaxCategories)
         .set({ isDefault: false })
-        .where(eq(salesTaxCategories.userId, userId));
+        .where(
+          and(
+            eq(salesTaxCategories.userId, userId),
+            eq(salesTaxCategories.householdId, householdId)
+          )
+        );
     }
 
     // Create new tax category
@@ -90,6 +107,7 @@ export async function POST(request: NextRequest) {
     await db.insert(salesTaxCategories).values({
       id,
       userId,
+      householdId,
       name: name.trim(),
       rate,
       description: description?.trim() || null,
@@ -103,7 +121,13 @@ export async function POST(request: NextRequest) {
     const createdCategory = await db
       .select()
       .from(salesTaxCategories)
-      .where(eq(salesTaxCategories.id, id))
+      .where(
+        and(
+          eq(salesTaxCategories.id, id),
+          eq(salesTaxCategories.userId, userId),
+          eq(salesTaxCategories.householdId, householdId)
+        )
+      )
       .limit(1);
 
     return NextResponse.json(createdCategory[0], { status: 201 });

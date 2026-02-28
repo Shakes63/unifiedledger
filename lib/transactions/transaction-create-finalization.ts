@@ -4,11 +4,16 @@ import { autoLinkCreatedExpenseBill } from '@/lib/transactions/transaction-creat
 import { logTransactionCreateAudit } from '@/lib/transactions/transaction-create-audit';
 import { linkTransactionDebt } from '@/lib/transactions/transaction-create-debt-linking';
 import {
+  deleteSalesTaxRecord,
+  upsertSalesTaxSnapshot,
+} from '@/lib/sales-tax/transaction-sales-tax';
+import {
   buildCreateTransactionSuccessResponse,
   isCreatedTransactionSalesTaxable,
 } from '@/lib/transactions/transaction-create-finalization-helpers';
 import { runTransactionCreateMetadataUpdates } from '@/lib/transactions/transaction-create-post-metadata';
 import { logTransactionCreatePerformance } from '@/lib/transactions/transaction-create-performance';
+import { amountToCents } from '@/lib/transactions/money-movement-service';
 
 export async function finalizeCreatedTransaction({
   userId,
@@ -133,6 +138,24 @@ export async function finalizeCreatedTransaction({
       postCreationSalesTaxable: postCreationMutations?.isSalesTaxable || false,
     }),
   });
+
+  const shouldTrackSalesTax = isCreatedTransactionSalesTaxable({
+    type,
+    isSalesTaxable,
+    postCreationSalesTaxable: postCreationMutations?.isSalesTaxable || false,
+  });
+  if (type === 'income' && shouldTrackSalesTax) {
+    await upsertSalesTaxSnapshot({
+      transactionId,
+      userId,
+      householdId,
+      accountId,
+      amountCents: amountToCents(decimalAmount),
+      date,
+    });
+  } else {
+    await deleteSalesTaxRecord(transactionId);
+  }
 
   return buildCreateTransactionSuccessResponse({
     transactionId,

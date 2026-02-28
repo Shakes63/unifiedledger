@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
 import { salesTaxSettings } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import Decimal from 'decimal.js';
 
@@ -10,14 +11,24 @@ import Decimal from 'decimal.js';
  * GET /api/sales-tax/settings
  * Returns user's sales tax settings including multi-level rates
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { userId } = await requireAuth();
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+    if (!householdId) {
+      return NextResponse.json({ error: 'Household ID is required' }, { status: 400 });
+    }
 
     const settings = await db
       .select()
       .from(salesTaxSettings)
-      .where(eq(salesTaxSettings.userId, userId))
+      .where(
+        and(
+          eq(salesTaxSettings.userId, userId),
+          eq(salesTaxSettings.householdId, householdId)
+        )
+      )
       .limit(1);
 
     if (settings.length === 0) {
@@ -89,6 +100,11 @@ function validateRate(rate: unknown, fieldName: string): number {
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await requireAuth();
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+    if (!householdId) {
+      return NextResponse.json({ error: 'Household ID is required' }, { status: 400 });
+    }
 
     const body = await request.json();
     const {
@@ -138,7 +154,12 @@ export async function POST(request: NextRequest) {
     const existing = await db
       .select()
       .from(salesTaxSettings)
-      .where(eq(salesTaxSettings.userId, userId))
+      .where(
+        and(
+          eq(salesTaxSettings.userId, userId),
+          eq(salesTaxSettings.householdId, householdId)
+        )
+      )
       .limit(1);
 
     const now = new Date().toISOString();
@@ -148,6 +169,7 @@ export async function POST(request: NextRequest) {
       const newSettings = {
         id: uuidv4(),
         userId,
+        householdId,
         defaultRate: finalDefaultRate,
         stateRate: validatedStateRate,
         countyRate: validatedCountyRate,
@@ -193,7 +215,12 @@ export async function POST(request: NextRequest) {
       await db
         .update(salesTaxSettings)
         .set(updateData)
-        .where(eq(salesTaxSettings.userId, userId));
+        .where(
+          and(
+            eq(salesTaxSettings.userId, userId),
+            eq(salesTaxSettings.householdId, householdId)
+          )
+        );
 
       return NextResponse.json({ ...existing[0], ...updateData });
     }

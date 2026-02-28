@@ -1040,6 +1040,7 @@ async function generateTestData() {
   await db.insert(salesTaxSettings).values({
     id: nanoid(),
     userId,
+    householdId: household1Id,
     defaultRate: 8.5,
     jurisdiction: 'California',
     filingFrequency: 'quarterly',

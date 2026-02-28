@@ -5,13 +5,14 @@
 
 import { db } from '@/lib/db';
 import {
-  transactions,
+  salesTaxTransactions,
   quarterlyFilingRecords,
   salesTaxSettings,
 } from '@/lib/db/schema';
 import { eq, and, gte, lte } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { v4 as uuidv4 } from 'uuid';
+import { fromMoneyCents } from '@/lib/utils/money-cents';
 
 /**
  * Quarter definition
@@ -138,11 +139,19 @@ export function calculateTaxAmount(saleAmount: number, taxRate: number): number 
  * Get user's sales tax rate from settings
  * Returns 0 if not configured
  */
-export async function getUserSalesTaxRate(userId: string): Promise<number> {
+export async function getUserSalesTaxRate(
+  userId: string,
+  householdId: string
+): Promise<number> {
   const settings = await db
     .select()
     .from(salesTaxSettings)
-    .where(eq(salesTaxSettings.userId, userId))
+    .where(
+      and(
+        eq(salesTaxSettings.userId, userId),
+        eq(salesTaxSettings.householdId, householdId)
+      )
+    )
     .limit(1);
 
   if (settings.length === 0) {
@@ -158,12 +167,18 @@ export async function getUserSalesTaxRate(userId: string): Promise<number> {
  * Returns null if not configured
  */
 export async function getFullSalesTaxSettings(
-  userId: string
+  userId: string,
+  householdId: string
 ): Promise<FullSalesTaxSettings | null> {
   const settings = await db
     .select()
     .from(salesTaxSettings)
-    .where(eq(salesTaxSettings.userId, userId))
+    .where(
+      and(
+        eq(salesTaxSettings.userId, userId),
+        eq(salesTaxSettings.householdId, householdId)
+      )
+    )
     .limit(1);
 
   if (settings.length === 0) {
@@ -247,26 +262,106 @@ export function calculateTaxBreakdown(
  */
 export async function getQuarterlyReportWithBreakdown(
   userId: string,
+  householdId: string,
   year: number,
   quarter: number,
   accountId?: string
 ): Promise<QuarterlyReportWithBreakdown> {
   // Get base report
-  const report = await getQuarterlyReport(userId, year, quarter, accountId);
+  const report = await getQuarterlyReport(userId, householdId, year, quarter, accountId);
 
   // Get full settings for breakdown
-  const settings = await getFullSalesTaxSettings(userId);
+  const settings = await getFullSalesTaxSettings(userId, householdId);
+
+  const whereConditions = [
+    eq(salesTaxTransactions.userId, userId),
+    eq(salesTaxTransactions.householdId, householdId),
+    eq(salesTaxTransactions.taxYear, year),
+    eq(salesTaxTransactions.quarter, quarter),
+  ];
+
+  if (accountId) {
+    whereConditions.push(eq(salesTaxTransactions.accountId, accountId));
+  }
+
+  const snapshots = await db
+    .select({
+      taxableAmountCents: salesTaxTransactions.taxableAmountCents,
+      jurisdictionSnapshot: salesTaxTransactions.jurisdictionSnapshot,
+    })
+    .from(salesTaxTransactions)
+    .where(and(...whereConditions));
 
   // Calculate breakdown
-  const taxBreakdown = settings
-    ? calculateTaxBreakdown(report.totalSales, settings)
-    : {
-        state: { name: 'State', rate: 0, amount: 0 },
-        county: { name: 'County', rate: 0, amount: 0 },
-        city: { name: 'City', rate: 0, amount: 0 },
-        specialDistrict: { name: 'Special District', rate: 0, amount: 0 },
-        total: { rate: 0, amount: 0 },
+  const totals = {
+    state: new Decimal(0),
+    county: new Decimal(0),
+    city: new Decimal(0),
+    specialDistrict: new Decimal(0),
+  };
+
+  for (const snapshot of snapshots) {
+    const taxable = fromMoneyCents(snapshot.taxableAmountCents) ?? 0;
+    if (!snapshot.jurisdictionSnapshot || taxable <= 0) continue;
+
+    try {
+      const parsed = JSON.parse(snapshot.jurisdictionSnapshot) as {
+        state?: { ratePercent?: number };
+        county?: { ratePercent?: number };
+        city?: { ratePercent?: number };
+        specialDistrict?: { ratePercent?: number };
       };
+
+      totals.state = totals.state.plus(
+        new Decimal(taxable).times((parsed.state?.ratePercent ?? 0) / 100)
+      );
+      totals.county = totals.county.plus(
+        new Decimal(taxable).times((parsed.county?.ratePercent ?? 0) / 100)
+      );
+      totals.city = totals.city.plus(
+        new Decimal(taxable).times((parsed.city?.ratePercent ?? 0) / 100)
+      );
+      totals.specialDistrict = totals.specialDistrict.plus(
+        new Decimal(taxable).times((parsed.specialDistrict?.ratePercent ?? 0) / 100)
+      );
+    } catch {
+      // Ignore malformed snapshots and continue reporting with valid rows.
+    }
+  }
+
+  const totalRate = settings
+    ? new Decimal(settings.stateRate)
+        .plus(settings.countyRate)
+        .plus(settings.cityRate)
+        .plus(settings.specialDistrictRate)
+        .toNumber()
+    : 0;
+  const taxBreakdown = {
+    state: {
+      name: settings?.stateName || 'State',
+      rate: settings?.stateRate || 0,
+      amount: totals.state.toNumber(),
+    },
+    county: {
+      name: settings?.countyName || 'County',
+      rate: settings?.countyRate || 0,
+      amount: totals.county.toNumber(),
+    },
+    city: {
+      name: settings?.cityName || 'City',
+      rate: settings?.cityRate || 0,
+      amount: totals.city.toNumber(),
+    },
+    specialDistrict: {
+      name: settings?.specialDistrictName || 'Special District',
+      rate: settings?.specialDistrictRate || 0,
+      amount: totals.specialDistrict.toNumber(),
+    },
+    total: {
+      rate: totalRate,
+      amount: report.totalTax,
+    },
+  };
 
   return {
     ...report,
@@ -279,13 +374,19 @@ export async function getQuarterlyReportWithBreakdown(
  */
 export async function updateUserSalesTaxRate(
   userId: string,
+  householdId: string,
   rate: number,
   jurisdiction?: string
 ): Promise<void> {
   const existing = await db
     .select()
     .from(salesTaxSettings)
-    .where(eq(salesTaxSettings.userId, userId))
+    .where(
+      and(
+        eq(salesTaxSettings.userId, userId),
+        eq(salesTaxSettings.householdId, householdId)
+      )
+    )
     .limit(1);
 
   if (existing.length === 0) {
@@ -293,6 +394,7 @@ export async function updateUserSalesTaxRate(
     await db.insert(salesTaxSettings).values({
       id: uuidv4(),
       userId,
+      householdId,
       defaultRate: rate,
       jurisdiction: jurisdiction || null,
       filingFrequency: 'quarterly',
@@ -309,7 +411,12 @@ export async function updateUserSalesTaxRate(
         jurisdiction: jurisdiction || existing[0].jurisdiction,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(salesTaxSettings.userId, userId));
+      .where(
+        and(
+          eq(salesTaxSettings.userId, userId),
+          eq(salesTaxSettings.householdId, householdId)
+        )
+      );
   }
 }
 
@@ -323,14 +430,12 @@ export async function updateUserSalesTaxRate(
  */
 export async function getQuarterlyReport(
   userId: string,
+  householdId: string,
   year: number,
   quarter: number,
   accountId?: string
 ): Promise<QuarterlyReport> {
-  // 1. Get user's configured tax rate
-  const taxRatePercent = await getUserSalesTaxRate(userId);
-
-  // 2. Get quarter date range
+  // 1. Get quarter date range
   const quarterDates = getQuarterDates(year);
   const quarterInfo = quarterDates.find((q) => q.quarter === quarter);
 
@@ -338,41 +443,48 @@ export async function getQuarterlyReport(
     throw new Error('Invalid quarter');
   }
 
-  // 3. Query transactions with isSalesTaxable = true
+  // 2. Query immutable sales tax snapshots for this quarter
   const whereConditions = [
-    eq(transactions.userId, userId),
-    eq(transactions.isSalesTaxable, true),
-    eq(transactions.type, 'income'),
-    gte(transactions.date, quarterInfo.startDate),
-    lte(transactions.date, quarterInfo.endDate),
+    eq(salesTaxTransactions.userId, userId),
+    eq(salesTaxTransactions.householdId, householdId),
+    eq(salesTaxTransactions.taxYear, year),
+    eq(salesTaxTransactions.quarter, quarter),
+    gte(salesTaxTransactions.transactionDate, quarterInfo.startDate),
+    lte(salesTaxTransactions.transactionDate, quarterInfo.endDate),
   ];
 
   if (accountId) {
-    whereConditions.push(eq(transactions.accountId, accountId));
+    whereConditions.push(eq(salesTaxTransactions.accountId, accountId));
   }
 
-  const taxableTransactions = await db
-    .select()
-    .from(transactions)
+  const snapshots = await db
+    .select({
+      taxableAmountCents: salesTaxTransactions.taxableAmountCents,
+      taxAmountCents: salesTaxTransactions.taxAmountCents,
+    })
+    .from(salesTaxTransactions)
     .where(and(...whereConditions));
 
-  // 4. Calculate total taxable sales
-  let totalSales = new Decimal(0);
-  taxableTransactions.forEach((txn) => {
-    totalSales = totalSales.plus(new Decimal(txn.amount));
-  });
+  // 3. Calculate totals directly from snapshots
+  const totalSales = snapshots.reduce(
+    (sum, row) => sum.plus(fromMoneyCents(row.taxableAmountCents) ?? 0),
+    new Decimal(0)
+  );
+  const totalTax = snapshots.reduce(
+    (sum, row) => sum.plus(fromMoneyCents(row.taxAmountCents) ?? 0),
+    new Decimal(0)
+  );
+  const effectiveRateDecimal =
+    totalSales.greaterThan(0) ? totalTax.dividedBy(totalSales) : new Decimal(0);
 
-  // 5. Calculate tax using configured rate (percentage converted to decimal)
-  const taxRateDecimal = new Decimal(taxRatePercent).dividedBy(100);
-  const totalTax = totalSales.times(taxRateDecimal);
-
-  // 6. Get filing record (if exists)
+  // 4. Filing record is workflow/status only
   const filingRecord = await db
     .select()
     .from(quarterlyFilingRecords)
     .where(
       and(
         eq(quarterlyFilingRecords.userId, userId),
+        eq(quarterlyFilingRecords.householdId, householdId),
         eq(quarterlyFilingRecords.taxYear, year),
         eq(quarterlyFilingRecords.quarter, quarter)
       )
@@ -385,11 +497,11 @@ export async function getQuarterlyReport(
     quarter,
     totalSales: totalSales.toNumber(),
     totalTax: totalTax.toNumber(),
-    taxRate: taxRateDecimal.toNumber(), // Return as decimal (e.g., 0.085 for 8.5%)
+    taxRate: effectiveRateDecimal.toNumber(), // Decimal for existing UI compatibility.
     dueDate: quarterInfo.dueDate,
     submittedDate: filingRecord?.submittedDate || undefined,
     status: filingRecord?.status || 'pending',
-    balanceDue: filingRecord?.balanceDue || totalTax.toNumber(),
+    balanceDue: totalTax.toNumber(),
   };
 }
 
@@ -401,6 +513,7 @@ export async function getQuarterlyReport(
  */
 export async function getYearlyQuarterlyReports(
   userId: string,
+  householdId: string,
   year: number,
   accountId?: string
 ): Promise<QuarterlyReport[]> {
@@ -408,7 +521,7 @@ export async function getYearlyQuarterlyReports(
   const reports: QuarterlyReport[] = [];
 
   for (const quarter of quarters) {
-    const report = await getQuarterlyReport(userId, year, quarter, accountId);
+    const report = await getQuarterlyReport(userId, householdId, year, quarter, accountId);
     reports.push(report);
   }
 
@@ -421,6 +534,7 @@ export async function getYearlyQuarterlyReports(
  */
 export async function getQuarterlyReportsByAccount(
   userId: string,
+  householdId: string,
   year: number,
   quarter: number
 ): Promise<
@@ -440,6 +554,7 @@ export async function getQuarterlyReportsByAccount(
     .where(
       and(
         eq(accounts.userId, userId),
+        eq(accounts.householdId, householdId),
         eq(accounts.isBusinessAccount, true),
         eq(accounts.isActive, true)
       )
@@ -450,7 +565,7 @@ export async function getQuarterlyReportsByAccount(
     businessAccounts.map(async (account) => ({
       accountId: account.id,
       accountName: account.name,
-      report: await getQuarterlyReport(userId, year, quarter, account.id),
+      report: await getQuarterlyReport(userId, householdId, year, quarter, account.id),
     }))
   );
 
@@ -462,6 +577,7 @@ export async function getQuarterlyReportsByAccount(
  */
 export async function getYearlyQuarterlyReportsByAccount(
   userId: string,
+  householdId: string,
   year: number
 ): Promise<
   Array<{
@@ -480,6 +596,7 @@ export async function getYearlyQuarterlyReportsByAccount(
     .where(
       and(
         eq(accounts.userId, userId),
+        eq(accounts.householdId, householdId),
         eq(accounts.isBusinessAccount, true),
         eq(accounts.isActive, true)
       )
@@ -490,7 +607,7 @@ export async function getYearlyQuarterlyReportsByAccount(
     businessAccounts.map(async (account) => ({
       accountId: account.id,
       accountName: account.name,
-      quarters: await getYearlyQuarterlyReports(userId, year, account.id),
+      quarters: await getYearlyQuarterlyReports(userId, householdId, year, account.id),
     }))
   );
 
@@ -505,6 +622,7 @@ export async function getYearlyQuarterlyReportsByAccount(
  */
 export async function getYearToDateTax(
   userId: string,
+  householdId: string,
   year: number
 ): Promise<{
   totalSales: number;
@@ -518,7 +636,7 @@ export async function getYearToDateTax(
   let totalTax = new Decimal(0);
 
   for (let q = 1; q <= currentQuarter; q++) {
-    const report = await getQuarterlyReport(userId, year, q);
+    const report = await getQuarterlyReport(userId, householdId, year, q);
     totalSales = totalSales.plus(new Decimal(report.totalSales));
     totalTax = totalTax.plus(new Decimal(report.totalTax));
   }
@@ -609,6 +727,7 @@ export function getStatusColor(
  */
 export async function updateQuarterlyFilingStatus(
   userId: string,
+  householdId: string,
   year: number,
   quarter: number,
   status: 'not_due' | 'pending' | 'submitted' | 'accepted' | 'rejected',
@@ -628,6 +747,7 @@ export async function updateQuarterlyFilingStatus(
     .where(
       and(
         eq(quarterlyFilingRecords.userId, userId),
+        eq(quarterlyFilingRecords.householdId, householdId),
         eq(quarterlyFilingRecords.taxYear, year),
         eq(quarterlyFilingRecords.quarter, quarter)
       )
@@ -644,6 +764,7 @@ export async function updateQuarterlyFilingStatus(
     await db.insert(quarterlyFilingRecords).values({
       id: uuidv4(),
       userId,
+      householdId,
       taxYear: year,
       quarter,
       dueDate: quarterInfo.dueDate,

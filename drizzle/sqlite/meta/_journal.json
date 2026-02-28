@@ -85,6 +85,13 @@
       "when": 1771797600000,
       "tag": "0011_add_entity_id_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1772390400000,
+      "tag": "0012_add_sales_tax_household_scope",
+      "breakpoints": true
     }
   ]
 }

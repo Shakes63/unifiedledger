@@ -1,9 +1,13 @@
-import { deleteSalesTaxRecord } from '@/lib/sales-tax/transaction-sales-tax';
+import {
+  deleteSalesTaxRecord,
+  upsertSalesTaxSnapshot,
+} from '@/lib/sales-tax/transaction-sales-tax';
 import { transactions } from '@/lib/db/schema';
 import { logTransactionUpdateAudit } from '@/lib/transactions/transaction-update-audit';
 import { autoLinkUpdatedExpenseBill } from '@/lib/transactions/transaction-update-bill-linking';
 import { reclassifyTransaction, removeTransactionClassifications } from '@/lib/tax/auto-classify';
 import type { TransactionUpdateInput } from '@/lib/transactions/transaction-update-validation';
+import { amountToCents } from '@/lib/transactions/money-movement-service';
 
 export async function runStandardUpdatePostActions({
   id,
@@ -44,8 +48,17 @@ export async function runStandardUpdatePostActions({
   newIsPending: boolean;
   newIsSalesTaxable: boolean;
 }) {
-  if (shouldDeleteSalesTaxRecord) {
+  if (shouldDeleteSalesTaxRecord || transaction.type !== 'income' || !newIsSalesTaxable) {
     await deleteSalesTaxRecord(id);
+  } else {
+    await upsertSalesTaxSnapshot({
+      transactionId: id,
+      userId,
+      householdId,
+      accountId: newAccountId,
+      amountCents: amountToCents(newAmount),
+      date: newDate,
+    });
   }
 
   await logTransactionUpdateAudit({

@@ -6,24 +6,28 @@ vi.mock('@/lib/auth-helpers', () => ({
   requireAuth: vi.fn(),
 }));
 
+vi.mock('@/lib/api/household-auth', () => ({
+  getHouseholdIdFromRequest: vi.fn(),
+  requireHouseholdAuth: vi.fn(),
+}));
+
 vi.mock('@/lib/sales-tax/sales-tax-utils', () => ({
   getYearlyQuarterlyReports: vi.fn(),
   getQuarterlyReport: vi.fn(),
+  getQuarterlyReportWithBreakdown: vi.fn(),
   getQuarterlyReportsByAccount: vi.fn(),
   getYearlyQuarterlyReportsByAccount: vi.fn(),
   updateQuarterlyFilingStatus: vi.fn(),
-  getFullSalesTaxSettings: vi.fn(),
-  calculateTaxBreakdown: vi.fn(),
 }));
 
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import {
   getYearlyQuarterlyReports,
   getQuarterlyReport,
+  getQuarterlyReportWithBreakdown,
   getQuarterlyReportsByAccount,
   getYearlyQuarterlyReportsByAccount,
-  getFullSalesTaxSettings,
-  calculateTaxBreakdown,
 } from '@/lib/sales-tax/sales-tax-utils';
 
 function createNextRequest(url: string): any {
@@ -36,18 +40,29 @@ describe('GET /api/sales-tax/quarterly', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (requireAuth as any).mockResolvedValue({ userId: 'user-1' });
+    (getHouseholdIdFromRequest as any).mockReturnValue('hh-1');
+    (requireHouseholdAuth as any).mockResolvedValue({ householdId: 'hh-1', userId: 'user-1' });
 
     (getYearlyQuarterlyReports as any).mockResolvedValue([]);
     (getQuarterlyReport as any).mockResolvedValue({ year: 2025, quarter: 1, totalSales: 0 });
     (getQuarterlyReportsByAccount as any).mockResolvedValue([]);
     (getYearlyQuarterlyReportsByAccount as any).mockResolvedValue([]);
-    (getFullSalesTaxSettings as any).mockResolvedValue(null);
-    (calculateTaxBreakdown as any).mockReturnValue({
-      state: { name: 'State', rate: 0, amount: 0 },
-      county: { name: 'County', rate: 0, amount: 0 },
-      city: { name: 'City', rate: 0, amount: 0 },
-      specialDistrict: { name: 'Special', rate: 0, amount: 0 },
-      total: { rate: 0, amount: 0 },
+    (getQuarterlyReportWithBreakdown as any).mockResolvedValue({
+      year: 2025,
+      quarter: 1,
+      totalSales: 0,
+      totalTax: 0,
+      taxRate: 0,
+      dueDate: '2025-04-20',
+      status: 'pending',
+      balanceDue: 0,
+      taxBreakdown: {
+        state: { name: 'State', rate: 0, amount: 0 },
+        county: { name: 'County', rate: 0, amount: 0 },
+        city: { name: 'City', rate: 0, amount: 0 },
+        specialDistrict: { name: 'Special', rate: 0, amount: 0 },
+        total: { rate: 0, amount: 0 },
+      },
     });
   });
 
@@ -107,7 +122,7 @@ describe('GET /api/sales-tax/quarterly', () => {
       quarters: expect.any(Array),
     });
 
-    expect(getYearlyQuarterlyReportsByAccount).toHaveBeenCalledWith('user-1', 2025);
+    expect(getYearlyQuarterlyReportsByAccount).toHaveBeenCalledWith('user-1', 'hh-1', 2025);
   });
 
   it('returns grouped-by-account specific quarter when byAccount=true and quarter is provided', async () => {
@@ -138,7 +153,7 @@ describe('GET /api/sales-tax/quarterly', () => {
       ],
     });
 
-    expect(getQuarterlyReportsByAccount).toHaveBeenCalledWith('user-1', 2025, 2);
+    expect(getQuarterlyReportsByAccount).toHaveBeenCalledWith('user-1', 'hh-1', 2025, 2);
   });
 
   it('returns { report } when quarter is provided (and not byAccount)', async () => {
@@ -149,7 +164,7 @@ describe('GET /api/sales-tax/quarterly', () => {
 
     expect(res.status).toBe(200);
     expect(data).toEqual({ report: { year: 2025, quarter: 3, totalSales: 123 } });
-    expect(getQuarterlyReport).toHaveBeenCalledWith('user-1', 2025, 3, undefined);
+    expect(getQuarterlyReport).toHaveBeenCalledWith('user-1', 'hh-1', 2025, 3, undefined);
   });
 
   it('returns yearly summary with taxBreakdown and per-quarter breakdown when settings exist', async () => {
@@ -158,31 +173,28 @@ describe('GET /api/sales-tax/quarterly', () => {
       { year: 2025, quarter: 2, totalSales: 50, totalTax: 4, balanceDue: 4 },
     ]);
 
-    const settings = {
-      defaultRate: 8,
-      jurisdiction: 'Test',
-      fiscalYearStart: '01-01',
-      filingFrequency: 'quarterly',
-      enableTracking: true,
-      stateRate: 5,
-      countyRate: 2,
-      cityRate: 1,
-      specialDistrictRate: 0,
-      stateName: 'State',
-      countyName: 'County',
-      cityName: 'City',
-      specialDistrictName: null,
-    };
-
-    (getFullSalesTaxSettings as any).mockResolvedValue(settings);
-
-    (calculateTaxBreakdown as any).mockImplementation((saleAmount: number) => ({
-      state: { name: 'State', rate: 5, amount: saleAmount * 0.05 },
-      county: { name: 'County', rate: 2, amount: saleAmount * 0.02 },
-      city: { name: 'City', rate: 1, amount: saleAmount * 0.01 },
-      specialDistrict: { name: 'Special District', rate: 0, amount: 0 },
-      total: { rate: 8, amount: saleAmount * 0.08 },
-    }));
+    (getQuarterlyReportWithBreakdown as any).mockImplementation(
+      (_u: string, _h: string, _y: number, q: number) => {
+        const saleAmount = q === 1 ? 100 : 50;
+        return Promise.resolve({
+          year: 2025,
+          quarter: q,
+          totalSales: saleAmount,
+          totalTax: saleAmount * 0.08,
+          taxRate: 0.08,
+          dueDate: '2025-04-20',
+          status: 'pending',
+          balanceDue: saleAmount * 0.08,
+          taxBreakdown: {
+            state: { name: 'State', rate: 5, amount: saleAmount * 0.05 },
+            county: { name: 'County', rate: 2, amount: saleAmount * 0.02 },
+            city: { name: 'City', rate: 1, amount: saleAmount * 0.01 },
+            specialDistrict: { name: 'Special District', rate: 0, amount: 0 },
+            total: { rate: 8, amount: saleAmount * 0.08 },
+          },
+        });
+      }
+    );
 
     const res = await GET(createNextRequest('http://localhost/api/sales-tax/quarterly?year=2025'));
     const data = await res.json();
@@ -205,16 +217,15 @@ describe('GET /api/sales-tax/quarterly', () => {
     expect(data.quarters[0].taxBreakdown.total.amount).toBeCloseTo(100 * 0.08, 10);
     expect(data.quarters[1].taxBreakdown.total.amount).toBeCloseTo(50 * 0.08, 10);
 
-    expect(getYearlyQuarterlyReports).toHaveBeenCalledWith('user-1', 2025, undefined);
-    expect(getFullSalesTaxSettings).toHaveBeenCalledWith('user-1');
-    expect(calculateTaxBreakdown).toHaveBeenCalled();
+    expect(getYearlyQuarterlyReports).toHaveBeenCalledWith('user-1', 'hh-1', 2025, undefined);
+    expect(getQuarterlyReportWithBreakdown).toHaveBeenCalled();
   });
 
   it('passes accountId through to getQuarterlyReport/getYearlyQuarterlyReports', async () => {
     await GET(createNextRequest('http://localhost/api/sales-tax/quarterly?year=2025&quarter=1&accountId=acc-9'));
-    expect(getQuarterlyReport).toHaveBeenCalledWith('user-1', 2025, 1, 'acc-9');
+    expect(getQuarterlyReport).toHaveBeenCalledWith('user-1', 'hh-1', 2025, 1, 'acc-9');
 
     await GET(createNextRequest('http://localhost/api/sales-tax/quarterly?year=2025&accountId=acc-9'));
-    expect(getYearlyQuarterlyReports).toHaveBeenCalledWith('user-1', 2025, 'acc-9');
+    expect(getYearlyQuarterlyReports).toHaveBeenCalledWith('user-1', 'hh-1', 2025, 'acc-9');
   });
 });

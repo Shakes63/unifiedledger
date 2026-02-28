@@ -2490,7 +2490,8 @@ export const salesTaxSettings = sqliteTable(
   'sales_tax_settings',
   {
     id: text('id').primaryKey(),
-    userId: text('user_id').notNull().unique(),
+    userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     defaultRate: real('default_rate').notNull().default(0), // 0-100 (e.g., 8.5 for 8.5%) - computed total for backward compat
     jurisdiction: text('jurisdiction'), // e.g., "California", "New York" - legacy field
     fiscalYearStart: text('fiscal_year_start'), // e.g., "01-01" for calendar year
@@ -2513,6 +2514,11 @@ export const salesTaxSettings = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_sales_tax_settings_user').on(table.userId),
+    householdIdIdx: index('idx_sales_tax_settings_household').on(table.householdId),
+    userHouseholdUnique: uniqueIndex('idx_sales_tax_settings_user_household_unique').on(
+      table.userId,
+      table.householdId
+    ),
   })
 );
 
@@ -2521,8 +2527,9 @@ export const salesTaxCategories = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     name: text('name').notNull(),
-    rate: real('rate').notNull(), // Tax rate as decimal (0.085 for 8.5%)
+    rate: real('rate').notNull(), // Tax rate as percentage (8.5 for 8.5%)
     description: text('description'),
     isDefault: integer('is_default', { mode: 'boolean' }).default(false),
     isActive: integer('is_active', { mode: 'boolean' }).default(true),
@@ -2531,7 +2538,12 @@ export const salesTaxCategories = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_sales_tax_categories_user').on(table.userId),
+    householdIdIdx: index('idx_sales_tax_categories_household').on(table.householdId),
     userActiveIdx: index('idx_sales_tax_categories_user_active').on(table.userId, table.isActive),
+    householdActiveIdx: index('idx_sales_tax_categories_household_active').on(
+      table.householdId,
+      table.isActive
+    ),
   })
 );
 
@@ -2540,15 +2552,16 @@ export const salesTaxTransactions = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     accountId: text('account_id').notNull(), // Business account for sales tax tracking
     transactionId: text('transaction_id').notNull(),
-    taxCategoryId: text('tax_category_id').notNull(),
+    transactionDate: text('transaction_date').notNull(),
+    taxableAmountCents: integer('taxable_amount_cents').notNull(),
+    taxAmountCents: integer('tax_amount_cents').notNull(),
+    appliedRateBps: integer('applied_rate_bps').notNull(),
+    jurisdictionSnapshot: text('jurisdiction_snapshot'),
     taxYear: integer('tax_year').notNull(),
     quarter: integer('quarter').notNull(), // 1-4
-    // Transaction details denormalized for reporting
-    saleAmount: real('sale_amount').notNull(),
-    taxRate: real('tax_rate').notNull(),
-    taxAmount: real('tax_amount').notNull(),
     reportedStatus: text('reported_status', {
       enum: ['pending', 'reported', 'filed', 'paid'],
     }).default('pending'),
@@ -2557,12 +2570,19 @@ export const salesTaxTransactions = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_sales_tax_transactions_user').on(table.userId),
+    householdIdIdx: index('idx_sales_tax_transactions_household').on(table.householdId),
     accountIdIdx: index('idx_sales_tax_transactions_account').on(table.accountId),
     transactionIdIdx: index('idx_sales_tax_transactions_transaction').on(table.transactionId),
+    transactionDateIdx: index('idx_sales_tax_transactions_transaction_date').on(table.transactionDate),
     quarterIdx: index('idx_sales_tax_transactions_quarter').on(table.quarter),
     reportedStatusIdx: index('idx_sales_tax_transactions_status').on(table.reportedStatus),
     userQuarterIdx: index('idx_sales_tax_transactions_user_quarter').on(
       table.userId,
+      table.taxYear,
+      table.quarter
+    ),
+    householdQuarterIdx: index('idx_sales_tax_transactions_household_quarter').on(
+      table.householdId,
       table.taxYear,
       table.quarter
     ),
@@ -2580,6 +2600,7 @@ export const quarterlyFilingRecords = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    householdId: text('household_id').notNull(),
     taxYear: integer('tax_year').notNull(),
     quarter: integer('quarter').notNull(), // 1-4
     dueDate: text('due_date').notNull(), // ISO date
@@ -2597,9 +2618,17 @@ export const quarterlyFilingRecords = sqliteTable(
   },
   (table) => ({
     userIdIdx: index('idx_quarterly_filing_user').on(table.userId),
+    householdIdIdx: index('idx_quarterly_filing_household').on(table.householdId),
     userYearIdx: index('idx_quarterly_filing_user_year').on(table.userId, table.taxYear),
+    householdYearIdx: index('idx_quarterly_filing_household_year').on(
+      table.householdId,
+      table.taxYear
+    ),
     statusIdx: index('idx_quarterly_filing_status').on(table.status),
     dueDateIdx: index('idx_quarterly_filing_due_date').on(table.dueDate),
+    userHouseholdYearQuarterUnique: uniqueIndex(
+      'idx_quarterly_filing_user_household_year_quarter_unique'
+    ).on(table.userId, table.householdId, table.taxYear, table.quarter),
   })
 );
 

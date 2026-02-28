@@ -90,31 +90,28 @@ describe('lib/sales-tax/sales-tax-utils', () => {
 
   it('getQuarterlyReport aggregates taxable income transactions and returns taxRate as decimal', async () => {
     (db.select as any)
-      // getUserSalesTaxRate -> salesTaxSettings
-      .mockReturnValueOnce(mockSelectLimit([{ defaultRate: 8.25 }]))
-      // taxableTransactions query
+      // snapshot query
       .mockReturnValueOnce(
         mockSelectWhere([
-          { id: 't1', amount: 10 },
-          { id: 't2', amount: 20 },
+          { taxableAmountCents: 1000, taxAmountCents: 83 },
+          { taxableAmountCents: 2000, taxAmountCents: 165 },
         ])
       )
       // filingRecord
       .mockReturnValueOnce(mockSelectLimit([]));
 
-    const report = await getQuarterlyReport('user-1', 2025, 1);
+    const report = await getQuarterlyReport('user-1', 'hh-1', 2025, 1);
 
     expect(report.totalSales).toBe(30);
-    expect(report.taxRate).toBeCloseTo(0.0825, 10);
-    expect(report.totalTax).toBeCloseTo(30 * 0.0825, 10);
+    expect(report.taxRate).toBeCloseTo(2.48 / 30, 10);
+    expect(report.totalTax).toBeCloseTo(2.48, 10);
     expect(report.quarter).toBe(1);
     expect(report.year).toBe(2025);
   });
 
-  it('getQuarterlyReport uses filing record status/balanceDue when present', async () => {
+  it('getQuarterlyReport uses filing record status while balanceDue stays snapshot-derived', async () => {
     (db.select as any)
-      .mockReturnValueOnce(mockSelectLimit([{ defaultRate: 10 }]))
-      .mockReturnValueOnce(mockSelectWhere([{ id: 't1', amount: 100 }]))
+      .mockReturnValueOnce(mockSelectWhere([{ taxableAmountCents: 10000, taxAmountCents: 1000 }]))
       .mockReturnValueOnce(
         mockSelectLimit([
           {
@@ -125,10 +122,27 @@ describe('lib/sales-tax/sales-tax-utils', () => {
         ])
       );
 
-    const report = await getQuarterlyReport('user-1', 2025, 1);
+    const report = await getQuarterlyReport('user-1', 'hh-1', 2025, 1);
 
     expect(report.status).toBe('accepted');
     expect(report.submittedDate).toBe('2025-02-01');
-    expect(report.balanceDue).toBe(12.34);
+    expect(report.balanceDue).toBe(10);
+  });
+
+  it('getQuarterlyReport computes effective rate from mixed snapshot rates', async () => {
+    (db.select as any)
+      .mockReturnValueOnce(
+        mockSelectWhere([
+          { taxableAmountCents: 10000, taxAmountCents: 600 }, // 6%
+          { taxableAmountCents: 10000, taxAmountCents: 900 }, // 9%
+        ])
+      )
+      .mockReturnValueOnce(mockSelectLimit([]));
+
+    const report = await getQuarterlyReport('user-1', 'hh-1', 2025, 2);
+
+    expect(report.totalSales).toBe(200);
+    expect(report.totalTax).toBe(15);
+    expect(report.taxRate).toBeCloseTo(15 / 200, 10);
   });
 });
