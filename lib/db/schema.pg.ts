@@ -1156,7 +1156,7 @@ export const userSettings = pgTable(
     textSize: text('text_size', {
       enum: ['small', 'medium', 'large', 'x-large'],
     }).default('medium'),
-    theme: text('theme').default('dark-mode'),
+    theme: text('theme').default('dark-green'),
     // Financial Preferences
     fiscalYearStart: integer('fiscal_year_start').default(1), // 1-12 (January = 1)
     defaultAccountId: text('default_account_id'),
@@ -1213,7 +1213,7 @@ export const userHouseholdPreferences = pgTable(
     combinedTransferView: boolean('combined_transfer_view').default(true),
 
     // Theme
-    theme: text('theme').default('dark-mode'),
+    theme: text('theme').default('dark-green'),
 
     // Notifications - Bill Reminders
     billRemindersEnabled: boolean('bill_reminders_enabled').default(true),

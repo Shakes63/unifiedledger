@@ -70,7 +70,7 @@ const MOCK_EXISTING_HOUSEHOLD_PREFERENCES = {
   userId: TEST_USER_ID,
   householdId: TEST_HOUSEHOLD_ID,
   dateFormat: 'MM/DD/YYYY',
-  theme: 'dark-mode',
+  theme: 'dark-green',
   billRemindersEnabled: true,
   billRemindersChannels: '["push"]',
 };
@@ -232,7 +232,7 @@ describe('Migration Helper - migrateUserPreferences', () => {
     // Verify defaults are used
     expect(insertedValues.dateFormat).toBe('MM/DD/YYYY');
     expect(insertedValues.numberFormat).toBe('en-US');
-    expect(insertedValues.theme).toBe('dark-mode');
+    expect(insertedValues.theme).toBe('dark-green');
     expect(insertedValues.showCents).toBe(true);
     expect(insertedValues.billRemindersEnabled).toBe(true);
     expect(insertedValues.billRemindersChannels).toBe('["push"]');

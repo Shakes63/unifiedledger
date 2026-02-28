@@ -1164,7 +1164,7 @@ export const userSettings = sqliteTable(
     textSize: text('text_size', {
       enum: ['small', 'medium', 'large', 'x-large'],
     }).default('medium'),
-    theme: text('theme').default('dark-mode'),
+    theme: text('theme').default('dark-green'),
     // Financial Preferences
     fiscalYearStart: integer('fiscal_year_start').default(1), // 1-12 (January = 1)
     defaultAccountId: text('default_account_id'),
@@ -1221,7 +1221,7 @@ export const userHouseholdPreferences = sqliteTable(
     combinedTransferView: integer('combined_transfer_view', { mode: 'boolean' }).default(true),
 
     // Theme
-    theme: text('theme').default('dark-mode'),
+    theme: text('theme').default('dark-green'),
 
     // Notifications - Bill Reminders
     billRemindersEnabled: integer('bill_reminders_enabled', { mode: 'boolean' }).default(true),

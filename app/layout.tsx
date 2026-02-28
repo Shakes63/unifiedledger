@@ -60,7 +60,13 @@ function buildThemeBootstrapScript() {
           : 'unified-ledger:theme';
         const cachedTheme =
           localStorage.getItem(householdThemeKey) || localStorage.getItem('unified-ledger:theme');
-        const themeId = cachedTheme && runtime[cachedTheme] ? cachedTheme : fallbackId;
+        const normalizedCachedTheme = cachedTheme === 'dark-mode' ? 'dark-green' : cachedTheme;
+        if (normalizedCachedTheme && normalizedCachedTheme !== cachedTheme) {
+          localStorage.setItem(householdThemeKey, normalizedCachedTheme);
+        }
+        const themeId = normalizedCachedTheme && runtime[normalizedCachedTheme]
+          ? normalizedCachedTheme
+          : fallbackId;
         const theme = runtime[themeId] || runtime[fallbackId];
         if (!theme) return;
 

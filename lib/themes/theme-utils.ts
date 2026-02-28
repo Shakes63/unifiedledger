@@ -13,6 +13,13 @@ import {
 } from './theme-config';
 
 const THEME_STORAGE_PREFIX = 'unified-ledger:theme';
+const LEGACY_THEME_ID_MAP: Record<string, ThemeId> = {
+  'dark-mode': 'dark-green',
+};
+
+function normalizeThemeId(themeId: string): string {
+  return LEGACY_THEME_ID_MAP[themeId] ?? themeId;
+}
 
 /**
  * Get a theme by ID
@@ -20,7 +27,8 @@ const THEME_STORAGE_PREFIX = 'unified-ledger:theme';
  * @returns The theme object or null if not found
  */
 export function getTheme(themeId: string): Theme | null {
-  const theme = themes.find((t) => t.id === themeId);
+  const normalizedThemeId = normalizeThemeId(themeId);
+  const theme = themes.find((t) => t.id === normalizedThemeId);
   return theme || null;
 }
 
@@ -58,7 +66,8 @@ export function getAllThemes(): Theme[] {
  * @returns True if the theme exists, false otherwise
  */
 export function isValidThemeId(themeId: string): boolean {
-  return themes.some((theme) => theme.id === themeId);
+  const normalizedThemeId = normalizeThemeId(themeId);
+  return themes.some((theme) => theme.id === normalizedThemeId);
 }
 
 /**
@@ -83,7 +92,11 @@ export function getCachedTheme(householdId?: string | null): string | null {
   try {
     const cachedTheme = window.localStorage.getItem(getThemeStorageKey(householdId));
     if (cachedTheme && isValidThemeId(cachedTheme)) {
-      return cachedTheme;
+      const normalizedThemeId = normalizeThemeId(cachedTheme);
+      if (normalizedThemeId !== cachedTheme) {
+        window.localStorage.setItem(getThemeStorageKey(householdId), normalizedThemeId);
+      }
+      return normalizedThemeId;
     }
   } catch {
     // Ignore storage failures (private mode, etc.)
@@ -109,7 +122,8 @@ interface ApplyThemeOptions {
  */
 export function applyTheme(themeId: string, options: ApplyThemeOptions = {}): void {
   const { householdId = null, persist = true, force = false } = options;
-  const requestedTheme = getTheme(themeId);
+  const normalizedThemeId = normalizeThemeId(themeId);
+  const requestedTheme = getTheme(normalizedThemeId);
   const theme =
     requestedTheme && requestedTheme.isAvailable
       ? requestedTheme
@@ -175,5 +189,5 @@ export function getCurrentThemeId(): string {
   }
 
   const themeId = document.documentElement.getAttribute('data-theme');
-  return themeId || DEFAULT_THEME_ID;
+  return themeId ? normalizeThemeId(themeId) : DEFAULT_THEME_ID;
 }

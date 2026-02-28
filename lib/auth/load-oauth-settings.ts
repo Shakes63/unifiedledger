@@ -20,6 +20,20 @@ export interface DatabaseOAuthSettings {
   ticktick?: OAuthProviderConfig;
 }
 
+function isMissingOauthSettingsTableError(error: unknown): boolean {
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code ?? '')
+    : '';
+  const message = typeof error === 'object' && error !== null && 'message' in error
+    ? String((error as { message?: unknown }).message ?? '')
+    : '';
+
+  return (
+    (code === 'SQLITE_ERROR' && message.includes('no such table: oauth_settings')) ||
+    (code === '42P01' && message.includes('oauth_settings'))
+  );
+}
+
 /**
  * Load OAuth settings from database
  * 
@@ -83,6 +97,12 @@ export async function loadOAuthSettingsFromDatabase(): Promise<DatabaseOAuthSett
 
     return result;
   } catch (error) {
+    // In fresh environments (for example during image builds before migrations),
+    // the oauth_settings table may not exist yet. Treat that as "no settings".
+    if (isMissingOauthSettingsTableError(error)) {
+      return null;
+    }
+
     console.error('[OAuth Loader] Error loading OAuth settings from database:', error);
     // Return null on error.
     return null;

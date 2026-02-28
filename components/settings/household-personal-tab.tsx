@@ -55,9 +55,9 @@ export function HouseholdPersonalTab({ householdId }: HouseholdPersonalTabProps)
   const [saving, setSaving] = useState(false);
   
   // Theme state
-  const [currentThemeId, setCurrentThemeId] = useState<string>('dark-mode');
+  const [currentThemeId, setCurrentThemeId] = useState<string>('dark-green');
   const [currentTheme, setCurrentTheme] = useState<Theme | null>(null);
-  const [selectedThemeId, setSelectedThemeId] = useState<string>('dark-mode');
+  const [selectedThemeId, setSelectedThemeId] = useState<string>('dark-green');
   
   // Financial display state
   const [financialSettings, setFinancialSettings] = useState({

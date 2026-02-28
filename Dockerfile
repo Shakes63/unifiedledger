@@ -32,9 +32,8 @@ COPY . .
 
 # Build the application with proper environment
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NEXT_IGNORE_BUILD_ERRORS=1
 RUN mkdir -p /config
-RUN pnpm build
+RUN BETTER_AUTH_SECRET=build-time-secret-not-for-runtime pnpm build
 
 # Stage 3.5: Migrator (runs schema sync against the persisted SQLite DB)
 # This stage retains devDependencies so drizzle-kit is available.

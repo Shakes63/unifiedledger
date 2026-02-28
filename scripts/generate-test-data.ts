@@ -170,7 +170,7 @@ async function generateTestData() {
     displayName: testName,
     currency: 'USD',
     currencySymbol: '$',
-    theme: 'dark-mode',
+    theme: 'dark-green',
     createdAt: sixMonthsAgo.toISOString(),
     updatedAt: sixMonthsAgo.toISOString(),
   });
@@ -219,7 +219,7 @@ async function generateTestData() {
     id: nanoid(),
     userId,
     householdId: household1Id,
-    theme: 'dark-mode',
+    theme: 'dark-green',
     createdAt: sixMonthsAgo.toISOString(),
     updatedAt: sixMonthsAgo.toISOString(),
   });

@@ -97,7 +97,7 @@ export async function migrateUserPreferences(
       defaultTransactionType: oldSettingsData?.defaultTransactionType || 'expense',
 
       // Theme (from user_settings)
-      theme: oldSettingsData?.theme || 'dark-mode',
+      theme: oldSettingsData?.theme || 'dark-green',
 
       // Notifications - Bill Reminders (from notification_preferences)
       // Note: Old field was billReminderEnabled, new is billRemindersEnabled

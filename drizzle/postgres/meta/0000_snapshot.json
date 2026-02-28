@@ -10821,7 +10821,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "default": "'dark-mode'"
+          "default": "'dark-green'"
         },
         "bill_reminders_enabled": {
           "name": "bill_reminders_enabled",
@@ -11390,7 +11390,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "default": "'dark-mode'"
+          "default": "'dark-green'"
         },
         "fiscal_year_start": {
           "name": "fiscal_year_start",

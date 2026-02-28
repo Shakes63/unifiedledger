@@ -23,7 +23,7 @@ export const DEFAULT_USER_HOUSEHOLD_PREFERENCES = {
   negativeNumberFormat: '-$100',
   defaultTransactionType: 'expense',
   combinedTransferView: true,
-  theme: 'dark-mode',
+  theme: 'dark-green',
   billRemindersEnabled: true,
   billRemindersChannels: '["push","email"]',
   budgetWarningsEnabled: true,

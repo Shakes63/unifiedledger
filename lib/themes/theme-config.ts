@@ -46,7 +46,7 @@ export interface Theme {
 }
 
 export const THEME_IDS = [
-  'dark-mode',
+  'dark-green',
   'dark-pink',
   'dark-blue',
   'dark-turquoise',
@@ -62,7 +62,7 @@ export type ThemeId = (typeof THEME_IDS)[number];
  * The default professional dark theme optimized for finance tracking
  */
 export const darkModeTheme: Theme = {
-  id: 'dark-mode',
+  id: 'dark-green',
   name: 'Dark Green',
   description: 'Professional dark theme optimized for finance tracking',
   isAvailable: true,
@@ -360,7 +360,7 @@ export const themes: Theme[] = [
 /**
  * Default theme ID
  */
-export const DEFAULT_THEME_ID: ThemeId = 'dark-mode';
+export const DEFAULT_THEME_ID: ThemeId = 'dark-green';
 
 interface ThemeRuntimeConfig {
   mode: Theme['mode'];

@@ -46,7 +46,7 @@
   --radius: 0.75rem;
 }
 
-/* Default theme variables (dark-mode). Other themes are applied at runtime via applyTheme(). */
+/* Default theme variables (dark-green). Other themes are applied at runtime via applyTheme(). */
 :root {
   --bg: oklch(0.144788 0.000000 0.000000);
   --fg: oklch(1.000000 0.000000 0.000000);

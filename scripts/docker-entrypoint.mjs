@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { Client } from "pg";
@@ -15,16 +16,52 @@ function defaultDatabaseUrl() {
   return "file:./sqlite.db";
 }
 
-function requireRuntimeSecrets() {
-  // In production containers, secrets must be provided at runtime (not baked into images).
+function ensureRuntimeAuthSecret() {
   if (process.env.NODE_ENV !== "production") return;
 
-  const betterAuthSecret = process.env.BETTER_AUTH_SECRET?.trim();
-  if (!betterAuthSecret) {
-    console.error("[entrypoint] BETTER_AUTH_SECRET is required in production.");
-    console.error("[entrypoint] Set a long random secret in your Unraid template / container environment.");
+  const envSecret = process.env.BETTER_AUTH_SECRET?.trim();
+  if (envSecret) {
+    return;
+  }
+
+  const secretFilePath = "/config/.better-auth-secret";
+  try {
+    const fileSecret = fs.existsSync(secretFilePath)
+      ? fs.readFileSync(secretFilePath, "utf8").trim()
+      : "";
+    if (fileSecret) {
+      process.env.BETTER_AUTH_SECRET = fileSecret;
+      console.log(`[entrypoint] Loaded BETTER_AUTH_SECRET from ${secretFilePath}`);
+      return;
+    }
+  } catch (error) {
+    console.error(
+      `[entrypoint] Failed reading persisted BETTER_AUTH_SECRET at ${secretFilePath}:`,
+      error
+    );
     process.exit(1);
   }
+
+  const generatedSecret = crypto.randomBytes(32).toString("hex");
+  try {
+    fs.mkdirSync("/config", { recursive: true });
+    fs.writeFileSync(secretFilePath, `${generatedSecret}\n`, { mode: 0o600 });
+  } catch (error) {
+    console.error(
+      `[entrypoint] Failed generating persisted BETTER_AUTH_SECRET at ${secretFilePath}:`,
+      error
+    );
+    process.exit(1);
+  }
+
+  process.env.BETTER_AUTH_SECRET = generatedSecret;
+  console.warn("[entrypoint] BETTER_AUTH_SECRET was not provided.");
+  console.warn(
+    `[entrypoint] Generated and persisted a runtime secret to ${secretFilePath}.`
+  );
+  console.warn(
+    "[entrypoint] For managed deployments, set BETTER_AUTH_SECRET explicitly via environment variables."
+  );
 }
 
 function run(cmd, args, extraEnv = {}) {
@@ -111,7 +148,7 @@ async function withPostgresAdvisoryLock(databaseUrl, fn) {
 }
 
 async function main() {
-  requireRuntimeSecrets();
+  ensureRuntimeAuthSecret();
 
   const databaseUrl = process.env.DATABASE_URL?.trim() || defaultDatabaseUrl();
   process.env.DATABASE_URL = databaseUrl;
