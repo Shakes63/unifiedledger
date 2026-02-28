@@ -16,6 +16,7 @@ interface RunTransactionCreatePostMutationsParams {
   householdId: string;
   transactionId: string;
   postCreationMutations?: TransactionMutations;
+  transactionIsTaxDeductible?: boolean;
   appliedCategoryId: string | null;
   amount: number;
   date: string;
@@ -28,6 +29,7 @@ export async function runTransactionCreatePostMutations({
   householdId,
   transactionId,
   postCreationMutations,
+  transactionIsTaxDeductible,
   appliedCategoryId,
   amount,
   date,
@@ -102,11 +104,13 @@ export async function runTransactionCreatePostMutations({
     }
   }
 
-  const isTaxDeductible = postCreationMutations?.isTaxDeductible || false;
+  const isTaxDeductible =
+    transactionIsTaxDeductible ?? postCreationMutations?.isTaxDeductible ?? false;
   if (isTaxDeductible && appliedCategoryId) {
     try {
       const taxClassification = await autoClassifyTransaction(
         userId,
+        householdId,
         transactionId,
         appliedCategoryId,
         amount,

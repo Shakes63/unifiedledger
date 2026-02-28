@@ -29,6 +29,8 @@ export async function executeCreateBranchOrResponse({
   debtId,
   isSalesTaxable,
   postCreationMutations,
+  effectiveIsTaxDeductible,
+  effectiveTaxDeductionType,
 }: {
   userId: string;
   householdId: string;
@@ -53,6 +55,8 @@ export async function executeCreateBranchOrResponse({
   debtId: string | null;
   isSalesTaxable: boolean;
   postCreationMutations: TransactionMutations | null;
+  effectiveIsTaxDeductible: boolean;
+  effectiveTaxDeductionType: 'business' | 'personal' | 'none';
 }): Promise<{ transferInId: string | null } | Response> {
   const { transferInId, validationError } = await executeCreateTransactionBranch({
     userId,
@@ -78,6 +82,8 @@ export async function executeCreateBranchOrResponse({
     debtId,
     isSalesTaxable,
     postCreationMutations,
+    effectiveIsTaxDeductible,
+    effectiveTaxDeductionType,
   });
 
   if (validationError) {

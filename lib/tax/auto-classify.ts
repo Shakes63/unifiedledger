@@ -5,7 +5,12 @@
  */
 
 import { db } from '@/lib/db';
-import { categoryTaxMappings, transactionTaxClassifications, taxCategories } from '@/lib/db/schema';
+import {
+  budgetCategories,
+  categoryTaxMappings,
+  transactionTaxClassifications,
+  taxCategories,
+} from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
@@ -25,6 +30,7 @@ import Decimal from 'decimal.js';
  */
 export async function autoClassifyTransaction(
   userId: string,
+  householdId: string,
   transactionId: string,
   categoryId: string | null,
   amount: number,
@@ -46,13 +52,18 @@ export async function autoClassifyTransaction(
 
   // Look up mapping for this category and year
   const [mapping] = await db
-    .select()
+    .select({ mapping: categoryTaxMappings })
     .from(categoryTaxMappings)
+    .innerJoin(
+      budgetCategories,
+      eq(categoryTaxMappings.budgetCategoryId, budgetCategories.id)
+    )
     .where(
       and(
         eq(categoryTaxMappings.userId, userId),
         eq(categoryTaxMappings.budgetCategoryId, categoryId),
-        eq(categoryTaxMappings.taxYear, taxYear)
+        eq(categoryTaxMappings.taxYear, taxYear),
+        eq(budgetCategories.householdId, householdId)
       )
     )
     .limit(1);
@@ -66,7 +77,7 @@ export async function autoClassifyTransaction(
   const [taxCat] = await db
     .select()
     .from(taxCategories)
-    .where(eq(taxCategories.id, mapping.taxCategoryId))
+    .where(eq(taxCategories.id, mapping.mapping.taxCategoryId))
     .limit(1);
 
   if (!taxCat || !taxCat.isActive) {
@@ -75,7 +86,7 @@ export async function autoClassifyTransaction(
   }
 
   // Calculate allocated amount based on allocation percentage
-  const allocationPct = mapping.allocationPercentage ?? 100;
+  const allocationPct = mapping.mapping.allocationPercentage ?? 100;
   const allocatedAmount = new Decimal(amount).abs().times(allocationPct).dividedBy(100).toDecimalPlaces(2).toNumber();
 
   // Check if classification already exists
@@ -85,7 +96,7 @@ export async function autoClassifyTransaction(
     .where(
       and(
         eq(transactionTaxClassifications.transactionId, transactionId),
-        eq(transactionTaxClassifications.taxCategoryId, mapping.taxCategoryId)
+        eq(transactionTaxClassifications.taxCategoryId, mapping.mapping.taxCategoryId)
       )
     )
     .limit(1);
@@ -105,7 +116,7 @@ export async function autoClassifyTransaction(
 
     return {
       classificationId: existing.id,
-      taxCategoryId: mapping.taxCategoryId,
+      taxCategoryId: mapping.mapping.taxCategoryId,
       taxCategoryName: taxCat.name,
       allocatedAmount,
     };
@@ -117,7 +128,7 @@ export async function autoClassifyTransaction(
     id: classificationId,
     userId,
     transactionId,
-    taxCategoryId: mapping.taxCategoryId,
+    taxCategoryId: mapping.mapping.taxCategoryId,
     taxYear,
     allocatedAmount,
     percentage: allocationPct,
@@ -129,7 +140,7 @@ export async function autoClassifyTransaction(
 
   return {
     classificationId,
-    taxCategoryId: mapping.taxCategoryId,
+    taxCategoryId: mapping.mapping.taxCategoryId,
     taxCategoryName: taxCat.name,
     allocatedAmount,
   };
@@ -160,6 +171,7 @@ export async function removeTransactionClassifications(transactionId: string): P
  */
 export async function reclassifyTransaction(
   userId: string,
+  householdId: string,
   transactionId: string,
   newCategoryId: string | null,
   amount: number,
@@ -177,6 +189,7 @@ export async function reclassifyTransaction(
   // Create new classification if applicable
   return autoClassifyTransaction(
     userId,
+    householdId,
     transactionId,
     newCategoryId,
     amount,

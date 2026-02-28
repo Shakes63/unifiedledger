@@ -37,6 +37,8 @@ interface ExecuteNonTransferCreateParams {
   isPending: boolean;
   isSalesTaxable: boolean;
   postCreationMutations: TransactionMutations | null;
+  effectiveIsTaxDeductible: boolean;
+  effectiveTaxDeductionType: 'business' | 'personal' | 'none';
   offlineId?: string;
   syncStatus: 'pending' | 'syncing' | 'synced' | 'error' | 'offline';
 }
@@ -59,6 +61,8 @@ export async function executeNonTransferCreate({
   isPending,
   isSalesTaxable,
   postCreationMutations,
+  effectiveIsTaxDeductible,
+  effectiveTaxDeductionType,
   offlineId,
   syncStatus,
 }: ExecuteNonTransferCreateParams): Promise<void> {
@@ -103,12 +107,8 @@ export async function executeNonTransferCreate({
       transferDestinationAccountId: null,
       isPending,
       isRefund,
-      isTaxDeductible: postCreationMutations?.isTaxDeductible || false,
-      taxDeductionType: postCreationMutations?.isTaxDeductible
-        ? (account.enableTaxDeductions ?? account.isBusinessAccount)
-          ? 'business'
-          : 'personal'
-        : 'none',
+      isTaxDeductible: effectiveIsTaxDeductible,
+      taxDeductionType: effectiveTaxDeductionType,
       isSalesTaxable:
         (type === 'income' &&
           !merchantIsSalesTaxExempt &&

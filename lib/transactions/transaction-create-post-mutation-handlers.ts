@@ -105,6 +105,7 @@ export async function runAccountChangeMutation({
 
 export async function runTaxAutoClassification({
   userId,
+  householdId,
   transactionId,
   appliedCategoryId,
   amount,
@@ -112,6 +113,7 @@ export async function runTaxAutoClassification({
   postCreationMutations,
 }: {
   userId: string;
+  householdId: string;
   transactionId: string;
   appliedCategoryId: string | null;
   amount: number;
@@ -124,6 +126,7 @@ export async function runTaxAutoClassification({
   try {
     const taxClassification = await autoClassifyTransaction(
       userId,
+      householdId,
       transactionId,
       appliedCategoryId,
       amount,

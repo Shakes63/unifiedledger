@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import {
   estimateQuarterlyTax,
   getCurrentTaxYear,
@@ -22,6 +23,11 @@ import {
 export async function GET(request: Request) {
   try {
     const { userId } = await requireAuth();
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+    if (!householdId) {
+      return NextResponse.json({ error: 'Household ID is required' }, { status: 400 });
+    }
 
     const url = new URL(request.url);
     const yearParam = url.searchParams.get('year');
@@ -39,7 +45,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Invalid year' }, { status: 400 });
     }
 
-    const summary = await getTaxYearSummary(userId, year, typeFilter);
+    const summary = await getTaxYearSummary(userId, householdId, year, typeFilter);
 
     if (!summary.byCategory || summary.byCategory.length === 0) {
       return NextResponse.json({ error: 'No tax data available to export' }, { status: 400 });
@@ -73,6 +79,9 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
     }
 
     console.error('Error generating tax PDF export:', error);

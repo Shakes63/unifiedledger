@@ -156,6 +156,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
   const [selectedBillInstanceId, setSelectedBillInstanceId] = useState<string>('');
   const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
   const [merchantIsSalesTaxExempt, setMerchantIsSalesTaxExempt] = useState(false);
+  const [useCategoryTaxDefault, setUseCategoryTaxDefault] = useState(true);
+  const [transactionTaxDeductible, setTransactionTaxDeductible] = useState(false);
+  const [transactionTaxDeductionType, setTransactionTaxDeductionType] = useState<
+    'business' | 'personal'
+  >('personal');
   const [saveMode, setSaveMode] = useState<'save' | 'saveAndAdd' | null>(null);
   // Phase 18: Savings goal linking
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
@@ -281,6 +286,11 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             isPending: transaction.isPending,
             toAccountId: '',
           });
+          setTransactionTaxDeductible(Boolean(transaction.isTaxDeductible));
+          setTransactionTaxDeductionType(
+            transaction.taxDeductionType === 'business' ? 'business' : 'personal'
+          );
+          setUseCategoryTaxDefault(false);
 
           if (transaction.isSplit) {
             setUseSplits(true);
@@ -581,6 +591,13 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
         savingsGoalId: formData.type === 'transfer' && selectedGoalId ? selectedGoalId : undefined,
         // Phase 18: Include goal contributions for split contributions
         goalContributions: formData.type === 'transfer' && goalContributions.length > 0 ? goalContributions : undefined,
+        useCategoryTaxDefault: formData.type === 'transfer' ? true : useCategoryTaxDefault,
+        isTaxDeductible:
+          formData.type === 'transfer' || useCategoryTaxDefault ? undefined : transactionTaxDeductible,
+        taxDeductionType:
+          formData.type === 'transfer' || useCategoryTaxDefault || !transactionTaxDeductible
+            ? undefined
+            : transactionTaxDeductionType,
       };
 
       const response = isEditMode
@@ -699,6 +716,9 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             isPending: false,
             toAccountId: '',
           });
+          setUseCategoryTaxDefault(true);
+          setTransactionTaxDeductible(false);
+          setTransactionTaxDeductionType('personal');
 
           // Reset other form state
           setUseSplits(false);
@@ -734,6 +754,9 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
             isPending: false,
             toAccountId: '',
           });
+          setUseCategoryTaxDefault(true);
+          setTransactionTaxDeductible(false);
+          setTransactionTaxDeductionType('personal');
           setUseSplits(false);
           setSplits([]);
           // Phase 18: Reset savings goal selection
@@ -1211,6 +1234,75 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                 </p>
               )}
             </>
+          )}
+        </div>
+      )}
+
+      {/* Tax Deduction Section (non-transfer transactions) */}
+      {formData.type !== 'transfer' && (
+        <div className="border-t border-border pt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-medium text-foreground">Tax Deduction Handling</Label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Precedence: transaction override (when enabled) takes priority over category defaults.
+          </p>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="useCategoryTaxDefault"
+              checked={useCategoryTaxDefault}
+              onChange={(e) => setUseCategoryTaxDefault(e.target.checked)}
+              className="h-4 w-4 rounded border-border bg-input text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
+            />
+            <label htmlFor="useCategoryTaxDefault" className="text-sm text-muted-foreground cursor-pointer">
+              Use category default tax treatment
+            </label>
+          </div>
+          <p className="text-xs text-muted-foreground ml-6">
+            {useCategoryTaxDefault
+              ? 'Category defaults are currently active.'
+              : 'Transaction-level tax override is currently active.'}
+          </p>
+
+          {!useCategoryTaxDefault && (
+            <div className="space-y-3 ml-6">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="transactionTaxDeductible"
+                  checked={transactionTaxDeductible}
+                  onChange={(e) => setTransactionTaxDeductible(e.target.checked)}
+                  className="h-4 w-4 rounded border-border bg-input text-primary focus:ring-2 focus:ring-primary focus:ring-offset-0"
+                />
+                <label htmlFor="transactionTaxDeductible" className="text-sm text-muted-foreground cursor-pointer">
+                  Mark this transaction as tax deductible
+                </label>
+              </div>
+
+              {transactionTaxDeductible && (
+                <div className="space-y-2">
+                  <Label htmlFor="transactionTaxDeductionType" className="text-sm font-medium text-foreground">
+                    Deduction Type
+                  </Label>
+                  <Select
+                    value={transactionTaxDeductionType}
+                    onValueChange={(value) =>
+                      setTransactionTaxDeductionType(value as 'business' | 'personal')
+                    }
+                  >
+                    <SelectTrigger id="transactionTaxDeductionType">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="business">Business</SelectItem>
+                      <SelectItem value="personal">Personal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

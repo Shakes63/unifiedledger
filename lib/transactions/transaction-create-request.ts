@@ -7,6 +7,9 @@ export interface CreateTransactionBody {
   accountId?: string;
   categoryId?: string | null;
   merchantId?: string | null;
+  isTaxDeductible?: boolean;
+  taxDeductionType?: 'business' | 'personal' | 'none';
+  useCategoryTaxDefault?: boolean;
   debtId?: string | null;
   billInstanceId?: string | null;
   date?: string;

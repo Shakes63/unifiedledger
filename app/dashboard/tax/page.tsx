@@ -14,6 +14,7 @@ import { BarChart } from '@/components/charts';
 import { FileText, DollarSign, TrendingUp, AlertCircle, Building2, User, Download, Loader2, Landmark, GraduationCap, Home, Briefcase } from 'lucide-react';
 import { getTaxPdfFilename } from '@/lib/tax/tax-pdf-export';
 import { toast } from 'sonner';
+import { useHousehold } from '@/contexts/household-context';
 
 type DeductionTypeFilter = 'all' | 'business' | 'personal';
 
@@ -87,6 +88,7 @@ interface InterestDeductionData {
  * Comprehensive tax reporting and deduction tracking with business/personal separation
  */
 export default function TaxPage() {
+  const { selectedHouseholdId } = useHousehold();
   const [year, setYear] = useState<string>(new Date().getFullYear().toString());
   const [typeFilter, setTypeFilter] = useState<DeductionTypeFilter>('all');
   const [data, setData] = useState<TaxData | null>(null);
@@ -97,13 +99,24 @@ export default function TaxPage() {
 
   const fetchTaxData = useCallback(async () => {
     try {
+      if (!selectedHouseholdId) {
+        setError('No household selected');
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       setError(null);
 
       // Fetch both tax data and interest deduction data in parallel
       const [taxResponse, interestResponse] = await Promise.all([
-        fetch(`/api/tax/summary?year=${year}&type=${typeFilter}`, { credentials: 'include' }),
-        fetch(`/api/tax/interest-deductions?year=${year}`, { credentials: 'include' }),
+        fetch(`/api/tax/summary?year=${year}&type=${typeFilter}`, {
+          credentials: 'include',
+          headers: { 'x-household-id': selectedHouseholdId },
+        }),
+        fetch(`/api/tax/interest-deductions?year=${year}`, {
+          credentials: 'include',
+          headers: { 'x-household-id': selectedHouseholdId },
+        }),
       ]);
 
       if (!taxResponse.ok) {
@@ -124,7 +137,7 @@ export default function TaxPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [typeFilter, year]);
+  }, [typeFilter, year, selectedHouseholdId]);
 
   useEffect(() => {
     fetchTaxData();
@@ -182,6 +195,7 @@ export default function TaxPage() {
 
       const res = await fetch(`/api/tax/export/pdf?year=${year}&type=${typeFilter}`, {
         credentials: 'include',
+        headers: selectedHouseholdId ? { 'x-household-id': selectedHouseholdId } : undefined,
       });
 
       if (!res.ok) {

@@ -17,6 +17,8 @@ interface LogTransactionUpdateAuditParams {
   newDescription: string;
   newNotes: string | null;
   newIsPending: boolean;
+  newIsTaxDeductible: boolean;
+  newTaxDeductionType: 'business' | 'personal' | 'none';
   newIsSalesTaxable: boolean;
 }
 
@@ -33,6 +35,8 @@ export async function logTransactionUpdateAudit({
   newDescription,
   newNotes,
   newIsPending,
+  newIsTaxDeductible,
+  newTaxDeductionType,
   newIsSalesTaxable,
 }: LogTransactionUpdateAuditParams): Promise<void> {
   try {
@@ -50,7 +54,8 @@ export async function logTransactionUpdateAudit({
       notes: newNotes,
       isPending: newIsPending,
       type: transaction.type,
-      isTaxDeductible: transaction.isTaxDeductible,
+      isTaxDeductible: newIsTaxDeductible,
+      taxDeductionType: newTaxDeductionType,
       isSalesTaxable: newIsSalesTaxable,
       billId: transaction.billId,
       debtId: transaction.debtId,

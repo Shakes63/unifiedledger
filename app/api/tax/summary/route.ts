@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { 
   getTaxYearSummary, 
   getCurrentTaxYear, 
@@ -17,6 +18,11 @@ import {
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await requireAuth();
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+    if (!householdId) {
+      return NextResponse.json({ error: 'Household ID is required' }, { status: 400 });
+    }
 
     const yearParam = request.nextUrl.searchParams.get('year');
     const typeParam = request.nextUrl.searchParams.get('type');
@@ -35,7 +41,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid year' }, { status: 400 });
     }
 
-    const summary = await getTaxYearSummary(userId, year, typeFilter);
+    const summary = await getTaxYearSummary(userId, householdId, year, typeFilter);
     const quarterlyPayment = estimateQuarterlyTax(summary.taxableIncome);
 
     return NextResponse.json({
@@ -52,6 +58,9 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
     }
     console.error('Error generating tax summary:', error);
     return NextResponse.json(

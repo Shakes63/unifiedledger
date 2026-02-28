@@ -2,6 +2,7 @@ import { deleteSalesTaxRecord } from '@/lib/sales-tax/transaction-sales-tax';
 import { transactions } from '@/lib/db/schema';
 import { logTransactionUpdateAudit } from '@/lib/transactions/transaction-update-audit';
 import { autoLinkUpdatedExpenseBill } from '@/lib/transactions/transaction-update-bill-linking';
+import { reclassifyTransaction, removeTransactionClassifications } from '@/lib/tax/auto-classify';
 import type { TransactionUpdateInput } from '@/lib/transactions/transaction-update-validation';
 
 export async function runStandardUpdatePostActions({
@@ -15,6 +16,8 @@ export async function runStandardUpdatePostActions({
   newAccountId,
   newCategoryId,
   newMerchantId,
+  newIsTaxDeductible,
+  newTaxDeductionType,
   newDate,
   newAmount,
   newDescription,
@@ -32,6 +35,8 @@ export async function runStandardUpdatePostActions({
   newAccountId: string;
   newCategoryId: string | null;
   newMerchantId: string | null;
+  newIsTaxDeductible: boolean;
+  newTaxDeductionType: 'business' | 'personal' | 'none';
   newDate: string;
   newAmount: number;
   newDescription: string;
@@ -56,6 +61,8 @@ export async function runStandardUpdatePostActions({
     newDescription,
     newNotes,
     newIsPending,
+    newIsTaxDeductible,
+    newTaxDeductionType,
     newIsSalesTaxable,
   });
 
@@ -72,6 +79,35 @@ export async function runStandardUpdatePostActions({
     newDescription,
     newCategoryId,
   });
+
+  const wasTaxDeductible = Boolean(transaction.isTaxDeductible);
+  const taxEligibilityChanged =
+    updateInput.categoryId !== undefined ||
+    updateInput.isTaxDeductible !== undefined ||
+    updateInput.useCategoryTaxDefault === true;
+  const deductibleAmountOrDateChanged =
+    (updateInput.amount !== undefined || updateInput.date !== undefined) &&
+    (wasTaxDeductible || newIsTaxDeductible);
+  const shouldReclassifyTax = taxEligibilityChanged || deductibleAmountOrDateChanged;
+
+  if (!shouldReclassifyTax) {
+    return;
+  }
+
+  if (!newIsTaxDeductible || !newCategoryId || newTaxDeductionType === 'none') {
+    await removeTransactionClassifications(id);
+    return;
+  }
+
+  await reclassifyTransaction(
+    userId,
+    householdId,
+    id,
+    newCategoryId,
+    newAmount,
+    newDate,
+    newIsTaxDeductible
+  );
 }
 
 export function buildStandardUpdateSuccessResponse(id: string): Response {

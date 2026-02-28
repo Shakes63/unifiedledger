@@ -33,6 +33,7 @@ export async function finalizeCreatedTransaction({
   startTime,
   postCreationMutations,
   isSalesTaxable,
+  effectiveIsTaxDeductible,
 }: {
   userId: string;
   householdId: string;
@@ -59,6 +60,7 @@ export async function finalizeCreatedTransaction({
     isSalesTaxable?: boolean;
   } | null;
   isSalesTaxable: boolean;
+  effectiveIsTaxDeductible: boolean;
 }): Promise<Response> {
   await runTransactionCreateMetadataUpdates({
     userId,
@@ -124,7 +126,7 @@ export async function finalizeCreatedTransaction({
     linkedBillId,
     linkedDebtId,
     debtId,
-    isTaxDeductible: postCreationMutations?.isTaxDeductible || false,
+    isTaxDeductible: effectiveIsTaxDeductible,
     isSalesTaxable: isCreatedTransactionSalesTaxable({
       type,
       isSalesTaxable,

@@ -1,4 +1,7 @@
 import { transactions } from '@/lib/db/schema';
+import { and, eq } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { budgetCategories } from '@/lib/db/schema';
 import {
   deriveUpdatedTransactionValues,
   type TransactionUpdateInput,
@@ -33,5 +36,46 @@ export async function prepareStandardTransactionUpdate({
     newMerchantId: derived.newMerchantId,
   });
 
-  return { ...derived, ...referenceValidation };
+  const shouldUseCategoryDefaultTax =
+    updateInput.useCategoryTaxDefault === true ||
+    (updateInput.categoryId !== undefined &&
+      updateInput.isTaxDeductible === undefined &&
+      updateInput.taxDeductionType === undefined);
+
+  if (!shouldUseCategoryDefaultTax) {
+    return { ...derived, ...referenceValidation };
+  }
+
+  const effectiveCategoryId =
+    updateInput.categoryId !== undefined ? derived.newCategoryId : transaction.categoryId;
+  const categoryDefaults = effectiveCategoryId
+    ? await db
+        .select({
+          isTaxDeductible: budgetCategories.isTaxDeductible,
+          isBusinessCategory: budgetCategories.isBusinessCategory,
+        })
+        .from(budgetCategories)
+        .where(
+          and(
+            eq(budgetCategories.id, effectiveCategoryId),
+            eq(budgetCategories.userId, userId),
+            eq(budgetCategories.householdId, householdId)
+          )
+        )
+        .limit(1)
+    : [];
+
+  const isTaxDeductible = Boolean(categoryDefaults[0]?.isTaxDeductible);
+  const taxDeductionType: 'business' | 'personal' | 'none' = !isTaxDeductible
+    ? 'none'
+    : categoryDefaults[0]?.isBusinessCategory
+      ? 'business'
+      : 'personal';
+
+  return {
+    ...derived,
+    newIsTaxDeductible: isTaxDeductible,
+    newTaxDeductionType: taxDeductionType,
+    ...referenceValidation,
+  };
 }

@@ -141,6 +141,7 @@ async function getTaxCategoryId(deductionType: string): Promise<string | null> {
  */
 async function getYearToDateDeductible(
   userId: string,
+  householdId: string,
   taxYear: number,
   deductionType: 'mortgage' | 'student_loan' | 'business' | 'heloc_home'
 ): Promise<number> {
@@ -152,6 +153,7 @@ async function getYearToDateDeductible(
     .where(
       and(
         eq(interestDeductions.userId, userId),
+        eq(interestDeductions.householdId, householdId),
         eq(interestDeductions.taxYear, taxYear),
         eq(interestDeductions.deductionType, deductionType)
       )
@@ -259,7 +261,7 @@ export async function classifyInterestPayment(
     // Apply annual IRS limit second (for types with limits)
     const annualLimit = INTEREST_DEDUCTION_LIMITS[deductionType];
     if (annualLimit !== null && deductibleAmount.greaterThan(0)) {
-      const ytdDeductible = await getYearToDateDeductible(userId, taxYear, deductionType);
+      const ytdDeductible = await getYearToDateDeductible(userId, householdId, taxYear, deductionType);
       const remainingCapacity = new Decimal(annualLimit).minus(ytdDeductible);
 
       if (remainingCapacity.lessThanOrEqualTo(0)) {
@@ -306,7 +308,7 @@ export async function classifyInterestPayment(
     // Create notification if annual limit was hit or approached
     const irsLimit = INTEREST_DEDUCTION_LIMITS[deductionType];
     if (irsLimit !== null && annualLimitApplied) {
-      const ytdAfter = (await getYearToDateDeductible(userId, taxYear, deductionType));
+      const ytdAfter = (await getYearToDateDeductible(userId, householdId, taxYear, deductionType));
       const percentUsed = (ytdAfter / irsLimit) * 100;
       
       // Create notification asynchronously (don't await to not slow down payment)
@@ -349,6 +351,7 @@ export async function classifyInterestPayment(
  */
 export async function getInterestDeductionSummary(
   userId: string,
+  householdId: string,
   taxYear: number
 ): Promise<InterestDeductionSummary> {
   const deductionTypes: Array<'mortgage' | 'student_loan' | 'business' | 'heloc_home'> = [
@@ -372,6 +375,7 @@ export async function getInterestDeductionSummary(
       .where(
         and(
           eq(interestDeductions.userId, userId),
+          eq(interestDeductions.householdId, householdId),
           eq(interestDeductions.taxYear, taxYear),
           eq(interestDeductions.deductionType, type)
         )
@@ -414,10 +418,11 @@ export async function getInterestDeductionSummary(
  */
 export async function checkInterestLimitStatus(
   userId: string,
+  householdId: string,
   taxYear: number,
   deductionType: 'mortgage' | 'student_loan' | 'business' | 'heloc_home'
 ): Promise<LimitStatus> {
-  const used = await getYearToDateDeductible(userId, taxYear, deductionType);
+  const used = await getYearToDateDeductible(userId, householdId, taxYear, deductionType);
   const limit = INTEREST_DEDUCTION_LIMITS[deductionType];
 
   if (limit === null) {
@@ -451,12 +456,13 @@ export async function checkInterestLimitStatus(
  */
 export async function getAllInterestLimitStatuses(
   userId: string,
+  householdId: string,
   taxYear: number
 ): Promise<LimitStatus[]> {
   const types: Array<'mortgage' | 'student_loan' | 'business' | 'heloc_home'> = [
     'mortgage', 'student_loan', 'business', 'heloc_home'
   ];
-  return Promise.all(types.map(type => checkInterestLimitStatus(userId, taxYear, type)));
+  return Promise.all(types.map(type => checkInterestLimitStatus(userId, householdId, taxYear, type)));
 }
 
 /**
@@ -541,7 +547,7 @@ export async function checkInterestLimitNotifications(
   const year = taxYear || new Date().getFullYear();
   
   try {
-    const statuses = await getAllInterestLimitStatuses(userId, year);
+    const statuses = await getAllInterestLimitStatuses(userId, householdId, year);
     
     for (const status of statuses) {
       // Only notify for types with limits

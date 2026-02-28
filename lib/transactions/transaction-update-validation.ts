@@ -11,6 +11,9 @@ export interface TransactionUpdateInput {
   accountId?: string;
   categoryId?: string | null;
   merchantId?: string | null;
+  isTaxDeductible?: boolean;
+  taxDeductionType?: 'business' | 'personal' | 'none';
+  useCategoryTaxDefault?: boolean;
   date?: string;
   amount?: string | number;
   description?: string;
@@ -26,6 +29,9 @@ export function hasAnyTransactionUpdateField(input: TransactionUpdateInput): boo
     input.accountId !== undefined ||
     input.categoryId !== undefined ||
     input.merchantId !== undefined ||
+    input.isTaxDeductible !== undefined ||
+    input.taxDeductionType !== undefined ||
+    input.useCategoryTaxDefault !== undefined ||
     input.date !== undefined ||
     input.amount !== undefined ||
     input.description !== undefined ||
@@ -54,6 +60,12 @@ export function deriveUpdatedTransactionValues({
   const newIsPending = input.isPending !== undefined ? input.isPending : transaction.isPending;
   const newCategoryId = input.categoryId !== undefined ? input.categoryId : transaction.categoryId;
   const newMerchantId = input.merchantId !== undefined ? input.merchantId : transaction.merchantId;
+  const newIsTaxDeductible =
+    input.isTaxDeductible !== undefined ? input.isTaxDeductible : Boolean(transaction.isTaxDeductible);
+  const newTaxDeductionType =
+    input.taxDeductionType !== undefined
+      ? input.taxDeductionType
+      : ((transaction.taxDeductionType ?? 'none') as 'business' | 'personal' | 'none');
 
   return {
     newAccountId,
@@ -66,6 +78,8 @@ export function deriveUpdatedTransactionValues({
     newIsPending,
     newCategoryId,
     newMerchantId,
+    newIsTaxDeductible,
+    newTaxDeductionType,
   };
 }
 

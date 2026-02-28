@@ -30,6 +30,9 @@ export async function executeCreateTransactionOrchestration({
     accountId,
     categoryId,
     merchantId,
+    isTaxDeductible,
+    taxDeductionType,
+    useCategoryTaxDefault,
     debtId,
     billInstanceId,
     date,
@@ -97,7 +100,7 @@ export async function executeCreateTransactionOrchestration({
   if (createResources instanceof Response) {
     return createResources;
   }
-  const { account, toAccount } = createResources;
+  const { account, toAccount, category } = createResources;
 
   const {
     appliedCategoryId,
@@ -123,6 +126,35 @@ export async function executeCreateTransactionOrchestration({
   const decimalAmount = new Decimal(resolvedAmount);
   const amountCents = amountToCents(decimalAmount);
   const transactionId = nanoid();
+  let effectiveIsTaxDeductible = false;
+  let effectiveTaxDeductionType: 'business' | 'personal' | 'none' = 'none';
+
+  const isCategoryDefaultTaxDeductible = Boolean(category?.isTaxDeductible);
+  const categoryDefaultDeductionType: 'business' | 'personal' | 'none' = !isCategoryDefaultTaxDeductible
+    ? 'none'
+    : category?.isBusinessCategory
+      ? 'business'
+      : 'personal';
+
+  if (useCategoryTaxDefault) {
+    effectiveIsTaxDeductible = isCategoryDefaultTaxDeductible;
+    effectiveTaxDeductionType = categoryDefaultDeductionType;
+  } else {
+    effectiveIsTaxDeductible =
+      isTaxDeductible ??
+      postCreationMutations?.isTaxDeductible ??
+      isCategoryDefaultTaxDeductible;
+    effectiveTaxDeductionType = !effectiveIsTaxDeductible
+      ? 'none'
+      : taxDeductionType && taxDeductionType !== 'none'
+        ? taxDeductionType
+        : categoryDefaultDeductionType !== 'none'
+          ? categoryDefaultDeductionType
+          : (account.enableTaxDeductions ?? account.isBusinessAccount)
+            ? 'business'
+            : 'personal';
+  }
+
   const createBranchResult = await executeCreateBranchOrResponse({
     userId,
     householdId,
@@ -147,6 +179,8 @@ export async function executeCreateTransactionOrchestration({
     debtId: debtId ?? null,
     isSalesTaxable,
     postCreationMutations,
+    effectiveIsTaxDeductible,
+    effectiveTaxDeductionType,
   });
   if (createBranchResult instanceof Response) {
     return createBranchResult;
@@ -176,5 +210,6 @@ export async function executeCreateTransactionOrchestration({
     startTime,
     postCreationMutations,
     isSalesTaxable,
+    effectiveIsTaxDeductible,
   });
 }

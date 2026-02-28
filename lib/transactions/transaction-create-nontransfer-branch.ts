@@ -24,6 +24,8 @@ export async function executeNonTransferCreateBranch({
   isPending,
   isSalesTaxable,
   postCreationMutations,
+  effectiveIsTaxDeductible,
+  effectiveTaxDeductionType,
   offlineId,
   syncStatus,
   decimalAmount,
@@ -46,6 +48,8 @@ export async function executeNonTransferCreateBranch({
   isPending: boolean;
   isSalesTaxable: boolean;
   postCreationMutations: TransactionMutations | null;
+  effectiveIsTaxDeductible: boolean;
+  effectiveTaxDeductionType: 'business' | 'personal' | 'none';
   offlineId?: string | null;
   syncStatus: 'pending' | 'syncing' | 'synced' | 'error' | 'offline';
   decimalAmount: Decimal;
@@ -69,6 +73,8 @@ export async function executeNonTransferCreateBranch({
     isPending,
     isSalesTaxable,
     postCreationMutations,
+    effectiveIsTaxDeductible,
+    effectiveTaxDeductionType,
     offlineId: offlineId ?? undefined,
     syncStatus,
   });
@@ -78,6 +84,7 @@ export async function executeNonTransferCreateBranch({
     userId,
     householdId,
     postCreationMutations: postCreationMutations ?? undefined,
+    transactionIsTaxDeductible: effectiveIsTaxDeductible,
     appliedCategoryId,
     amount: decimalAmount.toNumber(),
     date,

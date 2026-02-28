@@ -5,8 +5,9 @@
  */
 
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { categoryTaxMappings, taxCategories } from '@/lib/db/schema';
+import { budgetCategories, categoryTaxMappings, taxCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -23,15 +24,25 @@ export async function PUT(request: Request, { params }: RouteParams) {
   try {
     const { userId } = await requireAuth();
     const { id } = await params;
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+    if (!householdId) {
+      return Response.json({ error: 'Household ID is required' }, { status: 400 });
+    }
 
     // Find existing mapping
     const [existingMapping] = await db
-      .select()
+      .select({ mapping: categoryTaxMappings })
       .from(categoryTaxMappings)
+      .innerJoin(
+        budgetCategories,
+        eq(categoryTaxMappings.budgetCategoryId, budgetCategories.id)
+      )
       .where(
         and(
           eq(categoryTaxMappings.id, id),
-          eq(categoryTaxMappings.userId, userId)
+          eq(categoryTaxMappings.userId, userId),
+          eq(budgetCategories.householdId, householdId)
         )
       )
       .limit(1);
@@ -84,13 +95,23 @@ export async function PUT(request: Request, { params }: RouteParams) {
     await db
       .update(categoryTaxMappings)
       .set(updates)
-      .where(eq(categoryTaxMappings.id, id));
+      .where(
+        and(
+          eq(categoryTaxMappings.id, id),
+          eq(categoryTaxMappings.userId, userId)
+        )
+      );
 
     // Fetch updated mapping
     const [updatedMapping] = await db
       .select()
       .from(categoryTaxMappings)
-      .where(eq(categoryTaxMappings.id, id))
+      .where(
+        and(
+          eq(categoryTaxMappings.id, id),
+          eq(categoryTaxMappings.userId, userId)
+        )
+      )
       .limit(1);
 
     return Response.json({
@@ -119,15 +140,25 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   try {
     const { userId } = await requireAuth();
     const { id } = await params;
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+    if (!householdId) {
+      return Response.json({ error: 'Household ID is required' }, { status: 400 });
+    }
 
     // Find existing mapping
     const [existingMapping] = await db
-      .select()
+      .select({ mapping: categoryTaxMappings })
       .from(categoryTaxMappings)
+      .innerJoin(
+        budgetCategories,
+        eq(categoryTaxMappings.budgetCategoryId, budgetCategories.id)
+      )
       .where(
         and(
           eq(categoryTaxMappings.id, id),
-          eq(categoryTaxMappings.userId, userId)
+          eq(categoryTaxMappings.userId, userId),
+          eq(budgetCategories.householdId, householdId)
         )
       )
       .limit(1);
@@ -139,7 +170,12 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     // Delete the mapping
     await db
       .delete(categoryTaxMappings)
-      .where(eq(categoryTaxMappings.id, id));
+      .where(
+        and(
+          eq(categoryTaxMappings.id, id),
+          eq(categoryTaxMappings.userId, userId)
+        )
+      );
 
     return Response.json({
       id,

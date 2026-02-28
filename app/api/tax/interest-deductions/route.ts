@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { 
   getInterestDeductionSummary, 
   getAllInterestLimitStatuses 
@@ -19,15 +20,20 @@ import { eq, and, desc, inArray } from 'drizzle-orm';
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await requireAuth();
+    const householdId = getHouseholdIdFromRequest(request);
+    await requireHouseholdAuth(userId, householdId);
+    if (!householdId) {
+      return NextResponse.json({ error: 'Household ID is required' }, { status: 400 });
+    }
     const searchParams = request.nextUrl.searchParams;
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString());
     const includePayments = searchParams.get('includePayments') === 'true';
 
     // Get summary by type
-    const summary = await getInterestDeductionSummary(userId, year);
+    const summary = await getInterestDeductionSummary(userId, householdId, year);
     
     // Get limit statuses
-    const limitStatuses = await getAllInterestLimitStatuses(userId, year);
+    const limitStatuses = await getAllInterestLimitStatuses(userId, householdId, year);
 
     // Optionally include detailed payment list
     let payments: Array<{
@@ -57,6 +63,7 @@ export async function GET(request: NextRequest) {
         .where(
           and(
             eq(interestDeductions.userId, userId),
+            eq(interestDeductions.householdId, householdId),
             eq(interestDeductions.taxYear, year)
           )
         )
@@ -104,6 +111,12 @@ export async function GET(request: NextRequest) {
       ...(includePayments && { payments }),
     });
   } catch (error) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Household')) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
     console.error('Error fetching interest deductions:', error);
     return NextResponse.json(
       { error: 'Failed to fetch interest deductions' },

@@ -8,7 +8,7 @@ import {
   taxCategories,
   transactions,
 } from '@/lib/db/schema';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 
 /**
@@ -155,40 +155,37 @@ export const STANDARD_TAX_CATEGORIES = [
  */
 export async function getTaxDeductions(
   userId: string,
+  householdId: string,
   taxYear: number,
   typeFilter: TaxDeductionTypeFilter = 'all'
 ): Promise<TaxDeductionSummary[]> {
   const classifications = await db
-    .select()
+    .select({
+      classification: transactionTaxClassifications,
+      transaction: {
+        id: transactions.id,
+        taxDeductionType: transactions.taxDeductionType,
+      },
+    })
     .from(transactionTaxClassifications)
+    .innerJoin(
+      transactions,
+      eq(transactionTaxClassifications.transactionId, transactions.id)
+    )
     .where(
       and(
         eq(transactionTaxClassifications.userId, userId),
-        eq(transactionTaxClassifications.taxYear, taxYear)
+        eq(transactionTaxClassifications.taxYear, taxYear),
+        eq(transactions.householdId, householdId)
       )
     );
-
-  // Get transaction IDs to look up their deduction types
-  const transactionIds = classifications.map(c => c.transactionId);
-  
-  // Fetch transaction deduction types
-  const transactionDeductionTypes = new Map<string, string>();
-  if (transactionIds.length > 0) {
-    const txns = await db
-      .select({ id: transactions.id, taxDeductionType: transactions.taxDeductionType })
-      .from(transactions)
-      .where(inArray(transactions.id, transactionIds));
-    
-    txns.forEach(t => {
-      transactionDeductionTypes.set(t.id, t.taxDeductionType || 'none');
-    });
-  }
 
   // Group by tax category with type tracking
   const byCategory = new Map<string, TaxDeductionSummary & { typeCount: { business: number; personal: number } }>();
 
-  for (const classification of classifications) {
-    const txnType = transactionDeductionTypes.get(classification.transactionId) || 'none';
+  for (const row of classifications) {
+    const classification = row.classification;
+    const txnType = row.transaction.taxDeductionType || 'none';
     
     // Apply type filter
     if (typeFilter !== 'all' && txnType !== typeFilter) {
@@ -257,10 +254,11 @@ export async function getTaxDeductions(
  */
 export async function getTaxYearSummary(
   userId: string,
+  householdId: string,
   taxYear: number,
   typeFilter: TaxDeductionTypeFilter = 'all'
 ): Promise<TaxYearSummary> {
-  const deductions = await getTaxDeductions(userId, taxYear, typeFilter);
+  const deductions = await getTaxDeductions(userId, householdId, taxYear, typeFilter);
 
   let totalIncome = new Decimal(0);
   let totalDeductions = new Decimal(0);

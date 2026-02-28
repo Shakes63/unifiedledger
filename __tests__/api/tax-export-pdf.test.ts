@@ -6,6 +6,11 @@ vi.mock('@/lib/auth-helpers', () => ({
   requireAuth: vi.fn(),
 }));
 
+vi.mock('@/lib/api/household-auth', () => ({
+  getHouseholdIdFromRequest: vi.fn(),
+  requireHouseholdAuth: vi.fn(),
+}));
+
 vi.mock('@/lib/tax/tax-utils', () => ({
   estimateQuarterlyTax: vi.fn(),
   getCurrentTaxYear: vi.fn(),
@@ -18,6 +23,7 @@ vi.mock('@/lib/tax/tax-pdf-export', () => ({
 }));
 
 import { requireAuth } from '@/lib/auth-helpers';
+import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { estimateQuarterlyTax, getCurrentTaxYear, getTaxYearSummary } from '@/lib/tax/tax-utils';
 import { generateTaxPdfArrayBuffer, getTaxPdfFilename } from '@/lib/tax/tax-pdf-export';
 
@@ -29,6 +35,8 @@ describe('GET /api/tax/export/pdf', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (requireAuth as any).mockResolvedValue({ userId: 'user-1' });
+    (getHouseholdIdFromRequest as any).mockReturnValue('hh-1');
+    (requireHouseholdAuth as any).mockResolvedValue({ userId: 'user-1', householdId: 'hh-1' });
     (getCurrentTaxYear as any).mockReturnValue(2025);
     (estimateQuarterlyTax as any).mockReturnValue(5000);
     (getTaxPdfFilename as any).mockReturnValue('tax_deductions_2025.pdf');

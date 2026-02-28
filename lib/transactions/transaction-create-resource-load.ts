@@ -1,4 +1,4 @@
-import { accounts } from '@/lib/db/schema';
+import { accounts, budgetCategories } from '@/lib/db/schema';
 import {
   loadCreateTransactionResources,
   mapCreateTransactionValidationError,
@@ -21,7 +21,11 @@ export async function loadCreateAccountsOrResponse({
   type: string;
   selectedEntityId: string;
 }): Promise<
-  | { account: typeof accounts.$inferSelect; toAccount: typeof accounts.$inferSelect | null }
+  | {
+      account: typeof accounts.$inferSelect;
+      toAccount: typeof accounts.$inferSelect | null;
+      category: typeof budgetCategories.$inferSelect | null;
+    }
   | Response
 > {
   try {

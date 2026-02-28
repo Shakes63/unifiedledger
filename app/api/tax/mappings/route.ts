@@ -45,7 +45,8 @@ export async function GET(request: Request) {
       .where(
         and(
           eq(categoryTaxMappings.userId, userId),
-          eq(categoryTaxMappings.taxYear, year)
+          eq(categoryTaxMappings.taxYear, year),
+          eq(budgetCategories.householdId, householdId)
         )
       );
 
