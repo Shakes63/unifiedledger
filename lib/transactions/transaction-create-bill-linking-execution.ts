@@ -27,7 +27,6 @@ export async function executeCreateBillLinkMatch({
     date,
     linkedTemplateId: match.linkedTemplateId,
     linkedOccurrenceId: match.linkedOccurrenceId,
-    templateName: match.templateName,
     notes: match.notes,
     logScope: 'transactions:create',
     logMessage: match.logMessage,

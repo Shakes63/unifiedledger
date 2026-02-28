@@ -54,7 +54,6 @@ export async function autoLinkUpdatedExpenseBill({
       if (transaction.billId) {
         await unlinkExistingBillInstance({
           transactionId,
-          userId,
           householdId,
         });
       }
@@ -88,7 +87,6 @@ export async function autoLinkUpdatedExpenseBill({
     if (transaction.billId) {
       await unlinkExistingBillInstance({
         transactionId,
-        userId,
         householdId,
       });
       await clearTransactionBillLink(transactionId);

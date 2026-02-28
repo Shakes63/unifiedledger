@@ -1,5 +1,3 @@
-import Decimal from 'decimal.js';
-
 import { fromMoneyCents, toMoneyCents } from '@/lib/utils/money-cents';
 
 function requireCents(value: number | null, label: string): number {

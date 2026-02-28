@@ -12,7 +12,6 @@ export async function processLinkedBillPaymentWithLog({
   date,
   linkedTemplateId,
   linkedOccurrenceId,
-  templateName,
   notes,
   logScope,
   logMessage,
@@ -25,14 +24,12 @@ export async function processLinkedBillPaymentWithLog({
   date: string;
   linkedTemplateId: string;
   linkedOccurrenceId: string;
-  templateName: string;
   notes: string;
   logScope: string;
   logMessage: (paymentStatus: string) => string;
 }): Promise<void> {
   const billLinkResult = await processAndLinkTemplatePayment({
     templateId: linkedTemplateId,
-    templateName,
     occurrenceId: linkedOccurrenceId,
     transactionId,
     paymentAmount: amount,

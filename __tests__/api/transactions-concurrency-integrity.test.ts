@@ -154,8 +154,13 @@ describe('POST /api/transactions concurrency integrity', () => {
             }),
             select: () => ({
               from: (table: unknown) => ({
-                where: () => ({
+                where: (whereArg: unknown) => ({
                   limit: async () => {
+                    if (table === accounts) {
+                      const accountId = extractAccountIdFromWhere(whereArg);
+                      if (!accountId) return [];
+                      return [stagedState.accounts[accountId]];
+                    }
                     if (table === usageAnalytics) {
                       return [];
                     }

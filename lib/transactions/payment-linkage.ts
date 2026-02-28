@@ -57,7 +57,6 @@ export async function applyLegacyDebtPayment({
 
 interface ProcessAndLinkTemplatePaymentParams {
   templateId: string;
-  templateName: string;
   occurrenceId: string;
   transactionId: string;
   paymentAmount: number;
@@ -67,12 +66,10 @@ interface ProcessAndLinkTemplatePaymentParams {
   linkedAccountId: string;
   paymentMethod: 'manual' | 'transfer' | 'autopay';
   notes: string;
-  dbClient?: DbClient;
 }
 
 export async function processAndLinkTemplatePayment({
   templateId,
-  templateName,
   occurrenceId,
   transactionId,
   paymentAmount,
@@ -82,7 +79,6 @@ export async function processAndLinkTemplatePayment({
   linkedAccountId,
   paymentMethod,
   notes,
-  dbClient = db,
 }: ProcessAndLinkTemplatePaymentParams) {
   const billLinkResult = await processAndAttachBillPayment({
     templateId,

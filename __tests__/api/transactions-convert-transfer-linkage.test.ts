@@ -49,6 +49,7 @@ describe('POST /api/transactions/[id]/convert-to-transfer linkage fields', () =>
                 householdId: 'hh-1',
                 accountId: 'acc-source',
                 amount: 120,
+                amountCents: 12000,
                 type: 'expense',
                 date: '2026-02-18',
                 description: 'Move money',
@@ -63,6 +64,7 @@ describe('POST /api/transactions/[id]/convert-to-transfer linkage fields', () =>
                 userId: 'user-1',
                 householdId: 'hh-1',
                 currentBalance: 400,
+                currentBalanceCents: 40000,
                 name: 'Savings',
               }];
             }
@@ -73,6 +75,7 @@ describe('POST /api/transactions/[id]/convert-to-transfer linkage fields', () =>
                 userId: 'user-1',
                 householdId: 'hh-1',
                 currentBalance: 1000,
+                currentBalanceCents: 100000,
                 name: 'Checking',
               }];
             }
@@ -94,9 +97,9 @@ describe('POST /api/transactions/[id]/convert-to-transfer linkage fields', () =>
                 if (table === accounts) {
                   txAccountSelectCall += 1;
                   if (txAccountSelectCall === 1) {
-                    return [{ id: 'acc-source', currentBalance: 1000 }];
+                    return [{ id: 'acc-source', currentBalance: 1000, currentBalanceCents: 100000 }];
                   }
-                  return [{ id: 'acc-target', currentBalance: 400 }];
+                  return [{ id: 'acc-target', currentBalance: 400, currentBalanceCents: 40000 }];
                 }
                 return [];
               },

@@ -115,7 +115,6 @@ describe('transaction payment linkage helpers', () => {
 
     const result = await processAndLinkTemplatePayment({
       templateId: 'bill-1',
-      templateName: 'Electric',
       occurrenceId: 'inst-1',
       transactionId: 'tx-1',
       paymentAmount: 125,

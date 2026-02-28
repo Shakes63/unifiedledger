@@ -20,7 +20,6 @@ export async function executeUpdatedBillLinkMatch({
 }): Promise<void> {
   await processUpdatedBillPayment({
     templateId: match.templateId,
-    templateName: match.templateName,
     occurrenceId: match.occurrenceId,
     transactionId,
     paymentAmount: newAmount,

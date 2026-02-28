@@ -28,11 +28,9 @@ export function shouldRematchUpdatedExpenseBill({
 
 export async function unlinkExistingBillInstance({
   transactionId,
-  userId,
   householdId,
 }: {
   transactionId: string;
-  userId: string;
   householdId: string;
 }): Promise<void> {
   const oldInstance = await db
@@ -64,7 +62,6 @@ export async function unlinkExistingBillInstance({
 
 export async function processUpdatedBillPayment({
   templateId,
-  templateName,
   occurrenceId,
   transactionId,
   paymentAmount,
@@ -75,7 +72,6 @@ export async function processUpdatedBillPayment({
   notes,
 }: {
   templateId: string;
-  templateName: string;
   occurrenceId: string;
   transactionId: string;
   paymentAmount: number;
@@ -87,7 +83,6 @@ export async function processUpdatedBillPayment({
 }) {
   return processAndLinkTemplatePayment({
     templateId,
-    templateName,
     occurrenceId,
     transactionId,
     paymentAmount,

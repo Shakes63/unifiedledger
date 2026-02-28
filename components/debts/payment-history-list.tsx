@@ -69,7 +69,7 @@ export function PaymentHistoryList({
     };
 
     fetchPayments();
-  }, [debtId, selectedHouseholdId, fetchWithHousehold]);
+  }, [debtId, selectedHouseholdId, fetchWithHousehold, source]);
 
   // Calculate running balance (working backwards from newest to oldest)
   const paymentsWithBalance = payments.map((payment, index, arr) => {
