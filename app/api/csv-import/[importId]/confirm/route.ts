@@ -36,19 +36,19 @@ async function resolveOrCreateImportMerchant({
   userId,
   householdId,
   mappedData,
-  fallbackDescription,
+  descriptionFallback,
   categoryId,
 }: {
   userId: string;
   householdId: string;
   mappedData: Record<string, unknown>;
-  fallbackDescription: string;
+  descriptionFallback: string;
   categoryId: string | null;
 }): Promise<string | null> {
   const merchantField =
     typeof mappedData.merchant === 'string' ? mappedData.merchant.trim() : '';
   const descriptionField =
-    typeof fallbackDescription === 'string' ? fallbackDescription.trim() : '';
+    typeof descriptionFallback === 'string' ? descriptionFallback.trim() : '';
   const merchantName = merchantField || descriptionField;
 
   if (!merchantName) {
@@ -464,7 +464,7 @@ export async function POST(
               userId,
               householdId,
               mappedData: mappedData as Record<string, unknown>,
-              fallbackDescription: finalDescription,
+              descriptionFallback: finalDescription,
               categoryId,
             });
           }

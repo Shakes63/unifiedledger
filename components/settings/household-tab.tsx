@@ -433,9 +433,8 @@ export function HouseholdTab() {
 
   async function copyInviteLink(token: string) {
     const link = `${window.location.origin}/invite/${token}`;
-    
+
     try {
-      // Try modern clipboard API first
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(link);
         setCopiedToken(token);
@@ -443,27 +442,10 @@ export function HouseholdTab() {
         setTimeout(() => setCopiedToken(null), 2000);
         return;
       }
+      toast.error(`Could not copy automatically. Link: ${link}`, { duration: 10000 });
     } catch (err) {
-      console.warn('Clipboard API failed, trying fallback:', err);
-    }
-    
-    // Fallback: Create a temporary textarea and use execCommand
-    try {
-      const textarea = document.createElement('textarea');
-      textarea.value = link;
-      textarea.style.position = 'fixed';
-      textarea.style.left = '-9999px';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      setCopiedToken(token);
-      toast.success('Invitation link copied');
-      setTimeout(() => setCopiedToken(null), 2000);
-    } catch (fallbackErr) {
-      console.error('Copy fallback failed:', fallbackErr);
-      // Show the link in toast so user can copy manually
-      toast.error(`Could not copy. Link: ${link}`, { duration: 10000 });
+      console.error('Clipboard copy failed:', err);
+      toast.error(`Could not copy automatically. Link: ${link}`, { duration: 10000 });
     }
   }
 

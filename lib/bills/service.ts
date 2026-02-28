@@ -144,8 +144,8 @@ function parseDateOrThrow(value: string, field: string): Date {
   return parsed;
 }
 
-function normalizeLimit(value: number | undefined, fallback: number): number {
-  if (!value || Number.isNaN(value)) return fallback;
+function normalizeLimit(value: number | undefined, defaultValue: number): number {
+  if (!value || Number.isNaN(value)) return defaultValue;
   return Math.min(Math.max(value, 1), 500);
 }
 
