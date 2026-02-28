@@ -12,6 +12,7 @@ import {
   TEST_HOUSEHOLD_ID,
   TEST_USER_ID,
 } from '@/lib/test-mode';
+import { isValidThemeId } from '@/lib/themes/theme-utils';
 
 export const DEFAULT_USER_HOUSEHOLD_PREFERENCES = {
   dateFormat: 'MM/DD/YYYY' as const,
@@ -113,6 +114,12 @@ export async function handleUpdateUserHouseholdPreferences(
       createdAt: _createdAt,
       ...updateData
     } = body;
+
+    if (typeof updateData.theme !== 'undefined') {
+      if (typeof updateData.theme !== 'string' || !isValidThemeId(updateData.theme)) {
+        return Response.json({ error: 'Invalid theme ID' }, { status: 400 });
+      }
+    }
 
     const existingPreferences = await selectUserPreferences(userId, householdId);
 

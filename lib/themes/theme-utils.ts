@@ -4,7 +4,13 @@
  * Helper functions for working with themes in the Unified Ledger application.
  */
 
-import { themes, DEFAULT_THEME_ID, type Theme } from './theme-config';
+import {
+  themes,
+  DEFAULT_THEME_ID,
+  THEME_RUNTIME_CONFIG,
+  type Theme,
+  type ThemeId,
+} from './theme-config';
 
 const THEME_STORAGE_PREFIX = 'unified-ledger:theme';
 
@@ -116,7 +122,7 @@ export function applyTheme(themeId: string, options: ApplyThemeOptions = {}): vo
   // This will trigger the CSS rules in globals.css for the selected theme
   if (typeof document !== 'undefined') {
     const root = document.documentElement;
-    const nextThemeId = theme.id;
+    const nextThemeId = theme.id as ThemeId;
     const currentThemeId = root.getAttribute('data-theme');
 
     if (!force && currentThemeId === nextThemeId) {
@@ -131,9 +137,23 @@ export function applyTheme(themeId: string, options: ApplyThemeOptions = {}): vo
     }
 
     root.setAttribute('data-theme', nextThemeId);
-    // Use the theme's color scheme for native UI controls
-    const scheme = theme.mode === 'light' ? 'light' : 'dark';
+    const runtimeTheme = THEME_RUNTIME_CONFIG[nextThemeId];
+    const cssVars = runtimeTheme?.cssVars ?? {};
+    for (const [name, value] of Object.entries(cssVars)) {
+      root.style.setProperty(name, value);
+    }
+
+    // Use the theme's color scheme for native UI controls.
+    const scheme = runtimeTheme?.mode === 'light' ? 'light' : 'dark';
+    root.classList.toggle('dark', scheme === 'dark');
     root.style.setProperty('color-scheme', scheme);
+
+    const themeColorMeta = document.querySelector(
+      'meta[name="theme-color"]'
+    ) as HTMLMetaElement | null;
+    if (themeColorMeta) {
+      themeColorMeta.content = scheme === 'light' ? '#ffffff' : '#0a0a0a';
+    }
   }
 
   if (persist && typeof window !== 'undefined') {

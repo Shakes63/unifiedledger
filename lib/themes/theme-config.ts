@@ -36,7 +36,7 @@ export interface ThemeColors {
 }
 
 export interface Theme {
-  id: string;
+  id: ThemeId;
   name: string;
   description: string;
   isAvailable: boolean;
@@ -44,6 +44,18 @@ export interface Theme {
   colors: ThemeColors;  // All colors in OKLCH format
   preview?: string;     // Preview image URL (future feature)
 }
+
+export const THEME_IDS = [
+  'dark-mode',
+  'dark-pink',
+  'dark-blue',
+  'dark-turquoise',
+  'light-turquoise',
+  'light-bubblegum',
+  'light-blue',
+] as const;
+
+export type ThemeId = (typeof THEME_IDS)[number];
 
 /**
  * Dark Mode Theme
@@ -348,4 +360,53 @@ export const themes: Theme[] = [
 /**
  * Default theme ID
  */
-export const DEFAULT_THEME_ID = 'dark-mode';
+export const DEFAULT_THEME_ID: ThemeId = 'dark-mode';
+
+interface ThemeRuntimeConfig {
+  mode: Theme['mode'];
+  cssVars: Record<string, string>;
+}
+
+function toRuntimeTheme(theme: Theme): ThemeRuntimeConfig {
+  return {
+    mode: theme.mode,
+    cssVars: {
+      '--bg': theme.colors.background,
+      '--fg': theme.colors.textPrimary,
+      '--c': theme.colors.surface,
+      '--cf': theme.colors.textPrimary,
+      '--e': theme.colors.elevated,
+      '--p': theme.colors.elevated,
+      '--pf': theme.colors.textPrimary,
+      '--b': theme.colors.border,
+      '--i': theme.colors.surface,
+      '--m': theme.colors.textMuted,
+      '--mf': theme.colors.textSecondary,
+      '--pr': theme.colors.primary,
+      '--prf': theme.colors.primaryForeground,
+      '--s': theme.colors.elevated,
+      '--sf': theme.colors.secondaryForeground,
+      '--a': theme.colors.primary,
+      '--af': theme.colors.accentForeground,
+      '--d': theme.colors.error,
+      '--df': theme.colors.destructiveForeground,
+      '--r': theme.colors.textPrimary,
+      '--su': theme.colors.success,
+      '--w': theme.colors.warning,
+      '--er': theme.colors.error,
+      '--inc': theme.colors.income,
+      '--exp': theme.colors.expense,
+      '--tr': theme.colors.transfer,
+      '--chp': theme.colors.income,
+      '--chi': theme.colors.expense,
+    },
+  };
+}
+
+export const THEME_RUNTIME_CONFIG: Record<ThemeId, ThemeRuntimeConfig> = themes.reduce(
+  (acc, theme) => {
+    acc[theme.id] = toRuntimeTheme(theme);
+    return acc;
+  },
+  {} as Record<ThemeId, ThemeRuntimeConfig>
+);
