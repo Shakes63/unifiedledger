@@ -236,8 +236,12 @@ describe('Transaction ledger invariants', () => {
         }),
         select: () => ({
           from: (table: unknown) => ({
-            where: () => ({
+            where: (whereArg: unknown) => ({
               limit: async () => {
+                if (table === accounts) {
+                  const accountId = extractAccountId(whereArg);
+                  return accountId ? [state.accounts[accountId]] : [];
+                }
                 if (table === usageAnalytics) return [];
                 return [];
               },

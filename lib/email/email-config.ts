@@ -45,18 +45,12 @@ export function getEmailConfig(): EmailConfig {
   const smtpFrom = process.env.SMTP_FROM || 'noreply@localhost';
   const smtpFromName = process.env.SMTP_FROM_NAME || 'Unified Ledger';
 
-  // Determine actual provider based on what's configured
+  // Determine active provider strictly from EMAIL_PROVIDER selection.
   let actualProvider: EmailProvider = 'none';
 
   if (provider === 'resend' && resendApiKey) {
     actualProvider = 'resend';
   } else if (provider === 'smtp' && smtpHost && smtpUser && smtpPassword) {
-    actualProvider = 'smtp';
-  } else if (resendApiKey) {
-    // Fallback to Resend if configured, regardless of EMAIL_PROVIDER setting
-    actualProvider = 'resend';
-  } else if (smtpHost && smtpUser && smtpPassword) {
-    // Fallback to SMTP if configured
     actualProvider = 'smtp';
   }
 
@@ -104,5 +98,9 @@ export function getEmailProvider(): EmailProvider {
  * Get application base URL for links in emails
  */
 export function getAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!appUrl) {
+    throw new Error('NEXT_PUBLIC_APP_URL must be configured');
+  }
+  return appUrl;
 }

@@ -30,10 +30,10 @@ export async function applyCreatedTransferAccountUpdates({
   nowIso: string;
 }): Promise<void> {
   const newFromBalanceCents =
-    getAccountBalanceCents({ currentBalanceCents: fromAccount.currentBalanceCents, currentBalance: null }) -
+    getAccountBalanceCents({ currentBalanceCents: fromAccount.currentBalanceCents }) -
     totalDebitCents;
   const newToBalanceCents =
-    getAccountBalanceCents({ currentBalanceCents: toAccount.currentBalanceCents, currentBalance: null }) +
+    getAccountBalanceCents({ currentBalanceCents: toAccount.currentBalanceCents }) +
     amountCents;
 
   await updateScopedAccountBalance(tx, {

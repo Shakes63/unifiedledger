@@ -29,44 +29,36 @@ export function amountToCents(amount: number | string | Decimal): number {
 
 export function getAccountBalanceCents(account: {
   currentBalanceCents: number | string | bigint | null;
-  currentBalance?: number | string | Decimal | null;
 }): number {
   return resolveRequiredMoneyCents({
     centsValue: account.currentBalanceCents,
-    fallbackValue: account.currentBalance,
     label: 'Account balance',
   });
 }
 
 export function getTransactionAmountCents(transaction: {
   amountCents: number | string | bigint | null;
-  amount?: number | string | Decimal | null;
 }): number {
   return resolveRequiredMoneyCents({
     centsValue: transaction.amountCents,
-    fallbackValue: transaction.amount,
     label: 'Transaction amount',
   });
 }
 
 export function getTransferAmountCents(transfer: {
   amountCents: number | string | bigint | null;
-  amount?: number | string | Decimal | null;
 }): number {
   return resolveRequiredMoneyCents({
     centsValue: transfer.amountCents,
-    fallbackValue: transfer.amount,
     label: 'Transfer amount',
   });
 }
 
 export function getTransferFeesCents(transfer: {
   feesCents: number | string | bigint | null;
-  fees?: number | string | Decimal | null;
 }): number {
   return resolveRequiredMoneyCents({
     centsValue: transfer.feesCents,
-    fallbackValue: transfer.fees,
     label: 'Transfer fees',
   });
 }

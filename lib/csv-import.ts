@@ -1,7 +1,6 @@
 // Note: CSV parsing done by PapaParse in the component, not this module
 // nanoid available for future ID generation needs
 import Decimal from 'decimal.js';
-import { toLocalDateString } from '@/lib/utils/local-date';
 
 /**
  * Column mapping configuration for CSV import
@@ -249,12 +248,7 @@ export const parseDate = (dateStr: string, dateFormat: string): string => {
     if (year && month && day) return normalize(year, month, day);
   }
 
-  // Fallback for irregular formats: parse with Date and normalize to local YYYY-MM-DD.
-  const dateObj = new Date(dateStr);
-  if (isNaN(dateObj.getTime())) {
-    throw new Error(`Invalid date: ${dateStr}`);
-  }
-  return toLocalDateString(dateObj);
+  throw new Error(`Invalid date format for ${dateFormat}: ${dateStr}`);
 };
 
 /**
@@ -490,7 +484,7 @@ const applyStringTransform = (value: string, transform?: string): string => {
     case 'lowercase':
       return value.toLowerCase();
     default:
-      return value.trim(); // Default to trim for backward compatibility
+      return value;
   }
 };
 

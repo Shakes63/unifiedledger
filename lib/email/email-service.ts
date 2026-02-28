@@ -12,10 +12,10 @@
  * - Choose the configured provider (Resend or SMTP)
  * - Handle errors gracefully
  * - Log email sending for debugging
- * - Fall back gracefully if email is not configured
+ * - Skip sends gracefully if email is not configured
  */
 
-import { getEmailConfig, isEmailConfigured } from './email-config';
+import { getAppUrl, getEmailConfig, isEmailConfigured } from './email-config';
 import { sendWithResend } from './providers/resend-provider';
 import { sendWithSMTP } from './providers/smtp-provider';
 
@@ -44,30 +44,14 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
   try {
     if (config.provider === 'resend') {
       await sendWithResend(options);
-    } else if (config.provider === 'smtp') {
+      return;
+    }
+    if (config.provider === 'smtp') {
       await sendWithSMTP(options);
-    } else {
-      throw new Error('No email provider configured');
+      return;
     }
+    throw new Error('No email provider configured');
   } catch (error) {
-    // Best-effort fallback: if the primary provider fails and the other provider is configured,
-    // attempt to send via the fallback provider before bubbling the error.
-    try {
-      if (config.provider === 'resend' && config.smtp) {
-        console.warn('[Email] Resend failed; attempting SMTP fallback');
-        await sendWithSMTP(options);
-        return;
-      }
-
-      if (config.provider === 'smtp' && config.resend?.apiKey) {
-        console.warn('[Email] SMTP failed; attempting Resend fallback');
-        await sendWithResend(options);
-        return;
-      }
-    } catch (fallbackError) {
-      console.error('[Email] Fallback provider also failed:', fallbackError);
-    }
-
     console.error('[Email] Failed to send email:', error);
     throw error;
   }
@@ -550,6 +534,7 @@ export async function sendWelcomeEmail({
   to: string;
   userName: string;
 }): Promise<void> {
+  const appUrl = getAppUrl();
   const html = `
     <!DOCTYPE html>
     <html>
@@ -636,7 +621,7 @@ export async function sendWelcomeEmail({
               👥 Collaborate with household members
             </div>
             <p style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard" class="button">Go to Dashboard</a>
+              <a href="${appUrl}/dashboard" class="button">Go to Dashboard</a>
             </p>
             <p>If you have any questions or need help getting started, feel free to reach out to our support team.</p>
           </div>
@@ -660,7 +645,7 @@ Here's what you can do:
 - Set savings goals and track your progress
 - Collaborate with household members
 
-Go to your dashboard: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard
+Go to your dashboard: ${appUrl}/dashboard
 
 If you have any questions or need help getting started, feel free to reach out to our support team.
 

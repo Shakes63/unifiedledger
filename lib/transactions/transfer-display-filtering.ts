@@ -15,7 +15,7 @@ function getTransferPairKey(
     return `pair:${[tx.id, tx.pairedTransactionId].sort().join('|')}`;
   }
 
-  return `fallback:${sourceId || 'unknown'}|${destinationId || 'unknown'}|${tx.date}|${tx.amount}`;
+  return `derived:${sourceId || 'unknown'}|${destinationId || 'unknown'}|${tx.date}|${tx.amount}`;
 }
 
 export function filterTransferTransactions(

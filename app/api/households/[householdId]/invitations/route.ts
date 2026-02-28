@@ -14,24 +14,21 @@ const INVITATION_EXPIRY_DAYS = 30;
  * how the app is accessed (IP, hostname, port, etc.)
  */
 function getBaseUrlFromRequest(request: Request): string {
+  const requestUrl = new URL(request.url);
   // Try to get from X-Forwarded headers (when behind a proxy)
   const forwardedProto = request.headers.get('x-forwarded-proto');
   const forwardedHost = request.headers.get('x-forwarded-host');
   
-  // Fall back to Host header
-  const host = forwardedHost || request.headers.get('host');
+  // Use forwarded host first, then Host header, then URL host.
+  const host = forwardedHost || request.headers.get('host') || requestUrl.host;
   
   if (host) {
-    // Determine protocol:
-    // 1. Use X-Forwarded-Proto if set (proxy tells us the original protocol)
-    // 2. Default to 'http' for self-hosted environments (most don't have SSL)
-    // Users with HTTPS should set X-Forwarded-Proto in their reverse proxy
-    const proto = forwardedProto || 'http';
+    // Use proxy protocol first, then request URL protocol.
+    const proto = forwardedProto || requestUrl.protocol.replace(':', '');
     return `${proto}://${host}`;
   }
-  
-  // Final fallback to environment variable or localhost
-  return process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+
+  throw new Error('Unable to determine request host for invitation URL');
 }
 
 export async function GET(

@@ -40,9 +40,9 @@ describe('report-utils money calculations', () => {
     expect(cents).toBe(1234);
   });
 
-  it('falls back to amount conversion when amountCents is missing', () => {
+  it('uses 0 when amountCents is missing', () => {
     const cents = getTransactionAmountCents(buildTxn({ amount: 10.01, amountCents: null }));
-    expect(cents).toBe(1001);
+    expect(cents).toBe(0);
   });
 
   it('calculateSum aggregates by cents-first values', () => {
@@ -50,7 +50,7 @@ describe('report-utils money calculations', () => {
       buildTxn({ amount: 12.34, amountCents: 1200 }),
       buildTxn({ amount: 0.55, amountCents: null }),
     ]);
-    expect(total).toBeCloseTo(12.55, 8);
+    expect(total).toBeCloseTo(12, 8);
   });
 
   it('calculateByType groups using cents-first values', () => {
@@ -62,7 +62,7 @@ describe('report-utils money calculations', () => {
     ]);
 
     expect(grouped.income).toBe(100);
-    expect(grouped.expense).toBeCloseTo(25.01, 8);
+    expect(grouped.expense).toBeCloseTo(0, 8);
     expect(grouped.transfer_in).toBeCloseTo(5.01, 8);
     expect(grouped.transfer_out).toBeCloseTo(4.99, 8);
   });

@@ -36,7 +36,7 @@ export async function sendAutopaySuccessNotification(
 
     const notificationId = await createNotification({
       userId: bill.userId,
-      type: 'bill_due', // Using existing type, message makes it clear it's autopay
+      type: 'system',
       title: `Autopay processed: ${bill.name}`,
       message: `Payment of $${result.amount.toFixed(2)} was automatically processed for ${bill.name}.`,
       priority: 'low',
@@ -95,7 +95,7 @@ export async function sendAutopayFailureNotification(
 
     const notificationId = await createNotification({
       userId: bill.userId,
-      type: 'bill_due', // Using existing type for compatibility
+      type: 'system',
       title: `Autopay failed: ${bill.name}`,
       message,
       priority: 'high',

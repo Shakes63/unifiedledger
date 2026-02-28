@@ -68,6 +68,6 @@ export async function POST(request: Request) {
       billsChecked: null,
     });
   } catch (error) {
-    return toBillsV2Error(error, 'compat ensure-instances POST');
+    return toBillsV2Error(error, 'ensure-instances POST');
   }
 }

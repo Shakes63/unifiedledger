@@ -66,7 +66,7 @@ describe('lib/email/email-service sendEmail', () => {
     expect(sendWithSMTP).not.toHaveBeenCalled();
   });
 
-  it('falls back to SMTP when Resend fails and SMTP is configured', async () => {
+  it('throws when Resend fails even if SMTP is configured', async () => {
     (getEmailConfig as any).mockReturnValue({
       provider: 'resend',
       from: { email: 'from@example.com', name: 'From' },
@@ -83,13 +83,13 @@ describe('lib/email/email-service sendEmail', () => {
 
     await expect(
       sendEmail({ to: 'a@b.com', subject: 's', html: '<p>x</p>' })
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow('resend down');
 
     expect(sendWithResend).toHaveBeenCalledTimes(1);
-    expect(sendWithSMTP).toHaveBeenCalledTimes(1);
+    expect(sendWithSMTP).not.toHaveBeenCalled();
   });
 
-  it('falls back to Resend when SMTP fails and Resend is configured', async () => {
+  it('throws when SMTP fails even if Resend is configured', async () => {
     (getEmailConfig as any).mockReturnValue({
       provider: 'smtp',
       from: { email: 'from@example.com', name: 'From' },
@@ -106,13 +106,13 @@ describe('lib/email/email-service sendEmail', () => {
 
     await expect(
       sendEmail({ to: 'a@b.com', subject: 's', html: '<p>x</p>' })
-    ).resolves.toBeUndefined();
+    ).rejects.toThrow('smtp down');
 
     expect(sendWithSMTP).toHaveBeenCalledTimes(1);
-    expect(sendWithResend).toHaveBeenCalledTimes(1);
+    expect(sendWithResend).not.toHaveBeenCalled();
   });
 
-  it('throws when primary fails and no fallback is available', async () => {
+  it('throws when primary resend provider fails', async () => {
     (getEmailConfig as any).mockReturnValue({
       provider: 'resend',
       from: { email: 'from@example.com', name: 'From' },

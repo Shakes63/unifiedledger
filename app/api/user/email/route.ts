@@ -10,6 +10,19 @@ import { verifyPassword } from '@/lib/auth/password-utils';
 
 export const dynamic = 'force-dynamic';
 
+function getBaseUrlFromRequest(request: NextRequest): string {
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const host = forwardedHost || request.headers.get('host') || request.nextUrl.host;
+
+  if (!host) {
+    throw new Error('Unable to determine request host for email verification URL');
+  }
+
+  const proto = forwardedProto || request.nextUrl.protocol.replace(':', '');
+  return `${proto}://${host}`;
+}
+
 /**
  * POST /api/user/email
  * Request email change with verification
@@ -120,7 +133,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Generate verification URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrlFromRequest(request);
     const verificationUrl = `${baseUrl}/api/auth/verify-email-change?token=${token}`;
 
     // Send verification email to NEW email address

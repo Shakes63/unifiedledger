@@ -105,9 +105,10 @@ describe('lib/csv-import', () => {
       expect(result).toBe('2025-03-25');
     });
 
-    it('handles dates that JS Date can parse natively', () => {
-      const result = parseDate('March 15, 2025', 'MM/DD/YYYY');
-      expect(result).toBe('2025-03-15');
+    it('rejects dates that do not match the configured format', () => {
+      expect(() => parseDate('March 15, 2025', 'MM/DD/YYYY')).toThrow(
+        'Invalid date format for MM/DD/YYYY: March 15, 2025'
+      );
     });
   });
 

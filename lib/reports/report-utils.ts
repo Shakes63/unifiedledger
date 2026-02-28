@@ -7,7 +7,6 @@ import {
   toLocalDateString,
 } from '@/lib/utils/local-date';
 import Decimal from 'decimal.js';
-import { toMoneyCents } from '@/lib/utils/money-cents';
 
 /**
  * Utility functions for generating reports
@@ -47,10 +46,7 @@ export function getTransactionAmountCents(
   txn: Pick<TransactionData, 'amount' | 'amountCents'>
 ): number {
   const cents = asCents(txn.amountCents);
-  if (cents !== null) {
-    return cents;
-  }
-  return toMoneyCents(txn.amount) ?? 0;
+  return cents ?? 0;
 }
 
 export function getTransactionAmountValue(
@@ -64,10 +60,7 @@ export function getAccountBalanceCents(account: {
   currentBalanceCents?: number | string | bigint | null;
 }): number {
   const cents = asCents(account.currentBalanceCents);
-  if (cents !== null) {
-    return cents;
-  }
-  return toMoneyCents(account.currentBalance) ?? 0;
+  return cents ?? 0;
 }
 
 export function getAccountBalanceValue(account: {
