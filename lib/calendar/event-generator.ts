@@ -501,7 +501,7 @@ export async function generatePayoffDateEvents(
     }
   }
 
-  // Add debt-enabled bill templates from bills-v2.
+  // Add debt-enabled bill schedules.
   const debtTemplates = await db
     .select()
     .from(billTemplates)

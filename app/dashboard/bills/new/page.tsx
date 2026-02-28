@@ -9,7 +9,7 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
-import type { BillData } from '@/components/bills/bill-form';
+import type { BillTemplateUpsertPayload } from '@/components/bills/bill-form';
 
 export default function NewBillPage() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export default function NewBillPage() {
   const { fetchWithHousehold } = useHouseholdFetch();
   const { selectedHouseholdId } = useHousehold();
 
-  const handleSubmit = async (data: BillData, saveMode: 'save' | 'saveAndAdd' = 'save') => {
+  const handleSubmit = async (data: BillTemplateUpsertPayload, saveMode: 'save' | 'saveAndAdd' = 'save') => {
     if (!selectedHouseholdId) {
       toast.error('Please select a household first');
       return;
@@ -26,7 +26,7 @@ export default function NewBillPage() {
     try {
       setIsLoading(true);
 
-      const response = await fetchWithHousehold('/api/bills-v2', {
+      const response = await fetchWithHousehold('/api/bills/templates', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

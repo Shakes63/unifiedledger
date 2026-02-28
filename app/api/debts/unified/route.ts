@@ -1,6 +1,6 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { accounts, billTemplates, bills, debts } from '@/lib/db/schema';
+import { accounts, billTemplates, debts } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import Decimal from 'decimal.js';
@@ -79,29 +79,17 @@ export async function GET(request: Request) {
         )
       );
 
-    // Fetch debt bills (legacy + bills-v2 debt templates)
-    const [debtBills, debtTemplates] = await Promise.all([
-      db
-        .select()
-        .from(bills)
-        .where(
-          and(
-            eq(bills.householdId, householdId),
-            eq(bills.isDebt, true),
-            eq(bills.isActive, true)
-          )
-        ),
-      db
-        .select()
-        .from(billTemplates)
-        .where(
-          and(
-            eq(billTemplates.householdId, householdId),
-            eq(billTemplates.debtEnabled, true),
-            eq(billTemplates.isActive, true)
-          )
-        ),
-    ]);
+    // Fetch debt-enabled bill schedules
+    const debtTemplates = await db
+      .select()
+      .from(billTemplates)
+      .where(
+        and(
+          eq(billTemplates.householdId, householdId),
+          eq(billTemplates.debtEnabled, true),
+          eq(billTemplates.isActive, true)
+        )
+      );
 
     // Fetch standalone debts from debts table
     const standaloneDebts = await db
@@ -193,30 +181,6 @@ export async function GET(request: Request) {
         });
       }
 
-      for (const bill of debtBills) {
-        // Apply type filter if specified
-        if (typeFilter && bill.debtType !== typeFilter) continue;
-        // Apply strategy filter if specified
-        if (inStrategyOnly && !bill.includeInPayoffStrategy) continue;
-
-        unifiedDebts.push({
-          id: bill.id,
-          name: bill.name,
-          source: 'bill',
-          sourceType: bill.debtType || 'other',
-          balance: bill.remainingBalance || 0,
-          originalBalance: bill.originalBalance ?? undefined,
-          interestRate: bill.billInterestRate ?? undefined,
-          interestType: bill.interestType ?? undefined,
-          minimumPayment: bill.minimumPayment ?? undefined,
-          additionalMonthlyPayment: bill.billAdditionalMonthlyPayment ?? undefined,
-          includeInPayoffStrategy: bill.includeInPayoffStrategy ?? true,
-          color: bill.billColor ?? undefined,
-          debtType: bill.debtType ?? undefined,
-          isInterestTaxDeductible: bill.isInterestTaxDeductible ?? undefined,
-          taxDeductionType: bill.taxDeductionType ?? undefined,
-        });
-      }
     }
 
     // Add standalone debts from debts table

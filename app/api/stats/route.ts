@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { transactions, accounts, budgetCategories, bills, savingsGoals, debts } from '@/lib/db/schema';
+import { transactions, accounts, budgetCategories, billTemplates, savingsGoals, debts } from '@/lib/db/schema';
 import { eq, and, count } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
@@ -69,11 +69,11 @@ export async function GET(request: Request) {
       // Bills count
       db
         .select({ count: count() })
-        .from(bills)
+        .from(billTemplates)
         .where(
           and(
-            eq(bills.userId, userId),
-            eq(bills.householdId, householdId)
+            eq(billTemplates.createdByUserId, userId),
+            eq(billTemplates.householdId, householdId)
           )
         ),
       // Goals count

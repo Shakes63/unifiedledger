@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import {
   accounts,
-  bills,
+  billTemplates,
   budgetCategories,
   customFieldValues,
   customFields,
@@ -61,12 +61,12 @@ export async function buildEnrichedTransactionResponse(
     txData.billId
       ? db
           .select()
-          .from(bills)
+          .from(billTemplates)
           .where(
             and(
-              eq(bills.id, txData.billId),
-              eq(bills.userId, txData.userId),
-              eq(bills.householdId, txData.householdId)
+              eq(billTemplates.id, txData.billId),
+              eq(billTemplates.createdByUserId, txData.userId),
+              eq(billTemplates.householdId, txData.householdId)
             )
           )
           .limit(1)

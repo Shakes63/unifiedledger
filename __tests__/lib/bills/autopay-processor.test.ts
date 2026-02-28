@@ -65,41 +65,46 @@ describe('lib/bills/autopay-processor', () => {
   });
 
   it('skips instances when autopayAccountId is missing', async () => {
-    const bills = [
+    const rules = [
+      {
+        id: 'r1',
+        templateId: 'b1',
+        householdId: 'h1',
+        isEnabled: true,
+        payFromAccountId: null,
+        amountType: 'fixed',
+        fixedAmountCents: 1000,
+        daysBeforeDue: 0,
+      },
+    ];
+    const templates = [
       {
         id: 'b1',
         name: 'Bill 1',
-        userId: 'u1',
+        createdByUserId: 'u1',
         householdId: 'h1',
-        expectedAmount: 10,
+        defaultAmountCents: 1000,
         categoryId: null,
         merchantId: null,
-        isAutopayEnabled: true,
-        autopayAccountId: null,
-        autopayAmountType: 'fixed',
-        autopayFixedAmount: 10,
-        autopayDaysBefore: 0,
-        linkedAccountId: null,
-        isDebt: false,
+        linkedLiabilityAccountId: null,
+        debtEnabled: false,
         isActive: true,
       },
     ];
     const instances = [
       {
         id: 'i1',
-        billId: 'b1',
-        userId: 'u1',
+        templateId: 'b1',
         householdId: 'h1',
         dueDate: '2025-01-13',
-        expectedAmount: 10,
-        paidAmount: null,
-        remainingAmount: null,
-        status: 'pending',
-        paymentStatus: 'unpaid',
+        amountDueCents: 1000,
+        amountPaidCents: 0,
+        amountRemainingCents: 1000,
+        status: 'unpaid',
       },
     ];
 
-    mockDbSelectSequence([bills, instances]);
+    mockDbSelectSequence([rules, templates, instances]);
 
     const { processAllAutopayBills } = await import('@/lib/bills/autopay-processor');
     const res = await processAllAutopayBills();
@@ -110,41 +115,46 @@ describe('lib/bills/autopay-processor', () => {
   });
 
   it('processes eligible instances based on dueDate - autopayDaysBefore and records success + sends success notification', async () => {
-    const bills = [
+    const rules = [
+      {
+        id: 'r1',
+        templateId: 'b1',
+        householdId: 'h1',
+        isEnabled: true,
+        payFromAccountId: 'a1',
+        amountType: 'fixed',
+        fixedAmountCents: 1000,
+        daysBeforeDue: 2,
+      },
+    ];
+    const templates = [
       {
         id: 'b1',
         name: 'Bill 1',
-        userId: 'u1',
+        createdByUserId: 'u1',
         householdId: 'h1',
-        expectedAmount: 10,
+        defaultAmountCents: 1000,
         categoryId: null,
         merchantId: null,
-        isAutopayEnabled: true,
-        autopayAccountId: 'a1',
-        autopayAmountType: 'fixed',
-        autopayFixedAmount: 10,
-        autopayDaysBefore: 2,
-        linkedAccountId: null,
-        isDebt: false,
+        linkedLiabilityAccountId: null,
+        debtEnabled: false,
         isActive: true,
       },
     ];
     const instances = [
       {
         id: 'i1',
-        billId: 'b1',
-        userId: 'u1',
+        templateId: 'b1',
         householdId: 'h1',
         dueDate: '2025-01-15', // processing date = Jan 13
-        expectedAmount: 10,
-        paidAmount: null,
-        remainingAmount: null,
-        status: 'pending',
-        paymentStatus: 'unpaid',
+        amountDueCents: 1000,
+        amountPaidCents: 0,
+        amountRemainingCents: 1000,
+        status: 'unpaid',
       },
     ];
 
-    mockDbSelectSequence([bills, instances]);
+    mockDbSelectSequence([rules, templates, instances]);
     (processAutopayForInstance as any).mockResolvedValue({
       success: true,
       amount: 10,
@@ -171,41 +181,46 @@ describe('lib/bills/autopay-processor', () => {
   });
 
   it('counts zero-amount success as skipped (no success notification)', async () => {
-    const bills = [
+    const rules = [
+      {
+        id: 'r1',
+        templateId: 'b1',
+        householdId: 'h1',
+        isEnabled: true,
+        payFromAccountId: 'a1',
+        amountType: 'fixed',
+        fixedAmountCents: 1000,
+        daysBeforeDue: 0,
+      },
+    ];
+    const templates = [
       {
         id: 'b1',
         name: 'Bill 1',
-        userId: 'u1',
+        createdByUserId: 'u1',
         householdId: 'h1',
-        expectedAmount: 10,
+        defaultAmountCents: 1000,
         categoryId: null,
         merchantId: null,
-        isAutopayEnabled: true,
-        autopayAccountId: 'a1',
-        autopayAmountType: 'fixed',
-        autopayFixedAmount: 10,
-        autopayDaysBefore: 0,
-        linkedAccountId: null,
-        isDebt: false,
+        linkedLiabilityAccountId: null,
+        debtEnabled: false,
         isActive: true,
       },
     ];
     const instances = [
       {
         id: 'i1',
-        billId: 'b1',
-        userId: 'u1',
+        templateId: 'b1',
         householdId: 'h1',
         dueDate: '2025-01-13',
-        expectedAmount: 10,
-        paidAmount: 10,
-        remainingAmount: 0,
-        status: 'pending',
-        paymentStatus: 'paid',
+        amountDueCents: 1000,
+        amountPaidCents: 1000,
+        amountRemainingCents: 0,
+        status: 'partial',
       },
     ];
 
-    mockDbSelectSequence([bills, instances]);
+    mockDbSelectSequence([rules, templates, instances]);
     (processAutopayForInstance as any).mockResolvedValue({
       success: true,
       amount: 0,
@@ -222,41 +237,46 @@ describe('lib/bills/autopay-processor', () => {
   });
 
   it('records failure result and sends failure notification', async () => {
-    const bills = [
+    const rules = [
+      {
+        id: 'r1',
+        templateId: 'b1',
+        householdId: 'h1',
+        isEnabled: true,
+        payFromAccountId: 'a1',
+        amountType: 'fixed',
+        fixedAmountCents: 1000,
+        daysBeforeDue: 0,
+      },
+    ];
+    const templates = [
       {
         id: 'b1',
         name: 'Bill 1',
-        userId: 'u1',
+        createdByUserId: 'u1',
         householdId: 'h1',
-        expectedAmount: 10,
+        defaultAmountCents: 1000,
         categoryId: null,
         merchantId: null,
-        isAutopayEnabled: true,
-        autopayAccountId: 'a1',
-        autopayAmountType: 'fixed',
-        autopayFixedAmount: 10,
-        autopayDaysBefore: 0,
-        linkedAccountId: null,
-        isDebt: false,
+        linkedLiabilityAccountId: null,
+        debtEnabled: false,
         isActive: true,
       },
     ];
     const instances = [
       {
         id: 'i1',
-        billId: 'b1',
-        userId: 'u1',
+        templateId: 'b1',
         householdId: 'h1',
         dueDate: '2025-01-13',
-        expectedAmount: 10,
-        paidAmount: null,
-        remainingAmount: null,
-        status: 'pending',
-        paymentStatus: 'unpaid',
+        amountDueCents: 1000,
+        amountPaidCents: 0,
+        amountRemainingCents: 1000,
+        status: 'unpaid',
       },
     ];
 
-    mockDbSelectSequence([bills, instances]);
+    mockDbSelectSequence([rules, templates, instances]);
     (processAutopayForInstance as any).mockResolvedValue({
       success: false,
       amount: 10,
@@ -282,41 +302,46 @@ describe('lib/bills/autopay-processor', () => {
   });
 
   it('handles thrown errors from processAutopayForInstance as SYSTEM_ERROR and sends failure notification', async () => {
-    const bills = [
+    const rules = [
+      {
+        id: 'r1',
+        templateId: 'b1',
+        householdId: 'h1',
+        isEnabled: true,
+        payFromAccountId: 'a1',
+        amountType: 'fixed',
+        fixedAmountCents: 1000,
+        daysBeforeDue: 0,
+      },
+    ];
+    const templates = [
       {
         id: 'b1',
         name: 'Bill 1',
-        userId: 'u1',
+        createdByUserId: 'u1',
         householdId: 'h1',
-        expectedAmount: 10,
+        defaultAmountCents: 1000,
         categoryId: null,
         merchantId: null,
-        isAutopayEnabled: true,
-        autopayAccountId: 'a1',
-        autopayAmountType: 'fixed',
-        autopayFixedAmount: 10,
-        autopayDaysBefore: 0,
-        linkedAccountId: null,
-        isDebt: false,
+        linkedLiabilityAccountId: null,
+        debtEnabled: false,
         isActive: true,
       },
     ];
     const instances = [
       {
         id: 'i1',
-        billId: 'b1',
-        userId: 'u1',
+        templateId: 'b1',
         householdId: 'h1',
         dueDate: '2025-01-13',
-        expectedAmount: 10,
-        paidAmount: null,
-        remainingAmount: null,
-        status: 'pending',
-        paymentStatus: 'unpaid',
+        amountDueCents: 1000,
+        amountPaidCents: 0,
+        amountRemainingCents: 1000,
+        status: 'unpaid',
       },
     ];
 
-    mockDbSelectSequence([bills, instances]);
+    mockDbSelectSequence([rules, templates, instances]);
     (processAutopayForInstance as any).mockRejectedValue(new Error('boom'));
 
     const { processAllAutopayBills } = await import('@/lib/bills/autopay-processor');

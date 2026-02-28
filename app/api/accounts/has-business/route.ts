@@ -5,7 +5,7 @@
  * Header: x-household-id (required)
  *
  * Response: { 
- *   hasBusinessAccounts: boolean,      // Backward compat: true if any business feature is enabled
+ *   hasBusinessAccounts: boolean,      // True if any business feature is enabled
  *   hasSalesTaxAccounts: boolean,      // True if any account has sales tax tracking enabled
  *   hasTaxDeductionAccounts: boolean   // True if any account has tax deduction tracking enabled
  * }
@@ -58,7 +58,6 @@ export async function GET(request: Request) {
     const activeAccounts = await db
       .select({ 
         id: accounts.id,
-        isBusinessAccount: accounts.isBusinessAccount,
         enableSalesTax: accounts.enableSalesTax,
         enableTaxDeductions: accounts.enableTaxDeductions,
       })
@@ -69,7 +68,6 @@ export async function GET(request: Request) {
           eq(accounts.isActive, true),
           // Account has at least one business feature enabled
           or(
-            eq(accounts.isBusinessAccount, true),
             eq(accounts.enableSalesTax, true),
             eq(accounts.enableTaxDeductions, true)
           )

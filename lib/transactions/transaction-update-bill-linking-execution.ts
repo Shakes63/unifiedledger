@@ -19,9 +19,9 @@ export async function executeUpdatedBillLinkMatch({
   newDate: string;
 }): Promise<void> {
   await processUpdatedBillPayment({
-    billId: match.billId,
-    billName: match.billName,
-    instanceId: match.instanceId,
+    templateId: match.templateId,
+    templateName: match.templateName,
+    occurrenceId: match.occurrenceId,
     transactionId,
     paymentAmount: newAmount,
     paymentDate: newDate,
@@ -29,6 +29,5 @@ export async function executeUpdatedBillLinkMatch({
     householdId,
     linkedAccountId: newAccountId,
     notes: match.notes,
-    legacyDebtId: match.legacyDebtId,
   });
 }

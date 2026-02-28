@@ -101,20 +101,15 @@ export function CategorySelector({
         // Only fetch bills and debts for expense transactions
         if (transactionType === 'expense') {
           // Fetch active bills with categories
-          const billsResponse = await fetchWithHousehold('/api/bills-v2?isActive=true');
+          const billsResponse = await fetchWithHousehold('/api/bills/templates?isActive=true');
           if (billsResponse.ok) {
             const billsData = await billsResponse.json();
-            // Bills API returns { data: [...], total, limit, offset }
-            // Each item is { bill, category, account, upcomingInstances }
-            interface BillItem {
-              bill: { id: string; name: string; categoryId?: string };
-            }
             const billsWithCategories = (billsData.data || [])
-              .filter((item: BillItem) => item.bill?.categoryId)
-              .map((item: BillItem) => ({
-                id: item.bill.id,
-                name: item.bill.name,
-                categoryId: item.bill.categoryId,
+              .filter((item: { id: string; name: string; categoryId?: string | null }) => item.categoryId)
+              .map((item: { id: string; name: string; categoryId?: string | null }) => ({
+                id: item.id,
+                name: item.name,
+                categoryId: item.categoryId as string,
               }));
             setBills(billsWithCategories);
           }

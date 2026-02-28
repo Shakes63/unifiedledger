@@ -7,18 +7,39 @@ import { CheckCircle2, Clock, AlertCircle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import type { BillOccurrenceWithTemplateDto } from '@/lib/bills/contracts';
 
 interface BillInstance {
   id: string;
   billId: string;
   dueDate: string;
   expectedAmount: number;
-  actualAmount?: number;
+  actualAmount?: number | null;
   status: 'pending' | 'paid' | 'overdue' | 'skipped';
   bill?: {
     id: string;
     name: string;
   };
+}
+
+function mapRows(rows: BillOccurrenceWithTemplateDto[]): BillInstance[] {
+  return rows.map((row) => ({
+    id: row.occurrence.id,
+    billId: row.occurrence.templateId,
+    dueDate: row.occurrence.dueDate,
+    expectedAmount: row.occurrence.amountDueCents / 100,
+    actualAmount:
+      row.occurrence.actualAmountCents !== null ? row.occurrence.actualAmountCents / 100 : null,
+    status:
+      row.occurrence.status === 'paid' || row.occurrence.status === 'overpaid'
+        ? 'paid'
+        : row.occurrence.status === 'overdue'
+          ? 'overdue'
+          : row.occurrence.status === 'skipped'
+            ? 'skipped'
+            : 'pending',
+    bill: { id: row.template.id, name: row.template.name },
+  }));
 }
 
 export function BillsWidget() {
@@ -41,21 +62,14 @@ export function BillsWidget() {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-        const response = await fetchWithHousehold(`/api/bills-v2/instances?status=pending,paid&sortBy=dueDate`);
+        const response = await fetchWithHousehold('/api/bills/occurrences?status=unpaid,partial,paid&limit=1000');
 
         if (response.ok) {
-          const response_data = await response.json();
-          const rawData = Array.isArray(response_data) ? response_data : response_data.data || [];
-
-          // Transform the data structure from { instance, bill } to flat structure with nested bill
-          interface BillInstanceRow {
-            instance: BillInstance;
-            bill: { id: string; name: string };
-          }
-          const billInstances = rawData.map((row: BillInstanceRow) => ({
-            ...row.instance,
-            bill: row.bill,
-          }));
+          const responseData = await response.json();
+          const rawData = (Array.isArray(responseData?.data)
+            ? responseData.data
+            : []) as BillOccurrenceWithTemplateDto[];
+          const billInstances = mapRows(rawData);
 
           // Filter for this month only
           const thisMonthBills = billInstances.filter((bill: BillInstance) => {
@@ -91,16 +105,14 @@ export function BillsWidget() {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-        const response = await fetchWithHousehold(`/api/bills-v2/instances?status=pending,paid&sortBy=dueDate`);
+        const response = await fetchWithHousehold('/api/bills/occurrences?status=unpaid,partial,paid&limit=1000');
 
         if (response.ok) {
-          const response_data = await response.json();
-          const rawData = Array.isArray(response_data) ? response_data : response_data.data || [];
-
-          const billInstances = rawData.map((row: { instance: BillInstance; bill: { id: string; name: string } }) => ({
-            ...row.instance,
-            bill: row.bill,
-          }));
+          const responseData = await response.json();
+          const rawData = (Array.isArray(responseData?.data)
+            ? responseData.data
+            : []) as BillOccurrenceWithTemplateDto[];
+          const billInstances = mapRows(rawData);
 
           const thisMonthBills = billInstances.filter((bill: BillInstance) => {
             const dueDate = new Date(bill.dueDate);

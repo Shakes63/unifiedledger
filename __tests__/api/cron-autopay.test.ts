@@ -2,15 +2,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@/lib/bills/autopay-processor', () => ({
-  processAllAutopayBills: vi.fn(),
   getAutopayDueToday: vi.fn(),
+}));
+
+vi.mock('@/lib/bills/service', () => ({
+  runAutopay: vi.fn(),
 }));
 
 vi.mock('@/lib/notifications/autopay-notifications', () => ({
   getAutopayProcessingSummary: vi.fn(),
 }));
 
-import { processAllAutopayBills, getAutopayDueToday } from '@/lib/bills/autopay-processor';
+import { getAutopayDueToday } from '@/lib/bills/autopay-processor';
+import { runAutopay } from '@/lib/bills/service';
 import { getAutopayProcessingSummary } from '@/lib/notifications/autopay-notifications';
 
 describe('app/api/cron/autopay/route', () => {
@@ -22,14 +26,13 @@ describe('app/api/cron/autopay/route', () => {
     // sees the current process.env.CRON_SECRET value.
     vi.resetModules();
     delete process.env.CRON_SECRET;
-    (processAllAutopayBills as any).mockResolvedValue({
-      processed: 1,
-      successful: 1,
-      failed: 0,
-      skipped: 0,
-      totalAmount: 12.34,
+    (runAutopay as any).mockResolvedValue({
+      processedCount: 1,
+      successCount: 1,
+      failedCount: 0,
+      skippedCount: 0,
+      totalAmountCents: 1234,
       errors: [],
-      successes: [],
     });
     (getAutopayProcessingSummary as any).mockReturnValue('summary');
     (getAutopayDueToday as any).mockResolvedValue({ count: 0, bills: [] });
@@ -59,7 +62,11 @@ describe('app/api/cron/autopay/route', () => {
     const { POST } = await import('@/app/api/cron/autopay/route');
     const req = new Request('http://localhost/api/cron/autopay', {
       method: 'POST',
-      headers: { authorization: 'Bearer secret' },
+      headers: {
+        authorization: 'Bearer secret',
+        'x-household-id': 'household-1',
+        'x-user-id': 'user-1',
+      },
     });
 
     const res = await POST(req);
@@ -79,10 +86,16 @@ describe('app/api/cron/autopay/route', () => {
   });
 
   it('POST returns 500 when processor throws', async () => {
-    (processAllAutopayBills as any).mockRejectedValue(new Error('boom'));
+    (runAutopay as any).mockRejectedValue(new Error('boom'));
 
     const { POST } = await import('@/app/api/cron/autopay/route');
-    const req = new Request('http://localhost/api/cron/autopay', { method: 'POST' });
+    const req = new Request('http://localhost/api/cron/autopay', {
+      method: 'POST',
+      headers: {
+        'x-household-id': 'household-1',
+        'x-user-id': 'user-1',
+      },
+    });
 
     const res = await POST(req);
     const data = await res.json();

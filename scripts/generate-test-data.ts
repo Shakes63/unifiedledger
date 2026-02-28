@@ -37,8 +37,8 @@ import {
   merchants,
   transactions,
   transactionSplits,
-  bills,
-  billInstances,
+  billTemplates,
+  billOccurrences,
   savingsGoals,
   savingsMilestones,
   debts,
@@ -552,19 +552,23 @@ async function generateTestData() {
   for (const bill of bills1) {
     const id = nanoid();
     billIds1[bill.name] = id;
-    await db.insert(bills).values({
+    await db.insert(billTemplates).values({
       id,
-      userId,
+      createdByUserId: userId,
       householdId: household1Id,
       name: bill.name,
       categoryId: categoryIds1[bill.name] || categoryIds1['Mortgage'],
-      expectedAmount: bill.amount,
-      dueDate: bill.dueDate,
-      frequency: bill.frequency,
-      accountId: accountIds1['Primary Checking'],
+      defaultAmountCents: amountToCents(bill.amount),
+      recurrenceType: bill.frequency,
+      recurrenceDueDay: bill.frequency === 'weekly' || bill.frequency === 'biweekly' ? null : bill.dueDate,
+      recurrenceDueWeekday: bill.frequency === 'weekly' || bill.frequency === 'biweekly' ? bill.dueDate : null,
+      billType: bill.name === 'Paycheck' ? 'income' : 'expense',
+      classification: bill.name === 'Mortgage' ? 'housing' : bill.name === 'Paycheck' ? 'other' : 'utility',
+      paymentAccountId: accountIds1['Primary Checking'],
       isActive: true,
       autoMarkPaid: true,
       createdAt: sixMonthsAgo.toISOString(),
+      updatedAt: sixMonthsAgo.toISOString(),
     });
   }
 
@@ -683,7 +687,7 @@ async function generateTestData() {
 
     for (const instance of instances) {
       // Determine final status based on instance status and payment
-      let finalStatus: 'pending' | 'paid' | 'overdue' | 'skipped';
+      let finalStatus: 'unpaid' | 'paid' | 'overdue';
       const isOverdue = instance.status === 'overdue';
       const isPaid = isOverdue && Math.random() < 0.5; // 50% chance paid if overdue
       
@@ -692,7 +696,7 @@ async function generateTestData() {
       } else if (isOverdue) {
         finalStatus = 'overdue';
       } else {
-        finalStatus = 'pending';
+        finalStatus = 'unpaid';
       }
       
       let transactionId: string | null = null;
@@ -719,17 +723,20 @@ async function generateTestData() {
         transactionId = txId;
       }
       
-      await db.insert(billInstances).values({
+      const dueAmountCents = amountToCents(instance.amount);
+      const paidAmountCents = isPaid ? dueAmountCents : 0;
+      await db.insert(billOccurrences).values({
         id: nanoid(),
-        userId,
         householdId: household1Id,
-        billId,
+        templateId: billId,
         dueDate: instance.dueDate,
-        expectedAmount: instance.amount,
-        actualAmount: isPaid ? instance.amount : null,
+        amountDueCents: dueAmountCents,
+        amountPaidCents: paidAmountCents,
+        amountRemainingCents: isPaid ? 0 : dueAmountCents,
+        actualAmountCents: isPaid ? dueAmountCents : null,
         paidDate: isPaid ? addDays(instance.dueDate, randomInt(0, 5)) : null,
         status: finalStatus,
-        transactionId,
+        lastTransactionId: transactionId,
         createdAt: instance.dueDate,
         updatedAt: instance.dueDate,
       });
@@ -1260,19 +1267,23 @@ async function generateTestData() {
   for (const bill of bills2) {
     const id = nanoid();
     billIds2[bill.name] = id;
-    await db.insert(bills).values({
+    await db.insert(billTemplates).values({
       id,
-      userId,
+      createdByUserId: userId,
       householdId: household2Id,
       name: bill.name,
       categoryId: categoryIds2[bill.name] || categoryIds2['Rent'],
-      expectedAmount: bill.amount,
-      dueDate: bill.dueDate,
-      frequency: bill.frequency,
-      accountId: accountIds2['Main Checking'],
+      defaultAmountCents: amountToCents(bill.amount),
+      recurrenceType: bill.frequency,
+      recurrenceDueDay: bill.frequency === 'weekly' || bill.frequency === 'biweekly' ? null : bill.dueDate,
+      recurrenceDueWeekday: bill.frequency === 'weekly' || bill.frequency === 'biweekly' ? bill.dueDate : null,
+      billType: bill.name === 'Paycheck' ? 'income' : 'expense',
+      classification: bill.name === 'Rent' ? 'housing' : bill.name === 'Paycheck' ? 'other' : 'utility',
+      paymentAccountId: accountIds2['Main Checking'],
       isActive: true,
       autoMarkPaid: true,
       createdAt: threeMonthsAgo.toISOString(),
+      updatedAt: threeMonthsAgo.toISOString(),
     });
   }
 
@@ -1373,7 +1384,7 @@ async function generateTestData() {
 
     for (const instance of instances) {
       // Determine final status based on instance status and payment
-      let finalStatus: 'pending' | 'paid' | 'overdue' | 'skipped';
+      let finalStatus: 'unpaid' | 'paid' | 'overdue';
       const isOverdue = instance.status === 'overdue';
       const isPaid = isOverdue && Math.random() < 0.5; // 50% chance paid if overdue
       
@@ -1382,7 +1393,7 @@ async function generateTestData() {
       } else if (isOverdue) {
         finalStatus = 'overdue';
       } else {
-        finalStatus = 'pending';
+        finalStatus = 'unpaid';
       }
       
       let transactionId: string | null = null;
@@ -1409,17 +1420,20 @@ async function generateTestData() {
         transactionId = txId;
       }
       
-      await db.insert(billInstances).values({
+      const dueAmountCents = amountToCents(instance.amount);
+      const paidAmountCents = isPaid ? dueAmountCents : 0;
+      await db.insert(billOccurrences).values({
         id: nanoid(),
-        userId,
         householdId: household2Id,
-        billId,
+        templateId: billId,
         dueDate: instance.dueDate,
-        expectedAmount: instance.amount,
-        actualAmount: isPaid ? instance.amount : null,
+        amountDueCents: dueAmountCents,
+        amountPaidCents: paidAmountCents,
+        amountRemainingCents: isPaid ? 0 : dueAmountCents,
+        actualAmountCents: isPaid ? dueAmountCents : null,
         paidDate: isPaid ? addDays(instance.dueDate, randomInt(0, 5)) : null,
         status: finalStatus,
-        transactionId,
+        lastTransactionId: transactionId,
         createdAt: instance.dueDate,
         updatedAt: instance.dueDate,
       });

@@ -61,7 +61,7 @@ interface Debt {
   status: string;
   debtType: 'target' | 'milestone';
   milestonePercentage?: number;
-  source?: 'legacy' | 'account' | 'bill';
+  source?: 'debt' | 'account' | 'bill';
 }
 
 interface AutopayEvent {
@@ -658,7 +658,7 @@ export function CalendarDayModal({
             </div>
           )}
 
-          {/* Debts (legacy) */}
+          {/* Standalone debt milestones */}
           {debts.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">

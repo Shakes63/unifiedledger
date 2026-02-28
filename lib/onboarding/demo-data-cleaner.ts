@@ -2,8 +2,11 @@ import { db } from '@/lib/db';
 import {
   accounts,
   budgetCategories,
-  bills,
-  billInstances,
+  autopayRules,
+  billOccurrenceAllocations,
+  billOccurrences,
+  billPaymentEvents,
+  billTemplates,
   savingsGoals,
   savingsMilestones,
   debts,
@@ -32,16 +35,19 @@ interface ClearDemoDataResult {
  * Delete order respects foreign key constraints:
  * 1. Transaction splits (references transactions)
  * 2. Transactions (references accounts, categories, merchants)
- * 3. Bill instances (references bills)
- * 4. Bills (references accounts, categories, merchants)
- * 5. Debt payments (references debts)
- * 6. Debt payoff milestones (references debts)
- * 7. Debts (references accounts, categories)
- * 8. Savings milestones (references goals)
- * 9. Savings goals (references accounts)
- * 10. Merchants (references categories)
- * 11. Budget categories
- * 12. Accounts
+ * 3. Bill occurrence allocations (references bill occurrences)
+ * 4. Bill payment events (references bill occurrences/templates)
+ * 5. Bill occurrences (references bill templates)
+ * 6. Autopay rules (references bill templates)
+ * 7. Bill templates (references accounts, categories, merchants)
+ * 8. Debt payments (references debts)
+ * 9. Debt payoff milestones (references debts)
+ * 10. Debts (references accounts, categories)
+ * 11. Savings milestones (references goals)
+ * 12. Savings goals (references accounts)
+ * 13. Merchants (references categories)
+ * 14. Budget categories
+ * 15. Accounts
  */
 export async function clearDemoData(
   householdId: string,
@@ -83,14 +89,14 @@ export async function clearDemoData(
     );
   const demoMerchantIds = demoMerchants.map((m) => m.id);
 
-  // 4. Get all demo bill IDs
+  // 4. Get all demo bill template IDs
   const demoBills = await db
-    .select({ id: bills.id })
-    .from(bills)
+    .select({ id: billTemplates.id })
+    .from(billTemplates)
     .where(
       and(
-        eq(bills.householdId, householdId),
-        like(bills.name, 'Demo%')
+        eq(billTemplates.householdId, householdId),
+        like(billTemplates.name, 'Demo%')
       )
     );
   const demoBillIds = demoBills.map((b) => b.id);
@@ -161,31 +167,81 @@ export async function clearDemoData(
       );
   }
 
-  // 3. Delete bill instances for demo bills
+  // 3. Delete bill occurrence allocations for demo bill occurrences
   if (demoBillIds.length > 0) {
-    await db
-      .delete(billInstances)
+    const demoOccurrences = await db
+      .select({ id: billOccurrences.id })
+      .from(billOccurrences)
       .where(
         and(
-          eq(billInstances.householdId, householdId),
-          inArray(billInstances.billId, demoBillIds)
+          eq(billOccurrences.householdId, householdId),
+          inArray(billOccurrences.templateId, demoBillIds)
+        )
+      );
+
+    const demoOccurrenceIds = demoOccurrences.map((o) => o.id);
+
+    if (demoOccurrenceIds.length > 0) {
+      await db
+        .delete(billOccurrenceAllocations)
+        .where(
+          and(
+            eq(billOccurrenceAllocations.householdId, householdId),
+            inArray(billOccurrenceAllocations.occurrenceId, demoOccurrenceIds)
+          )
+        );
+    }
+  }
+
+  // 4. Delete bill payment events for demo bills
+  if (demoBillIds.length > 0) {
+    await db
+      .delete(billPaymentEvents)
+      .where(
+        and(
+          eq(billPaymentEvents.householdId, householdId),
+          inArray(billPaymentEvents.templateId, demoBillIds)
         )
       );
   }
 
-  // 4. Delete demo bills
+  // 5. Delete bill occurrences for demo bills
   if (demoBillIds.length > 0) {
     await db
-      .delete(bills)
+      .delete(billOccurrences)
       .where(
         and(
-          eq(bills.householdId, householdId),
-          inArray(bills.id, demoBillIds)
+          eq(billOccurrences.householdId, householdId),
+          inArray(billOccurrences.templateId, demoBillIds)
         )
       );
   }
 
-  // 5. Delete debt payments for demo debts
+  // 6. Delete autopay rules for demo bills
+  if (demoBillIds.length > 0) {
+    await db
+      .delete(autopayRules)
+      .where(
+        and(
+          eq(autopayRules.householdId, householdId),
+          inArray(autopayRules.templateId, demoBillIds)
+        )
+      );
+  }
+
+  // 7. Delete demo bill templates
+  if (demoBillIds.length > 0) {
+    await db
+      .delete(billTemplates)
+      .where(
+        and(
+          eq(billTemplates.householdId, householdId),
+          inArray(billTemplates.id, demoBillIds)
+        )
+      );
+  }
+
+  // 8. Delete debt payments for demo debts
   if (demoDebtIds.length > 0) {
     await db
       .delete(debtPayments)
@@ -197,7 +253,7 @@ export async function clearDemoData(
       );
   }
 
-  // 6. Delete debt payoff milestones for demo debts
+  // 9. Delete debt payoff milestones for demo debts
   if (demoDebtIds.length > 0) {
     await db
       .delete(debtPayoffMilestones)
@@ -209,7 +265,7 @@ export async function clearDemoData(
       );
   }
 
-  // 7. Delete demo debts
+  // 10. Delete demo debts
   if (demoDebtIds.length > 0) {
     await db
       .delete(debts)
@@ -221,7 +277,7 @@ export async function clearDemoData(
       );
   }
 
-  // 8. Delete savings milestones for demo goals
+  // 11. Delete savings milestones for demo goals
   if (demoGoalIds.length > 0) {
     await db
       .delete(savingsMilestones)
@@ -233,7 +289,7 @@ export async function clearDemoData(
       );
   }
 
-  // 9. Delete demo savings goals
+  // 12. Delete demo savings goals
   if (demoGoalIds.length > 0) {
     await db
       .delete(savingsGoals)
@@ -245,7 +301,7 @@ export async function clearDemoData(
       );
   }
 
-  // 10. Delete demo merchants
+  // 13. Delete demo merchants
   if (demoMerchantIds.length > 0) {
     await db
       .delete(merchants)
@@ -257,7 +313,7 @@ export async function clearDemoData(
       );
   }
 
-  // 11. Delete demo categories
+  // 14. Delete demo categories
   if (demoCategoryIds.length > 0) {
     await db
       .delete(budgetCategories)
@@ -269,7 +325,7 @@ export async function clearDemoData(
       );
   }
 
-  // 12. Delete demo accounts
+  // 15. Delete demo accounts
   if (demoAccountIds.length > 0) {
     await db
       .delete(accounts)
@@ -357,14 +413,14 @@ export async function getDemoDataSummary(householdId: string): Promise<{
       );
   }
 
-  // Get demo bills
+  // Get demo bill templates
   const billsList = await db
-    .select({ id: bills.id })
-    .from(bills)
+    .select({ id: billTemplates.id })
+    .from(billTemplates)
     .where(
       and(
-        eq(bills.householdId, householdId),
-        like(bills.name, 'Demo%')
+        eq(billTemplates.householdId, householdId),
+        like(billTemplates.name, 'Demo%')
       )
     );
 

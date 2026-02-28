@@ -24,11 +24,6 @@ function extractSessionTokenFromSessionData(raw: string | null | undefined): str
   } catch {
     // ignore malformed base64url
   }
-  try {
-    payloadCandidates.push(Buffer.from(raw, "base64").toString("utf-8"));
-  } catch {
-    // ignore malformed base64
-  }
 
   for (const candidate of payloadCandidates) {
     try {
@@ -40,7 +35,7 @@ function extractSessionTokenFromSessionData(raw: string | null | undefined): str
         return token.split(".")[0] || token;
       }
     } catch {
-      // keep trying fallbacks
+      // continue trying candidate payloads
     }
   }
 

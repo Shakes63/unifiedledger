@@ -132,7 +132,7 @@ export async function GET(request: Request) {
     if (savingsAccountIds.length > 0) {
       // Get transfer_in transactions to savings accounts
       // Note: We use transfer_out because the amount flows from source to destination
-      // The toAccountId (stored in transferId for legacy reasons or actual destination) tells us where it went
+      // transferId stores the destination account reference for transfer_out rows
       const savingsIds = savingsAccountIds.map(a => a.id);
       
       // Get transfers where the linked transfer goes TO a savings account

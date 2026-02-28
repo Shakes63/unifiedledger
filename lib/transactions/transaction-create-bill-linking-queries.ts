@@ -1,7 +1,44 @@
+import Decimal from 'decimal.js';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { billInstances, bills } from '@/lib/db/schema';
+import { billOccurrences, billTemplates } from '@/lib/db/schema';
+
+interface BillLike {
+  id: string;
+  name: string;
+  amountTolerance: number | null;
+  expectedAmount: number;
+}
+
+interface BillInstanceLike {
+  id: string;
+  dueDate: string;
+  expectedAmount: number;
+}
+
+function centsToDollars(cents: number | null | undefined): number {
+  return new Decimal(cents || 0).div(100).toNumber();
+}
+
+function bpsToPercent(bps: number | null | undefined): number | null {
+  if (bps === null || bps === undefined) return null;
+  return new Decimal(bps).div(100).toNumber();
+}
+
+function mapTemplateToBillLike(template: {
+  id: string;
+  name: string;
+  defaultAmountCents: number;
+  amountToleranceBps: number;
+}): BillLike {
+  return {
+    id: template.id,
+    name: template.name,
+    amountTolerance: bpsToPercent(template.amountToleranceBps),
+    expectedAmount: centsToDollars(template.defaultAmountCents),
+  };
+}
 
 export async function findScopedBillById({
   billId,
@@ -11,13 +48,27 @@ export async function findScopedBillById({
   billId: string;
   userId: string;
   householdId: string;
-}): Promise<typeof bills.$inferSelect | null> {
-  const [bill] = await db
-    .select()
-    .from(bills)
-    .where(and(eq(bills.id, billId), eq(bills.userId, userId), eq(bills.householdId, householdId)))
+}): Promise<BillLike | null> {
+  const [template] = await db
+    .select({
+      id: billTemplates.id,
+      name: billTemplates.name,
+      defaultAmountCents: billTemplates.defaultAmountCents,
+      amountToleranceBps: billTemplates.amountToleranceBps,
+    })
+    .from(billTemplates)
+    .where(
+      and(
+        eq(billTemplates.id, billId),
+        eq(billTemplates.createdByUserId, userId),
+        eq(billTemplates.householdId, householdId),
+        eq(billTemplates.isActive, true),
+        eq(billTemplates.billType, 'expense')
+      )
+    )
     .limit(1);
-  return bill ?? null;
+
+  return template ? mapTemplateToBillLike(template) : null;
 }
 
 export async function findScopedPendingBillInstanceById({
@@ -30,29 +81,50 @@ export async function findScopedPendingBillInstanceById({
   householdId: string;
 }): Promise<
   | {
-      instance: typeof billInstances.$inferSelect;
-      bill: typeof bills.$inferSelect;
+      instance: BillInstanceLike;
+      bill: BillLike;
     }
   | null
 > {
-  const [instance] = await db
+  const [match] = await db
     .select({
-      instance: billInstances,
-      bill: bills,
+      templateId: billTemplates.id,
+      templateName: billTemplates.name,
+      defaultAmountCents: billTemplates.defaultAmountCents,
+      amountToleranceBps: billTemplates.amountToleranceBps,
+      occurrenceId: billOccurrences.id,
+      dueDate: billOccurrences.dueDate,
+      amountDueCents: billOccurrences.amountDueCents,
     })
-    .from(billInstances)
-    .innerJoin(bills, eq(bills.id, billInstances.billId))
+    .from(billOccurrences)
+    .innerJoin(billTemplates, eq(billTemplates.id, billOccurrences.templateId))
     .where(
       and(
-        eq(billInstances.id, billInstanceId),
-        eq(billInstances.userId, userId),
-        eq(billInstances.householdId, householdId),
-        inArray(billInstances.status, ['pending', 'overdue'])
+        eq(billOccurrences.id, billInstanceId),
+        eq(billTemplates.createdByUserId, userId),
+        eq(billTemplates.householdId, householdId),
+        eq(billTemplates.billType, 'expense'),
+        eq(billTemplates.isActive, true),
+        inArray(billOccurrences.status, ['unpaid', 'partial', 'overdue'])
       )
     )
     .limit(1);
 
-  return instance ?? null;
+  if (!match) return null;
+
+  return {
+    bill: mapTemplateToBillLike({
+      id: match.templateId,
+      name: match.templateName,
+      defaultAmountCents: match.defaultAmountCents,
+      amountToleranceBps: match.amountToleranceBps,
+    }),
+    instance: {
+      id: match.occurrenceId,
+      dueDate: match.dueDate,
+      expectedAmount: centsToDollars(match.amountDueCents),
+    },
+  };
 }
 
 export async function listChargedAccountPendingBills({
@@ -65,32 +137,51 @@ export async function listChargedAccountPendingBills({
   accountId: string;
 }): Promise<
   Array<{
-    bill: typeof bills.$inferSelect;
-    instance: typeof billInstances.$inferSelect;
+    bill: BillLike;
+    instance: BillInstanceLike;
   }>
 > {
-  return db
+  const rows = await db
     .select({
-      bill: bills,
-      instance: billInstances,
+      templateId: billTemplates.id,
+      templateName: billTemplates.name,
+      defaultAmountCents: billTemplates.defaultAmountCents,
+      amountToleranceBps: billTemplates.amountToleranceBps,
+      occurrenceId: billOccurrences.id,
+      dueDate: billOccurrences.dueDate,
+      amountDueCents: billOccurrences.amountDueCents,
+      status: billOccurrences.status,
     })
-    .from(bills)
-    .innerJoin(billInstances, eq(billInstances.billId, bills.id))
+    .from(billTemplates)
+    .innerJoin(billOccurrences, eq(billOccurrences.templateId, billTemplates.id))
     .where(
       and(
-        eq(bills.chargedToAccountId, accountId),
-        eq(bills.userId, userId),
-        eq(bills.householdId, householdId),
-        eq(bills.isActive, true),
-        eq(billInstances.userId, userId),
-        eq(billInstances.householdId, householdId),
-        inArray(billInstances.status, ['pending', 'overdue'])
+        eq(billTemplates.chargedToAccountId, accountId),
+        eq(billTemplates.createdByUserId, userId),
+        eq(billTemplates.householdId, householdId),
+        eq(billTemplates.billType, 'expense'),
+        eq(billTemplates.isActive, true),
+        inArray(billOccurrences.status, ['unpaid', 'partial', 'overdue'])
       )
     )
     .orderBy(
-      sql`CASE WHEN ${billInstances.status} = 'overdue' THEN 0 ELSE 1 END`,
-      asc(billInstances.dueDate)
+      sql`CASE WHEN ${billOccurrences.status} = 'overdue' THEN 0 ELSE 1 END`,
+      asc(billOccurrences.dueDate)
     );
+
+  return rows.map((row) => ({
+    bill: mapTemplateToBillLike({
+      id: row.templateId,
+      name: row.templateName,
+      defaultAmountCents: row.defaultAmountCents,
+      amountToleranceBps: row.amountToleranceBps,
+    }),
+    instance: {
+      id: row.occurrenceId,
+      dueDate: row.dueDate,
+      expectedAmount: centsToDollars(row.amountDueCents),
+    },
+  }));
 }
 
 export async function findCategoryPendingBillMatch({
@@ -103,34 +194,53 @@ export async function findCategoryPendingBillMatch({
   categoryId: string;
 }): Promise<
   | {
-      bill: typeof bills.$inferSelect;
-      instance: typeof billInstances.$inferSelect;
+      bill: BillLike;
+      instance: BillInstanceLike;
     }
   | null
 > {
   const [match] = await db
     .select({
-      bill: bills,
-      instance: billInstances,
+      templateId: billTemplates.id,
+      templateName: billTemplates.name,
+      defaultAmountCents: billTemplates.defaultAmountCents,
+      amountToleranceBps: billTemplates.amountToleranceBps,
+      occurrenceId: billOccurrences.id,
+      dueDate: billOccurrences.dueDate,
+      amountDueCents: billOccurrences.amountDueCents,
+      status: billOccurrences.status,
     })
-    .from(bills)
-    .innerJoin(billInstances, eq(billInstances.billId, bills.id))
+    .from(billTemplates)
+    .innerJoin(billOccurrences, eq(billOccurrences.templateId, billTemplates.id))
     .where(
       and(
-        eq(bills.userId, userId),
-        eq(bills.householdId, householdId),
-        eq(bills.isActive, true),
-        eq(bills.categoryId, categoryId),
-        eq(billInstances.userId, userId),
-        eq(billInstances.householdId, householdId),
-        inArray(billInstances.status, ['pending', 'overdue'])
+        eq(billTemplates.createdByUserId, userId),
+        eq(billTemplates.householdId, householdId),
+        eq(billTemplates.billType, 'expense'),
+        eq(billTemplates.isActive, true),
+        eq(billTemplates.categoryId, categoryId),
+        inArray(billOccurrences.status, ['unpaid', 'partial', 'overdue'])
       )
     )
     .orderBy(
-      sql`CASE WHEN ${billInstances.status} = 'overdue' THEN 0 ELSE 1 END`,
-      asc(billInstances.dueDate)
+      sql`CASE WHEN ${billOccurrences.status} = 'overdue' THEN 0 ELSE 1 END`,
+      asc(billOccurrences.dueDate)
     )
     .limit(1);
 
-  return match ?? null;
+  if (!match) return null;
+
+  return {
+    bill: mapTemplateToBillLike({
+      id: match.templateId,
+      name: match.templateName,
+      defaultAmountCents: match.defaultAmountCents,
+      amountToleranceBps: match.amountToleranceBps,
+    }),
+    instance: {
+      id: match.occurrenceId,
+      dueDate: match.dueDate,
+      expectedAmount: centsToDollars(match.amountDueCents),
+    },
+  };
 }

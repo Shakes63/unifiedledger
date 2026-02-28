@@ -13,10 +13,10 @@ import { loadOAuthSettingsFromDatabase } from "@/lib/auth/load-oauth-settings";
 
 const dbOAuthSettings = await loadOAuthSettingsFromDatabase().catch(() => null);
 
-const googleClientId = dbOAuthSettings?.google?.clientId || process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = dbOAuthSettings?.google?.clientSecret || process.env.GOOGLE_CLIENT_SECRET;
-const githubClientId = dbOAuthSettings?.github?.clientId || process.env.GITHUB_CLIENT_ID;
-const githubClientSecret = dbOAuthSettings?.github?.clientSecret || process.env.GITHUB_CLIENT_SECRET;
+const googleClientId = dbOAuthSettings?.google?.clientId;
+const googleClientSecret = dbOAuthSettings?.google?.clientSecret;
+const githubClientId = dbOAuthSettings?.github?.clientId;
+const githubClientSecret = dbOAuthSettings?.github?.clientSecret;
 
 function shouldUseSecureCookies() {
   // Optional hard override for production environments behind HTTPS reverse proxies.
@@ -152,7 +152,7 @@ export const auth = betterAuth({
   plugins: [
     genericOAuth({
       config: [
-        // Google OAuth - Use database settings (fallback to env vars).
+        // Google OAuth - Use database settings.
         // Note: Changing DB settings requires a server restart to take effect.
         ...(googleClientId && googleClientSecret
           ? [
@@ -180,7 +180,7 @@ export const auth = betterAuth({
               },
             ]
           : []),
-        // GitHub OAuth - Use database settings (fallback to env vars).
+        // GitHub OAuth - Use database settings.
         ...(githubClientId && githubClientSecret
           ? [
               {

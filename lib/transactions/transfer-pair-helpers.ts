@@ -79,37 +79,5 @@ export async function findPairedTransferTransaction({
     if (paired.length > 0) return paired[0];
   }
 
-  // Legacy fallback for old transferId semantics.
-  if (transaction.type === 'transfer_out') {
-    const paired = await tx
-      .select()
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.userId, userId),
-          eq(transactions.householdId, householdId),
-          eq(transactions.type, 'transfer_in'),
-          eq(transactions.transferId, transaction.id)
-        )
-      )
-      .limit(1);
-    if (paired.length > 0) return paired[0];
-  }
-
-  if (transaction.type === 'transfer_in' && transaction.transferId) {
-    const paired = await tx
-      .select()
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.id, transaction.transferId),
-          eq(transactions.userId, userId),
-          eq(transactions.householdId, householdId)
-        )
-      )
-      .limit(1);
-    if (paired.length > 0) return paired[0];
-  }
-
   return null;
 }

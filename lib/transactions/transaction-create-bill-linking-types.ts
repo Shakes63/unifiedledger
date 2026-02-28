@@ -1,8 +1,7 @@
 export interface CreateBillLinkMatch {
-  linkedBillId: string;
-  linkedInstanceId: string;
-  billName: string;
-  legacyDebtId: string | null;
+  linkedTemplateId: string;
+  linkedOccurrenceId: string;
+  templateName: string;
   notes: string;
   logMessage: (paymentStatus: string) => string;
 }

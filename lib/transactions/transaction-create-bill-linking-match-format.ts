@@ -1,25 +1,22 @@
 import type { CreateBillLinkMatch } from '@/lib/transactions/transaction-create-bill-linking-types';
 
 export function formatCreateBillLinkMatch({
-  billId,
-  instanceId,
-  billName,
-  legacyDebtId,
+  templateId,
+  occurrenceId,
+  templateName,
   notes,
   logMessage,
 }: {
-  billId: string;
-  instanceId: string;
-  billName: string;
-  legacyDebtId: string | null;
+  templateId: string;
+  occurrenceId: string;
+  templateName: string;
   notes: string;
   logMessage: (paymentStatus: string) => string;
 }): CreateBillLinkMatch {
   return {
-    linkedBillId: billId,
-    linkedInstanceId: instanceId,
-    billName,
-    legacyDebtId,
+    linkedTemplateId: templateId,
+    linkedOccurrenceId: occurrenceId,
+    templateName,
     notes,
     logMessage,
   };

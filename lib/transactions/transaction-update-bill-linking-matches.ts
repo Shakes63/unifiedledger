@@ -7,10 +7,9 @@ import {
 } from '@/lib/transactions/transaction-create-bill-linking-queries';
 
 export interface UpdatedBillLinkMatch {
-  billId: string;
-  billName: string;
-  instanceId: string;
-  legacyDebtId: string | null;
+  templateId: string;
+  templateName: string;
+  occurrenceId: string;
   notes: string;
 }
 
@@ -38,10 +37,9 @@ export async function matchUpdatedTransactionByExplicitBillInstance({
   }
 
   return {
-    billId: instance.bill.id,
-    billName: instance.bill.name,
-    instanceId: instance.instance.id,
-    legacyDebtId: instance.bill.debtId,
+    templateId: instance.bill.id,
+    templateName: instance.bill.name,
+    occurrenceId: instance.instance.id,
     notes: `Bill payment update: ${instance.bill.name}`,
   };
 }
@@ -97,10 +95,9 @@ export async function matchUpdatedTransactionByGeneralHeuristics({
   }
 
   return {
-    billId: bill.id,
-    billName: bill.name,
-    instanceId: billMatch.instanceId,
-    legacyDebtId: bill.debtId,
+    templateId: bill.id,
+    templateName: bill.name,
+    occurrenceId: billMatch.instanceId,
     notes: `Auto-matched bill update: ${bill.name}`,
   };
 }
@@ -124,10 +121,9 @@ export async function matchUpdatedTransactionByCategoryFallback({
   }
 
   return {
-    billId: match.bill.id,
-    billName: match.bill.name,
-    instanceId: match.instance.id,
-    legacyDebtId: match.bill.debtId,
+    templateId: match.bill.id,
+    templateName: match.bill.name,
+    occurrenceId: match.instance.id,
     notes: `Category-matched bill update: ${match.bill.name}`,
   };
 }

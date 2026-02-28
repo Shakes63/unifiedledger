@@ -79,7 +79,6 @@ interface AccountInputData {
   creditLimit?: string | number | null;
   color?: string;
   icon?: string;
-  isBusinessAccount?: boolean;
   enableSalesTax?: boolean;
   enableTaxDeductions?: boolean;
   // Credit/Line of Credit fields
@@ -127,9 +126,8 @@ export function AccountForm({
     creditLimit: account?.creditLimit || '',
     color: account?.color || '#3b82f6',
     icon: account?.icon || 'wallet',
-    // Support both new toggles and legacy isBusinessAccount
-    enableSalesTax: account?.enableSalesTax ?? account?.isBusinessAccount ?? false,
-    enableTaxDeductions: account?.enableTaxDeductions ?? account?.isBusinessAccount ?? false,
+    enableSalesTax: account?.enableSalesTax ?? false,
+    enableTaxDeductions: account?.enableTaxDeductions ?? false,
     // Credit/Line of Credit fields
     interestRate: account?.interestRate ?? '',
     minimumPaymentPercent: account?.minimumPaymentPercent ?? '',

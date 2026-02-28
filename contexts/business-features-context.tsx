@@ -31,7 +31,6 @@ import { useHousehold } from './household-context';
 interface BusinessFeaturesContextValue {
   /**
    * Whether the current household has at least one active account with any business feature enabled
-   * (backward compatibility - true if either sales tax or tax deductions are enabled)
    */
   hasBusinessAccounts: boolean;
 

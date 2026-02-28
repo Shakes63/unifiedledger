@@ -1,8 +1,13 @@
 import { db } from '@/lib/db';
-import { bills, billInstances } from '@/lib/db/schema';
+import { billOccurrences, billTemplates } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { parseISO } from 'date-fns';
-import { findMatchingBills, BillForMatching, TransactionForMatching } from './bill-matcher';
+import {
+  findMatchingBills,
+  BillForMatching,
+  TransactionForMatching,
+} from './bill-matcher';
+import Decimal from 'decimal.js';
 
 /**
  * Extract day of month from ISO date string (1-31)
@@ -19,14 +24,14 @@ function extractDayOfWeek(isoDate: string): number {
 }
 
 /**
- * Find matching bill instance for a transaction using bill-matcher utility
- * Returns the best matching bill instance if confidence >= minConfidence
+ * Find matching bill instance for a transaction using matcher utility
+ * Returns the best matching instance if confidence >= minConfidence
  * 
  * @param transaction - Transaction data for matching
  * @param userId - User ID for filtering bills
  * @param householdId - Household ID for filtering bills
  * @param minConfidence - Minimum confidence threshold (default: 70)
- * @returns Matching bill instance info or null if no match found
+ * @returns Matching bill/instance info or null if no match found
  */
 export async function findMatchingBillInstance(
   transaction: {
@@ -43,6 +48,8 @@ export async function findMatchingBillInstance(
 ): Promise<{
   billId: string;
   instanceId: string;
+  templateId: string;
+  occurrenceId: string;
   confidence: number;
 } | null> {
   // Only match expense transactions
@@ -54,19 +61,24 @@ export async function findMatchingBillInstance(
     // Fetch all active bills with pending/overdue instances
     const billsWithInstances = await db
       .select({
-        bill: bills,
-        instance: billInstances,
+        billId: billTemplates.id,
+        billName: billTemplates.name,
+        defaultAmountCents: billTemplates.defaultAmountCents,
+        amountToleranceBps: billTemplates.amountToleranceBps,
+        recurrenceType: billTemplates.recurrenceType,
+        instanceId: billOccurrences.id,
+        dueDate: billOccurrences.dueDate,
+        status: billOccurrences.status,
       })
-      .from(bills)
-      .innerJoin(billInstances, eq(billInstances.billId, bills.id))
+      .from(billTemplates)
+      .innerJoin(billOccurrences, eq(billOccurrences.templateId, billTemplates.id))
       .where(
         and(
-          eq(bills.userId, userId),
-          eq(bills.householdId, householdId),
-          eq(bills.isActive, true),
-          eq(billInstances.userId, userId),
-          eq(billInstances.householdId, householdId),
-          inArray(billInstances.status, ['pending', 'overdue'])
+          eq(billTemplates.createdByUserId, userId),
+          eq(billTemplates.householdId, householdId),
+          eq(billTemplates.billType, 'expense'),
+          eq(billTemplates.isActive, true),
+          inArray(billOccurrences.status, ['unpaid', 'partial', 'overdue'])
         )
       );
 
@@ -74,31 +86,50 @@ export async function findMatchingBillInstance(
       return null;
     }
 
-    // Group bills by bill ID and collect instances
+    // Group bills and collect instances
     const billMap = new Map<
       string,
       {
-        bill: typeof bills.$inferSelect;
+        bill: {
+          id: string;
+          name: string;
+        };
         instances: Array<
-          typeof billInstances.$inferSelect & { isOverdue: boolean }
+          {
+            id: string;
+            dueDate: string;
+            status: 'unpaid' | 'partial' | 'paid' | 'overpaid' | 'overdue' | 'skipped';
+            isOverdue: boolean;
+          }
         >;
+        recurrenceType: string;
+        expectedAmount: number;
+        amountTolerance: number;
       }
     >();
 
-    for (const { bill, instance } of billsWithInstances) {
-      if (!billMap.has(bill.id)) {
-        billMap.set(bill.id, {
-          bill,
+    for (const row of billsWithInstances) {
+      if (!billMap.has(row.billId)) {
+        billMap.set(row.billId, {
+          bill: {
+            id: row.billId,
+            name: row.billName,
+          },
           instances: [],
+          recurrenceType: row.recurrenceType,
+          expectedAmount: new Decimal(row.defaultAmountCents).div(100).toNumber(),
+          amountTolerance: new Decimal(row.amountToleranceBps).div(100).toNumber(),
         });
       }
-      billMap.get(bill.id)!.instances.push({
-        ...instance,
-        isOverdue: instance.status === 'overdue',
+      billMap.get(row.billId)!.instances.push({
+        id: row.instanceId,
+        dueDate: row.dueDate,
+        status: row.status,
+        isOverdue: row.status === 'overdue',
       });
     }
 
-    // Convert to bill-matcher format
+    // Convert to matcher format
     const billsForMatching: BillForMatching[] = [];
     const instanceMap = new Map<
       string,
@@ -110,7 +141,7 @@ export async function findMatchingBillInstance(
       }
     >();
 
-    for (const [billId, { bill, instances }] of billMap) {
+    for (const [billId, { bill, instances, recurrenceType, expectedAmount, amountTolerance }] of billMap) {
       // Use the oldest instance for matching (prioritize overdue)
       instances.sort((a, b) => {
         if (a.isOverdue !== b.isOverdue) {
@@ -123,9 +154,9 @@ export async function findMatchingBillInstance(
 
       const instance = instances[0];
 
-      // Extract due date based on bill frequency
+      // Extract due date based on bill recurrence
       let dueDate: number;
-      if (bill.frequency === 'weekly' || bill.frequency === 'biweekly') {
+      if (recurrenceType === 'weekly' || recurrenceType === 'biweekly') {
         // For weekly/biweekly, use day of week from instance due date
         dueDate = extractDayOfWeek(instance.dueDate);
       } else {
@@ -133,26 +164,13 @@ export async function findMatchingBillInstance(
         dueDate = extractDayOfMonth(instance.dueDate);
       }
 
-      // Parse payee patterns (stored as JSON string)
-      let payeePatterns: string[] = [];
-      if (bill.payeePatterns) {
-        try {
-          const parsed = JSON.parse(bill.payeePatterns);
-          payeePatterns = Array.isArray(parsed) ? parsed : [bill.payeePatterns];
-        } catch {
-          // If not JSON, treat as single pattern
-          payeePatterns = [bill.payeePatterns];
-        }
-      }
-
       billsForMatching.push({
         id: billId,
         name: bill.name,
-        expectedAmount: bill.expectedAmount,
+        expectedAmount,
         dueDate,
-        isVariableAmount: bill.isVariableAmount ?? false,
-        amountTolerance: bill.amountTolerance ?? 5.0,
-        payeePatterns: payeePatterns.length > 0 ? payeePatterns : undefined,
+        isVariableAmount: false,
+        amountTolerance,
       });
 
       // Store instance mapping for later retrieval
@@ -164,7 +182,7 @@ export async function findMatchingBillInstance(
       });
     }
 
-    // Convert transaction to bill-matcher format
+    // Convert transaction to matcher format
     const transactionForMatching: TransactionForMatching = {
       id: transaction.id,
       description: transaction.description,
@@ -197,8 +215,10 @@ export async function findMatchingBillInstance(
     }
 
     return {
-      billId: bestMatch.billId,
-      instanceId: instanceInfo.instanceId,
+    billId: bestMatch.billId,
+    instanceId: instanceInfo.instanceId,
+    templateId: bestMatch.billId,
+    occurrenceId: instanceInfo.instanceId,
       confidence: bestMatch.confidence,
     };
   } catch (error) {
@@ -207,3 +227,5 @@ export async function findMatchingBillInstance(
     return null;
   }
 }
+
+

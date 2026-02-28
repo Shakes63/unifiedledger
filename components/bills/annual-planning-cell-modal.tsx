@@ -134,12 +134,12 @@ export function AnnualPlanningCellModal({
     try {
       const amount = parseFloat(actualAmount) || data.amount;
       
-      const response = await fetchWithHousehold(`/api/bills-v2/instances/${data.instanceId}`, {
+      const response = await fetchWithHousehold(`/api/bills/occurrences/${data.instanceId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           status: 'paid',
-          actualAmount: amount,
+          actualAmountCents: Math.round(amount * 100),
           paidDate: getTodayLocalDateString(),
         }),
       });
@@ -165,7 +165,7 @@ export function AnnualPlanningCellModal({
 
     setIsUpdating(true);
     try {
-      const response = await fetchWithHousehold(`/api/bills-v2/instances/${data.instanceId}`, {
+      const response = await fetchWithHousehold(`/api/bills/occurrences/${data.instanceId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -194,12 +194,12 @@ export function AnnualPlanningCellModal({
 
     setIsUpdating(true);
     try {
-      const response = await fetchWithHousehold(`/api/bills-v2/instances/${data.instanceId}`, {
+      const response = await fetchWithHousehold(`/api/bills/occurrences/${data.instanceId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          status: 'pending',
-          actualAmount: null,
+          status: 'unpaid',
+          actualAmountCents: null,
           paidDate: null,
         }),
       });

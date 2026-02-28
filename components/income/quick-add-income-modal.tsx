@@ -169,16 +169,20 @@ export function QuickAddIncomeModal({
 
       const incomeData: Record<string, unknown> = {
         name: name.trim(),
-        expectedAmount: parsedAmount,
-        frequency,
-        dueDate: parsedDate,
+        defaultAmountCents: Math.round(parsedAmount * 100),
+        recurrenceType: frequency === 'weekly' || frequency === 'biweekly' ? frequency : 'monthly',
+        recurrenceDueDay: frequency === 'monthly' ? parsedDate : null,
+        recurrenceDueWeekday: frequency === 'weekly' || frequency === 'biweekly' ? parsedDate : null,
+        recurrenceSpecificDueDate: null,
+        recurrenceStartMonth: null,
         categoryId: categoryId || null,
         billType: 'income',
-        billClassification: incomeType,
+        classification: 'other',
+        classificationSubcategory: incomeType,
         autoMarkPaid: true,
       };
 
-      const response = await fetchWithHousehold('/api/bills-v2', {
+      const response = await fetchWithHousehold('/api/bills/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(incomeData),

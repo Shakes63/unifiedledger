@@ -128,14 +128,14 @@ export function CompactStatsBar() {
         }
 
         // Fetch bills for pending count
-        const billsResponse = await fetchWithHousehold('/api/bills-v2/instances?status=pending&sortBy=dueDate');
+        const billsResponse = await fetchWithHousehold('/api/bills/occurrences?status=unpaid,partial&limit=1000');
         if (billsResponse.ok) {
           const billsData = await billsResponse.json();
-          const rawData = Array.isArray(billsData) ? billsData : billsData.data || [];
+          const rawData = Array.isArray(billsData?.data) ? billsData.data : [];
 
           // Filter for this month only
-          const thisMonthBills = rawData.filter((row: { instance: { dueDate: string } }) => {
-            const dueDate = new Date(row.instance.dueDate);
+          const thisMonthBills = rawData.filter((row: { occurrence: { dueDate: string } }) => {
+            const dueDate = new Date(row.occurrence.dueDate);
             return dueDate >= firstDayOfMonth && dueDate <= lastDayOfMonth;
           });
           setBillsDueCount(thisMonthBills.length);

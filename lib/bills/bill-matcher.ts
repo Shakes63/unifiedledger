@@ -13,7 +13,7 @@ export interface TransactionForMatching {
 }
 
 /**
- * Bill data structure for matching
+ * Template data structure for matching
  */
 export interface BillForMatching {
   id: string;
@@ -26,7 +26,7 @@ export interface BillForMatching {
 }
 
 /**
- * Bill match result
+ * Template match result
  */
 export interface BillMatch {
   billId: string;
@@ -128,7 +128,7 @@ function checkDateMatch(transactionDate: string, billDueDate: number): boolean {
 }
 
 /**
- * Find matching bills for a transaction
+ * Find matching templates for a transaction
  * Returns array of potential matches sorted by confidence
  */
 export async function findMatchingBills(
@@ -137,7 +137,7 @@ export async function findMatchingBills(
 ): Promise<BillMatch[]> {
   const matches: BillMatch[] = [];
 
-  // Only match expense transactions to bills
+  // Only match expense transactions to templates
   if (transaction.type !== 'expense') {
     return matches;
   }
@@ -236,3 +236,5 @@ export async function batchMatchTransactions(
 
   return results;
 }
+
+

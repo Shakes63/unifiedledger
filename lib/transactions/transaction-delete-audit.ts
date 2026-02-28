@@ -2,7 +2,15 @@ import { and, eq } from 'drizzle-orm';
 
 import { createTransactionSnapshot, logTransactionAudit } from '@/lib/transactions/audit-logger';
 import { db } from '@/lib/db';
-import { accounts, betterAuthUser, bills, budgetCategories, debts, merchants, transactions } from '@/lib/db/schema';
+import {
+  accounts,
+  betterAuthUser,
+  billTemplates,
+  budgetCategories,
+  debts,
+  merchants,
+  transactions,
+} from '@/lib/db/schema';
 
 interface LogTransactionDeletionAuditParams {
   transactionId: string;
@@ -58,13 +66,13 @@ export async function logTransactionDeletionAudit({
         : Promise.resolve([]),
       transaction.billId
         ? db
-            .select({ name: bills.name })
-            .from(bills)
+            .select({ name: billTemplates.name })
+            .from(billTemplates)
             .where(
               and(
-                eq(bills.id, transaction.billId),
-                eq(bills.userId, userId),
-                eq(bills.householdId, householdId)
+                eq(billTemplates.id, transaction.billId),
+                eq(billTemplates.createdByUserId, userId),
+                eq(billTemplates.householdId, householdId)
               )
             )
             .limit(1)

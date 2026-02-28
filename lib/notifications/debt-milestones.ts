@@ -3,7 +3,7 @@
  * 
  * Creates notifications for debt payoff milestones across all debt types:
  * - Credit accounts (credit cards, lines of credit)
- * - Debt bills (personal loans, mortgages, etc. with isDebt=true)
+ * - Debt-enabled bill schedules
  * 
  * Part of Phase 10: Notifications for the Unified Architecture.
  */
@@ -11,13 +11,10 @@
 import { db } from '@/lib/db';
 import { 
   accounts, 
-  bills, 
+  billTemplates, 
   billMilestones, 
   notifications, 
   userHouseholdPreferences,
-  // Legacy table kept for backward compatibility
-  debts, 
-  debtPayoffMilestones 
 } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
@@ -92,21 +89,25 @@ async function getUnifiedDebts(householdId: string): Promise<UnifiedDebt[]> {
     }
   }
 
-  // Get debt bills
+  // Get debt-enabled bill schedules
   const debtBills = await db
     .select()
-    .from(bills)
+    .from(billTemplates)
     .where(
       and(
-        eq(bills.householdId, householdId),
-        eq(bills.isDebt, true),
-        eq(bills.isActive, true)
+        eq(billTemplates.householdId, householdId),
+        eq(billTemplates.debtEnabled, true),
+        eq(billTemplates.isActive, true)
       )
     );
 
   for (const bill of debtBills) {
-    const balance = bill.remainingBalance || 0;
-    const originalBalance = bill.originalBalance || balance;
+    const balance = bill.debtRemainingBalanceCents
+      ? new Decimal(bill.debtRemainingBalanceCents).div(100).toNumber()
+      : 0;
+    const originalBalance = bill.debtOriginalBalanceCents
+      ? new Decimal(bill.debtOriginalBalanceCents).div(100).toNumber()
+      : balance;
     
     if (balance > 0 || originalBalance > 0) {
       unifiedDebts.push({
@@ -115,7 +116,7 @@ async function getUnifiedDebts(householdId: string): Promise<UnifiedDebt[]> {
         source: 'bill',
         balance,
         originalBalance,
-        userId: bill.userId,
+        userId: bill.createdByUserId,
         householdId: bill.householdId,
       });
     }
@@ -329,84 +330,6 @@ export async function checkAndCreateUnifiedDebtMilestoneNotifications(
 }
 
 /**
- * Legacy function - Check milestones for old debts table
- * Kept for backward compatibility during transition
- */
-export async function checkAndCreateDebtPayoffMilestoneNotifications(userId: string) {
-  try {
-    // Get all active debts for the user (legacy table)
-    const activeDebts = await db
-      .select()
-      .from(debts)
-      .where(and(eq(debts.userId, userId), eq(debts.status, 'active')));
-
-    const now = new Date().toISOString();
-    const createdNotifications = [];
-
-    for (const debt of activeDebts) {
-      // Get all milestones for this debt
-      const milestones = await db
-        .select()
-        .from(debtPayoffMilestones)
-        .where(eq(debtPayoffMilestones.debtId, debt.id));
-
-      // Check for newly achieved milestones
-      for (const milestone of milestones) {
-        // Check if milestone has been achieved but notification not sent yet
-        if (
-          milestone.achievedAt &&
-          !milestone.notificationSentAt &&
-          debt.remainingBalance <= milestone.milestoneBalance
-        ) {
-          // Create notification
-          const notificationId = nanoid();
-          const milestoneText = `${milestone.percentage}% paid off`;
-
-          await db.insert(notifications).values({
-            id: notificationId,
-            userId,
-            type: 'debt_milestone',
-            title: `Progress Milestone: ${debt.name}`,
-            message: `You've reached ${milestoneText} of your ${debt.creditorName} debt! Keep it up!`,
-            priority: 'high',
-            entityType: 'debt',
-            entityId: debt.id,
-            metadata: JSON.stringify({
-              debtId: debt.id,
-              debtName: debt.name,
-              creditorName: debt.creditorName,
-              percentage: milestone.percentage,
-              milestoneBalance: milestone.milestoneBalance,
-              remainingBalance: debt.remainingBalance,
-              originalAmount: debt.originalAmount,
-            }),
-            isRead: false,
-            createdAt: now,
-          });
-
-          // Mark notification as sent
-          await db
-            .update(debtPayoffMilestones)
-            .set({ notificationSentAt: now })
-            .where(eq(debtPayoffMilestones.id, milestone.id));
-
-          createdNotifications.push({
-            debtId: debt.id,
-            debtName: debt.name,
-            percentage: milestone.percentage,
-          });
-        }
-      }
-    }
-
-    return createdNotifications;
-  } catch (error) {
-    console.error('Error checking debt payoff milestones:', error);
-    return [];
-  }
-}
-
-/**
  * Get unified debt milestone stats for a household
  */
 export async function getUnifiedDebtMilestoneStats(householdId: string) {
@@ -486,61 +409,3 @@ export async function getUnifiedDebtMilestoneStats(householdId: string) {
   }
 }
 
-/**
- * Legacy function - Get stats from old debts table
- * Kept for backward compatibility
- */
-export async function getDebtPayoffMilestoneStats(userId: string) {
-  try {
-    const allDebts = await db.select().from(debts).where(eq(debts.userId, userId));
-
-    const allMilestones = await db
-      .select()
-      .from(debtPayoffMilestones)
-      .where(eq(debtPayoffMilestones.userId, userId));
-
-    const achievedCount = allMilestones.filter((m) => m.achievedAt).length;
-    const totalCount = allMilestones.length;
-
-    // Group by percentage
-    const byPercentage = {
-      25: { achieved: 0, total: 0 },
-      50: { achieved: 0, total: 0 },
-      75: { achieved: 0, total: 0 },
-      100: { achieved: 0, total: 0 },
-    };
-
-    for (const milestone of allMilestones) {
-      const pct = milestone.percentage as 25 | 50 | 75 | 100;
-      byPercentage[pct].total += 1;
-      if (milestone.achievedAt) {
-        byPercentage[pct].achieved += 1;
-      }
-    }
-
-    // Calculate total debt momentum
-    const activeDebts = allDebts.filter((d) => d.status === 'active');
-    const totalRemaining = activeDebts.reduce((sum, d) => sum + d.remainingBalance, 0);
-    const totalOriginal = activeDebts.reduce((sum, d) => sum + d.originalAmount, 0);
-    const percentagePaidOff = totalOriginal > 0 ? (totalOriginal - totalRemaining) / totalOriginal * 100 : 0;
-
-    return {
-      totalDebts: allDebts.length,
-      activeDebts: activeDebts.length,
-      totalMilestones: totalCount,
-      achievedMilestones: achievedCount,
-      percentagePaidOff,
-      byPercentage,
-    };
-  } catch (error) {
-    console.error('Error getting debt milestone stats:', error);
-    return {
-      totalDebts: 0,
-      activeDebts: 0,
-      totalMilestones: 0,
-      achievedMilestones: 0,
-      percentagePaidOff: 0,
-      byPercentage: { 25: { achieved: 0, total: 0 }, 50: { achieved: 0, total: 0 }, 75: { achieved: 0, total: 0 }, 100: { achieved: 0, total: 0 } },
-    };
-  }
-}

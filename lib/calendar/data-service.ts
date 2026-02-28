@@ -151,7 +151,7 @@ export interface CalendarDebtDetail {
   status: string;
   debtType: 'target' | 'milestone';
   milestonePercentage?: number;
-  source?: 'legacy' | 'account' | 'bill';
+  source?: 'debt' | 'account' | 'bill';
 }
 
 export interface CalendarAutopayEventDetail {
@@ -843,7 +843,7 @@ export async function getDayCalendarDetails(params: {
       type: debt.type || 'other',
       status: debt.status || 'active',
       debtType: 'target',
-      source: 'legacy',
+      source: 'debt',
     };
   });
 
@@ -862,7 +862,7 @@ export async function getDayCalendarDetails(params: {
       status: debt.status || 'active',
       debtType: 'milestone',
       milestonePercentage: milestone.percentage,
-      source: 'legacy',
+      source: 'debt',
     });
   }
 

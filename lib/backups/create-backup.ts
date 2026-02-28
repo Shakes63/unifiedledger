@@ -5,7 +5,10 @@ import {
   transactions,
   accounts,
   budgetCategories,
-  bills,
+  autopayRules,
+  billOccurrences,
+  billPaymentEvents,
+  billTemplates,
   savingsGoals,
   debts,
   categorizationRules,
@@ -15,14 +18,13 @@ import {
   transactionTemplates,
   budgetPeriods,
   transactionSplits,
-  billInstances,
   savingsMilestones,
   debtPayments,
   userSettings,
   transactionTags,
   customFieldValues,
 } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { saveBackupFile, generateBackupFilename } from './backup-utils';
 
@@ -54,8 +56,7 @@ export async function createUserBackup(
           eq(backupSettings.userId, userId),
           eq(backupSettings.householdId, householdId)
         )
-      )
-      .limit(1);
+      );
 
     // Create default backup settings if they don't exist
     if (!settings || settings.length === 0) {
@@ -80,8 +81,7 @@ export async function createUserBackup(
             eq(backupSettings.userId, userId),
             eq(backupSettings.householdId, householdId)
           )
-        )
-        .limit(1);
+        );
     }
 
     const backupFormat = format || (settings[0]?.format as 'json' | 'csv') || 'json';
@@ -108,7 +108,7 @@ export async function createUserBackup(
         userTransactions,
         userAccounts,
         userCategories,
-        userBills,
+        userBillTemplates,
         userGoals,
         userDebts,
         userRules,
@@ -118,7 +118,6 @@ export async function createUserBackup(
         userTemplates,
         userBudgetPeriods,
         userTransactionSplits,
-        userBillInstances,
         userGoalMilestones,
         userDebtPayments,
         userSettingsData,
@@ -135,8 +134,8 @@ export async function createUserBackup(
         db.select().from(budgetCategories).where(
           and(eq(budgetCategories.userId, userId), eq(budgetCategories.householdId, householdId))
         ),
-        db.select().from(bills).where(
-          and(eq(bills.userId, userId), eq(bills.householdId, householdId))
+        db.select().from(billTemplates).where(
+          and(eq(billTemplates.createdByUserId, userId), eq(billTemplates.householdId, householdId))
         ),
         db.select().from(savingsGoals).where(
           and(eq(savingsGoals.userId, userId), eq(savingsGoals.householdId, householdId))
@@ -159,9 +158,6 @@ export async function createUserBackup(
         db.select().from(transactionSplits).where(
           and(eq(transactionSplits.userId, userId), eq(transactionSplits.householdId, householdId))
         ),
-        db.select().from(billInstances).where(
-          and(eq(billInstances.userId, userId), eq(billInstances.householdId, householdId))
-        ),
         db.select().from(savingsMilestones).where(
           and(eq(savingsMilestones.userId, userId), eq(savingsMilestones.householdId, householdId))
         ),
@@ -176,6 +172,40 @@ export async function createUserBackup(
         db.select().from(transactionTags).where(eq(transactionTags.userId, userId)),
         db.select().from(customFieldValues).where(eq(customFieldValues.userId, userId)),
       ]);
+
+      const templateIds = userBillTemplates.map((template) => template.id);
+      const [userBillOccurrences, userBillPaymentEvents, userAutopayRules] =
+        templateIds.length > 0
+          ? await Promise.all([
+              db
+                .select()
+                .from(billOccurrences)
+                .where(
+                  and(
+                    inArray(billOccurrences.templateId, templateIds),
+                    eq(billOccurrences.householdId, householdId)
+                  )
+                ),
+              db
+                .select()
+                .from(billPaymentEvents)
+                .where(
+                  and(
+                    inArray(billPaymentEvents.templateId, templateIds),
+                    eq(billPaymentEvents.householdId, householdId)
+                  )
+                ),
+              db
+                .select()
+                .from(autopayRules)
+                .where(
+                  and(
+                    inArray(autopayRules.templateId, templateIds),
+                    eq(autopayRules.householdId, householdId)
+                  )
+                ),
+            ])
+          : [[], [], []];
 
       // Filter transactionTags and customFieldValues by household transactions
       const householdTransactionIds = userTransactions.map(t => t.id);
@@ -198,8 +228,10 @@ export async function createUserBackup(
           transactionTags: filteredTransactionTags,
           accounts: userAccounts,
           categories: userCategories,
-          bills: userBills,
-          billInstances: userBillInstances,
+          billTemplates: userBillTemplates,
+          billOccurrences: userBillOccurrences,
+          billPaymentEvents: userBillPaymentEvents,
+          autopayRules: userAutopayRules,
           goals: userGoals,
           goalMilestones: userGoalMilestones,
           debts: userDebts,
@@ -217,7 +249,7 @@ export async function createUserBackup(
           totalTransactions: userTransactions.length,
           totalAccounts: userAccounts.length,
           totalCategories: userCategories.length,
-          totalBills: userBills.length,
+          totalBills: userBillTemplates.length,
           totalGoals: userGoals.length,
           totalDebts: userDebts.length,
           totalMerchants: userMerchants.length,

@@ -58,7 +58,6 @@ export interface AppliedAction {
 
 /**
  * Rule match result from rule-matcher
- * Extended to include actions instead of just categoryId
  */
 export interface RuleMatch {
   /** ID of the matched rule */

@@ -86,7 +86,7 @@ export async function GET(request: Request) {
           : 0;
 
       return {
-        debtId: card.id, // Keep as debtId for backwards compatibility
+        debtId: card.id, // Stable API field name used by clients
         accountId: card.id, // Also include as accountId for new architecture
         name: card.name,
         balance: card.balance,

@@ -21,41 +21,15 @@ function mockSelectLimit(rows: any[]) {
 }
 
 describe('isOAuthLoginProviderConfigured', () => {
-  const envBackup = { ...process.env };
-
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env = { ...envBackup };
-    delete process.env.GOOGLE_CLIENT_ID;
-    delete process.env.GOOGLE_CLIENT_SECRET;
-    delete process.env.GITHUB_CLIENT_ID;
-    delete process.env.GITHUB_CLIENT_SECRET;
   });
 
   afterEach(() => {
-    process.env = { ...envBackup };
     vi.clearAllMocks();
   });
 
-  it('returns true when env vars are set (google)', async () => {
-    process.env.GOOGLE_CLIENT_ID = 'gid';
-    process.env.GOOGLE_CLIENT_SECRET = 'gsecret';
-
-    const ok = await isOAuthLoginProviderConfigured('google');
-    expect(ok).toBe(true);
-    expect(db.select).not.toHaveBeenCalled();
-  });
-
-  it('returns true when env vars are set (github)', async () => {
-    process.env.GITHUB_CLIENT_ID = 'hid';
-    process.env.GITHUB_CLIENT_SECRET = 'hsecret';
-
-    const ok = await isOAuthLoginProviderConfigured('github');
-    expect(ok).toBe(true);
-    expect(db.select).not.toHaveBeenCalled();
-  });
-
-  it('falls back to DB when env vars are missing', async () => {
+  it('returns true when DB has enabled provider config', async () => {
     (db.select as any).mockReturnValueOnce(mockSelectLimit([{ clientId: 'x', clientSecret: 'y' }]));
 
     const ok = await isOAuthLoginProviderConfigured('google');

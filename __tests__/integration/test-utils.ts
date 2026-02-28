@@ -141,7 +141,7 @@ export interface TestRule {
   isActive?: boolean;
   conditions: string; // JSON string
   actions: string; // JSON string
-  categoryId?: string | null; // Backward compatibility
+  categoryId?: string | null; // Shadow column derived from set_category action
   createdAt?: string;
   updatedAt?: string;
 }
@@ -452,7 +452,7 @@ export function createTestRule(
     ? { logic: 'AND', conditions } // Use uppercase AND for validation
     : conditions;
 
-  // Extract categoryId from set_category action for backward compatibility
+  // Keep categoryId shadow column aligned with set_category action.
   const setCategoryAction = actions.find(a => a.type === 'set_category');
   const categoryIdFromAction = setCategoryAction?.value || null;
 
@@ -465,7 +465,7 @@ export function createTestRule(
     isActive: true,
     conditions: JSON.stringify(conditionGroup),
     actions: JSON.stringify(actions),
-    categoryId: categoryIdFromAction, // For backward compatibility with database constraint
+    categoryId: categoryIdFromAction,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     ...overrides,

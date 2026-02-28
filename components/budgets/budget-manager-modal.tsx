@@ -298,8 +298,8 @@ export function BudgetManagerModal({
 
         // Save bill budget updates
         for (const update of billUpdates) {
-          await putWithHousehold(`/api/bills-v2/${update.id}`, {
-            budgetedMonthlyPayment: update.budgetedMonthlyPayment,
+          await putWithHousehold(`/api/bills/templates/${update.id}`, {
+            defaultAmountCents: Math.round(update.budgetedMonthlyPayment * 100),
           });
         }
       }

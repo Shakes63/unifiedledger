@@ -55,10 +55,10 @@ export async function applyLegacyDebtPayment({
   return true;
 }
 
-interface ProcessAndLinkBillPaymentParams {
-  billId: string;
-  billName: string;
-  instanceId: string;
+interface ProcessAndLinkTemplatePaymentParams {
+  templateId: string;
+  templateName: string;
+  occurrenceId: string;
   transactionId: string;
   paymentAmount: number;
   paymentDate: string;
@@ -67,14 +67,13 @@ interface ProcessAndLinkBillPaymentParams {
   linkedAccountId: string;
   paymentMethod: 'manual' | 'transfer' | 'autopay';
   notes: string;
-  legacyDebtId?: string | null;
   dbClient?: DbClient;
 }
 
-export async function processAndLinkBillPayment({
-  billId,
-  billName,
-  instanceId,
+export async function processAndLinkTemplatePayment({
+  templateId,
+  templateName,
+  occurrenceId,
   transactionId,
   paymentAmount,
   paymentDate,
@@ -83,12 +82,11 @@ export async function processAndLinkBillPayment({
   linkedAccountId,
   paymentMethod,
   notes,
-  legacyDebtId,
   dbClient = db,
-}: ProcessAndLinkBillPaymentParams) {
+}: ProcessAndLinkTemplatePaymentParams) {
   const billLinkResult = await processAndAttachBillPayment({
-    billId,
-    instanceId,
+    templateId,
+    occurrenceId,
     transactionId,
     paymentAmount,
     paymentDate,
@@ -100,19 +98,6 @@ export async function processAndLinkBillPayment({
   });
   if (!billLinkResult.success) {
     return billLinkResult;
-  }
-
-  if (legacyDebtId) {
-    await applyLegacyDebtPayment({
-      debtId: legacyDebtId,
-      userId,
-      householdId,
-      paymentAmount,
-      paymentDate,
-      transactionId,
-      notes: `Automatic payment from bill: ${billName}`,
-      dbClient,
-    });
   }
 
   return {

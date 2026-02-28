@@ -28,7 +28,7 @@ export async function POST(
       );
     }
 
-    // Check if provider is configured (env vars or DB settings)
+    // Check if provider is configured in OAuth settings.
     const configured = await isOAuthLoginProviderConfigured(provider as 'google' | 'github');
     if (!configured) {
       return NextResponse.json(

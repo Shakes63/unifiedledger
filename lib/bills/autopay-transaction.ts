@@ -67,7 +67,7 @@ export interface FullBillData {
 
 export interface FullInstanceData {
   id: string;
-  billId: string;
+  templateId: string;
   userId: string;
   householdId: string;
   dueDate: string;
@@ -78,8 +78,9 @@ export interface FullInstanceData {
   paymentStatus: string | null;
 }
 
+
 /**
- * Process autopay for a single bill instance
+ * Process autopay for a single template occurrence
  * 
  * This function:
  * 1. Validates the autopay configuration
@@ -88,8 +89,8 @@ export interface FullInstanceData {
  * 4. Creates the appropriate transaction (transfer or expense)
  * 5. Records the payment via processBillPayment()
  * 
- * @param bill - The bill with autopay configuration
- * @param instance - The bill instance to pay
+ * @param template - The bill template with autopay configuration
+ * @param occurrence - The bill occurrence to pay
  * @returns AutopayResult with transaction details or error
  */
 export async function processAutopayForInstance(
@@ -105,7 +106,10 @@ export async function processAutopayForInstance(
       return {
         success: false,
         amount: 0,
-        error: instance.status === null ? 'Bill instance has invalid status' : 'Bill instance is already paid',
+        error:
+          instance.status === null
+            ? 'Occurrence has invalid status'
+            : 'Occurrence is already paid',
         errorCode: 'ALREADY_PAID',
       };
     }
@@ -320,7 +324,7 @@ export async function processAutopayForInstance(
       });
       transactionId = transferOutId;
     } else {
-      // Regular bill or loan - create expense
+      // Regular bill (or debt bill) - create expense
       transactionId = nanoid();
       
       await runInDatabaseTransaction(async (tx) => {
@@ -336,7 +340,7 @@ export async function processAutopayForInstance(
           description: `Autopay: ${bill.name}`,
           type: 'expense',
           isPending: false,
-          billId: bill.id, // Link to the bill
+          billId: bill.id,
           createdAt: now,
           updatedAt: now,
         });
@@ -394,3 +398,5 @@ export async function processAutopayForInstance(
     };
   }
 }
+
+

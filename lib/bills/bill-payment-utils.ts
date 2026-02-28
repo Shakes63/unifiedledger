@@ -1,25 +1,27 @@
 /**
- * Bill Payment Utilities
+ * Template Payment Utilities
  * 
- * Central utility for processing bill payments with support for:
+ * Central utility for processing template payments with support for:
  * - Full payments
  * - Partial payments with shortfall tracking
  * - Overpayments
- * - Debt bill payments with principal/interest breakdown
+ * - Debt template payments with principal/interest breakdown
  * - Payment history recording
  */
 
 import Decimal from 'decimal.js';
 import { nanoid } from 'nanoid';
 import { db } from '@/lib/db';
-import { bills, billInstances, billPayments } from '@/lib/db/schema';
+import { billOccurrences, billPaymentEvents, billTemplates } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { calculatePaymentBreakdown, PaymentBreakdown } from '@/lib/debts/payment-calculator';
 import { classifyInterestPayment } from '@/lib/tax/interest-tax-utils';
 
 export interface ProcessBillPaymentParams {
-  billId: string;
-  instanceId: string;
+  billId?: string;
+  instanceId?: string;
+  templateId?: string;
+  occurrenceId?: string;
   transactionId: string;
   paymentAmount: number;
   paymentDate: string;
@@ -54,15 +56,17 @@ export interface BillPaymentResult {
  * 
  * This function:
  * 1. Determines payment status (partial, full, overpaid)
- * 2. Creates a bill_payments record
- * 3. Updates the bill instance with payment tracking
- * 4. For debt bills, calculates principal/interest split and updates remaining balance
+ * 2. Creates a template payment event record
+ * 3. Updates the occurrence with payment tracking
+ * 4. For debt templates, calculates principal/interest split and updates remaining balance
  * 
  * @returns BillPaymentResult with payment details and status
  */
 export async function processBillPayment({
   billId,
   instanceId,
+  templateId,
+  occurrenceId,
   transactionId,
   paymentAmount,
   paymentDate,
@@ -73,96 +77,100 @@ export async function processBillPayment({
   notes,
 }: ProcessBillPaymentParams): Promise<BillPaymentResult> {
   try {
-    // Fetch bill and instance in parallel
-    const [billResult, instanceResult] = await Promise.all([
-      db
-        .select()
-        .from(bills)
-        .where(and(eq(bills.id, billId), eq(bills.userId, userId), eq(bills.householdId, householdId)))
-        .limit(1),
-      db
-        .select()
-        .from(billInstances)
-        .where(
-          and(
-            eq(billInstances.id, instanceId),
-            eq(billInstances.billId, billId),
-            eq(billInstances.userId, userId),
-            eq(billInstances.householdId, householdId)
-          )
+    const resolvedBillId = billId ?? templateId;
+    const resolvedInstanceId = instanceId ?? occurrenceId;
+    if (!resolvedBillId || !resolvedInstanceId) {
+      return {
+        success: false,
+        paymentId: '',
+        paymentStatus: 'unpaid',
+        paidAmount: 0,
+        remainingAmount: 0,
+        error: 'Bill ID and instance ID are required',
+      };
+    }
+
+    const [joined] = await db
+      .select({
+        template: billTemplates,
+        occurrence: billOccurrences,
+      })
+      .from(billOccurrences)
+      .innerJoin(billTemplates, eq(billTemplates.id, billOccurrences.templateId))
+      .where(
+        and(
+          eq(billTemplates.id, resolvedBillId),
+          eq(billTemplates.createdByUserId, userId),
+          eq(billTemplates.householdId, householdId),
+          eq(billOccurrences.id, resolvedInstanceId),
+          eq(billOccurrences.householdId, householdId)
         )
-        .limit(1),
-    ]);
+      )
+      .limit(1);
 
-    if (!billResult.length) {
+    if (!joined) {
       return {
         success: false,
         paymentId: '',
         paymentStatus: 'unpaid',
         paidAmount: 0,
         remainingAmount: 0,
-        error: 'Bill not found',
+        error: 'Bill or instance not found',
       };
     }
 
-    if (!instanceResult.length) {
-      return {
-        success: false,
-        paymentId: '',
-        paymentStatus: 'unpaid',
-        paidAmount: 0,
-        remainingAmount: 0,
-        error: 'Bill instance not found',
-      };
-    }
-
-    const bill = billResult[0];
-    const instance = instanceResult[0];
+    const { template, occurrence } = joined;
 
     // Calculate payment amounts using Decimal.js for precision
     const payment = new Decimal(paymentAmount);
-    const expectedAmount = new Decimal(instance.expectedAmount);
-    const previousPaidAmount = new Decimal(instance.paidAmount || 0);
+    const expectedAmount = new Decimal(occurrence.amountDueCents).div(100);
+    const previousPaidAmount = new Decimal(occurrence.amountPaidCents || 0).div(100);
     const newTotalPaid = previousPaidAmount.plus(payment);
     const remaining = expectedAmount.minus(newTotalPaid);
 
     // Determine payment status
     let paymentStatus: 'unpaid' | 'partial' | 'paid' | 'overpaid';
-    let instanceStatus: 'pending' | 'paid' | 'overdue' | 'skipped' = instance.status as 'pending' | 'paid' | 'overdue' | 'skipped';
+    let occurrenceStatus: 'unpaid' | 'partial' | 'paid' | 'overpaid' | 'overdue' | 'skipped' =
+      occurrence.status;
 
     if (newTotalPaid.lessThan(expectedAmount)) {
       paymentStatus = 'partial';
-      // Keep instance status as pending or overdue
+      occurrenceStatus = paymentDate > occurrence.dueDate ? 'overdue' : 'partial';
     } else if (newTotalPaid.equals(expectedAmount)) {
       paymentStatus = 'paid';
-      instanceStatus = 'paid';
+      occurrenceStatus = 'paid';
     } else {
       paymentStatus = 'overpaid';
-      instanceStatus = 'paid';
+      occurrenceStatus = 'overpaid';
     }
 
-    // Handle debt bills - calculate principal/interest breakdown
+    // Handle debt templates - calculate principal/interest breakdown
     let breakdown: PaymentBreakdown | null = null;
     let newDebtBalance: number | undefined;
     let balanceBeforePayment: number | undefined;
     let balanceAfterPayment: number | undefined;
 
-    if (bill.isDebt && bill.remainingBalance !== null) {
-      balanceBeforePayment = bill.remainingBalance;
+    const templateDebtBalance =
+      template.debtRemainingBalanceCents !== null
+        ? new Decimal(template.debtRemainingBalanceCents).div(100).toNumber()
+        : null;
+
+    if (template.debtEnabled && templateDebtBalance !== null) {
+      balanceBeforePayment = templateDebtBalance;
       
       // Calculate payment breakdown
       breakdown = calculatePaymentBreakdown(
         paymentAmount,
-        bill.remainingBalance,
-        bill.billInterestRate || 0,
-        (bill.interestType as 'fixed' | 'variable' | 'none') || 'none',
+        templateDebtBalance,
+        template.debtInterestAprBps ? new Decimal(template.debtInterestAprBps).div(100).toNumber() : 0,
+        (template.debtInterestType as 'fixed' | 'variable' | 'none') || 'none',
         'installment', // Debt bills are typically installment loans
         'monthly',
         30
       );
 
       // Calculate new balance
-      newDebtBalance = Math.max(0, bill.remainingBalance - breakdown.principalAmount);
+      newDebtBalance = Math.max(0, templateDebtBalance - breakdown.principalAmount);
       balanceAfterPayment = newDebtBalance;
     }
 
@@ -172,55 +180,69 @@ export async function processBillPayment({
 
     // Batch all database operations
     const dbOperations: Promise<unknown>[] = [
-      // Create bill_payments record
-      db.insert(billPayments).values({
+      // Create template payment event record
+      db.insert(billPaymentEvents).values({
         id: paymentId,
-        billId,
-        billInstanceId: instanceId,
-        transactionId,
-        userId,
         householdId,
-        amount: paymentAmount,
-        principalAmount: breakdown?.principalAmount || null,
-        interestAmount: breakdown?.interestAmount || null,
-        paymentDate,
+        templateId: resolvedBillId,
+        occurrenceId: resolvedInstanceId,
+        transactionId,
+        amountCents: new Decimal(paymentAmount).times(100).toDecimalPlaces(0).toNumber(),
+        principalCents:
+          breakdown?.principalAmount !== undefined
+            ? new Decimal(breakdown.principalAmount).times(100).toDecimalPlaces(0).toNumber()
+            : null,
+        interestCents:
+          breakdown?.interestAmount !== undefined
+            ? new Decimal(breakdown.interestAmount).times(100).toDecimalPlaces(0).toNumber()
+            : null,
+        paymentDate: paymentDate.slice(0, 10),
         paymentMethod,
-        linkedAccountId: linkedAccountId || null,
-        balanceBeforePayment: balanceBeforePayment || null,
-        balanceAfterPayment: balanceAfterPayment || null,
+        sourceAccountId: linkedAccountId || null,
+        balanceBeforeCents:
+          balanceBeforePayment !== undefined
+            ? new Decimal(balanceBeforePayment).times(100).toDecimalPlaces(0).toNumber()
+            : null,
+        balanceAfterCents:
+          balanceAfterPayment !== undefined
+            ? new Decimal(balanceAfterPayment).times(100).toDecimalPlaces(0).toNumber()
+            : null,
         notes: notes || null,
         createdAt: now,
       }),
 
-      // Update bill instance
-      db.update(billInstances)
+      // Update occurrence
+      db.update(billOccurrences)
         .set({
-          paidAmount: newTotalPaid.toNumber(),
-          remainingAmount: remaining.greaterThan(0) ? remaining.toNumber() : 0,
-          paymentStatus,
-          status: instanceStatus,
-          paidDate: paymentStatus === 'paid' || paymentStatus === 'overpaid' ? paymentDate : instance.paidDate,
-          transactionId: transactionId, // Link to most recent transaction
-          actualAmount: newTotalPaid.toNumber(),
-          principalPaid: breakdown 
-            ? new Decimal(instance.principalPaid || 0).plus(breakdown.principalAmount).toNumber()
-            : instance.principalPaid,
-          interestPaid: breakdown
-            ? new Decimal(instance.interestPaid || 0).plus(breakdown.interestAmount).toNumber()
-            : instance.interestPaid,
+          amountPaidCents: new Decimal(newTotalPaid).times(100).toDecimalPlaces(0).toNumber(),
+          amountRemainingCents: Math.max(
+            0,
+            new Decimal(remaining).times(100).toDecimalPlaces(0).toNumber()
+          ),
+          status: occurrenceStatus,
+          paidDate:
+            paymentStatus === 'paid' || paymentStatus === 'overpaid'
+              ? paymentDate.slice(0, 10)
+              : occurrence.paidDate,
+          lastTransactionId: transactionId,
+          actualAmountCents: new Decimal(newTotalPaid).times(100).toDecimalPlaces(0).toNumber(),
           updatedAt: now,
         })
-        .where(eq(billInstances.id, instanceId)),
+        .where(eq(billOccurrences.id, resolvedInstanceId)),
     ];
 
-    // If debt bill, update the bill's remaining balance
-    if (bill.isDebt && newDebtBalance !== undefined) {
+    // If debt-enabled template, update remaining balance
+    if (template.debtEnabled && newDebtBalance !== undefined) {
       dbOperations.push(
-        db.update(bills)
+        db.update(billTemplates)
           .set({
-            remainingBalance: newDebtBalance,
+            debtRemainingBalanceCents: new Decimal(newDebtBalance)
+              .times(100)
+              .toDecimalPlaces(0)
+              .toNumber(),
+            updatedAt: now,
           })
-          .where(eq(bills.id, billId))
+          .where(eq(billTemplates.id, resolvedBillId))
       );
     }
 
@@ -230,9 +252,9 @@ export async function processBillPayment({
     // Phase 11: Auto-classify interest for tax deduction if applicable
     let taxDeductionInfo: BillPaymentResult['taxDeductionInfo'];
     if (
-      bill.isDebt &&
-      bill.isInterestTaxDeductible &&
-      bill.taxDeductionType !== 'none' &&
+      template.debtEnabled &&
+      template.interestTaxDeductible &&
+      template.interestTaxDeductionType !== 'none' &&
       breakdown?.interestAmount &&
       breakdown.interestAmount > 0
     ) {
@@ -240,7 +262,7 @@ export async function processBillPayment({
         const taxResult = await classifyInterestPayment(
           userId,
           householdId,
-          billId,
+          resolvedBillId,
           paymentId,
           breakdown.interestAmount,
           paymentDate
@@ -272,7 +294,7 @@ export async function processBillPayment({
       taxDeductionInfo,
     };
   } catch (error) {
-    console.error('Error processing bill payment:', error);
+    console.error('Error processing template payment:', error);
     return {
       success: false,
       paymentId: '',
@@ -288,7 +310,7 @@ export async function processBillPayment({
  * Find a pending bill instance for a credit account payment
  * 
  * When a transfer is made to a credit card, this function finds
- * the appropriate bill instance to mark as paid.
+ * the appropriate instance to mark as paid.
  * 
  * @param linkedAccountId - The credit account being paid
  * @param paymentAmount - The payment amount
@@ -302,53 +324,53 @@ export async function findCreditPaymentBillInstance(
   userId: string,
   householdId: string,
   dateToleranceDays: number = 7
-): Promise<{ billId: string; instanceId: string; expectedAmount: number } | null> {
-  // Find bills linked to this credit account
-  const linkedBills = await db
-    .select()
-    .from(bills)
+): Promise<{
+  billId: string;
+  instanceId: string;
+  templateId: string;
+  occurrenceId: string;
+  expectedAmount: number;
+} | null> {
+  // Find templates linked to this liability account
+  const linkedTemplates = await db
+    .select({ id: billTemplates.id })
+    .from(billTemplates)
     .where(
       and(
-        eq(bills.linkedAccountId, linkedAccountId),
-        eq(bills.userId, userId),
-        eq(bills.householdId, householdId),
-        eq(bills.isActive, true)
+        eq(billTemplates.linkedLiabilityAccountId, linkedAccountId),
+        eq(billTemplates.createdByUserId, userId),
+        eq(billTemplates.householdId, householdId),
+        eq(billTemplates.billType, 'expense'),
+        eq(billTemplates.isActive, true)
       )
     );
 
-  if (!linkedBills.length) {
+  if (!linkedTemplates.length) {
     return null;
   }
 
-  // Get pending instances for these bills
-  const billIds = linkedBills.map(b => b.id);
-  const pendingInstances = await db
+  const templateIds = linkedTemplates.map((b) => b.id);
+  const pendingOccurrences = await db
     .select()
-    .from(billInstances)
+    .from(billOccurrences)
     .where(
       and(
-        inArray(billInstances.billId, billIds),
-        eq(billInstances.userId, userId),
-        eq(billInstances.householdId, householdId),
-        inArray(billInstances.status, ['pending', 'overdue'])
+        inArray(billOccurrences.templateId, templateIds),
+        eq(billOccurrences.householdId, householdId),
+        inArray(billOccurrences.status, ['unpaid', 'partial', 'overdue'])
       )
     );
 
-  // Filter to relevant bills and pending status
-  const relevantInstances = pendingInstances.filter(
-    inst => inst.status === 'pending' || inst.status === 'overdue' || inst.paymentStatus === 'partial'
-  );
-
-  if (!relevantInstances.length) {
+  if (!pendingOccurrences.length) {
     return null;
   }
 
-  // Find best matching instance based on date
+  // Find best matching occurrence based on date
   const paymentDateObj = new Date(paymentDate);
-  let bestMatch: { instance: typeof relevantInstances[0]; dateDiff: number } | null = null;
+  let bestMatch: { occurrence: typeof pendingOccurrences[0]; dateDiff: number } | null = null;
 
-  for (const instance of relevantInstances) {
-    const dueDate = new Date(instance.dueDate);
+  for (const occurrence of pendingOccurrences) {
+    const dueDate = new Date(occurrence.dueDate);
     const dateDiff = Math.abs(
       Math.floor((paymentDateObj.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
     );
@@ -356,8 +378,8 @@ export async function findCreditPaymentBillInstance(
     // Check if within tolerance
     if (dateDiff <= dateToleranceDays) {
       // Prefer closest date or overdue instances
-      if (!bestMatch || instance.status === 'overdue' || dateDiff < bestMatch.dateDiff) {
-        bestMatch = { instance, dateDiff };
+      if (!bestMatch || occurrence.status === 'overdue' || dateDiff < bestMatch.dateDiff) {
+        bestMatch = { occurrence, dateDiff };
       }
     }
   }
@@ -367,56 +389,56 @@ export async function findCreditPaymentBillInstance(
   }
 
   return {
-    billId: bestMatch.instance.billId,
-    instanceId: bestMatch.instance.id,
-    expectedAmount: bestMatch.instance.expectedAmount,
+    billId: bestMatch.occurrence.templateId,
+    instanceId: bestMatch.occurrence.id,
+    templateId: bestMatch.occurrence.templateId,
+    occurrenceId: bestMatch.occurrence.id,
+    expectedAmount: new Decimal(bestMatch.occurrence.amountDueCents).div(100).toNumber(),
   };
 }
 
 /**
- * Get payment history for a bill
+ * Get payment history for a template
  */
 export async function getBillPaymentHistory(
   billId: string,
-  userId: string,
+  _userId: string,
   householdId: string
-): Promise<typeof billPayments.$inferSelect[]> {
+): Promise<typeof billPaymentEvents.$inferSelect[]> {
   return db
     .select()
-    .from(billPayments)
+    .from(billPaymentEvents)
     .where(
       and(
-        eq(billPayments.billId, billId),
-        eq(billPayments.userId, userId),
-        eq(billPayments.householdId, householdId)
+        eq(billPaymentEvents.templateId, billId),
+        eq(billPaymentEvents.householdId, householdId)
       )
     )
-    .orderBy(billPayments.paymentDate);
+    .orderBy(billPaymentEvents.paymentDate);
 }
 
 /**
- * Get payment history for a specific bill instance
+ * Get payment history for a specific occurrence
  */
 export async function getInstancePaymentHistory(
   instanceId: string,
-  userId: string,
+  _userId: string,
   householdId: string
-): Promise<typeof billPayments.$inferSelect[]> {
+): Promise<typeof billPaymentEvents.$inferSelect[]> {
   return db
     .select()
-    .from(billPayments)
+    .from(billPaymentEvents)
     .where(
       and(
-        eq(billPayments.billInstanceId, instanceId),
-        eq(billPayments.userId, userId),
-        eq(billPayments.householdId, householdId)
+        eq(billPaymentEvents.occurrenceId, instanceId),
+        eq(billPaymentEvents.householdId, householdId)
       )
     )
-    .orderBy(billPayments.paymentDate);
+    .orderBy(billPaymentEvents.paymentDate);
 }
 
 /**
- * Check if a bill payment would be a shortfall (partial payment)
+ * Check if a template payment would be a shortfall (partial payment)
  */
 export function checkPaymentShortfall(
   paymentAmount: number,
@@ -445,4 +467,5 @@ export function checkPaymentShortfall(
     paymentPercentage: percentage.toDecimalPlaces(1).toNumber(),
   };
 }
+
 

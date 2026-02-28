@@ -9,10 +9,97 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useHousehold } from '@/contexts/household-context';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
-import type { BillData } from '@/components/bills/bill-form';
+import type { BillData, BillTemplateUpsertPayload } from '@/components/bills/bill-form';
+import type { BillTemplateDto, RecurrenceType } from '@/lib/bills/contracts';
 
 interface PageProps {
   params: Promise<{ id: string }>;
+}
+
+interface BillAutopayConfig {
+  isEnabled: boolean;
+  payFromAccountId: string | null;
+  amountType: 'fixed' | 'minimum_payment' | 'statement_balance' | 'full_balance';
+  fixedAmountCents: number | null;
+  daysBeforeDue: number;
+}
+
+function centsToDollars(value: number | null | undefined): number {
+  return (value || 0) / 100;
+}
+
+function recurrenceToFrequency(recurrenceType: RecurrenceType): BillData['frequency'] {
+  if (recurrenceType === 'one_time') return 'one-time';
+  if (recurrenceType === 'semi_annual') return 'semi-annual';
+  return recurrenceType;
+}
+
+function getLegacyDueDate(template: BillTemplateDto): number {
+  if (template.recurrenceType === 'weekly' || template.recurrenceType === 'biweekly') {
+    return template.recurrenceDueWeekday ?? 0;
+  }
+  if (template.recurrenceType === 'one_time') {
+    const day = Number(template.recurrenceSpecificDueDate?.split('-')[2] || '1');
+    return Number.isFinite(day) && day > 0 ? day : 1;
+  }
+  return template.recurrenceDueDay ?? 1;
+}
+
+function mapTemplateToBillData(template: BillTemplateDto, autopay: BillAutopayConfig | null): BillData {
+  return {
+    id: template.id,
+    name: template.name,
+    expectedAmount: centsToDollars(template.defaultAmountCents),
+    dueDate: getLegacyDueDate(template),
+    frequency: recurrenceToFrequency(template.recurrenceType),
+    specificDueDate: template.recurrenceSpecificDueDate,
+    startMonth: template.recurrenceStartMonth,
+    isVariableAmount: template.isVariableAmount,
+    amountTolerance: (template.amountToleranceBps || 0) / 100,
+    categoryId: template.categoryId,
+    merchantId: template.merchantId,
+    accountId: template.paymentAccountId,
+    autoMarkPaid: template.autoMarkPaid,
+    notes: template.notes,
+    billType: template.billType,
+    billClassification: template.classification,
+    classificationSubcategory: template.classificationSubcategory,
+    linkedAccountId: template.linkedLiabilityAccountId,
+    amountSource: 'fixed',
+    chargedToAccountId: template.chargedToAccountId,
+    isAutopayEnabled: autopay?.isEnabled || false,
+    autopayAccountId: autopay?.payFromAccountId || null,
+    autopayAmountType: autopay?.amountType || 'fixed',
+    autopayFixedAmount:
+      autopay?.fixedAmountCents !== null ? centsToDollars(autopay?.fixedAmountCents) : undefined,
+    autopayDaysBefore: autopay?.daysBeforeDue || 0,
+    isDebt: template.debtEnabled,
+    originalBalance:
+      template.debtOriginalBalanceCents !== null
+        ? centsToDollars(template.debtOriginalBalanceCents)
+        : undefined,
+    remainingBalance:
+      template.debtRemainingBalanceCents !== null
+        ? centsToDollars(template.debtRemainingBalanceCents)
+        : undefined,
+    billInterestRate:
+      template.debtInterestAprBps !== null && template.debtInterestAprBps !== undefined
+        ? template.debtInterestAprBps / 100
+        : undefined,
+    interestType: template.debtInterestType || 'none',
+    debtStartDate: template.debtStartDate,
+    billColor: template.debtColor,
+    includeInPayoffStrategy: template.includeInPayoffStrategy,
+    isInterestTaxDeductible: template.interestTaxDeductible,
+    taxDeductionType: template.interestTaxDeductionType,
+    taxDeductionLimit:
+      template.interestTaxDeductionLimitCents !== null
+        ? centsToDollars(template.interestTaxDeductionLimitCents)
+        : undefined,
+    budgetPeriodAssignment: template.budgetPeriodAssignment,
+    splitAcrossPeriods: template.splitAcrossPeriods,
+    splitAllocations: null,
+  };
 }
 
 export default function EditBillPage({ params }: PageProps) {
@@ -36,12 +123,17 @@ export default function EditBillPage({ params }: PageProps) {
 
       // Fetch existing bill data
       try {
-        const response = await fetchWithHousehold(`/api/bills-v2/${resolvedParams.id}`);
+        const response = await fetchWithHousehold(`/api/bills/templates/${resolvedParams.id}`);
         if (!response.ok) {
           throw new Error('Failed to fetch bill');
         }
-        const data = await response.json();
-        setBillData((data as { bill?: BillData }).bill ?? null);
+        const payload = await response.json() as {
+          data?: { template: BillTemplateDto; autopay: BillAutopayConfig | null };
+        };
+        if (!payload.data?.template) {
+          throw new Error('Bill template not found');
+        }
+        setBillData(mapTemplateToBillData(payload.data.template, payload.data.autopay ?? null));
       } catch (error) {
         console.error('Error fetching bill:', error);
         toast.error('Failed to load bill data');
@@ -54,11 +146,11 @@ export default function EditBillPage({ params }: PageProps) {
     initPage();
   }, [params, router, selectedHouseholdId, fetchWithHousehold]);
 
-  const handleSubmit = async (data: BillData) => {
+  const handleSubmit = async (data: BillTemplateUpsertPayload) => {
     try {
       setIsLoading(true);
 
-      const response = await fetchWithHousehold(`/api/bills-v2/${billId}`, {
+      const response = await fetchWithHousehold(`/api/bills/templates/${billId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -92,8 +92,6 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const {
-      // Legacy single rate (for backward compatibility)
-      defaultRate,
       // Multi-level rates
       stateRate,
       countyRate,
@@ -134,13 +132,7 @@ export async function POST(request: NextRequest) {
       .plus(validatedSpecialRate)
       .toNumber();
 
-    // Use computed total, or legacy defaultRate if no multi-level rates provided
-    const finalDefaultRate =
-      computedDefaultRate > 0
-        ? computedDefaultRate
-        : typeof defaultRate === 'number'
-          ? defaultRate
-          : 0;
+    const finalDefaultRate = computedDefaultRate;
 
     // Check if settings exist
     const existing = await db

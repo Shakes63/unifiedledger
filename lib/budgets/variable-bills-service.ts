@@ -1,6 +1,6 @@
 import Decimal from 'decimal.js';
 
-import { listBillTemplates, listOccurrences } from '@/lib/bills-v2/service';
+import { listBillTemplates, listOccurrences } from '@/lib/bills/service';
 import { getMonthRangeForYearMonth, toLocalDateString } from '@/lib/utils/local-date';
 
 type LegacyBillStatus = 'pending' | 'paid' | 'overdue' | 'skipped';

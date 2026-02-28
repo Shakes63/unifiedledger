@@ -6,7 +6,7 @@
  */
 
 import { db } from '@/lib/db';
-import { bills, billInstances } from '@/lib/db/schema';
+import { autopayRules, billOccurrences, billTemplates } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { parseISO, subDays, isSameDay } from 'date-fns';
 import { 
@@ -44,9 +44,9 @@ export interface AutopayProcessingResult {
 /**
  * Process all autopay bills that are due for processing today
  * 
- * A bill is due for processing when:
+ * A bill instance is due for processing when:
  * - Bill has autopay enabled
- * - Bill instance status is 'pending' or 'overdue'
+ * - Instance status is unpaid, partial, or overdue
  * - (Due date - autopayDaysBefore) = today
  * 
  * For example:
@@ -67,107 +67,128 @@ export async function processAllAutopayBills(): Promise<AutopayProcessingResult>
   };
 
   try {
-    // Get all autopay-enabled bills
-    const autopayBills = await db
+    // Get all autopay-enabled rules
+    const rules = await db
       .select()
-      .from(bills)
+      .from(autopayRules)
       .where(
-        and(
-          eq(bills.isAutopayEnabled, true),
-          eq(bills.isActive, true)
-        )
+        eq(autopayRules.isEnabled, true)
       );
 
-    if (autopayBills.length === 0) {
+    if (rules.length === 0) {
       return result;
     }
 
-    // Get bill IDs for filtering instances
-    const billIds = autopayBills.map(b => b.id);
-    const autopayUserIds = [...new Set(autopayBills.map((b) => b.userId))];
-    const autopayHouseholdIds = [...new Set(autopayBills.map((b) => b.householdId))];
-
-    // Get pending instances for these bills
-    // We look for instances within a reasonable date range (next 7 days max)
-    const pendingInstances = await db
+    const templateIds = rules.map((rule) => rule.templateId);
+    const templates = await db
       .select()
-      .from(billInstances)
+      .from(billTemplates)
       .where(
         and(
-          inArray(billInstances.billId, billIds),
-          inArray(billInstances.userId, autopayUserIds),
-          inArray(billInstances.householdId, autopayHouseholdIds),
-          // Status is pending or overdue
-          inArray(billInstances.status, ['pending', 'overdue'])
+          inArray(billTemplates.id, templateIds),
+          eq(billTemplates.isActive, true)
         )
       );
 
-    // Create a map of bill data for quick lookup
-    const billMap = new Map(autopayBills.map(b => [b.id, b]));
+    if (templates.length === 0) {
+      return result;
+    }
+
+    const templateIdSet = new Set(templates.map((t) => t.id));
+    const activeRules = rules.filter((rule) => templateIdSet.has(rule.templateId));
+
+    if (activeRules.length === 0) {
+      return result;
+    }
+
+    const pendingOccurrences = await db
+      .select()
+      .from(billOccurrences)
+      .where(
+        and(
+          inArray(
+            billOccurrences.templateId,
+            activeRules.map((rule) => rule.templateId)
+          ),
+          inArray(billOccurrences.status, ['unpaid', 'partial', 'overdue'])
+        )
+      );
+
+    const templateMap = new Map(templates.map((template) => [template.id, template]));
+    const ruleMap = new Map(activeRules.map((rule) => [rule.templateId, rule]));
 
     // Filter instances that should be processed today based on autopayDaysBefore
-    const eligibleInstances: Array<{
-      instance: typeof pendingInstances[0];
-      bill: typeof autopayBills[0];
+    const eligibleBillInstances: Array<{
+      instance: typeof pendingOccurrences[0];
+      bill: FullBillData;
     }> = [];
 
-    for (const instance of pendingInstances) {
-      const bill = billMap.get(instance.billId);
-      if (!bill) continue;
-      if (instance.userId !== bill.userId || instance.householdId !== bill.householdId) {
-        continue;
-      }
+    for (const instance of pendingOccurrences) {
+      const template = templateMap.get(instance.templateId);
+      const rule = ruleMap.get(instance.templateId);
+      if (!template || !rule) continue;
 
       // Skip if no autopay account configured
-      if (!bill.autopayAccountId) {
+      if (!rule.payFromAccountId) {
         result.skipped++;
         continue;
       }
 
       // Calculate when this instance should be processed
       const dueDate = parseISO(instance.dueDate);
-      const autopayDaysBefore = bill.autopayDaysBefore || 0;
+      const autopayDaysBefore = rule.daysBeforeDue || 0;
       const processingDate = subDays(dueDate, autopayDaysBefore);
 
       // Check if processing date is today
       if (isSameDay(processingDate, today)) {
-        eligibleInstances.push({ instance, bill });
+        eligibleBillInstances.push({
+          instance,
+          bill: {
+            id: template.id,
+            name: template.name,
+            userId: template.createdByUserId,
+            householdId: template.householdId,
+            expectedAmount: template.defaultAmountCents / 100,
+            categoryId: template.categoryId,
+            merchantId: template.merchantId,
+            isAutopayEnabled: rule.isEnabled,
+            autopayAccountId: rule.payFromAccountId,
+            autopayAmountType: rule.amountType,
+            autopayFixedAmount:
+              rule.fixedAmountCents !== null ? rule.fixedAmountCents / 100 : null,
+            autopayDaysBefore: rule.daysBeforeDue,
+            linkedAccountId: template.linkedLiabilityAccountId,
+            isDebt: template.debtEnabled,
+          },
+        });
       }
     }
 
     // Process each eligible instance
-    for (const { instance, bill } of eligibleInstances) {
+    for (const { instance, bill } of eligibleBillInstances) {
       result.processed++;
 
       // Convert to the expected types
       const billData: FullBillData = {
-        id: bill.id,
-        name: bill.name,
-        userId: bill.userId,
-        householdId: bill.householdId,
-        expectedAmount: bill.expectedAmount,
-        categoryId: bill.categoryId,
-        merchantId: bill.merchantId,
-        isAutopayEnabled: bill.isAutopayEnabled,
-        autopayAccountId: bill.autopayAccountId,
-        autopayAmountType: bill.autopayAmountType as 'fixed' | 'minimum_payment' | 'statement_balance' | 'full_balance' | null,
-        autopayFixedAmount: bill.autopayFixedAmount,
-        autopayDaysBefore: bill.autopayDaysBefore,
-        linkedAccountId: bill.linkedAccountId,
-        isDebt: bill.isDebt,
+        ...bill,
       };
 
       const instanceData: FullInstanceData = {
         id: instance.id,
-        billId: instance.billId,
-        userId: instance.userId,
-        householdId: instance.householdId,
+        templateId: instance.templateId,
+        userId: bill.userId,
+        householdId: bill.householdId,
         dueDate: instance.dueDate,
-        expectedAmount: instance.expectedAmount,
-        paidAmount: instance.paidAmount,
-        remainingAmount: instance.remainingAmount,
+        expectedAmount: instance.amountDueCents / 100,
+        paidAmount: instance.amountPaidCents / 100,
+        remainingAmount: instance.amountRemainingCents / 100,
         status: instance.status,
-        paymentStatus: instance.paymentStatus,
+        paymentStatus:
+          instance.status === 'partial'
+            ? 'partial'
+            : instance.status === 'paid' || instance.status === 'overpaid'
+              ? 'paid'
+              : 'unpaid',
       };
 
       try {
@@ -250,34 +271,42 @@ export async function getAutopayDueToday(): Promise<{
 }> {
   const today = new Date();
   
-  const autopayBills = await db
+  const rules = await db
     .select()
-    .from(bills)
+    .from(autopayRules)
     .where(
-      and(
-        eq(bills.isAutopayEnabled, true),
-        eq(bills.isActive, true)
-      )
+      eq(autopayRules.isEnabled, true)
     );
 
-  if (autopayBills.length === 0) {
+  if (rules.length === 0) {
     return { count: 0, bills: [] };
   }
 
-  const billIds = autopayBills.map(b => b.id);
-  const autopayUserIds = [...new Set(autopayBills.map((b) => b.userId))];
-  const autopayHouseholdIds = [...new Set(autopayBills.map((b) => b.householdId))];
-  const billMap = new Map(autopayBills.map(b => [b.id, b]));
-
-  const pendingInstances = await db
+  const templateIds = rules.map((rule) => rule.templateId);
+  const templates = await db
     .select()
-    .from(billInstances)
+    .from(billTemplates)
+    .where(and(inArray(billTemplates.id, templateIds), eq(billTemplates.isActive, true)));
+
+  if (templates.length === 0) {
+    return { count: 0, bills: [] };
+  }
+
+  const templateIdSet = new Set(templates.map((t) => t.id));
+  const activeRules = rules.filter((rule) => templateIdSet.has(rule.templateId));
+  const templateMap = new Map(templates.map((t) => [t.id, t]));
+  const ruleMap = new Map(activeRules.map((r) => [r.templateId, r]));
+
+  const pendingOccurrences = await db
+    .select()
+    .from(billOccurrences)
     .where(
       and(
-        inArray(billInstances.billId, billIds),
-        inArray(billInstances.userId, autopayUserIds),
-        inArray(billInstances.householdId, autopayHouseholdIds),
-        inArray(billInstances.status, ['pending', 'overdue'])
+        inArray(
+          billOccurrences.templateId,
+          activeRules.map((rule) => rule.templateId)
+        ),
+        inArray(billOccurrences.status, ['unpaid', 'partial', 'overdue'])
       )
     );
 
@@ -291,23 +320,23 @@ export async function getAutopayDueToday(): Promise<{
     autopayAmountType: string | null;
   }> = [];
 
-  for (const instance of pendingInstances) {
-    const bill = billMap.get(instance.billId);
-    if (!bill || !bill.autopayAccountId) continue;
-    if (instance.userId !== bill.userId || instance.householdId !== bill.householdId) continue;
+  for (const instance of pendingOccurrences) {
+    const template = templateMap.get(instance.templateId);
+    const rule = ruleMap.get(instance.templateId);
+    if (!template || !rule || !rule.payFromAccountId) continue;
 
     const dueDate = parseISO(instance.dueDate);
-    const processingDate = subDays(dueDate, bill.autopayDaysBefore || 0);
+    const processingDate = subDays(dueDate, rule.daysBeforeDue || 0);
 
     if (isSameDay(processingDate, today)) {
       eligibleBills.push({
-        billId: bill.id,
-        billName: bill.name,
+        billId: template.id,
+        billName: template.name,
         instanceId: instance.id,
         dueDate: instance.dueDate,
-        expectedAmount: instance.expectedAmount,
-        autopayAccountId: bill.autopayAccountId,
-        autopayAmountType: bill.autopayAmountType,
+        expectedAmount: instance.amountDueCents / 100,
+        autopayAccountId: rule.payFromAccountId,
+        autopayAmountType: rule.amountType,
       });
     }
   }

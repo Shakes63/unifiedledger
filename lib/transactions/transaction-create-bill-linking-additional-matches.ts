@@ -52,10 +52,9 @@ export async function matchByGeneralBillHeuristics({
   }
 
   return formatCreateBillLinkMatch({
-    billId: billMatch.billId,
-    instanceId: billMatch.instanceId,
-    billName: bill.name,
-    legacyDebtId: bill.debtId,
+    templateId: billMatch.billId,
+    occurrenceId: billMatch.instanceId,
+    templateName: bill.name,
     notes: `Auto-matched bill payment: ${bill.name}`,
     logMessage: (paymentStatus) =>
       `Auto-matched bill payment: ${billMatch.billId}, Status: ${paymentStatus}`,
@@ -85,10 +84,9 @@ export async function matchByCategoryFallback({
   }
 
   return formatCreateBillLinkMatch({
-    billId: match.bill.id,
-    instanceId: match.instance.id,
-    billName: match.bill.name,
-    legacyDebtId: match.bill.debtId,
+    templateId: match.bill.id,
+    occurrenceId: match.instance.id,
+    templateName: match.bill.name,
     notes: `Category-matched bill payment: ${match.bill.name}`,
     logMessage: (paymentStatus) =>
       `Category-matched bill payment: ${match.bill.id}, Status: ${paymentStatus}`,

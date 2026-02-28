@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { billPaymentEvents, debtPayments, transactions } from '@/lib/db/schema';
+import { billPaymentEvents, debtPayments } from '@/lib/db/schema';
 import { and, eq, inArray } from 'drizzle-orm';
 import { calculatePayoffStrategy, type DebtInput, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
 import Decimal from 'decimal.js';
@@ -129,11 +129,11 @@ export async function GET(request: Request) {
       ? new Decimal(totalPaid).dividedBy(totalOriginalDebt).times(100).toNumber()
       : 0;
 
-    // Fetch payment history from both bill + debt payment tables to estimate elapsed time
+    // Fetch payment history from bill + debt payment tables to estimate elapsed time
     const billDebtIds = unifiedDebts
       .filter((debt) => debt.source === 'bill')
       .map((debt) => debt.id);
-    const [billPaymentHistory, legacyBillTxHistory, debtPaymentHistory] = await Promise.all([
+    const [billPaymentHistory, debtPaymentHistory] = await Promise.all([
       billDebtIds.length > 0
         ? db
             .select({ paymentDate: billPaymentEvents.paymentDate })
@@ -145,24 +145,12 @@ export async function GET(request: Request) {
               )
             )
         : Promise.resolve([]),
-      billDebtIds.length > 0
-        ? db
-            .select({ paymentDate: transactions.date })
-            .from(transactions)
-            .where(
-              and(
-                eq(transactions.householdId, householdId),
-                eq(transactions.userId, userId),
-                inArray(transactions.billId, billDebtIds)
-              )
-            )
-        : Promise.resolve([]),
       db
         .select({ paymentDate: debtPayments.paymentDate })
         .from(debtPayments)
         .where(eq(debtPayments.householdId, householdId)),
     ]);
-    const paymentHistory = [...billPaymentHistory, ...legacyBillTxHistory, ...debtPaymentHistory].sort((a, b) =>
+    const paymentHistory = [...billPaymentHistory, ...debtPaymentHistory].sort((a, b) =>
       new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime()
     );
 

@@ -373,152 +373,6 @@ export const transactionSplits = sqliteTable(
   })
 );
 
-export const bills = sqliteTable(
-  'bills',
-  {
-    id: text('id').primaryKey(),
-    userId: text('user_id').notNull(),
-    householdId: text('household_id').notNull(),
-    name: text('name').notNull(),
-    categoryId: text('category_id'),
-    merchantId: text('merchant_id'), // Optional merchant for bill payments
-    debtId: text('debt_id'), // Link to debt for debt payment bills
-    expectedAmount: real('expected_amount').notNull(),
-    dueDate: integer('due_date').notNull(), // For one-time: ignored, weekly/biweekly: day of week (0-6), monthly+: day of month (1-31)
-    frequency: text('frequency', {
-      enum: ['one-time', 'weekly', 'biweekly', 'monthly', 'quarterly', 'semi-annual', 'annual'],
-    }).default('monthly'),
-    specificDueDate: text('specific_due_date'), // For one-time bills only (ISO date string)
-    startMonth: integer('start_month'), // 0-11 (Jan-Dec), only for quarterly/semi-annual/annual bills
-    isVariableAmount: integer('is_variable_amount', { mode: 'boolean' }).default(false),
-    amountTolerance: real('amount_tolerance').default(5.0),
-    payeePatterns: text('payee_patterns'),
-    accountId: text('account_id'),
-    isActive: integer('is_active', { mode: 'boolean' }).default(true),
-    autoMarkPaid: integer('auto_mark_paid', { mode: 'boolean' }).default(true),
-    notes: text('notes'),
-    // Bill type and classification (Phase 1.2)
-    billType: text('bill_type', {
-      enum: ['expense', 'income', 'savings_transfer'],
-    }).default('expense'),
-    billClassification: text('bill_classification', {
-      enum: ['subscription', 'utility', 'housing', 'insurance', 'loan_payment', 'membership', 'service', 'other'],
-    }),
-    classificationSubcategory: text('classification_subcategory'),
-    // Account linking (for credit card payments)
-    linkedAccountId: text('linked_account_id'),
-    amountSource: text('amount_source', {
-      enum: ['fixed', 'minimum_payment', 'statement_balance', 'full_balance'],
-    }).default('fixed'),
-    chargedToAccountId: text('charged_to_account_id'),
-    // Autopay settings
-    isAutopayEnabled: integer('is_autopay_enabled', { mode: 'boolean' }).default(false),
-    autopayAccountId: text('autopay_account_id'),
-    autopayAmountType: text('autopay_amount_type', {
-      enum: ['fixed', 'minimum_payment', 'statement_balance', 'full_balance'],
-    }),
-    autopayFixedAmount: real('autopay_fixed_amount'),
-    autopayDaysBefore: integer('autopay_days_before').default(0),
-    // Debt extension fields (for non-account debts like loans)
-    isDebt: integer('is_debt', { mode: 'boolean' }).default(false),
-    originalBalance: real('original_balance'),
-    remainingBalance: real('remaining_balance'),
-    billInterestRate: real('bill_interest_rate'),
-    interestType: text('interest_type', {
-      enum: ['fixed', 'variable', 'none', 'precomputed'],
-    }).default('none'),
-    minimumPayment: real('minimum_payment'),
-    billAdditionalMonthlyPayment: real('bill_additional_monthly_payment'),
-    debtType: text('debt_type', {
-      enum: ['personal_loan', 'student_loan', 'mortgage', 'auto_loan', 'medical', 'other'],
-    }),
-    billColor: text('bill_color'),
-    // Payoff strategy
-    includeInPayoffStrategy: integer('include_in_payoff_strategy', { mode: 'boolean' }).default(true),
-    // Budget integration (Phase 7)
-    budgetedMonthlyPayment: real('budgeted_monthly_payment'),
-    // Tax deduction settings
-    isInterestTaxDeductible: integer('is_interest_tax_deductible', { mode: 'boolean' }).default(false),
-    taxDeductionType: text('tax_deduction_type', {
-      enum: ['mortgage', 'student_loan', 'business', 'heloc_home', 'none'],
-    }).default('none'),
-    taxDeductionLimit: real('tax_deduction_limit'),
-    // Budget period assignment (for bill pay feature)
-    // NULL = auto (based on due date), 1 = always period 1, 2 = always period 2, etc.
-    budgetPeriodAssignment: integer('budget_period_assignment'),
-    // Split payment across periods (for partial payment budgeting)
-    splitAcrossPeriods: integer('split_across_periods', { mode: 'boolean' }).default(false),
-    // JSON array of allocations: [{periodNumber: 1, percentage: 50}, {periodNumber: 2, percentage: 50}]
-    splitAllocations: text('split_allocations'),
-    createdAt: text('created_at').default(sqliteNowIso),
-  },
-  (table) => ({
-    userIdIdx: index('idx_bills_user').on(table.userId),
-    householdIdIdx: index('idx_bills_household').on(table.householdId),
-    userHouseholdIdx: index('idx_bills_user_household').on(table.userId, table.householdId),
-    specificDueDateIdx: index('idx_bills_specific_due_date').on(table.specificDueDate),
-    billTypeIdx: index('idx_bills_bill_type').on(table.billType),
-    isDebtIdx: index('idx_bills_is_debt').on(table.isDebt),
-    linkedAccountIdx: index('idx_bills_linked_account').on(table.linkedAccountId),
-    chargedToAccountIdx: index('idx_bills_charged_to_account').on(table.chargedToAccountId),
-    classificationIdx: index('idx_bills_classification').on(table.billClassification),
-    includeInStrategyIdx: index('idx_bills_include_in_strategy').on(table.includeInPayoffStrategy),
-  })
-);
-
-export const billInstances = sqliteTable(
-  'bill_instances',
-  {
-    id: text('id').primaryKey(),
-    userId: text('user_id').notNull(),
-    householdId: text('household_id').notNull(),
-    billId: text('bill_id').notNull(),
-    dueDate: text('due_date').notNull(),
-    expectedAmount: real('expected_amount').notNull(),
-    actualAmount: real('actual_amount'),
-    paidDate: text('paid_date'),
-    transactionId: text('transaction_id'),
-    status: text('status', {
-      enum: ['pending', 'paid', 'overdue', 'skipped'],
-    }).default('pending'),
-    daysLate: integer('days_late').default(0),
-    lateFee: real('late_fee').default(0),
-    isManualOverride: integer('is_manual_override', { mode: 'boolean' }).default(false),
-    notes: text('notes'),
-    // Partial payment tracking (Phase 1.3)
-    paidAmount: real('paid_amount').default(0),
-    remainingAmount: real('remaining_amount'),
-    paymentStatus: text('payment_status', {
-      enum: ['unpaid', 'partial', 'paid', 'overpaid'],
-    }).default('unpaid'),
-    // Principal/interest breakdown for debt bills
-    principalPaid: real('principal_paid').default(0),
-    interestPaid: real('interest_paid').default(0),
-    // Budget period override (for bill pay feature)
-    // NULL = use bill default, otherwise specific period number
-    budgetPeriodOverride: integer('budget_period_override'),
-    createdAt: text('created_at').default(sqliteNowIso),
-    updatedAt: text('updated_at').default(sqliteNowIso),
-  },
-  (table) => ({
-    billIdDueDateUnique: uniqueIndex('idx_bill_instances_unique').on(table.billId, table.dueDate),
-    userIdIdx: index('idx_bill_instances_user').on(table.userId),
-    householdIdIdx: index('idx_bill_instances_household').on(table.householdId),
-    userHouseholdIdx: index('idx_bill_instances_user_household').on(table.userId, table.householdId),
-    householdDueStatusIdx: index('idx_bill_instances_household_due_status').on(
-      table.householdId,
-      table.dueDate,
-      table.status
-    ),
-    userHouseholdDueDateIdx: index('idx_bill_instances_user_household_due').on(
-      table.userId,
-      table.householdId,
-      table.dueDate
-    ),
-    paymentStatusIdx: index('idx_bill_instances_payment_status').on(table.paymentStatus),
-  })
-);
-
 // Bill Payments - Track individual payments toward bill instances (Phase 1.3)
 export const billPayments = sqliteTable(
   'bill_payments',
@@ -2007,8 +1861,6 @@ export const customFieldValues = sqliteTable(
 
 export const accountsRelations = relations(accounts, ({ many }) => ({
   transactions: many(transactions),
-  bills: many(bills),
-  billInstances: many(billInstances),
   savingsGoals: many(savingsGoals),
   debts: many(debts),
   transfers: many(transfers),
@@ -2034,7 +1886,6 @@ export const budgetCategoriesRelations = relations(budgetCategories, ({ one, man
   transactions: many(transactions),
   transactionSplits: many(transactionSplits),
   merchants: many(merchants),
-  bills: many(bills),
   // Self-referential relations for budget groups / subcategories
   parent: one(budgetCategories, {
     fields: [budgetCategories.parentId],
@@ -2062,10 +1913,6 @@ export const transactionsRelations = relations(transactions, ({ one, many }) => 
     fields: [transactions.categoryId],
     references: [budgetCategories.id],
   }),
-  bill: one(bills, {
-    fields: [transactions.billId],
-    references: [bills.id],
-  }),
   debt: one(debts, {
     fields: [transactions.debtId],
     references: [debts.id],
@@ -2087,37 +1934,6 @@ export const transactionSplitsRelations = relations(transactionSplits, ({ one })
   category: one(budgetCategories, {
     fields: [transactionSplits.categoryId],
     references: [budgetCategories.id],
-  }),
-}));
-
-export const billsRelations = relations(bills, ({ one, many }) => ({
-  account: one(accounts, {
-    fields: [bills.accountId],
-    references: [accounts.id],
-  }),
-  category: one(budgetCategories, {
-    fields: [bills.categoryId],
-    references: [budgetCategories.id],
-  }),
-  merchant: one(merchants, {
-    fields: [bills.merchantId],
-    references: [merchants.id],
-  }),
-  debt: one(debts, {
-    fields: [bills.debtId],
-    references: [debts.id],
-  }),
-  instances: many(billInstances),
-}));
-
-export const billInstancesRelations = relations(billInstances, ({ one }) => ({
-  bill: one(bills, {
-    fields: [billInstances.billId],
-    references: [bills.id],
-  }),
-  transaction: one(transactions, {
-    fields: [billInstances.transactionId],
-    references: [transactions.id],
   }),
 }));
 

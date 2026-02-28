@@ -6,7 +6,10 @@ import {
   transactions,
   accounts,
   budgetCategories,
-  bills,
+  autopayRules,
+  billOccurrences,
+  billPaymentEvents,
+  billTemplates,
   savingsGoals,
   debts,
   categorizationRules,
@@ -16,14 +19,13 @@ import {
   transactionTemplates,
   budgetPeriods,
   transactionSplits,
-  billInstances,
   savingsMilestones,
   debtPayments,
   userSettings,
   transactionTags,
   customFieldValues,
 } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 export async function GET() {
   try {
@@ -36,7 +38,7 @@ export async function GET() {
       userTransactions,
       userAccounts,
       userCategories,
-      userBills,
+      userBillTemplates,
       userGoals,
       userDebts,
       userRules,
@@ -46,7 +48,6 @@ export async function GET() {
       userTemplates,
       userBudgetPeriods,
       userTransactionSplits,
-      userBillInstances,
       userGoalMilestones,
       userDebtPayments,
       userSettingsData,
@@ -56,7 +57,7 @@ export async function GET() {
       db.select().from(transactions).where(eq(transactions.userId, userId)),
       db.select().from(accounts).where(eq(accounts.userId, userId)),
       db.select().from(budgetCategories).where(eq(budgetCategories.userId, userId)),
-      db.select().from(bills).where(eq(bills.userId, userId)),
+      db.select().from(billTemplates).where(eq(billTemplates.createdByUserId, userId)),
       db.select().from(savingsGoals).where(eq(savingsGoals.userId, userId)),
       db.select().from(debts).where(eq(debts.userId, userId)),
       db.select().from(categorizationRules).where(eq(categorizationRules.userId, userId)),
@@ -66,13 +67,31 @@ export async function GET() {
       db.select().from(transactionTemplates).where(eq(transactionTemplates.userId, userId)),
       db.select().from(budgetPeriods).where(eq(budgetPeriods.userId, userId)),
       db.select().from(transactionSplits).where(eq(transactionSplits.userId, userId)),
-      db.select().from(billInstances).where(eq(billInstances.userId, userId)),
       db.select().from(savingsMilestones).where(eq(savingsMilestones.userId, userId)),
       db.select().from(debtPayments).where(eq(debtPayments.userId, userId)),
       db.select().from(userSettings).where(eq(userSettings.userId, userId)),
       db.select().from(transactionTags).where(eq(transactionTags.userId, userId)),
       db.select().from(customFieldValues).where(eq(customFieldValues.userId, userId)),
     ]);
+
+    const templateIds = userBillTemplates.map((template) => template.id);
+    const [userBillOccurrences, userBillPaymentEvents, userAutopayRules] =
+      templateIds.length > 0
+        ? await Promise.all([
+            db
+              .select()
+              .from(billOccurrences)
+              .where(inArray(billOccurrences.templateId, templateIds)),
+            db
+              .select()
+              .from(billPaymentEvents)
+              .where(inArray(billPaymentEvents.templateId, templateIds)),
+            db
+              .select()
+              .from(autopayRules)
+              .where(inArray(autopayRules.templateId, templateIds)),
+          ])
+        : [[], [], []];
 
     const exportData = {
       exportDate: new Date().toISOString(),
@@ -88,8 +107,10 @@ export async function GET() {
         transactionTags: userTransactionTags,
         accounts: userAccounts,
         categories: userCategories,
-        bills: userBills,
-        billInstances: userBillInstances,
+        billTemplates: userBillTemplates,
+        billOccurrences: userBillOccurrences,
+        billPaymentEvents: userBillPaymentEvents,
+        autopayRules: userAutopayRules,
         goals: userGoals,
         goalMilestones: userGoalMilestones,
         debts: userDebts,
@@ -107,7 +128,7 @@ export async function GET() {
         totalTransactions: userTransactions.length,
         totalAccounts: userAccounts.length,
         totalCategories: userCategories.length,
-        totalBills: userBills.length,
+        totalBills: userBillTemplates.length,
         totalGoals: userGoals.length,
         totalDebts: userDebts.length,
         totalMerchants: userMerchants.length,

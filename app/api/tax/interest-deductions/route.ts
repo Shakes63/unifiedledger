@@ -13,7 +13,7 @@ import {
   getAllInterestLimitStatuses 
 } from '@/lib/tax/interest-tax-utils';
 import { db } from '@/lib/db';
-import { billTemplates, interestDeductions, bills } from '@/lib/db/schema';
+import { billTemplates, interestDeductions } from '@/lib/db/schema';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
@@ -68,28 +68,18 @@ export async function GET(request: NextRequest) {
       const billNames = new Map<string, string>();
       
       if (billIds.length > 0) {
-        const [templateRows, legacyRows] = await Promise.all([
-          householdIds.length > 0
-            ? db
-                .select({ id: billTemplates.id, name: billTemplates.name })
-                .from(billTemplates)
-                .where(
-                  and(
-                    inArray(billTemplates.householdId, householdIds),
-                    inArray(billTemplates.id, billIds)
-                  )
+        const templateRows = householdIds.length > 0
+          ? await db
+              .select({ id: billTemplates.id, name: billTemplates.name })
+              .from(billTemplates)
+              .where(
+                and(
+                  inArray(billTemplates.householdId, householdIds),
+                  inArray(billTemplates.id, billIds)
                 )
-            : Promise.resolve([]),
-          db
-            .select({ id: bills.id, name: bills.name })
-            .from(bills)
-            .where(and(eq(bills.userId, userId), inArray(bills.id, billIds))),
-        ]);
+              )
+          : [];
 
-        // Prefer bills-v2 template names when IDs overlap.
-        for (const row of legacyRows) {
-          billNames.set(row.id, row.name);
-        }
         for (const row of templateRows) {
           billNames.set(row.id, row.name);
         }

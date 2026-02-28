@@ -53,7 +53,7 @@ describe('GET /api/calendar-sync/google/status', () => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     (requireAuth as any).mockResolvedValue({ userId: 'user-1' });
     (getAndVerifyHousehold as any).mockResolvedValue({ householdId: 'hh-1', membership: { role: 'owner' } });
-    (isGoogleCalendarConfigured as any).mockReturnValue(true);
+    (isGoogleCalendarConfigured as any).mockResolvedValue(true);
     (hasGoogleOAuthLinked as any).mockResolvedValue(true);
     (listCalendarsForUser as any).mockResolvedValue([]);
   });
@@ -73,7 +73,7 @@ describe('GET /api/calendar-sync/google/status', () => {
   });
 
   it('returns configured=false when Google OAuth is not configured', async () => {
-    (isGoogleCalendarConfigured as any).mockReturnValue(false);
+    (isGoogleCalendarConfigured as any).mockResolvedValue(false);
     const res = await GET(createRequest('http://localhost/api/calendar-sync/google/status'));
     const data = await res.json();
 

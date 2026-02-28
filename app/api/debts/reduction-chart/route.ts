@@ -53,7 +53,7 @@ export async function GET(request: Request) {
       .filter((debt) => debt.source === 'debt')
       .map((debt) => debt.id);
 
-    const [accountPaymentRows, billPaymentRows, legacyBillTxRows, debtPaymentRows] = await Promise.all([
+    const [accountPaymentRows, billPaymentRows, debtPaymentRows] = await Promise.all([
       accountIds.length > 0
         ? db
             .select({
@@ -84,23 +84,6 @@ export async function GET(request: Request) {
               and(
                 eq(billPaymentEvents.householdId, householdId),
                 inArray(billPaymentEvents.templateId, billIds)
-              )
-            )
-        : Promise.resolve([]),
-      billIds.length > 0
-        ? db
-            .select({
-              billId: transactions.billId,
-              paymentDate: transactions.date,
-              amount: transactions.amount,
-            })
-            .from(transactions)
-            .where(
-              and(
-                eq(transactions.householdId, householdId),
-                eq(transactions.userId, userId),
-                eq(transactions.type, 'expense'),
-                inArray(transactions.billId, billIds)
               )
             )
         : Promise.resolve([]),
@@ -152,13 +135,6 @@ export async function GET(request: Request) {
             : (row.amount || 0) / 100,
       });
     }
-    for (const row of legacyBillTxRows) {
-      if (!row.billId) continue;
-      pushPayment(row.billId, {
-        paymentDate: row.paymentDate,
-        principalAmount: Math.abs(row.amount || 0),
-      });
-    }
     for (const row of debtPaymentRows) {
       pushPayment(row.debtId, {
         paymentDate: row.paymentDate,
@@ -207,7 +183,7 @@ export async function GET(request: Request) {
       historyEndDate
     );
 
-    // Get household-level debt settings (with legacy fallback in helper).
+    // Get household-level debt settings.
     const settings = await getDebtStrategySettings(userId, householdId);
     const extraPayment = settings.extraMonthlyPayment || 0;
     const method = settings.preferredMethod || 'avalanche';

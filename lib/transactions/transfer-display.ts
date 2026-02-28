@@ -44,11 +44,6 @@ export function getTransferSourceAccountId(
         return String(pairedTx.accountId);
       }
     }
-
-    // Legacy fallback for historical converted rows.
-    if (transaction.merchantId) {
-      return String(transaction.merchantId);
-    }
   }
 
   return null;

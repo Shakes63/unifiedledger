@@ -188,23 +188,27 @@ export function QuickAddBillModal({
 
       const billData: Record<string, unknown> = {
         name: name.trim(),
-        expectedAmount: parsedAmount,
-        frequency,
-        dueDate: parsedDueDate,
+        defaultAmountCents: Math.round(parsedAmount * 100),
+        recurrenceType: frequency === 'weekly' || frequency === 'biweekly' ? frequency : 'monthly',
+        recurrenceDueDay: frequency === 'monthly' ? parsedDueDate : null,
+        recurrenceDueWeekday: frequency === 'weekly' || frequency === 'biweekly' ? parsedDueDate : null,
+        recurrenceSpecificDueDate: null,
+        recurrenceStartMonth: null,
         categoryId: categoryId || null,
         billType: 'expense',
+        classification: 'other',
         autoMarkPaid: true,
       };
 
       // Add classification if we have a high-confidence suggestion
       if (suggestion && suggestion.confidence >= 0.7) {
-        billData.billClassification = suggestion.classification;
+        billData.classification = suggestion.classification;
         if (suggestion.subcategory) {
           billData.classificationSubcategory = suggestion.subcategory;
         }
       }
 
-      const response = await fetchWithHousehold('/api/bills-v2', {
+      const response = await fetchWithHousehold('/api/bills/templates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(billData),

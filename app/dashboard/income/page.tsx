@@ -21,6 +21,11 @@ import { FREQUENCY_LABELS } from '@/lib/bills/bill-utils';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { QuickAddIncomeModal } from '@/components/income/quick-add-income-modal';
+import type {
+  BillOccurrenceWithTemplateDto,
+  BillTemplateDto,
+  RecurrenceType,
+} from '@/lib/bills/contracts';
 
 interface IncomeInstance {
   id: string;
@@ -28,12 +33,12 @@ interface IncomeInstance {
   billId: string;
   dueDate: string;
   expectedAmount: number;
-  actualAmount?: number;
-  paidDate?: string;
-  transactionId?: string;
+  actualAmount?: number | null;
+  paidDate?: string | null;
+  transactionId?: string | null;
   status: 'pending' | 'paid' | 'overdue' | 'skipped';
   daysLate: number;
-  notes?: string;
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -57,6 +62,67 @@ interface IncomeSource {
 
 interface IncomeWithInstance extends IncomeSource {
   upcomingInstances?: IncomeInstance[];
+}
+
+function toFrequency(recurrenceType: RecurrenceType): string {
+  if (recurrenceType === 'one_time') return 'one-time';
+  if (recurrenceType === 'semi_annual') return 'semi-annual';
+  return recurrenceType;
+}
+
+function toDueDateNumber(template: BillTemplateDto): number {
+  if (template.recurrenceType === 'weekly' || template.recurrenceType === 'biweekly') {
+    return template.recurrenceDueWeekday ?? 0;
+  }
+  if (template.recurrenceType === 'one_time') {
+    return Number(template.recurrenceSpecificDueDate?.split('-')[2] || '1');
+  }
+  return template.recurrenceDueDay ?? 1;
+}
+
+function mapTemplateToIncomeSource(template: BillTemplateDto): IncomeWithInstance {
+  return {
+    id: template.id,
+    userId: template.createdByUserId,
+    name: template.name,
+    categoryId: template.categoryId || undefined,
+    expectedAmount: template.defaultAmountCents / 100,
+    dueDate: toDueDateNumber(template),
+    frequency: toFrequency(template.recurrenceType),
+    specificDueDate: template.recurrenceSpecificDueDate || undefined,
+    isVariableAmount: template.isVariableAmount,
+    isActive: template.isActive,
+    autoMarkPaid: template.autoMarkPaid,
+    notes: template.notes || undefined,
+    createdAt: template.createdAt,
+    billType: 'income',
+  };
+}
+
+function mapOccurrenceRowsToIncomeInstances(rows: BillOccurrenceWithTemplateDto[]): IncomeInstance[] {
+  return rows.map((row) => ({
+    id: row.occurrence.id,
+    userId: '',
+    billId: row.occurrence.templateId,
+    dueDate: row.occurrence.dueDate,
+    expectedAmount: row.occurrence.amountDueCents / 100,
+    actualAmount:
+      row.occurrence.actualAmountCents !== null ? row.occurrence.actualAmountCents / 100 : null,
+    paidDate: row.occurrence.paidDate,
+    transactionId: row.occurrence.lastTransactionId,
+    status:
+      row.occurrence.status === 'paid' || row.occurrence.status === 'overpaid'
+        ? 'paid'
+        : row.occurrence.status === 'overdue'
+          ? 'overdue'
+          : row.occurrence.status === 'skipped'
+            ? 'skipped'
+            : 'pending',
+    daysLate: row.occurrence.daysLate,
+    notes: row.occurrence.notes,
+    createdAt: row.occurrence.createdAt,
+    updatedAt: row.occurrence.updatedAt,
+  }));
 }
 
 export default function IncomeDashboard() {
@@ -85,35 +151,32 @@ export default function IncomeDashboard() {
       setLoading(true);
 
       // Fetch active income sources (bills with billType=income)
-      const sourcesRes = await fetchWithHousehold('/api/bills-v2?isActive=true&billType=income&limit=100');
+      const sourcesRes = await fetchWithHousehold('/api/bills/templates?isActive=true&billType=income&limit=100');
       if (!sourcesRes.ok) {
         throw new Error(`Failed to fetch income sources: ${sourcesRes.statusText}`);
       }
       const sourcesData = await sourcesRes.json();
 
       // Fetch all bill instances
-      const instancesRes = await fetchWithHousehold('/api/bills-v2/instances?billType=income&limit=1000');
+      const instancesRes = await fetchWithHousehold('/api/bills/occurrences?billType=income&limit=1000');
       if (!instancesRes.ok) {
         throw new Error(`Failed to fetch income instances: ${instancesRes.statusText}`);
       }
       const instancesData = await instancesRes.json();
 
-      const allBills = Array.isArray(sourcesData?.data)
-        ? (sourcesData.data as Array<{ bill: IncomeWithInstance }>).map((row) => row.bill)
+      const incomeSourcesList = Array.isArray(sourcesData?.data)
+        ? (sourcesData.data as BillTemplateDto[]).map(mapTemplateToIncomeSource)
         : [];
-      const incomeSourcesList = allBills;
 
       // Get income source IDs
       const incomeSourceIds = new Set(incomeSourcesList.map(s => s.id));
 
       // Filter instances to income only
-      const rawInstances = Array.isArray(instancesData?.data) ? instancesData.data : [];
-      const allInstances = (rawInstances as Array<{ instance: IncomeInstance; bill: IncomeWithInstance }>)
-        .filter((row) => incomeSourceIds.has(row.instance.billId))
-        .map((row) => ({
-          ...row.instance,
-          bill: row.bill,
-        }));
+      const rawInstances = (Array.isArray(instancesData?.data)
+        ? instancesData.data
+        : []) as BillOccurrenceWithTemplateDto[];
+      const allInstances = mapOccurrenceRowsToIncomeInstances(rawInstances)
+        .filter((instance) => incomeSourceIds.has(instance.billId));
 
       setIncomeSources(incomeSourcesList);
       setIncomeInstances(allInstances);

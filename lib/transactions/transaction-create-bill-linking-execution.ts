@@ -25,17 +25,16 @@ export async function executeCreateBillLinkMatch({
     accountId,
     amount,
     date,
-    linkedBillId: match.linkedBillId,
-    linkedInstanceId: match.linkedInstanceId,
-    billName: match.billName,
-    legacyDebtId: match.legacyDebtId,
+    linkedTemplateId: match.linkedTemplateId,
+    linkedOccurrenceId: match.linkedOccurrenceId,
+    templateName: match.templateName,
     notes: match.notes,
     logScope: 'transactions:create',
     logMessage: match.logMessage,
   });
 
   return {
-    linkedBillId: match.linkedBillId,
-    linkedInstanceId: match.linkedInstanceId,
+    linkedBillId: match.linkedTemplateId,
+    linkedInstanceId: match.linkedOccurrenceId,
   };
 }

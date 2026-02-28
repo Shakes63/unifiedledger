@@ -67,12 +67,6 @@ export async function GET(request: Request) {
           actions = typeof ruleData.actions === 'string'
             ? JSON.parse(ruleData.actions)
             : ruleData.actions;
-        } else if (ruleData.categoryId) {
-          // Backward compatibility: create action from categoryId if no actions exist
-          actions = [{
-            type: 'set_category',
-            value: ruleData.categoryId,
-          }];
         }
 
         // Migrate old sales tax actions to new format
@@ -136,12 +130,6 @@ export async function GET(request: Request) {
           actions = typeof rule.actions === 'string'
             ? JSON.parse(rule.actions)
             : rule.actions;
-        } else if (rule.categoryId) {
-          // Backward compatibility: create action from categoryId if no actions exist
-          actions = [{
-            type: 'set_category',
-            value: rule.categoryId,
-          }];
         }
 
         // Migrate old sales tax actions to new format
@@ -182,7 +170,6 @@ export async function POST(request: Request) {
 
     const {
       name,
-      categoryId,
       actions,
       description = '',
       priority = 100,
@@ -190,14 +177,14 @@ export async function POST(request: Request) {
     } = body;
 
     // Validate required fields
-    if (!name || (!categoryId && !actions) || !conditions) {
+    if (!name || !actions || !conditions) {
       return Response.json(
-        { error: 'Missing required fields: name, actions (or categoryId), conditions' },
+        { error: 'Missing required fields: name, actions, conditions' },
         { status: 400 }
       );
     }
 
-    // Parse actions array (or create from categoryId for backward compatibility)
+    // Parse actions array.
     let actionsArray: RuleAction[] = [];
     if (actions) {
       actionsArray = typeof actions === 'string' ? JSON.parse(actions) : actions;
@@ -254,33 +241,6 @@ export async function POST(request: Request) {
           }
         }
       }
-    } else if (categoryId) {
-      // Backward compatibility: create actions array from categoryId
-      const category = await db
-        .select()
-        .from(budgetCategories)
-        .where(
-          and(
-            eq(budgetCategories.id, categoryId),
-            eq(budgetCategories.userId, userId),
-            eq(budgetCategories.householdId, householdId)
-          )
-        )
-        .limit(1);
-
-      if (category.length === 0) {
-        return Response.json(
-          { error: 'Category not found' },
-          { status: 404 }
-        );
-      }
-
-      actionsArray = [
-        {
-          type: 'set_category',
-          value: categoryId,
-        },
-      ];
     }
 
     // Validate conditions
@@ -310,7 +270,7 @@ export async function POST(request: Request) {
       : JSON.stringify(conditions);
     const actionsStr = JSON.stringify(actionsArray);
 
-    // Extract first set_category action for categoryId field (backward compatibility)
+    // Keep categoryId column synchronized with first set_category action.
     const setCategoryAction = actionsArray.find(a => a.type === 'set_category');
 
     await db.insert(categorizationRules).values({
@@ -318,7 +278,7 @@ export async function POST(request: Request) {
       userId,
       householdId,
       name,
-      categoryId: setCategoryAction?.value || categoryId || null,
+      categoryId: setCategoryAction?.value || null,
       actions: actionsStr,
       description: description || null,
       priority: parseInt(String(priority), 10),
@@ -357,7 +317,6 @@ export async function PUT(request: Request) {
     const {
       id,
       name,
-      categoryId,
       actions,
       description,
       priority,
@@ -450,34 +409,6 @@ export async function PUT(request: Request) {
           }
         }
       }
-    } else if (categoryId) {
-      // Backward compatibility: if only categoryId is provided, validate it
-      const category = await db
-        .select()
-        .from(budgetCategories)
-        .where(
-          and(
-            eq(budgetCategories.id, categoryId),
-            eq(budgetCategories.userId, userId),
-            eq(budgetCategories.householdId, householdId)
-          )
-        )
-        .limit(1);
-
-      if (category.length === 0) {
-        return Response.json(
-          { error: 'Category not found' },
-          { status: 404 }
-        );
-      }
-
-      // Create actions array from categoryId
-      actionsArray = [
-        {
-          type: 'set_category',
-          value: categoryId,
-        },
-      ];
     }
 
     // Validate conditions if provided
@@ -517,16 +448,13 @@ export async function PUT(request: Request) {
     }
     if (isActive !== undefined) updates.isActive = isActive;
 
-    // Update actions array (and categoryId for backward compatibility)
+    // Update actions array and synchronize categoryId shadow column.
     if (actionsArray !== undefined) {
       updates.actions = JSON.stringify(actionsArray);
 
-      // Extract first set_category action for categoryId field
+      // Extract first set_category action for categoryId field.
       const setCategoryAction = actionsArray.find(a => a.type === 'set_category');
       updates.categoryId = setCategoryAction?.value || null;
-    } else if (categoryId !== undefined) {
-      // Backward compatibility: if only categoryId is provided without actions
-      updates.categoryId = categoryId;
     }
 
     await db

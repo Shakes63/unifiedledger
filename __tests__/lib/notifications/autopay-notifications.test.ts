@@ -62,7 +62,7 @@ describe('lib/notifications/autopay-notifications', () => {
           householdId: 'h1',
           metadata: expect.objectContaining({
             billId: 'b1',
-            billInstanceId: 'i1',
+            instanceId: 'i1',
             amount: 12.34,
             transactionId: 'tx1',
             transferId: 'tr1',

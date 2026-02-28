@@ -10,6 +10,7 @@ import { AnnualPlanningSummary } from '@/components/bills/annual-planning-summar
 import { AnnualPlanningCellModal } from '@/components/bills/annual-planning-cell-modal';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
+import type { BillOccurrenceWithTemplateDto, BillTemplateDto } from '@/lib/bills/contracts';
 
 interface MonthData {
   dueDate: number;
@@ -62,6 +63,36 @@ interface AnnualPlanningData {
   summary: Summary;
 }
 
+const MONTH_NAMES = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+const NON_MONTHLY_RECURRENCES = new Set(['quarterly', 'semi_annual', 'annual', 'one_time']);
+
+function toFrequency(recurrenceType: BillTemplateDto['recurrenceType']): string {
+  if (recurrenceType === 'one_time') return 'one-time';
+  if (recurrenceType === 'semi_annual') return 'semi-annual';
+  return recurrenceType;
+}
+
+function toStatus(status: BillOccurrenceWithTemplateDto['occurrence']['status']): 'pending' | 'paid' | 'overdue' | 'skipped' {
+  if (status === 'paid' || status === 'overpaid') return 'paid';
+  if (status === 'overdue') return 'overdue';
+  if (status === 'skipped') return 'skipped';
+  return 'pending';
+}
+
 export default function AnnualBillPlanningPage() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
@@ -90,20 +121,139 @@ export default function AnnualBillPlanningPage() {
       // First, ensure bill instances exist for the requested year
       // This handles the case where instances weren't created yet
       // (e.g., viewing a future year, or server was down)
-      await fetchWithHousehold('/api/bills-v2/ensure-instances', {
+      await fetchWithHousehold('/api/bills/ensure-instances', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ year }),
       });
 
-      // Then fetch the annual planning data
-      const response = await fetchWithHousehold(`/api/bills-v2/annual-planning?year=${year}`);
+      const yearStart = `${year}-01-01`;
+      const yearEnd = `${year}-12-31`;
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.statusText}`);
+      const [templatesResponse, occurrencesResponse] = await Promise.all([
+        fetchWithHousehold('/api/bills/templates?isActive=true&limit=5000'),
+        fetchWithHousehold(`/api/bills/occurrences?from=${yearStart}&to=${yearEnd}&limit=10000`),
+      ]);
+
+      if (!templatesResponse.ok || !occurrencesResponse.ok) {
+        throw new Error('Failed to fetch annual planning data');
       }
 
-      const result = await response.json();
+      const templatesResult = await templatesResponse.json();
+      const occurrencesResult = await occurrencesResponse.json();
+
+      const templates = (Array.isArray(templatesResult?.data) ? templatesResult.data : []) as BillTemplateDto[];
+      const nonMonthlyTemplates = templates.filter(
+        (template) => template.isActive && NON_MONTHLY_RECURRENCES.has(template.recurrenceType)
+      );
+      const templateIdSet = new Set(nonMonthlyTemplates.map((template) => template.id));
+
+      const rows = (Array.isArray(occurrencesResult?.data) ? occurrencesResult.data : []) as BillOccurrenceWithTemplateDto[];
+      const yearOccurrences = rows
+        .filter((row) => templateIdSet.has(row.template.id))
+        .map((row) => row.occurrence);
+
+      const instancesByTemplateId = new Map<string, typeof yearOccurrences>();
+      yearOccurrences.forEach((occurrence) => {
+        const list = instancesByTemplateId.get(occurrence.templateId) || [];
+        list.push(occurrence);
+        instancesByTemplateId.set(occurrence.templateId, list);
+      });
+
+      const bills: BillWithMonthlyData[] = nonMonthlyTemplates.map((template) => {
+        const monthlyData: Record<string, MonthData | null> = Object.fromEntries(
+          Array.from({ length: 12 }, (_, i) => [String(i + 1), null])
+        );
+
+        const occurrences = instancesByTemplateId.get(template.id) || [];
+        occurrences.forEach((occurrence) => {
+          const [, monthStr, dayStr] = occurrence.dueDate.split('-');
+          const month = Number(monthStr);
+          const day = Number(dayStr);
+
+          monthlyData[String(month)] = {
+            dueDate: day,
+            amount: occurrence.amountDueCents / 100,
+            instanceId: occurrence.id,
+            status: toStatus(occurrence.status),
+            actualAmount: occurrence.actualAmountCents !== null ? occurrence.actualAmountCents / 100 : undefined,
+            paidDate: occurrence.paidDate || undefined,
+          };
+        });
+
+        return {
+          id: template.id,
+          name: template.name,
+          frequency: toFrequency(template.recurrenceType),
+          expectedAmount: template.defaultAmountCents / 100,
+          isActive: template.isActive,
+          notes: template.notes || undefined,
+          monthlyData,
+        };
+      });
+
+      const monthlyBreakdown: Record<string, MonthlySummary> = Object.fromEntries(
+        Array.from({ length: 12 }, (_, i) => [
+          String(i + 1),
+          { total: 0, paidCount: 0, pendingCount: 0, overdueCount: 0 },
+        ])
+      );
+
+      let totalAnnualAmount = 0;
+      let paidCount = 0;
+      let pendingCount = 0;
+      let overdueCount = 0;
+
+      yearOccurrences.forEach((occurrence) => {
+        const [, monthStr] = occurrence.dueDate.split('-');
+        const monthKey = String(Number(monthStr));
+        const amount = occurrence.amountDueCents / 100;
+        monthlyBreakdown[monthKey].total += amount;
+        totalAnnualAmount += amount;
+
+        const status = toStatus(occurrence.status);
+        if (status === 'paid') {
+          monthlyBreakdown[monthKey].paidCount += 1;
+          paidCount += 1;
+        } else if (status === 'overdue') {
+          monthlyBreakdown[monthKey].overdueCount += 1;
+          overdueCount += 1;
+        } else if (status === 'pending') {
+          monthlyBreakdown[monthKey].pendingCount += 1;
+          pendingCount += 1;
+        }
+      });
+
+      const today = new Date().toISOString().split('T')[0];
+      const upcoming = [...yearOccurrences]
+        .filter((occurrence) => toStatus(occurrence.status) === 'pending' && occurrence.dueDate >= today)
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+
+      const nextDue = upcoming.length
+        ? {
+            billId: upcoming[0].templateId,
+            billName: nonMonthlyTemplates.find((template) => template.id === upcoming[0].templateId)?.name || 'Unknown',
+            dueDate: upcoming[0].dueDate,
+            amount: upcoming[0].amountDueCents / 100,
+            instanceId: upcoming[0].id,
+          }
+        : null;
+
+      const result: AnnualPlanningData = {
+        year,
+        bills,
+        monthNames: MONTH_NAMES,
+        summary: {
+          totalAnnualAmount,
+          monthlyBreakdown,
+          paidCount,
+          pendingCount,
+          overdueCount,
+          totalInstances: yearOccurrences.length,
+          nextDue,
+        },
+      };
+
       setData(result);
     } catch (err) {
       console.error('Error fetching annual planning data:', err);

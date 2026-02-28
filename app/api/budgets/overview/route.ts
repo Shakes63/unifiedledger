@@ -371,7 +371,7 @@ export async function GET(request: Request) {
     const incomeBillIds = incomeBills.map(b => b.id);
     let incomeInstances: {
       id: string;
-      billId: string; // kept for response compatibility
+      billId: string; // bill template identifier in response payload
       dueDate: string;
       expectedAmount: number;
       status: string | null;

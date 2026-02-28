@@ -2,7 +2,6 @@ import { db } from '@/lib/db';
 import {
   accounts,
   budgetCategories,
-  bills,
   savingsGoals,
   debts,
   merchants,
@@ -17,6 +16,7 @@ import {
   buildAccountBalanceFields,
   insertTransactionMovement,
 } from '@/lib/transactions/money-movement-service';
+import { createBillTemplate } from '@/lib/bills/service';
 
 interface DemoDataResult {
   accountsCreated: number;
@@ -225,23 +225,21 @@ export async function generateDemoData(
   ];
 
   for (const bill of demoBills) {
-    const id = nanoid();
-    billIds[bill.name] = id;
-    
-    await db.insert(bills).values({
-      id,
-      userId,
-      householdId,
+    const id = await createBillTemplate(userId, householdId, {
       name: bill.name,
-      expectedAmount: bill.expectedAmount.toNumber(),
-      dueDate: bill.dueDate,
-      frequency: bill.frequency,
+      billType: 'expense',
+      classification: bill.name.includes('Rent') ? 'housing' : 'utility',
+      recurrenceType: 'monthly',
+      recurrenceDueDay: bill.dueDate,
+      defaultAmountCents: amountToCents(bill.expectedAmount),
+      isVariableAmount: false,
+      amountToleranceBps: 500,
       categoryId: bill.categoryId,
-      accountId: bill.accountId,
-      isActive: true,
+      paymentAccountId: bill.accountId,
       autoMarkPaid: true,
-      createdAt,
-    });
+      isActive: true,
+    }).then((template) => template.id);
+    billIds[bill.name] = id;
   }
 
   // ============================================================================

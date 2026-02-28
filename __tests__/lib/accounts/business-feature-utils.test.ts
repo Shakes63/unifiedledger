@@ -4,8 +4,8 @@ import { computeBusinessFeatureFlags } from '@/lib/accounts/business-feature-uti
 describe('computeBusinessFeatureFlags', () => {
   it('detects sales tax and tax deduction flags', () => {
     const result = computeBusinessFeatureFlags([
-      { isBusinessAccount: false, enableSalesTax: true, enableTaxDeductions: false },
-      { isBusinessAccount: false, enableSalesTax: false, enableTaxDeductions: true },
+      { enableSalesTax: true, enableTaxDeductions: false },
+      { enableSalesTax: false, enableTaxDeductions: true },
     ]);
 
     expect(result).toEqual({
@@ -15,13 +15,13 @@ describe('computeBusinessFeatureFlags', () => {
     });
   });
 
-  it('supports backward compatibility from legacy business-account flag', () => {
+  it('does not enable business features without explicit toggles', () => {
     const result = computeBusinessFeatureFlags([
-      { isBusinessAccount: true, enableSalesTax: null, enableTaxDeductions: null },
+      { enableSalesTax: null, enableTaxDeductions: null },
     ]);
 
-    expect(result.hasBusinessAccounts).toBe(true);
-    expect(result.hasSalesTaxAccounts).toBe(true);
-    expect(result.hasTaxDeductionAccounts).toBe(true);
+    expect(result.hasBusinessAccounts).toBe(false);
+    expect(result.hasSalesTaxAccounts).toBe(false);
+    expect(result.hasTaxDeductionAccounts).toBe(false);
   });
 });

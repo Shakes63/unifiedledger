@@ -8,7 +8,8 @@
  * GET - Preview what would be processed (for debugging)
  */
 
-import { processAllAutopayBills, getAutopayDueToday } from '@/lib/bills/autopay-processor';
+import { getAutopayDueToday } from '@/lib/bills/autopay-processor';
+import { runAutopay } from '@/lib/bills/service';
 import { getAutopayProcessingSummary } from '@/lib/notifications/autopay-notifications';
 
 export const dynamic = 'force-dynamic';
@@ -40,8 +41,42 @@ export async function POST(request: Request) {
 
     console.log(`[Autopay Cron] Starting autopay processing at ${new Date().toISOString()}`);
 
-    const result = await processAllAutopayBills();
-    const summary = getAutopayProcessingSummary(result);
+    const householdId = request.headers.get('x-household-id');
+    const userId = request.headers.get('x-user-id');
+
+    if (!householdId || !userId) {
+      return Response.json(
+        {
+          error: 'Missing required scope headers',
+          message: 'Autopay cron requests must include x-household-id and x-user-id headers.',
+        },
+        { status: 400 }
+      );
+    }
+
+    const runResult = await runAutopay({
+      userId,
+      householdId,
+      runType: 'scheduled',
+      dryRun: false,
+    });
+
+    const stats: {
+      processed: number;
+      successful: number;
+      failed: number;
+      skipped: number;
+      totalAmount: number;
+    } = {
+      processed: runResult.processedCount,
+      successful: runResult.successCount,
+      failed: runResult.failedCount,
+      skipped: runResult.skippedCount,
+      totalAmount: runResult.totalAmountCents / 100,
+    };
+    const errors = runResult.errors.length > 0 ? runResult.errors : undefined;
+
+    const summary = getAutopayProcessingSummary(stats);
 
     console.log(`[Autopay Cron] Completed: ${summary}`);
 
@@ -50,15 +85,8 @@ export async function POST(request: Request) {
       message: 'Autopay processing completed',
       summary,
       timestamp: new Date().toISOString(),
-      stats: {
-        processed: result.processed,
-        successful: result.successful,
-        failed: result.failed,
-        skipped: result.skipped,
-        totalAmount: result.totalAmount,
-      },
-      errors: result.errors.length > 0 ? result.errors : undefined,
-      successes: result.successes.length > 0 ? result.successes : undefined,
+      stats,
+      errors,
     });
   } catch (error) {
     console.error('[Autopay Cron] Error:', error);
@@ -91,12 +119,12 @@ export async function GET(_request: Request) {
         : 'No autopay bills due today',
       timestamp: new Date().toISOString(),
       count: preview.count,
-      bills: preview.bills.map(b => ({
-        billId: b.billId,
-        billName: b.billName,
-        dueDate: b.dueDate,
-        expectedAmount: b.expectedAmount,
-        autopayAmountType: b.autopayAmountType,
+      bills: preview.bills.map((t) => ({
+        billId: t.billId,
+        billName: t.billName,
+        dueDate: t.dueDate,
+        expectedAmount: t.expectedAmount,
+        autopayAmountType: t.autopayAmountType,
       })),
     });
   } catch (error) {

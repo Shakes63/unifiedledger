@@ -5,13 +5,6 @@ import { and, eq } from 'drizzle-orm';
 export type OAuthLoginProviderId = 'google' | 'github';
 
 export async function isOAuthLoginProviderConfigured(providerId: OAuthLoginProviderId): Promise<boolean> {
-  if (providerId === 'google') {
-    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) return true;
-  }
-  if (providerId === 'github') {
-    if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) return true;
-  }
-
   const rows = await db
     .select({
       clientId: oauthSettings.clientId,

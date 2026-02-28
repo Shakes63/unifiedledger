@@ -10,14 +10,14 @@ vi.mock('@/lib/api/household-auth', () => ({
   getAndVerifyHousehold: vi.fn(),
 }));
 
-vi.mock('@/lib/bills-v2/service', () => ({
+vi.mock('@/lib/bills/service', () => ({
   listBillTemplates: vi.fn(),
   listOccurrences: vi.fn(),
 }));
 
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
-import { listBillTemplates, listOccurrences } from '@/lib/bills-v2/service';
+import { listBillTemplates, listOccurrences } from '@/lib/bills/service';
 
 describe('GET /api/budgets/bills/variable', () => {
   beforeEach(() => {

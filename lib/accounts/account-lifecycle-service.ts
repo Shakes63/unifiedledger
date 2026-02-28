@@ -1,8 +1,15 @@
-import { and, eq, inArray, isNull, or } from 'drizzle-orm';
+import { and, eq, isNull, or, inArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { db } from '@/lib/db';
-import { accounts, bills, billInstances } from '@/lib/db/schema';
-import { createAnnualFeeBill, createPaymentBill, deactivateBill } from '@/lib/bills/auto-bill-creation';
+import {
+  accounts,
+  autopayRules,
+  billOccurrenceAllocations,
+  billOccurrences,
+  billPaymentEvents,
+  billTemplates,
+} from '@/lib/db/schema';
+import { createAnnualFeeBill, createPaymentBill, deactivateBillTemplate } from '@/lib/bills/auto-bill-creation';
 import { createMerchantForBank } from '@/lib/merchants/auto-create';
 import { runInDatabaseTransaction } from '@/lib/db/transaction-runner';
 import { calculateMinimumPayment, determineChangeReason, trackCreditLimitChange } from '@/lib/accounts';
@@ -528,7 +535,7 @@ export async function updateAccountWithLifecycleEffects({
         })
       );
     } else if ((!newFee || newFee <= 0) && existingFeeBillId) {
-      postUpdateTasks.push(deactivateBill(existingFeeBillId));
+      postUpdateTasks.push(deactivateBillTemplate(existingFeeBillId));
       postUpdateTasks.push(
         db
           .update(accounts)
@@ -540,7 +547,7 @@ export async function updateAccountWithLifecycleEffects({
 
   // Cleanup credit-linked annual fee bill when transitioning away from credit account types.
   if (wasCreditType && !isCreditType && existing.annualFeeBillId) {
-    postUpdateTasks.push(deactivateBill(existing.annualFeeBillId));
+    postUpdateTasks.push(deactivateBillTemplate(existing.annualFeeBillId));
   }
 
   await Promise.all(postUpdateTasks);
@@ -582,24 +589,40 @@ export async function deleteAccountWithLifecycleEffects({
   }
 
   await runInDatabaseTransaction(async (tx) => {
-    const linkedBills = await tx
-      .select({ id: bills.id })
-      .from(bills)
+    const linkedBillTemplates = await tx
+      .select({ id: billTemplates.id })
+      .from(billTemplates)
       .where(
         and(
-          eq(bills.userId, userId),
-          eq(bills.householdId, householdId),
+          eq(billTemplates.createdByUserId, userId),
+          eq(billTemplates.householdId, householdId),
           or(
-            eq(bills.linkedAccountId, id),
-            eq(bills.chargedToAccountId, id)
+            eq(billTemplates.linkedLiabilityAccountId, id),
+            eq(billTemplates.chargedToAccountId, id)
           )
         )
       );
 
-    const billIds = linkedBills.map((b) => b.id);
-    if (billIds.length > 0) {
-      await tx.delete(billInstances).where(inArray(billInstances.billId, billIds));
-      await tx.delete(bills).where(inArray(bills.id, billIds));
+    const billTemplateIds = linkedBillTemplates.map((b) => b.id);
+    if (billTemplateIds.length > 0) {
+      const linkedOccurrences = await tx
+        .select({ id: billOccurrences.id })
+        .from(billOccurrences)
+        .where(inArray(billOccurrences.templateId, billTemplateIds));
+      const occurrenceIds = linkedOccurrences.map((o) => o.id);
+
+      if (occurrenceIds.length > 0) {
+        await tx
+          .delete(billOccurrenceAllocations)
+          .where(inArray(billOccurrenceAllocations.occurrenceId, occurrenceIds));
+        await tx
+          .delete(billPaymentEvents)
+          .where(inArray(billPaymentEvents.occurrenceId, occurrenceIds));
+        await tx.delete(billOccurrences).where(inArray(billOccurrences.id, occurrenceIds));
+      }
+
+      await tx.delete(autopayRules).where(inArray(autopayRules.templateId, billTemplateIds));
+      await tx.delete(billTemplates).where(inArray(billTemplates.id, billTemplateIds));
     }
 
     await tx

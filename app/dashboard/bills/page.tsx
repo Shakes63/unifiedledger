@@ -15,6 +15,11 @@ import { useHousehold } from '@/contexts/household-context';
 import { type BillClassification, CLASSIFICATION_META } from '@/lib/bills/bill-classification';
 import { BillPayModal } from '@/components/bills/bill-pay-modal';
 import { QuickAddBillModal } from '@/components/bills/quick-add-bill-modal';
+import type {
+  BillOccurrenceWithTemplateDto,
+  BillTemplateDto,
+  RecurrenceType,
+} from '@/lib/bills/contracts';
 
 interface BillInstance {
   id: string;
@@ -22,14 +27,14 @@ interface BillInstance {
   billId: string;
   dueDate: string;
   expectedAmount: number;
-  actualAmount?: number;
-  paidDate?: string;
-  transactionId?: string;
+  actualAmount?: number | null;
+  paidDate?: string | null;
+  transactionId?: string | null;
   status: 'pending' | 'paid' | 'overdue' | 'skipped';
   daysLate: number;
   lateFee: number;
   isManualOverride: boolean;
-  notes?: string;
+  notes?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -81,6 +86,77 @@ interface BillWithInstance extends Bill {
   upcomingInstances?: BillInstance[];
 }
 
+function toFrequency(recurrenceType: RecurrenceType): string {
+  if (recurrenceType === 'one_time') return 'one-time';
+  if (recurrenceType === 'semi_annual') return 'semi-annual';
+  return recurrenceType;
+}
+
+function toDueDateNumber(template: BillTemplateDto): number {
+  if (template.recurrenceType === 'weekly' || template.recurrenceType === 'biweekly') {
+    return template.recurrenceDueWeekday ?? 0;
+  }
+
+  if (template.recurrenceType === 'one_time') {
+    return Number(template.recurrenceSpecificDueDate?.split('-')[2] || '1');
+  }
+
+  return template.recurrenceDueDay ?? 1;
+}
+
+function mapTemplateToBill(template: BillTemplateDto): BillWithInstance {
+  return {
+    id: template.id,
+    userId: template.createdByUserId,
+    name: template.name,
+    categoryId: template.categoryId || undefined,
+    expectedAmount: template.defaultAmountCents / 100,
+    dueDate: toDueDateNumber(template),
+    frequency: toFrequency(template.recurrenceType),
+    specificDueDate: template.recurrenceSpecificDueDate || undefined,
+    startMonth: template.recurrenceStartMonth,
+    isVariableAmount: template.isVariableAmount,
+    amountTolerance: template.amountToleranceBps / 100,
+    payeePatterns: undefined,
+    accountId: template.paymentAccountId || undefined,
+    isActive: template.isActive,
+    autoMarkPaid: template.autoMarkPaid,
+    notes: template.notes || undefined,
+    createdAt: template.createdAt,
+    billType: template.billType,
+    billClassification: template.classification,
+    classificationSubcategory: template.classificationSubcategory,
+  };
+}
+
+function mapOccurrenceRowsToBillInstances(rows: BillOccurrenceWithTemplateDto[]): BillInstance[] {
+  return rows.map((row) => ({
+    id: row.occurrence.id,
+    userId: '',
+    billId: row.occurrence.templateId,
+    dueDate: row.occurrence.dueDate,
+    expectedAmount: row.occurrence.amountDueCents / 100,
+    actualAmount:
+      row.occurrence.actualAmountCents !== null ? row.occurrence.actualAmountCents / 100 : null,
+    paidDate: row.occurrence.paidDate,
+    transactionId: row.occurrence.lastTransactionId,
+    status:
+      row.occurrence.status === 'paid' || row.occurrence.status === 'overpaid'
+        ? 'paid'
+        : row.occurrence.status === 'overdue'
+          ? 'overdue'
+          : row.occurrence.status === 'skipped'
+            ? 'skipped'
+            : 'pending',
+    daysLate: row.occurrence.daysLate,
+    lateFee: row.occurrence.lateFeeCents / 100,
+    isManualOverride: row.occurrence.isManualOverride,
+    notes: row.occurrence.notes,
+    createdAt: row.occurrence.createdAt,
+    updatedAt: row.occurrence.updatedAt,
+  }));
+}
+
 export default function BillsDashboard() {
   const searchParams = useSearchParams();
   const { selectedHouseholdId } = useHousehold();
@@ -126,31 +202,27 @@ export default function BillsDashboard() {
         setLoading(true);
 
         // Fetch active bills
-        const billsRes = await fetchWithHousehold('/api/bills-v2?isActive=true&limit=100');
+        const billsRes = await fetchWithHousehold('/api/bills/templates?isActive=true&limit=100');
         if (!billsRes.ok) {
           throw new Error(`Failed to fetch bills: ${billsRes.statusText}`);
         }
         const billsData = await billsRes.json();
 
         // Fetch all bill instances
-        const instancesRes = await fetchWithHousehold('/api/bills-v2/instances?limit=1000');
+        const instancesRes = await fetchWithHousehold('/api/bills/occurrences?limit=1000');
         if (!instancesRes.ok) {
           throw new Error(`Failed to fetch bill instances: ${instancesRes.statusText}`);
         }
         const instancesData = await instancesRes.json();
 
-        // Handle empty data safely
-        // Extract bill objects from nested structure { bill, category, account }
         const billsList = Array.isArray(billsData?.data)
-          ? (billsData.data as Array<{ bill: BillWithInstance }>).map((row) => row.bill)
+          ? (billsData.data as BillTemplateDto[]).map(mapTemplateToBill)
           : [];
 
-        // Extract instance objects from nested structure { instance, bill }
-        const rawInstances = Array.isArray(instancesData?.data) ? instancesData.data : [];
-        const instancesList = (rawInstances as Array<{ instance: BillInstance; bill: BillWithInstance }>).map((row) => ({
-          ...row.instance,
-          bill: row.bill,
-        }));
+        const rawInstances = (Array.isArray(instancesData?.data)
+          ? instancesData.data
+          : []) as BillOccurrenceWithTemplateDto[];
+        const instancesList = mapOccurrenceRowsToBillInstances(rawInstances);
 
         setBills(billsList);
         setBillInstances(instancesList);
@@ -181,29 +253,27 @@ export default function BillsDashboard() {
           setLoading(true);
 
           // Fetch active bills
-          const billsRes = await fetchWithHousehold('/api/bills-v2?isActive=true&limit=100');
+          const billsRes = await fetchWithHousehold('/api/bills/templates?isActive=true&limit=100');
           if (!billsRes.ok) {
             throw new Error(`Failed to fetch bills: ${billsRes.statusText}`);
           }
           const billsData = await billsRes.json();
 
           // Fetch all bill instances
-          const instancesRes = await fetchWithHousehold('/api/bills-v2/instances?limit=1000');
+          const instancesRes = await fetchWithHousehold('/api/bills/occurrences?limit=1000');
           if (!instancesRes.ok) {
             throw new Error(`Failed to fetch bill instances: ${instancesRes.statusText}`);
           }
           const instancesData = await instancesRes.json();
 
-          // Handle empty data safely
           const billsList = Array.isArray(billsData?.data)
-            ? (billsData.data as Array<{ bill: BillWithInstance }>).map((row) => row.bill)
+            ? (billsData.data as BillTemplateDto[]).map(mapTemplateToBill)
             : [];
 
-          const rawInstances = Array.isArray(instancesData?.data) ? instancesData.data : [];
-          const instancesList = (rawInstances as Array<{ instance: BillInstance; bill: BillWithInstance }>).map((row) => ({
-            ...row.instance,
-            bill: row.bill,
-          }));
+          const rawInstances = (Array.isArray(instancesData?.data)
+            ? instancesData.data
+            : []) as BillOccurrenceWithTemplateDto[];
+          const instancesList = mapOccurrenceRowsToBillInstances(rawInstances);
 
           setBills(billsList);
           setBillInstances(instancesList);

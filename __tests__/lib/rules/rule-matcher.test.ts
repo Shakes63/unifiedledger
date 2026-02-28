@@ -120,7 +120,7 @@ function createTestRule(overrides?: Partial<TestRule>): TestRule {
       value: 'coffee',
       caseSensitive: false,
     }),
-    actions: null, // Will test backward compatibility
+    actions: null, // Allows tests to cover empty-action rule rows
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -1144,13 +1144,13 @@ describe("Rule Matcher - findMatchingRule() Action Parsing", () => {
     expect(result.rule!.actions[1].value).toBe('merch-456');
   });
 
-  it("should use backward compatibility for rules with only categoryId", async () => {
+  it("should return empty actions for rules with only categoryId", async () => {
     const mockRule = createTestRule({
       id: 'rule-1',
       priority: 1,
       conditions: createConditionJSON('description', 'contains', 'coffee'),
       categoryId: 'cat-legacy',
-      actions: null, // No actions, should fall back to categoryId
+      actions: null,
     });
     mockDatabaseRules([mockRule]);
 
@@ -1158,9 +1158,7 @@ describe("Rule Matcher - findMatchingRule() Action Parsing", () => {
     const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
-    expect(result.rule!.actions).toHaveLength(1);
-    expect(result.rule!.actions[0].type).toBe('set_category');
-    expect(result.rule!.actions[0].value).toBe('cat-legacy');
+    expect(result.rule!.actions).toHaveLength(0);
   });
 
   it("should prioritize actions over categoryId when both exist", async () => {
@@ -1205,7 +1203,7 @@ describe("Rule Matcher - findMatchingRule() Action Parsing", () => {
     expect(result.rule!.actions[2].pattern).toBe('Prefix: ');
   });
 
-  it("should handle invalid actions JSON gracefully with categoryId fallback", async () => {
+  it("should handle invalid actions JSON gracefully without categoryId fallback", async () => {
     const mockRule = createTestRule({
       id: 'rule-1',
       priority: 1,
@@ -1219,9 +1217,7 @@ describe("Rule Matcher - findMatchingRule() Action Parsing", () => {
     const result = await findMatchingRule('user-123', TEST_HOUSEHOLD_ID, transaction);
 
     expect(result.matched).toBe(true);
-    expect(result.rule!.actions).toHaveLength(1);
-    expect(result.rule!.actions[0].type).toBe('set_category');
-    expect(result.rule!.actions[0].value).toBe('cat-fallback');
+    expect(result.rule!.actions).toHaveLength(0);
   });
 
   it("should return empty actions when no actions or categoryId", async () => {

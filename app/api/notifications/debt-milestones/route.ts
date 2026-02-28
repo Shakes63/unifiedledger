@@ -9,11 +9,9 @@
 
 import { requireAuth, getAuthUser } from '@/lib/auth-helpers';
 import { db } from '@/lib/db';
-import { debts, households } from '@/lib/db/schema';
+import { households } from '@/lib/db/schema';
 import { 
-  checkAndCreateDebtPayoffMilestoneNotifications,
   checkAndCreateUnifiedDebtMilestoneNotifications,
-  getDebtPayoffMilestoneStats,
   getUnifiedDebtMilestoneStats,
 } from '@/lib/notifications/debt-milestones';
 import { getHouseholdIdFromRequest, requireHouseholdAuth } from '@/lib/api/household-auth';
@@ -22,7 +20,7 @@ export const dynamic = 'force-dynamic';
 
 /**
  * POST /api/notifications/debt-milestones
- * Check debt milestones - supports both legacy (user-based) and unified (household-based)
+ * Check debt milestones for unified household debt sources.
  */
 export async function POST(request: Request) {
   // For cron jobs, we might not have auth context
@@ -42,26 +40,21 @@ export async function POST(request: Request) {
       // Single user request - check their household
       const householdId = getHouseholdIdFromRequest(request);
       
-      if (householdId) {
-        // Use unified architecture
-        await requireHouseholdAuth(userId, householdId);
-        const results = await checkAndCreateUnifiedDebtMilestoneNotifications(householdId);
-        return Response.json({
-          success: true,
-          message: `Checked unified debt milestones, created ${results.length} notification(s)`,
-          milestones: results,
-          mode: 'unified',
-        });
-      } else {
-        // Fallback to legacy mode
-        const results = await checkAndCreateDebtPayoffMilestoneNotifications(userId);
-        return Response.json({
-          success: true,
-          message: 'Debt milestone notifications checked (legacy mode)',
-          milestones: results,
-          mode: 'legacy',
-        });
+      if (!householdId) {
+        return Response.json(
+          { error: 'Household ID is required' },
+          { status: 400 }
+        );
       }
+
+      await requireHouseholdAuth(userId, householdId);
+      const results = await checkAndCreateUnifiedDebtMilestoneNotifications(householdId);
+      return Response.json({
+        success: true,
+        message: `Checked debt milestones, created ${results.length} notification(s)`,
+        milestones: results,
+        mode: 'unified',
+      });
     } else if (isCronJob) {
       // Cron job - check all households with unified architecture
       const allHouseholds = await db
@@ -91,35 +84,14 @@ export async function POST(request: Request) {
         }
       }
 
-      // Also check legacy debts table for backward compatibility
-      const usersWithDebts = await db
-        .selectDistinct({ userId: debts.userId })
-        .from(debts);
-      
-      let legacyProcessed = 0;
-      for (const userRecord of usersWithDebts) {
-        try {
-          const results = await checkAndCreateDebtPayoffMilestoneNotifications(userRecord.userId);
-          if (results.length > 0) {
-            legacyProcessed += results.length;
-          }
-        } catch (error) {
-          console.error(`Error processing legacy user ${userRecord.userId}:`, error);
-        }
-      }
-
       return Response.json({
         success: true,
-        message: `Processed ${allHouseholds.length} households, created ${totalMilestones} unified milestone(s) and ${legacyProcessed} legacy milestone(s)`,
+        message: `Processed ${allHouseholds.length} households, created ${totalMilestones} milestone(s)`,
         unified: {
           householdsProcessed: allHouseholds.length,
           householdsWithMilestones: householdResults.length,
           totalMilestones,
           details: householdResults,
-        },
-        legacy: {
-          usersProcessed: usersWithDebts.length,
-          milestonesCreated: legacyProcessed,
         },
         timestamp: new Date().toISOString(),
       });
@@ -143,7 +115,7 @@ export async function POST(request: Request) {
 
 /**
  * GET /api/notifications/debt-milestones
- * Get debt milestone stats - supports both legacy and unified modes
+ * Get debt milestone stats in unified household mode.
  */
 export async function GET(request: Request) {
   try {
@@ -152,22 +124,19 @@ export async function GET(request: Request) {
     // Check if household context provided
     const householdId = getHouseholdIdFromRequest(request);
     
-    if (householdId) {
-      // Unified architecture
-      await requireHouseholdAuth(userId, householdId);
-      const stats = await getUnifiedDebtMilestoneStats(householdId);
-      return Response.json({
-        ...stats,
-        mode: 'unified',
-      });
-    } else {
-      // Legacy mode
-      const stats = await getDebtPayoffMilestoneStats(userId);
-      return Response.json({
-        ...stats,
-        mode: 'legacy',
-      });
+    if (!householdId) {
+      return Response.json(
+        { error: 'Household ID is required' },
+        { status: 400 }
+      );
     }
+
+    await requireHouseholdAuth(userId, householdId);
+    const stats = await getUnifiedDebtMilestoneStats(householdId);
+    return Response.json({
+      ...stats,
+      mode: 'unified',
+    });
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });

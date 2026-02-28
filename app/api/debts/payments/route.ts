@@ -3,7 +3,6 @@ import { nanoid } from 'nanoid';
 
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { requireAuth } from '@/lib/auth-helpers';
-import { centsToDollars } from '@/lib/bills-v2/legacy-compat';
 import { db } from '@/lib/db';
 import {
   accounts,
@@ -11,7 +10,6 @@ import {
   billPaymentEvents,
   billOccurrences,
   billTemplates,
-  bills,
   debtPayments,
   debtPayoffMilestones,
   debts,
@@ -38,6 +36,10 @@ interface PaymentRequestBody {
   paymentDate?: string;
   transactionId?: string;
   notes?: string;
+}
+
+function centsToDollars(value: number | null | undefined): number {
+  return (value || 0) / 100;
 }
 
 function parseSource(value: string | null): PaymentSource | null {
@@ -111,7 +113,7 @@ export async function GET(request: Request) {
     }
 
     if (source === 'bill') {
-      // Prefer bills-v2 templates/payment events.
+      // Prefer bill schedule/payment event records.
       const template = await db
         .select({ id: billTemplates.id })
         .from(billTemplates)
@@ -159,50 +161,7 @@ export async function GET(request: Request) {
         );
       }
 
-      // Legacy fallback
-      const bill = await db
-        .select({ id: bills.id })
-        .from(bills)
-        .where(
-          and(
-            eq(bills.id, sourceId),
-            eq(bills.userId, userId),
-            eq(bills.householdId, householdId)
-          )
-        )
-        .limit(1)
-        .then((rows) => rows[0]);
-
-      if (!bill) {
-        return Response.json({ error: 'Debt bill not found' }, { status: 404 });
-      }
-
-      const payments = await db
-        .select({
-          id: transactions.id,
-          amount: transactions.amount,
-          paymentDate: transactions.date,
-          notes: transactions.notes,
-          transactionId: transactions.id,
-        })
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.billId, sourceId),
-            eq(transactions.householdId, householdId)
-          )
-        )
-        .orderBy(desc(transactions.date));
-
-      return Response.json(
-        payments.map((payment) => ({
-          id: payment.id,
-          amount: Math.abs(Number(payment.amount || 0)),
-          paymentDate: payment.paymentDate,
-          notes: payment.notes || undefined,
-          transactionId: payment.transactionId || undefined,
-        })) satisfies UnifiedPayment[]
-      );
+      return Response.json({ error: 'Debt bill not found' }, { status: 404 });
     }
 
     const account = await db
@@ -404,7 +363,7 @@ export async function POST(request: Request) {
       if (template) {
         if (!transactionId) {
           return Response.json(
-            { error: 'transactionId is required for debt-enabled bills-v2 payments' },
+            { error: 'transactionId is required for debt-enabled bill payments' },
             { status: 400 }
           );
         }
@@ -521,97 +480,7 @@ export async function POST(request: Request) {
         });
       }
 
-      const bill = await db
-        .select()
-        .from(bills)
-        .where(
-          and(
-            eq(bills.id, sourceId),
-            eq(bills.userId, userId),
-            eq(bills.householdId, householdId),
-            eq(bills.isDebt, true)
-          )
-        )
-        .limit(1)
-        .then((rows) => rows[0]);
-
-      if (!bill) {
-        return Response.json({ error: 'Debt bill not found' }, { status: 404 });
-      }
-
-      if (transactionId) {
-        const transaction = await db
-          .select({ id: transactions.id })
-          .from(transactions)
-          .where(
-            and(
-              eq(transactions.id, transactionId),
-              eq(transactions.userId, userId),
-              eq(transactions.householdId, householdId)
-            )
-          )
-          .limit(1)
-          .then((rows) => rows[0]);
-        if (!transaction) {
-          return Response.json(
-            { error: 'Transaction not found or does not belong to this household' },
-            { status: 400 }
-          );
-        }
-      }
-
-      const paymentId = nanoid();
-
-      if (bill.remainingBalance !== null && bill.remainingBalance !== undefined) {
-        const newBalance = Math.max(0, bill.remainingBalance - amount);
-        await db
-          .update(bills)
-          .set({ remainingBalance: newBalance })
-          .where(eq(bills.id, sourceId));
-
-        const milestones = await db
-          .select()
-          .from(billMilestones)
-          .where(
-            and(
-              eq(billMilestones.billId, sourceId),
-              eq(billMilestones.householdId, householdId)
-            )
-          );
-
-        for (const milestone of milestones) {
-          if (!milestone.achievedAt && newBalance <= milestone.milestoneBalance) {
-            await db
-              .update(billMilestones)
-              .set({ achievedAt: now })
-              .where(eq(billMilestones.id, milestone.id));
-          }
-        }
-      }
-
-      if (transactionId) {
-        await db
-          .update(transactions)
-          .set({
-            billId: sourceId,
-            updatedAt: now,
-          })
-          .where(
-            and(
-              eq(transactions.id, transactionId),
-              eq(transactions.userId, userId),
-              eq(transactions.householdId, householdId)
-            )
-          );
-      }
-
-      return Response.json({
-        id: paymentId,
-        amount,
-        paymentDate,
-        notes,
-        transactionId,
-      });
+      return Response.json({ error: 'Debt bill not found' }, { status: 404 });
     }
 
     const account = await db

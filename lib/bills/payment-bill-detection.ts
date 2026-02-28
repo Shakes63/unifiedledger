@@ -1,34 +1,30 @@
 /**
- * Shared UI shape for payment bill detection responses.
+ * Shared UI shape for template payment detection responses.
  *
- * Detection is provided by `GET /api/bills-v2/detect-payment`.
+ * Detection is provided by `GET /api/bills/detect-payment`.
  * This module intentionally exports type contracts only.
  */
 
 /**
- * Detected payment bill with instance details
+ * Detected payment template with occurrence details
  */
 export interface DetectedPaymentBill {
-  billId: string;
-  instanceId: string;
-  billName: string;
-  expectedAmount: number;
+  templateId: string;
+  occurrenceId: string;
+  templateName: string;
+  expectedAmountCents: number;
   dueDate: string;
-  status: 'pending' | 'overdue' | 'partial';
-  paidAmount: number;
-  remainingAmount: number;
+  status: 'unpaid' | 'overdue' | 'partial';
+  paidAmountCents: number;
+  remainingAmountCents: number;
   linkedAccountName: string;
 }
 
 /**
- * Result of payment bill detection
+ * Result of template payment detection
  */
 export interface PaymentBillDetectionResult {
-  /** The detected bill ID (if found) */
-  suggestedBillId: string | null;
-  /** The detected instance ID (if found) */
-  suggestedInstanceId: string | null;
-  /** Full details of the detected bill */
+  /** Full details of the detected template */
   detectedBill: DetectedPaymentBill | null;
   /** Confidence level of the detection */
   confidence: 'high' | 'medium' | 'low' | 'none';

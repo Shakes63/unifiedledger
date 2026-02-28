@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { accounts, billTemplates, bills, debts } from '@/lib/db/schema';
+import { accounts, billTemplates, debts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import Decimal from 'decimal.js';
 import { toMoneyCents } from '@/lib/utils/money-cents';
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
         availableCredit,
       };
     } else if (source === 'bill') {
-      // Prefer bills-v2 template toggle.
+      // Prefer bill schedule toggle.
       const [template] = await db
         .select()
         .from(billTemplates)
@@ -133,89 +133,45 @@ export async function POST(request: NextRequest) {
         )
         .limit(1);
 
-      if (template) {
-        if (!template.debtEnabled) {
-          return NextResponse.json(
-            { error: 'Only debt-enabled bills can be included in payoff strategy' },
-            { status: 400 }
-          );
-        }
-
-        await db
-          .update(billTemplates)
-          .set({
-            includeInPayoffStrategy: include,
-            updatedAt: new Date().toISOString(),
-          })
-          .where(eq(billTemplates.id, id));
-
-        updatedDebt = {
-          id: template.id,
-          name: template.name,
-          source: 'bill',
-          sourceType: 'other',
-          balance:
-            template.debtRemainingBalanceCents !== null
-              ? toAmount(template.debtRemainingBalanceCents)
-              : 0,
-          interestRate:
-            template.debtInterestAprBps !== null
-              ? new Decimal(template.debtInterestAprBps).div(100).toNumber()
-              : undefined,
-          minimumPayment: 0,
-          includeInPayoffStrategy: include,
-          color: template.debtColor ?? undefined,
-        };
-      } else {
-        // Legacy fallback
-        // Verify bill belongs to this household
-      const [bill] = await db
-        .select()
-        .from(bills)
-        .where(
-          and(
-            eq(bills.id, id),
-            eq(bills.householdId, householdId)
-          )
-        )
-        .limit(1);
-
-      if (!bill) {
+      if (!template) {
         return NextResponse.json(
-          { error: 'Bill not found or access denied' },
+          { error: 'Debt bill not found or access denied' },
           { status: 404 }
         );
       }
 
-      // Verify it's a debt bill
-      if (!bill.isDebt) {
+      if (!template.debtEnabled) {
         return NextResponse.json(
-          { error: 'Only debt bills can be included in payoff strategy' },
+          { error: 'Only debt-enabled bills can be included in payoff strategy' },
           { status: 400 }
         );
       }
 
-      // Update the bill
       await db
-        .update(bills)
-        .set({ 
+        .update(billTemplates)
+        .set({
           includeInPayoffStrategy: include,
+          updatedAt: new Date().toISOString(),
         })
-        .where(eq(bills.id, id));
+        .where(eq(billTemplates.id, id));
 
-      // Return updated bill in unified format
       updatedDebt = {
-        id: bill.id,
-        name: bill.name,
+        id: template.id,
+        name: template.name,
         source: 'bill',
-        sourceType: bill.debtType || 'other',
-        balance: bill.remainingBalance || 0,
-        interestRate: bill.billInterestRate ?? undefined,
-        minimumPayment: bill.minimumPayment ?? undefined,
+        sourceType: 'other',
+        balance:
+          template.debtRemainingBalanceCents !== null
+            ? toAmount(template.debtRemainingBalanceCents)
+            : 0,
+        interestRate:
+          template.debtInterestAprBps !== null
+            ? new Decimal(template.debtInterestAprBps).div(100).toNumber()
+            : undefined,
+        minimumPayment: 0,
         includeInPayoffStrategy: include,
-        color: bill.billColor ?? undefined,
+        color: template.debtColor ?? undefined,
       };
-      }
     } else {
       // source === 'debt'
       const [debt] = await db

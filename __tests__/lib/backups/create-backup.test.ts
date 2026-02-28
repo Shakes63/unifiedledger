@@ -40,16 +40,6 @@ vi.mock('@/lib/backups/backup-utils', () => ({
 import { db } from '@/lib/db';
 import { saveBackupFile } from '@/lib/backups/backup-utils';
 
-function mockSelectLimit1(rows: any[]) {
-  return {
-    from: () => ({
-      where: () => ({
-        limit: async () => rows,
-      }),
-    }),
-  };
-}
-
 function mockSelectWhere(rows: any[]) {
   return {
     from: () => ({
@@ -68,8 +58,8 @@ describe('lib/backups/create-backup', () => {
   it('creates default settings, writes file, and marks backup completed', async () => {
     // settings missing -> create defaults -> re-select settings
     (db.select as any)
-      .mockReturnValueOnce(mockSelectLimit1([]))
-      .mockReturnValueOnce(mockSelectLimit1([{ id: 'settings-id', format: 'json' }]));
+      .mockReturnValueOnce(mockSelectWhere([]))
+      .mockReturnValueOnce(mockSelectWhere([{ id: 'settings-id', format: 'json' }]));
 
     // Promise.all: 19 selects
     for (let i = 0; i < 19; i++) {
@@ -122,7 +112,9 @@ describe('lib/backups/create-backup', () => {
 
   it('marks backup failed when data fetch errors', async () => {
     (db.select as any)
-      .mockReturnValueOnce(mockSelectLimit1([{ id: 'settings-id', format: 'json' }]))
+      .mockReturnValueOnce(mockSelectWhere([{ id: 'settings-id', format: 'json' }]))
+      // Safety: if settings bootstrap re-queries, keep select chain valid
+      .mockReturnValueOnce(mockSelectWhere([{ id: 'settings-id', format: 'json' }]))
       // Promise.all first select rejects
       .mockReturnValueOnce({
         from: () => ({

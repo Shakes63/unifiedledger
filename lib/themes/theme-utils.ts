@@ -7,7 +7,6 @@
 import { themes, DEFAULT_THEME_ID, type Theme } from './theme-config';
 
 const THEME_STORAGE_PREFIX = 'unified-ledger:theme';
-const LEGACY_THEME_STORAGE_KEY = THEME_STORAGE_PREFIX;
 
 /**
  * Get a theme by ID
@@ -67,7 +66,7 @@ export function isThemeAvailable(themeId: string): boolean {
 }
 
 export function getThemeStorageKey(householdId?: string | null): string {
-  return householdId ? `${THEME_STORAGE_PREFIX}:${householdId}` : LEGACY_THEME_STORAGE_KEY;
+  return householdId ? `${THEME_STORAGE_PREFIX}:${householdId}` : THEME_STORAGE_PREFIX;
 }
 
 export function getCachedTheme(householdId?: string | null): string | null {
@@ -76,16 +75,9 @@ export function getCachedTheme(householdId?: string | null): string | null {
   }
 
   try {
-    const scopedTheme = householdId
-      ? window.localStorage.getItem(getThemeStorageKey(householdId))
-      : null;
-    if (scopedTheme && isValidThemeId(scopedTheme)) {
-      return scopedTheme;
-    }
-
-    const legacyTheme = window.localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
-    if (legacyTheme && isValidThemeId(legacyTheme)) {
-      return legacyTheme;
+    const cachedTheme = window.localStorage.getItem(getThemeStorageKey(householdId));
+    if (cachedTheme && isValidThemeId(cachedTheme)) {
+      return cachedTheme;
     }
   } catch {
     // Ignore storage failures (private mode, etc.)
@@ -130,10 +122,7 @@ export function applyTheme(themeId: string, options: ApplyThemeOptions = {}): vo
     if (!force && currentThemeId === nextThemeId) {
       if (persist && typeof window !== 'undefined') {
         try {
-          window.localStorage.setItem(LEGACY_THEME_STORAGE_KEY, theme.id);
-          if (householdId) {
-            window.localStorage.setItem(getThemeStorageKey(householdId), theme.id);
-          }
+          window.localStorage.setItem(getThemeStorageKey(householdId), theme.id);
         } catch {
           // Ignore storage failures (private mode, etc.)
         }
@@ -149,10 +138,7 @@ export function applyTheme(themeId: string, options: ApplyThemeOptions = {}): vo
 
   if (persist && typeof window !== 'undefined') {
     try {
-      window.localStorage.setItem(LEGACY_THEME_STORAGE_KEY, theme.id);
-      if (householdId) {
-        window.localStorage.setItem(getThemeStorageKey(householdId), theme.id);
-      }
+      window.localStorage.setItem(getThemeStorageKey(householdId), theme.id);
     } catch {
       // Ignore storage failures (private mode, etc.)
     }

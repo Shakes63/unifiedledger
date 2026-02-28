@@ -8,6 +8,7 @@ import { WhyThisMatters } from '../why-this-matters';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useOnboarding } from '@/contexts/onboarding-context';
 import { toast } from 'sonner';
+import type { BillTemplateUpsertPayload } from '@/components/bills/bill-form';
 
 interface CreateBillStepProps {
   onNext: () => void;
@@ -36,10 +37,10 @@ export function CreateBillStep({
     }
   }, [isDemoMode, onNext]);
 
-  const handleSubmit = async (formData: Record<string, unknown>) => {
+  const handleSubmit = async (formData: BillTemplateUpsertPayload) => {
     try {
       setIsSubmitting(true);
-      const response = await postWithHousehold('/api/bills-v2', formData);
+      const response = await postWithHousehold('/api/bills/templates', formData as unknown as Record<string, unknown>);
 
       if (response.ok || response.status === 201) {
         toast.success('Bill created successfully');

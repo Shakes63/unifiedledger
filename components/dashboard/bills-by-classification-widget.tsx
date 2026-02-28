@@ -54,7 +54,7 @@ export function BillsByClassificationWidget() {
       }
 
       try {
-        const response = await fetchWithHousehold('/api/bills-v2/classification-summary');
+        const response = await fetchWithHousehold('/api/bills/classification-summary');
         if (response.ok) {
           const result = await response.json();
           setData(result);

@@ -5,8 +5,8 @@ import { transactions } from '@/lib/db/schema';
 import { processBillPayment } from '@/lib/bills/bill-payment-utils';
 
 export async function processAndAttachBillPayment({
-  billId,
-  instanceId,
+  templateId,
+  occurrenceId,
   transactionId,
   paymentAmount,
   paymentDate,
@@ -16,8 +16,8 @@ export async function processAndAttachBillPayment({
   paymentMethod,
   notes,
 }: {
-  billId: string;
-  instanceId: string;
+  templateId: string;
+  occurrenceId: string;
   transactionId: string;
   paymentAmount: number;
   paymentDate: string;
@@ -28,8 +28,8 @@ export async function processAndAttachBillPayment({
   notes: string;
 }) {
   const paymentResult = await processBillPayment({
-    billId,
-    instanceId,
+    billId: templateId,
+    instanceId: occurrenceId,
     transactionId,
     paymentAmount,
     paymentDate,
@@ -50,7 +50,7 @@ export async function processAndAttachBillPayment({
   await db
     .update(transactions)
     .set({
-      billId,
+      billId: templateId,
       updatedAt: new Date().toISOString(),
     })
     .where(

@@ -17,13 +17,10 @@ import type { RuleMatch, RuleEvaluationResult, RuleAction } from './types';
 
 /**
  * Parse actions from database format
- * Handles backward compatibility for rules with only categoryId
  */
 function parseRuleActions(rule: {
   actions?: string | null;
-  categoryId?: string | null;
 }): RuleAction[] {
-  // First, try to parse actions array
   if (rule.actions) {
     try {
       const actions = JSON.parse(rule.actions);
@@ -35,17 +32,6 @@ function parseRuleActions(rule: {
     }
   }
 
-  // Backward compatibility: if no actions but has categoryId, create set_category action
-  if (rule.categoryId) {
-    return [
-      {
-        type: 'set_category',
-        value: rule.categoryId,
-      },
-    ];
-  }
-
-  // No actions defined
   return [];
 }
 
@@ -117,10 +103,9 @@ export async function findMatchingRule(
       const result = evaluateRule(rule as { id: string; name: string; categoryId: string; priority: number; conditions: string }, transaction);
 
       if (result.matched) {
-        // Parse actions from rule (with backward compatibility)
+        // Parse actions from rule payload.
         const actions = parseRuleActions({
           actions: rule.actions,
-          categoryId: rule.categoryId,
         });
 
         return {
@@ -179,10 +164,9 @@ export async function findAllMatchingRules(
       const result = evaluateRule(rule as { id: string; name: string; categoryId: string; priority: number; conditions: string }, transaction);
 
       if (result.matched) {
-        // Parse actions from rule (with backward compatibility)
+        // Parse actions from rule payload.
         const actions = parseRuleActions({
           actions: rule.actions,
-          categoryId: rule.categoryId,
         });
 
         matches.push({

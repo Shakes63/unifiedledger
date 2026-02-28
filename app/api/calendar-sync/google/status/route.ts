@@ -22,13 +22,13 @@ export async function GET(request: Request) {
     const { householdId } = await getAndVerifyHousehold(request, userId);
 
     // Check if Google OAuth is configured at all
-    if (!isGoogleCalendarConfigured()) {
+    if (!(await isGoogleCalendarConfigured())) {
       return Response.json({
         configured: false,
         linked: false,
         calendars: [],
         selectedCalendarId: null,
-        message: 'Google OAuth not configured. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables.',
+        message: 'Google OAuth not configured. Configure the Google provider in OAuth settings.',
       });
     }
 

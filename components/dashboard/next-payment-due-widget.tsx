@@ -18,6 +18,7 @@ import { parseISO, format } from 'date-fns';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import Decimal from 'decimal.js';
+import type { BillOccurrenceWithTemplateDto } from '@/lib/bills/contracts';
 
 interface LinkedAccount {
   id: string;
@@ -60,6 +61,8 @@ interface NextDueResponse {
   summary: NextDueSummary;
 }
 
+const CREDIT_ACCOUNT_TYPES = new Set(['credit', 'line_of_credit']);
+
 export function NextPaymentDueWidget() {
   const { selectedHouseholdId } = useHousehold();
   const { fetchWithHousehold } = useHouseholdFetch();
@@ -76,13 +79,95 @@ export function NextPaymentDueWidget() {
     try {
       setIsLoading(true);
       setError(null);
-      const response = await fetchWithHousehold('/api/bills-v2/next-due?limit=5');
-      
-      if (!response.ok) {
+      const [occurrencesResponse, accountsResponse] = await Promise.all([
+        fetchWithHousehold('/api/bills/occurrences?status=unpaid,partial,overdue&limit=5000'),
+        fetchWithHousehold('/api/accounts'),
+      ]);
+
+      if (!occurrencesResponse.ok) {
         throw new Error('Failed to fetch next due bills');
       }
-      
-      const result = await response.json();
+
+      const occurrencesResult = await occurrencesResponse.json();
+      const rows = (Array.isArray(occurrencesResult?.data) ? occurrencesResult.data : []) as BillOccurrenceWithTemplateDto[];
+
+      const accountsResult = accountsResponse.ok ? await accountsResponse.json() : [];
+      const accounts = Array.isArray(accountsResult) ? accountsResult : [];
+      const accountMap = new Map(
+        accounts
+          .filter((account: { id: string; type: string }) => CREDIT_ACCOUNT_TYPES.has(account.type))
+          .map((account: { id: string; name: string; type: 'credit' | 'line_of_credit'; currentBalance?: number; creditLimit?: number }) => [
+            account.id,
+            account,
+          ])
+      );
+
+      const overdueRows = rows
+        .filter((row) => row.occurrence.status === 'overdue')
+        .sort((a, b) => a.occurrence.dueDate.localeCompare(b.occurrence.dueDate));
+      const pendingRows = rows
+        .filter((row) => row.occurrence.status === 'unpaid' || row.occurrence.status === 'partial')
+        .sort((a, b) => a.occurrence.dueDate.localeCompare(b.occurrence.dueDate));
+
+      const combined = [...overdueRows, ...pendingRows];
+      const topRows = combined.slice(0, 5);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const bills: NextDueBill[] = topRows.map((row) => {
+        const dueDate = parseISO(row.occurrence.dueDate);
+        const dueDateOnly = new Date(dueDate);
+        dueDateOnly.setHours(0, 0, 0, 0);
+        const daysUntilDue = Math.round((dueDateOnly.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const linkedAccount = row.template.linkedLiabilityAccountId
+          ? accountMap.get(row.template.linkedLiabilityAccountId)
+          : undefined;
+
+        return {
+          id: row.occurrence.id,
+          billId: row.template.id,
+          billName: row.template.name,
+          dueDate: row.occurrence.dueDate,
+          expectedAmount: row.occurrence.amountDueCents / 100,
+          actualAmount: row.occurrence.actualAmountCents !== null ? row.occurrence.actualAmountCents / 100 : undefined,
+          status: row.occurrence.status === 'overdue' ? 'overdue' : 'pending',
+          daysUntilDue,
+          isOverdue: row.occurrence.status === 'overdue',
+          linkedAccount: linkedAccount
+            ? {
+                id: linkedAccount.id,
+                name: linkedAccount.name,
+                type: linkedAccount.type,
+                currentBalance: Math.abs(linkedAccount.currentBalance || 0),
+                creditLimit: linkedAccount.creditLimit || 0,
+              }
+            : undefined,
+          isAutopay: false,
+          isDebt: row.template.debtEnabled,
+          billColor: row.template.debtColor || undefined,
+        };
+      });
+
+      const next7DaysRows = pendingRows.filter((row) => {
+        const dueDate = parseISO(row.occurrence.dueDate);
+        const dueDateOnly = new Date(dueDate);
+        dueDateOnly.setHours(0, 0, 0, 0);
+        const days = Math.round((dueDateOnly.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        return days >= 0 && days <= 7;
+      });
+
+      const result: NextDueResponse = {
+        bills,
+        summary: {
+          overdueCount: overdueRows.length,
+          overdueTotal: overdueRows.reduce((sum, row) => sum + row.occurrence.amountDueCents / 100, 0),
+          nextDueDate: pendingRows[0]?.occurrence.dueDate || null,
+          next7DaysTotal: next7DaysRows.reduce((sum, row) => sum + row.occurrence.amountDueCents / 100, 0),
+          next7DaysCount: next7DaysRows.length,
+          totalPendingCount: pendingRows.length,
+        },
+      };
+
       setData(result);
     } catch (err) {
       console.error('Error fetching next due bills:', err);

@@ -136,7 +136,7 @@ interface Debt {
   status: string;
   debtType: 'target' | 'milestone';
   milestonePercentage?: number;
-  source?: 'legacy' | 'account' | 'bill';
+  source?: 'debt' | 'account' | 'bill';
 }
 
 interface AutopayEvent {

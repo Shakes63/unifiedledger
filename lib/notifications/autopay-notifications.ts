@@ -47,7 +47,7 @@ export async function sendAutopaySuccessNotification(
       entityId: instance.id,
       metadata: {
         billId: bill.id,
-        billInstanceId: instance.id,
+        instanceId: instance.id,
         amount: result.amount,
         amountSource: result.amountSource,
         transactionId: result.transactionId,
@@ -106,7 +106,7 @@ export async function sendAutopayFailureNotification(
       entityId: instance.id,
       metadata: {
         billId: bill.id,
-        billInstanceId: instance.id,
+        instanceId: instance.id,
         amount: result.amount,
         amountSource: result.amountSource,
         errorCode: result.errorCode,

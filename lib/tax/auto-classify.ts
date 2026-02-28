@@ -57,24 +57,7 @@ export async function autoClassifyTransaction(
     )
     .limit(1);
 
-  // No mapping found - try to find a mapping from any year (fallback)
-  let effectiveMapping = mapping;
-  if (!effectiveMapping) {
-    // Try to find the most recent mapping for this category
-    const [fallbackMapping] = await db
-      .select()
-      .from(categoryTaxMappings)
-      .where(
-        and(
-          eq(categoryTaxMappings.userId, userId),
-          eq(categoryTaxMappings.budgetCategoryId, categoryId)
-        )
-      )
-      .limit(1);
-    effectiveMapping = fallbackMapping;
-  }
-
-  if (!effectiveMapping) {
+  if (!mapping) {
     // No mapping exists for this category
     return null;
   }
@@ -83,7 +66,7 @@ export async function autoClassifyTransaction(
   const [taxCat] = await db
     .select()
     .from(taxCategories)
-    .where(eq(taxCategories.id, effectiveMapping.taxCategoryId))
+    .where(eq(taxCategories.id, mapping.taxCategoryId))
     .limit(1);
 
   if (!taxCat || !taxCat.isActive) {
@@ -92,7 +75,7 @@ export async function autoClassifyTransaction(
   }
 
   // Calculate allocated amount based on allocation percentage
-  const allocationPct = effectiveMapping.allocationPercentage ?? 100;
+  const allocationPct = mapping.allocationPercentage ?? 100;
   const allocatedAmount = new Decimal(amount).abs().times(allocationPct).dividedBy(100).toDecimalPlaces(2).toNumber();
 
   // Check if classification already exists
@@ -102,7 +85,7 @@ export async function autoClassifyTransaction(
     .where(
       and(
         eq(transactionTaxClassifications.transactionId, transactionId),
-        eq(transactionTaxClassifications.taxCategoryId, effectiveMapping.taxCategoryId)
+        eq(transactionTaxClassifications.taxCategoryId, mapping.taxCategoryId)
       )
     )
     .limit(1);
@@ -122,7 +105,7 @@ export async function autoClassifyTransaction(
 
     return {
       classificationId: existing.id,
-      taxCategoryId: effectiveMapping.taxCategoryId,
+      taxCategoryId: mapping.taxCategoryId,
       taxCategoryName: taxCat.name,
       allocatedAmount,
     };
@@ -134,7 +117,7 @@ export async function autoClassifyTransaction(
     id: classificationId,
     userId,
     transactionId,
-    taxCategoryId: effectiveMapping.taxCategoryId,
+    taxCategoryId: mapping.taxCategoryId,
     taxYear,
     allocatedAmount,
     percentage: allocationPct,
@@ -146,7 +129,7 @@ export async function autoClassifyTransaction(
 
   return {
     classificationId,
-    taxCategoryId: effectiveMapping.taxCategoryId,
+    taxCategoryId: mapping.taxCategoryId,
     taxCategoryName: taxCat.name,
     allocatedAmount,
   };

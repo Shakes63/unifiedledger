@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subDays } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -28,13 +28,27 @@ import {
 import { BillPayForm } from './bill-pay-form';
 import Decimal from 'decimal.js';
 import type { BillInstanceAllocation } from '@/lib/types';
+import type {
+  BillOccurrenceAllocationDto,
+  BillOccurrenceWithTemplateDto,
+  RecurrenceType,
+} from '@/lib/bills/contracts';
+import {
+  getCurrentBudgetPeriod,
+  getDefaultBudgetScheduleSettings,
+  getNextBudgetPeriod,
+  getPeriodLabel,
+  type BudgetCycleFrequency,
+  type BudgetPeriod,
+  type BudgetScheduleSettings,
+} from '@/lib/budgets/budget-schedule';
 
 interface BillInstance {
   id: string;
   billId: string;
   dueDate: string;
   expectedAmount: number;
-  actualAmount?: number;
+  actualAmount?: number | null;
   status: 'pending' | 'paid' | 'overdue' | 'skipped';
   budgetPeriodOverride?: number | null;
   paidAmount?: number;
@@ -45,9 +59,9 @@ interface BillInstance {
 interface Bill {
   id: string;
   name: string;
-  categoryId?: string;
-  merchantId?: string;
-  accountId?: string;
+  categoryId?: string | null;
+  merchantId?: string | null;
+  accountId?: string | null;
   expectedAmount: number;
   frequency: string;
   billType?: 'expense' | 'income' | 'savings_transfer';
@@ -101,6 +115,91 @@ interface NavigationInfo {
   next: { label: string; offset: number };
 }
 
+function getPeriodByOffset(settings: BudgetScheduleSettings, offset: number): BudgetPeriod {
+  let period = getCurrentBudgetPeriod(settings);
+
+  if (offset > 0) {
+    for (let index = 0; index < offset; index += 1) {
+      period = getNextBudgetPeriod(settings, period.end);
+    }
+  } else if (offset < 0) {
+    for (let index = 0; index < Math.abs(offset); index += 1) {
+      period = getCurrentBudgetPeriod(settings, subDays(period.start, 1));
+    }
+  }
+
+  return period;
+}
+
+function mapAllocationDto(allocation: BillOccurrenceAllocationDto): BillInstanceAllocation {
+  return {
+    id: allocation.id,
+    billInstanceId: allocation.occurrenceId,
+    billId: allocation.templateId,
+    userId: '',
+    householdId: allocation.householdId,
+    periodNumber: allocation.periodNumber,
+    allocatedAmount: allocation.allocatedAmountCents / 100,
+    isPaid: allocation.isPaid,
+    paidAmount: allocation.paidAmountCents / 100,
+    allocationId: allocation.paymentEventId,
+    createdAt: allocation.createdAt,
+    updatedAt: allocation.updatedAt,
+  };
+}
+
+function toFrequency(recurrenceType: RecurrenceType): string {
+  if (recurrenceType === 'one_time') return 'one-time';
+  if (recurrenceType === 'semi_annual') return 'semi-annual';
+  return recurrenceType;
+}
+
+function mapRow(row: BillOccurrenceWithTemplateDto): { bill: Bill; instance: BillInstance } {
+  const template = row.template;
+  const occurrence = row.occurrence;
+  return {
+    bill: {
+      id: template.id,
+      name: template.name,
+      categoryId: template.categoryId,
+      merchantId: template.merchantId,
+      accountId: template.paymentAccountId,
+      expectedAmount: template.defaultAmountCents / 100,
+      frequency: toFrequency(template.recurrenceType),
+      billType: template.billType,
+      budgetPeriodAssignment: template.budgetPeriodAssignment,
+      splitAcrossPeriods: template.splitAcrossPeriods,
+    },
+    instance: {
+      id: occurrence.id,
+      billId: occurrence.templateId,
+      dueDate: occurrence.dueDate,
+      expectedAmount: occurrence.amountDueCents / 100,
+      actualAmount:
+        occurrence.actualAmountCents !== null ? occurrence.actualAmountCents / 100 : null,
+      status:
+        occurrence.status === 'paid' || occurrence.status === 'overpaid'
+          ? 'paid'
+          : occurrence.status === 'overdue'
+            ? 'overdue'
+            : occurrence.status === 'skipped'
+              ? 'skipped'
+              : 'pending',
+      budgetPeriodOverride: occurrence.budgetPeriodOverride,
+      paidAmount: occurrence.amountPaidCents / 100,
+      remainingAmount: occurrence.amountRemainingCents / 100,
+      paymentStatus:
+        occurrence.status === 'paid'
+          ? 'paid'
+          : occurrence.status === 'overpaid'
+            ? 'overpaid'
+            : occurrence.status === 'partial'
+              ? 'partial'
+              : 'unpaid',
+    },
+  };
+}
+
 interface BillPayModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -134,19 +233,124 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
 
     try {
       setLoading(true);
-      const response = await fetchWithHousehold(
-        `/api/bills-v2/by-period?periodOffset=${periodOffset}&status=pending,overdue,paid`
-      );
+      const [scheduleResponse, occurrencesResponse, categoriesResponse] = await Promise.all([
+        fetchWithHousehold(`/api/budget-schedule?householdId=${selectedHouseholdId}`),
+        fetchWithHousehold(
+          `/api/bills/occurrences?periodOffset=${periodOffset}&status=unpaid,partial,overdue,paid&limit=5000`
+        ),
+        fetchWithHousehold('/api/categories'),
+      ]);
 
-      if (!response.ok) {
+      if (!scheduleResponse.ok || !occurrencesResponse.ok) {
         throw new Error('Failed to fetch bills');
       }
 
-      const data = await response.json();
-      setPeriod(data.period);
-      setNavigation(data.navigation);
-      setBills(data.data);
-      setSummary(data.summary);
+      const scheduleData = await scheduleResponse.json();
+      const occurrencesData = await occurrencesResponse.json();
+      const categoriesData = categoriesResponse.ok ? await categoriesResponse.json() : [];
+
+      const settings: BudgetScheduleSettings = {
+        ...getDefaultBudgetScheduleSettings(),
+        ...(scheduleData?.settings || {}),
+      };
+      const frequency =
+        (settings.budgetCycleFrequency as BudgetCycleFrequency | undefined) || 'monthly';
+
+      const currentPeriod = getPeriodByOffset(settings, periodOffset);
+      const previousPeriod = getPeriodByOffset(settings, periodOffset - 1);
+      const nextPeriod = getPeriodByOffset(settings, periodOffset + 1);
+
+      setPeriod({
+        start: currentPeriod.startStr,
+        end: currentPeriod.endStr,
+        periodNumber: currentPeriod.periodNumber,
+        periodsInMonth: currentPeriod.periodsInMonth,
+        label: getPeriodLabel(currentPeriod, frequency),
+        offset: periodOffset,
+      });
+      setNavigation({
+        previous: {
+          label: getPeriodLabel(previousPeriod, frequency),
+          offset: periodOffset - 1,
+        },
+        next: {
+          label: getPeriodLabel(nextPeriod, frequency),
+          offset: periodOffset + 1,
+        },
+      });
+
+      const categoryRows: Category[] = Array.isArray(categoriesData)
+        ? categoriesData
+        : Array.isArray(categoriesData?.data)
+          ? categoriesData.data
+          : [];
+      const categoryMap = new Map(categoryRows.map((category) => [category.id, category]));
+
+      const rows: BillOccurrenceWithTemplateDto[] = Array.isArray(occurrencesData?.data)
+        ? occurrencesData.data
+        : [];
+
+      const mappedBills: BillWithInstance[] = rows.map((row) => {
+        const { bill, instance } = mapRow(row);
+        const allAllocations = row.allocations.map(mapAllocationDto);
+        const allocation =
+          allAllocations.find((item) => item.periodNumber === currentPeriod.periodNumber) || null;
+        const displayAmount = allocation ? allocation.allocatedAmount : instance.expectedAmount;
+        const displayPaidAmount = allocation ? allocation.paidAmount : instance.paidAmount || 0;
+        const displayRemainingAmount = Math.max(0, displayAmount - displayPaidAmount);
+
+        return {
+          instance,
+          bill,
+          category: bill.categoryId ? categoryMap.get(bill.categoryId) || null : null,
+          account: null,
+          allocation,
+          allAllocations,
+          isSplit: allAllocations.length > 1 || !!bill.splitAcrossPeriods,
+          periodAssignment: {
+            isOverride:
+              instance.budgetPeriodOverride !== null &&
+              instance.budgetPeriodOverride !== undefined,
+            isBillDefault:
+              bill.budgetPeriodAssignment !== null &&
+              (instance.budgetPeriodOverride === null ||
+                instance.budgetPeriodOverride === undefined),
+            isAutomatic:
+              (instance.budgetPeriodOverride === null ||
+                instance.budgetPeriodOverride === undefined) &&
+              bill.budgetPeriodAssignment === null,
+            isSplitAllocation: allocation !== null,
+          },
+          displayAmount,
+          displayPaidAmount,
+          displayRemainingAmount,
+        };
+      });
+
+      setBills(mappedBills);
+      setSummary({
+        totalBills: mappedBills.length,
+        totalAmount: mappedBills.reduce((sum, row) => sum + (row.displayAmount || 0), 0),
+        pendingCount: mappedBills.filter((row) =>
+          row.allocation ? !row.allocation.isPaid : row.instance.status === 'pending'
+        ).length,
+        overdueCount: mappedBills.filter((row) => row.instance.status === 'overdue').length,
+        paidCount: mappedBills.filter((row) =>
+          row.allocation ? row.allocation.isPaid : row.instance.status === 'paid'
+        ).length,
+        pendingAmount: mappedBills
+          .filter((row) =>
+            row.allocation
+              ? !row.allocation.isPaid
+              : row.instance.status === 'pending' || row.instance.status === 'overdue'
+          )
+          .reduce((sum, row) => sum + (row.displayRemainingAmount || 0), 0),
+        paidAmount: mappedBills
+          .filter((row) =>
+            row.allocation ? row.allocation.isPaid : row.instance.status === 'paid'
+          )
+          .reduce((sum, row) => sum + (row.displayPaidAmount || 0), 0),
+      });
     } catch (error) {
       console.error('Error fetching bills by period:', error);
       toast.error('Failed to load bills');
@@ -179,7 +383,7 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
   const handlePay = async (instanceId: string, accountId: string, amount: number, allocationId?: string) => {
     try {
       setProcessingPayment(true);
-      const response = await postWithHousehold(`/api/bills-v2/instances/${instanceId}/pay`, {
+      const response = await postWithHousehold(`/api/bills/occurrences/${instanceId}/pay`, {
         accountId,
         amount,
         allocationId,
@@ -193,7 +397,8 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
       const result = await response.json();
       
       // Show different toast based on payment status
-      if (result.payment?.paymentStatus === 'partial') {
+      const paymentStatus = result.payment?.paymentStatus ?? result.data?.occurrence?.status;
+      if (paymentStatus === 'partial') {
         toast.success(`Partial payment of $${new Decimal(amount).toFixed(2)} recorded`);
       } else {
         toast.success('Bill paid successfully');
@@ -217,7 +422,7 @@ export function BillPayModal({ open, onOpenChange, onBillPaid }: BillPayModalPro
   const handleMarkPaid = async (instanceId: string) => {
     try {
       setProcessingPayment(true);
-      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instanceId}`, {
+      const response = await fetchWithHousehold(`/api/bills/occurrences/${instanceId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -546,7 +751,10 @@ function BillItem({
         <div className="border-t border-border p-3">
           <BillPayForm
             instance={item.instance}
-            bill={item.bill}
+            bill={{
+              ...item.bill,
+              accountId: item.bill.accountId ?? undefined,
+            }}
             accounts={accounts}
             defaultAccountId={item.bill.accountId || item.account?.id}
             onPay={(accountId, amount, allocationId) => onPay(item.instance.id, accountId, amount, allocationId)}

@@ -1,11 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm';
-import {
-  legacyStatusesToOccurrenceStatuses,
-  toLegacyAllocation,
-  toLegacyBill,
-  toLegacyInstance,
-} from '@/lib/bills-v2/legacy-compat';
-import { listOccurrences } from '@/lib/bills-v2/service';
+import Decimal from 'decimal.js';
+import { listOccurrences } from '@/lib/bills/service';
 import { db } from '@/lib/db';
 import { autopayRules } from '@/lib/db/schema';
 import { endOfMonth, format, startOfMonth } from 'date-fns';
@@ -20,6 +15,7 @@ import type {
 
 type BillStatus = 'pending' | 'paid' | 'overdue' | 'skipped';
 type BillType = 'expense' | 'income' | 'savings_transfer';
+type OccurrenceStatus = 'unpaid' | 'partial' | 'paid' | 'overpaid' | 'overdue' | 'skipped';
 
 export interface GetPeriodBillsOptions {
   householdId: string;
@@ -71,6 +67,35 @@ function toLegacyStatusSet(statuses?: BillStatus[]): BillStatus[] {
   return statuses;
 }
 
+function mapBillStatusesToOccurrenceStatuses(statuses: BillStatus[]): OccurrenceStatus[] {
+  const mapped = new Set<OccurrenceStatus>();
+  for (const status of statuses) {
+    if (status === 'pending') {
+      mapped.add('unpaid');
+      mapped.add('partial');
+    } else if (status === 'paid') {
+      mapped.add('paid');
+      mapped.add('overpaid');
+    } else if (status === 'overdue') {
+      mapped.add('overdue');
+    } else if (status === 'skipped') {
+      mapped.add('skipped');
+    }
+  }
+  return Array.from(mapped);
+}
+
+function toLegacyStatus(status: OccurrenceStatus): BillStatus {
+  if (status === 'paid' || status === 'overpaid') return 'paid';
+  if (status === 'overdue') return 'overdue';
+  if (status === 'skipped') return 'skipped';
+  return 'pending';
+}
+
+function centsToAmount(cents: number | null | undefined): number {
+  return new Decimal(cents || 0).div(100).toNumber();
+}
+
 /**
  * Returns bill instances belonging to the requested budget period using shared
  * assignment logic (instance override > bill default > due date), with split
@@ -88,7 +113,7 @@ export async function getPeriodBillsForBudgetPeriod({
   const periodMonthStart = format(startOfMonth(period.start), 'yyyy-MM-dd');
   const periodMonthEnd = format(endOfMonth(period.end), 'yyyy-MM-dd');
   const requestedStatuses = toLegacyStatusSet(statuses);
-  const occurrenceStatuses = legacyStatusesToOccurrenceStatuses(requestedStatuses);
+  const occurrenceStatuses = mapBillStatusesToOccurrenceStatuses(requestedStatuses);
 
   const occurrenceResult = await listOccurrences({
     userId: userId || 'system',
@@ -131,49 +156,46 @@ export async function getPeriodBillsForBudgetPeriod({
 
   const mappedRows = candidateRows
     .map((row) => {
-      const legacyBill = toLegacyBill(row.template, {
-        isEnabled: autopayByTemplateId.get(row.template.id) || false,
-        payFromAccountId: null,
-        amountType: 'fixed',
-        fixedAmountCents: null,
-        daysBeforeDue: 0,
-      });
-      const legacyInstance = toLegacyInstance(row.occurrence);
-      const allAllocations = row.allocations.map((allocation) => toLegacyAllocation(allocation));
+      const allAllocations = row.allocations.map((allocation) => ({
+        periodNumber: allocation.periodNumber,
+        allocatedAmount: centsToAmount(allocation.allocatedAmountCents),
+        paidAmount: centsToAmount(allocation.paidAmountCents),
+        isPaid: allocation.isPaid || false,
+      }));
       const currentAllocation =
         allAllocations.find((allocation) => allocation.periodNumber === period.periodNumber) || null;
 
       return {
         bill: {
-          id: legacyBill.id,
-          name: legacyBill.name,
-          billType: legacyBill.billType as BillType,
-          categoryId: legacyBill.categoryId,
-          budgetPeriodAssignment: legacyBill.budgetPeriodAssignment,
-          isAutopayEnabled: legacyBill.isAutopayEnabled || false,
+          id: row.template.id,
+          name: row.template.name,
+          billType: row.template.billType as BillType,
+          categoryId: row.template.categoryId,
+          budgetPeriodAssignment: row.template.budgetPeriodAssignment,
+          isAutopayEnabled: autopayByTemplateId.get(row.template.id) || false,
         },
         instance: {
-          id: legacyInstance.id,
-          dueDate: legacyInstance.dueDate,
-          status: legacyInstance.status as BillStatus,
-          expectedAmount: legacyInstance.expectedAmount,
-          actualAmount: legacyInstance.actualAmount,
-          paidAmount: legacyInstance.paidAmount || 0,
-          remainingAmount: legacyInstance.remainingAmount || 0,
-          budgetPeriodOverride: legacyInstance.budgetPeriodOverride,
+          id: row.occurrence.id,
+          dueDate: row.occurrence.dueDate,
+          status: toLegacyStatus(row.occurrence.status as OccurrenceStatus),
+          expectedAmount: centsToAmount(row.occurrence.amountDueCents),
+          actualAmount: row.occurrence.actualAmountCents !== null ? centsToAmount(row.occurrence.actualAmountCents) : null,
+          paidAmount: centsToAmount(row.occurrence.amountPaidCents),
+          remainingAmount: centsToAmount(row.occurrence.amountRemainingCents),
+          budgetPeriodOverride: row.occurrence.budgetPeriodOverride,
         },
         allocation: currentAllocation
           ? {
               periodNumber: currentAllocation.periodNumber,
               allocatedAmount: currentAllocation.allocatedAmount,
-              paidAmount: currentAllocation.paidAmount || 0,
+              paidAmount: currentAllocation.paidAmount,
               isPaid: currentAllocation.isPaid || false,
             }
           : null,
         allAllocations: allAllocations.map((allocation) => ({
           periodNumber: allocation.periodNumber,
           allocatedAmount: allocation.allocatedAmount,
-          paidAmount: allocation.paidAmount || 0,
+          paidAmount: allocation.paidAmount,
           isPaid: allocation.isPaid || false,
         })),
         hasAnyAllocations: allAllocations.length > 0,

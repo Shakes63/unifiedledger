@@ -67,7 +67,7 @@ export function useTransferDetections({
 
       try {
         setLoadingPaymentBillDetection(true);
-        const response = await fetchWithHousehold(`/api/bills-v2/detect-payment?accountId=${toAccountId}`);
+        const response = await fetchWithHousehold(`/api/bills/detect-payment?accountId=${toAccountId}`);
         if (!response.ok) {
           setPaymentBillDetection(null);
           return;

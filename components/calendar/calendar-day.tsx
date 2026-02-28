@@ -232,7 +232,7 @@ export function CalendarDay({
             </div>
           )}
 
-          {/* Debt Milestones (legacy) */}
+          {/* Standalone debt milestones */}
           {summary.debts && summary.debts.length > 0 && (
             <div className="space-y-0.5">
               {summary.debts.map((debt) => (

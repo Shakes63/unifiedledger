@@ -72,8 +72,8 @@ export function calculateAutopayAmount(
   ).div(100);
   
   // Calculate remaining amount if partially paid
-  const remainingToPay = instance.remainingAmount !== null 
-    ? instance.remainingAmount 
+  const remainingToPay = instance.remainingAmount !== null
+    ? instance.remainingAmount
     : instance.expectedAmount - (instance.paidAmount || 0);
   
   let amount: number;
@@ -228,14 +228,14 @@ export function validateAutopayConfiguration(
     return 'No payment account configured for autopay';
   }
 
-  if (bill.autopayAmountType === 'fixed' && 
+  if (bill.autopayAmountType === 'fixed' &&
       (bill.autopayFixedAmount === null || bill.autopayFixedAmount <= 0)) {
     return 'Fixed autopay amount must be greater than zero';
   }
 
   // For credit card payments, must have linkedAccountId
-  if (bill.linkedAccountId === null && 
-      (bill.autopayAmountType === 'minimum_payment' || 
+  if (bill.linkedAccountId === null &&
+      (bill.autopayAmountType === 'minimum_payment' ||
        bill.autopayAmountType === 'statement_balance' ||
        bill.autopayAmountType === 'full_balance')) {
     // This is okay for non-credit bills - they'll use expected amount
@@ -243,3 +243,5 @@ export function validateAutopayConfiguration(
 
   return null;
 }
+
+

@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { billInstances, transactions } from '@/lib/db/schema';
-import { processAndLinkBillPayment } from '@/lib/transactions/payment-linkage';
+import { billOccurrences, transactions } from '@/lib/db/schema';
+import { processAndLinkTemplatePayment } from '@/lib/transactions/payment-linkage';
 
 export function shouldRematchUpdatedExpenseBill({
   amountWasProvided,
@@ -37,12 +37,11 @@ export async function unlinkExistingBillInstance({
 }): Promise<void> {
   const oldInstance = await db
     .select()
-    .from(billInstances)
+    .from(billOccurrences)
     .where(
       and(
-        eq(billInstances.transactionId, transactionId),
-        eq(billInstances.userId, userId),
-        eq(billInstances.householdId, householdId)
+        eq(billOccurrences.lastTransactionId, transactionId),
+        eq(billOccurrences.householdId, householdId)
       )
     )
     .limit(1);
@@ -52,21 +51,21 @@ export async function unlinkExistingBillInstance({
   }
 
   await db
-    .update(billInstances)
+    .update(billOccurrences)
     .set({
-      status: 'pending',
+      status: 'unpaid',
       paidDate: null,
-      actualAmount: null,
-      transactionId: null,
+      actualAmountCents: null,
+      lastTransactionId: null,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(billInstances.id, oldInstance[0].id));
+    .where(eq(billOccurrences.id, oldInstance[0].id));
 }
 
 export async function processUpdatedBillPayment({
-  billId,
-  billName,
-  instanceId,
+  templateId,
+  templateName,
+  occurrenceId,
   transactionId,
   paymentAmount,
   paymentDate,
@@ -74,11 +73,10 @@ export async function processUpdatedBillPayment({
   householdId,
   linkedAccountId,
   notes,
-  legacyDebtId,
 }: {
-  billId: string;
-  billName: string;
-  instanceId: string;
+  templateId: string;
+  templateName: string;
+  occurrenceId: string;
   transactionId: string;
   paymentAmount: number;
   paymentDate: string;
@@ -86,12 +84,11 @@ export async function processUpdatedBillPayment({
   householdId: string;
   linkedAccountId: string;
   notes: string;
-  legacyDebtId: string | null;
 }) {
-  return processAndLinkBillPayment({
-    billId,
-    billName,
-    instanceId,
+  return processAndLinkTemplatePayment({
+    templateId,
+    templateName,
+    occurrenceId,
     transactionId,
     paymentAmount,
     paymentDate,
@@ -100,6 +97,5 @@ export async function processUpdatedBillPayment({
     paymentMethod: 'manual',
     linkedAccountId,
     notes,
-    legacyDebtId,
   });
 }

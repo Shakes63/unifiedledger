@@ -36,6 +36,7 @@ import {
   formatSubcategory,
   getSubcategories
 } from '@/lib/bills/bill-classification';
+import type { CreateBillTemplateRequest, RecurrenceType } from '@/lib/bills/contracts';
 
 // Bill classification options (matches database enum)
 const CLASSIFICATION_OPTIONS = [
@@ -218,6 +219,16 @@ export interface BillData {
   [key: string]: unknown; // Allow additional properties
 }
 
+export type BillTemplateUpsertPayload = CreateBillTemplateRequest & {
+  autopay?: {
+    isEnabled: boolean;
+    payFromAccountId: string | null;
+    amountType: 'fixed' | 'minimum_payment' | 'statement_balance' | 'full_balance';
+    fixedAmountCents: number | null;
+    daysBeforeDue: number;
+  } | null;
+};
+
 // Account type for filtering credit/line of credit accounts
 interface Account {
   id: string;
@@ -229,7 +240,7 @@ interface Account {
 
 interface BillFormProps {
   bill?: BillData;
-  onSubmit: (data: BillData, saveMode?: 'save' | 'saveAndAdd') => void;
+  onSubmit: (data: BillTemplateUpsertPayload, saveMode?: 'save' | 'saveAndAdd') => void;
   onCancel: () => void;
   isLoading?: boolean;
 }
@@ -664,83 +675,98 @@ export function BillForm({
 
     setErrors({});
 
-    onSubmit({
-      name: formData.name,
-      expectedAmount: parseFloat(String(formData.expectedAmount)),
-      dueDate: isOneTimeFrequency(formData.frequency) ? null : parseInt(formData.dueDate),
-      specificDueDate: isOneTimeFrequency(formData.frequency) ? formData.specificDueDate : null,
-      startMonth: isNonMonthlyPeriodic(formData.frequency) ? parseInt(formData.startMonth) : null,
-      frequency: formData.frequency,
-      isVariableAmount: formData.isVariableAmount,
-      amountTolerance: parseFloat(String(formData.amountTolerance)) || 5.0,
-      categoryId: formData.categoryId || null,
-      merchantId: formData.merchantId || null,
-      debtId: formData.debtId || null,
-      accountId: formData.accountId || null,
-      autoMarkPaid: formData.autoMarkPaid,
-      payeePatterns: formData.payeePatterns.length > 0 ? formData.payeePatterns : null,
-      notes: formData.notes || null,
-      
-      // Bill classification
-      billType: formData.billType as 'expense' | 'income' | 'savings_transfer',
-      billClassification: formData.billClassification as 'subscription' | 'utility' | 'housing' | 'insurance' | 'loan_payment' | 'membership' | 'service' | 'other',
-      classificationSubcategory: formData.classificationSubcategory || null,
+    const recurrenceType: RecurrenceType = (() => {
+      switch (formData.frequency) {
+        case 'one-time':
+          return 'one_time';
+        case 'semi-annual':
+          return 'semi_annual';
+        default:
+          return formData.frequency as RecurrenceType;
+      }
+    })();
 
-      // Account linking
-      linkedAccountId: formData.linkedAccountId || null,
-      amountSource: formData.linkedAccountId ? formData.amountSource as 'fixed' | 'minimum_payment' | 'statement_balance' | 'full_balance' : 'fixed',
-      chargedToAccountId: formData.chargedToAccountId || null,
-      
-      // Autopay
-      isAutopayEnabled: formData.isAutopayEnabled,
-      autopayAccountId: formData.isAutopayEnabled ? formData.autopayAccountId || null : null,
-      autopayAmountType: formData.isAutopayEnabled ? formData.autopayAmountType as 'fixed' | 'minimum_payment' | 'statement_balance' | 'full_balance' : undefined,
-      autopayFixedAmount: formData.isAutopayEnabled && formData.autopayAmountType === 'fixed' && formData.autopayFixedAmount 
-        ? parseFloat(String(formData.autopayFixedAmount)) 
-        : undefined,
-      autopayDaysBefore: formData.isAutopayEnabled ? formData.autopayDaysBefore : undefined,
-      
-      // Debt extension
-      isDebt: formData.isDebt,
-      originalBalance: formData.isDebt && formData.originalBalance ? parseFloat(String(formData.originalBalance)) : undefined,
-      remainingBalance: formData.isDebt && formData.remainingBalance 
-        ? parseFloat(String(formData.remainingBalance)) 
-        : formData.isDebt && formData.originalBalance 
-          ? parseFloat(String(formData.originalBalance)) 
-          : undefined,
-      billInterestRate: formData.isDebt && formData.billInterestRate ? parseFloat(String(formData.billInterestRate)) : undefined,
-      interestType: formData.isDebt ? formData.interestType as 'fixed' | 'variable' | 'none' : undefined,
-      debtStartDate: formData.isDebt && formData.debtStartDate ? formData.debtStartDate : null,
-      billColor: formData.isDebt && formData.billColor ? formData.billColor : null,
-      
-      // Payoff strategy
-      includeInPayoffStrategy: formData.isDebt ? formData.includeInPayoffStrategy : undefined,
-      
-      // Tax deduction
-      isInterestTaxDeductible: formData.isDebt ? formData.isInterestTaxDeductible : undefined,
-      taxDeductionType: formData.isDebt && formData.isInterestTaxDeductible 
-        ? formData.taxDeductionType as 'mortgage' | 'student_loan' | 'business' | 'heloc_home' | 'none' 
-        : undefined,
-      taxDeductionLimit: formData.isDebt && formData.isInterestTaxDeductible && formData.taxDeductionLimit 
-        ? parseFloat(String(formData.taxDeductionLimit)) 
-        : undefined,
-      
-      // Budget period assignment
-      budgetPeriodAssignment: formData.budgetPeriodAssignment && formData.budgetPeriodAssignment !== 'auto'
-        ? parseInt(formData.budgetPeriodAssignment)
-        : null,
-      
-      // Split payment across periods
-      splitAcrossPeriods: formData.splitAcrossPeriods,
-      splitAllocations: formData.splitAcrossPeriods 
-        ? JSON.stringify(
-            coerceSplitAllocations(
-              formData.splitAllocations as SplitAllocation[],
-              Math.max(1, budgetSchedule?.periodsInMonth ?? 2)
-            )
-          )
-        : null,
-    }, saveMode || 'save');
+    const dueDateNumber = isOneTimeFrequency(formData.frequency) ? null : parseInt(formData.dueDate);
+    const expectedAmountCents = Math.round(parseFloat(String(formData.expectedAmount)) * 100);
+    const autopayAmountType = formData.autopayAmountType as 'fixed' | 'minimum_payment' | 'statement_balance' | 'full_balance';
+
+    onSubmit(
+      {
+        name: formData.name,
+        billType: formData.billType as 'expense' | 'income' | 'savings_transfer',
+        classification: formData.billClassification as CreateBillTemplateRequest['classification'],
+        classificationSubcategory: formData.classificationSubcategory || null,
+        recurrenceType,
+        recurrenceDueDay:
+          recurrenceType !== 'one_time' && recurrenceType !== 'weekly' && recurrenceType !== 'biweekly'
+            ? dueDateNumber
+            : null,
+        recurrenceDueWeekday:
+          recurrenceType === 'weekly' || recurrenceType === 'biweekly' ? dueDateNumber : null,
+        recurrenceSpecificDueDate:
+          recurrenceType === 'one_time' ? formData.specificDueDate || null : null,
+        recurrenceStartMonth:
+          isNonMonthlyPeriodic(formData.frequency) ? parseInt(formData.startMonth) : null,
+        defaultAmountCents: expectedAmountCents,
+        isVariableAmount: formData.isVariableAmount,
+        amountToleranceBps: Math.round((parseFloat(String(formData.amountTolerance)) || 5.0) * 100),
+        categoryId: formData.categoryId || null,
+        merchantId: formData.merchantId || null,
+        paymentAccountId: formData.accountId || null,
+        linkedLiabilityAccountId: formData.linkedAccountId || null,
+        chargedToAccountId: formData.chargedToAccountId || null,
+        autoMarkPaid: formData.autoMarkPaid,
+        notes: formData.notes || null,
+        debtEnabled: formData.isDebt,
+        debtOriginalBalanceCents:
+          formData.isDebt && formData.originalBalance
+            ? Math.round(parseFloat(String(formData.originalBalance)) * 100)
+            : null,
+        debtRemainingBalanceCents:
+          formData.isDebt && formData.remainingBalance
+            ? Math.round(parseFloat(String(formData.remainingBalance)) * 100)
+            : formData.isDebt && formData.originalBalance
+              ? Math.round(parseFloat(String(formData.originalBalance)) * 100)
+              : null,
+        debtInterestAprBps:
+          formData.isDebt && formData.billInterestRate
+            ? Math.round(parseFloat(String(formData.billInterestRate)) * 100)
+            : null,
+        debtInterestType: formData.isDebt ? formData.interestType : null,
+        debtStartDate: formData.isDebt && formData.debtStartDate ? formData.debtStartDate : null,
+        debtColor: formData.isDebt && formData.billColor ? formData.billColor : null,
+        includeInPayoffStrategy: formData.isDebt ? formData.includeInPayoffStrategy : true,
+        interestTaxDeductible: formData.isDebt ? formData.isInterestTaxDeductible : false,
+        interestTaxDeductionType:
+          formData.isDebt && formData.isInterestTaxDeductible
+            ? (formData.taxDeductionType as CreateBillTemplateRequest['interestTaxDeductionType'])
+            : 'none',
+        interestTaxDeductionLimitCents:
+          formData.isDebt && formData.isInterestTaxDeductible && formData.taxDeductionLimit
+            ? Math.round(parseFloat(String(formData.taxDeductionLimit)) * 100)
+            : null,
+        budgetPeriodAssignment:
+          formData.budgetPeriodAssignment && formData.budgetPeriodAssignment !== 'auto'
+            ? parseInt(formData.budgetPeriodAssignment)
+            : null,
+        splitAcrossPeriods: formData.splitAcrossPeriods,
+        autopay: formData.isAutopayEnabled
+          ? {
+              isEnabled: true,
+              payFromAccountId: formData.autopayAccountId || null,
+              amountType: autopayAmountType,
+              fixedAmountCents:
+                autopayAmountType === 'fixed' && formData.autopayFixedAmount
+                  ? Math.round(parseFloat(String(formData.autopayFixedAmount)) * 100)
+                  : autopayAmountType === 'fixed'
+                    ? expectedAmountCents
+                    : null,
+              daysBeforeDue: formData.autopayDaysBefore || 0,
+            }
+          : null,
+      },
+      saveMode || 'save'
+    );
 
     // If save & add another, reset form
     if (saveMode === 'saveAndAdd') {

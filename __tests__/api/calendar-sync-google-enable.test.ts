@@ -77,7 +77,7 @@ describe('POST /api/calendar-sync/google/enable', () => {
 
     (requireAuth as any).mockResolvedValue({ userId: 'user-1' });
     (getAndVerifyHousehold as any).mockResolvedValue({ householdId: 'hh-1', membership: { role: 'owner' } });
-    (isGoogleCalendarConfigured as any).mockReturnValue(true);
+    (isGoogleCalendarConfigured as any).mockResolvedValue(true);
     (hasGoogleOAuthLinked as any).mockResolvedValue(true);
     (listCalendarsForUser as any).mockResolvedValue([]);
     let uuidCall = 0;
@@ -107,7 +107,7 @@ describe('POST /api/calendar-sync/google/enable', () => {
   });
 
   it('returns 503 when Google OAuth is not configured', async () => {
-    (isGoogleCalendarConfigured as any).mockReturnValue(false);
+    (isGoogleCalendarConfigured as any).mockResolvedValue(false);
     const res = await POST(createRequest({}));
     const data = await res.json();
     expect(res.status).toBe(503);

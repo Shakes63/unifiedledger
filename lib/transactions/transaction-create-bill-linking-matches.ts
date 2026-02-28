@@ -35,10 +35,9 @@ export async function matchByExplicitBillInstance({
   }
 
   return formatCreateBillLinkMatch({
-    billId: instance.bill.id,
-    instanceId: instance.instance.id,
-    billName: instance.bill.name,
-    legacyDebtId: instance.bill.debtId,
+    templateId: instance.bill.id,
+    occurrenceId: instance.instance.id,
+    templateName: instance.bill.name,
     notes: `Bill payment: ${instance.bill.name}`,
     logMessage: (paymentStatus) =>
       `Bill payment processed: ${instance.bill.id}, Status: ${paymentStatus}`,
@@ -75,10 +74,9 @@ export async function matchByChargedAccount({
   }
 
   return formatCreateBillLinkMatch({
-    billId: bestMatch.bill.id,
-    instanceId: bestMatch.instance.id,
-    billName: bestMatch.bill.name,
-    legacyDebtId: bestMatch.bill.debtId,
+    templateId: bestMatch.bill.id,
+    occurrenceId: bestMatch.instance.id,
+    templateName: bestMatch.bill.name,
     notes: `Auto-matched from chargedToAccountId: ${bestMatch.bill.name}`,
     logMessage: (paymentStatus) =>
       `ChargedToAccountId match: ${bestMatch.bill.id}, Score: ${bestMatch.score}, Status: ${paymentStatus}`,

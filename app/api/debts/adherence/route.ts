@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { billPaymentEvents, debtPayments, transactions } from '@/lib/db/schema';
+import { billPaymentEvents, debtPayments } from '@/lib/db/schema';
 import { getMonthRangeForDate } from '@/lib/utils/local-date';
 import { eq, and, gte, inArray, lte } from 'drizzle-orm';
 import { calculatePayoffStrategy, type DebtInput, type PayoffMethod, type PaymentFrequency } from '@/lib/debts/payoff-calculator';
@@ -90,7 +90,7 @@ export async function GET(request: Request) {
       .filter((debt) => debt.source === 'bill')
       .map((debt) => debt.id);
 
-    const [standalonePayments, debtBillPayments, legacyBillTransactions] = await Promise.all([
+    const [standalonePayments, debtBillPayments] = await Promise.all([
       db
         .select()
         .from(debtPayments)
@@ -117,24 +117,6 @@ export async function GET(request: Request) {
               )
             )
         : Promise.resolve([]),
-      billDebtIds.length > 0
-        ? db
-            .select({
-              paymentDate: transactions.date,
-              amount: transactions.amount,
-            })
-            .from(transactions)
-            .where(
-              and(
-                eq(transactions.householdId, householdId),
-                eq(transactions.userId, userId),
-                eq(transactions.type, 'expense'),
-                inArray(transactions.billId, billDebtIds),
-                gte(transactions.date, rangeStart || ''),
-                lte(transactions.date, rangeEnd || '')
-              )
-            )
-        : Promise.resolve([]),
     ]);
 
     const actualByMonth = new Map<string, number>();
@@ -155,12 +137,6 @@ export async function GET(request: Request) {
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       addPayment(key, new Decimal(payment.amountCents || 0).div(100).toNumber());
     }
-    for (const payment of legacyBillTransactions) {
-      const date = new Date(payment.paymentDate);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      addPayment(key, Math.abs(payment.amount || 0));
-    }
-
     const monthlyData: MonthlyAdherenceData[] = monthRecords.map((record) => {
       const actualPayment = actualByMonth.get(record.key) || 0;
 

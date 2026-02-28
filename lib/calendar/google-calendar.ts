@@ -7,6 +7,8 @@ import { db } from '@/lib/db';
 import { calendarConnections } from '@/lib/db/schema';
 import * as authSchema from '@/auth-schema';
 import { eq, and } from 'drizzle-orm';
+import { loadOAuthSettingsFromDatabase } from '@/lib/auth/load-oauth-settings';
+import { isOAuthLoginProviderConfigured } from '@/lib/auth/oauth-provider-config';
 
 // Google API URLs
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -85,8 +87,9 @@ async function getGoogleOAuthTokens(userId: string): Promise<GoogleTokens | null
  * Refresh an expired access token using Google's token endpoint
  */
 async function refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; expiresAt: Date }> {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const settings = await loadOAuthSettingsFromDatabase();
+  const clientId = settings?.google?.clientId;
+  const clientSecret = settings?.google?.clientSecret;
 
   if (!clientId || !clientSecret) {
     throw new Error('Google OAuth credentials not configured');
@@ -460,11 +463,8 @@ export async function deleteEvents(
 
 /**
  * Check if Google Calendar sync is available
- * Requires Google OAuth to be configured in the app
+ * Requires Google OAuth provider to be configured in OAuth settings
  */
-export function isGoogleCalendarConfigured(): boolean {
-  return !!(
-    process.env.GOOGLE_CLIENT_ID &&
-    process.env.GOOGLE_CLIENT_SECRET
-  );
+export async function isGoogleCalendarConfigured(): Promise<boolean> {
+  return isOAuthLoginProviderConfigured('google');
 }

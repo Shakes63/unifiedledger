@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { accounts, transactions, budgetCategories, bills } from '@/lib/db/schema';
+import { accounts, transactions, budgetCategories, billTemplates } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { isTestMode } from '@/lib/test-mode';
 
@@ -40,8 +40,8 @@ export async function GET(request: Request) {
         ),
       db
         .select()
-        .from(bills)
-        .where(and(eq(bills.userId, userId), eq(bills.householdId, householdId))),
+        .from(billTemplates)
+        .where(and(eq(billTemplates.createdByUserId, userId), eq(billTemplates.householdId, householdId))),
     ]);
 
     return NextResponse.json({

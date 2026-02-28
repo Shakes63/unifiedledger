@@ -1,7 +1,7 @@
 import { distance } from 'fastest-levenshtein';
 
 import { apiDebugLog } from '@/lib/api/route-helpers';
-import { processAndLinkBillPayment } from '@/lib/transactions/payment-linkage';
+import { processAndLinkTemplatePayment } from '@/lib/transactions/payment-linkage';
 
 export async function processLinkedBillPaymentWithLog({
   transactionId,
@@ -10,10 +10,9 @@ export async function processLinkedBillPaymentWithLog({
   accountId,
   amount,
   date,
-  linkedBillId,
-  linkedInstanceId,
-  billName,
-  legacyDebtId,
+  linkedTemplateId,
+  linkedOccurrenceId,
+  templateName,
   notes,
   logScope,
   logMessage,
@@ -24,18 +23,17 @@ export async function processLinkedBillPaymentWithLog({
   accountId: string;
   amount: number;
   date: string;
-  linkedBillId: string;
-  linkedInstanceId: string;
-  billName: string;
-  legacyDebtId: string | null;
+  linkedTemplateId: string;
+  linkedOccurrenceId: string;
+  templateName: string;
   notes: string;
   logScope: string;
   logMessage: (paymentStatus: string) => string;
 }): Promise<void> {
-  const billLinkResult = await processAndLinkBillPayment({
-    billId: linkedBillId,
-    billName,
-    instanceId: linkedInstanceId,
+  const billLinkResult = await processAndLinkTemplatePayment({
+    templateId: linkedTemplateId,
+    templateName,
+    occurrenceId: linkedOccurrenceId,
     transactionId,
     paymentAmount: amount,
     paymentDate: date,
@@ -44,7 +42,6 @@ export async function processLinkedBillPaymentWithLog({
     paymentMethod: 'manual',
     linkedAccountId: accountId,
     notes,
-    legacyDebtId,
   });
 
   if (billLinkResult.success) {
@@ -56,7 +53,6 @@ interface ChargedAccountBillCandidate {
   bill: {
     id: string;
     name: string;
-    debtId: string | null;
     amountTolerance: number | null;
     expectedAmount: number;
   };

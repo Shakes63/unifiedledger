@@ -22,26 +22,13 @@ import {
   FREQUENCY_LABELS,
   formatDueDateDisplay,
 } from '@/lib/bills/bill-utils';
-import type { Bill } from '@/lib/types';
-
-interface BillInstance {
-  id: string;
-  userId: string;
-  householdId: string;
-  billId: string;
-  dueDate: string;
-  expectedAmount: number;
-  actualAmount?: number | null;
-  paidDate?: string | null;
-  transactionId?: string | null;
-  status: 'pending' | 'paid' | 'overdue' | 'skipped';
-  daysLate: number;
-  lateFee: number;
-  isManualOverride: boolean;
-  notes?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { Bill, BillInstance } from '@/lib/types';
+import type {
+  BillOccurrenceDto,
+  BillTemplateDto,
+  OccurrenceStatus,
+  RecurrenceType,
+} from '@/lib/bills/contracts';
 
 interface Category {
   id: string;
@@ -61,6 +48,87 @@ interface Account {
 interface BillDetailsProps {
   billId: string;
   onDelete?: () => void;
+}
+
+function centsToDollars(value: number | null | undefined): number {
+  return (value || 0) / 100;
+}
+
+function recurrenceToFrequency(recurrenceType: RecurrenceType): Bill['frequency'] {
+  if (recurrenceType === 'one_time') return 'one-time';
+  if (recurrenceType === 'semi_annual') return 'semi-annual';
+  return recurrenceType;
+}
+
+function mapOccurrenceStatus(status: OccurrenceStatus): BillInstance['status'] {
+  if (status === 'paid' || status === 'overpaid') return 'paid';
+  if (status === 'overdue') return 'overdue';
+  if (status === 'skipped') return 'skipped';
+  return 'pending';
+}
+
+function getLegacyDueDate(template: BillTemplateDto): number {
+  if (template.recurrenceType === 'weekly' || template.recurrenceType === 'biweekly') {
+    return template.recurrenceDueWeekday ?? 0;
+  }
+  if (template.recurrenceType === 'one_time') {
+    const day = Number(template.recurrenceSpecificDueDate?.split('-')[2] || '1');
+    return Number.isFinite(day) && day > 0 ? day : 1;
+  }
+  return template.recurrenceDueDay ?? 1;
+}
+
+function mapTemplateToBill(template: BillTemplateDto): Bill {
+  return {
+    id: template.id,
+    userId: template.createdByUserId,
+    householdId: template.householdId,
+    name: template.name,
+    categoryId: template.categoryId,
+    merchantId: template.merchantId,
+    debtId: null,
+    expectedAmount: centsToDollars(template.defaultAmountCents),
+    dueDate: getLegacyDueDate(template),
+    frequency: recurrenceToFrequency(template.recurrenceType),
+    specificDueDate: template.recurrenceSpecificDueDate,
+    startMonth: template.recurrenceStartMonth,
+    isVariableAmount: template.isVariableAmount,
+    amountTolerance: (template.amountToleranceBps || 0) / 100,
+    payeePatterns: null,
+    accountId: template.paymentAccountId,
+    isActive: template.isActive,
+    autoMarkPaid: template.autoMarkPaid,
+    notes: template.notes,
+    budgetPeriodAssignment: template.budgetPeriodAssignment,
+    splitAcrossPeriods: template.splitAcrossPeriods,
+    splitAllocations: null,
+    createdAt: template.createdAt,
+  };
+}
+
+function mapOccurrenceToBillInstance(occurrence: BillOccurrenceDto): BillInstance {
+  return {
+    id: occurrence.id,
+    userId: '',
+    householdId: occurrence.householdId,
+    billId: occurrence.templateId,
+    dueDate: occurrence.dueDate,
+    expectedAmount: centsToDollars(occurrence.amountDueCents),
+    actualAmount:
+      occurrence.actualAmountCents !== null ? centsToDollars(occurrence.actualAmountCents) : null,
+    paidDate: occurrence.paidDate,
+    transactionId: occurrence.lastTransactionId,
+    status: mapOccurrenceStatus(occurrence.status),
+    daysLate: occurrence.daysLate,
+    lateFee: centsToDollars(occurrence.lateFeeCents),
+    isManualOverride: occurrence.isManualOverride,
+    notes: occurrence.notes,
+    budgetPeriodOverride: occurrence.budgetPeriodOverride,
+    paidAmount: centsToDollars(occurrence.amountPaidCents),
+    remainingAmount: centsToDollars(occurrence.amountRemainingCents),
+    createdAt: occurrence.createdAt,
+    updatedAt: occurrence.updatedAt,
+  };
 }
 
 export function BillDetails({ billId, onDelete }: BillDetailsProps) {
@@ -88,16 +156,27 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
 
     try {
       setLoading(true);
-      const response = await fetchWithHousehold(`/api/bills-v2/${billId}`);
+      const response = await fetchWithHousehold(`/api/bills/templates/${billId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch bill');
       }
-      const data = await response.json();
-      setBill(data.bill);
-      setInstances(data.instances || []);
-      setCategory(data.category || null);
-      setMerchant(data.merchant || null);
-      setAccount(data.account || null);
+      const payload = await response.json() as {
+        data?: {
+          template: BillTemplateDto;
+          occurrences: BillOccurrenceDto[];
+          category: Category | null;
+          merchant: Merchant | null;
+          account: Account | null;
+        };
+      };
+      if (!payload.data?.template) {
+        throw new Error('Bill template not found');
+      }
+      setBill(mapTemplateToBill(payload.data.template));
+      setInstances((payload.data.occurrences || []).map(mapOccurrenceToBillInstance));
+      setCategory(payload.data.category || null);
+      setMerchant(payload.data.merchant || null);
+      setAccount(payload.data.account || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -126,7 +205,7 @@ export function BillDetails({ billId, onDelete }: BillDetailsProps) {
 
     try {
       setDeleting(true);
-      const response = await fetchWithHousehold(`/api/bills-v2/${billId}`, { method: 'DELETE' });
+      const response = await fetchWithHousehold(`/api/bills/templates/${billId}`, { method: 'DELETE' });
 
       if (!response.ok) {
         throw new Error('Failed to delete bill');

@@ -923,7 +923,7 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                       ? 'text-error' 
                       : 'text-foreground'
                   }`}>
-                    {paymentBillDetection.detectedBill.billName}
+                    {paymentBillDetection.detectedBill.templateName}
                     {paymentBillDetection.detectedBill.status === 'overdue' && (
                       <span className="ml-2 text-xs font-normal bg-error/20 px-1.5 py-0.5 rounded">
                         OVERDUE
@@ -938,10 +938,10 @@ export function TransactionForm({ defaultType = 'expense', transactionId, onEdit
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Due: {format(parseISO(paymentBillDetection.detectedBill.dueDate), 'MMM d, yyyy')}
                     {' '}&middot;{' '}
-                    ${paymentBillDetection.detectedBill.expectedAmount.toFixed(2)}
+                    ${(paymentBillDetection.detectedBill.expectedAmountCents / 100).toFixed(2)}
                     {paymentBillDetection.detectedBill.status === 'partial' && (
                       <span className="text-warning">
-                        {' '}(${paymentBillDetection.detectedBill.remainingAmount.toFixed(2)} remaining)
+                        {' '}(${(paymentBillDetection.detectedBill.remainingAmountCents / 100).toFixed(2)} remaining)
                       </span>
                     )}
                   </p>

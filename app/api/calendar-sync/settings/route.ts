@@ -92,13 +92,13 @@ export async function GET(request: Request) {
  * PUT /api/calendar-sync/settings
  * Update calendar sync settings
  * Body: { syncMode?, syncBills?, syncSavingsMilestones?, syncDebtMilestones?, syncPayoffDates?, syncGoalTargetDates?, reminderMinutes? }
- * Household context: x-household-id header (or body fallback via helper)
+ * Household context: x-household-id header
  */
 export async function PUT(request: Request) {
   try {
     const { userId } = await requireAuth();
     const body = await request.json();
-    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+    const { householdId } = await getAndVerifyHousehold(request, userId);
     const {
       syncMode,
       syncBills,

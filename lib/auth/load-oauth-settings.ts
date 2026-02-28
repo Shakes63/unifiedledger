@@ -24,7 +24,7 @@ export interface DatabaseOAuthSettings {
  * Load OAuth settings from database
  * 
  * Returns OAuth provider configurations with decrypted secrets.
- * Returns null if no settings found or on error (fallback to env vars).
+ * Returns null if no settings found or on error.
  * 
  * @returns OAuth settings object or null
  */
@@ -37,7 +37,7 @@ export async function loadOAuthSettingsFromDatabase(): Promise<DatabaseOAuthSett
       .where(eq(oauthSettings.enabled, true));
 
     if (!settings || settings.length === 0) {
-      // No settings in database, return null to use env vars
+      // No settings in database.
       return null;
     }
 
@@ -84,7 +84,7 @@ export async function loadOAuthSettingsFromDatabase(): Promise<DatabaseOAuthSett
     return result;
   } catch (error) {
     console.error('[OAuth Loader] Error loading OAuth settings from database:', error);
-    // Return null on error to fallback to env vars
+    // Return null on error.
     return null;
   }
 }

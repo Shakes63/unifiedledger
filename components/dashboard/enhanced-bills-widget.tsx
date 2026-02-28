@@ -10,18 +10,39 @@ import { parseISO, format } from 'date-fns';
 import { useHouseholdFetch } from '@/lib/hooks/use-household-fetch';
 import { useHousehold } from '@/contexts/household-context';
 import { BillPayModal } from '@/components/bills/bill-pay-modal';
+import type { BillOccurrenceWithTemplateDto } from '@/lib/bills/contracts';
 
 interface BillInstance {
   id: string;
   billId: string;
   dueDate: string;
   expectedAmount: number;
-  actualAmount?: number;
+  actualAmount?: number | null;
   status: 'pending' | 'paid' | 'overdue' | 'skipped';
   bill?: {
     id: string;
     name: string;
   };
+}
+
+function mapRows(rows: BillOccurrenceWithTemplateDto[]): BillInstance[] {
+  return rows.map((row) => ({
+    id: row.occurrence.id,
+    billId: row.occurrence.templateId,
+    dueDate: row.occurrence.dueDate,
+    expectedAmount: row.occurrence.amountDueCents / 100,
+    actualAmount:
+      row.occurrence.actualAmountCents !== null ? row.occurrence.actualAmountCents / 100 : null,
+    status:
+      row.occurrence.status === 'paid' || row.occurrence.status === 'overpaid'
+        ? 'paid'
+        : row.occurrence.status === 'overdue'
+          ? 'overdue'
+          : row.occurrence.status === 'skipped'
+            ? 'skipped'
+            : 'pending',
+    bill: { id: row.template.id, name: row.template.name },
+  }));
 }
 
 type SortOption = 'date' | 'amount';
@@ -44,40 +65,33 @@ export function EnhancedBillsWidget() {
 
       // Fetch overdue bills separately with high limit to ensure we get all of them
       const overdueResponse = await fetchWithHousehold(
-        `/api/bills-v2/instances?status=overdue&limit=10000`
+        '/api/bills/occurrences?status=overdue&limit=10000'
       );
       
       // Fetch pending and paid bills for current month
       const currentMonthResponse = await fetchWithHousehold(
-        `/api/bills-v2/instances?status=pending,paid&limit=1000`
+        '/api/bills/occurrences?status=unpaid,partial,paid&limit=1000'
       );
 
       const allBillInstances: BillInstance[] = [];
 
-      interface BillInstanceRow {
-        instance: BillInstance;
-        bill: { id: string; name: string };
-      }
-
       // Process overdue bills - include all regardless of date
       if (overdueResponse.ok) {
         const overdueData = await overdueResponse.json();
-        const overdueRawData = Array.isArray(overdueData) ? overdueData : overdueData.data || [];
-        const overdueBills = overdueRawData.map((row: BillInstanceRow) => ({
-          ...row.instance,
-          bill: row.bill,
-        }));
+        const overdueRawData = (Array.isArray(overdueData?.data)
+          ? overdueData.data
+          : []) as BillOccurrenceWithTemplateDto[];
+        const overdueBills = mapRows(overdueRawData);
         allBillInstances.push(...overdueBills);
       }
 
       // Process pending and paid bills
       if (currentMonthResponse.ok) {
         const currentMonthData = await currentMonthResponse.json();
-        const currentMonthRawData = Array.isArray(currentMonthData) ? currentMonthData : currentMonthData.data || [];
-        const currentMonthBills = currentMonthRawData.map((row: BillInstanceRow) => ({
-          ...row.instance,
-          bill: row.bill,
-        }));
+        const currentMonthRawData = (Array.isArray(currentMonthData?.data)
+          ? currentMonthData.data
+          : []) as BillOccurrenceWithTemplateDto[];
+        const currentMonthBills = mapRows(currentMonthRawData);
 
         // Filter pending and paid bills by current month
         const filteredCurrentMonthBills = currentMonthBills.filter((bill: BillInstance) => {

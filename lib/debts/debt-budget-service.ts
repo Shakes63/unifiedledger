@@ -6,7 +6,6 @@ import {
   accounts,
   billPaymentEvents,
   billTemplates,
-  bills,
   householdSettings,
   transactions,
 } from '@/lib/db/schema';
@@ -100,28 +99,16 @@ export async function getUnifiedDebtBudget(params: {
       )
     );
 
-  const [debtBills, debtTemplates] = await Promise.all([
-    db
-      .select()
-      .from(bills)
-      .where(
-        and(
-          eq(bills.householdId, householdId),
-          eq(bills.isDebt, true),
-          eq(bills.isActive, true)
-        )
-      ),
-    db
-      .select()
-      .from(billTemplates)
-      .where(
-        and(
-          eq(billTemplates.householdId, householdId),
-          eq(billTemplates.debtEnabled, true),
-          eq(billTemplates.isActive, true)
-        )
-      ),
-  ]);
+  const debtTemplates = await db
+    .select()
+    .from(billTemplates)
+    .where(
+      and(
+        eq(billTemplates.householdId, householdId),
+        eq(billTemplates.debtEnabled, true),
+        eq(billTemplates.isActive, true)
+      )
+    );
 
   const paymentMap = new Map<string, number>();
 
@@ -146,35 +133,6 @@ export async function getUnifiedDebtBudget(params: {
         payment.accountId,
         new Decimal(current).plus(getTransactionAmountAmount(payment)).toNumber()
       );
-    }
-  }
-
-  if (debtBills.length > 0) {
-    const billPayments = await db
-      .select()
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.householdId, householdId),
-          eq(transactions.type, 'expense'),
-          gte(transactions.date, monthStart),
-          lte(transactions.date, monthEnd)
-        )
-      );
-
-    for (const payment of billPayments) {
-      for (const bill of debtBills) {
-        const descLower = (payment.description ?? '').toLowerCase();
-        const billNameLower = bill.name.toLowerCase();
-        if (descLower.includes(billNameLower) || billNameLower.includes(descLower)) {
-          const current = paymentMap.get(bill.id) ?? 0;
-          paymentMap.set(
-            bill.id,
-            new Decimal(current).plus(getTransactionAmountAmount(payment)).toNumber()
-          );
-          break;
-        }
-      }
     }
   }
 
@@ -221,24 +179,6 @@ export async function getUnifiedDebtBudget(params: {
       includeInPayoffStrategy: account.includeInPayoffStrategy ?? true,
       interestRate: account.interestRate ?? undefined,
       color: account.color ?? undefined,
-    });
-  }
-
-  for (const bill of debtBills) {
-    allDebts.push({
-      id: bill.id,
-      name: bill.name,
-      source: 'bill',
-      sourceType: bill.debtType ?? 'other',
-      balance: bill.remainingBalance ?? 0,
-      minimumPayment: bill.minimumPayment ?? 0,
-      recommendedPayment: bill.minimumPayment ?? 0,
-      budgetedPayment: bill.budgetedMonthlyPayment,
-      actualPaid: paymentMap.get(bill.id) ?? 0,
-      isFocusDebt: false,
-      includeInPayoffStrategy: bill.includeInPayoffStrategy ?? true,
-      interestRate: bill.billInterestRate ?? undefined,
-      color: bill.billColor ?? undefined,
     });
   }
 

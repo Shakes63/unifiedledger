@@ -1,5 +1,5 @@
 /**
- * Bill Utilities - Helper functions and constants for bill management
+ * Template Utilities - Helper functions and constants for recurring template management
  *
  * Supports 7 bill frequencies:
  * - one-time: Single payment on a specific date
@@ -138,12 +138,12 @@ export function getDueDatePlaceholder(frequency: string): string {
 }
 
 /**
- * Get the number of bill instances to create based on frequency
+ * Get the number of occurrences to create based on frequency
  */
 export function getInstanceCount(frequency: string): number {
   switch (frequency) {
     case 'one-time':
-      return 1; // Only one instance ever
+      return 1; // Only one occurrence ever
     case 'weekly':
       return 8; // ~2 months ahead
     case 'biweekly':
@@ -162,13 +162,13 @@ export function getInstanceCount(frequency: string): number {
 }
 
 /**
- * Calculate the next due date for a bill instance
+ * Calculate the next due date for a template occurrence
  *
  * @param frequency - The bill frequency
  * @param dueDate - Day of month (1-31) for month-based, day of week (0-6) for week-based, ignored for one-time
  * @param specificDueDate - ISO date string for one-time bills
  * @param currentDate - The reference date to calculate from
- * @param instanceIndex - The instance number (0 for first, 1 for second, etc.)
+ * @param instanceIndex - The occurrence number (0 for first, 1 for second, etc.)
  * @param startMonth - Optional starting month (0-11) for non-monthly periodic bills (quarterly/semi-annual/annual)
  * @returns ISO date string (YYYY-MM-DD)
  */

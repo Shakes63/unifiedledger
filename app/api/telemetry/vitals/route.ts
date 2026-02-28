@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
         count: validMetrics.length,
       });
     } else {
-      // Handle single metric (legacy support)
+      // Handle single metric payload
       const { metric, timestamp, url, userAgent } = body;
 
       if (!isWebVitalMetric(metric)) {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { GET as GET_CLASSIFICATION_SUMMARY } from '@/app/api/bills-v2/classification-summary/route';
+import { GET as GET_CLASSIFICATION_SUMMARY } from '@/app/api/bills/classification-summary/route';
 
 vi.mock('@/lib/auth-helpers', () => ({
   requireAuth: vi.fn(),
@@ -10,16 +10,16 @@ vi.mock('@/lib/api/household-auth', () => ({
   getAndVerifyHousehold: vi.fn(),
 }));
 
-vi.mock('@/lib/bills-v2/service', () => ({
+vi.mock('@/lib/bills/service', () => ({
   listBillTemplates: vi.fn(),
   listOccurrences: vi.fn(),
 }));
 
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
-import { listBillTemplates, listOccurrences } from '@/lib/bills-v2/service';
+import { listBillTemplates, listOccurrences } from '@/lib/bills/service';
 
-describe('GET /api/bills-v2/classification-summary', () => {
+describe('GET /api/bills/classification-summary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -165,7 +165,7 @@ describe('GET /api/bills-v2/classification-summary', () => {
 
     const request = {
       headers: new Headers(),
-      url: 'https://example.com/api/bills-v2/classification-summary?householdId=hh_1',
+      url: 'https://example.com/api/bills/classification-summary?householdId=hh_1',
     } as unknown as Request;
 
     const response = await GET_CLASSIFICATION_SUMMARY(request);

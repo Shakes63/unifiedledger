@@ -8,7 +8,7 @@
  */
 
 import { db } from '@/lib/db';
-import { interestDeductions, bills, billTemplates, taxCategories, notifications } from '@/lib/db/schema';
+import { interestDeductions, billTemplates, taxCategories, notifications } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import Decimal from 'decimal.js';
@@ -91,7 +91,7 @@ interface DebtBillTaxSettings {
 }
 
 async function getDebtBillTaxSettings(
-  userId: string,
+  _userId: string,
   householdId: string,
   billId: string
 ): Promise<DebtBillTaxSettings | null> {
@@ -117,26 +117,7 @@ async function getDebtBillTaxSettings(
     };
   }
 
-  const [legacyBill] = await db
-    .select({
-      isInterestTaxDeductible: bills.isInterestTaxDeductible,
-      deductionType: bills.taxDeductionType,
-      deductionLimit: bills.taxDeductionLimit,
-    })
-    .from(bills)
-    .where(and(eq(bills.id, billId), eq(bills.userId, userId), eq(bills.householdId, householdId)))
-    .limit(1);
-
-  if (!legacyBill) {
-    return null;
-  }
-
-  return {
-    isInterestTaxDeductible: legacyBill.isInterestTaxDeductible ?? false,
-    deductionType:
-      (legacyBill.deductionType as DebtBillTaxSettings['deductionType']) || 'none',
-    deductionLimit: legacyBill.deductionLimit ?? null,
-  };
+  return null;
 }
 
 /**

@@ -17,18 +17,18 @@ export const dynamic = 'force-dynamic';
  * Enable Google Calendar sync for a household
  * Creates connection record and default sync settings
  * Body: { calendarId?: string }
- * Household context: x-household-id header (or body fallback via helper)
+ * Household context: x-household-id header
  */
 export async function POST(request: Request) {
   try {
     const { userId } = await requireAuth();
 
     const body = await request.json();
-    const { householdId } = await getAndVerifyHousehold(request, userId, body);
+    const { householdId } = await getAndVerifyHousehold(request, userId);
     const { calendarId } = body;
 
     // Check if Google OAuth is configured
-    if (!isGoogleCalendarConfigured()) {
+    if (!(await isGoogleCalendarConfigured())) {
       return Response.json(
         { error: 'Google OAuth not configured' },
         { status: 503 }

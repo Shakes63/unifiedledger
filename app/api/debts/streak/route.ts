@@ -1,7 +1,7 @@
 import { requireAuth } from '@/lib/auth-helpers';
 import { getAndVerifyHousehold } from '@/lib/api/household-auth';
 import { db } from '@/lib/db';
-import { billPaymentEvents, debtPayments, transactions } from '@/lib/db/schema';
+import { billPaymentEvents, debtPayments } from '@/lib/db/schema';
 import { toLocalDateString } from '@/lib/utils/local-date';
 import { eq, and, inArray } from 'drizzle-orm';
 import Decimal from 'decimal.js';
@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       .filter((debt) => debt.source === 'bill')
       .map((debt) => debt.id);
 
-    const [standalonePayments, debtBillPayments, legacyBillTransactions] = await Promise.all([
+    const [standalonePayments, debtBillPayments] = await Promise.all([
       db
         .select()
         .from(debtPayments)
@@ -68,22 +68,6 @@ export async function GET(request: Request) {
               )
             )
         : Promise.resolve([]),
-      billDebtIds.length > 0
-        ? db
-            .select({
-              paymentDate: transactions.date,
-              amount: transactions.amount,
-            })
-            .from(transactions)
-            .where(
-              and(
-                eq(transactions.householdId, householdId),
-                eq(transactions.userId, userId),
-                eq(transactions.type, 'expense'),
-                inArray(transactions.billId, billDebtIds)
-              )
-            )
-        : Promise.resolve([]),
     ]);
 
     const allPayments = [
@@ -93,10 +77,6 @@ export async function GET(request: Request) {
       })),
       ...debtBillPayments.map((payment) => ({
         amount: new Decimal(payment.amountCents || 0).div(100).toNumber(),
-        paymentDate: payment.paymentDate,
-      })),
-      ...legacyBillTransactions.map((payment) => ({
-        amount: Math.abs(payment.amount || 0),
         paymentDate: payment.paymentDate,
       })),
     ].sort((a, b) => new Date(a.paymentDate).getTime() - new Date(b.paymentDate).getTime());

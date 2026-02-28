@@ -39,6 +39,7 @@ import {
   Receipt,
 } from 'lucide-react';
 import type { Bill, BillInstance, Transaction, BillInstanceAllocation } from '@/lib/types';
+import type { BillOccurrenceAllocationDto, BillPaymentEventDto } from '@/lib/bills/contracts';
 import Decimal from 'decimal.js';
 
 interface BillPayment {
@@ -48,6 +49,23 @@ interface BillPayment {
   paymentMethod: string;
   notes?: string | null;
   transaction?: { description: string; accountId: string } | null;
+}
+
+function mapAllocationDto(allocation: BillOccurrenceAllocationDto): BillInstanceAllocation {
+  return {
+    id: allocation.id,
+    billInstanceId: allocation.occurrenceId,
+    billId: allocation.templateId,
+    userId: '',
+    householdId: allocation.householdId,
+    periodNumber: allocation.periodNumber,
+    allocatedAmount: allocation.allocatedAmountCents / 100,
+    isPaid: allocation.isPaid,
+    paidAmount: allocation.paidAmountCents / 100,
+    allocationId: allocation.paymentEventId,
+    createdAt: allocation.createdAt,
+    updatedAt: allocation.updatedAt,
+  };
 }
 
 interface BillInstanceActionsModalProps {
@@ -136,15 +154,18 @@ export function BillInstanceActionsModal({
   const fetchAllocations = async () => {
     try {
       setLoadingAllocations(true);
-      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}/allocations`);
+      const response = await fetchWithHousehold(`/api/bills/occurrences/${instance.id}/allocations`);
       if (response.ok) {
-        const data = await response.json();
-        setAllocations(data.allocations || []);
+        const payload = await response.json() as {
+          data?: { allocations?: BillOccurrenceAllocationDto[] };
+        };
+        const mapped = (payload.data?.allocations || []).map(mapAllocationDto);
+        setAllocations(mapped);
         
         // Initialize inputs from existing allocations
-        if (data.allocations?.length > 0) {
+        if (mapped.length > 0) {
           setAllocationInputs(
-            data.allocations.map((a: BillInstanceAllocation) => ({
+            mapped.map((a: BillInstanceAllocation) => ({
               periodNumber: a.periodNumber,
               amount: a.allocatedAmount.toString(),
             }))
@@ -168,10 +189,33 @@ export function BillInstanceActionsModal({
   const fetchPayments = async () => {
     try {
       setLoadingPayments(true);
-      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}/payments`);
+      const response = await fetchWithHousehold(`/api/bills/occurrences/${instance.id}/payments`);
       if (response.ok) {
-        const data = await response.json();
-        setPayments(data.payments || []);
+        const payload = await response.json() as {
+          data?: {
+            payments: BillPaymentEventDto[];
+            related?: {
+              transactions?: Array<{ id: string; description: string; accountId: string }>;
+            };
+          };
+        };
+        const transactions = payload.data?.related?.transactions || [];
+        const txMap = new Map(transactions.map((transaction) => [transaction.id, transaction]));
+        setPayments(
+          (payload.data?.payments || []).map((payment) => ({
+            id: payment.id,
+            amount: payment.amountCents / 100,
+            paymentDate: payment.paymentDate,
+            paymentMethod: payment.paymentMethod,
+            notes: payment.notes,
+            transaction: txMap.has(payment.transactionId)
+              ? {
+                  description: txMap.get(payment.transactionId)?.description || '',
+                  accountId: txMap.get(payment.transactionId)?.accountId || '',
+                }
+              : null,
+          }))
+        );
       }
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -188,10 +232,10 @@ export function BillInstanceActionsModal({
         .filter(a => a.amount && parseFloat(a.amount) > 0)
         .map(a => ({
           periodNumber: a.periodNumber,
-          allocatedAmount: parseFloat(a.amount),
+          allocatedAmountCents: Math.round(parseFloat(a.amount) * 100),
         }));
 
-      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}/allocations`, {
+      const response = await fetchWithHousehold(`/api/bills/occurrences/${instance.id}/allocations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ allocations: allocationsData }),
@@ -218,7 +262,7 @@ export function BillInstanceActionsModal({
     try {
       setLoading(true);
       
-      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}/allocations`, {
+      const response = await fetchWithHousehold(`/api/bills/occurrences/${instance.id}/allocations`, {
         method: 'DELETE',
       });
 
@@ -260,22 +304,24 @@ export function BillInstanceActionsModal({
       setLoading(true);
 
       const updateData: Record<string, unknown> = {
-        status: action,
+        status: action === 'pending' ? 'unpaid' : action,
         notes: notes || undefined,
       };
 
       if (action === 'paid') {
         updateData.paidDate = getTodayLocalDateString();
-        updateData.actualAmount = actualAmount ? parseFloat(actualAmount) : instance.expectedAmount;
+        updateData.actualAmountCents = Math.round(
+          (actualAmount ? parseFloat(actualAmount) : instance.expectedAmount) * 100
+        );
         updateData.isManualOverride = true;
       } else if (action === 'pending') {
         updateData.paidDate = null;
-        updateData.actualAmount = null;
+        updateData.actualAmountCents = null;
         updateData.transactionId = null;
         updateData.isManualOverride = false;
       }
 
-      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}`, {
+      const response = await fetchWithHousehold(`/api/bills/occurrences/${instance.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData),
@@ -315,13 +361,13 @@ export function BillInstanceActionsModal({
       if (selectedTransactionId && selectedTransaction) {
         updateData.status = 'paid';
         updateData.paidDate = selectedTransaction.date;
-        updateData.actualAmount = selectedTransaction.amount;
+        updateData.actualAmountCents = Math.round(selectedTransaction.amount * 100);
         updateData.isManualOverride = true;
       } else {
         updateData.transactionId = null;
       }
 
-      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}`, {
+      const response = await fetchWithHousehold(`/api/bills/occurrences/${instance.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData),
@@ -361,7 +407,7 @@ export function BillInstanceActionsModal({
         budgetPeriodOverride: periodOverride ? parseInt(periodOverride) : null,
       };
 
-      const response = await fetchWithHousehold(`/api/bills-v2/instances/${instance.id}`, {
+      const response = await fetchWithHousehold(`/api/bills/occurrences/${instance.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData),
